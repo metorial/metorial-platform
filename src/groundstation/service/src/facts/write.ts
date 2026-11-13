@@ -1,3 +1,4 @@
+import type { BillingMode, BillingSource } from '@metorial/groundstation-spec';
 import { resolveSessionAttribution } from '../attribution/resolve';
 import { db } from '../db';
 import { getStore } from '../store/connection';
@@ -29,6 +30,9 @@ export type BaseSlice = {
   provider?: string;
   vendorId?: string;
   vendorSource?: VendorSource;
+  billingMode?: BillingMode;
+  billingSource?: BillingSource;
+  billingPlan?: string;
 
   // Sessionless slices only: the observed identity of the aggregate (07 §5.6).
   userId?: string;

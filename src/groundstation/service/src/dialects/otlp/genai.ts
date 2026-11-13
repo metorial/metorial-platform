@@ -1,4 +1,5 @@
 import type { RecordDraft } from '../../records/draft';
+import { genAiBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
 import { classifyTool } from '../tools';
@@ -130,6 +131,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
           outcome: failed ? 'error' : 'ok',
           ...(errorInfo ? { error: errorInfo } : {}),
           ...modelRef(model, provider),
+          ...ok(genAiBilling(provider), 'billing'),
           ...(usage.usage ? { usage: usage.usage } : {}),
           ...ok(duration, 'duration_ms')
         }

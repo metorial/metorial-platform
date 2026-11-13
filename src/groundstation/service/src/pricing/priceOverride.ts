@@ -1,6 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { BillingMode } from '@metorial/groundstation-spec';
 import type { Pricing } from '@metorial/model-catalog/src/types';
 import {
   Prisma,
@@ -13,7 +14,11 @@ import { db, withTransaction } from '../db';
 import { getId } from '../id';
 import { queuePriceOverrideImpact, type PriceOverrideImpactScope } from '../knowledge/impact';
 import { dropOrganizationOverrides, publishPriceOverrideVersion } from './cache';
-import { assertValidPriceOverride, type PriceOverrideDefinition } from './validate';
+import {
+  assertValidPriceOverride,
+  normalizeBillingModes,
+  type PriceOverrideDefinition
+} from './validate';
 
 export let priceOverrideInclude = {
   project: true
@@ -37,6 +42,7 @@ let pricingSignature = (override: PriceOverride) =>
     override.target,
     override.targetId,
     override.vendorId,
+    override.billingModes,
     override.kind,
     override.multiplier?.toString() ?? null,
     override.rates,
@@ -49,6 +55,7 @@ let definitionOf = (override: PriceOverride): PriceOverrideDefinition => ({
   target: override.target,
   targetId: override.targetId,
   vendorId: override.vendorId,
+  billingModes: override.billingModes,
   kind: override.kind,
   multiplier: override.multiplier === null ? null : Number(override.multiplier),
   rates: override.rates,
@@ -66,6 +73,7 @@ class PriceOverrideServiceImpl {
       target: PriceOverrideTarget;
       targetId?: string | null;
       vendorId?: string | null;
+      billingModes?: BillingMode[];
       kind: PriceOverrideKind;
       multiplier?: number | null;
       rates?: Pricing | null;
@@ -79,6 +87,7 @@ class PriceOverrideServiceImpl {
       target: d.input.target,
       targetId: d.input.targetId ?? null,
       vendorId: d.input.vendorId ?? null,
+      billingModes: normalizeBillingModes(d.input.billingModes ?? []),
       kind: d.input.kind,
       multiplier: d.input.multiplier ?? null,
       rates: d.input.rates ?? null,
@@ -127,6 +136,7 @@ class PriceOverrideServiceImpl {
       target?: PriceOverrideTarget;
       targetId?: string | null;
       vendorId?: string | null;
+      billingModes?: BillingMode[];
       kind?: PriceOverrideKind;
       multiplier?: number | null;
       rates?: Pricing | null;
@@ -268,6 +278,7 @@ class PriceOverrideServiceImpl {
       target,
       targetId: keep(input.targetId, current.targetId, target != 'all'),
       vendorId: input.vendorId !== undefined ? input.vendorId : current.vendorId,
+      billingModes: normalizeBillingModes(input.billingModes ?? current.billingModes),
       kind,
       multiplier: keep(input.multiplier, current.multiplier, kind == 'multiplier'),
       rates: keep(input.rates, current.rates, kind == 'rates'),
@@ -281,6 +292,7 @@ class PriceOverrideServiceImpl {
       target: definition.target,
       targetId: definition.targetId,
       vendorId: definition.vendorId,
+      billingModes: definition.billingModes,
       kind: definition.kind,
       multiplier: definition.multiplier === null ? null : String(definition.multiplier),
       rates: definition.rates ?? Prisma.DbNull,

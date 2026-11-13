@@ -1,15 +1,19 @@
 import type { NormalizedRecord, RecordKind } from '@metorial/groundstation-spec';
 import {
-  computeRequestCost,
-  isSubscriptionAuth,
-  type CatalogIndex,
-  type ModelRequest
-} from '../catalog';
+  createDeclarationLookup,
+  declaredBilling,
+  defaultBillingOf,
+  isSubscriptionBilling,
+  reportedBilling,
+  type Billing,
+  type DeclarationLookup
+} from '../billing/resolve';
+import { computeRequestCost, type CatalogIndex, type ModelRequest } from '../catalog';
 import { sessionlessKey } from '../facts/slices';
 import { writeSessionFacts, type BaseSlice } from '../facts/write';
 import { db } from '../db';
 import { getKnowledge } from '../knowledge/cache';
-import { getOrganizationOverrides } from '../pricing/cache';
+import { getOrganizationPricing } from '../pricing/cache';
 import { createOverridePricer, type OverridePricer } from '../pricing/pricer';
 import { getRuntime } from '../runtime';
 import { defaultStoragePolicy } from '../sink/types';
@@ -110,7 +114,34 @@ type SliceTotals = {
   contract?: Amount;
 };
 
-let requestOf = (document: SessionlessRecord): ModelRequest | undefined => {
+// Aggregates name the plan tier when the usage is a subscription's (Kiro).
+let billingOf = (d: {
+  document: SessionlessRecord;
+  agentId?: string;
+  declarations?: DeclarationLookup | null;
+}): Billing => {
+  let data = d.document.data ?? {};
+  let tier = text(record(data.dims)?.subscription_tier);
+  if (tier) return { mode: 'included', source: 'reported', plan: tier };
+
+  let reported = reportedBilling({
+    billing: data.billing,
+    authMode: d.document.client.authMode
+  });
+  if (reported.mode != 'unknown') return reported;
+
+  let declared = declaredBilling(
+    d.declarations?.({
+      at: d.document.occurredAt,
+      userId: d.document.attribution?.userId,
+      agentId: d.agentId
+    })
+  );
+
+  return declared ?? defaultBillingOf(d.document.client.family) ?? reported;
+};
+
+let requestOf = (document: SessionlessRecord, billing: Billing): ModelRequest | undefined => {
   let data = document.data ?? {};
   let dims = record(data.dims) ?? {};
   let model = record(data.model);
@@ -123,8 +154,7 @@ let requestOf = (document: SessionlessRecord): ModelRequest | undefined => {
     provider: text(dims.provider) ?? text(model?.provider),
     family: document.client.family,
     baseUrl: text(model?.baseUrl),
-    subscription:
-      !!text(dims.subscription_tier) || isSubscriptionAuth(document.client.authMode)
+    subscription: isSubscriptionBilling(billing)
   };
 };
 
@@ -133,11 +163,25 @@ export let sessionlessBaseSlices = async (d: {
   bucket: Date;
   catalog: CatalogIndex | null;
   pricing?: OverridePricer | null;
+  declarations?: DeclarationLookup | null;
 }): Promise<BaseSlice[]> => {
   let records = [...d.records];
   let slices = new Map<string, SliceTotals>();
 
-  let requests = records.flatMap(document => requestOf(document) ?? []);
+  let billings = new Map(
+    records.map(document => [
+      document,
+      billingOf({
+        document,
+        agentId: d.catalog?.vendors.agent(document.client.family)?.id,
+        declarations: d.declarations
+      })
+    ])
+  );
+
+  let requests = records.flatMap(
+    document => requestOf(document, billings.get(document)!) ?? []
+  );
   let resolver = d.catalog ? await d.catalog.prepare(requests) : null;
 
   for (let document of records) {
@@ -157,7 +201,8 @@ export let sessionlessBaseSlices = async (d: {
     }
 
     let dims = record(data.dims) ?? {};
-    let request = requestOf(document);
+    let billing = billings.get(document)!;
+    let request = requestOf(document, billing);
     let modelRaw = request?.raw;
     let provider = request?.provider;
     let { modelId, vendorId, vendorSource } =
@@ -173,7 +218,10 @@ export let sessionlessBaseSlices = async (d: {
       attribution.agentId,
       modelId ?? (modelRaw ? `raw:${modelRaw}` : ''),
       vendorId,
-      vendorSource
+      vendorSource,
+      billing.mode,
+      billing.source,
+      billing.plan
     ].join('\0');
 
     let totals = slices.get(key);
@@ -187,6 +235,9 @@ export let sessionlessBaseSlices = async (d: {
           ...(provider ? { provider } : {}),
           ...(vendorId ? { vendorId } : {}),
           ...(vendorSource ? { vendorSource } : {}),
+          billingMode: billing.mode,
+          ...(billing.source ? { billingSource: billing.source } : {}),
+          ...(billing.plan ? { billingPlan: billing.plan } : {}),
           ...(attribution.userId ? { userId: attribution.userId } : {}),
           ...(attribution.deviceId ? { deviceId: attribution.deviceId } : {}),
           ...(attribution.agentId ? { agentId: attribution.agentId } : {}),
@@ -266,6 +317,7 @@ export let sessionlessBaseSlices = async (d: {
         ? d.pricing({
             at: totals.slice.bucket,
             resolution,
+            billingMode: totals.slice.billingMode ?? 'unknown',
             list: totals.computed,
             tokens: totals.slice.tokens,
             contextTokens: 0
@@ -362,28 +414,29 @@ export let settleSessionless = async (d: {
   instanceId: string;
   bucket: Date;
 }) => {
-  let [records, catalog, overrides] = await Promise.all([
+  let [records, catalog, { overrides, declarations }] = await Promise.all([
     loadSessionlessRecords(d),
     getKnowledge(),
-    getOrganizationOverrides(d.organizationId)
+    getOrganizationPricing(d.organizationId)
   ]);
 
-  let instance = overrides.length
-    ? await db.instance.findUnique({ where: { id: d.instanceId }, include: { project: true } })
+  let instance =
+    overrides.length || declarations.length
+      ? await db.instance.findUnique({
+          where: { id: d.instanceId },
+          include: { project: true }
+        })
+      : null;
+  let scope = instance
+    ? { organizationId: d.organizationId, projectId: instance.project.id }
     : null;
 
   let slices = await sessionlessBaseSlices({
     records,
     bucket: d.bucket,
     catalog,
-    pricing: instance
-      ? createOverridePricer({
-          overrides,
-          organizationId: d.organizationId,
-          projectId: instance.project.id,
-          catalog
-        })
-      : null
+    pricing: scope ? createOverridePricer({ ...scope, overrides, catalog }) : null,
+    declarations: scope ? createDeclarationLookup({ ...scope, declarations }) : null
   });
 
   await writeSessionFacts({ sessionKey: sessionlessKey(d.instanceId, d.bucket), slices });

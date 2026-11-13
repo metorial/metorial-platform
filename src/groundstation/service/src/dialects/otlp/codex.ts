@@ -1,6 +1,7 @@
 import type { ContentInput } from '../../content/engine';
 import type { OtlpLogRecord } from '../../otlp/model';
 import type { RecordDraft } from '../../records/draft';
+import { codexBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
 import { classifyTool } from '../tools';
@@ -134,6 +135,8 @@ let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['cl
 
 let ok = <T>(value: T | undefined, key: string) =>
   value === undefined ? {} : { [key]: value };
+
+let billingOf = (fields: FieldReader) => ok(codexBilling(fields.str('auth_mode')), 'billing');
 
 let withData = (draft: RecordDraft, data: Record<string, unknown>): RecordDraft => ({
   ...draft,
@@ -292,6 +295,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
           {
             ...(status !== undefined ? { outcome: failed ? 'error' : 'ok' } : {}),
             ...(failed ? { error: errorFromStatus(status, undefined, 'unknown') } : {}),
+            ...billingOf(fields),
             ...ok(attempt, 'attempt'),
             ...ok(duration, 'duration_ms')
           }
@@ -318,6 +322,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
           {
             outcome: 'ok',
             ...modelRef(model),
+            ...billingOf(fields),
             ...(usage.usage ? { usage: usage.usage } : {}),
             ...ok(ttft, 'ttft_ms'),
             ...ok(tier, 'service_tier'),
@@ -478,6 +483,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
           { ...logDraft(state, 'usage.charge'), factKey: turnFact(fields) },
           {
             cost,
+            ...billingOf(fields),
             ...ok(speed, 'speed'),
             ...ok(effort, 'effort'),
             ...ok(interrupted, 'interrupted')
@@ -637,6 +643,7 @@ let mapMetric: OtlpDialect['mapMetric'] = (context, point) => {
           ctx: { sessionId: sessionIdOf(fields), turnId: fields.str('turn.id') },
           data: {
             cost,
+            ...billingOf(fields),
             ...ok(normalizeSpeed(fields.str('speed')), 'speed'),
             ...ok(normalizeEffort(fields.str('reasoning_effort')), 'effort')
           },
@@ -773,7 +780,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
       return finish(
         withData(
           { ...base, type: 'model.request', derived: usage.derived, warnings: usage.warnings },
-          { usage: usage.usage, ...ok(effort, 'effort') }
+          { usage: usage.usage, ...billingOf(fields), ...ok(effort, 'effort') }
         )
       );
     }

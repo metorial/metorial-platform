@@ -1,3 +1,4 @@
+export * from './billing';
 export * from './entity';
 export * from './entityKind';
 export * from './ingestSource';

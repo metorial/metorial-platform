@@ -1,8 +1,9 @@
 import { resolveSessionAttribution } from '../attribution/resolve';
+import { createDeclarationLookup } from '../billing/resolve';
 import { getKnowledge } from '../knowledge/cache';
 import { maybeClassifySession } from '../classification/trigger';
 import { writeSessionFacts } from '../facts/write';
-import { getOrganizationOverrides } from '../pricing/cache';
+import { getOrganizationPricing } from '../pricing/cache';
 import { createOverridePricer } from '../pricing/pricer';
 import { queueSessionSettle } from '../queues/sessionSettle';
 import { getRuntime } from '../runtime';
@@ -28,10 +29,12 @@ export let computeSessionAggregate = async (
   session: SessionDocument,
   correlationsSince?: Date
 ) => {
-  let [catalog, overrides] = await Promise.all([
+  let [catalog, { overrides, declarations }] = await Promise.all([
     getKnowledge(),
-    getOrganizationOverrides(session.organizationId)
+    getOrganizationPricing(session.organizationId)
   ]);
+
+  let scope = { organizationId: session.organizationId, projectId: session.projectId };
 
   return await aggregateSession({
     records: await sessionEvents({
@@ -40,12 +43,8 @@ export let computeSessionAggregate = async (
     }),
     family: session.client.family,
     catalog,
-    pricing: createOverridePricer({
-      overrides,
-      organizationId: session.organizationId,
-      projectId: session.projectId,
-      catalog
-    }),
+    pricing: createOverridePricer({ ...scope, overrides, catalog }),
+    declarations: createDeclarationLookup({ ...scope, declarations }),
     correlationsSince
   });
 };

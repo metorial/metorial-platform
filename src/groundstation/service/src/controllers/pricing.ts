@@ -1,5 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { billingModes } from '@metorial/groundstation-spec';
 import type { Organization } from '../../prisma/generated/client';
 import { effectivePriceService, priceOverrideService } from '../pricing';
 import { priceOverridePresenter, pricingEffectivePresenter } from '../presenters';
@@ -20,11 +21,16 @@ let prioritySchema = v.number({
   modifiers: [v.integer(), v.minValue(-1000), v.maxValue(1000)]
 });
 
+let billingModesSchema = v.array(v.enumOf(billingModes), {
+  modifiers: [v.maxLength(billingModes.length)]
+});
+
 let effectiveScope = {
   organizationId: v.string(),
   projectId: v.optional(v.string()),
   vendorId: v.optional(v.string()),
   agent: v.optional(v.string()),
+  billingMode: v.optional(v.enumOf(billingModes)),
   at: v.optional(v.date())
 };
 
@@ -45,6 +51,7 @@ export let pricingController = organizationApp.controller({
           target: v.enumOf(targets),
           targetId: v.optional(v.nullable(idSchema)),
           vendorId: v.optional(v.nullable(idSchema)),
+          billingModes: v.optional(billingModesSchema),
           kind: v.enumOf(kinds),
           multiplier: v.optional(v.nullable(v.number())),
           rates: v.optional(v.nullable(pricingInput)),
@@ -64,6 +71,7 @@ export let pricingController = organizationApp.controller({
             target: ctx.input.target,
             targetId: ctx.input.targetId,
             vendorId: ctx.input.vendorId,
+            billingModes: ctx.input.billingModes,
             kind: ctx.input.kind,
             multiplier: ctx.input.multiplier,
             rates: ctx.input.rates,
@@ -90,6 +98,7 @@ export let pricingController = organizationApp.controller({
           target: v.optional(v.enumOf(targets)),
           targetId: v.optional(v.nullable(idSchema)),
           vendorId: v.optional(v.nullable(idSchema)),
+          billingModes: v.optional(billingModesSchema),
           kind: v.optional(v.enumOf(kinds)),
           multiplier: v.optional(v.nullable(v.number())),
           rates: v.optional(v.nullable(pricingInput)),
@@ -111,6 +120,7 @@ export let pricingController = organizationApp.controller({
             target: ctx.input.target,
             targetId: ctx.input.targetId,
             vendorId: ctx.input.vendorId,
+            billingModes: ctx.input.billingModes,
             kind: ctx.input.kind,
             multiplier: ctx.input.multiplier,
             rates: ctx.input.rates,

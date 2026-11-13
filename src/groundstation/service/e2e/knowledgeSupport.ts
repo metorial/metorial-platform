@@ -38,6 +38,7 @@ export let sendClaudeApiRequest = async (d: {
   outputTokens: number;
   at?: Date;
   requestId?: string;
+  attributes?: Record<string, string | number>;
 }) => {
   let at = d.at ?? new Date();
 
@@ -60,7 +61,10 @@ export let sendClaudeApiRequest = async (d: {
                     attr('request_id', d.requestId ?? uniqueId('req')),
                     attr('model', d.model),
                     attr('input_tokens', d.inputTokens),
-                    attr('output_tokens', d.outputTokens)
+                    attr('output_tokens', d.outputTokens),
+                    ...Object.entries(d.attributes ?? {}).map(([key, value]) =>
+                      attr(key, value)
+                    )
                   ]
                 }
               ]

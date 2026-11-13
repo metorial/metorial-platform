@@ -11,12 +11,7 @@ import {
   vendor
 } from '../../knowledge/tests/fixtures';
 import { createCatalogIndex, type ModelRequest } from '../lookup';
-import {
-  catalogVendorDirectory,
-  createVendorDirectory,
-  hostOf,
-  isSubscriptionAuth
-} from '../vendors';
+import { catalogVendorDirectory, createVendorDirectory, hostOf } from '../vendors';
 
 let at = new Date('2025-06-01T00:00:00.000Z');
 
@@ -181,19 +176,12 @@ describe('createVendorDirectory', () => {
   });
 });
 
-describe('hostOf and isSubscriptionAuth', () => {
+describe('hostOf', () => {
   it('normalizes hosts', () => {
     expect(hostOf('https://API.Example.com:8443/v1')).toBe('api.example.com:8443');
     expect(hostOf('api.example.com')).toBe('api.example.com');
     expect(hostOf('  ')).toBeNull();
     expect(hostOf('http://')).toBeNull();
-  });
-
-  it('recognizes subscription auth modes', () => {
-    expect(isSubscriptionAuth('subscription')).toBe(true);
-    expect(isSubscriptionAuth('ChatGPT')).toBe(true);
-    expect(isSubscriptionAuth('api_key')).toBe(false);
-    expect(isSubscriptionAuth(undefined)).toBe(false);
   });
 });
 

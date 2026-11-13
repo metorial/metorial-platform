@@ -1,3 +1,4 @@
+import { billingModes } from '@metorial/groundstation-spec';
 import { describe, expect, it } from 'vitest';
 import { isOverrideActiveAt, matchOverride, overrideSpecificity } from '../match';
 import { override, overrideRequest } from './fixtures';
@@ -139,6 +140,58 @@ describe('matchOverride scope and tie-breaks', () => {
     expect(
       matchOverride([anthropic], overrideRequest({ vendorId: 'openai' }))
     ).toBeUndefined();
+  });
+});
+
+describe('matchOverride billing modes', () => {
+  it('matches every billing mode without a condition', () => {
+    let any = override();
+
+    for (let billingMode of billingModes) {
+      expect(matchOverride([any], overrideRequest({ billingMode }))).toBe(any);
+    }
+  });
+
+  it('matches only the listed billing modes', () => {
+    let plan = override({ billingModes: ['included', 'overage'] });
+
+    expect(matchOverride([plan], overrideRequest({ billingMode: 'included' }))).toBe(plan);
+    expect(matchOverride([plan], overrideRequest({ billingMode: 'overage' }))).toBe(plan);
+    expect(matchOverride([plan], overrideRequest({ billingMode: 'api' }))).toBeUndefined();
+    expect(matchOverride([plan], overrideRequest({ billingMode: 'unknown' }))).toBeUndefined();
+  });
+
+  it('treats unknown as a mode that can be listed', () => {
+    let unresolved = override({ billingModes: ['unknown'] });
+
+    expect(matchOverride([unresolved], overrideRequest({ billingMode: 'unknown' }))).toBe(
+      unresolved
+    );
+    expect(
+      matchOverride([unresolved], overrideRequest({ billingMode: 'included' }))
+    ).toBeUndefined();
+  });
+
+  it('prefers an override limited to billing modes after specificity and project scope', () => {
+    let any = targeted('model', { priority: 50 });
+    let api = targeted('model', { billingModes: ['api'] });
+    let request = overrideRequest({ billingMode: 'api' });
+
+    expect(matchOverride([any, api], request)).toBe(api);
+    expect(matchOverride([api, any], request)).toBe(api);
+
+    let projectAny = targeted('model', { projectId: 'gpr_a' });
+    expect(matchOverride([api, projectAny], request)).toBe(projectAny);
+
+    let offering = targeted('offering');
+    expect(matchOverride([api, offering], request)).toBe(offering);
+  });
+
+  it('falls back to an override without a condition for other modes', () => {
+    let any = targeted('model');
+    let api = targeted('model', { billingModes: ['api'] });
+
+    expect(matchOverride([any, api], overrideRequest({ billingMode: 'included' }))).toBe(any);
   });
 });
 

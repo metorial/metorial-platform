@@ -437,6 +437,64 @@ describe('codexOtlp log events', () => {
   });
 });
 
+describe('codexOtlp billing', () => {
+  let completed = {
+    'event.kind': 'response.completed',
+    model: 'gpt-5',
+    input_token_count: 10
+  };
+
+  let usageDrafts = (authMode?: string) => {
+    let auth: OtlpAttributes = authMode === undefined ? {} : { auth_mode: authMode };
+
+    return [
+      one('sse_event', { ...completed, ...auth }),
+      one('api_request', { 'http.response.status_code': 200, ...auth }),
+      one('turn_cost', { 'usage.estimated_usd': 0.25, ...auth }),
+      mapMetric('turn.cost_microusd', 250000, { 'turn.id': 'turn-1', ...auth })[0]!.draft,
+      oneSpan('handle_responses', { 'gen_ai.usage.input_tokens': 100, ...auth })
+    ];
+  };
+
+  it('covers every model request and usage charge', () => {
+    expect(usageDrafts().map(draft => draft.type)).toEqual([
+      'model.request',
+      'model.request',
+      'usage.charge',
+      'usage.charge',
+      'model.request'
+    ]);
+  });
+
+  it.each([
+    ['Chatgpt', { mode: 'included' }],
+    ['ChatGPT', { mode: 'included' }],
+    ['ApiKey', { mode: 'api' }],
+    ['api_key', { mode: 'api' }]
+  ])('maps the auth mode %s', (authMode, billing) => {
+    for (let draft of usageDrafts(authMode)) {
+      expect(draft.data?.['billing']).toEqual(billing);
+      expect(draft.client).toMatchObject({ auth_mode: authMode });
+    }
+  });
+
+  it.each([undefined, 'Unknown'])('says nothing for the auth mode %j', authMode => {
+    for (let draft of usageDrafts(authMode)) {
+      expect(draft.data).not.toHaveProperty('billing');
+    }
+  });
+
+  it('leaves billing off records that are not usage-bearing', () => {
+    expect(one('user_prompt', { auth_mode: 'ApiKey' }).data).not.toHaveProperty('billing');
+    expect(
+      oneSpan('session_task.turn', {
+        auth_mode: 'ApiKey',
+        'codex.turn.token_usage.input_tokens': 5
+      }).data
+    ).not.toHaveProperty('billing');
+  });
+});
+
 describe('codexOtlp metrics', () => {
   it.each([
     ['tool.call', 'tool.calls', '{call}'],

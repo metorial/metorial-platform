@@ -1,4 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { billingDeclarationService } from '../../billing/declaration';
+import { FACTS_VERSION } from '../../facts/versions';
 import { getId } from '../../id';
 import { queuePriceOverrideImpact } from '../../knowledge/impact';
 import { resetKnowledgeCache } from '../../knowledge/cache';
@@ -11,12 +13,14 @@ import {
 import { knowledgeVersionKey } from '../../knowledge/version';
 import { closeSessionRedis, getSessionRedis } from '../../sessions/redis';
 import { settleSession } from '../../sessions/settle';
+import { SUMMARY_VERSION } from '../../sessions/versions';
 import { createSessionHarness, store } from '../../sessions/tests/harness';
 import { createTestScope } from '../../test/scope';
 import { cleanDatabase, testDb } from '../../test/setup';
 import {
   expireOverrideCheck,
   getOrganizationOverrides,
+  getOrganizationPricing,
   priceOverrideVersionKey,
   publishPriceOverrideVersion,
   resetOverrideCache
@@ -357,6 +361,94 @@ describe('price overrides', () => {
     expect(await names(a.organization.id)).toEqual([]);
   });
 
+  it('caches declarations and billing modes with the overrides under one version', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+
+    let { organization, project } = await createTestScope();
+    let user = await testDb.entity.create({
+      data: {
+        ...getId('entity'),
+        kind: 'user',
+        status: 'managed',
+        organizationOid: organization.oid
+      }
+    });
+
+    let override = await priceOverrideService.createPriceOverride({
+      organization,
+      input: multiplierInput({ billingModes: ['api', 'overage', 'api'] })
+    });
+    expect(override.billingModes).toEqual(['overage', 'api']);
+
+    let declaration = await billingDeclarationService.createBillingDeclaration({
+      organization,
+      input: {
+        name: 'Max seat',
+        projectId: project.id,
+        userId: user.id,
+        agentId: 'claude-code',
+        mode: 'included',
+        plan: 'max',
+        validFrom: hoursAgo(48)
+      }
+    });
+
+    let pricing = await getOrganizationPricing(organization.id);
+    expect(pricing.overrides).toEqual([
+      expect.objectContaining({ id: override.id, billingModes: ['overage', 'api'] })
+    ]);
+    expect(pricing.declarations).toEqual([
+      {
+        id: declaration.id,
+        organizationId: organization.id,
+        projectId: project.id,
+        userId: user.id,
+        agentId: 'claude-code',
+        mode: 'included',
+        plan: 'max',
+        validFrom: declaration.validFrom,
+        validTo: null,
+        archivedAt: null
+      }
+    ]);
+    expect(await getOrganizationOverrides(organization.id)).toEqual(pricing.overrides);
+
+    let inserted = await testDb.billingDeclaration.create({
+      data: {
+        ...getId('billingDeclaration'),
+        name: 'from another process',
+        mode: 'api',
+        validFrom: hoursAgo(1),
+        organizationOid: organization.oid
+      }
+    });
+    vi.setSystemTime(Date.now() + 16_000);
+    expect((await getOrganizationPricing(organization.id)).declarations).toHaveLength(1);
+
+    await publishPriceOverrideVersion(organization.id);
+    vi.setSystemTime(Date.now() + 16_000);
+    expect(
+      (await getOrganizationPricing(organization.id)).declarations.map(item => item.id).sort()
+    ).toEqual([declaration.id, inserted.id].sort());
+
+    await billingDeclarationService.archiveBillingDeclaration({
+      organization,
+      billingDeclaration: declaration
+    });
+    expect(
+      (await getOrganizationPricing(organization.id)).declarations.map(item => item.id)
+    ).toEqual([inserted.id]);
+
+    await priceOverrideService.updatePriceOverride({
+      organization,
+      priceOverride: override,
+      input: { billingModes: [] }
+    });
+    expect((await getOrganizationPricing(organization.id)).overrides).toEqual([
+      expect.objectContaining({ id: override.id, billingModes: [] })
+    ]);
+  });
+
   it('checks the version immediately once the check is expired, as rebuilds do', async () => {
     let scope = await createTestScope();
     let names = async () =>
@@ -396,8 +488,8 @@ describe('price overrides', () => {
     });
 
     let { session, slices } = await settle(harness);
-    expect(session.versions.summary).toBe(3);
-    expect(session.versions.facts).toBe(3);
+    expect(session.versions.summary).toBe(SUMMARY_VERSION);
+    expect(session.versions.facts).toBe(FACTS_VERSION);
     expect(session.summary!.costComputedUsd?.toString()).toBe('4.5');
     expect(session.summary!.costContractUsd?.toString()).toBe('3.6');
     expect(session.summary!.costUsd?.toString()).toBe('3.6');
@@ -413,7 +505,7 @@ describe('price overrides', () => {
         slice.costUsd?.toString(),
         slice.factsVersion
       ])
-    ).toEqual([['4.5', '3.6', '3.6', 3]]);
+    ).toEqual([['4.5', '3.6', '3.6', FACTS_VERSION]]);
 
     let included = await priceOverrideService.createPriceOverride({
       organization,
@@ -515,6 +607,27 @@ describe('price overrides', () => {
       input: { modelId: 'claude-sonnet-4-5', projectId: project.id, at: hoursAgo(60) }
     });
     expect(beforeOverride.override).toBeNull();
+
+    let apiOnly = await priceOverrideService.createPriceOverride({
+      organization,
+      input: multiplierInput({ billingModes: ['api'], multiplier: 0.25 })
+    });
+    let priceFor = async (billingMode?: 'api' | 'included') =>
+      await effectivePriceService.getEffectivePrice({
+        organization,
+        input: { modelId: 'claude-sonnet-4-5', at, billingMode }
+      });
+
+    expect(await priceFor('api')).toMatchObject({
+      billingMode: 'api',
+      override: { id: apiOnly.id },
+      effective: { basis: 'multiplier' }
+    });
+    expect(await priceFor('included')).toMatchObject({
+      billingMode: 'included',
+      override: null
+    });
+    expect(await priceFor()).toMatchObject({ billingMode: 'unknown', override: null });
 
     expect(
       await errorCode(

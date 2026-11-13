@@ -123,6 +123,30 @@ describe('genAiOtlp.mapSpan model requests', () => {
     ).toEqual({ id: 'm', provider: 'other:weird_co' });
   });
 
+  it('reports github requests as included in the subscription', () => {
+    let model = { 'gen_ai.request.model': 'gpt-4o' };
+
+    expect(
+      mapSpanOne('chat', { ...model, 'gen_ai.provider.name': 'github' }).draft.data
+    ).toMatchObject({
+      model: { id: 'gpt-4o', provider: 'github' },
+      billing: { mode: 'included' }
+    });
+    expect(
+      mapSpanOne('chat', { ...model, 'gen_ai.system': 'GitHub' }).draft.data?.['billing']
+    ).toEqual({ mode: 'included' });
+  });
+
+  it('says nothing about billing for other providers', () => {
+    for (let provider of ['openai', 'anthropic', 'aws.bedrock', 'Weird Co']) {
+      expect(
+        mapSpanOne('chat', { 'gen_ai.provider.name': provider }).draft.data
+      ).not.toHaveProperty('billing');
+    }
+
+    expect(mapSpanOne('chat', {}).draft.data).not.toHaveProperty('billing');
+  });
+
   it('marks failed spans with a classified error', () => {
     let status = mapSpanOne('chat', {}, { statusCode: 2 }).draft.data;
     let timeout = mapSpanOne('chat', { 'error.type': 'RequestTimeoutError' }).draft.data;

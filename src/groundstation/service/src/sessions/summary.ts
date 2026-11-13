@@ -1,6 +1,14 @@
 import {
+  defaultBillingOf,
+  isSubscriptionBilling,
+  reportedBilling,
+  resolveBillings,
+  sessionProviderBilling,
+  type Billing,
+  type DeclarationLookup
+} from '../billing/resolve';
+import {
   computeRequestCost,
-  isSubscriptionAuth,
   type CatalogIndex,
   type ModelRequest,
   type RequestTokens,
@@ -74,7 +82,9 @@ type UsageEntry = {
   modelRaw?: string;
   provider?: string;
   baseUrl?: string;
-  subscription: boolean;
+  purpose?: string;
+  userId?: string;
+  billing: Billing;
   tokens?: RequestTokens;
   costs: CostEntry[];
   failed: boolean;
@@ -239,11 +249,24 @@ export let preferredAmount = (
   return total;
 };
 
+let billingKey = (billing: Billing | undefined) =>
+  billing ? [billing.mode, billing.source ?? '', billing.plan ?? ''].join('|') : '||';
+
+let billingFields = (billing: Billing | undefined) =>
+  billing
+    ? {
+        billingMode: billing.mode,
+        ...(billing.source ? { billingSource: billing.source } : {}),
+        ...(billing.plan ? { billingPlan: billing.plan } : {})
+      }
+    : {};
+
 export let aggregateSession = async (d: {
   records: AsyncIterable<SummaryRecord> | Iterable<SummaryRecord>;
   family: string;
   catalog: CatalogIndex | null;
   pricing?: OverridePricer | null;
+  declarations?: DeclarationLookup | null;
   correlationsSince?: Date;
 }): Promise<SessionAggregate> => {
   let seen = new Map<string, Set<string>>();
@@ -278,6 +301,7 @@ export let aggregateSession = async (d: {
   let compactions = 0;
   let hasContext = false;
   let hasRepo = false;
+  let sessionProvider: string | undefined;
 
   let correlations = new Map<string, Correlation>();
   let usage: UsageEntry[] = [];
@@ -290,6 +314,7 @@ export let aggregateSession = async (d: {
     provider?: string;
     vendorId?: string;
     vendorSource?: VendorSource;
+    billing?: Billing;
     subagentId?: string;
   }) => {
     let bucket = bucketStart(d.occurredAt, 15);
@@ -299,6 +324,7 @@ export let aggregateSession = async (d: {
       modelKey,
       d.vendorId ?? '',
       d.vendorSource ?? '',
+      billingKey(d.billing),
       d.subagentId ?? ''
     ].join('|');
 
@@ -315,6 +341,7 @@ export let aggregateSession = async (d: {
           ...(d.provider ? { provider: d.provider } : {}),
           ...(d.vendorId ? { vendorId: d.vendorId } : {}),
           ...(d.vendorSource ? { vendorSource: d.vendorSource } : {}),
+          ...billingFields(d.billing),
           sessionsStarted: 0,
           turns: 0,
           requests: 0,
@@ -369,6 +396,10 @@ export let aggregateSession = async (d: {
     let errorClass = text(error?.class);
 
     switch (document.type) {
+      case 'session.start':
+        sessionProvider ??= text(data.provider);
+        break;
+
       case 'prompt.submitted':
         prompts++;
         break;
@@ -491,12 +522,29 @@ export let aggregateSession = async (d: {
       modelRaw: text(model?.id),
       provider: text(model?.provider),
       baseUrl: text(model?.baseUrl),
-      subscription: isSubscriptionAuth(document.client.authMode),
+      purpose: text(data.purpose),
+      userId: document.attribution?.userId,
+      billing: reportedBilling({ billing: data.billing, authMode: document.client.authMode }),
       tokens,
       costs: cost ? [cost] : [],
       failed: document.type == 'model.request' && !!data.outcome && data.outcome != 'ok'
     });
   }
+
+  // A session-level provider that overrides the sign-in also tells where requests without their
+  // own provider went.
+  if (sessionProviderBilling({ family: d.family, provider: sessionProvider })) {
+    for (let entry of usage) entry.provider ??= sessionProvider;
+  }
+
+  resolveBillings({
+    family: d.family,
+    agentId: d.catalog?.vendors.agent(d.family)?.id,
+    sessionProvider,
+    entries: usage,
+    declarations: d.declarations,
+    defaultBilling: defaultBillingOf(d.family)
+  });
 
   let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
   let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
@@ -521,7 +569,7 @@ export let aggregateSession = async (d: {
           provider: entry.provider,
           family: d.family,
           baseUrl: entry.baseUrl,
-          subscription: entry.subscription
+          subscription: isSubscriptionBilling(entry.billing)
         }
       : undefined;
 
@@ -568,6 +616,7 @@ export let aggregateSession = async (d: {
           ? d.pricing({
               at: entry.occurredAt,
               resolution,
+              billingMode: entry.billing.mode,
               list: computed,
               tokens,
               contextTokens
@@ -615,8 +664,12 @@ export let aggregateSession = async (d: {
     let { vendorId, vendorSource, offering, period } = item.resolution;
     let modelKey = item.modelId ?? (item.modelRaw ? `raw:${item.modelRaw}` : undefined);
 
+    let billing = item.entry.billing;
+
     if (modelKey) {
-      let key = `${modelKey}\0${vendorId ?? ''}\0${item.overrideId ?? ''}`;
+      let key = [modelKey, vendorId ?? '', item.overrideId ?? '', billingKey(billing)].join(
+        '\0'
+      );
       let model = models.get(key);
 
       if (!model) {
@@ -630,6 +683,7 @@ export let aggregateSession = async (d: {
             ...(item.modelId ? { modelId: item.modelId } : {}),
             ...(vendorId ? { vendorId } : {}),
             ...(item.overrideId ? { overrideId: item.overrideId } : {}),
+            ...billingFields(billing),
             rawIds: [],
             requests: 0,
             tokens: emptyTokens(),
@@ -671,6 +725,7 @@ export let aggregateSession = async (d: {
       provider: item.provider,
       vendorId,
       vendorSource,
+      billing,
       subagentId: item.entry.subagentId
     });
 

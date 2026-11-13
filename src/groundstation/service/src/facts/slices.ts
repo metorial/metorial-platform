@@ -51,6 +51,9 @@ let metricsOf = (slice: BaseSlice) => ({
   provider: slice.provider,
   vendorId: slice.vendorId,
   vendorSource: slice.vendorSource,
+  billingMode: slice.billingMode,
+  billingSource: slice.billingSource,
+  billingPlan: slice.billingPlan,
 
   sessionsStarted: slice.sessionsStarted,
   turns: slice.turns,
@@ -72,6 +75,18 @@ export let baseSliceOf = (slice: UsageSliceDocument): BaseSlice => ({
   agentId: slice.agentId,
   client: slice.client
 });
+
+let sliceKeyParts = (slice: BaseSlice) => [
+  slice.bucket.toISOString(),
+  slice.modelId,
+  slice.modelId ? undefined : slice.modelRaw,
+  slice.vendorId,
+  slice.vendorSource,
+  slice.billingMode,
+  slice.billingSource,
+  slice.billingPlan,
+  slice.subagentId
+];
 
 export let attributionFields = (attribution: SliceAttribution) => ({
   dims: entriesToDims(attribution.entries),
@@ -96,15 +111,7 @@ export let buildSessionSlices = (d: {
   let { session } = d;
 
   return d.slices.map(slice => ({
-    _id: sliceId([
-      session.instanceId,
-      session._id,
-      slice.bucket.toISOString(),
-      slice.modelId,
-      slice.vendorId,
-      slice.vendorSource,
-      slice.subagentId
-    ]),
+    _id: sliceId([session.instanceId, session._id, ...sliceKeyParts(slice)]),
     organizationId: session.organizationId,
     projectId: session.projectId,
     instanceId: session.instanceId,
@@ -138,11 +145,7 @@ export let buildSessionlessSlices = (d: {
     _id: sliceId([
       d.scope.instanceId,
       d.key,
-      slice.bucket.toISOString(),
-      slice.modelId,
-      slice.vendorId,
-      slice.vendorSource,
-      slice.subagentId,
+      ...sliceKeyParts(slice),
       slice.userId,
       slice.deviceId,
       slice.agentId

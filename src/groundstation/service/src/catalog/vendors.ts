@@ -9,10 +9,6 @@ let providerAliases = new Map([
   ['bedrock', 'aws-bedrock']
 ]);
 
-// `client.authMode` values that mean the client runs on a subscription plan. Codex reports its
-// ChatGPT sign-in as `ChatGPT`.
-let subscriptionAuthModes = new Set(['subscription', 'chatgpt']);
-
 export type VendorInfo = { id: string; organizationId: string; kind: string };
 
 export type EndpointInfo = {
@@ -50,9 +46,6 @@ export let hostOf = (url: string) => {
     return null;
   }
 };
-
-export let isSubscriptionAuth = (authMode: string | undefined) =>
-  !!authMode && subscriptionAuthModes.has(authMode.trim().toLowerCase());
 
 export let agentInfoOf = (agent: Agent): AgentInfo => ({
   id: agent.id,

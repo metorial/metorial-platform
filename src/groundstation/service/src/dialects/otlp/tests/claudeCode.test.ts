@@ -339,6 +339,127 @@ describe('claudeCodeOtlp api events', () => {
   });
 });
 
+describe('claudeCodeOtlp billing', () => {
+  let subscription = {
+    'anthropic.provider': 'firstParty',
+    'anthropic.plan': 'max',
+    'anthropic.seat_type': 'premium'
+  };
+
+  it('reports a plan with a regular seat as included', () => {
+    expect(
+      one('api_request', {
+        model: 'claude-opus-4',
+        ...subscription,
+        'anthropic.seat_type': 'standard'
+      }).data
+    ).toMatchObject({
+      model: { id: 'claude-opus-4', provider: 'anthropic' },
+      billing: { mode: 'included', plan: 'max', seat: 'standard' }
+    });
+  });
+
+  it('reports a plan with a usage-based seat as api billing', () => {
+    expect(
+      one('api_request', {
+        ...subscription,
+        'anthropic.plan': 'enterprise',
+        'anthropic.seat_type': 'usage_based'
+      }).data?.['billing']
+    ).toEqual({ mode: 'api', plan: 'enterprise', seat: 'usage_based' });
+  });
+
+  it('reports a first-party login without a plan as api billing', () => {
+    expect(
+      one('api_request', { model: 'm', 'anthropic.provider': 'firstParty' }).data
+    ).toMatchObject({ model: { id: 'm', provider: 'anthropic' }, billing: { mode: 'api' } });
+  });
+
+  it.each([
+    ['bedrock', 'bedrock'],
+    ['vertex', 'vertex'],
+    ['foundry', 'azure'],
+    ['anthropicAws', 'other:anthropicaws']
+  ])('reports cloud provider %s as api billing on provider %s', (native, provider) => {
+    expect(
+      one('api_request', { model: 'm', 'anthropic.provider': native }).data
+    ).toMatchObject({
+      model: { id: 'm', provider },
+      billing: { mode: 'api' }
+    });
+  });
+
+  it('says nothing about billing behind a gateway', () => {
+    let { data } = one('api_request', { model: 'm', 'anthropic.provider': 'gateway' });
+
+    expect(data?.['model']).toEqual({ id: 'm', provider: 'gateway' });
+    expect(data).not.toHaveProperty('billing');
+  });
+
+  it('says nothing without provider or plan', () => {
+    let { data } = one('api_request', { model: 'm' });
+
+    expect(data?.['model']).toEqual({ id: 'm' });
+    expect(data).not.toHaveProperty('billing');
+  });
+
+  it('reads the attributes from the resource', () => {
+    let log = logRecord({ 'event.name': 'api_request', model: 'm' });
+    let [mapped] = claudeCodeOtlp.mapLog!(ctx('logs', subscription), log);
+
+    expect(mapped?.draft.data).toMatchObject({
+      model: { id: 'm', provider: 'anthropic' },
+      billing: { mode: 'included', plan: 'max', seat: 'premium' }
+    });
+  });
+
+  it('prefers record attributes over resource attributes', () => {
+    let log = logRecord({
+      'event.name': 'api_request',
+      model: 'm',
+      'anthropic.provider': 'bedrock'
+    });
+    let [mapped] = claudeCodeOtlp.mapLog!(
+      ctx('logs', { 'anthropic.provider': 'vertex' }),
+      log
+    );
+
+    expect(mapped?.draft.data).toMatchObject({
+      model: { provider: 'bedrock' },
+      billing: { mode: 'api' }
+    });
+  });
+
+  it('adds billing and the provider to errors and refusals', () => {
+    for (let event of ['api_error', 'api_refusal']) {
+      expect(one(event, { model: 'm', ...subscription }).data).toMatchObject({
+        model: { id: 'm', provider: 'anthropic' },
+        billing: { mode: 'included', plan: 'max', seat: 'premium' }
+      });
+    }
+  });
+
+  it('adds billing and the provider to llm request spans', () => {
+    expect(
+      mapSpan('claude_code.llm_request', { model: 'm', 'anthropic.provider': 'bedrock' }).data
+    ).toMatchObject({ model: { id: 'm', provider: 'bedrock' }, billing: { mode: 'api' } });
+
+    let span = spanOf('claude_code.llm_request', { model: 'm' });
+    let [mapped] = claudeCodeOtlp.mapSpan!(ctx('traces', subscription), span);
+
+    expect(mapped?.draft.data).toMatchObject({
+      billing: { mode: 'included', plan: 'max', seat: 'premium' }
+    });
+  });
+
+  it('leaves billing off records that are not model requests', () => {
+    expect(one('user_prompt', subscription).data).not.toHaveProperty('billing');
+    expect(one('assistant_response', { model: 'm', ...subscription }).data).toEqual({
+      model: { id: 'm' }
+    });
+  });
+});
+
 describe('claudeCodeOtlp tool events', () => {
   it.each([
     ['accept', 'config', { value: 'allow', source: 'config', scope: 'none', automatic: true }],

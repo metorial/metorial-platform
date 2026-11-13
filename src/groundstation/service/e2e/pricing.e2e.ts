@@ -308,6 +308,107 @@ describe('organization price overrides', { timeout: 180_000 }, () => {
     ).toBe('not_found');
   });
 
+  it('limits overrides to billing modes', async () => {
+    await importKnowledge();
+
+    let organization = await createOrganization();
+
+    let apiOnly = await groundstation().pricing.overrides.create({
+      organizationId: organization.id,
+      name: 'API discount',
+      target: 'model',
+      targetId: 'claude-sonnet-4-5',
+      billingModes: ['api', 'api'],
+      kind: 'multiplier',
+      multiplier: 0.5,
+      validFrom: hoursAgo(24)
+    });
+    expect(apiOnly).toMatchObject({ billingModes: ['api'], kind: 'multiplier' });
+
+    let fetched = await groundstation().pricing.overrides.get({
+      organizationId: organization.id,
+      priceOverrideId: apiOnly.id
+    });
+    expect(fetched.billingModes).toEqual(['api']);
+
+    let priceFor = (billingMode?: 'api' | 'included' | 'unknown') =>
+      groundstation().pricing.effective({
+        organizationId: organization.id,
+        modelId: 'claude-sonnet-4-5',
+        ...(billingMode ? { billingMode } : {})
+      });
+
+    let api = await priceFor('api');
+    expect(api).toMatchObject({
+      billingMode: 'api',
+      override: { id: apiOnly.id, billingModes: ['api'] },
+      effective: { basis: 'multiplier' }
+    });
+    expect(api.effective.pricing?.text?.input).toBeCloseTo(1.5);
+
+    expect(await priceFor('included')).toMatchObject({
+      billingMode: 'included',
+      override: null,
+      effective: { basis: 'list' }
+    });
+    expect(await priceFor()).toMatchObject({ billingMode: 'unknown', override: null });
+
+    let plan = await groundstation().pricing.overrides.update({
+      organizationId: organization.id,
+      priceOverrideId: apiOnly.id,
+      billingModes: ['unknown', 'included'],
+      kind: 'included'
+    });
+    expect(plan).toMatchObject({ billingModes: ['included', 'unknown'], kind: 'included' });
+
+    expect(await priceFor('included')).toMatchObject({
+      override: { id: apiOnly.id },
+      effective: { basis: 'included' }
+    });
+    expect(await priceFor('unknown')).toMatchObject({ override: { id: apiOnly.id } });
+    expect(await priceFor('api')).toMatchObject({ override: null });
+
+    let any = await groundstation().pricing.overrides.update({
+      organizationId: organization.id,
+      priceOverrideId: apiOnly.id,
+      billingModes: []
+    });
+    expect(any.billingModes).toEqual([]);
+    expect(await priceFor('api')).toMatchObject({ override: { id: apiOnly.id } });
+
+    expect(
+      await rpcErrorCode(
+        groundstation().pricing.overrides.create({
+          organizationId: organization.id,
+          name: 'Invalid mode',
+          target: 'all',
+          billingModes: ['seat' as 'api'],
+          kind: 'included'
+        })
+      )
+    ).toBe('invalid_data');
+    expect(
+      await rpcErrorCode(
+        groundstation().pricing.overrides.create({
+          organizationId: organization.id,
+          name: 'Too many modes',
+          target: 'all',
+          billingModes: ['api', 'api', 'api', 'api', 'api'],
+          kind: 'included'
+        })
+      )
+    ).toBe('invalid_data');
+    expect(
+      await rpcErrorCode(
+        groundstation().pricing.effective({
+          organizationId: organization.id,
+          modelId: 'claude-sonnet-4-5',
+          billingMode: 'seat' as 'api'
+        })
+      )
+    ).toBe('invalid_data');
+  });
+
   it('rejects invalid overrides', async () => {
     await importKnowledge();
 

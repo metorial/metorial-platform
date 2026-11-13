@@ -1,12 +1,17 @@
 import { ServiceError } from '@lowerdeck/error';
 import { describe, expect, it } from 'vitest';
 import { pricing } from '../../knowledge/tests/fixtures';
-import { assertValidPriceOverride, type PriceOverrideDefinition } from '../validate';
+import {
+  assertValidPriceOverride,
+  normalizeBillingModes,
+  type PriceOverrideDefinition
+} from '../validate';
 
 let definition = (input: Partial<PriceOverrideDefinition> = {}): PriceOverrideDefinition => ({
   target: 'model',
   targetId: 'claude-sonnet-4-5',
   vendorId: null,
+  billingModes: [],
   kind: 'multiplier',
   multiplier: 0.8,
   rates: null,
@@ -100,5 +105,36 @@ describe('assertValidPriceOverride', () => {
     expect(() =>
       assertValidPriceOverride(definition({ validTo: new Date('2026-01-01T00:00:01Z') }))
     ).not.toThrow();
+  });
+
+  it('accepts any set of billing modes, including unknown', () => {
+    expect(() =>
+      assertValidPriceOverride(definition({ billingModes: ['included', 'unknown'] }))
+    ).not.toThrow();
+    expect(() =>
+      assertValidPriceOverride(
+        definition({ billingModes: ['included', 'overage', 'api', 'unknown'] })
+      )
+    ).not.toThrow();
+  });
+
+  it('rejects unknown and repeated billing modes', () => {
+    expect(rejection({ billingModes: ['seat' as never] }).message).toContain(
+      'seat is not a billing mode'
+    );
+    expect(rejection({ billingModes: ['api', 'api'] }).message).toContain(
+      'must not repeat a mode'
+    );
+  });
+});
+
+describe('normalizeBillingModes', () => {
+  it('deduplicates and orders modes like billingModes', () => {
+    expect(normalizeBillingModes([])).toEqual([]);
+    expect(normalizeBillingModes(['unknown', 'api', 'included', 'api'])).toEqual([
+      'included',
+      'api',
+      'unknown'
+    ]);
   });
 });

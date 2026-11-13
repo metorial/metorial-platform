@@ -11,6 +11,7 @@ export let override = (input: Partial<MatchableOverride> = {}): MatchableOverrid
   target: 'all',
   targetId: null,
   vendorId: null,
+  billingModes: [],
   kind: 'multiplier',
   multiplier: '0.5',
   rates: null,
@@ -31,5 +32,6 @@ export let overrideRequest = (input: Partial<OverrideRequest> = {}): OverrideReq
   labId: 'anthropic',
   agentId: 'claude-code',
   vendorId: 'anthropic',
+  billingMode: 'unknown',
   ...input
 });

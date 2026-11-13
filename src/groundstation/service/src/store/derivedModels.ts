@@ -1,3 +1,4 @@
+import type { BillingMode, BillingSource } from '@metorial/groundstation-spec';
 import mongoose from 'mongoose';
 import type { VendorSource } from '../knowledge/types';
 import type { TagOrigin } from '../types';
@@ -84,6 +85,9 @@ export type SessionModelSummary = {
   pricePeriodIds?: string[];
   priceAssumed?: true;
   overrideId?: string;
+  billingMode?: BillingMode;
+  billingSource?: BillingSource;
+  billingPlan?: string;
   requests: number;
   tokens: Tokens;
   costReported: ReportedCost[];
@@ -223,6 +227,9 @@ export type UsageSliceDocument = {
   provider?: string;
   vendorId?: string;
   vendorSource?: VendorSource;
+  billingMode?: BillingMode;
+  billingSource?: BillingSource;
+  billingPlan?: string;
 
   sessionsStarted: 0 | 1;
   turns: number;
@@ -309,6 +316,7 @@ UsageSliceSchema.index({ organizationId: 1, dimIds: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, modelId: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, modelRaw: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, vendorId: 1, bucket: 1 });
+UsageSliceSchema.index({ organizationId: 1, billingMode: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, 'client.family': 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, sessionKey: 1 });
 UsageSliceSchema.index(

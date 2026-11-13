@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { billingModes, type BillingMode } from '@metorial/groundstation-spec';
 import type { Pricing } from '@metorial/model-catalog/src/types';
 import type { PriceOverrideKind, PriceOverrideTarget } from '../../prisma/generated/client';
 
@@ -8,6 +9,7 @@ export type PriceOverrideDefinition = {
   target: PriceOverrideTarget;
   targetId: string | null;
   vendorId: string | null;
+  billingModes: BillingMode[];
   kind: PriceOverrideKind;
   multiplier: number | null;
   rates: Pricing | null;
@@ -37,12 +39,22 @@ let pricingRates = (pricing: Pricing) =>
     )
     .filter((rate): rate is number => rate !== null);
 
+// Sorted in the order of `billingModes`, so equal sets compare equal in pricingSignature.
+export let normalizeBillingModes = (modes: readonly BillingMode[]): BillingMode[] =>
+  [...new Set(modes)].sort((a, b) => billingModes.indexOf(a) - billingModes.indexOf(b));
+
 export let assertValidPriceOverride = (d: PriceOverrideDefinition) => {
   if (d.target == 'all' && d.targetId !== null) {
     throw invalid('An override that targets all usage takes no targetId.');
   }
   if (d.target != 'all' && !d.targetId) {
     throw invalid(`An override that targets a ${d.target} needs a targetId.`);
+  }
+
+  let unknownMode = d.billingModes.find(mode => !billingModes.includes(mode));
+  if (unknownMode !== undefined) throw invalid(`${unknownMode} is not a billing mode.`);
+  if (new Set(d.billingModes).size != d.billingModes.length) {
+    throw invalid('billingModes must not repeat a mode.');
   }
 
   if (d.kind == 'multiplier') {

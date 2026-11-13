@@ -49,6 +49,11 @@ let summaryPresenter = (summary: SessionSummary) => ({
     pricePeriodIds: model.pricePeriodIds ?? [],
     priceAssumed: !!model.priceAssumed,
     overrideId: model.overrideId ?? null,
+    billing: {
+      mode: model.billingMode ?? 'unknown',
+      source: model.billingSource ?? null,
+      plan: model.billingPlan ?? null
+    },
     requests: model.requests,
     tokens: tokensPresenter(model.tokens),
     costReported: costsPresenter(model.costReported),

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createDeclarationLookup } from '../../billing/resolve';
 import { createCatalogIndex } from '../../catalog';
 import { fixtureCatalog } from '../../catalog/tests/fixture';
 import type { PricePeriod } from '../../knowledge/periods';
@@ -579,6 +580,268 @@ describe('aggregateSession contract cost', () => {
       );
       expect(decimal(estimated.summary.costUsd)).toBe('0.15');
     }
+  });
+});
+
+describe('aggregateSession billing', () => {
+  let sonnet = { id: 'claude-sonnet-4-5-20250929', provider: 'anthropic' };
+
+  let request = (
+    at: string,
+    data: Record<string, unknown> = {},
+    extra: Partial<Parameters<typeof summaryRecord>[0]> = {}
+  ) =>
+    summaryRecord({
+      type: 'model.request',
+      at,
+      ...extra,
+      data: { model: sonnet, usage: { inputUncached: 100_000 }, ...data }
+    });
+
+  let billingOf = (row: {
+    billingMode?: string;
+    billingSource?: string;
+    billingPlan?: string;
+    requests: number;
+  }) => [row.billingMode, row.billingSource ?? null, row.billingPlan ?? null, row.requests];
+
+  it('splits model rows and slices per billing mode, source and plan', async () => {
+    let { summary, slices } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', { billing: { mode: 'included', plan: 'max' } }),
+        request('2026-03-04T10:01:00Z', { billing: { mode: 'included', plan: 'max' } }),
+        request('2026-03-04T10:02:00Z', { billing: { mode: 'api' } }),
+        request('2026-03-04T10:03:00Z')
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.requests).toBe(4);
+    expect(summary.models.map(billingOf)).toEqual([
+      ['included', 'reported', 'max', 2],
+      ['api', 'reported', null, 1],
+      ['unknown', null, null, 1]
+    ]);
+    expect(
+      slices
+        .filter(slice => slice.requests)
+        .map(slice => billingOf(slice))
+        .sort()
+    ).toEqual([
+      ['api', 'reported', null, 1],
+      ['included', 'reported', 'max', 2],
+      ['unknown', null, null, 1]
+    ]);
+    expect(decimal(summary.models[0]!.costComputedUsd)).toBe('0.6');
+  });
+
+  it('still reads the auth mode of records without billing', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        request(
+          '2026-03-04T10:00:00Z',
+          {},
+          { client: { family: 'codex', authMode: 'Chatgpt' } }
+        ),
+        request(
+          '2026-03-04T10:01:00Z',
+          {},
+          { client: { family: 'codex', authMode: 'ApiKey' } }
+        )
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.models.map(billingOf)).toEqual([
+      ['included', 'reported', null, 1],
+      ['api', 'reported', null, 1]
+    ]);
+  });
+
+  it('picks the subscription vendor for plan usage', async () => {
+    let copilot = (billing?: Record<string, unknown>) =>
+      aggregateSession({
+        records: [
+          request(
+            '2026-03-04T10:00:00Z',
+            { model: { id: 'Claude Sonnet Latest' }, ...(billing ? { billing } : {}) },
+            { client: { family: 'copilot-cli' } }
+          )
+        ],
+        family: 'copilot-cli',
+        catalog
+      });
+
+    expect((await copilot({ mode: 'included' })).summary.models[0]).toMatchObject({
+      vendorId: 'github-copilot',
+      vendorSource: 'agent',
+      billingMode: 'included'
+    });
+    expect((await copilot({ mode: 'overage' })).summary.models[0]!.vendorId).toBe(
+      'github-copilot'
+    );
+    expect((await copilot({ mode: 'api' })).summary.models[0]).toMatchObject({
+      vendorId: 'anthropic',
+      vendorSource: 'first-party',
+      billingMode: 'api'
+    });
+  });
+
+  it("infers Claude Code overage from the main thread's cache TTL", async () => {
+    let plan = { mode: 'included', plan: 'max' };
+    let write = (ttl: '1h' | '5m') => ({
+      inputUncached: 1000,
+      ...(ttl == '1h' ? { cacheWrite1h: 1000 } : { cacheWrite5m: 1000 })
+    });
+
+    let { summary, slices } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', {
+          billing: plan,
+          purpose: 'main',
+          usage: write('1h')
+        }),
+        request('2026-03-04T10:20:00Z', {
+          billing: plan,
+          purpose: 'main',
+          usage: write('5m')
+        }),
+        request(
+          '2026-03-04T10:21:00Z',
+          { billing: plan, purpose: 'subagent', usage: write('5m') },
+          { ctx: { agent: { id: 'agent_sub' } } }
+        )
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.models.map(billingOf)).toEqual([
+      ['included', 'reported', 'max', 1],
+      ['overage', 'inferred', 'max', 2]
+    ]);
+    expect(summary.models[1]!.costComputedUsd).toBeDefined();
+    expect(
+      slices
+        .filter(slice => slice.requests)
+        .map(slice => [slice.billingMode, slice.subagentId ?? null])
+    ).toEqual([
+      ['included', null],
+      ['overage', null],
+      ['overage', 'agent_sub']
+    ]);
+  });
+
+  it('bills a Codex session on a third-party provider per token and resolves its vendor', async () => {
+    let { summary, slices } = await aggregateSession({
+      records: [
+        summaryRecord({
+          type: 'session.start',
+          at: '2026-03-04T10:00:00Z',
+          data: { provider: 'bedrock' }
+        }),
+        request(
+          '2026-03-04T10:00:10Z',
+          { model: { id: 'claude-sonnet-4-5-20250929' }, billing: { mode: 'included' } },
+          { client: { family: 'codex', authMode: 'Chatgpt' } }
+        )
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.models.map(billingOf)).toEqual([['api', 'client', null, 1]]);
+    expect(summary.models[0]).toMatchObject({
+      vendorId: 'aws-bedrock',
+      vendorSource: 'reported'
+    });
+    expect(slices.find(slice => slice.requests)).toMatchObject({
+      provider: 'bedrock',
+      billingMode: 'api'
+    });
+  });
+
+  it('fills unknown usage from a declaration for the user and agent', async () => {
+    let declarations = createDeclarationLookup({
+      declarations: [
+        {
+          id: 'gbd_user',
+          organizationId: 'gor_a',
+          projectId: null,
+          userId: 'gen_user',
+          agentId: 'claude-code',
+          mode: 'included',
+          plan: 'team',
+          validFrom: new Date('2026-01-01T00:00:00Z'),
+          validTo: null,
+          archivedAt: null
+        }
+      ],
+      organizationId: 'gor_a',
+      projectId: 'gpr_a'
+    });
+
+    let { summary } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', {}, { attribution: { userId: 'gen_user' } }),
+        request(
+          '2026-03-04T10:01:00Z',
+          { billing: { mode: 'api' } },
+          { attribution: { userId: 'gen_user' } }
+        ),
+        request('2026-03-04T10:02:00Z', {}, { attribution: { userId: 'gen_other' } })
+      ],
+      family: 'claude-code',
+      catalog,
+      declarations
+    });
+
+    expect(summary.models.map(billingOf)).toEqual([
+      ['included', 'declared', 'team', 1],
+      ['api', 'reported', null, 1],
+      ['unknown', null, null, 1]
+    ]);
+  });
+
+  it('applies an override limited to billing modes only to those requests', async () => {
+    let included = override({
+      target: 'agent',
+      targetId: 'claude-code',
+      kind: 'included',
+      multiplier: null,
+      billingModes: ['included', 'overage']
+    });
+
+    let { summary } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', { billing: { mode: 'included' } }),
+        request('2026-03-04T10:01:00Z', { billing: { mode: 'api' } }),
+        request('2026-03-04T10:02:00Z')
+      ],
+      family: 'claude-code',
+      catalog,
+      pricing: createOverridePricer({
+        overrides: [included],
+        organizationId: 'gor_a',
+        projectId: 'gpr_a',
+        catalog
+      })
+    });
+
+    expect(
+      summary.models.map(model => [
+        model.billingMode,
+        model.overrideId ?? null,
+        decimal(model.costContractUsd) ?? null
+      ])
+    ).toEqual([
+      ['included', included.id, '0'],
+      ['api', null, null],
+      ['unknown', null, null]
+    ]);
+    expect(decimal(summary.costUsd)).toBe('0.6');
   });
 });
 

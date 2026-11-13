@@ -20,7 +20,8 @@ export let ID = createIdGenerator({
   knowledgeSnapshot: idType.sorted('gks_'),
   knowledgeChange: idType.sorted('gkc_'),
   knowledgePricePeriod: idType.sorted('gpp_'),
-  priceOverride: idType.sorted('gpo_')
+  priceOverride: idType.sorted('gpo_'),
+  billingDeclaration: idType.sorted('gbd_')
 });
 
 let workerIdBits = 12;

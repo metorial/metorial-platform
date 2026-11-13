@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createDeclarationLookup } from '../../billing/resolve';
 import { createCatalogIndex } from '../../catalog';
 import { fixtureCatalog } from '../../catalog/tests/fixture';
 import { createOverridePricer } from '../../pricing/pricer';
@@ -194,6 +195,61 @@ describe('sessionlessBaseSlices', () => {
       ['anthropic', 'offering', '3'],
       ['anthropic', 'reported', '3'],
       ['aws-bedrock', 'reported', '3.3']
+    ]);
+  });
+
+  it('bills subscription aggregates as included, by tier, declaration or default', async () => {
+    let tokens = (userId: string, dims: Record<string, unknown> = {}) =>
+      measurement({
+        type: 'tokens',
+        value: 1_000_000,
+        userId,
+        dims: { model: 'claude-sonnet-4-5-20250929', tokenType: 'input_uncached', ...dims }
+      });
+
+    let slices = await sessionlessBaseSlices({
+      bucket: day,
+      catalog,
+      declarations: createDeclarationLookup({
+        declarations: [
+          {
+            id: 'gbd_api',
+            organizationId: 'gor_a',
+            projectId: null,
+            userId: 'gen_api',
+            agentId: null,
+            mode: 'api',
+            plan: null,
+            validFrom: new Date('2026-01-01T00:00:00Z'),
+            validTo: null,
+            archivedAt: null
+          }
+        ],
+        organizationId: 'gor_a',
+        projectId: 'gpr_a'
+      }),
+      records: [
+        tokens('gen_pro', { subscription_tier: 'Pro' }),
+        tokens('gen_api', { subscription_tier: 'Pro' }),
+        tokens('gen_plain'),
+        tokens('gen_api')
+      ]
+    });
+
+    expect(
+      slices
+        .map(slice => [
+          slice.userId,
+          slice.billingMode,
+          slice.billingSource ?? null,
+          slice.billingPlan ?? null
+        ])
+        .sort()
+    ).toEqual([
+      ['gen_api', 'api', 'declared', null],
+      ['gen_api', 'included', 'reported', 'Pro'],
+      ['gen_plain', 'included', 'default', null],
+      ['gen_pro', 'included', 'reported', 'Pro']
     ]);
   });
 

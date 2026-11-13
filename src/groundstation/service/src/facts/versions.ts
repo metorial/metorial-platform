@@ -1,1 +1,1 @@
-export let FACTS_VERSION = 3;
+export let FACTS_VERSION = 4;

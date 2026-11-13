@@ -12,6 +12,7 @@ export let priceOverridePresenter = (override: PriceOverrideWithRelations) => ({
   target: override.target,
   targetId: override.targetId,
   vendorId: override.vendorId,
+  billingModes: override.billingModes,
 
   kind: override.kind,
   multiplier: override.multiplier?.toString() ?? null,
@@ -34,6 +35,7 @@ export let pricingEffectivePresenter = (price: EffectivePrice) => ({
   projectId: price.projectId,
   modelId: price.modelId,
   agentId: price.agentId,
+  billingMode: price.billingMode,
 
   list: knowledgePriceAtPresenter(price.list),
   override: price.override ? priceOverridePresenter(price.override) : null,

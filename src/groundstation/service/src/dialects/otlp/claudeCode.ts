@@ -1,6 +1,7 @@
 import type { ContentInput } from '../../content/engine';
 import type { OtlpLogRecord, OtlpSpan } from '../../otlp/model';
 import type { RecordDraft } from '../../records/draft';
+import { claudeCodeBilling, claudeCodeProvider } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
 import { classifyTool } from '../tools';
@@ -68,6 +69,19 @@ let actorFrom = (
     ...(org ? { org_claim: org } : {}),
     identity_source: claimed ? 'client_claim' : 'resource_attribute'
   };
+};
+
+let accountOf = (fields: FieldReader, resource: FieldReader) => {
+  let pick = (key: string) => fields.str(key) ?? resource.str(key);
+
+  let provider = pick('anthropic.provider');
+  let billing = claudeCodeBilling({
+    provider,
+    plan: pick('anthropic.plan'),
+    seat: pick('anthropic.seat_type')
+  });
+
+  return { provider: claudeCodeProvider(provider), billing };
 };
 
 let surfaceOf = (context: OtlpGroupContext, fields: FieldReader) =>
@@ -249,8 +263,9 @@ let ok = <T>(value: T | undefined, key: string) =>
   value === undefined ? {} : { [key]: value };
 
 let mapApiRequest = (state: LogState): RecordDraft => {
-  let { fields } = state;
+  let { context, fields } = state;
 
+  let account = accountOf(fields, context.resourceFields);
   let usage = usageFrom(fields);
   let cost = usdCost(
     { micros: fields.int('cost_usd_micros'), usd: fields.num('cost_usd') },
@@ -272,7 +287,8 @@ let mapApiRequest = (state: LogState): RecordDraft => {
     },
     {
       outcome: 'ok',
-      ...modelRef(model),
+      ...modelRef(model, account.provider),
+      ...ok(account.billing, 'billing'),
       ...(usage.usage ? { usage: usage.usage } : {}),
       ...(cost ? { cost } : {}),
       ...ok(duration, 'duration_ms'),
@@ -284,8 +300,9 @@ let mapApiRequest = (state: LogState): RecordDraft => {
 };
 
 let mapApiError = (state: LogState): RecordDraft => {
-  let { fields } = state;
+  let { context, fields } = state;
 
+  let account = accountOf(fields, context.resourceFields);
   let status = fields.int('status_code');
   let duration = fields.count('duration_ms');
   let model = nativeLabel(fields.str('model'));
@@ -301,7 +318,8 @@ let mapApiError = (state: LogState): RecordDraft => {
     {
       outcome: 'error',
       error: errorFromStatus(status, undefined, 'unknown'),
-      ...modelRef(model),
+      ...modelRef(model, account.provider),
+      ...ok(account.billing, 'billing'),
       ...ok(attempt, 'attempt'),
       ...ok(duration, 'duration_ms')
     }
@@ -340,6 +358,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     }
 
     case 'api_refusal': {
+      let account = accountOf(fields, state.context.resourceFields);
       let model = nativeLabel(fields.str('model'));
       let category = nativeLabel(fields.str('category'));
       let attempt = fields.count('attempt');
@@ -349,7 +368,8 @@ let mapEvent = (state: LogState): RecordDraft[] => {
           { ...logDraft(state, 'model.request'), factKey: requestFact(fields) },
           {
             outcome: 'refused',
-            ...modelRef(model),
+            ...modelRef(model, account.provider),
+            ...ok(account.billing, 'billing'),
             ...ok(category, 'refusal_category'),
             ...ok(attempt, 'attempt')
           }
@@ -798,6 +818,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
     }
 
     case 'llm_request': {
+      let account = accountOf(fields, context.resourceFields);
       let usage = usageFrom(fields);
       let model = nativeLabel(fields.str('model'));
       let ttft = fields.count('ttft_ms');
@@ -829,7 +850,8 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
                   )
                 }
               : {}),
-            ...modelRef(model),
+            ...modelRef(model, account.provider),
+            ...ok(account.billing, 'billing'),
             ...(usage.usage ? { usage: usage.usage } : {}),
             ...ok(ttft, 'ttft_ms'),
             ...ok(stop, 'stop_reason'),

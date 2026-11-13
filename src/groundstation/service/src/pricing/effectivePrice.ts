@@ -1,5 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import type { BillingMode } from '@metorial/groundstation-spec';
 import type { Offering, Pricing } from '@metorial/model-catalog/src/types';
 import type { Organization, PriceOverrideKind } from '../../prisma/generated/client';
 import { db } from '../db';
@@ -27,6 +28,7 @@ export type EffectivePrice = {
   projectId: string | null;
   modelId: string | null;
   agentId: string | null;
+  billingMode: BillingMode;
   list: KnowledgePriceAt;
   override: PriceOverrideWithRelations | null;
   effective: { basis: 'list' | PriceOverrideKind; pricing: Pricing | null };
@@ -36,6 +38,7 @@ export type EffectivePriceInput = {
   projectId?: string;
   vendorId?: string;
   agent?: string;
+  billingMode?: BillingMode;
   at?: Date;
 } & (
   { offeringId: string } | { modelId: string } | Omit<KnowledgeRequestInput, 'agent' | 'at'>
@@ -53,6 +56,7 @@ class EffectivePriceServiceImpl {
     input: EffectivePriceInput;
   }): Promise<EffectivePrice> {
     let at = d.input.at ?? new Date();
+    let billingMode = d.input.billingMode ?? 'unknown';
 
     let [project, index, overrides] = await Promise.all([
       this.resolveProject({ organization: d.organization, projectId: d.input.projectId }),
@@ -80,7 +84,8 @@ class EffectivePriceServiceImpl {
       ...(info?.familyId ? { familyId: info.familyId } : {}),
       ...(info ? { labId: info.labId } : {}),
       ...(agent ? { agentId: agent.id } : {}),
-      ...(vendorId ? { vendorId } : {})
+      ...(vendorId ? { vendorId } : {}),
+      billingMode
     });
 
     let override = matched
@@ -96,6 +101,7 @@ class EffectivePriceServiceImpl {
       projectId: project?.id ?? null,
       modelId,
       agentId: agent?.id ?? null,
+      billingMode,
       list,
       override,
       effective: {

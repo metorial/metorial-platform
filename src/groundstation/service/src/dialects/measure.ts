@@ -38,7 +38,10 @@ let ignoredAttributes = new Set([
   'terminal.type',
   'app.version',
   'conversation.id',
-  'thread.id'
+  'thread.id',
+  'anthropic.provider',
+  'anthropic.plan',
+  'anthropic.seat_type'
 ]);
 
 export type MeasurementSpec = {

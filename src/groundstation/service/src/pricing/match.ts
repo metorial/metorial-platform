@@ -1,3 +1,4 @@
+import type { BillingMode } from '@metorial/groundstation-spec';
 import type { Pricing } from '@metorial/model-catalog/src/types';
 import type { PriceOverrideKind, PriceOverrideTarget } from '../../prisma/generated/client';
 
@@ -18,6 +19,7 @@ export type MatchableOverride = {
   target: PriceOverrideTarget;
   targetId: string | null;
   vendorId: string | null;
+  billingModes: BillingMode[];
   kind: PriceOverrideKind;
   multiplier: string | null;
   rates: Pricing | null;
@@ -37,6 +39,7 @@ export type OverrideRequest = {
   labId?: string;
   agentId?: string;
   vendorId?: string;
+  billingMode: BillingMode;
 };
 
 let requestTargetId = (request: OverrideRequest, target: PriceOverrideTarget) => {
@@ -60,6 +63,9 @@ export let overrideMatches = (override: MatchableOverride, request: OverrideRequ
   if (override.projectId && override.projectId != request.projectId) return false;
   if (!isOverrideActiveAt(override, request.at)) return false;
   if (override.vendorId && override.vendorId != request.vendorId) return false;
+  if (override.billingModes.length && !override.billingModes.includes(request.billingMode)) {
+    return false;
+  }
   if (override.target == 'all') return true;
 
   let targetId = requestTargetId(request, override.target);
@@ -69,12 +75,14 @@ export let overrideMatches = (override: MatchableOverride, request: OverrideRequ
 let compareOverrides = (a: MatchableOverride, b: MatchableOverride) =>
   overrideSpecificity.indexOf(a.target) - overrideSpecificity.indexOf(b.target) ||
   Number(!a.projectId) - Number(!b.projectId) ||
+  Number(!a.billingModes.length) - Number(!b.billingModes.length) ||
   b.priority - a.priority ||
   b.validFrom.getTime() - a.validFrom.getTime() ||
   (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
 
 // One override per request, never stacked (08 §7): the most specific target wins, then a
-// project-scoped one, then the higher priority, the later validFrom and finally the newer id.
+// project-scoped one, then one limited to billing modes, then the higher priority, the later
+// validFrom and finally the newer id.
 export let matchOverride = <T extends MatchableOverride>(
   overrides: T[],
   request: OverrideRequest

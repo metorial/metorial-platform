@@ -1,3 +1,4 @@
+import type { BillingMode } from '@metorial/groundstation-spec';
 import type { CatalogIndex, RequestTokens, ResolvedModel } from '../catalog';
 import type { Amount } from '../sessions/decimal';
 import { contractAmount } from './contract';
@@ -8,6 +9,7 @@ export type ContractPrice = { override: MatchableOverride; amount: Amount };
 export type OverridePricer = (d: {
   at: Date;
   resolution: ResolvedModel;
+  billingMode: BillingMode;
   list: Amount | undefined;
   tokens: RequestTokens | undefined;
   contextTokens: number;
@@ -18,6 +20,7 @@ export let overrideRequestOf = (d: {
   organizationId: string;
   projectId: string;
   resolution: ResolvedModel;
+  billingMode: BillingMode;
   catalog: Pick<CatalogIndex, 'modelInfo'> | null;
 }): OverrideRequest => {
   let { resolution } = d;
@@ -32,7 +35,8 @@ export let overrideRequestOf = (d: {
     ...(info?.familyId ? { familyId: info.familyId } : {}),
     ...(info ? { labId: info.labId } : {}),
     ...(resolution.agentId ? { agentId: resolution.agentId } : {}),
-    ...(resolution.vendorId ? { vendorId: resolution.vendorId } : {})
+    ...(resolution.vendorId ? { vendorId: resolution.vendorId } : {}),
+    billingMode: d.billingMode
   };
 };
 
@@ -52,6 +56,7 @@ export let createOverridePricer = (d: {
         organizationId: d.organizationId,
         projectId: d.projectId,
         resolution: request.resolution,
+        billingMode: request.billingMode,
         catalog: d.catalog
       })
     );

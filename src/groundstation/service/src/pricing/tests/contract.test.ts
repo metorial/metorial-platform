@@ -216,6 +216,7 @@ describe('createOverridePricer', () => {
         organizationId: 'gor_a',
         projectId: 'gpr_a',
         resolution,
+        billingMode: 'api',
         catalog
       })
     ).toMatchObject({
@@ -223,7 +224,8 @@ describe('createOverridePricer', () => {
       familyId: 'claude-sonnet',
       labId: 'anthropic',
       agentId: 'claude-code',
-      vendorId: 'anthropic'
+      vendorId: 'anthropic',
+      billingMode: 'api'
     });
   });
 
@@ -257,6 +259,7 @@ describe('createOverridePricer', () => {
     let priced = price({
       at: new Date('2026-03-04T10:00:00Z'),
       resolution,
+      billingMode: 'unknown',
       list: amount('4'),
       tokens: tokens({ inputUncached: 1 }),
       contextTokens: 1
@@ -268,10 +271,42 @@ describe('createOverridePricer', () => {
       price({
         at: new Date('2026-03-04T10:00:00Z'),
         resolution,
+        billingMode: 'unknown',
         list: undefined,
         tokens: tokens({ inputUncached: 1 }),
         contextTokens: 1
       })
     ).toBeUndefined();
+  });
+
+  it('matches overrides against the request’s billing mode', () => {
+    let plan = override({
+      target: 'agent',
+      targetId: 'claude-code',
+      billingModes: ['included'],
+      kind: 'included',
+      multiplier: null
+    });
+
+    let price = createOverridePricer({
+      overrides: [plan],
+      organizationId: 'gor_a',
+      projectId: 'gpr_a',
+      catalog
+    })!;
+    let request = {
+      at: new Date('2026-03-04T10:00:00Z'),
+      resolution,
+      list: amount('4'),
+      tokens: tokens({ inputUncached: 1 }),
+      contextTokens: 1
+    };
+
+    let covered = price({ ...request, billingMode: 'included' });
+    expect(covered?.override.id).toBe(plan.id);
+    expect(format(covered?.amount)).toBe('0');
+
+    expect(price({ ...request, billingMode: 'api' })).toBeUndefined();
+    expect(price({ ...request, billingMode: 'unknown' })).toBeUndefined();
   });
 });
