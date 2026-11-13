@@ -293,6 +293,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "particle-ai/particle-1:free": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Free-tier serving of Particle-1, Particle AI's rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding (per Vercel/ModelsLab listings) — the same model already excluded under particle-ai/particle-1 on this and other gateways; a fine-tune of DeepSeek V4.1 Flash is not that model and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "particle/particle-1": {
     "decision": "exclude",
     "category": "fine-tune",

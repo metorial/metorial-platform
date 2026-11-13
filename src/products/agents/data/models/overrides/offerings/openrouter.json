@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance-seed/seedream-5-5": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "ByteDance Seed's Seedream 5.5, its next-generation image creation/editing model released 2026-11-09 (per Unite.AI coverage and aggregator listings); a new generation beyond the index's seedream-5.0-pro (2026-07-08), with no 5.5 entry, so defer rather than link the 5.0 model.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "bytedance/ui-tars-1.5-7b": {
     "decision": "defer",
     "until": "2026-12-12",
