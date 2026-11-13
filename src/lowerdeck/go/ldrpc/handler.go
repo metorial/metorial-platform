@@ -8,18 +8,50 @@ import (
 	"strings"
 )
 
-// Validator is implemented by generated input types. A ValidationErrors result becomes a
-// 400 invalid_data response with entity "call_data".
+// Validator is implemented by input types that check themselves after decoding. A
+// ValidationErrors result becomes a 400 invalid_data response with entity "call_data".
 type Validator interface {
 	Validate() error
 }
 
-// Unary adapts a typed method implementation to a HandlerFunc. The payload is decoded into
-// I (unknown fields are ignored, as @lowerdeck/validation strips them) and validated when *I
-// implements Validator. A nil *O is sent as null.
-func Unary[I, O any](fn func(ctx context.Context, in *I) (*O, error)) HandlerFunc {
+// Void is the input of methods that take none and the output of methods that return
+// nothing. As an input it accepts any payload; as an output a nil *Void is sent as null.
+type Void struct{}
+
+func (*Void) UnmarshalJSON([]byte) error { return nil }
+
+type UnaryOption func(*unaryConfig)
+
+type unaryConfig struct {
+	schema *Schema
+}
+
+// WithInputSchema validates and normalizes the payload with a @lowerdeck/rpc-spec schema
+// before it is decoded, producing the same issues as @lowerdeck/validation.
+func WithInputSchema(schema *Schema) UnaryOption {
+	return func(c *unaryConfig) { c.schema = schema }
+}
+
+// Unary adapts a typed method implementation to a HandlerFunc. The payload is checked
+// against the input schema if one is given, decoded into I (unknown fields are ignored, as
+// @lowerdeck/validation strips them) and validated when *I implements Validator. A nil *O
+// is sent as null.
+func Unary[I, O any](fn func(ctx context.Context, in *I) (*O, error), opts ...UnaryOption) HandlerFunc {
+	var cfg unaryConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	return func(ctx context.Context, payload json.RawMessage) (any, error) {
 		in := new(I)
+
+		if cfg.schema != nil {
+			normalized, err := cfg.schema.Validate(payload)
+			if err != nil {
+				return nil, err
+			}
+			payload = normalized
+		}
 
 		if err := json.Unmarshal(payload, in); err != nil {
 			return nil, decodeError(err)

@@ -197,6 +197,8 @@ type ValidationIssue struct {
 	Path     []string `json:"path,omitempty"`
 	Expected any      `json:"expected,omitempty"`
 	Received any      `json:"received,omitempty"`
+	Min      *float64 `json:"min,omitempty"`
+	Max      *float64 `json:"max,omitempty"`
 }
 
 // ValidationErrors is returned by generated Validate() methods. The server turns it into a

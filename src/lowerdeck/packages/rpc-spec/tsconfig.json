@@ -1,0 +1,4 @@
+{
+  "extends": "@lowerdeck/tsconfig/base.json",
+  "include": ["src"]
+}
