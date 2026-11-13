@@ -9,12 +9,13 @@ import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
 import {
   buildUsage,
   errorFromStatus,
+  modelRef,
   nativeLabel,
   normalizeEffort,
   normalizeSpeed,
   own,
-  usdCost,
-  type Decision
+  type Decision,
+  usdCost
 } from '../values';
 import {
   clientVersionOf,
@@ -271,7 +272,7 @@ let mapApiRequest = (state: LogState): RecordDraft => {
     },
     {
       outcome: 'ok',
-      ...ok(model, 'model'),
+      ...modelRef(model),
       ...(usage.usage ? { usage: usage.usage } : {}),
       ...(cost ? { cost } : {}),
       ...ok(duration, 'duration_ms'),
@@ -300,7 +301,7 @@ let mapApiError = (state: LogState): RecordDraft => {
     {
       outcome: 'error',
       error: errorFromStatus(status, undefined, 'unknown'),
-      ...ok(model, 'model'),
+      ...modelRef(model),
       ...ok(attempt, 'attempt'),
       ...ok(duration, 'duration_ms')
     }
@@ -348,7 +349,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
           { ...logDraft(state, 'model.request'), factKey: requestFact(fields) },
           {
             outcome: 'refused',
-            ...ok(model, 'model'),
+            ...modelRef(model),
             ...ok(category, 'refusal_category'),
             ...ok(attempt, 'attempt')
           }
@@ -438,7 +439,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             ...logDraft(state, 'message.assistant'),
             content: contentFrom(fields, 'response', 'response', { clientLength: length })
           },
-          { ...ok(length, 'length_chars'), ...ok(model, 'model') }
+          { ...ok(length, 'length_chars'), ...modelRef(model) }
         )
       ];
     }
@@ -560,7 +561,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             ...(usage.usage ? { usage: usage.usage } : {}),
             ...ok(toolUses, 'tool_uses'),
             ...ok(duration, 'duration_ms'),
-            ...ok(model, 'model')
+            ...modelRef(model)
           }
         )
       ];
@@ -828,7 +829,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
                   )
                 }
               : {}),
-            ...ok(model, 'model'),
+            ...modelRef(model),
             ...(usage.usage ? { usage: usage.usage } : {}),
             ...ok(ttft, 'ttft_ms'),
             ...ok(stop, 'stop_reason'),

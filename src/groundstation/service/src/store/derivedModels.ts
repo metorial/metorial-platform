@@ -309,6 +309,7 @@ UsageSliceSchema.index({ organizationId: 1, dimIds: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, modelId: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, modelRaw: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, vendorId: 1, bucket: 1 });
+UsageSliceSchema.index({ organizationId: 1, 'client.family': 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, sessionKey: 1 });
 UsageSliceSchema.index(
   { organizationId: 1, sessionlessKey: 1 },

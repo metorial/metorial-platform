@@ -10,13 +10,10 @@ import {
   pointerTarget,
   vendor
 } from '../../knowledge/tests/fixtures';
-import {
-  createCatalogIndex,
-  firstPartyVendors,
-  reachableModels,
-  targetAt,
-  vendorFor
-} from '../lookup';
+import { pricing } from '../../knowledge/tests/fixtures';
+import type { PricePeriod } from '../../knowledge/periods';
+import { createCatalogIndex, reachableModels, targetAt } from '../lookup';
+import { firstPartyVendors } from '../vendors';
 import { fixtureCatalog, pointerSwitch } from './fixture';
 
 let index = createCatalogIndex(fixtureCatalog);
@@ -95,23 +92,188 @@ describe('createCatalogIndex', () => {
     expect(index.resolveModel({ raw: 'sonnet', at: after })).toEqual({});
     expect(
       index.resolveModel({ raw: 'mystery-model', provider: 'openai', at: after })
-    ).toEqual({});
+    ).toEqual({ vendorId: 'openai', vendorSource: 'reported' });
+  });
+
+  it('explains how the model was matched', () => {
+    expect(
+      index.resolveModel({
+        raw: 'claude-sonnet-4-5-20250929',
+        provider: 'anthropic',
+        at: after
+      }).match
+    ).toEqual({ by: 'offering', nameIds: [], pointerIds: [] });
+    expect(
+      index.resolveModel({ raw: 'claude-sonnet-4-5-20250929', provider: 'bedrock', at: after })
+        .match
+    ).toEqual({
+      by: 'raw',
+      nameIds: ['vendor:anthropic:claude-sonnet-4-5-20250929'],
+      pointerIds: []
+    });
+    expect(index.resolveModel({ raw: 'gpt-5', provider: 'openai', at: after }).match).toEqual({
+      by: 'offering',
+      nameIds: [],
+      pointerIds: []
+    });
+    expect(index.resolveModel({ raw: 'Claude Sonnet Latest', at: before }).match).toEqual({
+      by: 'raw',
+      nameIds: ['display:Claude Sonnet Latest'],
+      pointerIds: ['claude-sonnet-latest']
+    });
+    expect(index.resolveModel({ raw: 'claude sonnet latest', at: before }).match?.by).toBe(
+      'key'
+    );
+  });
+
+  it('returns the price period with the offering', () => {
+    let result = index.resolveModel({
+      raw: 'claude-sonnet-4-5-20250929',
+      provider: 'anthropic',
+      at: after
+    });
+
+    expect(result.period).toMatchObject({
+      id: 'catalog:anthropic:claude-sonnet-4-5',
+      origin: 'bootstrap',
+      validTo: null
+    });
+    expect(result.period?.pricing).toEqual(result.offering?.pricing);
+    expect(result.priceAssumed).toBe(false);
+
+    let late = index.resolveModel({
+      raw: 'claude-sonnet-4-5-20250929',
+      provider: 'anthropic',
+      at: new Date('2026-02-01T00:00:00.000Z')
+    });
+    expect(late.priceAssumed).toBe(true);
+  });
+});
+
+describe('price history', () => {
+  let day = 24 * 60 * 60 * 1000;
+  let changedAt = new Date('2025-10-01T00:00:00.000Z');
+
+  let pricePeriod = (
+    id: string,
+    input: number,
+    validFrom: Date,
+    validTo: Date | null,
+    closeReason: PricePeriod['closeReason'] = validTo ? 'changed' : null
+  ): PricePeriod => ({
+    id,
+    pricing: pricing(input),
+    origin: 'observed',
+    closeReason,
+    validFrom,
+    validTo,
+    confirmedAt: validTo ?? new Date(changedAt.getTime() + 10 * day)
+  });
+
+  let history = createCatalogIndex(fixtureCatalog, {
+    periods: {
+      'anthropic:claude-sonnet-4-5': [
+        pricePeriod('new', 2, changedAt, null),
+        pricePeriod('old', 3, new Date('2025-09-01T00:00:00.000Z'), changedAt)
+      ]
+    }
+  });
+
+  let resolveAt = (at: Date) =>
+    history.resolveModel({ raw: 'claude-sonnet-4-5-20250929', provider: 'anthropic', at });
+
+  it('prices each request with the period valid at its time', () => {
+    expect(resolveAt(new Date('2025-09-15T00:00:00.000Z'))).toMatchObject({
+      period: { id: 'old' },
+      priceAssumed: false
+    });
+    expect(resolveAt(changedAt)).toMatchObject({ period: { id: 'new' }, priceAssumed: false });
+  });
+
+  it('assumes the first price before history and the last price once unconfirmed', () => {
+    expect(resolveAt(new Date('2025-08-01T00:00:00.000Z'))).toMatchObject({
+      period: { id: 'old' },
+      priceAssumed: true
+    });
+    expect(resolveAt(new Date(changedAt.getTime() + 18 * day))).toMatchObject({
+      period: { id: 'new' },
+      priceAssumed: true
+    });
+  });
+
+  it('keeps an offering whose upstream price went null priced while its period is open', () => {
+    let nullPriced = {
+      ...fixtureCatalog,
+      offerings: fixtureCatalog.offerings.map(item =>
+        item.id == 'anthropic:claude-sonnet-4-5' ? { ...item, pricing: null } : item
+      )
+    };
+    let index = createCatalogIndex(nullPriced, {
+      periods: {
+        'anthropic:claude-sonnet-4-5': [pricePeriod('open', 3, changedAt, null)]
+      }
+    });
+
+    let result = index.resolveModel({
+      raw: 'Claude Sonnet Latest',
+      provider: 'anthropic',
+      at: after
+    });
+
+    expect(result.offering?.id).toBe('anthropic:claude-sonnet-4-5');
+    expect(result.offering?.pricing).toBeNull();
+    expect(result.period?.id).toBe('open');
+  });
+
+  it('skips an offering inside a corrected gap and has no price without another one', () => {
+    let gap = createCatalogIndex(fixtureCatalog, {
+      periods: {
+        'anthropic:claude-sonnet-4-5': [
+          pricePeriod('ended', 3, new Date('2025-09-01T00:00:00.000Z'), changedAt, 'corrected')
+        ],
+        'anthropic:claude-sonnet-4-5:priority': []
+      }
+    });
+
+    let result = gap.resolveModel({
+      raw: 'Claude Sonnet Latest',
+      provider: 'anthropic',
+      at: after
+    });
+
+    expect(result).toMatchObject({ modelId: 'claude-sonnet-4-5', vendorId: 'anthropic' });
+    expect(result.offering).toBeUndefined();
+    expect(result.period).toBeUndefined();
+
+    expect(
+      gap.resolveModel({
+        raw: 'Claude Sonnet Latest',
+        provider: 'anthropic',
+        at: new Date('2025-09-30T00:00:00.000Z')
+      }).period?.id
+    ).toBe('ended');
   });
 });
 
 describe('modelInfo', () => {
-  it('reports the family, lifecycle and whether the model is its family latest', () => {
+  it('reports the lab, family, lifecycle and whether the model is its family latest', () => {
     expect(index.modelInfo('claude-sonnet-4-5')).toEqual({
+      labId: 'anthropic',
       familyId: 'claude-sonnet',
       status: 'active',
       isLatest: true
     });
     expect(index.modelInfo('claude-sonnet-4')).toEqual({
+      labId: 'anthropic',
       familyId: 'claude-sonnet',
       status: 'deprecated',
       isLatest: false
     });
-    expect(index.modelInfo('gpt-5')).toEqual({ status: 'active', isLatest: false });
+    expect(index.modelInfo('gpt-5')).toEqual({
+      labId: 'openai',
+      status: 'active',
+      isLatest: false
+    });
     expect(index.modelInfo('unknown')).toBeUndefined();
   });
 });
@@ -132,15 +294,6 @@ describe('targetAt', () => {
       kind: 'model',
       modelId: 'claude-sonnet-4'
     });
-  });
-});
-
-describe('vendorFor', () => {
-  it('maps providers and families to catalog vendors', () => {
-    expect(vendorFor({ provider: 'vertex' })).toBe('google-vertex');
-    expect(vendorFor({ provider: 'other:mistral' })).toBe('mistral');
-    expect(vendorFor({ family: 'gemini-cli' })).toBe('google-ai-studio');
-    expect(vendorFor({ family: 'cursor' })).toBeUndefined();
   });
 });
 
@@ -213,7 +366,7 @@ describe('reachableModels', () => {
     expect(reachableModels([entry(pointerTarget('missing'))], lookup([]))).toEqual(new Set());
   });
 
-  it.fails('finds models behind a pointer first reached through a longer chain', () => {
+  it('finds models behind a pointer that is also reached through a longer chain', () => {
     let pointers = [
       link('p1', pointerTarget('p2')),
       link('p2', pointerTarget('p3')),

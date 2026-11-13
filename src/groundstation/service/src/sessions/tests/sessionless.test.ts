@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createCatalogIndex } from '../../catalog';
 import { fixtureCatalog } from '../../catalog/tests/fixture';
+import { createOverridePricer } from '../../pricing/pricer';
+import { override } from '../../pricing/tests/fixtures';
 import { buildDraft } from '../../test/build';
 import {
   isSessionlessUsage,
@@ -144,6 +146,8 @@ describe('sessionlessBaseSlices', () => {
     expect(sonnet).toMatchObject({
       bucket: day,
       bucketMinutes: 1440,
+      vendorId: 'anthropic',
+      vendorSource: 'reported',
       userId: 'gen_user',
       client: { family: 'kiro' },
       sessionsStarted: 0,
@@ -159,7 +163,73 @@ describe('sessionlessBaseSlices', () => {
 
     let other = slices.find(slice => slice.userId == 'gen_other')!;
     expect(other.modelId).toBeUndefined();
+    expect(other.vendorId).toBeUndefined();
     expect(other.tokens.output).toBe(50);
     expect(other.costUsd).toBeUndefined();
+  });
+
+  it('splits slices by vendor and prices each with its own offering', async () => {
+    let tokens = (dims: Record<string, unknown>) =>
+      measurement({
+        type: 'tokens',
+        value: 1_000_000,
+        dims: { ...dims, tokenType: 'input_uncached' }
+      });
+
+    let slices = await sessionlessBaseSlices({
+      bucket: day,
+      catalog,
+      records: [
+        tokens({ model: 'claude-sonnet-4-5-20250929', provider: 'anthropic' }),
+        tokens({ model: 'claude-sonnet-4-5-20250929', provider: 'bedrock' }),
+        tokens({ model: 'claude-sonnet-4-5-20250929' })
+      ]
+    });
+
+    expect(
+      slices
+        .map(slice => [slice.vendorId, slice.vendorSource, slice.costComputedUsd?.toString()])
+        .sort()
+    ).toEqual([
+      ['anthropic', 'offering', '3'],
+      ['anthropic', 'reported', '3'],
+      ['aws-bedrock', 'reported', '3.3']
+    ]);
+  });
+
+  it('adds the contract cost of the matching override and prefers it', async () => {
+    let bedrock = override({ target: 'vendor', targetId: 'aws-bedrock', multiplier: '0.5' });
+    let tokens = (provider: string) =>
+      measurement({
+        type: 'tokens',
+        value: 1_000_000,
+        dims: { model: 'claude-sonnet-4-5-20250929', provider, tokenType: 'input_uncached' }
+      });
+
+    let slices = await sessionlessBaseSlices({
+      bucket: day,
+      catalog,
+      pricing: createOverridePricer({
+        overrides: [bedrock],
+        organizationId: 'gor_a',
+        projectId: 'gpr_a',
+        catalog
+      }),
+      records: [tokens('anthropic'), tokens('bedrock')]
+    });
+
+    expect(
+      slices
+        .map(slice => [
+          slice.vendorId,
+          slice.costComputedUsd?.toString(),
+          slice.costContractUsd?.toString() ?? null,
+          slice.costUsd?.toString()
+        ])
+        .sort()
+    ).toEqual([
+      ['anthropic', '3', null, '3'],
+      ['aws-bedrock', '3.3', '1.65', '1.65']
+    ]);
   });
 });

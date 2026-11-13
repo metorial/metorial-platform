@@ -1,8 +1,10 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import mongoose from 'mongoose';
 import type { Organization } from '../../prisma/generated/client';
+import { getDimensionMaps } from '../knowledge/dimensions';
 import { getStore, isStoreConfigured } from '../store/connection';
-import { loadModelFamilyResolver } from './models';
+import type { UsageSliceDocument } from '../store/derivedModels';
 import { resolveQueryScope, type QueryScope } from './scope';
 import {
   buildSessionPipeline,
@@ -15,6 +17,7 @@ import {
 import {
   buildUsagePipelines,
   finalizeUsageRows,
+  usesDimensions,
   validateUsageQuery,
   type ReportedCostRow,
   type UsageGroupRow,
@@ -37,9 +40,17 @@ class UsageQueryServiceImpl {
     validateUsageQuery(query);
 
     let collections = await this.collections();
-    let pipelines = buildUsagePipelines(query);
+    let dimensions = usesDimensions(query)
+      ? {
+          maps: await getDimensionMaps(),
+          unresolvedRaws: query.filters['model.lab']
+            ? await this.unresolvedRaws(collections, query)
+            : []
+        }
+      : undefined;
+    let pipelines = buildUsagePipelines(query, dimensions);
 
-    let [rows, reported, resolveModelFamily] = await Promise.all([
+    let [rows, reported] = await Promise.all([
       collections.usageSlices
         .aggregate<UsageGroupRow>(pipelines.main, { maxTimeMS: queryTimeoutMs })
         .toArray(),
@@ -47,11 +58,10 @@ class UsageQueryServiceImpl {
         ? collections.usageSlices
             .aggregate<ReportedCostRow>(pipelines.reported, { maxTimeMS: queryTimeoutMs })
             .toArray()
-        : [],
-      loadModelFamilyResolver()
+        : []
     ]);
 
-    let result = finalizeUsageRows({ query, rows, reported, resolveModelFamily });
+    let result = finalizeUsageRows({ query, rows, reported, maps: dimensions?.maps });
 
     return {
       interval: query.interval ?? null,
@@ -116,6 +126,22 @@ class UsageQueryServiceImpl {
           turns: session.summary?.turns ?? null
         })) ?? null
     };
+  }
+
+  private async unresolvedRaws(
+    collections: Awaited<ReturnType<UsageQueryServiceImpl['collections']>>,
+    query: UsageQuery
+  ) {
+    let unresolved = {
+      organizationId: query.organizationId,
+      modelId: null,
+      bucket: { $gte: query.range.from, $lt: query.range.to }
+    } as unknown as mongoose.mongo.Filter<UsageSliceDocument>;
+    let raws = await collections.usageSlices.distinct('modelRaw', unresolved, {
+      maxTimeMS: queryTimeoutMs
+    });
+
+    return raws.filter((raw): raw is string => typeof raw == 'string');
   }
 
   private async collections() {

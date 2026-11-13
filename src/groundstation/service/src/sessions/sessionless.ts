@@ -1,8 +1,16 @@
 import type { NormalizedRecord, RecordKind } from '@metorial/groundstation-spec';
-import { computeRequestCost, type CatalogIndex } from '../catalog';
+import {
+  computeRequestCost,
+  isSubscriptionAuth,
+  type CatalogIndex,
+  type ModelRequest
+} from '../catalog';
 import { sessionlessKey } from '../facts/slices';
 import { writeSessionFacts, type BaseSlice } from '../facts/write';
+import { db } from '../db';
 import { getKnowledge } from '../knowledge/cache';
+import { getOrganizationOverrides } from '../pricing/cache';
+import { createOverridePricer, type OverridePricer } from '../pricing/pricer';
 import { getRuntime } from '../runtime';
 import { defaultStoragePolicy } from '../sink/types';
 import { getStore } from '../store/connection';
@@ -95,18 +103,28 @@ export let isSessionlessUsage = (record: NormalizedRecord) =>
 let costUnit = (unit: string) => unit.replace(/[{}]/g, '').toLowerCase();
 
 type SliceTotals = {
-  slice: Omit<BaseSlice, 'costReported' | 'costComputedUsd' | 'costUsd'>;
+  slice: Omit<BaseSlice, 'costReported' | 'costComputedUsd' | 'costContractUsd' | 'costUsd'>;
+  request?: ModelRequest;
   costs: Map<string, CostEntry>;
   computed?: Amount;
+  contract?: Amount;
 };
 
-let modelOf = (document: SessionlessRecord) => {
+let requestOf = (document: SessionlessRecord): ModelRequest | undefined => {
   let data = document.data ?? {};
   let dims = record(data.dims) ?? {};
+  let model = record(data.model);
+
+  let raw = text(dims.model) ?? text(model?.id);
+  if (!raw) return undefined;
 
   return {
-    modelRaw: text(dims.model) ?? text(record(data.model)?.id),
-    provider: text(dims.provider) ?? text(record(data.model)?.provider)
+    raw,
+    provider: text(dims.provider) ?? text(model?.provider),
+    family: document.client.family,
+    baseUrl: text(model?.baseUrl),
+    subscription:
+      !!text(dims.subscription_tier) || isSubscriptionAuth(document.client.authMode)
   };
 };
 
@@ -114,14 +132,12 @@ export let sessionlessBaseSlices = async (d: {
   records: Iterable<SessionlessRecord>;
   bucket: Date;
   catalog: CatalogIndex | null;
+  pricing?: OverridePricer | null;
 }): Promise<BaseSlice[]> => {
   let records = [...d.records];
   let slices = new Map<string, SliceTotals>();
 
-  let requests = records.flatMap(document => {
-    let { modelRaw, provider } = modelOf(document);
-    return modelRaw ? [{ raw: modelRaw, provider, family: document.client.family }] : [];
-  });
+  let requests = records.flatMap(document => requestOf(document) ?? []);
   let resolver = d.catalog ? await d.catalog.prepare(requests) : null;
 
   for (let document of records) {
@@ -141,15 +157,13 @@ export let sessionlessBaseSlices = async (d: {
     }
 
     let dims = record(data.dims) ?? {};
-    let { modelRaw, provider } = modelOf(document);
-    let modelId = modelRaw
-      ? resolver?.resolveModel({
-          raw: modelRaw,
-          provider,
-          family: document.client.family,
-          at: document.occurredAt
-        }).modelId
-      : undefined;
+    let request = requestOf(document);
+    let modelRaw = request?.raw;
+    let provider = request?.provider;
+    let { modelId, vendorId, vendorSource } =
+      request && resolver
+        ? resolver.resolveModel({ ...request, at: document.occurredAt })
+        : {};
 
     let attribution = document.attribution ?? {};
     let key = [
@@ -157,7 +171,9 @@ export let sessionlessBaseSlices = async (d: {
       attribution.userId,
       attribution.deviceId,
       attribution.agentId,
-      modelId ?? (modelRaw ? `raw:${modelRaw}` : '')
+      modelId ?? (modelRaw ? `raw:${modelRaw}` : ''),
+      vendorId,
+      vendorSource
     ].join('\0');
 
     let totals = slices.get(key);
@@ -169,6 +185,8 @@ export let sessionlessBaseSlices = async (d: {
           ...(modelId ? { modelId } : {}),
           ...(modelRaw ? { modelRaw } : {}),
           ...(provider ? { provider } : {}),
+          ...(vendorId ? { vendorId } : {}),
+          ...(vendorSource ? { vendorSource } : {}),
           ...(attribution.userId ? { userId: attribution.userId } : {}),
           ...(attribution.deviceId ? { deviceId: attribution.deviceId } : {}),
           ...(attribution.agentId ? { agentId: attribution.agentId } : {}),
@@ -185,6 +203,7 @@ export let sessionlessBaseSlices = async (d: {
           tokens: emptyTokens(),
           lines: { added: 0, removed: 0 }
         },
+        ...(modelId ? { request } : {}),
         costs: new Map()
       };
       slices.set(key, totals);
@@ -228,23 +247,39 @@ export let sessionlessBaseSlices = async (d: {
   }
 
   for (let totals of slices.values()) {
-    let offering = totals.slice.modelId
-      ? resolver?.resolveModel({
-          raw: totals.slice.modelRaw ?? totals.slice.modelId,
-          provider: totals.slice.provider,
-          family: totals.slice.client?.family,
-          at: totals.slice.bucket
-        }).offering
-      : undefined;
+    let resolution =
+      totals.request && resolver
+        ? resolver.resolveModel({ ...totals.request, at: totals.slice.bucket })
+        : undefined;
 
-    let usd = offering
-      ? computeRequestCost({ offering, tokens: totals.slice.tokens, contextTokens: 0 })
+    let usd = resolution?.period
+      ? computeRequestCost({
+          pricing: resolution.period.pricing,
+          tokens: totals.slice.tokens,
+          contextTokens: 0
+        })
       : undefined;
     if (usd !== undefined) totals.computed = parseAmount(usd);
+
+    let contract =
+      resolution && d.pricing
+        ? d.pricing({
+            at: totals.slice.bucket,
+            resolution,
+            list: totals.computed,
+            tokens: totals.slice.tokens,
+            contextTokens: 0
+          })
+        : undefined;
+    if (contract) totals.contract = contract.amount;
   }
 
   return [...slices.values()].map(totals => {
-    let entry = { costs: [...totals.costs.values()], computed: totals.computed };
+    let entry = {
+      costs: [...totals.costs.values()],
+      computed: totals.computed,
+      contract: totals.contract
+    };
     let preferred = preferredAmount(entry, selectCostBasis([entry]));
 
     return {
@@ -252,6 +287,9 @@ export let sessionlessBaseSlices = async (d: {
       costReported: reportedCosts(totals.costs),
       ...(totals.computed !== undefined
         ? { costComputedUsd: toDecimal(totals.computed) }
+        : {}),
+      ...(totals.contract !== undefined
+        ? { costContractUsd: toDecimal(totals.contract) }
         : {}),
       ...(preferred !== undefined ? { costUsd: toDecimal(preferred) } : {})
     };
@@ -324,11 +362,28 @@ export let settleSessionless = async (d: {
   instanceId: string;
   bucket: Date;
 }) => {
-  let records = await loadSessionlessRecords(d);
+  let [records, catalog, overrides] = await Promise.all([
+    loadSessionlessRecords(d),
+    getKnowledge(),
+    getOrganizationOverrides(d.organizationId)
+  ]);
+
+  let instance = overrides.length
+    ? await db.instance.findUnique({ where: { id: d.instanceId }, include: { project: true } })
+    : null;
+
   let slices = await sessionlessBaseSlices({
     records,
     bucket: d.bucket,
-    catalog: await getKnowledge()
+    catalog,
+    pricing: instance
+      ? createOverridePricer({
+          overrides,
+          organizationId: d.organizationId,
+          projectId: instance.project.id,
+          catalog
+        })
+      : null
   });
 
   await writeSessionFacts({ sessionKey: sessionlessKey(d.instanceId, d.bucket), slices });

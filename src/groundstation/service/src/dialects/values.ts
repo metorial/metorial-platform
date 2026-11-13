@@ -203,6 +203,9 @@ export let decimalCost = (
     ? { amount, unit: 'usd', basis, ...extra }
     : undefined;
 
+export let modelRef = (id: string | undefined, provider?: string) =>
+  id ? { model: { id, ...(provider ? { provider } : {}) } } : {};
+
 export let nativeLabel = (value: unknown): string | undefined => {
   if (typeof value != 'string') return undefined;
 

@@ -7,6 +7,7 @@ import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
 import {
   buildUsage,
   errorFromStatus,
+  modelRef,
   nativeLabel,
   normalizeProvider,
   own,
@@ -128,8 +129,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
         {
           outcome: failed ? 'error' : 'ok',
           ...(errorInfo ? { error: errorInfo } : {}),
-          ...ok(model, 'model'),
-          ...ok(provider, 'provider'),
+          ...modelRef(model, provider),
           ...(usage.usage ? { usage: usage.usage } : {}),
           ...ok(duration, 'duration_ms')
         }

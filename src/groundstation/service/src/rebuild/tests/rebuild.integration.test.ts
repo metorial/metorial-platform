@@ -7,50 +7,23 @@ import { writeSessionFacts } from '../../facts/write';
 import {
   advanceRebuildRun,
   processRebuildItem,
-  rebuildManyQueue,
   rebuildOrganizationsManyQueue,
-  rebuildSingleQueue,
+  startImpactRebuild,
   startOrganizationRebuild
 } from '../../queues/rebuild';
+import { rebuildPageSize } from '../pages';
+import { priceOverrideRebuildReason } from '../plan';
 import { createSessionHarness, minutesAfter, store } from '../../sessions/tests/harness';
 import { closeSessionRedis, tryRedis } from '../../sessions/redis';
 import { SUMMARY_VERSION } from '../../sessions/versions';
 import { cleanDatabase, testDb } from '../../test/setup';
 import { rebuildRunService } from '../service';
 import { startVersionRebuildsOnce, versionRebuildGuardKey } from '../triggers';
+import { inlineRebuildQueues } from './inline';
 
 let model = { id: 'claude-sonnet-4-5-20250929', provider: 'anthropic' };
 
-// Runs the rebuild queues inline: items queued by a page finish before the next page is read.
-let inlineRebuildQueues = () => {
-  let pages: string[] = [];
-  let items: { rebuildRunId: string; sessionKey: string }[] = [];
-
-  vi.spyOn(rebuildManyQueue, 'add').mockImplementation((async (job: {
-    rebuildRunId: string;
-  }) => {
-    pages.push(job.rebuildRunId);
-  }) as never);
-  vi.spyOn(rebuildSingleQueue, 'addManyWithOps').mockImplementation((async (
-    jobs: { data: { rebuildRunId: string; sessionKey: string } }[]
-  ) => {
-    items.push(...jobs.map(job => job.data));
-  }) as never);
-
-  let drain = async () => {
-    while (pages.length || items.length) {
-      while (items.length) await processRebuildItem(items.shift()!);
-
-      let rebuildRunId = pages.shift();
-      if (!rebuildRunId) continue;
-
-      let { more } = await advanceRebuildRun({ rebuildRunId });
-      if (more) pages.push(rebuildRunId);
-    }
-  };
-
-  return { pages, items, drain };
-};
+let range = (count: number) => Array.from({ length: count }, (_, index) => index);
 
 let getRun = (oid: bigint) => testDb.rebuildRun.findUniqueOrThrow({ where: { oid } });
 
@@ -285,8 +258,7 @@ describe('rebuild', () => {
 
     let trigger = {
       type: 'catalog' as const,
-      from: daysAgo(7).toISOString(),
-      to: new Date().toISOString()
+      impacts: [{ filter: null, from: daysAgo(7).toISOString(), to: null }]
     };
 
     expect(
@@ -295,5 +267,144 @@ describe('rebuild', () => {
     expect(
       await startOrganizationRebuild({ organizationId: empty.organization.id, trigger })
     ).toBeNull();
+  });
+
+  it('pages filtered runs through matching slices, each session once', async () => {
+    let queues = inlineRebuildQueues();
+    let scope = await setupScope();
+
+    let busy = await scope.session({ startedAt: daysAgo(8) });
+    let quiet = await scope.session({ startedAt: daysAgo(3) });
+    let other = await scope.session({ startedAt: daysAgo(2) });
+    let quarterHour = 15 * 60 * 1000;
+
+    await writeSessionFacts({
+      sessionKey: busy._id,
+      slices: range(rebuildPageSize + 100).map(index =>
+        slice({ bucket: new Date(daysAgo(1).getTime() - index * quarterHour) })
+      )
+    });
+    await writeSessionFacts({
+      sessionKey: quiet._id,
+      slices: [slice({ bucket: daysAgo(3), modelId: 'gpt-5', vendorId: 'openai' })]
+    });
+    await writeSessionFacts({
+      sessionKey: other._id,
+      slices: [slice({ bucket: daysAgo(2), modelId: 'gpt-5' })]
+    });
+
+    let bucket = daysAgo(4);
+    let key = sessionlessKey(scope.instance.id, bucket);
+    await writeSessionFacts({ sessionKey: key, slices: [slice({ bucket })] });
+
+    let run = await startImpactRebuild({
+      organization: scope.organization,
+      impacts: [
+        {
+          filter: { modelIds: ['claude-sonnet-4-5'], vendorIds: ['openai'] },
+          from: daysAgo(30).toISOString(),
+          to: null
+        }
+      ],
+      reason: 'catalog_change'
+    });
+    expect(run).toMatchObject({
+      reason: 'catalog_change',
+      layers: ['summary', 'facts'],
+      filter: { modelIds: ['claude-sonnet-4-5'], vendorIds: ['openai'] }
+    });
+
+    let processed = await queues.drain();
+
+    expect(processed.sort()).toEqual([busy._id, quiet._id, key].sort());
+    expect(await getRun(run!.oid)).toMatchObject({
+      status: 'completed',
+      processed: 3,
+      total: 3
+    });
+
+    expect(
+      await startImpactRebuild({
+        organization: scope.organization,
+        impacts: [
+          { filter: { modelIds: ['unknown'] }, from: daysAgo(30).toISOString(), to: null }
+        ],
+        reason: 'catalog_change'
+      })
+    ).toBeNull();
+  });
+
+  it('widens a queued run for the same scope, reason and layers', async () => {
+    let queues = inlineRebuildQueues();
+    let scope = await setupScope();
+
+    let sonnet = await scope.session({ startedAt: daysAgo(3) });
+    let gpt = await scope.session({ startedAt: daysAgo(10) });
+    await writeSessionFacts({
+      sessionKey: sonnet._id,
+      slices: [slice({ bucket: daysAgo(3) })]
+    });
+    await writeSessionFacts({
+      sessionKey: gpt._id,
+      slices: [slice({ bucket: daysAgo(10), modelId: 'gpt-5' })]
+    });
+
+    let first = await startImpactRebuild({
+      organization: scope.organization,
+      impacts: [
+        {
+          filter: { modelIds: ['claude-sonnet-4-5'] },
+          from: daysAgo(5).toISOString(),
+          to: null
+        }
+      ],
+      reason: 'catalog_change'
+    });
+    let second = await startImpactRebuild({
+      organization: scope.organization,
+      impacts: [
+        { filter: { modelIds: ['gpt-5'] }, from: daysAgo(12).toISOString(), to: null }
+      ],
+      reason: 'catalog_change'
+    });
+    let override = await startImpactRebuild({
+      organization: scope.organization,
+      impacts: [
+        { filter: { modelIds: ['gpt-5'] }, from: daysAgo(12).toISOString(), to: null }
+      ],
+      reason: priceOverrideRebuildReason
+    });
+
+    expect(second!.id).toBe(first!.id);
+    expect(override!.id).not.toBe(first!.id);
+    expect(queues.pages).toEqual([first!.id, override!.id]);
+
+    let widened = await getRun(first!.oid);
+    expect(widened.filter).toEqual({ modelIds: ['claude-sonnet-4-5', 'gpt-5'] });
+    expect(widened.rangeFrom.getTime()).toBeLessThanOrEqual(daysAgo(12).getTime());
+
+    queues.pages.splice(1);
+    expect((await queues.drain()).sort()).toEqual([gpt._id, sonnet._id].sort());
+
+    let third = await startImpactRebuild({
+      organization: scope.organization,
+      impacts: [
+        {
+          filter: { modelIds: ['claude-sonnet-4-5'] },
+          from: daysAgo(5).toISOString(),
+          to: null
+        }
+      ],
+      reason: 'catalog_change'
+    });
+    expect(third!.id).not.toBe(first!.id);
+
+    let unfiltered = await startImpactRebuild({
+      organization: scope.organization,
+      impacts: [{ filter: null, from: daysAgo(5).toISOString(), to: null }],
+      reason: 'catalog_change'
+    });
+    expect(unfiltered!.id).toBe(third!.id);
+    expect((await getRun(third!.oid)).filter).toBeNull();
   });
 });

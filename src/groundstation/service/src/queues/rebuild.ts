@@ -1,14 +1,11 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdeck/queue';
+import type { Organization, Project } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
+import { planImpactRun, type RebuildImpact } from '../rebuild/impacts';
 import { rebuildItem } from '../rebuild/item';
-import {
-  countRebuildItems,
-  hasRebuildItems,
-  organizationBehindLayers,
-  rebuildPage
-} from '../rebuild/pages';
+import { countRebuildItems, organizationBehindLayers, rebuildPage } from '../rebuild/pages';
 import {
   catalogRebuildReason,
   parseRebuildCursor,
@@ -23,15 +20,17 @@ import {
   createRebuildRun,
   failRebuildRun,
   finishRebuildItem,
-  getRebuildRun
+  getRebuildRun,
+  queueRebuildRun
 } from '../rebuild/runs';
 
 let pageSize = 500;
 let scanStaleMs = 30 * 60 * 1000;
 let drainStaleMs = 6 * 60 * 60 * 1000;
+let impactLayers: RebuildLayer[] = ['summary', 'facts'];
 
 export type RebuildTrigger =
-  { type: 'version' } | { type: 'catalog'; from: string; to: string };
+  { type: 'version' } | { type: 'catalog'; impacts: RebuildImpact[] };
 
 let isFinalAttempt = (job: { attemptsMade: number; opts: { attempts?: number } }) =>
   job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
@@ -54,7 +53,9 @@ export let rebuildSingleQueue = createQueue<{ rebuildRunId: string; sessionKey: 
 // The run row holds the whole state (status, cursor, counts), so any job can pick it up after a
 // restart. The cursor only moves when it still holds the value this job read, which keeps a
 // duplicated job from skipping or repeating a page.
-export let advanceRebuildRun = async (d: { rebuildRunId: string }) => {
+export let advanceRebuildRun = async (d: {
+  rebuildRunId: string;
+}): Promise<{ more: boolean }> => {
   let run = await getRebuildRun(d.rebuildRunId);
   if (!run || !activeRebuildStatuses.includes(run.status)) return { more: false };
 
@@ -63,11 +64,13 @@ export let advanceRebuildRun = async (d: { rebuildRunId: string }) => {
   if (run.status == 'queued') {
     let total = await countRebuildItems(target);
 
+    // A queued run can be widened by `queueRebuildRun` until it starts; if that happened since
+    // it was read, start again from the widened row.
     let started = await db.rebuildRun.updateMany({
-      where: { oid: run.oid, status: 'queued' },
+      where: { oid: run.oid, status: 'queued', updatedAt: run.updatedAt },
       data: { status: 'running', total }
     });
-    if (!started.count) return { more: false };
+    if (!started.count) return await advanceRebuildRun(d);
   }
 
   let cursor = parseRebuildCursor(run.cursor);
@@ -194,6 +197,37 @@ export let rebuildOrganizationsSingleQueue = createQueue<{
   workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
+// Knowledge and override impacts (08 §8): only a scope with matching data gets a run, and a
+// queued run for the same scope and reason is widened instead of duplicated.
+export let startImpactRebuild = async (d: {
+  organization: Organization;
+  project?: Project | null;
+  impacts: RebuildImpact[];
+  reason: string;
+  now?: Date;
+}) => {
+  let planned = await planImpactRun({
+    organization: d.organization,
+    project: d.project,
+    impacts: d.impacts,
+    layers: impactLayers,
+    now: d.now ?? new Date()
+  });
+  if (!planned) return null;
+
+  let { run, created } = await queueRebuildRun({
+    organization: d.organization,
+    project: d.project,
+    range: planned.range,
+    layers: impactLayers,
+    reason: d.reason,
+    filter: planned.filter
+  });
+  if (created) await rebuildManyQueue.add({ rebuildRunId: run.id });
+
+  return run;
+};
+
 // A newer version run covers everything an older one still has queued, so the older one stops.
 export let startOrganizationRebuild = async (d: {
   organizationId: string;
@@ -202,42 +236,32 @@ export let startOrganizationRebuild = async (d: {
   let organization = await db.organization.findUnique({ where: { id: d.organizationId } });
   if (!organization || organization.archivedAt) return null;
 
-  let layers: RebuildLayer[];
-  let range: { from: Date; to: Date };
-  let reason: string;
-
-  if (d.trigger.type == 'version') {
-    layers = await organizationBehindLayers(organization.id);
-    range = { from: new Date(0), to: new Date() };
-    reason = versionRebuildReason;
-  } else {
-    layers = ['summary', 'facts'];
-    range = { from: new Date(d.trigger.from), to: new Date(d.trigger.to) };
-    reason = catalogRebuildReason;
-
-    let found = await hasRebuildItems({
-      scope: { organizationId: organization.id },
-      range,
-      layers,
-      onlyBehind: false
+  if (d.trigger.type == 'catalog') {
+    return await startImpactRebuild({
+      organization,
+      impacts: d.trigger.impacts,
+      reason: catalogRebuildReason
     });
-    if (!found) return null;
   }
 
+  let layers = await organizationBehindLayers(organization.id);
   if (!layers.length) return null;
 
-  if (d.trigger.type == 'version') {
-    await db.rebuildRun.updateMany({
-      where: {
-        organizationOid: organization.oid,
-        reason: versionRebuildReason,
-        status: { in: activeRebuildStatuses }
-      },
-      data: { status: 'cancelled', completedAt: new Date() }
-    });
-  }
+  await db.rebuildRun.updateMany({
+    where: {
+      organizationOid: organization.oid,
+      reason: versionRebuildReason,
+      status: { in: activeRebuildStatuses }
+    },
+    data: { status: 'cancelled', completedAt: new Date() }
+  });
 
-  let run = await createRebuildRun({ organization, range, layers, reason });
+  let run = await createRebuildRun({
+    organization,
+    range: { from: new Date(0), to: new Date() },
+    layers,
+    reason: versionRebuildReason
+  });
   await rebuildManyQueue.add({ rebuildRunId: run.id });
 
   return run;

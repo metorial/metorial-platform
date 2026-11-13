@@ -9,6 +9,7 @@ import {
   type ReattributionJob
 } from '../../queues/reattribute';
 import { entityService } from '../../services';
+import { SUMMARY_VERSION } from '../../sessions/versions';
 import { getStore } from '../../store/connection';
 import type { SessionDocument } from '../../store/derivedModels';
 import { createTestScope } from '../../test/scope';
@@ -102,7 +103,7 @@ export let setupScope = async () => {
       projectId: scope.project.id,
       instanceId: scope.instance.id,
       origin: 'native',
-      versions: { summary: 1, attribution: 0, facts: 0 },
+      versions: { summary: SUMMARY_VERSION, attribution: 0, facts: 0 },
       client: { family: 'claude-code' },
       rootSessionKey: key,
       lastActivityAt: startedAt,

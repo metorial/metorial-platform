@@ -209,7 +209,7 @@ describe('claudeCodeOtlp api events', () => {
       ctx: { requestId: 'req-1' },
       data: {
         outcome: 'ok',
-        model: 'claude-opus-4',
+        model: { id: 'claude-opus-4' },
         usage: {
           provenance: 'exact',
           input_uncached: 100,
@@ -286,7 +286,7 @@ describe('claudeCodeOtlp api events', () => {
       data: {
         outcome: 'error',
         error: { class: 'rate_limit', status_code: 429, retryable: true },
-        model: 'm',
+        model: { id: 'm' },
         attempt: 2
       },
       content: [{ role: 'error_message', value: 'SENTINEL rate limited' }]
@@ -496,7 +496,7 @@ describe('claudeCodeOtlp conversation events', () => {
       one('assistant_response', { response: 'SENTINEL', response_length: 8, model: 'm' })
     ).toMatchObject({
       type: 'message.assistant',
-      data: { length_chars: 8, model: 'm' },
+      data: { length_chars: 8, model: { id: 'm' } },
       content: [{ role: 'response', value: 'SENTINEL' }]
     });
   });

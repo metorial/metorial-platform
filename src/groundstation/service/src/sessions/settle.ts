@@ -2,6 +2,8 @@ import { resolveSessionAttribution } from '../attribution/resolve';
 import { getKnowledge } from '../knowledge/cache';
 import { maybeClassifySession } from '../classification/trigger';
 import { writeSessionFacts } from '../facts/write';
+import { getOrganizationOverrides } from '../pricing/cache';
+import { createOverridePricer } from '../pricing/pricer';
 import { queueSessionSettle } from '../queues/sessionSettle';
 import { getRuntime } from '../runtime';
 import { getStore } from '../store/connection';
@@ -25,16 +27,28 @@ let collections = async () => {
 export let computeSessionAggregate = async (
   session: SessionDocument,
   correlationsSince?: Date
-) =>
-  aggregateSession({
+) => {
+  let [catalog, overrides] = await Promise.all([
+    getKnowledge(),
+    getOrganizationOverrides(session.organizationId)
+  ]);
+
+  return await aggregateSession({
     records: await sessionEvents({
       organizationId: session.organizationId,
       sessionKey: session._id
     }),
     family: session.client.family,
-    catalog: await getKnowledge(),
+    catalog,
+    pricing: createOverridePricer({
+      overrides,
+      organizationId: session.organizationId,
+      projectId: session.projectId,
+      catalog
+    }),
     correlationsSince
   });
+};
 
 // The watermark is the session's lastObservedAt read before aggregating, so records that arrive
 // mid-aggregation leave the summary stale instead of being marked as included.

@@ -1,6 +1,8 @@
+export type { RebuildImpact } from './impacts';
 export {
   catalogRebuildReason,
   manualRebuildReason,
+  priceOverrideRebuildReason,
   rebuildLayers,
   versionRebuildReason,
   type RebuildLayer

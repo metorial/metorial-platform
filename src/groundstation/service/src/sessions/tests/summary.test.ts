@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createCatalogIndex } from '../../catalog';
 import { fixtureCatalog } from '../../catalog/tests/fixture';
+import type { PricePeriod } from '../../knowledge/periods';
+import { pricing } from '../../knowledge/tests/fixtures';
+import type { MatchableOverride } from '../../pricing/match';
+import { createOverridePricer } from '../../pricing/pricer';
+import { override } from '../../pricing/tests/fixtures';
 import { aggregateSession, preferredAmount, selectCostBasis } from '../summary';
 import { summaryRecord, usd } from './fixtures';
 
@@ -250,20 +255,362 @@ describe('aggregateSession', () => {
   });
 });
 
+describe('aggregateSession price history and vendors', () => {
+  let changedAt = new Date('2026-03-04T10:10:00Z');
+
+  let pricePeriod = (
+    id: string,
+    input: number,
+    validFrom: string | Date,
+    validTo: Date | null,
+    confirmedAt: Date
+  ): PricePeriod => ({
+    id,
+    pricing: pricing(input),
+    origin: 'observed',
+    closeReason: validTo ? 'changed' : null,
+    validFrom: new Date(validFrom),
+    validTo,
+    confirmedAt
+  });
+
+  let history = createCatalogIndex(fixtureCatalog, {
+    periods: {
+      'anthropic:claude-sonnet-4-5': [
+        pricePeriod('gpp_old', 3, '2026-01-01T00:00:00Z', changedAt, changedAt),
+        pricePeriod('gpp_new', 2, changedAt, null, changedAt)
+      ]
+    }
+  });
+
+  let request = (
+    at: string,
+    model: Record<string, unknown>,
+    extra: Partial<Parameters<typeof summaryRecord>[0]> = {}
+  ) =>
+    summaryRecord({
+      type: 'model.request',
+      at,
+      data: { model, usage: { inputUncached: 1_000_000 } },
+      ...extra
+    });
+
+  let sonnet = { id: 'claude-sonnet-4-5-20250929', provider: 'anthropic' };
+
+  it('prices each request with the period valid at its time and records provenance', async () => {
+    let { summary, slices } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', sonnet),
+        request('2026-03-04T10:20:00Z', sonnet)
+      ],
+      family: 'claude-code',
+      catalog: history
+    });
+
+    expect(decimal(summary.costComputedUsd)).toBe('5');
+    expect(summary.models).toHaveLength(1);
+    expect(summary.models[0]).toMatchObject({
+      modelId: 'claude-sonnet-4-5',
+      vendorId: 'anthropic',
+      vendorSource: 'reported',
+      offeringId: 'anthropic:claude-sonnet-4-5',
+      pricePeriodIds: ['gpp_old', 'gpp_new'],
+      requests: 2
+    });
+    expect(summary.models[0]!.priceAssumed).toBeUndefined();
+
+    expect(
+      slices
+        .filter(slice => slice.requests)
+        .map(slice => [
+          slice.bucket.toISOString(),
+          slice.vendorId,
+          slice.vendorSource,
+          decimal(slice.costComputedUsd)
+        ])
+    ).toEqual([
+      ['2026-03-04T10:00:00.000Z', 'anthropic', 'reported', '3'],
+      ['2026-03-04T10:15:00.000Z', 'anthropic', 'reported', '2']
+    ]);
+  });
+
+  it('flags the price as assumed when any request used an unconfirmed price', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:20:00Z', sonnet),
+        request('2026-03-20T10:00:00Z', sonnet)
+      ],
+      family: 'claude-code',
+      catalog: history
+    });
+
+    expect(summary.models[0]).toMatchObject({
+      pricePeriodIds: ['gpp_new'],
+      priceAssumed: true
+    });
+    expect(decimal(summary.costComputedUsd)).toBe('4');
+  });
+
+  it('keeps one model row per vendor and the strongest vendor source', async () => {
+    let { summary, slices } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', sonnet),
+        request('2026-03-04T10:01:00Z', { id: 'claude-sonnet-4-5-20250929' }),
+        request('2026-03-04T10:02:00Z', {
+          id: 'anthropic.claude-sonnet-4-5-20250929-v1:0',
+          provider: 'bedrock'
+        })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    let rows = summary.models.map(model => [
+      model.vendorId,
+      model.vendorSource,
+      model.offeringId,
+      model.requests,
+      decimal(model.costComputedUsd)
+    ]);
+    expect(rows).toEqual([
+      ['anthropic', 'reported', 'anthropic:claude-sonnet-4-5', 2, '12'],
+      ['aws-bedrock', 'reported', 'aws-bedrock:claude-sonnet-4-5', 1, '3.3']
+    ]);
+
+    expect(
+      slices
+        .filter(slice => slice.requests)
+        .map(slice => [slice.vendorId, slice.vendorSource, slice.requests])
+    ).toEqual([
+      ['anthropic', 'reported', 1],
+      ['anthropic', 'offering', 1],
+      ['aws-bedrock', 'reported', 1]
+    ]);
+  });
+
+  it('resolves the vendor from a base URL and from a subscription plan', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', {
+          id: 'claude-sonnet-4-5-20250929',
+          baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com/model/invoke'
+        })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+    expect(summary.models[0]).toMatchObject({
+      vendorId: 'aws-bedrock',
+      vendorSource: 'endpoint',
+      offeringId: 'aws-bedrock:claude-sonnet-4-5'
+    });
+
+    let copilot = (authMode?: string) =>
+      aggregateSession({
+        records: [
+          request(
+            '2026-03-04T10:00:00Z',
+            { id: 'Claude Sonnet Latest' },
+            {
+              client: { family: 'copilot-cli', ...(authMode ? { authMode } : {}) }
+            }
+          )
+        ],
+        family: 'copilot-cli',
+        catalog
+      });
+
+    expect((await copilot('subscription')).summary.models[0]).toMatchObject({
+      vendorId: 'github-copilot',
+      vendorSource: 'agent',
+      offeringId: 'github-copilot:claude-sonnet-4-5'
+    });
+    expect((await copilot()).summary.models[0]).toMatchObject({
+      vendorId: 'anthropic',
+      vendorSource: 'first-party'
+    });
+  });
+});
+
+describe('aggregateSession contract cost', () => {
+  let sonnet = { id: 'claude-sonnet-4-5-20250929', provider: 'anthropic' };
+
+  let request = (at: string, extra: Record<string, unknown> = {}) =>
+    summaryRecord({
+      type: 'model.request',
+      at,
+      data: { model: sonnet, usage: { inputUncached: 100_000 }, ...extra }
+    });
+
+  let aggregate = (
+    records: ReturnType<typeof request>[],
+    overrides: MatchableOverride[],
+    projectId = 'gpr_a'
+  ) =>
+    aggregateSession({
+      records,
+      family: 'claude-code',
+      catalog,
+      pricing: createOverridePricer({
+        overrides,
+        organizationId: 'gor_a',
+        projectId,
+        catalog
+      })
+    });
+
+  let half = override({ target: 'model', targetId: 'claude-sonnet-4-5', multiplier: '0.5' });
+
+  it('records the override and contract cost and prefers the contract cost', async () => {
+    let { summary, slices } = await aggregate([request('2026-03-04T10:00:00Z')], [half]);
+
+    expect(decimal(summary.costComputedUsd)).toBe('0.3');
+    expect(decimal(summary.costContractUsd)).toBe('0.15');
+    expect(decimal(summary.costUsd)).toBe('0.15');
+    expect(summary.models).toHaveLength(1);
+    expect(summary.models[0]).toMatchObject({
+      modelId: 'claude-sonnet-4-5',
+      overrideId: half.id
+    });
+    expect(decimal(summary.models[0]!.costContractUsd)).toBe('0.15');
+    expect(decimal(summary.models[0]!.costComputedUsd)).toBe('0.3');
+
+    let [slice] = slices.filter(slice => slice.requests);
+    expect(decimal(slice!.costComputedUsd)).toBe('0.3');
+    expect(decimal(slice!.costContractUsd)).toBe('0.15');
+    expect(decimal(slice!.costUsd)).toBe('0.15');
+  });
+
+  it('keeps list cost alone when no override matches', async () => {
+    let { summary, slices } = await aggregate(
+      [request('2026-03-04T10:00:00Z')],
+      [half],
+      'gpr_b'
+    );
+    let scoped = await aggregate(
+      [request('2026-03-04T10:00:00Z')],
+      [{ ...half, projectId: 'gpr_a' }],
+      'gpr_b'
+    );
+
+    expect(summary.costContractUsd).toBeDefined();
+    expect(scoped.summary.costContractUsd).toBeUndefined();
+    expect(scoped.summary.models[0]!.overrideId).toBeUndefined();
+    expect(decimal(scoped.summary.costUsd)).toBe('0.3');
+    expect(scoped.slices.every(slice => slice.costContractUsd === undefined)).toBe(true);
+    expect(slices.some(slice => slice.costContractUsd !== undefined)).toBe(true);
+  });
+
+  it('splits model rows per override and counts unmatched requests at list cost', async () => {
+    let ending = override({
+      target: 'model',
+      targetId: 'claude-sonnet-4-5',
+      multiplier: '0.5',
+      validTo: new Date('2026-03-04T10:10:00Z')
+    });
+
+    let { summary, slices } = await aggregate(
+      [request('2026-03-04T10:00:00Z'), request('2026-03-04T10:20:00Z')],
+      [ending]
+    );
+
+    expect(
+      summary.models.map(model => [
+        model.overrideId ?? null,
+        model.requests,
+        decimal(model.costComputedUsd),
+        decimal(model.costContractUsd) ?? null
+      ])
+    ).toEqual([
+      [ending.id, 1, '0.3', '0.15'],
+      [null, 1, '0.3', null]
+    ]);
+    expect(decimal(summary.costComputedUsd)).toBe('0.6');
+    expect(decimal(summary.costContractUsd)).toBe('0.15');
+    expect(decimal(summary.costUsd)).toBe('0.45');
+
+    expect(
+      slices
+        .filter(slice => slice.requests)
+        .map(slice => [decimal(slice.costContractUsd) ?? null, decimal(slice.costUsd)])
+    ).toEqual([
+      ['0.15', '0.15'],
+      [null, '0.3']
+    ]);
+  });
+
+  it('prices included usage at zero and rates overrides with their own rates', async () => {
+    let included = override({
+      target: 'agent',
+      targetId: 'claude-code',
+      kind: 'included',
+      multiplier: null
+    });
+    let rates = override({
+      target: 'vendor',
+      targetId: 'anthropic',
+      kind: 'rates',
+      multiplier: null,
+      rates: pricing(1)
+    });
+
+    let free = await aggregate([request('2026-03-04T10:00:00Z')], [rates, included]);
+    expect(decimal(free.summary.costContractUsd)).toBe('0');
+    expect(decimal(free.summary.costUsd)).toBe('0');
+    expect(free.summary.models[0]!.overrideId).toBe(included.id);
+
+    let negotiated = await aggregate([request('2026-03-04T10:00:00Z')], [rates]);
+    expect(decimal(negotiated.summary.costContractUsd)).toBe('0.1');
+    expect(decimal(negotiated.summary.costUsd)).toBe('0.1');
+  });
+
+  it('prefers a billed cost over the contract cost and the contract over estimates', async () => {
+    let billed = await aggregate(
+      [request('2026-03-04T10:00:00Z', { cost: usd('0.42', 'billed') })],
+      [half]
+    );
+    expect(decimal(billed.summary.costContractUsd)).toBe('0.15');
+    expect(decimal(billed.summary.costUsd)).toBe('0.42');
+
+    for (let basis of ['server_estimate', 'client_estimate']) {
+      let estimated = await aggregate(
+        [request('2026-03-04T10:00:00Z', { cost: usd('0.42', basis) })],
+        [half]
+      );
+      expect(decimal(estimated.summary.costUsd)).toBe('0.15');
+    }
+  });
+});
+
 describe('cost basis selection', () => {
   let usdEntry = (basis: string, amount: bigint) => ({
     costs: [{ unit: 'usd', basis, amount }]
   });
 
-  it('prefers billed, then server and client estimates, then computed', () => {
+  it('prefers billed, then contract, then server and client estimates, then computed', () => {
+    let contract = { costs: [], computed: 2n, contract: 1n };
+
     expect(selectCostBasis([usdEntry('client_estimate', 1n), usdEntry('billed', 1n)])).toBe(
       'billed'
     );
+    expect(selectCostBasis([contract, usdEntry('billed', 1n)])).toBe('billed');
+    expect(selectCostBasis([usdEntry('server_estimate', 1n), contract])).toBe('contract');
+    expect(selectCostBasis([usdEntry('client_estimate', 1n), contract])).toBe('contract');
     expect(
       selectCostBasis([usdEntry('client_estimate', 1n), usdEntry('server_estimate', 1n)])
     ).toBe('server_estimate');
+    expect(
+      selectCostBasis([usdEntry('client_estimate', 1n), { costs: [], computed: 1n }])
+    ).toBe('client_estimate');
     expect(selectCostBasis([{ costs: [], computed: 1n }])).toBe('computed');
     expect(selectCostBasis([{ costs: [] }])).toBeUndefined();
+  });
+
+  it('counts a request without a contract cost at its list cost under the contract basis', () => {
+    expect(preferredAmount({ costs: [], computed: 2n, contract: 1n }, 'contract')).toBe(1n);
+    expect(preferredAmount({ costs: [], computed: 2n, contract: 0n }, 'contract')).toBe(0n);
+    expect(preferredAmount({ costs: [], computed: 2n }, 'contract')).toBe(2n);
+    expect(preferredAmount({ costs: [] }, 'contract')).toBeUndefined();
   });
 
   it('ignores costs that are not in USD when choosing and summing', () => {

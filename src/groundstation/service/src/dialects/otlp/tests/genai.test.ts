@@ -83,8 +83,7 @@ describe('genAiOtlp.mapSpan model requests', () => {
       derived: ['usage.input_uncached', 'usage.output'],
       data: {
         outcome: 'ok',
-        model: 'claude-sonnet-4-5-20260101',
-        provider: 'anthropic',
+        model: { id: 'claude-sonnet-4-5-20260101', provider: 'anthropic' },
         duration_ms: 2000,
         usage: {
           provenance: 'derived',
@@ -112,12 +111,16 @@ describe('genAiOtlp.mapSpan model requests', () => {
   });
 
   it('maps provider aliases and falls back to gen_ai.system', () => {
+    let model = { 'gen_ai.request.model': 'm' };
+
     expect(
-      mapSpanOne('chat', { 'gen_ai.system': 'aws.bedrock' }).draft.data?.['provider']
-    ).toBe('bedrock');
+      mapSpanOne('chat', { ...model, 'gen_ai.system': 'aws.bedrock' }).draft.data?.['model']
+    ).toEqual({ id: 'm', provider: 'bedrock' });
     expect(
-      mapSpanOne('chat', { 'gen_ai.provider.name': 'Weird Co' }).draft.data?.['provider']
-    ).toBe('other:weird_co');
+      mapSpanOne('chat', { ...model, 'gen_ai.provider.name': 'Weird Co' }).draft.data?.[
+        'model'
+      ]
+    ).toEqual({ id: 'm', provider: 'other:weird_co' });
   });
 
   it('marks failed spans with a classified error', () => {

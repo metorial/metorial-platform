@@ -145,9 +145,17 @@ export let fixtureCatalog = {
   vendors: [
     { id: 'anthropic', organizationId: 'anthropic', kind: 'first-party' },
     { id: 'aws-bedrock', organizationId: 'amazon', kind: 'cloud' },
-    { id: 'openai', organizationId: 'openai', kind: 'first-party' }
+    { id: 'openai', organizationId: 'openai', kind: 'first-party' },
+    { id: 'github-copilot', organizationId: 'github', kind: 'subscription' }
   ],
-  endpoints: [],
+  endpoints: [
+    {
+      id: 'aws-bedrock/default',
+      vendorId: 'aws-bedrock',
+      baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      upstreamIds: ['amazon-bedrock']
+    }
+  ],
   offerings: [
     offering({
       id: 'anthropic:claude-sonnet-4-5',
@@ -170,6 +178,13 @@ export let fixtureCatalog = {
       vendorModelId: 'anthropic.claude-sonnet-4-5-20250929-v1:0',
       modelId: 'claude-sonnet-4-5',
       pricing: pricing({ input: 3.3, output: 16.5, cacheRead: 0.33 })
+    }),
+    offering({
+      id: 'github-copilot:claude-sonnet-4-5',
+      vendorId: 'github-copilot',
+      vendorModelId: 'claude-sonnet-4.5',
+      modelId: 'claude-sonnet-4-5',
+      pricing: pricing({ input: 1, output: 1 })
     }),
     offering({
       id: 'anthropic:claude-sonnet-4',
@@ -204,5 +219,22 @@ export let fixtureCatalog = {
     }),
     name({ namespace: 'sdk:a', raw: 'sonnet', target: sonnet45 }),
     name({ namespace: 'sdk:b', raw: 'sonnet', target: sonnet4 })
+  ],
+  agents: [
+    {
+      id: 'claude-code',
+      makerId: 'anthropic',
+      aliases: ['claude_code'],
+      vendors: [
+        { vendorId: 'anthropic', role: 'default' },
+        { vendorId: 'aws-bedrock', role: 'supported' }
+      ]
+    },
+    {
+      id: 'github-copilot',
+      makerId: 'github',
+      aliases: ['copilot-cli'],
+      vendors: [{ vendorId: 'github-copilot', role: 'subscription' }]
+    }
   ]
 } as unknown as Catalog;

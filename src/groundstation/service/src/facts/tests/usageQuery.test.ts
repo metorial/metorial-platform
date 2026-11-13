@@ -1,14 +1,18 @@
 import { ServiceError } from '@lowerdeck/error';
 import { describe, expect, it } from 'vitest';
+import { createDimensionMaps } from '../../knowledge/dimensions';
 import {
   bucketExpression,
   buildUsagePipelines,
   filterMatch,
   finalizeUsageRows,
+  mappedGroupsFactor,
+  maxGroups,
   usageFieldPaths,
   validateUsageQuery,
   type UsageQuery
 } from '../usageQuery';
+import { testDimensionMaps } from './dimensionMaps';
 
 let query = (overrides: Partial<UsageQuery> = {}): UsageQuery => ({
   organizationId: 'org_1',
@@ -48,6 +52,24 @@ describe('validateUsageQuery', () => {
     ).toBe(false);
   });
 
+  it('accepts mapped dimensions as groups and filters, and the renamed agent entity', () => {
+    expect(
+      rejects(
+        query({
+          metrics: ['cost.list', 'cost.contract'],
+          groupBy: ['model.lab', 'vendor.kind', 'agent', 'agentId'],
+          filters: {
+            'model.family': { in: ['claude-sonnet'] },
+            'model.isLatest': { in: ['true'] },
+            vendor: { in: ['anthropic'] },
+            'agent.maker': { notIn: ['openai'] }
+          },
+          orderBy: { by: 'cost.list', direction: 'desc' }
+        })
+      )
+    ).toBe(false);
+  });
+
   it('rejects bad ranges, zones, fields and orderings', () => {
     let from = new Date('2026-01-01T00:00:00Z');
 
@@ -67,7 +89,8 @@ describe('validateUsageQuery', () => {
     expect(rejects(query({ groupBy: ['team', 'user', 'model', 'device', 'agent'] }))).toBe(
       true
     );
-    expect(rejects(query({ filters: { 'model.family': { in: ['x'] } } }))).toBe(true);
+    expect(rejects(query({ groupBy: ['constructor'] }))).toBe(true);
+    expect(rejects(query({ filters: { 'model.vendor': { in: ['x'] } } }))).toBe(true);
     expect(rejects(query({ orderBy: { by: 'tokens', direction: 'asc' } }))).toBe(true);
     expect(
       rejects(
@@ -95,6 +118,28 @@ describe('filterMatch', () => {
     ).toEqual({
       userId: { $in: ['ada'], $nin: ['grace'] },
       $and: [{ dimIds: { $in: ['team_a'] } }, { dimIds: { $nin: ['prj_x'] } }]
+    });
+  });
+
+  it('expands mapped dimensions to their base field and negates exclusions', () => {
+    expect(
+      filterMatch(
+        {
+          vendor: { in: ['anthropic'] },
+          'model.family': { in: ['claude-sonnet'], notIn: ['llama'] },
+          'vendor.kind': { notIn: ['cloud'] }
+        },
+        usageFieldPaths,
+        'dimIds',
+        { maps: testDimensionMaps(), unresolvedRaws: [] }
+      )
+    ).toEqual({
+      vendorId: { $in: ['anthropic'] },
+      $and: [
+        { modelId: { $in: ['claude-sonnet-4-5'] } },
+        { $nor: [{ modelId: { $in: ['llama-4'] } }] },
+        { $nor: [{ vendorId: { $in: ['aws-bedrock'] } }] }
+      ]
     });
   });
 });
@@ -191,62 +236,203 @@ describe('buildUsagePipelines', () => {
 
     expect(reported).toContainEqual({ $unwind: '$costReported' });
   });
+
+  it('sums list and contract cost next to the preferred cost', () => {
+    let { main } = buildUsagePipelines(
+      query({ metrics: ['cost.usd', 'cost.list', 'cost.contract'] })
+    );
+
+    let group = (main[1] as { $group: Record<string, any> }).$group;
+    expect(group.costList).toEqual({
+      $sum: { $toDouble: { $ifNull: ['$costComputedUsd', 0] } }
+    });
+    expect(group.costContract).toEqual({
+      $sum: { $toDouble: { $ifNull: ['$costContractUsd', 0] } }
+    });
+  });
+
+  it('groups mapped dimensions by their base field with a wider Mongo cap', () => {
+    let dimensions = { maps: testDimensionMaps(), unresolvedRaws: [] };
+    let { main } = buildUsagePipelines(
+      query({ groupBy: ['model.lab', 'agent', 'vendor.kind'], metrics: ['cost.reported'] }),
+      dimensions
+    );
+
+    let group = (main[1] as { $group: Record<string, any> }).$group;
+    expect(group._id).toEqual({
+      k0: '$modelId',
+      r0: { $cond: [{ $eq: [{ $ifNull: ['$modelId', null] }, null] }, '$modelRaw', null] },
+      k1: '$client.family',
+      k2: '$vendorId'
+    });
+    expect(main.at(-1)).toEqual({ $limit: maxGroups * mappedGroupsFactor + 1 });
+
+    let plain = buildUsagePipelines(query({ groupBy: ['model'] })).main;
+    expect(plain.at(-1)).toEqual({ $limit: maxGroups + 1 });
+  });
+
+  it('refuses mapped dimensions without their maps', () => {
+    expect(() => buildUsagePipelines(query({ groupBy: ['model.family'] }))).toThrow();
+    expect(() =>
+      buildUsagePipelines(query({ filters: { agent: { in: ['claude-code'] } } }))
+    ).toThrow();
+  });
 });
 
 describe('finalizeUsageRows', () => {
-  it('merges model families, counts distinct users and orders by the first metric', () => {
+  it('merges model labs, counts distinct users and orders by the first metric', () => {
     let result = finalizeUsageRows({
       query: query({
-        groupBy: ['model.family'],
+        groupBy: ['model.lab'],
         metrics: ['cost.usd', 'users.active', 'tokens']
       }),
       rows: [
         {
-          _id: { k0: 'claude-sonnet-4-5' },
+          _id: { k0: 'claude-sonnet-4-5', r0: null },
           costUsd: 1,
           users: ['ada', null],
           tokens_inputUncached: 10,
           tokens_output: 5
         },
-        { _id: { k0: 'claude-opus-4-1' }, costUsd: 2, users: ['ada', 'grace'] },
-        { _id: { k0: 'gpt-5' }, costUsd: 4, users: ['grace'] }
+        { _id: { k0: 'claude-opus-4-1', r0: null }, costUsd: 1.5, users: ['ada'] },
+        { _id: { r0: 'anthropic/claude-future-9' }, costUsd: 0.5, users: ['grace'] },
+        { _id: { k0: 'gpt-5', r0: null }, costUsd: 4, users: ['grace'] },
+        { _id: { r0: 'mystery-model' }, costUsd: 0.25, users: ['linus'] }
       ],
-      resolveModelFamily: modelId => (modelId?.startsWith('claude') ? 'claude' : modelId)
+      maps: testDimensionMaps()
     });
+
+    let empty = {
+      inputUncached: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      output: 0,
+      reasoning: 0,
+      total: 0
+    };
 
     expect(result.truncated).toBe(false);
     expect(result.rows).toEqual([
       {
-        keys: { 'model.family': 'gpt-5' },
-        metrics: {
-          'cost.usd': 4,
-          'users.active': 1,
-          tokens: {
-            inputUncached: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            output: 0,
-            reasoning: 0,
-            total: 0
-          }
-        }
+        keys: { 'model.lab': 'openai' },
+        metrics: { 'cost.usd': 4, 'users.active': 1, tokens: empty }
       },
       {
-        keys: { 'model.family': 'claude' },
+        keys: { 'model.lab': 'anthropic' },
         metrics: {
           'cost.usd': 3,
           'users.active': 2,
-          tokens: {
-            inputUncached: 10,
-            cacheRead: 0,
-            cacheWrite: 0,
-            output: 5,
-            reasoning: 0,
-            total: 15
-          }
+          tokens: { ...empty, inputUncached: 10, output: 5, total: 15 }
         }
+      },
+      {
+        keys: { 'model.lab': null },
+        metrics: { 'cost.usd': 0.25, 'users.active': 1, tokens: empty }
       }
     ]);
+  });
+
+  it('maps every grouped dimension and merges rows that collapse onto the same keys', () => {
+    let result = finalizeUsageRows({
+      query: query({
+        groupBy: ['agent', 'model.family'],
+        metrics: ['requests', 'users.active', 'cost.list', 'cost.contract']
+      }),
+      rows: [
+        {
+          _id: { k0: 'claude_code', k1: 'claude-sonnet-4-5' },
+          requests: 2,
+          costList: 1,
+          costContract: 0.8,
+          users: ['ada']
+        },
+        {
+          _id: { k0: 'claude-code', k1: 'claude-sonnet-4-5' },
+          requests: 3,
+          costList: 2,
+          users: ['ada', 'grace']
+        },
+        { _id: { k0: 'cursor', k1: 'gpt-5' }, requests: 1, users: ['grace'] }
+      ],
+      maps: testDimensionMaps()
+    });
+
+    expect(result.rows).toEqual([
+      {
+        keys: { agent: 'claude-code', 'model.family': 'claude-sonnet' },
+        metrics: { requests: 5, 'users.active': 2, 'cost.list': 3, 'cost.contract': 0.8 }
+      },
+      {
+        keys: { agent: null, 'model.family': null },
+        metrics: { requests: 1, 'users.active': 1, 'cost.list': 0, 'cost.contract': 0 }
+      }
+    ]);
+  });
+
+  it('checks the group limit after merging mapped dimensions', () => {
+    let rows = (count: number, model: (index: number) => string) =>
+      Array.from({ length: count }, (_, index) => ({
+        _id: { k0: model(index) },
+        requests: 1
+      }));
+
+    let merged = finalizeUsageRows({
+      query: query({ groupBy: ['model.family'], metrics: ['requests'] }),
+      rows: rows(maxGroups * 2, index => (index % 2 ? 'claude-sonnet-4-5' : 'llama-4')),
+      maps: testDimensionMaps()
+    });
+    expect(merged.rows.map(row => [row.keys['model.family'], row.metrics.requests])).toEqual([
+      ['claude-sonnet', maxGroups],
+      ['llama', maxGroups]
+    ]);
+
+    let distinct = (index: number) => `model-${index}`;
+
+    expect(() =>
+      finalizeUsageRows({
+        query: query({ groupBy: ['model'], metrics: ['requests'] }),
+        rows: rows(maxGroups + 1, distinct)
+      })
+    ).toThrow(ServiceError);
+    expect(() =>
+      finalizeUsageRows({
+        query: query({ groupBy: ['model.family'], metrics: ['requests'] }),
+        rows: rows(maxGroups * mappedGroupsFactor + 1, () => 'llama-4'),
+        maps: testDimensionMaps()
+      })
+    ).toThrow(ServiceError);
+
+    let manyFamilies = createDimensionMaps({
+      version: 'many',
+      models: Array.from({ length: maxGroups + 1 }, (_, index) => ({
+        id: distinct(index),
+        labId: 'lab',
+        familyId: `family-${index}`,
+        kind: 'chat',
+        status: 'active',
+        openWeights: false
+      })),
+      families: [],
+      vendors: [],
+      agents: [],
+      organizations: []
+    });
+    expect(() =>
+      finalizeUsageRows({
+        query: query({ groupBy: ['model.family'], metrics: ['requests'] }),
+        rows: rows(maxGroups + 1, distinct),
+        maps: manyFamilies
+      })
+    ).toThrow(ServiceError);
+  });
+
+  it('refuses mapped groups without their maps', () => {
+    expect(() =>
+      finalizeUsageRows({
+        query: query({ groupBy: ['vendor.kind'] }),
+        rows: [{ _id: { k0: 'aws-bedrock' }, costUsd: 1 }]
+      })
+    ).toThrow();
   });
 
   it('orders time series ascending, attaches reported costs and truncates at the limit', () => {
@@ -262,8 +448,7 @@ describe('finalizeUsageRows', () => {
       reported: [
         { _id: { t: day('1'), unit: 'usd', basis: 'billed' }, amount: 0.5 },
         { _id: { t: day('1'), unit: 'credits', basis: 'billed' }, amount: 7 }
-      ],
-      resolveModelFamily: modelId => modelId
+      ]
     });
 
     expect(result.truncated).toBe(true);

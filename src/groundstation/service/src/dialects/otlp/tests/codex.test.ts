@@ -227,7 +227,7 @@ describe('codexOtlp log events', () => {
       derived: ['usage.input_uncached', 'usage.output'],
       data: {
         outcome: 'ok',
-        model: 'gpt-5',
+        model: { id: 'gpt-5' },
         usage: {
           provenance: 'derived',
           input_uncached: 700,
@@ -581,7 +581,7 @@ describe('codexOtlp spans', () => {
       durationMs: 2000,
       data: {
         outcome: 'ok',
-        model: 'gpt-5',
+        model: { id: 'gpt-5' },
         effort: 'high',
         usage: {
           provenance: 'aggregate',

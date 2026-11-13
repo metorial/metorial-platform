@@ -39,9 +39,13 @@ export type DraftInput = {
 };
 
 export let createSessionHarness = async (
-  d: { settings?: InstanceSettings; principal?: Partial<IngestPrincipal['binding']> } = {}
+  d: {
+    settings?: InstanceSettings;
+    principal?: Partial<IngestPrincipal['binding']>;
+    scope?: Parameters<typeof createTestScope>[0];
+  } = {}
 ) => {
-  let scope = await createTestScope();
+  let scope = await createTestScope(d.scope);
 
   let principal = unitPrincipal({
     organization: { id: scope.organization.id },

@@ -49,6 +49,8 @@ let metricsOf = (slice: BaseSlice) => ({
   modelId: slice.modelId,
   modelRaw: slice.modelRaw,
   provider: slice.provider,
+  vendorId: slice.vendorId,
+  vendorSource: slice.vendorSource,
 
   sessionsStarted: slice.sessionsStarted,
   turns: slice.turns,
@@ -58,6 +60,7 @@ let metricsOf = (slice: BaseSlice) => ({
   tokens: slice.tokens,
   costReported: slice.costReported,
   costComputedUsd: slice.costComputedUsd,
+  costContractUsd: slice.costContractUsd,
   costUsd: slice.costUsd,
   lines: slice.lines
 });
@@ -98,6 +101,8 @@ export let buildSessionSlices = (d: {
       session._id,
       slice.bucket.toISOString(),
       slice.modelId,
+      slice.vendorId,
+      slice.vendorSource,
       slice.subagentId
     ]),
     organizationId: session.organizationId,
@@ -135,6 +140,8 @@ export let buildSessionlessSlices = (d: {
       d.key,
       slice.bucket.toISOString(),
       slice.modelId,
+      slice.vendorId,
+      slice.vendorSource,
       slice.subagentId,
       slice.userId,
       slice.deviceId,

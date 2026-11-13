@@ -1,5 +1,6 @@
 import { rebuildOrganizationsManyQueue } from '../queues/rebuild';
 import { tryRedis } from '../sessions/redis';
+import type { RebuildImpact } from './impacts';
 import { currentVersions } from './plan';
 
 export let versionRebuildGuardKey = () =>
@@ -9,9 +10,11 @@ export let startVersionRebuilds = async () => {
   await rebuildOrganizationsManyQueue.add({ trigger: { type: 'version' } });
 };
 
-export let startCatalogRebuild = async (d: { from: Date; to: Date }) => {
+export let startCatalogRebuild = async (d: { impacts: RebuildImpact[] }) => {
+  if (!d.impacts.length) return;
+
   await rebuildOrganizationsManyQueue.add({
-    trigger: { type: 'catalog', from: d.from.toISOString(), to: d.to.toISOString() }
+    trigger: { type: 'catalog', impacts: d.impacts }
   });
 };
 

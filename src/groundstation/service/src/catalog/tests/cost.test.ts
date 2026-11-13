@@ -21,7 +21,7 @@ let tokens = (values: Partial<Parameters<typeof computeRequestCost>[0]['tokens']
 describe('computeRequestCost', () => {
   it('prices each token component per million', () => {
     let cost = computeRequestCost({
-      offering: sonnet,
+      pricing: sonnet.pricing,
       tokens: tokens({ inputUncached: 1_000_000, output: 100_000, cacheRead: 1_000_000 }),
       contextTokens: 10_000
     });
@@ -31,7 +31,7 @@ describe('computeRequestCost', () => {
 
   it('applies the context tier the request reaches', () => {
     let cost = computeRequestCost({
-      offering: sonnet,
+      pricing: sonnet.pricing,
       tokens: tokens({ inputUncached: 1_000_000, output: 1_000_000, cacheRead: 1_000_000 }),
       contextTokens: 250_000
     });
@@ -41,7 +41,7 @@ describe('computeRequestCost', () => {
 
   it('prices cache writes by their TTL', () => {
     let cost = computeRequestCost({
-      offering: sonnet,
+      pricing: sonnet.pricing,
       tokens: tokens({
         cacheWrite: 3_000_000,
         cacheWrite5m: 1_000_000,
@@ -55,7 +55,7 @@ describe('computeRequestCost', () => {
 
   it('falls back to the input rate for cache writes and the output rate for reasoning', () => {
     let cost = computeRequestCost({
-      offering: gpt,
+      pricing: gpt.pricing,
       tokens: tokens({ cacheWrite: 1_000_000, reasoning: 1_000_000 }),
       contextTokens: 0
     });
@@ -71,14 +71,14 @@ describe('computeRequestCost', () => {
 
     expect(
       computeRequestCost({
-        offering: unpriced,
+        pricing: unpriced.pricing,
         tokens: tokens({ output: 10 }),
         contextTokens: 0
       })
     ).toBeUndefined();
     expect(
       computeRequestCost({
-        offering: unpriced,
+        pricing: unpriced.pricing,
         tokens: tokens({ inputUncached: 1_000_000 }),
         contextTokens: 0
       })

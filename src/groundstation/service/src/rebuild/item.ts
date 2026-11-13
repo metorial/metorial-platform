@@ -7,6 +7,8 @@ import {
   rewriteSessionlessSliceDims,
   writeSessionFacts
 } from '../facts/write';
+import { expireKnowledgeCheck } from '../knowledge/cache';
+import { expireOverrideCheck } from '../pricing/cache';
 import { settleSessionless } from '../sessions/sessionless';
 import { computeSessionAggregate, storeSessionSummary } from '../sessions/settle';
 import { getStore } from '../store/connection';
@@ -68,6 +70,12 @@ export let rebuildItem = async (d: {
   now?: Date;
 }): Promise<RebuildItemResult | null> => {
   let now = d.now ?? new Date();
+
+  // Rebuilds are usually queued by a knowledge or override change that another process just
+  // published, so check both versions now instead of trusting caches up to 15 seconds old.
+  expireKnowledgeCheck();
+  expireOverrideCheck(d.target.scope.organizationId);
+
   if (isSessionlessKey(d.sessionKey)) return await rebuildSessionless({ ...d, now });
 
   let store = getStore();

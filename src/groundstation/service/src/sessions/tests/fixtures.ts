@@ -23,6 +23,7 @@ export let summaryRecord = (d: {
   ctx?: SummaryRecord['ctx'];
   data?: Record<string, unknown>;
   attribution?: SummaryRecord['attribution'];
+  client?: SummaryRecord['client'];
 }): SummaryRecord => ({
   _id: d.id ?? `rec_${++counter}`,
   type: d.type,
@@ -43,7 +44,7 @@ export let summaryRecord = (d: {
     requestId: 'req_unit',
     backfill: false
   },
-  client: { family: 'claude-code' },
+  client: d.client ?? { family: 'claude-code' },
   ctx: d.ctx ?? {},
   data: d.data ?? {},
   ...(d.attribution ? { attribution: d.attribution } : {})

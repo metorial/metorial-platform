@@ -2,6 +2,7 @@ import type mongoose from 'mongoose';
 import type { Instance, Project, RebuildRun } from '../../prisma/generated/client';
 import { ATTRIBUTION_VERSION } from '../attribution/versions';
 import { FACTS_VERSION } from '../facts/versions';
+import type { RebuildFilter } from '../knowledge/types';
 import { SUMMARY_VERSION } from '../sessions/versions';
 import type { SessionDocument, UsageSliceDocument } from '../store/derivedModels';
 
@@ -20,18 +21,30 @@ export let currentVersions: Record<RebuildLayer, number> = {
 export let manualRebuildReason = 'manual';
 export let versionRebuildReason = 'version_upgrade';
 export let catalogRebuildReason = 'catalog_change';
+export let priceOverrideRebuildReason = 'price_override';
+
+let rebuildFilterKeys = [
+  'modelIds',
+  'modelRaws',
+  'vendorIds',
+  'clientFamilies'
+] as const satisfies (keyof RebuildFilter)[];
 
 export type RebuildTarget = {
   scope: { organizationId: string; projectId?: string; instanceId?: string };
   range: { from: Date; to: Date };
   layers: RebuildLayer[];
   onlyBehind: boolean;
+  filter: RebuildFilter | null;
 };
 
+// Unfiltered runs walk sessions, then sessionless slices. Filtered runs walk matching slices
+// newest bucket first, with `before` as the exclusive upper bucket bound of the next page.
 export type RebuildCursor = {
-  phase: 'sessions' | 'sessionless' | 'done';
+  phase: 'sessions' | 'sessionless' | 'slices' | 'done';
   enqueued: number;
   after?: { startedAt?: string; key: string };
+  before?: string;
 };
 
 type SessionFilter = mongoose.mongo.Filter<SessionDocument>;
@@ -77,9 +90,40 @@ export let rebuildTargetOf = (
     },
     range: { from: run.rangeFrom, to: run.rangeTo },
     layers: normalizeLayers(run.layers),
-    onlyBehind: run.reason == versionRebuildReason
+    onlyBehind: run.reason == versionRebuildReason,
+    filter: run.filter ? normalizeRebuildFilter(run.filter) : null
   };
 };
+
+export let normalizeRebuildFilter = (filter: RebuildFilter): RebuildFilter => {
+  let normalized: RebuildFilter = {};
+
+  for (let key of rebuildFilterKeys) {
+    let values = [...new Set(filter[key] ?? [])].sort();
+    if (values.length) normalized[key] = values;
+  }
+
+  return normalized;
+};
+
+export let isEmptyRebuildFilter = (filter: RebuildFilter) =>
+  rebuildFilterKeys.every(key => !filter[key]?.length);
+
+// `null` matches every slice, so it absorbs any filter it is merged with.
+export let mergeRebuildFilters = (
+  a: RebuildFilter | null,
+  b: RebuildFilter | null
+): RebuildFilter | null => {
+  if (!a || !b) return null;
+
+  let merged: RebuildFilter = {};
+  for (let key of rebuildFilterKeys) merged[key] = [...(a[key] ?? []), ...(b[key] ?? [])];
+
+  return normalizeRebuildFilter(merged);
+};
+
+export let rebuildFilterSize = (filter: RebuildFilter | null) =>
+  filter ? rebuildFilterKeys.reduce((sum, key) => sum + (filter[key]?.length ?? 0), 0) : 0;
 
 export let parseRebuildCursor = (cursor: string | null): RebuildCursor =>
   cursor ? (JSON.parse(cursor) as RebuildCursor) : { phase: 'sessions', enqueued: 0 };
@@ -144,3 +188,45 @@ export let sessionlessPageFilter = (target: RebuildTarget, afterKey?: string): S
     ...(behind ? { $or: behind } : {})
   };
 };
+
+// Each clause is served by its own `{organizationId, <field>, bucket}` index (08 §8). Filtered
+// pages rely on a rebuilt session still matching, so no clause may depend on what a rebuild
+// changes; the raw clause doesn't require the slice to be unresolved.
+export let sliceFilterClauses = (filter: RebuildFilter): SliceFilter[] => {
+  let clauses: SliceFilter[] = [];
+
+  if (filter.modelIds?.length) clauses.push({ modelId: { $in: filter.modelIds } });
+  if (filter.modelRaws?.length) clauses.push({ modelRaw: { $in: filter.modelRaws } });
+  if (filter.vendorIds?.length) clauses.push({ vendorId: { $in: filter.vendorIds } });
+  if (filter.clientFamilies?.length) {
+    clauses.push({ 'client.family': { $in: filter.clientFamilies } });
+  }
+
+  return clauses;
+};
+
+let matchingSlices = (filter: RebuildFilter): SliceFilter => {
+  let clauses = sliceFilterClauses(filter);
+  if (!clauses.length) return { _id: { $in: [] } };
+
+  return clauses.length == 1 ? clauses[0]! : { $or: clauses };
+};
+
+export let filteredSliceFilter = (
+  target: RebuildTarget & { filter: RebuildFilter },
+  bucket: { from?: Date; before?: Date } = {}
+): SliceFilter => ({
+  ...scopeFilter(target),
+  bucket: { $gte: bucket.from ?? target.range.from, $lt: bucket.before ?? target.range.to },
+  ...matchingSlices(target.filter)
+});
+
+// A filtered page takes a session at its newest matching slice, so a key that also matches in a
+// newer bucket than the page covers was already taken by an earlier page.
+export let takenKeysFilter = (
+  target: RebuildTarget & { filter: RebuildFilter },
+  d: { owner: 'sessionKey' | 'sessionlessKey'; keys: string[]; before: Date }
+): SliceFilter => ({
+  ...filteredSliceFilter(target, { from: d.before }),
+  [d.owner]: { $in: d.keys }
+});

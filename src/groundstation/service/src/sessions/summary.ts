@@ -1,10 +1,15 @@
 import {
   computeRequestCost,
+  isSubscriptionAuth,
   type CatalogIndex,
+  type ModelRequest,
   type RequestTokens,
   type ResolvedModel
 } from '../catalog';
 import type { BaseSlice } from '../facts/write';
+import type { PricePeriod } from '../knowledge/periods';
+import type { VendorSource } from '../knowledge/types';
+import type { OverridePricer } from '../pricing/pricer';
 import type {
   ReportedCost,
   SessionCoverage,
@@ -19,8 +24,16 @@ import { parseAmount, toDecimal, type Amount } from './decimal';
 import { documentCorrelations, type Correlation } from './keys';
 import { sourceKindOf, usageRank } from './sources';
 
-let preferredBases = ['billed', 'server_estimate', 'client_estimate'] as const;
+let preferredBases = ['billed', 'contract', 'server_estimate', 'client_estimate'] as const;
 let centsPerUsd = 100n;
+
+let vendorSourceOrder: VendorSource[] = [
+  'reported',
+  'endpoint',
+  'offering',
+  'agent',
+  'first-party'
+];
 
 export type SummaryRecord = Pick<
   RecordDocument,
@@ -60,21 +73,46 @@ type UsageEntry = {
   requestId?: string;
   modelRaw?: string;
   provider?: string;
+  baseUrl?: string;
+  subscription: boolean;
   tokens?: RequestTokens;
   costs: CostEntry[];
   failed: boolean;
 };
 
+type ModelTotals = Grouped & {
+  summary: SessionModelSummary;
+  rawIds: Set<string>;
+  vendorSource?: VendorSource;
+  offering?: { id: string; at: Date };
+  periods: Map<string, PricePeriod>;
+  priceAssumed: boolean;
+};
+
 type SliceTotals = {
-  slice: Omit<BaseSlice, 'lines' | 'costReported' | 'costComputedUsd' | 'costUsd'>;
+  slice: Omit<
+    BaseSlice,
+    'lines' | 'costReported' | 'costComputedUsd' | 'costContractUsd' | 'costUsd'
+  >;
   costs: Map<string, CostEntry>;
   computed?: Amount;
+  contract?: Amount;
   preferred?: Amount;
   codeLines: { added: number; removed: number };
   toolLines: { added: number; removed: number };
 };
 
-type Grouped = { tokens: Tokens; costs: Map<string, CostEntry>; computed?: Amount };
+type Grouped = {
+  tokens: Tokens;
+  costs: Map<string, CostEntry>;
+  computed?: Amount;
+  contract?: Amount;
+};
+
+type CostedEntry = { costs: CostEntry[]; computed?: Amount; contract?: Amount };
+
+let strongerSource = (a: VendorSource | undefined, b: VendorSource | undefined) =>
+  !a || (b && vendorSourceOrder.indexOf(b) < vendorSourceOrder.indexOf(a)) ? b : a;
 
 let record = (value: unknown) =>
   typeof value == 'object' && value !== null && !Array.isArray(value)
@@ -168,25 +206,28 @@ let increment = (target: Record<string, number>, key: string) => {
 
 export type CostBasis = (typeof preferredBases)[number] | 'computed';
 
-export let selectCostBasis = (
-  entries: { costs: CostEntry[]; computed?: Amount }[]
-): CostBasis | undefined => {
+let hasBasis = (entry: CostedEntry, basis: (typeof preferredBases)[number]) =>
+  basis == 'contract'
+    ? entry.contract !== undefined
+    : entry.costs.some(cost => cost.basis == basis && usdAmount(cost) !== undefined);
+
+export let selectCostBasis = (entries: CostedEntry[]): CostBasis | undefined => {
   for (let basis of preferredBases) {
-    let found = entries.some(entry =>
-      entry.costs.some(cost => cost.basis == basis && usdAmount(cost) !== undefined)
-    );
-    if (found) return basis;
+    if (entries.some(entry => hasBasis(entry, basis))) return basis;
   }
 
   return entries.some(entry => entry.computed !== undefined) ? 'computed' : undefined;
 };
 
+// Under the contract basis a request no override priced counts at its list cost, so an override
+// that covers only part of a session doesn't drop the rest of its cost.
 export let preferredAmount = (
-  entry: { costs: CostEntry[]; computed?: Amount },
+  entry: CostedEntry,
   basis: CostBasis | undefined
 ): Amount | undefined => {
   if (!basis) return undefined;
   if (basis == 'computed') return entry.computed;
+  if (basis == 'contract') return entry.contract ?? entry.computed;
 
   let total: Amount | undefined;
 
@@ -202,6 +243,7 @@ export let aggregateSession = async (d: {
   records: AsyncIterable<SummaryRecord> | Iterable<SummaryRecord>;
   family: string;
   catalog: CatalogIndex | null;
+  pricing?: OverridePricer | null;
   correlationsSince?: Date;
 }): Promise<SessionAggregate> => {
   let seen = new Map<string, Set<string>>();
@@ -246,11 +288,19 @@ export let aggregateSession = async (d: {
     modelId?: string;
     modelRaw?: string;
     provider?: string;
+    vendorId?: string;
+    vendorSource?: VendorSource;
     subagentId?: string;
   }) => {
     let bucket = bucketStart(d.occurredAt, 15);
     let modelKey = d.modelId ?? (d.modelRaw ? `raw:${d.modelRaw}` : '');
-    let key = `${bucket.toISOString()}|${modelKey}|${d.subagentId ?? ''}`;
+    let key = [
+      bucket.toISOString(),
+      modelKey,
+      d.vendorId ?? '',
+      d.vendorSource ?? '',
+      d.subagentId ?? ''
+    ].join('|');
 
     let totals = slices.get(key);
 
@@ -263,6 +313,8 @@ export let aggregateSession = async (d: {
           ...(d.modelId ? { modelId: d.modelId } : {}),
           ...(d.modelRaw ? { modelRaw: d.modelRaw } : {}),
           ...(d.provider ? { provider: d.provider } : {}),
+          ...(d.vendorId ? { vendorId: d.vendorId } : {}),
+          ...(d.vendorSource ? { vendorSource: d.vendorSource } : {}),
           sessionsStarted: 0,
           turns: 0,
           requests: 0,
@@ -438,6 +490,8 @@ export let aggregateSession = async (d: {
       requestId: text(target?.requestId) ?? ctx.requestId,
       modelRaw: text(model?.id),
       provider: text(model?.provider),
+      baseUrl: text(model?.baseUrl),
+      subscription: isSubscriptionAuth(document.client.authMode),
       tokens,
       costs: cost ? [cost] : [],
       failed: document.type == 'model.request' && !!data.outcome && data.outcome != 'ok'
@@ -460,28 +514,24 @@ export let aggregateSession = async (d: {
     if (entry.requestId) modelByCorrelation.set(`request:${entry.requestId}`, entry);
   }
 
+  let requestOf = (entry: UsageEntry): ModelRequest | undefined =>
+    entry.modelRaw
+      ? {
+          raw: entry.modelRaw,
+          provider: entry.provider,
+          family: d.family,
+          baseUrl: entry.baseUrl,
+          subscription: entry.subscription
+        }
+      : undefined;
+
   let resolver = d.catalog
-    ? await d.catalog.prepare(
-        usage.flatMap(entry =>
-          entry.modelRaw
-            ? [{ raw: entry.modelRaw, provider: entry.provider, family: d.family }]
-            : []
-        )
-      )
+    ? await d.catalog.prepare(usage.flatMap(entry => requestOf(entry) ?? []))
     : null;
-  let resolved = new Map<string, ResolvedModel>();
 
-  let resolve = (raw: string | undefined, provider: string | undefined, at: Date) => {
-    if (!raw || !resolver) return {};
-
-    let key = `${raw}\0${provider ?? ''}\0${at.toISOString().slice(0, 13)}`;
-    let cached = resolved.get(key);
-    if (cached) return cached;
-
-    let result = resolver.resolveModel({ raw, provider, family: d.family, at });
-    resolved.set(key, result);
-
-    return result;
+  let resolve = (entry: UsageEntry, at: Date): ResolvedModel => {
+    let request = requestOf(entry);
+    return request && resolver ? resolver.resolveModel({ ...request, at }) : {};
   };
 
   let counted = usage
@@ -498,41 +548,50 @@ export let aggregateSession = async (d: {
             modelByCorrelation.get(`turn:${entry.turnId}`) ??
             entry);
 
-      let modelRaw = modelSource.modelRaw;
-      let provider = modelSource.provider;
-      let { modelId, offering } = resolve(modelRaw, provider, entry.occurredAt);
+      let resolution = resolve(modelSource, entry.occurredAt);
 
       let countsUsage = entry.rank == winnerRank;
       let tokens = countsUsage ? entry.tokens : undefined;
       let costs = countsUsage ? entry.costs : [];
 
+      let contextTokens = tokens
+        ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
+        : 0;
       let computedNumber =
-        offering && tokens
-          ? computeRequestCost({
-              offering,
+        resolution.period && tokens
+          ? computeRequestCost({ pricing: resolution.period.pricing, tokens, contextTokens })
+          : undefined;
+      let computed = computedNumber === undefined ? undefined : parseAmount(computedNumber);
+
+      let contract =
+        d.pricing && (tokens || costs.length)
+          ? d.pricing({
+              at: entry.occurredAt,
+              resolution,
+              list: computed,
               tokens,
-              contextTokens: tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
+              contextTokens
             })
           : undefined;
 
       return {
         entry,
-        modelId,
-        modelRaw,
-        provider,
+        resolution,
+        modelId: resolution.modelId,
+        modelRaw: modelSource.modelRaw,
+        provider: modelSource.provider,
         tokens,
         costs,
-        computed: computedNumber === undefined ? undefined : parseAmount(computedNumber)
+        computed,
+        overrideId: contract?.override.id,
+        contract: contract?.amount
       };
     });
 
   let basis = selectCostBasis(counted);
 
   let totals: Grouped = { tokens: emptyTokens(), costs: new Map() };
-  let models = new Map<
-    string,
-    Grouped & { summary: SessionModelSummary; rawIds: Set<string> }
-  >();
+  let models = new Map<string, ModelTotals>();
   let subagents = new Map<string, { requests: number; costUsd?: Amount }>();
   let costUsd: Amount | undefined;
   let requests = 0;
@@ -550,20 +609,27 @@ export let aggregateSession = async (d: {
     if (item.tokens) addTokens(totals.tokens, item.tokens);
     for (let cost of item.costs) addCost(totals.costs, cost);
     if (item.computed !== undefined) totals.computed = (totals.computed ?? 0n) + item.computed;
+    if (item.contract !== undefined) totals.contract = (totals.contract ?? 0n) + item.contract;
     if (preferred !== undefined) costUsd = (costUsd ?? 0n) + preferred;
 
+    let { vendorId, vendorSource, offering, period } = item.resolution;
     let modelKey = item.modelId ?? (item.modelRaw ? `raw:${item.modelRaw}` : undefined);
 
     if (modelKey) {
-      let model = models.get(modelKey);
+      let key = `${modelKey}\0${vendorId ?? ''}\0${item.overrideId ?? ''}`;
+      let model = models.get(key);
 
       if (!model) {
         model = {
           tokens: emptyTokens(),
           costs: new Map(),
           rawIds: new Set(),
+          periods: new Map(),
+          priceAssumed: false,
           summary: {
             ...(item.modelId ? { modelId: item.modelId } : {}),
+            ...(vendorId ? { vendorId } : {}),
+            ...(item.overrideId ? { overrideId: item.overrideId } : {}),
             rawIds: [],
             requests: 0,
             tokens: emptyTokens(),
@@ -571,7 +637,7 @@ export let aggregateSession = async (d: {
           }
         };
 
-        models.set(modelKey, model);
+        models.set(key, model);
       }
 
       if (item.modelRaw) model.rawIds.add(item.modelRaw);
@@ -579,6 +645,14 @@ export let aggregateSession = async (d: {
       if (item.tokens) addTokens(model.tokens, item.tokens);
       for (let cost of item.costs) addCost(model.costs, cost);
       if (item.computed !== undefined) model.computed = (model.computed ?? 0n) + item.computed;
+      if (item.contract !== undefined) model.contract = (model.contract ?? 0n) + item.contract;
+
+      model.vendorSource = strongerSource(model.vendorSource, vendorSource);
+      if (offering && (!model.offering || item.entry.occurredAt >= model.offering.at)) {
+        model.offering = { id: offering.id, at: item.entry.occurredAt };
+      }
+      if (period) model.periods.set(period.id, period);
+      if (item.resolution.priceAssumed) model.priceAssumed = true;
     }
 
     if (item.entry.subagentId) {
@@ -595,6 +669,8 @@ export let aggregateSession = async (d: {
       modelId: item.modelId,
       modelRaw: item.modelRaw,
       provider: item.provider,
+      vendorId,
+      vendorSource,
       subagentId: item.entry.subagentId
     });
 
@@ -606,6 +682,7 @@ export let aggregateSession = async (d: {
     if (item.tokens) addTokens(slice.slice.tokens, item.tokens);
     for (let cost of item.costs) addCost(slice.costs, cost);
     if (item.computed !== undefined) slice.computed = (slice.computed ?? 0n) + item.computed;
+    if (item.contract !== undefined) slice.contract = (slice.contract ?? 0n) + item.contract;
     if (preferred !== undefined) slice.preferred = (slice.preferred ?? 0n) + preferred;
   }
 
@@ -643,13 +720,25 @@ export let aggregateSession = async (d: {
     models: [...models.values()].map(model => ({
       ...model.summary,
       rawIds: [...model.rawIds].sort(),
+      ...(model.vendorSource ? { vendorSource: model.vendorSource } : {}),
+      ...(model.offering ? { offeringId: model.offering.id } : {}),
+      ...(model.periods.size
+        ? {
+            pricePeriodIds: [...model.periods.values()]
+              .sort((a, b) => a.validFrom.getTime() - b.validFrom.getTime())
+              .map(period => period.id)
+          }
+        : {}),
+      ...(model.priceAssumed ? { priceAssumed: true as const } : {}),
       tokens: model.tokens,
       costReported: reportedCosts(model.costs),
-      ...(model.computed !== undefined ? { costComputedUsd: toDecimal(model.computed) } : {})
+      ...(model.computed !== undefined ? { costComputedUsd: toDecimal(model.computed) } : {}),
+      ...(model.contract !== undefined ? { costContractUsd: toDecimal(model.contract) } : {})
     })),
     tokens: totals.tokens,
     costReported: reportedCosts(totals.costs),
     ...(totals.computed !== undefined ? { costComputedUsd: toDecimal(totals.computed) } : {}),
+    ...(totals.contract !== undefined ? { costContractUsd: toDecimal(totals.contract) } : {}),
     ...(costUsd !== undefined ? { costUsd: toDecimal(costUsd) } : {}),
     lines: useCodeLines ? codeLines : toolLines,
     commits,
@@ -666,6 +755,9 @@ export let aggregateSession = async (d: {
       costReported: reportedCosts(totals.costs),
       ...(totals.computed !== undefined
         ? { costComputedUsd: toDecimal(totals.computed) }
+        : {}),
+      ...(totals.contract !== undefined
+        ? { costContractUsd: toDecimal(totals.contract) }
         : {}),
       ...(totals.preferred !== undefined ? { costUsd: toDecimal(totals.preferred) } : {}),
       lines: useCodeLines ? totals.codeLines : totals.toolLines

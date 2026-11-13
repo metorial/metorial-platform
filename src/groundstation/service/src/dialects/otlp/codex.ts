@@ -9,13 +9,14 @@ import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
 import {
   buildUsage,
   errorFromStatus,
+  modelRef,
   nativeLabel,
   normalizeEffort,
   normalizeProvider,
-  own,
   normalizeSpeed,
-  usdCost,
-  type Decision
+  own,
+  type Decision,
+  usdCost
 } from '../values';
 import {
   actorOf,
@@ -316,7 +317,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
           },
           {
             outcome: 'ok',
-            ...ok(model, 'model'),
+            ...modelRef(model),
             ...(usage.usage ? { usage: usage.usage } : {}),
             ...ok(ttft, 'ttft_ms'),
             ...ok(tier, 'service_tier'),
@@ -746,7 +747,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
           },
           {
             outcome: failed ? 'error' : 'ok',
-            ...ok(model, 'model'),
+            ...modelRef(model),
             ...ok(effort, 'effort'),
             ...(usage.usage ? { usage: usage.usage } : {}),
             ...ok(duration, 'duration_ms')

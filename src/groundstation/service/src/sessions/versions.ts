@@ -1,1 +1,1 @@
-export let SUMMARY_VERSION = 1;
+export let SUMMARY_VERSION = 3;

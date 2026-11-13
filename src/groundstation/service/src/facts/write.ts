@@ -1,6 +1,7 @@
 import { resolveSessionAttribution } from '../attribution/resolve';
 import { db } from '../db';
 import { getStore } from '../store/connection';
+import type { VendorSource } from '../knowledge/types';
 import type {
   Decimal,
   ReportedCost,
@@ -26,6 +27,8 @@ export type BaseSlice = {
   modelId?: string;
   modelRaw?: string;
   provider?: string;
+  vendorId?: string;
+  vendorSource?: VendorSource;
 
   // Sessionless slices only: the observed identity of the aggregate (07 §5.6).
   userId?: string;
@@ -41,6 +44,7 @@ export type BaseSlice = {
   tokens: Tokens;
   costReported: ReportedCost[];
   costComputedUsd?: Decimal;
+  costContractUsd?: Decimal;
   costUsd?: Decimal;
   lines: { added: number; removed: number };
 };

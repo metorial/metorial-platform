@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client"
-  output   = "./generated"
+  provider        = "prisma-client"
+  output          = "./generated"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [pg_trgm]
 }
 
 generator json {
@@ -616,6 +618,8 @@ model KnowledgeModel {
   @@index([labId])
   @@index([familyId])
   @@index([kind, status])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "KnowledgeModel_name_trgm_idx")
+  @@index([id(ops: raw("gin_trgm_ops"))], type: Gin, map: "KnowledgeModel_id_trgm_idx")
 }
 
 model KnowledgeRelease {

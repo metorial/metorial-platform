@@ -1,15 +1,23 @@
 import { describe, expect, it } from 'vitest';
+import type { RebuildFilter } from '../../knowledge/types';
 import {
   behindLayers,
   currentVersions,
+  filteredSliceFilter,
+  isEmptyRebuildFilter,
   isRecordRetentionExpired,
+  mergeRebuildFilters,
   normalizeLayers,
+  normalizeRebuildFilter,
   parseRebuildCursor,
   planLayers,
+  rebuildFilterSize,
   rebuildTargetOf,
   serializeRebuildCursor,
   sessionlessPageFilter,
   sessionPageFilter,
+  sliceFilterClauses,
+  takenKeysFilter,
   versionRebuildReason,
   type RebuildTarget
 } from '../plan';
@@ -23,7 +31,13 @@ let target = (overrides: Partial<RebuildTarget> = {}): RebuildTarget => ({
   range,
   layers: ['summary', 'attribution', 'facts'],
   onlyBehind: false,
+  filter: null,
   ...overrides
+});
+
+let filtered = (filter: RebuildFilter, overrides: Partial<RebuildTarget> = {}) => ({
+  ...target(overrides),
+  filter
 });
 
 let run = (overrides: Record<string, unknown> = {}) =>
@@ -44,8 +58,12 @@ describe('rebuild targets', () => {
       scope: { organizationId: 'gor_a' },
       range,
       layers: ['attribution', 'facts'],
-      onlyBehind: false
+      onlyBehind: false,
+      filter: null
     });
+    expect(
+      rebuildTargetOf(run({ filter: { modelIds: ['b', 'a', 'a'], vendorIds: [] } })).filter
+    ).toEqual({ modelIds: ['a', 'b'] });
 
     expect(
       rebuildTargetOf(
@@ -139,6 +157,93 @@ describe('sessionless pages', () => {
       sessionlessPageFilter(target({ layers: ['summary', 'attribution'], onlyBehind: true }))
         .$or
     ).toBeUndefined();
+  });
+});
+
+describe('rebuild filters', () => {
+  it('normalizes, merges and measures filters', () => {
+    expect(
+      normalizeRebuildFilter({ modelIds: ['b', 'a', 'b'], modelRaws: [], vendorIds: ['v'] })
+    ).toEqual({ modelIds: ['a', 'b'], vendorIds: ['v'] });
+
+    expect(
+      mergeRebuildFilters(
+        { modelIds: ['a'], modelRaws: ['raw-1'] },
+        { modelIds: ['b', 'a'], modelRaws: ['raw-2'], clientFamilies: ['codex'] }
+      )
+    ).toEqual({
+      modelIds: ['a', 'b'],
+      modelRaws: ['raw-1', 'raw-2'],
+      clientFamilies: ['codex']
+    });
+    expect(mergeRebuildFilters({ modelIds: ['a'] }, null)).toBeNull();
+    expect(mergeRebuildFilters(null, { modelIds: ['a'] })).toBeNull();
+
+    expect(isEmptyRebuildFilter({})).toBe(true);
+    expect(isEmptyRebuildFilter({ modelIds: [] })).toBe(true);
+    expect(isEmptyRebuildFilter({ vendorIds: ['v'] })).toBe(false);
+    expect(rebuildFilterSize({ modelIds: ['a', 'b'], modelRaws: ['r'] })).toBe(3);
+    expect(rebuildFilterSize(null)).toBe(0);
+  });
+
+  it('builds one indexed clause per filter field', () => {
+    expect(
+      sliceFilterClauses({
+        modelIds: ['m'],
+        modelRaws: ['raw'],
+        vendorIds: ['v'],
+        clientFamilies: ['claude-code']
+      })
+    ).toEqual([
+      { modelId: { $in: ['m'] } },
+      { modelRaw: { $in: ['raw'] } },
+      { vendorId: { $in: ['v'] } },
+      { 'client.family': { $in: ['claude-code'] } }
+    ]);
+  });
+
+  it('selects matching slices in scope and range', () => {
+    expect(
+      filteredSliceFilter(
+        filtered(
+          { modelIds: ['m'] },
+          { scope: { organizationId: 'gor_a', projectId: 'gpr_a' } }
+        )
+      )
+    ).toEqual({
+      organizationId: 'gor_a',
+      projectId: 'gpr_a',
+      bucket: { $gte: range.from, $lt: range.to },
+      modelId: { $in: ['m'] }
+    });
+
+    let before = new Date('2026-01-20T00:00:00Z');
+    expect(
+      filteredSliceFilter(filtered({ modelIds: ['m'], vendorIds: ['v'] }), { before })
+    ).toEqual({
+      organizationId: 'gor_a',
+      bucket: { $gte: range.from, $lt: before },
+      $or: [{ modelId: { $in: ['m'] } }, { vendorId: { $in: ['v'] } }]
+    });
+
+    expect(filteredSliceFilter(filtered({}))._id).toEqual({ $in: [] });
+  });
+
+  it('finds keys already taken by newer pages', () => {
+    let before = new Date('2026-01-20T00:00:00Z');
+
+    expect(
+      takenKeysFilter(filtered({ modelIds: ['m'] }), {
+        owner: 'sessionKey',
+        keys: ['s1', 's2'],
+        before
+      })
+    ).toEqual({
+      organizationId: 'gor_a',
+      bucket: { $gte: before, $lt: range.to },
+      modelId: { $in: ['m'] },
+      sessionKey: { $in: ['s1', 's2'] }
+    });
   });
 });
 

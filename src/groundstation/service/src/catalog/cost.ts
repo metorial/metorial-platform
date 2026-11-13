@@ -1,12 +1,12 @@
-import type { Offering } from '@metorial/model-catalog/src/types';
+import type { Pricing } from '@metorial/model-catalog/src/types';
 import type { Tokens } from '../store/derivedModels';
 
 let tokensPerPrice = 1_000_000;
 
 export type RequestTokens = Tokens & { cacheWrite5m?: number; cacheWrite1h?: number };
 
-let tierFor = (offering: Offering, contextTokens: number) => {
-  let tiers = offering.pricing?.contextTiers ?? [];
+let tierFor = (pricing: Pricing, contextTokens: number) => {
+  let tiers = pricing.contextTiers ?? [];
   let selected: (typeof tiers)[number] | undefined;
 
   for (let tier of tiers) {
@@ -24,14 +24,14 @@ let tierFor = (offering: Offering, contextTokens: number) => {
 // Catalog prices are USD per million tokens. A component with tokens but no known rate makes the
 // whole request unpriced rather than silently cheaper.
 export let computeRequestCost = (d: {
-  offering: Offering;
+  pricing: Pricing | null;
   tokens: RequestTokens;
   contextTokens: number;
 }): number | undefined => {
-  let rates = d.offering.pricing?.text;
-  if (!rates) return undefined;
+  let rates = d.pricing?.text;
+  if (!d.pricing || !rates) return undefined;
 
-  let tier = tierFor(d.offering, d.contextTokens);
+  let tier = tierFor(d.pricing, d.contextTokens);
 
   let input = tier?.input ?? rates.input;
   let output = tier?.output ?? rates.output;

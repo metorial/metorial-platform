@@ -1,16 +1,21 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { isValidKindKey } from '../entities/kinds';
+import type { DimensionMaps } from '../knowledge/dimensions';
+import { dimensionResolverOf, type DimensionContext } from './dimensions';
 
 let dayMs = 24 * 60 * 60 * 1000;
 
 export let maxRangeDays = 400;
 export let maxHourlyRangeDays = 31;
 export let maxGroups = 10_000;
+export let mappedGroupsFactor = 5;
 export let maxGroupBy = 4;
 export let defaultLimit = 1000;
 
 export let usageMetrics = [
   'cost.usd',
+  'cost.list',
+  'cost.contract',
   'cost.reported',
   'tokens',
   'requests',
@@ -49,17 +54,15 @@ export type UsageQuery = {
 export let usageFieldPaths: Record<string, string> = {
   user: 'userId',
   device: 'deviceId',
-  agent: 'agentId',
+  agentId: 'agentId',
   subagent: 'subagentId',
   model: 'modelId',
-  'model.family': 'modelId',
+  vendor: 'vendorId',
   'client.family': 'client.family',
   'client.version': 'client.version',
   'metorial.project': 'projectId',
   'metorial.instance': 'instanceId'
 };
-
-let unfilterableFields = new Set(['model.family']);
 
 type Stage = Record<string, unknown>;
 
@@ -78,8 +81,24 @@ export let isValidTimeZone = (timeZone: string) => {
   }
 };
 
+let pathOf = (paths: Record<string, string>, field: string) =>
+  Object.hasOwn(paths, field) ? paths[field] : undefined;
+
 export let isKindField = (field: string) =>
-  !(field in usageFieldPaths) && isValidKindKey(field);
+  !pathOf(usageFieldPaths, field) && !dimensionResolverOf(field) && isValidKindKey(field);
+
+let isUsageField = (field: string) =>
+  !!pathOf(usageFieldPaths, field) || !!dimensionResolverOf(field) || isKindField(field);
+
+export let usesDimensions = (query: Pick<UsageQuery, 'groupBy' | 'filters'>) =>
+  [...query.groupBy, ...Object.keys(query.filters)].some(field => dimensionResolverOf(field));
+
+// Mapped fields merge several Mongo groups into one, so Mongo may return more groups than the
+// final result is allowed to have.
+export let mongoGroupCap = (query: Pick<UsageQuery, 'groupBy'>) =>
+  query.groupBy.some(field => dimensionResolverOf(field))
+    ? maxGroups * mappedGroupsFactor
+    : maxGroups;
 
 export let assertRange = (range: { from: Date; to: Date }, maxDays: number = maxRangeDays) => {
   let spanMs = range.to.getTime() - range.from.getTime();
@@ -99,18 +118,11 @@ export let validateUsageQuery = (query: UsageQuery) => {
   if (new Set(query.groupBy).size != query.groupBy.length) fail('groupBy has duplicates.');
 
   for (let field of query.groupBy) {
-    if (!(field in usageFieldPaths) && !isKindField(field)) {
-      fail(`Unknown groupBy field "${field}".`);
-    }
+    if (!isUsageField(field)) fail(`Unknown groupBy field "${field}".`);
   }
 
   for (let field of Object.keys(query.filters)) {
-    if (
-      unfilterableFields.has(field) ||
-      (!(field in usageFieldPaths) && !isKindField(field))
-    ) {
-      fail(`Unknown filter field "${field}".`);
-    }
+    if (!isUsageField(field)) fail(`Unknown filter field "${field}".`);
   }
 
   let orderBy = query.orderBy?.by;
@@ -127,19 +139,27 @@ let kindGroupField = (index: number) => `_g${index}`;
 export let filterMatch = (
   filters: QueryFilters,
   paths: Record<string, string>,
-  dimIdsPath: string
+  dimIdsPath: string,
+  dimensions?: DimensionContext
 ) => {
   let match: Record<string, unknown> = {};
   let and: Record<string, unknown>[] = [];
 
   for (let [field, filter] of Object.entries(filters)) {
-    let path = paths[field];
+    let path = pathOf(paths, field);
 
     if (path) {
       match[path] = {
         ...(filter.in ? { $in: filter.in } : {}),
         ...(filter.notIn ? { $nin: filter.notIn } : {})
       };
+      continue;
+    }
+
+    let resolver = dimensions && dimensionResolverOf(field);
+    if (resolver) {
+      if (filter.in) and.push(resolver.match(filter.in, dimensions!));
+      if (filter.notIn) and.push({ $nor: [resolver.match(filter.notIn, dimensions!)] });
       continue;
     }
 
@@ -219,20 +239,27 @@ export let usageGroupKey = (query: UsageQuery, timeZone: string) => {
   if (query.interval) key.t = bucketExpression(query.interval, timeZone);
 
   query.groupBy.forEach((field, index) => {
-    let path = usageFieldPaths[field];
+    let resolver = dimensionResolverOf(field);
+    let path = resolver?.base ?? pathOf(usageFieldPaths, field);
     key[`k${index}`] = path ? `$${path}` : `$${kindGroupField(index)}.id`;
+
+    if (resolver?.groupsUnresolvedRaw) {
+      key[`r${index}`] = {
+        $cond: [{ $eq: [{ $ifNull: [`$${resolver.base}`, null] }, null] }, '$modelRaw', null]
+      };
+    }
   });
 
   return key;
 };
 
-let baseStages = (query: UsageQuery): Stage[] => {
+let baseStages = (query: UsageQuery, dimensions: DimensionContext | undefined): Stage[] => {
   let match = {
     organizationId: query.organizationId,
     bucket: { $gte: query.range.from, $lt: query.range.to },
     ...(query.projectIds ? { projectId: { $in: query.projectIds } } : {}),
     ...(query.instanceIds ? { instanceId: { $in: query.instanceIds } } : {}),
-    ...filterMatch(query.filters, usageFieldPaths, 'dimIds')
+    ...filterMatch(query.filters, usageFieldPaths, 'dimIds', dimensions)
   };
 
   let stages: Stage[] = [{ $match: match }];
@@ -259,18 +286,27 @@ let baseStages = (query: UsageQuery): Stage[] => {
   return stages;
 };
 
-export let buildUsagePipelines = (query: UsageQuery) => {
+let costSum = (path: string, weight: Expression) => ({
+  $sum: weighted({ $toDouble: { $ifNull: [`$${path}`, 0] } }, weight)
+});
+
+export let buildUsagePipelines = (query: UsageQuery, dimensions?: DimensionContext) => {
+  if (!dimensions && usesDimensions(query)) {
+    throw new Error('Mapped usage dimensions need their knowledge maps.');
+  }
+
   let timeZone = query.timeZone ?? 'UTC';
   let weight = weightExpression(query);
   let key = usageGroupKey(query, timeZone);
+  let cap = mongoGroupCap(query);
 
   let accumulators: Record<string, Expression> = {};
   let metrics = new Set(query.metrics);
 
-  if (metrics.has('cost.usd')) {
-    accumulators.costUsd = {
-      $sum: weighted({ $toDouble: { $ifNull: ['$costUsd', 0] } }, weight)
-    };
+  if (metrics.has('cost.usd')) accumulators.costUsd = costSum('costUsd', weight);
+  if (metrics.has('cost.list')) accumulators.costList = costSum('costComputedUsd', weight);
+  if (metrics.has('cost.contract')) {
+    accumulators.costContract = costSum('costContractUsd', weight);
   }
   if (metrics.has('tokens')) {
     for (let part of ['inputUncached', 'cacheRead', 'cacheWrite', 'output', 'reasoning']) {
@@ -294,14 +330,14 @@ export let buildUsagePipelines = (query: UsageQuery) => {
   if (metrics.has('users.active')) accumulators.users = { $addToSet: '$userId' };
 
   let main: Stage[] = [
-    ...baseStages(query),
+    ...baseStages(query, dimensions),
     { $group: { _id: key, ...accumulators } },
-    { $limit: maxGroups + 1 }
+    { $limit: cap + 1 }
   ];
 
   let reported: Stage[] | null = metrics.has('cost.reported')
     ? [
-        ...baseStages(query),
+        ...baseStages(query, dimensions),
         { $unwind: '$costReported' },
         {
           $group: {
@@ -311,7 +347,7 @@ export let buildUsagePipelines = (query: UsageQuery) => {
             }
           }
         },
-        { $limit: maxGroups * 4 }
+        { $limit: cap * 4 }
       ]
     : null;
 
@@ -321,6 +357,8 @@ export let buildUsagePipelines = (query: UsageQuery) => {
 export type UsageGroupRow = {
   _id: Record<string, unknown>;
   costUsd?: number;
+  costList?: number;
+  costContract?: number;
   tokens_inputUncached?: number;
   tokens_cacheRead?: number;
   tokens_cacheWrite?: number;
@@ -345,6 +383,8 @@ export type UsageRow = {
   keys: Record<string, string | null>;
   metrics: {
     'cost.usd'?: number;
+    'cost.list'?: number;
+    'cost.contract'?: number;
     'cost.reported'?: { unit: string; basis: string; amount: number }[];
     tokens?: {
       inputUncached: number;
@@ -400,13 +440,19 @@ export let finalizeUsageRows = (d: {
   query: UsageQuery;
   rows: UsageGroupRow[];
   reported?: ReportedCostRow[];
-  resolveModelFamily: (modelId: string | null) => string | null;
+  maps?: DimensionMaps;
 }): { rows: UsageRow[]; truncated: boolean } => {
   let { query } = d;
-  if (d.rows.length > maxGroups) {
+  let tooManyGroups = () =>
     fail(
       `The query produces more than ${maxGroups} groups; narrow the range or the grouping.`
     );
+
+  if (d.rows.length > mongoGroupCap(query)) tooManyGroups();
+
+  let resolvers = query.groupBy.map(field => dimensionResolverOf(field));
+  if (resolvers.some(Boolean) && !d.maps) {
+    throw new Error('Mapped usage dimensions need their knowledge maps.');
   }
 
   let keysOf = (id: Record<string, unknown>) => {
@@ -414,7 +460,11 @@ export let finalizeUsageRows = (d: {
 
     query.groupBy.forEach((field, index) => {
       let value = keyValue(id[`k${index}`]);
-      keys[field] = field == 'model.family' ? d.resolveModelFamily(value) : value;
+      let resolver = resolvers[index];
+
+      keys[field] = resolver
+        ? resolver.map({ value, raw: keyValue(id[`r${index}`]), maps: d.maps! })
+        : value;
     });
 
     return keys;
@@ -464,6 +514,8 @@ export let finalizeUsageRows = (d: {
     row.reported.set(costKey, current);
   }
 
+  if (merged.size > maxGroups) tooManyGroups();
+
   let metrics = new Set(query.metrics);
 
   let rows = [...merged.values()].map((row): UsageRow => {
@@ -475,6 +527,8 @@ export let finalizeUsageRows = (d: {
     };
 
     if (metrics.has('cost.usd')) result.metrics['cost.usd'] = sum('costUsd');
+    if (metrics.has('cost.list')) result.metrics['cost.list'] = sum('costList');
+    if (metrics.has('cost.contract')) result.metrics['cost.contract'] = sum('costContract');
     if (metrics.has('cost.reported')) {
       result.metrics['cost.reported'] = [...row.reported.values()]
         .map(cost => ({ ...cost, amount: round(cost.amount) }))
