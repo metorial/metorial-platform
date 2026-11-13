@@ -286,6 +286,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "paperinstruments/ultramarine-1-flash": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Paper Instruments' Ultramarine 1 Flash (Hugging Face paperinstruments/Ultramarine-1-Flash, released 2026-10-14), GLM-5.3 Flash post-trained with non-verifiable RL for knowledge work; a fine-tune derivative, not zhipu/glm-5.3-flash, and the index has no Paper Instruments entry.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "particle-ai/particle-1": {
     "decision": "exclude",
     "category": "fine-tune",
