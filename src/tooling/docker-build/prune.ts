@@ -1,5 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { restoreNestedResolutions } from '../test-ci/lockfile';
 
 let turboVersion = '2.11.7';
 let outputDirectory = 'out';
@@ -10,22 +11,41 @@ let metadataEnvironment = { ...process.env };
 let pruningStartedAt = performance.now();
 let prunePass = 0;
 let reportTiming = (phase: string, startedAt: number) => {
-  console.log(`Prune timing ${phase}: ${((performance.now() - startedAt) / 1000).toFixed(3)}s`);
+  console.log(
+    `Prune timing ${phase}: ${((performance.now() - startedAt) / 1000).toFixed(3)}s`
+  );
 };
 
-for (let name of ['TURBO_API', 'TURBO_TEAM', 'TURBO_TOKEN', 'TURBO_REMOTE_CACHE_SIGNATURE_KEY']) {
+for (let name of [
+  'TURBO_API',
+  'TURBO_TEAM',
+  'TURBO_TOKEN',
+  'TURBO_REMOTE_CACHE_SIGNATURE_KEY'
+]) {
   delete metadataEnvironment[name];
 }
 
 let runTurbo = (args: string[], capture = false) => {
   let startedAt = performance.now();
-  let result = Bun.spawnSync([...(process.env.TURBO_EXECUTABLE ? [process.env.TURBO_EXECUTABLE] : ['bunx', `turbo@${turboVersion}`]), '--skip-infer', ...args], {
-    env: metadataEnvironment,
-    stdout: capture ? 'pipe' : 'inherit',
-    stderr: 'inherit'
-  });
+  let result = Bun.spawnSync(
+    [
+      ...(process.env.TURBO_EXECUTABLE
+        ? [process.env.TURBO_EXECUTABLE]
+        : ['bunx', `turbo@${turboVersion}`]),
+      '--skip-infer',
+      ...args
+    ],
+    {
+      env: metadataEnvironment,
+      stdout: capture ? 'pipe' : 'inherit',
+      stderr: 'inherit'
+    }
+  );
 
-  reportTiming(`turbo ${args[0]} (${args[0] === 'prune' ? `${args.length - 3} workspaces` : 'graph metadata'})`, startedAt);
+  reportTiming(
+    `turbo ${args[0]} (${args[0] === 'prune' ? `${args.length - 3} workspaces` : 'graph metadata'})`,
+    startedAt
+  );
 
   if (result.exitCode !== 0) throw new Error(`Turbo failed with exit code ${result.exitCode}`);
 
@@ -33,7 +53,11 @@ let runTurbo = (args: string[], capture = false) => {
 };
 
 if (args.includes('--filter=@metorial-subspace/app-worker')) {
-  args.push('--filter=@metorial/db', '--filter=@metorial/multi-region', '--filter=@metorial-subspace/db');
+  args.push(
+    '--filter=@metorial/db',
+    '--filter=@metorial/multi-region',
+    '--filter=@metorial-subspace/db'
+  );
 }
 
 let filters = args.filter(argument => argument.startsWith('--filter='));
@@ -44,24 +68,34 @@ let workspaceDirectories = new Map<string, string>();
 if (process.env.TEST_PRUNE_GRAPH) {
   let workspaces = await Bun.file(process.env.TEST_PRUNE_GRAPH).json();
   for (let [name, directory] of Object.entries(workspaces)) {
-    if (typeof directory !== 'string') throw new Error(`Invalid test workspace directory: ${name}`);
+    if (typeof directory !== 'string')
+      throw new Error(`Invalid test workspace directory: ${name}`);
     packages.push(name);
     workspaceDirectories.set(name, directory);
   }
 }
 
-if (!packages.length && filters.length && filters.every(filter => !/[.*!{}\[\]]/.test(filter.slice('--filter='.length))) &&
-  args.every(argument => !argument.startsWith('--') || argument.startsWith('--filter='))) {
+if (
+  !packages.length &&
+  filters.length &&
+  filters.every(filter => !/[.*!{}\[\]]/.test(filter.slice('--filter='.length))) &&
+  args.every(argument => !argument.startsWith('--') || argument.startsWith('--filter='))
+) {
   let names = filters.map(filter => filter.slice('--filter='.length));
-  let fields = names.map((name, index) =>
-    `p${index}: package(name: ${JSON.stringify(name)}) { name path tasks { items { name allDependencies { items { package { name path } } } } } }`
+  let fields = names.map(
+    (name, index) =>
+      `p${index}: package(name: ${JSON.stringify(name)}) { name path tasks { items { name allDependencies { items { package { name path } } } } } }`
   );
   let response = JSON.parse(runTurbo(['query', `{ ${fields.join(' ')} }`], true));
   if (response.errors?.length) throw new Error(JSON.stringify(response.errors));
 
-  let complete = names.every((name, index) => taskNames.every(taskName =>
-    response.data[`p${index}`]?.tasks.items.some((task: { name: string }) => task.name === taskName)
-  ));
+  let complete = names.every((name, index) =>
+    taskNames.every(taskName =>
+      response.data[`p${index}`]?.tasks.items.some(
+        (task: { name: string }) => task.name === taskName
+      )
+    )
+  );
   if (complete) {
     for (let [index, name] of names.entries()) {
       let workspace = response.data[`p${index}`];
@@ -90,6 +124,7 @@ packages = [...new Set(packages)].filter(name => name !== '//').sort();
 if (!packages.length) throw new Error('No build workspaces selected');
 
 let rootManifest = await Bun.file('package.json').json();
+let sourceLockfile = Bun.JSONC.parse(await Bun.file('bun.lock').text());
 
 while (true) {
   prunePass++;
@@ -100,21 +135,40 @@ while (true) {
   runTurbo(['prune', ...packages, '--docker', `--out-dir=${outputDirectory}`]);
 
   let overrideStartedAt = performance.now();
-  let lockfile = readFileSync(join(outputDirectory, 'json', 'bun.lock'), 'utf8');
+  let lockfile =
+    JSON.stringify(
+      restoreNestedResolutions(
+        sourceLockfile,
+        Bun.JSONC.parse(readFileSync(join(outputDirectory, 'json', 'bun.lock'), 'utf8'))
+      ),
+      null,
+      2
+    ) + '\n';
+  await Bun.write(join(outputDirectory, 'bun.lock'), lockfile);
+  await Bun.write(join(outputDirectory, 'json', 'bun.lock'), lockfile);
+
   let additionalPackages = new Set<string>();
 
   // Published dependencies can resolve to workspace overrides outside Turbo's task graph.
-  for (let block of lockfile.matchAll(/"(?:dependencies|optionalDependencies|peerDependencies)":\s*(\{[^{}]*\})/g)) {
+  for (let block of lockfile.matchAll(
+    /"(?:dependencies|optionalDependencies|peerDependencies)":\s*(\{[^{}]*\})/g
+  )) {
     for (let dependency of block[1].matchAll(/"([^"\n]+)":\s*"[^"\n]*"/g)) {
       let name = dependency[1];
 
-      if (rootManifest.overrides?.[name]?.startsWith('workspace:') && !packages.includes(name)) {
+      if (
+        rootManifest.overrides?.[name]?.startsWith('workspace:') &&
+        !packages.includes(name)
+      ) {
         additionalPackages.add(name);
       }
     }
   }
 
-  reportTiming(`pass ${prunePass} override scan (${additionalPackages.size} additions)`, overrideStartedAt);
+  reportTiming(
+    `pass ${prunePass} override scan (${additionalPackages.size} additions)`,
+    overrideStartedAt
+  );
 
   if (!additionalPackages.size) break;
 
@@ -125,7 +179,8 @@ if (packages.some(name => !workspaceDirectories.has(name))) {
   let workspaces = JSON.parse(runTurbo(['ls', '--output=json'], true)) as {
     packages: { items: { name: string; path: string }[] };
   };
-  for (let workspace of workspaces.packages.items) workspaceDirectories.set(workspace.name, workspace.path);
+  for (let workspace of workspaces.packages.items)
+    workspaceDirectories.set(workspace.name, workspace.path);
 }
 
 let assetsStartedAt = performance.now();
@@ -144,9 +199,13 @@ for (let directory of ['json', 'full']) {
 }
 
 mkdirSync(join(outputDirectory, 'full', toolingDirectory), { recursive: true });
-cpSync(join(toolingDirectory, 'warp-cache'), join(outputDirectory, 'full', toolingDirectory, 'warp-cache'), {
-  recursive: true
-});
+cpSync(
+  join(toolingDirectory, 'warp-cache'),
+  join(outputDirectory, 'full', toolingDirectory, 'warp-cache'),
+  {
+    recursive: true
+  }
+);
 
 let ancestors = new Set<string>();
 
@@ -164,7 +223,11 @@ ancestors.add('.');
 
 for (let directory of ancestors) {
   for (let entry of readdirSync(directory, { withFileTypes: true })) {
-    if ((!entry.isFile() && !entry.isSymbolicLink()) || !/^(tsconfig.*\.json|prisma\.config\.ts)$/.test(entry.name)) continue;
+    if (
+      (!entry.isFile() && !entry.isSymbolicLink()) ||
+      !/^(tsconfig.*\.json|prisma\.config\.ts)$/.test(entry.name)
+    )
+      continue;
     let config = entry.name;
     let target = join(outputDirectory, 'full', directory);
     mkdirSync(target, { recursive: true });
@@ -172,7 +235,9 @@ for (let directory of ancestors) {
   }
 }
 
-let originDirectory = enterprise ? 'oss/src/origin/apps/code-bucket' : 'src/origin/apps/code-bucket';
+let originDirectory = enterprise
+  ? 'oss/src/origin/apps/code-bucket'
+  : 'src/origin/apps/code-bucket';
 let originService = enterprise ? 'oss/src/origin/apps/service' : 'src/origin/apps/service';
 
 if (existsSync(join(outputDirectory, 'full', originService))) {
@@ -185,7 +250,6 @@ if (existsSync(join(outputDirectory, 'full', originService))) {
 }
 
 console.log(`Pruned build closure: ${packages.length} task workspaces`);
-
 
 reportTiming('configuration and runtime assets', assetsStartedAt);
 reportTiming(`total (${prunePass} passes)`, pruningStartedAt);
