@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 FROM base AS pruner
 COPY . .
-RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@metorial/nebula
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@mtsrc/secret-store-service
 
 FROM scratch AS pruned
 COPY --from=pruner /app/out/ /
@@ -23,7 +23,7 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/nebula
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@mtsrc/secret-store-service
 
 FROM base AS control-runtime
 WORKDIR /runtime
@@ -49,9 +49,9 @@ COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
 FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=10001:10001 /app/src/nebula/service/dist ./dist
-COPY --from=builder --link --chown=10001:10001 /app/src/nebula/service/prisma/schema/ ./prisma/nebula/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/nebula/service/prisma/migrations/ ./prisma/nebula/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/platform/services/secret-store/service/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/platform/services/secret-store/service/prisma/schema/ ./prisma/nebula/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/platform/services/secret-store/service/prisma/migrations/ ./prisma/nebula/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [

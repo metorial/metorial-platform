@@ -35,11 +35,11 @@ services:
     networks:
       - nebula-network
 
-  nebula:
+  secret-store:
     profiles: ['service']
     build:
-      context: ../../..
-      dockerfile: src/nebula/service/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: src/platform/services/secret-store/service/dev.Dockerfile
     container_name: nebula-service
     restart: unless-stopped
     ports:
@@ -65,7 +65,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52170/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52170/'').then(()=>process.exit(0)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s

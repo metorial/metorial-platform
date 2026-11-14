@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/nebula",
+  "name": "@mtsrc/secret-store-service",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

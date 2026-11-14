@@ -14,7 +14,7 @@ import {
 import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
-  name: '@metorial/nebula',
+  name: '@mtsrc/secret-store-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -38,12 +38,16 @@ export default project({
       CONSUMER_REGISTRATION_ORIGIN: 'local-dev-nebula-origin-registration-secret'
     }),
     databases: {
-      main: postgres({ package: '@metorial/nebula', name: 'nebula', env: 'DATABASE_URL' })
+      main: postgres({
+        package: '@mtsrc/secret-store-service',
+        name: 'nebula',
+        env: 'DATABASE_URL'
+      })
     }
   }),
   e2e: e2e({
     start: ['e2e:start'],
-    image: 'nebula',
+    image: 'secret-store',
     tests: ['.'],
     env: {
       CONSUMER_REGISTRATION_WORKER: 'e2e-worker-registration-secret',
@@ -55,21 +59,23 @@ export default project({
   ci: {
     images: [
       ciImage({
-        name: 'nebula',
+        name: 'secret-store',
         group: 'oss',
-        image: 'metorial/mte-nebula',
-        ecr: 'metorial-enterprise-saas/mte-nebula',
-        canonical: 'ghcr.io/metorial/nebula',
+        image: 'metorial/mte-secret-store',
+        ecr: 'metorial-enterprise-saas/mte-secret-store',
+        canonical: 'ghcr.io/metorial/secret-store',
         build: bunService({
           ports: [52170],
           health: [
             { port: 52170, path: '/ping' },
             { port: 12121, path: '/' }
           ],
-          migrations: [ownMigration('nebula', '@metorial/nebula', { prefix: 'NEBULA' })]
+          migrations: [
+            ownMigration('nebula', '@mtsrc/secret-store-service', { prefix: 'NEBULA' })
+          ]
         })
       })
     ],
-    suite: ciSuite({ name: 'nebula', groups: 1 })
+    suite: ciSuite({ name: 'secret-store', groups: 1 })
   }
 });
