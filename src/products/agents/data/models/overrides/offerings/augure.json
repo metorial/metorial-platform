@@ -1,4 +1,11 @@
 {
+  "open-qwen-3.8-flash-next": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-flash-next",
+    "reason": "Offering is Qwen3.8-Flash-Next exactly (262144 context matches); Augure's markup explains the higher price.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "ossington-4-1": {
     "decision": "defer",
     "until": "2026-12-14",

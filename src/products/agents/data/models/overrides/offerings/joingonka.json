@@ -1,0 +1,9 @@
+{
+  "MiniMaxAI/MiniMax-M2.7": {
+    "decision": "link",
+    "model": "minimax/minimax-m2.7",
+    "reason": "Name and HF repo MiniMaxAI/MiniMax-M2.7 match exactly; JoinGonka's deep-discount pricing explains the far-below-median price.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

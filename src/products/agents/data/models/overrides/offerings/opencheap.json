@@ -1,0 +1,37 @@
+{
+  "llama-3.3-70b": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Offering is exactly Llama-3.3-70B-Instruct (name and 128K context match the Meta HF release); OpenCheap's near-floor pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-235b-a22b-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "Exact name match with the Qwen3 235B-A22B Instruct 2507 checkpoint; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-coder-30b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-coder-30b-a3b-instruct",
+    "reason": "Exact name match with Qwen3-Coder 30B-A3B Instruct; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-coder-next": {
+    "decision": "link",
+    "model": "alibaba/qwen3-coder-next",
+    "reason": "Exact name match with Qwen3 Coder Next; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-next-80b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-next-80b-a3b-instruct",
+    "reason": "Exact name match with Qwen3-Next 80B-A3B Instruct; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

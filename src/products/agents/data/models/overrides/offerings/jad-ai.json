@@ -1,4 +1,10 @@
 {
+  "jad-ai": {
+    "decision": "router",
+    "reason": "Jad CoWork is a host-unique gateway id: the Jad gateway routes only free-tier upstream models with no fixed base model, picking an upstream per request.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "jad-code": {
     "decision": "router",
     "reason": "models.dev PR #12956 describes Jad Code as a host-unique routing alias over a curated pool of free-tier upstreams, not a single upstream model",
