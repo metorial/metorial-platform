@@ -32,6 +32,28 @@ let loadPostgres = once(() => defineSettings('postgres', { serverUrl: postgresSe
 
 export let postgresSettings = () => loadPostgres();
 
+export let mongodbServerUrl = setting(v.string(), {
+  env: 'METORIAL_MONGODB_URL',
+  audience: 'customer',
+  requiredIn: ['on-prem'],
+  secret: true,
+  description:
+    'MongoDB replica set or sharded cluster the installation databases are created on, for example mongodb://user:password@db.example.com:27017/?replicaSet=rs0&authSource=admin&retryWrites=false. Each consumer selects its database by name, so the URL path is ignored'
+});
+
+export let mongodbTlsCaFile = setting(v.optional(v.string()), {
+  env: 'METORIAL_MONGODB_TLS_CA_FILE',
+  audience: 'customer',
+  description:
+    'PEM file with the certificate authorities MongoDB connections trust, for example the Amazon DocumentDB CA bundle'
+});
+
+let loadMongodb = once(() =>
+  defineSettings('mongodb', { serverUrl: mongodbServerUrl, tlsCaFile: mongodbTlsCaFile })
+);
+
+export let mongodbSettings = () => loadMongodb();
+
 export let withDatabaseName = (serverUrl: string, databaseName: string) => {
   let url = new URL(serverUrl);
   url.pathname = `/${databaseName}`;
