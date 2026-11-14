@@ -132,6 +132,7 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
         );
         if (result.errors.length) return formatErrors(result.errors);
 
+        d.state.submitted = false;
         await d.workspace.writeReportFile(
           `/${input.section}.json`,
           JSON.stringify(result.value, null, 2)
@@ -166,9 +167,15 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
         additionalProperties: false
       }),
       execute: async () => {
+        let submittedReport = d.draft.current;
         let errors = d.draft.validate(ctx);
-        if (d.hooks.validateSubmission) {
-          errors.push(...(await d.hooks.validateSubmission(d.draft.current)));
+        if (!errors.length && d.hooks.validateSubmission) {
+          errors.push(...(await d.hooks.validateSubmission(submittedReport)));
+        }
+        if (submittedReport !== d.draft.current) {
+          errors.push(
+            'The report changed during verification. Submit the current report again.'
+          );
         }
 
         d.state.lastErrors = errors;

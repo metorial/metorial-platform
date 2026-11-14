@@ -33,7 +33,10 @@ The word "slate" is internal vocabulary. Never write it in a report, a finding o
    appear live. Pass value as real JSON, an object or an array exactly as the section's shape
    documents, never as a string containing JSON. If a section is rejected, fix the listed errors and
    write it again.
-5. Call submit when every required section is written. If submit returns errors, fix them.
+5. Call submit when every required section is written. Submission runs validation and an evidence
+   consistency check. If it returns errors, revise the named sections using the cited evidence and
+   submit again in this conversation. Scores and headlines are computed; fix report facts, findings
+   or classifications rather than trying to edit scores.
 
 ## Evidence references
 
@@ -111,7 +114,10 @@ file. Do not invent a gap because the skill has no scripts, network calls or too
 4. Write each section with write_section as soon as you are confident in it. Pass value as real JSON,
    an object or an array exactly as the section's shape documents, never as a string containing JSON.
    If a section is rejected, fix the listed errors and write it again.
-5. Call submit when every required section is written. If submit returns errors, fix them.
+5. Call submit when every required section is written. Submission runs validation and an evidence
+   consistency check. If it returns errors, revise the named sections using the cited evidence and
+   submit again in this conversation. Scores and headlines are computed; fix report facts, findings
+   or classifications rather than trying to edit scores.
 
 ## Scope: security only
 

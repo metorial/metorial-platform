@@ -16,8 +16,8 @@ let pricing = {
   cacheWritePerMillion: 0
 };
 
-let response = () => ({
-  content: [{ type: 'text' as const, text: '{"consistent":true,"issues":[]}' }],
+let response = (verdict: unknown = { consistent: true, issues: [] }) => ({
+  content: [{ type: 'text' as const, text: JSON.stringify(verdict) }],
   finishReason: { unified: 'stop' as const, raw: 'stop' },
   usage: {
     inputTokens: { total: 1000, noCache: 1000, cacheRead: 0, cacheWrite: 0 },
@@ -50,6 +50,64 @@ describe('consistency judge', () => {
     expect(result.verdict).toEqual({ consistent: true, issues: [] });
     expect(result.usage.costMicros).toBe(1100);
     expect(model.doGenerateCalls).toHaveLength(1);
+  });
+
+  it.each([
+    { consistent: false, issues: [{ section: 'scores' }, { section: 'scores' }] },
+    { consistent: false, issues: [{ section: 'summary' }] },
+    { consistent: false, issues: [{ section: 'summary', message: '   ' }] },
+    { consistent: false, issues: [{ section: 'summary', message: 'undefined' }] },
+    { consistent: false, issues: [] },
+    { consistent: true, issues: [{ section: 'summary', message: 'Contradiction' }] },
+    { consistent: false, issues: [{ section: 'scores', message: 'Change score' }] }
+  ])('repairs a malformed verdict without forwarding invalid issues: %j', async verdict => {
+    let onUsage = vi.fn();
+    let calls = 0;
+    let model = new MockLanguageModelV4({
+      doGenerate: async () => response(++calls == 1 ? verdict : undefined)
+    });
+
+    let result = await run(model, {
+      onUsage,
+      reviewInstructions: 'Static review of intended behavior.'
+    });
+
+    expect(result.verdict).toEqual({ consistent: true, issues: [] });
+    expect(model.doGenerateCalls).toHaveLength(2);
+    expect(result.usage.costMicros).toBe(2200);
+    expect(onUsage).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(model.doGenerateCalls[1]!.prompt)).toContain(
+      'previous response did not satisfy'
+    );
+    expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
+      'Static review of intended behavior.'
+    );
+  });
+
+  it('does not accept an endlessly malformed response as report feedback', async () => {
+    let onUsage = vi.fn();
+    let model = new MockLanguageModelV4({
+      doGenerate: response({ consistent: false, issues: [{ section: 'scores' }] })
+    });
+
+    await expect(run(model, { onUsage })).rejects.toThrow('Verdict must contain');
+    expect(model.doGenerateCalls).toHaveLength(3);
+    expect(onUsage).toHaveBeenCalledTimes(3);
+  });
+
+  it('returns concrete corrections for editable sections', async () => {
+    let verdict = {
+      consistent: false,
+      issues: [
+        {
+          section: 'summary',
+          message: 'The finding describes deletion; acknowledge it in the summary.'
+        }
+      ]
+    };
+    let model = new MockLanguageModelV4({ doGenerate: response(verdict) });
+
+    expect((await run(model)).verdict).toEqual(verdict);
   });
 
   it('retries a timed-out request with a fresh signal and another rate-limit slot', async () => {

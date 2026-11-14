@@ -33,43 +33,64 @@ vi.mock('@metorial-subspace/module-protoguard', () => ({
 }));
 vi.mock('../services/securityReviewWebAccess', () => ({ securityReviewWebAccessService: {} }));
 vi.mock('@metorial/fabric', () => ({}));
-vi.mock('@metorial/review-engine', () => ({
-  runConsistencyJudge: mocks.judge,
-  runReviewAgent: mocks.agent,
-  emptyUsage: () => ({ inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, costMicros: 0 }),
-  createRunState: () => ({ submitted: true, lastErrors: [] }),
-  createReviewWorkspace: async () => ({ serializeWorkspace: async () => ({}) }),
-  createReviewTools: () => ({}),
-  ReportDraft: class {
-    current = {};
-  }
+vi.mock('@metorial/review-engine', async importOriginal => ({
+  ...(await importOriginal<typeof import('@metorial/review-engine')>()),
+  runReviewAgent: mocks.agent
 }));
-vi.mock('../definitions/thoroughness', () => ({
-  reviewModelAccess: undefined,
-  getThoroughnessTier: () => ({
-    model: { slug: 'judge' },
-    maxCostMicros: 100_000,
-    maxSteps: 10,
-    maxFixRounds: 1
-  }),
-  getJudgeModel: () => ({ slug: 'judge' })
-}));
+vi.mock('../definitions/thoroughness', async () => {
+  let { MockLanguageModelV4 } = await import('ai/test');
+  let model = new MockLanguageModelV4({ doGenerate: async () => mocks.judge() });
+  let judge = {
+    slug: 'judge',
+    model,
+    pricing: {
+      inputPerMillion: 1,
+      outputPerMillion: 1,
+      cacheReadPerMillion: 1,
+      cacheWritePerMillion: 0
+    }
+  };
+
+  return {
+    reviewModelAccess: undefined,
+    getThoroughnessTier: () => ({
+      model: judge,
+      maxCostMicros: 100_000,
+      maxSteps: 10,
+      maxFixRounds: 1
+    }),
+    getJudgeModel: () => judge
+  };
+});
 vi.mock('../env', () => ({}));
-vi.mock('../lib/assemble', () => ({ assembleReport: () => ({ scores: {}, report: {} }) }));
+vi.mock('../lib/assemble', () => ({
+  assembleReport: ({ draft }: any) => ({ scores: { security: 95 }, report: draft })
+}));
 vi.mock('../lib/findings', () => ({}));
 vi.mock('../lib/playbooks', () => ({
   buildSystemPrompt: () => 'system',
   buildUserPrompt: () => 'prompt'
 }));
-vi.mock('../lib/report', () => ({ createSecurityReportDefinition: () => ({}) }));
+vi.mock('../lib/report', () => ({
+  createSecurityReportDefinition: () => ({
+    sections: {
+      summary: {
+        description: 'Summary',
+        shape: '{ text: string }',
+        validate: (value: any) => ({ value, errors: [] })
+      }
+    },
+    validateReport: (report: any) => (report.summary ? [] : ['summary is required'])
+  })
+}));
 vi.mock('../lib/storage', () => ({
   workspaceKeyFor: () => 'workspace',
   workspaceStore: { load: async () => null, save: async () => {} }
 }));
 
-vi.mock('../lib/subjects', () => ({
+vi.mock('../lib/subjects', async () => ({
   collectEvidence: mocks.collectEvidence,
-  buildLedger: () => ({}),
+  buildLedger: () => new EvidenceLedger(),
   buildEvidenceFiles: () => ({}),
   hashEvidence: () => 'hash_1'
 }));
@@ -100,9 +121,31 @@ vi.mock('./securityReviewSink', () => ({
   }
 }));
 
-import { emptyUsage } from '@metorial/review-engine';
+import { emptyUsage, EvidenceLedger } from '@metorial/review-engine';
 import { RunLog } from '../lib/runLog';
 import { internalSecurityReviewRunnerService } from './securityReviewRunner';
+
+let judgeResponse = (
+  verdict = { consistent: true, issues: [] as { section: string; message: string }[] }
+) => ({
+  content: [{ type: 'text', text: JSON.stringify(verdict) }],
+  finishReason: { unified: 'stop', raw: 'stop' },
+  usage: {
+    inputTokens: { total: 1000, noCache: 1000, cacheRead: 0, cacheWrite: 0 },
+    outputTokens: { total: 100, text: 100, reasoning: 0 }
+  },
+  warnings: []
+});
+
+let submit = async (tools: any, state: any) => {
+  await tools.submit.execute({}, { toolCallId: 'submit', messages: [] });
+  return {
+    outcome: state.submitted ? 'submitted' : 'stopped',
+    usage: emptyUsage(),
+    steps: 1,
+    modelSteps: {}
+  };
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -115,10 +158,7 @@ beforeEach(() => {
   });
   mocks.findRunning.mockResolvedValue(null);
   mocks.allowed.mockResolvedValue(false);
-  mocks.judge.mockResolvedValue({
-    verdict: { consistent: true, issues: [] },
-    usage: emptyUsage()
-  });
+  mocks.judge.mockResolvedValue(judgeResponse());
   mocks.rateLimit.mockResolvedValue({ allowed: true });
   mocks.collectEvidence.mockResolvedValue({
     kind: 'skill',
@@ -127,11 +167,12 @@ beforeEach(() => {
     findings: []
   });
   mocks.createRun.mockResolvedValue({ id: 'run_1', oid: 2n });
-  mocks.agent.mockResolvedValue({
-    outcome: 'submitted',
-    usage: emptyUsage(),
-    steps: 1,
-    modelSteps: { judge: 1 }
+  mocks.agent.mockImplementation(async ({ tools, state }) => {
+    await tools.write_section.execute(
+      { section: 'summary', value: { text: 'Reviewed skill' } },
+      { toolCallId: 'write', messages: [] }
+    );
+    return submit(tools, state);
   });
 });
 
@@ -152,53 +193,100 @@ let runAgent = async (runLog: RunLog, signal?: AbortSignal) =>
   });
 
 describe('security review consistency checks', () => {
-  it('keeps a submitted report with an explicit gap when the judge fails', async () => {
-    mocks.judge.mockRejectedValue(
-      new DOMException('The operation timed out.', 'TimeoutError')
+  it('retains a locally valid score when the verifier is unavailable', async () => {
+    mocks.judge.mockRejectedValue(new Error('Verifier service unavailable'));
+    let runLog = new RunLog();
+
+    let result = await runAgent(runLog);
+
+    expect(result.complete).toBe(true);
+    expect(result.gaps).toEqual([]);
+    expect(runLog.toString()).toContain('retaining locally validated report');
+    expect(runLog.toString()).not.toContain('report is consistent');
+    expect(mocks.agent).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not turn the attached malformed scores verdict into a partial assessment', async () => {
+    mocks.judge.mockResolvedValue(
+      judgeResponse({
+        consistent: false,
+        issues: [{ section: 'scores' }, { section: 'scores' }]
+      } as any)
     );
     let runLog = new RunLog();
 
     let result = await runAgent(runLog);
 
-    expect(result.complete).toBe(false);
-    expect(result.gaps).toContain(
-      'The final evidence consistency check could not be completed.'
-    );
-    expect(runLog.toString()).toContain('consistency check failed and was skipped');
-    expect(runLog.toString()).not.toContain('report is consistent');
+    expect(result.complete).toBe(true);
+    expect(result.gaps).toEqual([]);
+    expect(result.costMicros).toBe(3300);
+    expect(mocks.judge).toHaveBeenCalledTimes(3);
+    expect(mocks.agent).toHaveBeenCalledTimes(1);
+    expect(runLog.toString()).toContain('retaining locally validated report');
+    expect(runLog.toString()).not.toContain('scores: undefined');
+  });
+
+  it('repairs and revalidates within the same main-agent run', async () => {
+    mocks.judge
+      .mockResolvedValueOnce(
+        judgeResponse({
+          consistent: false,
+          issues: [{ section: 'summary', message: 'Acknowledge the documented deletion.' }]
+        })
+      )
+      .mockResolvedValueOnce(judgeResponse());
+    mocks.agent.mockImplementation(async ({ tools, state, extraCostMicros }) => {
+      await tools.write_section.execute(
+        { section: 'summary', value: { text: 'No deletion' } },
+        { toolCallId: 'write1', messages: [] }
+      );
+      await submit(tools, state);
+      expect(state.submitted).toBe(false);
+      expect(state.lastErrors).toEqual(['summary: Acknowledge the documented deletion.']);
+      expect(extraCostMicros()).toBe(1100);
+
+      await tools.write_section.execute(
+        { section: 'summary', value: { text: 'Can delete selected data' } },
+        { toolCallId: 'write2', messages: [] }
+      );
+      return submit(tools, state);
+    });
+
+    let result = await runAgent(new RunLog());
+
+    expect(result.complete).toBe(true);
+    expect(result.gaps).toEqual([]);
+    expect(result.costMicros).toBe(2200);
+    expect(mocks.judge).toHaveBeenCalledTimes(2);
     expect(mocks.agent).toHaveBeenCalledTimes(1);
   });
 
-  it('revalidates repaired output and preserves remaining consistency failures', async () => {
-    mocks.agent.mockImplementation(async ({ state }) => {
-      state.submitted = true;
-      return { outcome: 'submitted', usage: emptyUsage(), steps: 1, modelSteps: {} };
-    });
-    mocks.judge.mockResolvedValue({
-      verdict: {
+  it('keeps concrete unresolved defects partial and caches an unchanged rejection', async () => {
+    mocks.judge.mockResolvedValue(
+      judgeResponse({
         consistent: false,
-        issues: [
-          { section: 'capabilities', message: 'Scope contradicts source.' },
-          { message: 'The explanation conflicts with the score.' }
-        ]
-      },
-      usage: emptyUsage()
+        issues: [{ section: 'summary', message: 'Scope contradicts source.' }]
+      })
+    );
+    mocks.agent.mockImplementation(async ({ tools, state }) => {
+      await tools.write_section.execute(
+        { section: 'summary', value: { text: 'Too narrow' } },
+        { toolCallId: 'write', messages: [] }
+      );
+      await submit(tools, state);
+      return submit(tools, state);
     });
+
     let result = await runAgent(new RunLog());
-    expect(mocks.judge).toHaveBeenCalledTimes(2);
-    expect(mocks.agent).toHaveBeenCalledTimes(2);
+
     expect(result.complete).toBe(false);
-    expect(result.gaps).toContain('capabilities: Scope contradicts source.');
-    expect(result.gaps).toContain('The explanation conflicts with the score.');
+    expect(result.gaps).toEqual(['summary: Scope contradicts source.']);
+    expect(mocks.judge).toHaveBeenCalledTimes(1);
+    expect(mocks.agent).toHaveBeenCalledTimes(1);
   });
 
-  it('persists retry progress and refreshes the revision heartbeat', async () => {
-    mocks.judge.mockImplementation(async ({ onLog }) => {
-      await onLog('consistency check attempt 1/3 started');
-      return { verdict: { consistent: true, issues: [] }, usage: emptyUsage() };
-    });
+  it('persists verifier progress and refreshes the revision heartbeat', async () => {
     let runLog = new RunLog();
-
     await runAgent(runLog);
 
     expect(mocks.progress).toHaveBeenCalledWith({
@@ -208,14 +296,14 @@ describe('security review consistency checks', () => {
     });
     expect(mocks.updateRun).toHaveBeenCalledWith(
       expect.objectContaining({
-        steps: 1,
+        steps: 0,
         log: expect.stringContaining('consistency check attempt 1/3 started')
       })
     );
     expect(runLog.toString()).toContain('report is consistent');
   });
 
-  it('does not swallow cancellation of the review as a skipped judge', async () => {
+  it('does not swallow cancellation of the review as an unavailable verifier', async () => {
     let controller = new AbortController();
     let error = new DOMException('Review timed out', 'TimeoutError');
     mocks.judge.mockImplementation(async () => {
@@ -225,7 +313,7 @@ describe('security review consistency checks', () => {
     let runLog = new RunLog();
 
     await expect(runAgent(runLog, controller.signal)).rejects.toBe(error);
-    expect(runLog.toString()).not.toContain('was skipped');
+    expect(runLog.toString()).not.toContain('retaining locally validated report');
     expect(mocks.updateRun).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: 'failed' })
     );

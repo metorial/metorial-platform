@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, type ToolSet } from 'ai';
+import { generateText, stepCountIs, wrapLanguageModel, type ToolSet } from 'ai';
 import { compactMessages } from './compaction';
 import { addUsage, emptyUsage, type ReviewModel, type ReviewUsage } from './model';
 import { acquireReviewModel, type ReviewModelAccess } from './rateLimit';
@@ -6,7 +6,7 @@ import { formatStepLog } from './stepLog';
 import type { ReviewRunState } from './tools';
 
 // A model request that never answers would otherwise hold the run until its overall timeout.
-let STEP_TIMEOUT_MS = 3 * 60 * 1000;
+let MODEL_TIMEOUT_MS = 3 * 60 * 1000;
 let WRAP_UP_STEPS = 3;
 let WRAP_UP_COST_RATIO = 0.85;
 
@@ -38,6 +38,7 @@ export let runReviewAgent = async (d: {
   maxSteps: number;
   maxCostMicros: number;
   maxFixRounds: number;
+  extraCostMicros?: () => number;
   abortSignal?: AbortSignal;
   onLog?: (entry: string) => void;
   onStep?: (d: { usage: ReviewUsage; steps: number }) => Promise<void>;
@@ -49,9 +50,11 @@ export let runReviewAgent = async (d: {
   let modelSteps: Record<string, number> = {};
   let compactions = 0;
 
+  let totalCostMicros = () => usage.costMicros + (d.extraCostMicros?.() ?? 0);
+
   let isWrappingUp = () =>
     d.maxSteps - steps <= WRAP_UP_STEPS ||
-    usage.costMicros >= d.maxCostMicros * WRAP_UP_COST_RATIO;
+    totalCostMicros() >= d.maxCostMicros * WRAP_UP_COST_RATIO;
 
   await generateText({
     model: d.model.model,
@@ -59,17 +62,15 @@ export let runReviewAgent = async (d: {
     prompt: d.prompt,
     tools: d.tools,
     abortSignal: d.abortSignal,
-    timeout: { stepMs: STEP_TIMEOUT_MS },
     stopWhen: [
       stepCountIs(d.maxSteps),
       () => d.state.submitted,
       () => d.state.recheck?.outcome == 'unchanged',
-      () => usage.costMicros >= d.maxCostMicros,
+      () => totalCostMicros() >= d.maxCostMicros,
       () => d.state.fixRounds > d.maxFixRounds
     ],
 
-    // Near the end of the budget the agent may only write and submit, so a run that would
-    // otherwise be cut off mid-exploration still produces a usable (if partial) report.
+    // Keep evidence reads available so verification feedback can still be checked near the budget limit.
     prepareStep: async ({ messages, steps: previousSteps }) => {
       stepModel = await acquireReviewModel({
         model: d.model,
@@ -96,13 +97,31 @@ export let runReviewAgent = async (d: {
 
       return {
         ...(compaction.compacted ? { messages: compaction.messages } : {}),
-        ...(stepModel !== d.model ? { model: stepModel.model } : {}),
+        model: wrapLanguageModel({
+          model: stepModel.model as Parameters<typeof wrapLanguageModel>[0]['model'],
+          middleware: {
+            transformParams: async ({ params }) => ({
+              ...params,
+              abortSignal: AbortSignal.any([
+                AbortSignal.timeout(MODEL_TIMEOUT_MS),
+                ...(params.abortSignal ? [params.abortSignal] : [])
+              ])
+            })
+          }
+        }),
         ...(isWrappingUp()
           ? {
-              activeTools: ['write_section', 'preview_scores', 'submit', 'conclude_recheck'],
+              activeTools: [
+                'bash',
+                ...(d.state.lastErrors.length ? ['fetch_url', 'web_search'] : []),
+                'write_section',
+                'preview_scores',
+                'submit',
+                'conclude_recheck'
+              ].filter(name => name in d.tools),
               instructions: {
                 role: 'system' as const,
-                content: `${d.system}\n\nYour budget is almost exhausted. Write any missing sections now and submit.`,
+                content: `${d.system}\n\nYour budget is almost exhausted. Finish the report and submit now. If submit returns corrections, use the existing evidence and conversation to fix the affected sections and submit again. Read cited evidence if needed; avoid new exploration.`,
                 providerOptions: cacheable
               }
             }
@@ -133,7 +152,7 @@ export let runReviewAgent = async (d: {
       ? 'unchanged'
       : d.state.fixRounds > d.maxFixRounds
         ? 'fix_rounds_exhausted'
-        : usage.costMicros >= d.maxCostMicros
+        : totalCostMicros() >= d.maxCostMicros
           ? 'cost_budget_exhausted'
           : steps >= d.maxSteps
             ? 'step_budget_exhausted'
