@@ -40,7 +40,7 @@ services:
     profiles: ['infra']
     image: ghcr.io/metorial/mte-object-store:dev
     build:
-      context: ../../..
+      context: ../../../../..
       dockerfile: src/object-storage/Dockerfile
     container_name: relay-object-storage
     restart: unless-stopped
@@ -68,11 +68,11 @@ services:
       timeout: 5s
       retries: 10
 
-  relay:
+  email:
     profiles: ['service']
     build:
-      context: ../../..
-      dockerfile: src/relay/service/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: src/platform/services/email/service/dev.Dockerfile
     container_name: relay-service
     restart: unless-stopped
     ports:

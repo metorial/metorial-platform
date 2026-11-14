@@ -9,7 +9,7 @@ COPY . .
 RUN bun install --linker=hoisted
 RUN bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
 
-WORKDIR /app/src/relay/service
+WORKDIR /app/src/platform/services/email/service
 
 EXPOSE 52110
 

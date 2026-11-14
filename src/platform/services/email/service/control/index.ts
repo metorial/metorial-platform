@@ -14,7 +14,7 @@ import {
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
-  name: '@metorial/relay',
+  name: '@mtsrc/email-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -31,18 +31,18 @@ export default project({
     run: ['dev:start'],
     env: baseDevEnv('oss'),
     databases: {
-      main: postgres({ package: '@metorial/relay', name: 'relay', env: 'DATABASE_URL' })
+      main: postgres({ package: '@mtsrc/email-service', name: 'relay', env: 'DATABASE_URL' })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'relay' }),
+  e2e: e2e({ start: ['e2e:start'], image: 'email' }),
   ci: {
     images: [
       ciImage({
-        name: 'relay',
+        name: 'email',
         group: 'oss',
-        image: 'metorial/mte-relay',
-        ecr: 'metorial-enterprise-saas/mte-relay',
-        canonical: 'ghcr.io/metorial/relay',
+        image: 'metorial/mte-email',
+        ecr: 'metorial-enterprise-saas/mte-email',
+        canonical: 'ghcr.io/metorial/email',
         build: bunService({
           ports: [52110],
           health: [
@@ -50,11 +50,11 @@ export default project({
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('relay', '@metorial/relay', { path: 'prisma/schema.prisma' })
+            ownMigration('relay', '@mtsrc/email-service', { path: 'prisma/schema.prisma' })
           ]
         })
       })
     ],
-    suite: ciSuite({ name: 'relay', runner: 'compose', profiles: ['infra', 'service'] })
+    suite: ciSuite({ name: 'email', runner: 'compose', profiles: ['infra', 'service'] })
   }
 });

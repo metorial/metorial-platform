@@ -1,6 +1,10 @@
-# Relay
+# Email
 
-Relay is an email delivery service that provides a centralized platform for managing and sending emails across multiple applications. It handles sender identification, email identity management, asynchronous email delivery, and provides detailed delivery tracking with automatic retry logic.
+Email is a shared platform service for managing and sending emails across multiple applications. It handles sender identification, email identity management, asynchronous email delivery, and delivery tracking with automatic retry logic.
+
+The service lives at `oss/src/platform/services/email`. Its packages are
+`@mtsrc/email-service` and `@mtsrc/email-client-internal`.
+The client lives at `oss/src/platform/clients/email`.
 
 ## Features
 
@@ -53,8 +57,8 @@ services:
     networks:
       - relay-network
 
-  relay:
-    image: ghcr.io/metorial/relay:latest
+  email:
+    image: ghcr.io/metorial/email:latest
     ports:
       - "25050:52050"
     environment:
@@ -102,15 +106,15 @@ The Relay service will be available at `http://localhost:25050`
 ### Installation
 
 ```bash
-npm install @metorial-platform-systems/relay-client
-yarn add @metorial-platform-systems/relay-client
-bun add @metorial-platform-systems/relay-client
+npm install @mtsrc/email-client-internal
+yarn add @mtsrc/email-client-internal
+bun add @mtsrc/email-client-internal
 ```
 
 ### Basic Usage
 
 ```typescript
-import { createRelayClient } from '@metorial-platform-systems/relay-client';
+import { createRelayClient } from '@mtsrc/email-client-internal';
 
 let client = createRelayClient({
   endpoint: 'http://localhost:25050',
@@ -456,15 +460,14 @@ Delivery Tracking
 
 ### Local Setup
 
-1. Clone the repository:
-```bash
-git clone https://github.com/metorial/relay.git
-cd relay
-```
-
-2. Install dependencies:
+1. Install dependencies from the OSS workspace root.
 ```bash
 bun install
+```
+
+2. Open the service directory.
+```bash
+cd src/platform/services/email/service
 ```
 
 3. Set up environment variables:
@@ -489,7 +492,7 @@ bun run prisma:push
 bun run dev
 ```
 
-The service will be available at `http://localhost:52050`
+The service will be available at `http://localhost:52110`.
 
 ### Testing
 
