@@ -41,7 +41,11 @@ class EntityKindServiceImpl {
       key: string;
       name?: string;
       cardinality?: EntityCardinality;
-      attributes?: { description?: string | null; tagOrigins?: TagOrigin[] };
+      attributes?: {
+        description?: string | null;
+        tagOrigins?: TagOrigin[];
+        queryableAttributes?: string[];
+      };
     };
   }) {
     let key = d.input.key.trim().toLowerCase();
@@ -88,6 +92,9 @@ class EntityKindServiceImpl {
     }
     if (d.input.attributes?.tagOrigins) {
       attributes.tagOrigins = [...new Set(d.input.attributes.tagOrigins)];
+    }
+    if (d.input.attributes?.queryableAttributes) {
+      attributes.queryableAttributes = [...new Set(d.input.attributes.queryableAttributes)];
     }
 
     let name = d.input.name ?? existing?.name ?? builtIn?.name ?? key;

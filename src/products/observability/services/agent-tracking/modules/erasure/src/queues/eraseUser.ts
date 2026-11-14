@@ -7,6 +7,7 @@ import { recordErasureService } from '@mtsrc/agent-tracking-module-records';
 import { ingestTokenService } from '@mtsrc/agent-tracking-module-ingest-access';
 import { getStore, isStoreConfigured } from '@mtsrc/agent-tracking-store';
 import { purgeEntities } from '@mtsrc/agent-tracking-module-entities';
+import { queryExportService } from '@mtsrc/agent-tracking-module-query';
 
 let chunkSize = 500;
 let maxChunksPerJob = 20;
@@ -80,6 +81,8 @@ let dependentsFilter = async (user: { oid: bigint; organizationOid: bigint }) =>
 
 let eraseRegistry = async (job: UserErasureJob): Promise<UserErasureStep> => {
   let next = { job: { ...job, phase: 'records' as const }, delay: identityCacheDrainMs };
+
+  await queryExportService.expirePersonalExports({ organizationId: job.organizationId });
 
   let user = await db.entity.findFirst({
     where: { id: job.userId, kind: 'user', organization: { id: job.organizationId } },

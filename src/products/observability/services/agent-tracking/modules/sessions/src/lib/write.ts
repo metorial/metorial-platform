@@ -1,4 +1,8 @@
-import type { NormalizedRecord, SessionContextData } from '@mtsrc/agent-tracking-spec';
+import {
+  versionKey,
+  type NormalizedRecord,
+  type SessionContextData
+} from '@mtsrc/agent-tracking-spec';
 import type mongoose from 'mongoose';
 import type { IngestPrincipal } from '@mtsrc/agent-tracking-records-model';
 import type { StoreCollections } from '@mtsrc/agent-tracking-store';
@@ -143,7 +147,10 @@ let sessionUpsert = (d: {
   if (surface) setOnInsert['client.surface'] = surface;
 
   let version = byTime.find(record => record.client.version)?.client.version;
-  if (version) set['client.version'] = version;
+  if (version) {
+    set['client.version'] = version;
+    set['client.versionKey'] = versionKey(version);
+  }
 
   let parent = byTime.find(record => record.ctx.parent_session_key)?.ctx.parent_session_key;
   if (parent && parent != d.group.sessionKey) {

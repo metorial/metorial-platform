@@ -39,6 +39,7 @@
     "mongoose": "^9.11.4"
   },
   "devDependencies": {
+    "@mtsrc/agent-tracking-module-query": "workspace:*",
     "@mtsrc/agent-tracking-db": "workspace:*",
     "@mtsrc/agent-tracking-dialects": "workspace:*",
     "@mtsrc/agent-tracking-module-rules": "workspace:*",

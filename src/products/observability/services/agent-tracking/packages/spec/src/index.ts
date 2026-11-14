@@ -5,3 +5,4 @@ export * from './ingest';
 export * from './ingestToken';
 export * from './record';
 export * from './settings';
+export * from './version';

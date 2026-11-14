@@ -1,4 +1,8 @@
-import type { ContentRole, NormalizedRecord } from '@mtsrc/agent-tracking-spec';
+import {
+  versionKey,
+  type ContentRole,
+  type NormalizedRecord
+} from '@mtsrc/agent-tracking-spec';
 import mongoose from 'mongoose';
 import type { StoragePolicy } from '@mtsrc/agent-tracking-store';
 import { contentAad, type ContentCipher } from '@mtsrc/agent-tracking-crypto';
@@ -204,6 +208,7 @@ export let toRecordDocument = (
       family: client.family,
       surface: client.surface,
       version: client.version,
+      versionKey: versionKey(client.version),
       authMode: client.auth_mode,
       terminal: client.terminal
     },

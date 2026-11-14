@@ -11,12 +11,11 @@ import { reattributeSession } from '../../src/lib/reattribute';
 import { linkService } from '@mtsrc/agent-tracking-module-entities';
 import { cleanDatabase } from '@mtsrc/agent-tracking-db/test/setup';
 import { usageErasureService } from '@mtsrc/agent-tracking-module-usage';
-import { usageQueryService } from '@mtsrc/agent-tracking-module-usage';
-import { sessionQueryService } from '../../src/services/sessionQuery';
+import { queryService } from '@mtsrc/agent-tracking-module-query';
 import { usageSliceService } from '@mtsrc/agent-tracking-module-usage';
 
 let bucket = new Date('2026-11-10T09:00:00Z');
-let range = { from: new Date('2026-10-31T00:00:00Z'), to: new Date('2026-11-13T00:00:00Z') };
+let range = { from: '2026-10-31T00:00:00Z', to: '2026-11-13T00:00:00Z' };
 
 let setupTeams = async () => {
   inlineQueues();
@@ -65,12 +64,13 @@ let setupTeams = async () => {
   return { ...scope, ada, grace, payments, growth, adaSession, graceSession };
 };
 
-let costOf = (
-  rows: { keys: Record<string, string | null>; metrics: { 'cost.usd'?: number } }[]
-) =>
-  Object.fromEntries(
-    rows.map(row => [Object.values(row.keys).join('|'), row.metrics['cost.usd']])
-  );
+let costOf = (rows: Record<string, unknown>[], dimension: string) =>
+  Object.fromEntries(rows.map(row => [String(row[dimension]), row['cost.usd']]));
+
+let run = (
+  organization: Parameters<typeof queryService.run>[0]['organization'],
+  query: object
+) => queryService.run({ organization, query: { atq: '0', labels: false, range, ...query } });
 
 describe('usage and session queries', () => {
   beforeEach(async () => {
@@ -86,36 +86,29 @@ describe('usage and session queries', () => {
     let { organization, payments, growth } = await setupTeams();
 
     let query = (allocation: 'full' | 'split') =>
-      usageQueryService.queryUsage({
-        organization,
-        query: {
-          range,
-          metrics: ['cost.usd', 'sessions', 'users.active'],
-          groupBy: ['team'],
-          filters: {},
-          allocation
-        }
+      run(organization, {
+        dataset: 'usage',
+        measures: ['cost.usd', 'sessions', 'users.active'],
+        dimensions: ['team'],
+        allocation
       });
 
     let full = await query('full');
-    expect(costOf(full.rows)).toEqual({ [payments.id]: 14, [growth.id]: 10 });
-    expect(full.rows[0]!.metrics).toMatchObject({ sessions: 2, 'users.active': 2 });
+    expect(costOf(full.rows, 'team')).toEqual({ [payments.id]: 14, [growth.id]: 10 });
+    expect(full.rows[0]).toMatchObject({ sessions: 2, 'users.active': 2 });
 
     let split = await query('split');
-    expect(costOf(split.rows)).toEqual({ [payments.id]: 9, [growth.id]: 5 });
+    expect(costOf(split.rows, 'team')).toEqual({ [payments.id]: 9, [growth.id]: 5 });
 
-    let filtered = await usageQueryService.queryUsage({
-      organization,
-      query: {
-        range,
-        metrics: ['cost.usd'],
-        groupBy: ['user'],
-        filters: { team: { in: [growth.id] } },
-        allocation: 'split'
-      }
+    let filtered = await run(organization, {
+      dataset: 'usage',
+      measures: ['cost.usd'],
+      dimensions: ['user'],
+      where: { field: 'team', op: 'in', value: [growth.id] },
+      allocation: 'split'
     });
     expect(filtered.rows).toHaveLength(1);
-    expect(filtered.rows[0]!.metrics['cost.usd']).toBe(5);
+    expect(filtered.rows[0]!['cost.usd']).toBe(5);
   });
 
   it('buckets by the viewer time zone and keeps daily aggregates on their own day', async () => {
@@ -140,20 +133,18 @@ describe('usage and session queries', () => {
     });
 
     let daily = async (timeZone: string) => {
-      let result = await usageQueryService.queryUsage({
-        organization: scope.organization,
-        query: {
-          range,
-          interval: 'day',
-          timeZone,
-          metrics: ['cost.usd'],
-          groupBy: [],
-          filters: {},
-          allocation: 'full'
-        }
+      let result = await run(scope.organization, {
+        dataset: 'usage',
+        timeZone,
+        measures: ['cost.usd'],
+        dimensions: ['time.day'],
+        orderBy: [{ by: 'time.day', direction: 'asc' }]
       });
 
-      return result.rows.map(row => [row.time!.toISOString(), row.metrics['cost.usd']]);
+      return result.rows.map(row => [
+        new Date(String(row['time.day'])).toISOString(),
+        row['cost.usd']
+      ]);
     };
 
     expect(await daily('Asia/Kolkata')).toEqual([
@@ -181,23 +172,29 @@ describe('usage and session queries', () => {
   it('computes session statistics per team and lists the top sessions', async () => {
     let { organization, payments, growth, adaSession, graceSession } = await setupTeams();
 
-    let result = await sessionQueryService.querySessions({
-      organization,
-      query: {
-        range,
-        filters: {},
-        groupBy: ['team'],
-        stats: ['count', 'sum', 'p50'],
-        metrics: ['cost.usd'],
-        top: { by: 'cost.usd', limit: 5 }
-      }
+    let groups = await run(organization, {
+      dataset: 'sessions',
+      dimensions: ['team'],
+      measures: [
+        'sessions',
+        { fn: 'sum', field: 'cost.usd', as: 'cost' },
+        { fn: 'p50', field: 'cost.usd', as: 'cost.p50' }
+      ],
+      orderBy: [{ by: 'cost', direction: 'desc' }]
     });
-
-    expect(result.groups).toEqual([
-      { keys: { team: payments.id }, count: 2, stats: { 'cost.usd': { sum: 14, p50: 7 } } },
-      { keys: { team: growth.id }, count: 1, stats: { 'cost.usd': { sum: 10, p50: 10 } } }
+    expect(groups.rows).toEqual([
+      { team: payments.id, sessions: 2, cost: 14, 'cost.p50': 4 },
+      { team: growth.id, sessions: 1, cost: 10, 'cost.p50': 10 }
     ]);
-    expect(result.top?.map(session => [session.sessionKey, session.costUsd])).toEqual([
+
+    let top = await run(organization, {
+      dataset: 'sessions',
+      mode: 'rows',
+      select: ['session', 'cost.usd'],
+      orderBy: [{ by: 'cost.usd', direction: 'desc' }],
+      limit: 5
+    });
+    expect(top.rows.map(row => [row.session, row['cost.usd']])).toEqual([
       [adaSession._id, 10],
       [graceSession._id, 4]
     ]);

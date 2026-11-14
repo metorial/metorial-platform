@@ -78,5 +78,8 @@ declare global {
     type KnowledgeAgentData = Knowledge.KnowledgeAgentData;
     type KnowledgeEntityData = Knowledge.KnowledgeEntityData;
     type KnowledgePricing = Knowledge.KnowledgePricing;
+    type CanonicalQuery = Spec.CanonicalQuery;
+    type QueryExportScope = Spec.QueryExportScope;
+    type QueryExportParts = Spec.QueryExportPart[];
   }
 }

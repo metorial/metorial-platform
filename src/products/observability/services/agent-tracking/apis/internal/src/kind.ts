@@ -19,7 +19,12 @@ export let kindController = organizationApp.controller({
         attributes: v.optional(
           v.object({
             description: v.optional(v.nullable(v.string())),
-            tagOrigins: v.optional(v.array(v.enumOf(tagOrigins)))
+            tagOrigins: v.optional(v.array(v.enumOf(tagOrigins))),
+            queryableAttributes: v.optional(
+              v.array(v.string({ modifiers: [v.minLength(1), v.maxLength(64)] }), {
+                modifiers: [v.maxLength(20)]
+              })
+            )
           })
         )
       })

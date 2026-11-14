@@ -28,6 +28,7 @@ export type AttributionEntry = {
   role?: 'principal' | 'initiator';
   source: AttributionSource;
   weight: number;
+  depth?: number;
   confidence?: number;
   via?: string[];
   ruleId?: string;
@@ -128,7 +129,7 @@ export type SessionDocument = {
   inferKey?: string;
   versions: { summary: number; attribution: number; facts: number };
 
-  client: { family: string; surface?: string; version?: string };
+  client: { family: string; surface?: string; version?: string; versionKey?: string };
   parentSessionKey?: string;
   rootSessionKey: string;
   continuesSessionKey?: string;
@@ -190,7 +191,7 @@ export type SessionLinkDocument = {
   expiresAt: Date;
 };
 
-export type SliceDim = { kind: string; id: string; w: number };
+export type SliceDim = { kind: string; id: string; w: number; d?: number };
 
 export type UsageSliceDocument = {
   _id: string;
@@ -212,7 +213,7 @@ export type UsageSliceDocument = {
   dims: SliceDim[];
   dimIds: string[];
 
-  client: { family: string; version?: string; surface?: string };
+  client: { family: string; version?: string; versionKey?: string; surface?: string };
   modelId?: string;
   modelRaw?: string;
   provider?: string;
@@ -278,6 +279,7 @@ SessionSchema.index({ organizationId: 1, startedAt: -1 });
 SessionSchema.index({ organizationId: 1, 'attribution.dimIds': 1, startedAt: -1 });
 SessionSchema.index({ organizationId: 1, rootSessionKey: 1 });
 SessionSchema.index({ organizationId: 1, 'observed.userId': 1, startedAt: -1 });
+SessionSchema.index({ organizationId: 1, 'observed.agentId': 1, startedAt: -1 });
 SessionSchema.index({ organizationId: 1, state: 1, lastActivityAt: 1 });
 SessionSchema.index({ state: 1, lastActivityAt: 1 });
 SessionSchema.index(
@@ -310,6 +312,8 @@ UsageSliceSchema.index({ organizationId: 1, vendorId: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, billingMode: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, 'client.family': 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, sessionKey: 1 });
+UsageSliceSchema.index({ organizationId: 1, userId: 1, bucket: 1 });
+UsageSliceSchema.index({ organizationId: 1, agentId: 1, bucket: 1 });
 UsageSliceSchema.index(
   { organizationId: 1, sessionlessKey: 1 },
   { partialFilterExpression: { sessionlessKey: { $exists: true } } }

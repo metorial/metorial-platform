@@ -13,7 +13,8 @@ export let entityKindPresenter = (kind: KindDefinition) => ({
 
   attributes: {
     description: kind.description,
-    tagOrigins: kind.tagOrigins
+    tagOrigins: kind.tagOrigins,
+    queryableAttributes: kind.record?.attributes.queryableAttributes ?? []
   },
 
   createdAt: kind.record?.createdAt ?? null,

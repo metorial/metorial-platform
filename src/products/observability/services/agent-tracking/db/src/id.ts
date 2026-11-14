@@ -21,7 +21,8 @@ export let ID = createIdGenerator({
   knowledgeChange: idType.sorted('atkc_'),
   knowledgePricePeriod: idType.sorted('atpp_'),
   priceOverride: idType.sorted('atpo_'),
-  billingDeclaration: idType.sorted('atbd_')
+  billingDeclaration: idType.sorted('atbd_'),
+  queryExport: idType.sorted('atqe_')
 });
 
 let workerIdBits = 12;

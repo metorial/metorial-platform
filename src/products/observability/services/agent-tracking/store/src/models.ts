@@ -73,6 +73,7 @@ export type RecordDocument = {
     family: string;
     surface?: string;
     version?: string;
+    versionKey?: string;
     authMode?: string;
     terminal?: string;
   };
@@ -182,6 +183,10 @@ EventSchema.index(
 EventSchema.index(
   { organizationId: 1, 'attribution.userId': 1, occurredAt: -1 },
   { partialFilterExpression: { 'attribution.userId': { $exists: true } } }
+);
+EventSchema.index(
+  { organizationId: 1, type: 1, occurredAt: -1 },
+  { partialFilterExpression: { 'source.role': 'primary' } }
 );
 
 export let MeasurementSchema = new mongoose.Schema<RecordDocument>(

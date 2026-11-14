@@ -19,7 +19,8 @@ import { coverageController } from './coverage';
 import { rebuildController } from './rebuild';
 import { ruleController } from './rule';
 import { sessionController } from './session';
-import { usageController } from './usage';
+import { queryController } from './query';
+import { queryExportController } from './queryExport';
 
 export let rootController = app.controller({
   organization: organizationController,
@@ -35,7 +36,8 @@ export let rootController = app.controller({
   user: userController,
   rule: ruleController,
   session: sessionController,
-  usage: usageController,
+  query: queryController,
+  queryExport: queryExportController,
   coverage: coverageController,
   rebuild: rebuildController,
   knowledge: knowledgeController,

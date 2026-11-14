@@ -19,6 +19,7 @@
     "@mtsrc/agent-tracking-db": "workspace:*",
     "@mtsrc/agent-tracking-module-entities": "workspace:*",
     "@mtsrc/agent-tracking-module-ingest-access": "workspace:*",
+    "@mtsrc/agent-tracking-module-query": "workspace:*",
     "@mtsrc/agent-tracking-module-records": "workspace:*",
     "@mtsrc/agent-tracking-module-usage": "workspace:*",
     "@mtsrc/agent-tracking-store": "workspace:*"

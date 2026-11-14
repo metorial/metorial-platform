@@ -1,13 +1,19 @@
 import { eventually, uniqueId } from '@lowerdeck/testing-tools';
 import { describe, expect, it } from 'vitest';
 import { importKnowledge, sendClaudeApiRequest } from './knowledgeSupport';
-import { createScope, createToken, agentTracking } from './support';
+import {
+  agentTracking,
+  type AtqQuery,
+  createScope,
+  createToken,
+  isoRange,
+  rowsByKey,
+  runQuery
+} from './support';
 
 let hourMs = 60 * 60 * 1000;
 let settleTimeoutMs = 120_000;
 let sonnetModel = 'claude-sonnet-4-5-20250929';
-
-type UsageInput = Parameters<ReturnType<typeof agentTracking>['usage']['query']>[0];
 
 let hoursAgo = (hours: number) => new Date(Date.now() - hours * hourMs);
 
@@ -63,25 +69,19 @@ describe('billing mode', { timeout: 300_000 }, () => {
     });
     await send({ secret: grace.secret, sessionId: uniqueId('session'), minutes: 3 });
 
-    let usage = (input: Partial<Omit<UsageInput, 'organizationId'>>) =>
-      agentTracking().usage.query({
-        organizationId,
-        range: { from: hoursAgo(24), to: new Date(Date.now() + hourMs) },
-        metrics: ['requests', 'cost.usd', 'cost.list'],
-        groupBy: [],
-        ...input
+    let byKey = async (dimensions: string[], where?: AtqQuery) => {
+      let result = await runQuery(organizationId, {
+        dataset: 'usage',
+        range: isoRange(hoursAgo(24), new Date(Date.now() + hourMs)),
+        measures: ['requests', 'cost.usd', 'cost.list'],
+        dimensions,
+        ...(where ? { where } : {})
       });
 
-    let byKey = async (groupBy: string[], filters: UsageInput['filters'] = {}) => {
-      let result = await usage({ groupBy, filters });
-
-      return Object.fromEntries(
-        result.rows
-          .filter(row => row.metrics.requests)
-          .map(row => [
-            groupBy.map(field => row.keys[field] ?? 'null').join('|'),
-            { requests: row.metrics.requests, cost: row.metrics['cost.usd'] }
-          ])
+      return rowsByKey(
+        result.rows.filter(row => row.requests),
+        dimensions,
+        row => ({ requests: row.requests, cost: row['cost.usd'] })
       );
     };
 
@@ -98,7 +98,11 @@ describe('billing mode', { timeout: 300_000 }, () => {
     );
 
     expect(
-      await byKey(['billing.mode'], { 'billing.mode': { in: ['included', 'overage'] } })
+      await byKey(['billing.mode'], {
+        field: 'billing.mode',
+        op: 'in',
+        value: ['included', 'overage']
+      })
     ).toEqual({
       included: { requests: 1, cost: expect.any(Number) },
       overage: { requests: 1, cost: expect.any(Number) }

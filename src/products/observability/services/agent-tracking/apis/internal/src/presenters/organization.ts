@@ -12,7 +12,11 @@ export let organizationPresenter = (organization: Organization) => ({
 
   settings: {
     allowedEmailDomains: organization.settings.allowedEmailDomains ?? [],
-    sliceErasureMode: organization.settings.sliceErasureMode ?? null
+    sliceErasureMode: organization.settings.sliceErasureMode ?? null,
+    privacy: {
+      hideIndividuals: organization.settings.privacy?.hideIndividuals ?? false,
+      minGroupUsers: organization.settings.privacy?.minGroupUsers ?? 5
+    }
   },
 
   archivedAt: organization.archivedAt,

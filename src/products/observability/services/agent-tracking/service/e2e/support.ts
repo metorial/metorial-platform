@@ -140,3 +140,33 @@ export let rpcErrorCode = async (call: Promise<unknown>) => {
 
   return undefined;
 };
+
+export type AtqQuery = Record<string, unknown>;
+
+export let runQuery = (
+  organizationId: string,
+  query: AtqQuery,
+  scope?: { projectIds?: string[]; instanceIds?: string[] }
+) =>
+  agentTracking().query.run({
+    organizationId,
+    query: { atq: '0', labels: false, ...query },
+    ...(scope ? { scope } : {})
+  });
+
+export let rowsByKey = <T>(
+  rows: Record<string, unknown>[],
+  dimensions: string[],
+  value: (row: Record<string, unknown>) => T
+) =>
+  Object.fromEntries(
+    rows.map(row => [
+      dimensions.map(dimension => String(row[dimension] ?? 'null')).join('|'),
+      value(row)
+    ])
+  ) as Record<string, T>;
+
+export let isoRange = (from: Date, to: Date) => ({
+  from: from.toISOString(),
+  to: to.toISOString()
+});

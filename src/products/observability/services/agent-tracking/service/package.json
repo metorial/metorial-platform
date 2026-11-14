@@ -38,6 +38,7 @@
     "@mtsrc/agent-tracking-module-ingest": "workspace:*",
     "@mtsrc/agent-tracking-module-ingest-access": "workspace:*",
     "@mtsrc/agent-tracking-module-knowledge": "workspace:*",
+    "@mtsrc/agent-tracking-module-query": "workspace:*",
     "@mtsrc/agent-tracking-module-rebuild": "workspace:*",
     "@mtsrc/agent-tracking-module-records": "workspace:*",
     "@mtsrc/agent-tracking-module-sessions": "workspace:*",

@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { coverageService } from '@mtsrc/agent-tracking-module-usage';
 import { organizationApp } from './_app';
-import { queryRangeSchema, queryScopeSchema } from './usage';
+import { queryRangeSchema, queryScopeSchema } from './query';
 
 export let coverageController = organizationApp.controller({
   get: organizationApp

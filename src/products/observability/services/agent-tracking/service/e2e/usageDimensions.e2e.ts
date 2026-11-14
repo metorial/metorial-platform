@@ -5,18 +5,24 @@ import {
   haikuRaw
 } from '@mtsrc/agent-tracking-module-usage/test/dimensionCatalog';
 import { importKnowledge, sendClaudeApiRequest } from './knowledgeSupport';
-import { createScope, createToken, agentTracking, rpcErrorCode } from './support';
+import {
+  type AtqQuery,
+  createScope,
+  createToken,
+  isoRange,
+  rowsByKey,
+  rpcErrorCode,
+  runQuery
+} from './support';
 
 let sonnetRaw = 'claude-sonnet-4-5-20250929';
 
-type UsageInput = Parameters<ReturnType<typeof agentTracking>['usage']['query']>[0];
-
 let settleTimeoutMs = 120_000;
 
-let rangeAroundNow = () => ({
-  from: new Date(Date.now() - 24 * 60 * 60 * 1000),
-  to: new Date(Date.now() + 60 * 60 * 1000)
-});
+let rangeAroundNow = () =>
+  isoRange(new Date(Date.now() - 24 * 60 * 60 * 1000), new Date(Date.now() + 60 * 60 * 1000));
+
+let measures = ['cost.usd', 'cost.list', 'requests', 'users.active'];
 
 let seedUsage = async () => {
   await importKnowledge(dimensionCatalogOptions());
@@ -42,34 +48,29 @@ let seedUsage = async () => {
     });
   }
 
-  let usage = (input: Partial<Omit<UsageInput, 'organizationId'>>) =>
-    agentTracking().usage.query({
-      organizationId: scope.organization.id,
+  let usage = (query: AtqQuery) =>
+    runQuery(scope.organization.id, {
+      dataset: 'usage',
       range: rangeAroundNow(),
-      metrics: ['cost.usd', 'cost.list', 'requests', 'users.active'],
-      ...input
+      measures,
+      ...query
     });
 
-  let byKey = async (groupBy: string[], filters: UsageInput['filters'] = {}) => {
-    let result = await usage({ groupBy, filters });
+  let byKey = async (dimensions: string[], where?: AtqQuery) => {
+    let result = await usage({ dimensions, ...(where ? { where } : {}) });
 
-    return Object.fromEntries(
-      result.rows.map(row => [
-        groupBy.map(field => row.keys[field] ?? 'null').join('|'),
-        {
-          cost: row.metrics['cost.usd'],
-          list: row.metrics['cost.list'],
-          requests: row.metrics.requests,
-          users: row.metrics['users.active']
-        }
-      ])
-    );
+    return rowsByKey(result.rows, dimensions, row => ({
+      cost: row['cost.usd'],
+      list: row['cost.list'],
+      requests: row.requests,
+      users: row['users.active']
+    }));
   };
 
   await eventually(
     async () => {
-      let total = await usage({ groupBy: [] });
-      expect(total.rows[0]?.metrics).toMatchObject({ requests: 4, 'users.active': 2 });
+      let total = await usage({ dimensions: [] });
+      expect(total.rows[0]).toMatchObject({ requests: 4, 'users.active': 2 });
     },
     { timeoutMs: settleTimeoutMs }
   );
@@ -103,11 +104,15 @@ describe('usage dimensions', () => {
       null: { cost: 0, list: 0, requests: 0, users: 2 }
     });
 
-    expect(await byKey(['model'], { 'model.family': { in: ['claude-haiku'] } })).toEqual({
+    expect(
+      await byKey(['model'], { field: 'model.family', op: 'in', value: ['claude-haiku'] })
+    ).toEqual({
       'claude-haiku-4-5': { cost: 1.5, list: 1.5, requests: 1, users: 1 }
     });
 
-    expect(await byKey(['model.family'], { 'model.lab': { notIn: ['anthropic'] } })).toEqual({
+    expect(
+      await byKey(['model.family'], { field: 'model.lab', op: 'notIn', value: ['anthropic'] })
+    ).toEqual({
       null: { cost: 0, list: 0, requests: 0, users: 2 }
     });
   });
@@ -124,12 +129,16 @@ describe('usage dimensions', () => {
     expect(byAgentEntity[`anthropic|${ada.token.agentEntityId}`]).toEqual(perUser);
     expect(Object.values(byAgentEntity)).toEqual([perUser, perUser]);
 
-    expect(await byKey(['user'], { agent: { in: ['claude-code'] } })).toEqual({
+    expect(
+      await byKey(['user'], { field: 'agent', op: 'in', value: ['claude-code'] })
+    ).toEqual({
       [ada.token.userEntityId]: { cost: 4.5, list: 4.5, requests: 2, users: 1 },
       [grace.token.userEntityId]: { cost: 4.5, list: 4.5, requests: 2, users: 1 }
     });
 
-    expect(await byKey(['agent'], { 'agent.maker': { in: ['openai'] } })).toEqual({});
+    expect(
+      await byKey(['agent'], { field: 'agent.maker', op: 'in', value: ['openai'] })
+    ).toEqual({});
   });
 
   it('groups by the vendor recorded on slices', async () => {
@@ -139,25 +148,29 @@ describe('usage dimensions', () => {
     expect(await byKey(['vendor.kind'])).toMatchObject({
       'first-party': { cost: 9, users: 2 }
     });
-    expect(await byKey(['model'], { 'vendor.kind': { in: ['cloud'] } })).toEqual({});
+    expect(
+      await byKey(['model'], { field: 'vendor.kind', op: 'in', value: ['cloud'] })
+    ).toEqual({});
   });
 
   it('rejects unknown dimensions', async () => {
     let { organization } = await createScope();
 
-    let query = (groupBy: string[], filters: UsageInput['filters'] = {}) =>
+    let query = (dimensions: string[], where?: AtqQuery) =>
       rpcErrorCode(
-        agentTracking().usage.query({
-          organizationId: organization.id,
+        runQuery(organization.id, {
+          dataset: 'usage',
           range: rangeAroundNow(),
-          metrics: ['requests'],
-          groupBy,
-          filters
+          measures: ['requests'],
+          dimensions,
+          ...(where ? { where } : {})
         })
       );
 
-    expect(await query(['model.vendor'])).toBe('bad_request');
-    expect(await query([], { 'agent.name': { in: ['x'] } })).toBe('bad_request');
+    expect(await query(['model.vendor'])).toBe('invalid_query');
+    expect(await query([], { field: 'agent.name', op: 'in', value: ['x'] })).toBe(
+      'invalid_query'
+    );
     expect(await query(['agent', 'agentId', 'model.isLatest', 'vendor.kind'])).toBeUndefined();
   });
 });

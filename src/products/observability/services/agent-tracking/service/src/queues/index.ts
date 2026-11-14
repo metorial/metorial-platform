@@ -3,6 +3,7 @@ import { classificationQueueProcessor } from '@mtsrc/agent-tracking-module-class
 import { entitiesQueueProcessor } from '@mtsrc/agent-tracking-module-entities';
 import { erasureQueueProcessor } from '@mtsrc/agent-tracking-module-erasure';
 import { knowledgeQueueProcessor } from '@mtsrc/agent-tracking-module-knowledge';
+import { queryQueueProcessor } from '@mtsrc/agent-tracking-module-query';
 import { rebuildQueueProcessor } from '@mtsrc/agent-tracking-module-rebuild';
 import { recordsQueueProcessor } from '@mtsrc/agent-tracking-module-records';
 import { sessionsQueueProcessor } from '@mtsrc/agent-tracking-module-sessions';
@@ -14,5 +15,6 @@ export let agentTrackingQueues = combineQueueProcessors([
   sessionsQueueProcessor,
   rebuildQueueProcessor,
   erasureQueueProcessor,
-  knowledgeQueueProcessor
+  knowledgeQueueProcessor,
+  queryQueueProcessor
 ]);

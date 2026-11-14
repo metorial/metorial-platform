@@ -118,11 +118,23 @@ let compareCandidates =
     return a.entityId < b.entityId ? -1 : a.entityId > b.entityId ? 1 : 0;
   };
 
-let toEntry = (candidate: Candidate, weight: number): AttributionEntry => ({
+// How many entities of the same kind lie between the session and this entry: a team reached
+// through its subteam has depth 1. Grouping by a kind reads depth 0 so levels don't mix (11 §7).
+export let entryDepth = (
+  candidate: Pick<Candidate, 'kind' | 'via'>,
+  entities: Map<string, Pick<AttributionEntity, 'kind'>>
+) => (candidate.via ?? []).filter(id => entities.get(id)?.kind == candidate.kind).length;
+
+let toEntry = (
+  candidate: Candidate,
+  weight: number,
+  entities: Map<string, AttributionEntity>
+): AttributionEntry => ({
   kind: candidate.kind,
   entityId: candidate.entityId,
   source: candidate.source,
   weight: Math.round(weight * 1e6) / 1e6,
+  ...(entryDepth(candidate, entities) ? { depth: entryDepth(candidate, entities) } : {}),
   ...(candidate.confidence !== undefined ? { confidence: candidate.confidence } : {}),
   ...(candidate.via?.length ? { via: candidate.via } : {}),
   ...(candidate.ruleId ? { ruleId: candidate.ruleId } : {})
@@ -478,7 +490,7 @@ export let resolveAttribution = (input: ResolveAttributionInput): ResolvedAttrib
               ? 1
               : 0
         )
-        .map(item => toEntry(item.candidate, item.weight))
+        .map(item => toEntry(item.candidate, item.weight, input.entities))
     );
 
   entries.push(...resolved);
@@ -507,4 +519,9 @@ export let resolveAttribution = (input: ResolveAttributionInput): ResolvedAttrib
 export let entriesToDims = (entries: AttributionEntry[]) =>
   entries
     .filter(entry => !senderKinds.has(entry.kind))
-    .map(entry => ({ kind: entry.kind, id: entry.entityId, w: entry.weight }));
+    .map(entry => ({
+      kind: entry.kind,
+      id: entry.entityId,
+      w: entry.weight,
+      ...(entry.depth ? { d: entry.depth } : {})
+    }));

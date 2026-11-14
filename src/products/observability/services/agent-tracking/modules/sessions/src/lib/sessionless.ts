@@ -1,5 +1,9 @@
 import { knowledgeCacheService } from '@mtsrc/agent-tracking-module-knowledge';
-import type { NormalizedRecord, RecordKind } from '@mtsrc/agent-tracking-spec';
+import {
+  versionKey,
+  type NormalizedRecord,
+  type RecordKind
+} from '@mtsrc/agent-tracking-spec';
 import {
   createDeclarationLookup,
   declaredBilling,
@@ -249,7 +253,12 @@ export let sessionlessBaseSlices = async (d: {
           ...(attribution.agentId ? { agentId: attribution.agentId } : {}),
           client: {
             family: document.client.family,
-            ...(document.client.version ? { version: document.client.version } : {}),
+            ...(document.client.version
+              ? {
+                  version: document.client.version,
+                  versionKey: versionKey(document.client.version)
+                }
+              : {}),
             ...(document.client.surface ? { surface: document.client.surface } : {})
           },
           sessionsStarted: 0,

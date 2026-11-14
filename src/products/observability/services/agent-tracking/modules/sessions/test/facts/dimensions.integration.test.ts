@@ -14,16 +14,13 @@ import { closeRedis, getCacheRedis } from '@mtsrc/agent-tracking-redis';
 import type { UsageSliceDocument } from '@mtsrc/agent-tracking-store';
 import { cleanDatabase } from '@mtsrc/agent-tracking-db/test/setup';
 import { createTestScope } from '@mtsrc/agent-tracking-module-scope/test/scope';
-import { usageQueryService } from '@mtsrc/agent-tracking-module-usage';
-import {
-  buildUsagePipelines,
-  type QueryFilters,
-  type UsageMetric
-} from '@mtsrc/agent-tracking-module-usage';
+import { queryService } from '@mtsrc/agent-tracking-module-query';
 import { dimensionCatalogOptions } from '@mtsrc/agent-tracking-module-usage/test/dimensionCatalog';
 
 let bucket = new Date('2026-11-10T09:00:00Z');
-let range = { from: new Date('2026-11-01T00:00:00Z'), to: new Date('2026-11-13T00:00:00Z') };
+let range = { from: '2026-11-01T00:00:00Z', to: '2026-11-13T00:00:00Z' };
+
+type Where = Record<string, unknown> | undefined;
 
 let server: KnowledgeFixtureServer;
 let generation = 0;
@@ -142,21 +139,29 @@ let seed = async () => {
   ]);
 
   let usage = async (
-    groupBy: string[],
-    filters: QueryFilters = {},
-    metrics: UsageMetric[] = ['cost.usd', 'users.active']
+    dimensions: string[],
+    where?: Where,
+    measures: string[] = ['cost.usd', 'users.active']
   ) => {
-    let result = await usageQueryService.queryUsage({
+    let result = await queryService.run({
       organization: scope.organization,
-      query: { range, metrics, groupBy, filters, allocation: 'full' }
+      query: {
+        atq: '0',
+        dataset: 'usage',
+        range,
+        measures,
+        dimensions,
+        labels: false,
+        ...(where ? { where } : {})
+      }
     });
 
     return Object.fromEntries(
       result.rows.map(row => [
-        groupBy.map(field => row.keys[field] ?? 'null').join('|') || 'total',
-        metrics.length == 2 && metrics.includes('users.active')
-          ? [row.metrics['cost.usd'], row.metrics['users.active']]
-          : row.metrics
+        dimensions.map(field => String(row[field] ?? 'null')).join('|') || 'total',
+        measures.length == 2 && measures.includes('users.active')
+          ? [row['cost.usd'], row['users.active']]
+          : Object.fromEntries(measures.map(measure => [measure, row[measure]]))
       ])
     );
   };
@@ -164,25 +169,16 @@ let seed = async () => {
   return { ...scope, sliceFor, usage };
 };
 
-let winningPlan = async (organizationId: string, filters: QueryFilters) => {
-  let pipelines = buildUsagePipelines(
-    {
-      organizationId,
-      range,
-      metrics: ['cost.usd'],
-      groupBy: [],
-      filters,
-      allocation: 'full'
-    },
-    {
-      maps: await knowledgeCacheService.getDimensionMaps(),
-      unresolvedRaws: ['anthropic/claude-future-9']
-    }
-  );
+let winningPlan = async (organization: Scope['organization'], where: Where) => {
+  let explainedQuery = await queryService.explain({
+    organization,
+    query: { atq: '0', dataset: 'usage', range, measures: ['cost.usd'], where },
+    includePipelines: true
+  });
 
   let explained = (await store
     .collections()
-    .usageSlices.aggregate(pipelines.main)
+    .usageSlices.aggregate(explainedQuery.pipeline as object[])
     .explain('queryPlanner')) as {
     queryPlanner?: { winningPlan: unknown };
     stages?: { $cursor: { queryPlanner: { winningPlan: unknown } } }[];
@@ -221,14 +217,18 @@ describe('usage dimensions', () => {
       openai: [4, 1],
       null: [0.25, 1]
     });
-    expect(await usage(['user'], { 'model.lab': { in: ['anthropic'] } })).toEqual({
+    expect(
+      await usage(['user'], { field: 'model.lab', op: 'in', value: ['anthropic'] })
+    ).toEqual({
       ada: [4, 1],
       grace: [2, 1],
       linus: [0.5, 1]
     });
-    expect(await usage([], { 'model.lab': { notIn: ['anthropic'] } })).toEqual({
-      total: [4.25, 2]
-    });
+    expect(await usage([], { field: 'model.lab', op: 'notIn', value: ['anthropic'] })).toEqual(
+      {
+        total: [4.25, 2]
+      }
+    );
   });
 
   it('groups and filters by model family', async () => {
@@ -239,7 +239,9 @@ describe('usage dimensions', () => {
       'claude-haiku': [1, 1],
       null: [4.75, 2]
     });
-    expect(await usage(['model'], { 'model.family': { in: ['claude-haiku'] } })).toEqual({
+    expect(
+      await usage(['model'], { field: 'model.family', op: 'in', value: ['claude-haiku'] })
+    ).toEqual({
       'claude-haiku-4-5': [1, 1]
     });
     expect(await usage(['model.isLatest'])).toEqual({
@@ -263,10 +265,18 @@ describe('usage dimensions', () => {
       cloud: [2, 1],
       null: [0.75, 1]
     });
-    expect(await usage(['user'], { 'vendor.kind': { in: ['cloud'] } })).toEqual({
+    expect(
+      await usage(['user'], { field: 'vendor.kind', op: 'in', value: ['cloud'] })
+    ).toEqual({
       grace: [2, 1]
     });
-    expect(await usage(['vendor.kind'], { vendor: { in: ['anthropic', 'openai'] } })).toEqual({
+    expect(
+      await usage(['vendor.kind'], {
+        field: 'vendor',
+        op: 'in',
+        value: ['anthropic', 'openai']
+      })
+    ).toEqual({
       'first-party': [8, 2]
     });
   });
@@ -284,11 +294,15 @@ describe('usage dimensions', () => {
       openai: [4, 1],
       null: [0.75, 1]
     });
-    expect(await usage(['client.family'], { agent: { in: ['claude-code'] } })).toEqual({
+    expect(
+      await usage(['client.family'], { field: 'agent', op: 'in', value: ['claude-code'] })
+    ).toEqual({
       'claude-code': [4, 1],
       claude_code: [2, 1]
     });
-    expect(await usage(['agent'], { 'agent.maker': { notIn: ['anthropic'] } })).toEqual({
+    expect(
+      await usage(['agent'], { field: 'agent.maker', op: 'notIn', value: ['anthropic'] })
+    ).toEqual({
       codex: [4, 1],
       null: [0.75, 1]
     });
@@ -297,7 +311,9 @@ describe('usage dimensions', () => {
   it('sums list and contract cost per mapped group', async () => {
     let { usage } = await seed();
 
-    expect(await usage(['agent'], {}, ['cost.usd', 'cost.list', 'cost.contract'])).toEqual({
+    expect(
+      await usage(['agent'], undefined, ['cost.usd', 'cost.list', 'cost.contract'])
+    ).toEqual({
       'claude-code': { 'cost.usd': 6, 'cost.list': 6.2, 'cost.contract': 2.4 },
       codex: { 'cost.usd': 4, 'cost.list': 4, 'cost.contract': 0 },
       null: { 'cost.usd': 0.75, 'cost.list': 0, 'cost.contract': 0 }
@@ -319,24 +335,36 @@ describe('usage dimensions', () => {
       )
     );
 
-    let byFamily = await winningPlan(organization.id, {
-      'model.family': { in: ['claude-haiku'] }
+    let byFamily = await winningPlan(organization, {
+      field: 'model.family',
+      op: 'in',
+      value: ['claude-haiku']
     });
     expect(byFamily).toContain('organizationId_1_modelId_1_bucket_1');
     expect(byFamily).not.toContain('COLLSCAN');
 
-    let byVendorKind = await winningPlan(organization.id, {
-      'vendor.kind': { in: ['cloud'] }
+    let byVendorKind = await winningPlan(organization, {
+      field: 'vendor.kind',
+      op: 'in',
+      value: ['cloud']
     });
     expect(byVendorKind).toContain('organizationId_1_vendorId_1_bucket_1');
     expect(byVendorKind).not.toContain('COLLSCAN');
 
-    let byLab = await winningPlan(organization.id, { 'model.lab': { in: ['anthropic'] } });
+    let byLab = await winningPlan(organization, {
+      field: 'model.lab',
+      op: 'in',
+      value: ['anthropic']
+    });
     expect(byLab).toContain('organizationId_1_modelId_1_bucket_1');
     expect(byLab).toContain('organizationId_1_modelRaw_1_bucket_1');
     expect(byLab).not.toContain('COLLSCAN');
 
-    let byAgent = await winningPlan(organization.id, { agent: { in: ['codex'] } });
+    let byAgent = await winningPlan(organization, {
+      field: 'agent',
+      op: 'in',
+      value: ['codex']
+    });
     expect(byAgent).toContain('IXSCAN');
     expect(byAgent).not.toContain('COLLSCAN');
   });

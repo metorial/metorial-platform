@@ -10,7 +10,15 @@ let organizationSettingsSchema = v.object({
       modifiers: [v.maxLength(100)]
     })
   ),
-  sliceErasureMode: v.optional(v.enumOf(['anonymize', 'delete']))
+  sliceErasureMode: v.optional(v.enumOf(['anonymize', 'delete'])),
+  privacy: v.optional(
+    v.object({
+      hideIndividuals: v.optional(v.boolean()),
+      minGroupUsers: v.optional(
+        v.number({ modifiers: [v.integer(), v.minValue(2), v.maxValue(100)] })
+      )
+    })
+  )
 });
 
 export let organizationController = app.controller({

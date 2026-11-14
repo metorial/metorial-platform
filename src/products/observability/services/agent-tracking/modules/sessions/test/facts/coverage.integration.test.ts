@@ -88,7 +88,7 @@ describe('coverageService', () => {
     });
 
     await usageSlices.insertOne({
-      _id: 'sessionless-slice',
+      _id: `sessionless-slice-${scope.organization.id}`,
       organizationId: scope.organization.id,
       projectId: scope.project.id,
       instanceId: scope.instance.id,

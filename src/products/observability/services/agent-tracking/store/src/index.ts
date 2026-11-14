@@ -42,3 +42,8 @@ export {
 } from './sink';
 export { type Admission, createAdmission } from './admission';
 export { writeDocuments, type WriteResult } from './writer';
+export {
+  minimumQueryMajorVersion,
+  parseMajorVersion,
+  UnsupportedStoreVersionError
+} from './version';

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { env } from './env';
 import { defaultLaneLimits } from './admission';
+import { assertQueryEngineSupported } from './version';
 import {
   collectionNames,
   ContentTextSchema,
@@ -44,6 +45,7 @@ export type Store = {
   sourceHealth: mongoose.Model<SourceHealthDocument>;
 
   collections: () => StoreCollections;
+  assertQuerySupport: () => Promise<string>;
 
   ready: () => Promise<void>;
   close: () => Promise<void>;
@@ -131,6 +133,13 @@ export let createStore = (url: string): Store => {
         usageSlices: db.collection<UsageSliceDocument>(derivedCollectionNames.usageSlices),
         sourceHealth: db.collection<SourceHealthDocument>(derivedCollectionNames.sourceHealth)
       };
+    },
+
+    assertQuerySupport: () => {
+      let db = connection.db;
+      if (!db) throw new Error('The record store is not connected.');
+
+      return assertQueryEngineSupported(db);
     },
 
     ready: () => {

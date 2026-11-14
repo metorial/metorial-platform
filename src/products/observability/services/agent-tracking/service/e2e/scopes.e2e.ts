@@ -32,7 +32,11 @@ describe('organizations', () => {
     expect(organization.object).toBe('agent_tracking#organization');
     expect(organization.hashKeyVersion).toBe(1);
     expect(organization.contentKeyVersion).toBe(1);
-    expect(organization.settings).toEqual({ allowedEmailDomains: [], sliceErasureMode: null });
+    expect(organization.settings).toEqual({
+      allowedEmailDomains: [],
+      sliceErasureMode: null,
+      privacy: { hideIndividuals: false, minGroupUsers: 5 }
+    });
     expect(organization.archivedAt).toBeNull();
   });
 
@@ -53,7 +57,8 @@ describe('organizations', () => {
     expect(changed.id).toBe(created.id);
     expect(changed.settings).toEqual({
       allowedEmailDomains: ['acme.com'],
-      sliceErasureMode: 'anonymize'
+      sliceErasureMode: 'anonymize',
+      privacy: { hideIndividuals: false, minGroupUsers: 5 }
     });
   });
 
