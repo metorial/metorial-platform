@@ -1,0 +1,9 @@
+{
+  "grok-4.7": {
+    "decision": "link",
+    "model": "xai/grok-4.7",
+    "reason": "Offering is Grok 4.7 with matching 500K context and text+image input; xAI released Grok 4.7 on 2026-09-21. Discount reseller pricing explains the far-below-median price; a cheaper serving is still the same model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

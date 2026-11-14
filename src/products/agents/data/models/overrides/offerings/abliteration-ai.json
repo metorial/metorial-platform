@@ -13,6 +13,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "abliterated-model-large-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Infron and Unlid describe it as an uncensored derivative of DeepSeek V4.1 Flash 1017 with refusal behavior removed in the weights — a weight-modified fine-tune, not the base checkpoint.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "abliterated-model-large-v2": {
     "decision": "exclude",
     "category": "fine-tune",
