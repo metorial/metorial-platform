@@ -1,5 +1,6 @@
 import type { SecurityUsageReport } from '@metorial-subspace/db';
 import { describeReport, type ReportDefinition } from '@metorial/review-engine';
+import { reviewWritingRules } from '../writingRules';
 
 let usageRules = `## Ground rules
 
@@ -60,10 +61,13 @@ treat them as risks or as things to act on. Write no recommendations when there 
 Do not invent risk. If usage is low-risk, say so and write no findings. Dangerous capabilities that are
 used as intended are not security findings by themselves.
 
-## Writing style
+## Usage prose
 
-Authoritative, specific and calm. Present tense, verdict first. Name the tools and scopes. Do not
-mention scores, and do not use markdown headings inside fields.`;
+Explain only what the usage changes for the reader's access or next action. The tables already show
+counts, tools, scopes and matches; do not turn them into a prose inventory. Name only the tools and
+scopes needed to explain a material observation or recommendation. Do not repeat the base review's
+operator description or routine authentication details. When there are no notable runtime matches,
+one short sentence is enough.`;
 
 let shellRules = `## The shell
 
@@ -78,6 +82,7 @@ export let buildUsageSystemPrompt = (d: {
   [
     usageRules,
     shellRules,
+    reviewWritingRules,
     `## Report sections\n\nWrite these with write_section. Shapes are TypeScript.\n\n${describeReport(d.definition)}`
   ].join('\n\n');
 
