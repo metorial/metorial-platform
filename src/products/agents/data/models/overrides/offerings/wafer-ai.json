@@ -1,0 +1,9 @@
+{
+  "Qwen3.8-27B": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Offering is exactly Qwen3.8 27B; Wafer's cheap-input/expensive-output pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

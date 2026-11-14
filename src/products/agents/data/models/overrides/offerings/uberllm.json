@@ -1,0 +1,16 @@
+{
+  "moonshotai/kimi-k3": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3",
+    "reason": "Offering name, HF repo moonshotai/Kimi-K3, 1M context and video input all match Kimi K3; UberLLM just prices the same checkpoint far below the median.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen/qwen3-coder": {
+    "decision": "link",
+    "model": "alibaba/qwen3-coder-480b-a35b-instruct",
+    "reason": "Offering name is exactly Qwen3-Coder 480B-A35B Instruct; UberLLM's discounted price explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}
