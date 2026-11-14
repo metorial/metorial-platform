@@ -33,7 +33,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
 
   migrations:
     name: Check Prisma migrations
@@ -68,14 +68,14 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - name: forge
-            image: ghcr.io/metorial/forge
+          - name: build
+            image: ghcr.io/metorial/build
             dockerfile: ./src/products/runtime/services/build/service/Dockerfile
           - name: secret-store
             image: ghcr.io/metorial/secret-store
             dockerfile: ./src/platform/services/secret-store/service/Dockerfile
-          - name: function-bay
-            image: ghcr.io/metorial/function-bay
+          - name: functions
+            image: ghcr.io/metorial/functions
             dockerfile: ./src/products/runtime/services/functions/service/Dockerfile
           - name: shuttle
             image: ghcr.io/metorial/shuttle
@@ -111,8 +111,8 @@ jobs:
           - name: object-store
             image: ghcr.io/metorial/mte-object-store
             dockerfile: ./src/object-storage/Dockerfile
-          - name: synthesis
-            image: ghcr.io/metorial/synthesis
+          - name: ai-gateway
+            image: ghcr.io/metorial/ai-gateway
             dockerfile: ./src/products/agents/services/ai-gateway/service/Dockerfile
           - name: subspace-worker
             image: ghcr.io/metorial/subspace-worker

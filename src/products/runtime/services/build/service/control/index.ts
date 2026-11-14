@@ -19,7 +19,7 @@ import { baseDevEnv, devRuntime, pickEnv, ownMigration } from '@metorial/control
 let runtime = devRuntime();
 
 export default project({
-  name: '@metorial/forge',
+  name: '@mtsrc/build-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -57,12 +57,12 @@ export default project({
       }
     ),
     databases: {
-      main: postgres({ package: '@metorial/forge', name: 'forge', env: 'DATABASE_URL' })
+      main: postgres({ package: '@mtsrc/build-service', name: 'forge', env: 'DATABASE_URL' })
     }
   }),
   e2e: e2e({
     start: ['e2e:start'],
-    image: 'forge',
+    image: 'build',
     tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
@@ -72,11 +72,11 @@ export default project({
   ci: {
     images: [
       ciImage({
-        name: 'forge',
+        name: 'build',
         group: 'oss',
-        image: 'metorial/mte-forge',
-        ecr: 'metorial-enterprise-saas/mte-forge',
-        canonical: 'ghcr.io/metorial/forge',
+        image: 'metorial/mte-build',
+        ecr: 'metorial-enterprise-saas/mte-build',
+        canonical: 'ghcr.io/metorial/build',
         build: bunService({
           ports: [52020],
           health: [
@@ -84,7 +84,7 @@ export default project({
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('forge', '@metorial/forge', {
+            ownMigration('forge', '@mtsrc/build-service', {
               prefix: 'FORGE',
               path: 'prisma/schema.prisma'
             })
@@ -92,6 +92,6 @@ export default project({
         })
       })
     ],
-    suite: ciSuite({ name: 'forge', groups: 1 })
+    suite: ciSuite({ name: 'build', groups: 1 })
   }
 });

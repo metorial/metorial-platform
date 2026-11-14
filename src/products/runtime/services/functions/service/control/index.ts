@@ -20,7 +20,7 @@ import { baseDevEnv, devRuntime, pickEnv, ownMigration } from '@metorial/control
 let runtime = devRuntime();
 
 export default project({
-  name: '@metorial/function-bay',
+  name: '@mtsrc/functions-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -33,7 +33,7 @@ export default project({
     dependency('@metorial/object-storage')
       .noStart()
       .env('api', 'OBJECT_STORAGE_URL', 'http://{{HOSTNAME}}:{{PORT}}'),
-    dependency('@metorial/forge').env(
+    dependency('@mtsrc/build-service').env(
       'api',
       'FORGE_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-forge'
@@ -64,7 +64,7 @@ export default project({
     ),
     databases: {
       main: postgres({
-        package: '@metorial/function-bay',
+        package: '@mtsrc/functions-service',
         name: 'function-bay',
         env: 'DATABASE_URL'
       })
@@ -72,7 +72,7 @@ export default project({
   }),
   e2e: e2e({
     start: ['e2e:start'],
-    image: 'function-bay',
+    image: 'functions',
     tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
@@ -82,11 +82,11 @@ export default project({
   ci: {
     images: [
       ciImage({
-        name: 'function-bay',
+        name: 'functions',
         group: 'oss',
-        image: 'metorial/mte-function-bay',
-        ecr: 'metorial-enterprise-saas/mte-function-bay',
-        canonical: 'ghcr.io/metorial/function-bay',
+        image: 'metorial/mte-functions',
+        ecr: 'metorial-enterprise-saas/mte-functions',
+        canonical: 'ghcr.io/metorial/functions',
         build: bunService({
           ports: [52030],
           health: [
@@ -94,7 +94,9 @@ export default project({
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('function-bay', '@metorial/function-bay', { prefix: 'FUNCTION_BAY' })
+            ownMigration('function-bay', '@mtsrc/functions-service', {
+              prefix: 'FUNCTION_BAY'
+            })
           ]
         })
       }),
@@ -123,6 +125,6 @@ export default project({
         canonical: 'ghcr.io/metorial/runtime-network-logs'
       })
     ],
-    suite: ciSuite({ name: 'function-bay', groups: 1 })
+    suite: ciSuite({ name: 'functions', groups: 1 })
   }
 });

@@ -135,8 +135,8 @@ oss/src/products/runtime/
         build-ubuntu/
       deploy/knative/           #   pinned Knative + Kourier manifests for local dev and CI
   clients/
-    build/                      # @metorial-platform-systems/forge-client (name unchanged)
-    functions/                  # @metorial-platform-systems/function-bay-client (name unchanged)
+    build/                      # @mtsrc/build-client-internal
+    functions/                  # @mtsrc/functions-client-internal
     networking/                 # TS client for the network-log query API (generated from the spec)
     cluster-manager/            # TS client for the cluster-manager control API (generated from the spec)
   packages/
@@ -171,9 +171,11 @@ M0 touches only paths:
 - `oss/src/tooling` references, control manifests (`control/index.ts` in each service, `ciImage`
   Dockerfile paths), and one deploy script.
 
-`ee/on-prem/services/{forge,function-bay}` import by package name and are unaffected. The npm names,
-client package names, deployed component names (`forge`, `function-bay`), image names and env vars
-such as `FORGE_API_URL` stay as they are.
+`ee/on-prem/services/{forge,function-bay}` import `@mtsrc/build-service` and
+`@mtsrc/functions-service`; their internal clients use `@mtsrc/{build,functions}-client-internal`.
+Image repository basenames are `build` and `functions`. Published npm packages (`function-bay`
+and `@function-bay/*`), deployed component names (`forge`, `function-bay`), RPC paths, database
+identifiers, signing purposes, and env vars such as `FORGE_API_URL` stay as they are.
 
 New TypeScript code follows the existing structure: the `knative` provider is a `ProviderImpl` next to
 `aws-lambda`; the `kubernetes` build adapter extends `ForgeBuildAdapter` next to `aws-codebuild`;

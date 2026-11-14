@@ -152,6 +152,15 @@ on the API contract rather than the runnable service. Runtime imports between pa
 package names. Clients may use type-only relative imports of API contracts to bundle those types
 into their declarations; keep the contract package declared as a dependency.
 
+Runtime Build and Functions use `@mtsrc/{build,functions}-service` and
+`@mtsrc/{build,functions}-client-internal`. Canonical GHCR images use `build` and `functions`;
+AI Gateway uses `ai-gateway`. SaaS image names add the `mte-` prefix: `mte-build`, `mte-functions`,
+and `mte-ai-gateway`. Public `function-bay` and `@function-bay/*` packages retain their names.
+Existing Forge, Function Bay, and Synthesis RPC paths, environment variables, database identifiers,
+signing identifiers, and deployment hostnames remain compatible.
+On-prem component names and image override keys remain `forge` and `function-bay`, while their
+image repositories use `build` and `functions`.
+
 Existing services may retain legacy package names until explicitly migrated. A package rename
 does not require renaming its database, environment variables, protocol paths, or published
 container images in the same change.

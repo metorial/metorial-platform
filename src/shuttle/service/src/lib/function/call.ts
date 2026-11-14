@@ -1,5 +1,5 @@
 import { clientAdapter } from '@metorial/mcp-server';
-import type { FunctionInvokeResponse } from '@metorial-platform-systems/function-bay-client';
+import type { FunctionInvokeResponse } from '@mtsrc/functions-client-internal';
 import type { FunctionServer } from '../../../prisma/generated/client';
 import { functionBay } from '../../functionBay';
 

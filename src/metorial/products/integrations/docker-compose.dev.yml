@@ -81,7 +81,7 @@ services:
       - subspace-network
 
   forge:
-    image: ghcr.io/metorial/forge:latest
+    image: ghcr.io/metorial/build:latest
     container_name: subspace-forge
     restart: unless-stopped
     environment:
@@ -114,7 +114,7 @@ services:
       - subspace-network
 
   function-bay:
-    image: ghcr.io/metorial/function-bay:latest
+    image: ghcr.io/metorial/functions:latest
     container_name: subspace-function-bay
     restart: unless-stopped
     environment:

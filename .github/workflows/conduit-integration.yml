@@ -29,7 +29,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
 
   conduit-integration:
     needs: changes

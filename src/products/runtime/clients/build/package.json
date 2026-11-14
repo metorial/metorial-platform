@@ -1,5 +1,5 @@
 {
-  "name": "@metorial-platform-systems/forge-client",
+  "name": "@mtsrc/build-client-internal",
   "version": "1.0.4",
   "publishConfig": {
     "access": "public"
@@ -54,7 +54,7 @@
     "@types/bun": "^1.4.3"
   },
   "devDependencies": {
-    "@metorial/forge": "workspace:*",
+    "@mtsrc/build-service": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"

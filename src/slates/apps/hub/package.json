@@ -91,7 +91,7 @@
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
     "@mtsrc/auth-core-client-internal": "workspace:*",
-    "@metorial-platform-systems/function-bay-client": "workspace:*",
+    "@mtsrc/functions-client-internal": "workspace:*",
     "@mtsrc/secret-store-client-internal": "workspace:*",
     "@metorial-platform-systems/signal-client": "workspace:*",
     "@metorial-services/slates-registry-client": "workspace:*",

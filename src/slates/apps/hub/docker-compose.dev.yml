@@ -67,7 +67,7 @@ services:
 
   forge:
     profiles: ['infra']
-    image: ghcr.io/metorial/forge:latest
+    image: ghcr.io/metorial/build:latest
     container_name: slates-hub-forge
     restart: unless-stopped
     ports:
@@ -103,7 +103,7 @@ services:
 
   function-bay:
     profiles: ['infra']
-    image: ghcr.io/metorial/function-bay:latest
+    image: ghcr.io/metorial/functions:latest
     container_name: slates-hub-function-bay
     restart: unless-stopped
     ports:

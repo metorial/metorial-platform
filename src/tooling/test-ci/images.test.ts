@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { prepareCompose } from './images';
+import { composeServiceName, prepareCompose } from './images';
 
 let revision = 'a'.repeat(40);
 let digest = 'b'.repeat(64);
@@ -21,7 +21,7 @@ let fixture = () => ({
 });
 let options = () => ({
   config: fixture(),
-  suite: 'forge',
+  suite: 'build',
   profiles: ['infra', 'service'],
   revision,
   readArtifact: (name: string) => ({
@@ -32,6 +32,26 @@ let options = () => ({
 });
 
 describe('image-only E2E Compose', () => {
+  test('maps runtime images to existing Compose services and hostnames', () => {
+    for (let [service, image] of [
+      ['forge', 'build'],
+      ['function-bay', 'functions']
+    ]) {
+      let config: any = fixture();
+      config.services[service] = config.services.forge;
+      if (service !== 'forge') delete config.services.forge;
+
+      let prepared = prepareCompose({ ...options(), config, suite: image });
+
+      expect(composeServiceName(image)).toBe(service);
+      expect(prepared.applications).toEqual([service]);
+      expect(prepared.config.services[service].image).toBe(
+        `ghcr.io/metorial/${image}@sha256:${digest}`
+      );
+      expect(prepared.config['x-ci-hosts'][service]).toBe(service);
+    }
+  });
+
   test('pins the object store to its built image without treating it as an application', () => {
     let config: any = fixture();
     config.services['object-storage'] = {
@@ -57,7 +77,7 @@ describe('image-only E2E Compose', () => {
     let original = fixture();
     let { config, applications } = prepareCompose({ ...options(), config: original });
     expect(applications).toEqual(['forge']);
-    expect(config.services.forge.image).toBe(`ghcr.io/metorial/forge@sha256:${digest}`);
+    expect(config.services.forge.image).toBe(`ghcr.io/metorial/build@sha256:${digest}`);
     for (let field of [
       'build',
       'volumes',
@@ -92,7 +112,7 @@ describe('image-only E2E Compose', () => {
     for (let patch of [
       { sourceRevision: 'c'.repeat(40) },
       { name: 'secret-store' },
-      { image: 'ghcr.io/metorial/forge:latest' }
+      { image: 'ghcr.io/metorial/build:latest' }
     ]) {
       let base = options();
       expect(() =>
@@ -108,7 +128,7 @@ describe('image-only E2E Compose', () => {
     let base = options();
     base.config.services.forge = {
       ...base.config.services.forge,
-      image: 'ghcr.io/metorial/forge:latest'
+      image: 'ghcr.io/metorial/build:latest'
     } as any;
     delete (base.config.services.forge as any).build;
     expect(prepareCompose(base).config.services.forge.image).toContain('@sha256:');

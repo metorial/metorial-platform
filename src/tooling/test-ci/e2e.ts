@@ -1,5 +1,5 @@
 import { createClient } from '@lowerdeck/rpc-client';
-import { prepareCompose } from './images';
+import { composeServiceName, prepareCompose } from './images';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readInventory } from './inventory';
@@ -81,9 +81,10 @@ if (command === 'prepare') {
         return [line.slice(0, separator), line.slice(separator + 1)];
       })
   );
-  config.services[suite].environment = {
+  let service = composeServiceName(suite);
+  config.services[service].environment = {
     ...ciEnvironment,
-    ...config.services[suite].environment
+    ...config.services[service].environment
   };
   let prepared = prepareCompose({
     config,

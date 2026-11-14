@@ -32,8 +32,8 @@
       ],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/function-bay-client#build": {
-      "dependsOn": ["^build", "@metorial/function-bay#prisma:generate"],
+    "@mtsrc/functions-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/functions-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "prisma:generate": {
@@ -170,8 +170,8 @@
       "dependsOn": ["^build", "@mtsrc/auth-core-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/forge-client#build": {
-      "dependsOn": ["^build", "@metorial/forge#prisma:generate"],
+    "@mtsrc/build-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/build-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@mtsrc/secret-store-client-internal#build": {
@@ -224,6 +224,22 @@
         "!.dockerignore",
         "!control/**",
         "$TURBO_ROOT$/tsconfig*.json"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
+    "@lowerdeck/rpc-spec#test": {
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README*",
+        "!Dockerfile",
+        "!dev.Dockerfile",
+        "!.dockerignore",
+        "!control/**",
+        "$TURBO_ROOT$/tsconfig*.json",
+        "$TURBO_ROOT$/src/lib/rpc/go/example/bucketrpc/bucketrpc.gen.go",
+        "$TURBO_ROOT$/src/lib/rpc/go/interop/generated/bucket.ts"
       ],
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]

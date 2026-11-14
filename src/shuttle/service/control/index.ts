@@ -32,7 +32,7 @@ export default project({
     dependency('@metorial/object-storage')
       .noStart()
       .env('api', 'OBJECT_STORAGE_URL', 'http://{{HOSTNAME}}:{{PORT}}'),
-    dependency('@metorial/function-bay').env(
+    dependency('@mtsrc/functions-service').env(
       'api',
       'FUNCTION_BAY_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-function-bay'

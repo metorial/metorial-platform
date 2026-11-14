@@ -3302,7 +3302,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/function-bay-client": "workspace:*",
+        "@mtsrc/functions-client-internal": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-catalog": "^1.0.0",
@@ -4122,7 +4122,7 @@
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/forge-client": "workspace:*",
+        "@mtsrc/build-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
@@ -4176,7 +4176,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/forge-client": "workspace:*",
+        "@mtsrc/build-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
@@ -5664,7 +5664,7 @@
       "name": "@metorial-platform-products/runtime",
     },
     "src/products/runtime/clients/build": {
-      "name": "@metorial-platform-systems/forge-client",
+      "name": "@mtsrc/build-client-internal",
       "version": "1.0.4",
       "dependencies": {
         "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -5691,7 +5691,7 @@
         "@types/bun": "^1.4.3",
       },
       "devDependencies": {
-        "@metorial/forge": "workspace:*",
+        "@mtsrc/build-service": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
@@ -5710,7 +5710,7 @@
       },
     },
     "src/products/runtime/clients/functions": {
-      "name": "@metorial-platform-systems/function-bay-client",
+      "name": "@mtsrc/functions-client-internal",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -5737,7 +5737,7 @@
       },
       "devDependencies": {
         "@function-bay/types": "^1.0.0",
-        "@metorial/function-bay": "workspace:*",
+        "@mtsrc/functions-service": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
@@ -5756,7 +5756,7 @@
       },
     },
     "src/products/runtime/services/build/service": {
-      "name": "@metorial/forge",
+      "name": "@mtsrc/build-service",
       "dependencies": {
         "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
         "@aws-sdk/client-codebuild": "^3.1164.0",
@@ -5910,7 +5910,7 @@
       },
     },
     "src/products/runtime/services/functions/service": {
-      "name": "@metorial/function-bay",
+      "name": "@mtsrc/functions-service",
       "dependencies": {
         "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
         "@aws-sdk/client-iam": "^3.1164.0",
@@ -5937,7 +5937,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/cluster-manager-client": "workspace:*",
-        "@metorial-platform-systems/forge-client": "workspace:*",
+        "@mtsrc/build-client-internal": "workspace:*",
         "@metorial-platform-systems/network-logs-client": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
@@ -7072,7 +7072,7 @@
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/tokens": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/function-bay-client": "workspace:*",
+        "@mtsrc/functions-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/mcp-server": "^1.0.0-rc.11",
         "@metorial/settings": "workspace:*",
@@ -7247,7 +7247,7 @@
         "@metorial-io/layout": "^1.0.1",
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
-        "@metorial-platform-systems/function-bay-client": "workspace:*",
+        "@mtsrc/functions-client-internal": "workspace:*",
         "@metorial-platform-systems/signal-client": "workspace:*",
         "@metorial-services/slates-registry-client": "workspace:*",
         "@metorial-services/slates-registry-internal-client": "^1.0.0",
@@ -7440,7 +7440,7 @@
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/function-bay-client": "workspace:*",
+        "@mtsrc/functions-client-internal": "workspace:*",
       },
       "devDependencies": {
         "@metorial/slates": "workspace:*",
@@ -8427,9 +8427,9 @@
 
     "@metorial-platform-systems/cluster-manager-spec": ["@metorial-platform-systems/cluster-manager-spec@workspace:src/products/runtime/services/cluster-manager/spec"],
 
-    "@metorial-platform-systems/forge-client": ["@metorial-platform-systems/forge-client@workspace:src/products/runtime/clients/build"],
+    "@mtsrc/build-client-internal": ["@mtsrc/build-client-internal@workspace:src/products/runtime/clients/build"],
 
-    "@metorial-platform-systems/function-bay-client": ["@metorial-platform-systems/function-bay-client@workspace:src/products/runtime/clients/functions"],
+    "@mtsrc/functions-client-internal": ["@mtsrc/functions-client-internal@workspace:src/products/runtime/clients/functions"],
 
     "@metorial-platform-systems/network-logs-client": ["@metorial-platform-systems/network-logs-client@workspace:src/products/runtime/clients/networking"],
 
@@ -8639,13 +8639,13 @@
 
     "@metorial/filter-bar": ["@metorial/filter-bar@workspace:src/metorial-frontend/packages/filter-bar"],
 
-    "@metorial/forge": ["@metorial/forge@workspace:src/products/runtime/services/build/service"],
+    "@mtsrc/build-service": ["@mtsrc/build-service@workspace:src/products/runtime/services/build/service"],
 
     "@metorial/form-sections": ["@metorial/form-sections@workspace:src/metorial-frontend/packages/form-sections"],
 
     "@metorial/frontend-config": ["@metorial/frontend-config@workspace:src/metorial-frontend/packages/config"],
 
-    "@metorial/function-bay": ["@metorial/function-bay@workspace:src/products/runtime/services/functions/service"],
+    "@mtsrc/functions-service": ["@mtsrc/functions-service@workspace:src/products/runtime/services/functions/service"],
 
     "@metorial/generated": ["@metorial/generated@3.3.1", "", { "dependencies": { "@metorial/util-endpoint": "^3.0.0", "@metorial/util-resource-mapper": "^3.2.0", "jose": "^5.9.6" } }, "sha512-32FXw7YHwW3EOVZY2Mq/4J+Yqgiggy4lIiZ0Rjsm0vM01hNKMKvqsUgAcp4BimFOlUYFGKadIOoeC5F2jJd+fw=="],
 

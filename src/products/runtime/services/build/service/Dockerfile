@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 FROM base AS pruner
 COPY . .
-RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@metorial/forge
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@mtsrc/build-service
 
 FROM scratch AS pruned
 COPY --from=pruner /app/out/ /
@@ -23,7 +23,7 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/forge
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@mtsrc/build-service
 
 FROM base AS control-runtime
 WORKDIR /runtime

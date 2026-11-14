@@ -68,7 +68,7 @@ describe('fetchBearerToken', () => {
         {
           realm: 'https://ghcr.io/token',
           service: 'ghcr.io',
-          scope: 'repository:metorial/forge:pull'
+          scope: 'repository:metorial/build:pull'
         },
         {
           username: 'user',

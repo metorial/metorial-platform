@@ -1,10 +1,18 @@
 import { v } from '@lowerdeck/validation';
 
+let imageNames: Record<string, string> = {
+  forge: 'build',
+  'function-bay': 'functions'
+};
+
 let artifactSchema = v.object({
   name: v.string(),
   image: v.string(),
   sourceRevision: v.string()
 });
+
+export let composeServiceName = (image: string) =>
+  Object.entries(imageNames).find(([, name]) => name === image)?.[0] ?? image;
 
 export let prepareCompose = (d: {
   config: any;
@@ -52,13 +60,14 @@ export let prepareCompose = (d: {
 
     if (
       service.build ||
-      /ghcr.io\/metorial\/(forge|function-bay|signal):/.test(service.image ?? '')
+      /ghcr.io\/metorial\/(build|functions|signal):/.test(service.image ?? '')
     ) {
-      let result = artifactSchema.validate(d.readArtifact(name));
+      let imageName = imageNames[name] ?? name;
+      let result = artifactSchema.validate(d.readArtifact(imageName));
       if (!result.success) throw new Error(`Invalid image artifact for ${name}`);
       let artifact = result.value;
       if (
-        artifact.name !== name ||
+        artifact.name !== imageName ||
         artifact.sourceRevision !== d.revision ||
         !/^ghcr\.io\/metorial\/[a-z0-9-]+@sha256:[a-f0-9]{64}$/.test(artifact.image)
       ) {
@@ -90,7 +99,9 @@ export let prepareCompose = (d: {
     }
   }
 
-  if (!applications.includes(d.suite)) throw new Error(`No compiled image for ${d.suite}`);
+  let suite = composeServiceName(d.suite);
+
+  if (!applications.includes(suite)) throw new Error(`No compiled image for ${d.suite}`);
   if (Object.values(config.services).some((service: any) => service.build))
     throw new Error('CI Compose must not build images');
 

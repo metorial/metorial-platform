@@ -12,22 +12,22 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "forge": {
+  "build": {
     "dockerfile": "src/products/runtime/services/build/service/Dockerfile",
-    "image": "ghcr.io/metorial/forge",
+    "image": "ghcr.io/metorial/build",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/forge"
+      "--filter=@mtsrc/build-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "synthesis": {
+  "ai-gateway": {
     "dockerfile": "src/products/agents/services/ai-gateway/service/Dockerfile",
-    "image": "ghcr.io/metorial/synthesis",
+    "image": "ghcr.io/metorial/ai-gateway",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
@@ -78,15 +78,15 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "function-bay": {
+  "functions": {
     "dockerfile": "src/products/runtime/services/functions/service/Dockerfile",
-    "image": "ghcr.io/metorial/function-bay",
+    "image": "ghcr.io/metorial/functions",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/function-bay"
+      "--filter=@mtsrc/functions-service"
     ],
     "buildArguments": {},
     "extraInputs": []

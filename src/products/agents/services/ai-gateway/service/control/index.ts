@@ -40,15 +40,15 @@ export default project({
       })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'synthesis' }),
+  e2e: e2e({ start: ['e2e:start'], image: 'ai-gateway' }),
   ci: {
     images: [
       ciImage({
-        name: 'synthesis',
+        name: 'ai-gateway',
         group: 'oss',
-        image: 'metorial/mte-synthesis',
-        ecr: 'metorial-enterprise-saas/mte-synthesis',
-        canonical: 'ghcr.io/metorial/synthesis',
+        image: 'metorial/mte-ai-gateway',
+        ecr: 'metorial-enterprise-saas/mte-ai-gateway',
+        canonical: 'ghcr.io/metorial/ai-gateway',
         build: bunService({
           include: ['@mtsrc/ai-gateway-db'],
           ports: [52160],
