@@ -18,7 +18,7 @@
     "@metorial/db": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "htmlparser2": "^8.0.2",
-    "image-size": "^2.0.4",
+    "image-size": "^2.1.0",
     "tldts": "^7.4.19",
     "@metorial/settings": "workspace:*"
   },
