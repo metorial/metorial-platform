@@ -5,6 +5,7 @@ import type {
   SecurityLedgerRef,
   SecurityReportBehavior,
   SecurityReportFinding,
+  SecurityReviewObservation,
   SecuritySkillCapabilityTag
 } from '@metorial-subspace/db';
 import type { LedgerFact } from '@metorial/review-engine';
@@ -19,6 +20,13 @@ let PADDING_MIN_BYTES = 50_000;
 let ENCODED_BLOB_LENGTH = 400;
 let ZERO_WIDTH_THRESHOLD = 3;
 let HIDDEN_COMMENT_LENGTH = 40;
+let observationTitles: Record<string, string> = {
+  'known-exfiltration-sink': 'Outbound endpoint reference',
+  'sensitive-file-access': 'Credential path reference',
+  'reviewer-targeting': 'Review-related instructions',
+  'path-traversal': 'Parent-directory path',
+  persistence: 'Persistent configuration reference'
+};
 
 export let scriptExtensions = new Set([
   'py',
@@ -63,6 +71,7 @@ export type SkillScanInput = {
 };
 
 export type SkillScanResult = {
+  observations: SecurityReviewObservation[];
   findings: SecurityReportFinding[];
   behaviors: SecurityReportBehavior[];
   facts: LedgerFact[];
@@ -435,17 +444,26 @@ let frontmatterOf = (content: string) => {
 
 export let scanSkill = (d: SkillScanInput): SkillScanResult => {
   let findings: SecurityReportFinding[] = [];
+  let observations: SecurityReviewObservation[] = [];
   let facts: LedgerFact[] = [];
   let behaviorMap = new Map<SecuritySkillCapabilityTag, SecurityReportBehavior>();
 
   let addBehavior = (
     tag: SecuritySkillCapabilityTag,
     body: string,
-    refs: SecurityLedgerRef[]
+    refs: SecurityLedgerRef[],
+    observationKey?: string
   ) => {
     let existing = behaviorMap.get(tag);
     behaviorMap.set(tag, {
       tag,
+      unclassified: tag != 'subagents',
+      observationKeys: [
+        ...new Set([
+          ...(existing?.observationKeys ?? []),
+          ...(observationKey ? [observationKey] : [])
+        ])
+      ],
       body: existing?.body ?? body,
       evidence: uniqueRefs([...(existing?.evidence ?? []), ...refs])
     });
@@ -456,7 +474,20 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
     factDetail: string
   ) => {
     let factId = `finding-${finding.key}`.slice(0, 60);
-    facts.push({ id: factId, title: finding.title, detail: factDetail });
+    let title = finding.key.startsWith('disguised-file-')
+      ? finding.title
+      : (observationTitles[finding.key] ?? `Pattern match: ${finding.title}`);
+    facts.push({ id: factId, title, detail: factDetail });
+
+    if (!finding.key.startsWith('disguised-file-')) {
+      observations.push({
+        key: finding.key,
+        title,
+        detail: `${finding.body}\nMatched evidence: ${factDetail}\nThis is an unconfirmed observation; examine the source context before judging its security impact.`,
+        evidence: uniqueRefs([...finding.evidence, { type: 'fact', id: factId }])
+      });
+      return;
+    }
 
     findings.push({
       ...finding,
@@ -483,7 +514,7 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
     let refs = hits.map(evidenceRef);
 
     if (rule.behavior) {
-      addBehavior(rule.behavior, rule.title, refs);
+      addBehavior(rule.behavior, rule.title, refs, rule.id);
     }
     if (rule.severity == 'info') continue;
 
@@ -493,7 +524,7 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
       hits.some(hit => sendHitsByFile.get(normalizePath(hit.path)))
     ) {
       severity = 'high';
-      addBehavior('network_egress', 'Sends data over the network', refs);
+      addBehavior('network_egress', 'Sends data over the network', refs, rule.id);
     }
 
     addFinding(
@@ -573,9 +604,12 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
         },
         `allowed-tools: ${allowed.trim()}`
       );
-      addBehavior('code_execution', 'Declares unrestricted shell access', [
-        fileRef(file.path)
-      ]);
+      addBehavior(
+        'code_execution',
+        'Declares unrestricted shell access',
+        [fileRef(file.path)],
+        'unrestricted-shell'
+      );
     }
 
     let description = frontmatter.match(/^description:\s*(.*)$/im)?.[1] ?? '';
@@ -851,6 +885,36 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
     }
   }
 
+  for (let file of d.texts.filter(file => /\.(sh|bash|zsh)$/i.test(file.path))) {
+    let lines = file.content.split('\n');
+    let line = lines.findIndex(line =>
+      /^\s*cat\s+[^|]*(?:\.aws\/credentials|\.ssh\/id_(?:rsa|ed25519))[^|]*\|\s*curl\b[^\n]*(?:--data(?:-binary)?|\s-d)\s+@-/i.test(
+        line
+      )
+    );
+    if (line < 0) continue;
+
+    let refs = [
+      evidenceRef({
+        path: file.path,
+        line: line + 1,
+        inAgentView: file.inAgentView,
+        text: lines[line]!
+      })
+    ];
+    findings.push({
+      key: 'credential-exfiltration',
+      kind: 'security',
+      category: 'exfiltration',
+      severity: 'critical',
+      title: 'Uploads credential files',
+      body: 'A shell pipeline sends a credential file directly in an outbound request.',
+      recommendation: 'Remove the upload and rotate affected credentials.',
+      tools: [],
+      evidence: refs
+    });
+  }
+
   let kinds = [...groupByKind(d.inventory)]
     .map(([kind, entries]) => `${kind}: ${entries.length}`)
     .join(', ');
@@ -866,5 +930,5 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
       .join('\n')}`
   });
 
-  return { findings, behaviors: [...behaviorMap.values()], facts };
+  return { findings, observations, behaviors: [...behaviorMap.values()], facts };
 };

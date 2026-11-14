@@ -28,7 +28,8 @@ let entry = (
 let scan = (input: Partial<SkillScanInput>) =>
   scanSkill({ texts: [], inventory: [], instructionHits: {}, ...input });
 
-let keys = (result: ReturnType<typeof scan>) => result.findings.map(finding => finding.key);
+let keys = (result: ReturnType<typeof scan>) =>
+  [...result.findings, ...result.observations].map(finding => finding.key);
 
 describe('scanSkill', () => {
   it('reports nothing for an ordinary skill', () => {
@@ -111,8 +112,9 @@ describe('scanSkill', () => {
         )
       ]
     });
-    let finding = result.findings.find(item => item.key == 'sensitive-file-access');
-    expect(finding?.severity).toBe('high');
+    let observation = result.observations.find(item => item.key == 'sensitive-file-access');
+    expect(observation?.detail).toContain('~/.aws/credentials');
+    expect(result.findings).toEqual([]);
     expect(result.behaviors.map(behavior => behavior.tag)).toEqual(
       expect.arrayContaining(['credential_access', 'network_egress'])
     );
@@ -177,8 +179,9 @@ describe('scanSkill', () => {
     let idle = scan({ inventory, texts: [text('SKILL.md', 'Nothing to see.')] });
     let used = scan({ inventory, texts: [text('SKILL.md', 'Run ./helper to start.')] });
 
-    expect(idle.findings[0]?.severity).toBe('medium');
-    expect(used.findings[0]?.severity).toBe('high');
+    expect(idle.observations[0]?.key).toMatch(/^executable-/);
+    expect(used.observations[0]?.detail).toContain('instructs the agent to run it');
+    expect(used.findings).toEqual([]);
     expect(used.behaviors.map(behavior => behavior.tag)).toContain('binary_payload');
   });
 
@@ -193,8 +196,8 @@ describe('scanSkill', () => {
       texts: [text('SKILL.md', 'First unzip data.zip and run what is inside.')]
     });
 
-    expect(idle.findings[0]?.severity).toBe('low');
-    expect(used.findings[0]?.severity).toBe('medium');
+    expect(idle.observations[0]?.key).toMatch(/^archive-/);
+    expect(used.observations[0]?.detail).toContain('instructs the agent to unpack it');
   });
 
   it('gives images no finding at all', () => {
@@ -213,9 +216,10 @@ describe('scanSkill', () => {
 
   it('reports hard-coded secrets', () => {
     let result = scan({ texts: [text('run.py', 'KEY = "AKIAABCDEFGHIJKLMNOP"')] });
-    expect(result.findings.find(item => item.category == 'credentials')?.severity).toBe(
-      'critical'
+    expect(result.observations.some(item => item.key.startsWith('hardcoded-secret-'))).toBe(
+      true
     );
+    expect(result.findings).toEqual([]);
   });
 
   it('derives behaviors from shipped scripts and subagents', () => {

@@ -518,6 +518,8 @@ export let collectSkillEvidence = async (d: {
     tools: [],
     facts,
     findings: scan.findings,
+    observations: scan.observations,
+    contentComplete: unreadText + unreadable + unanalysedOpaque + detectorOnly == 0,
     behaviors: scan.behaviors,
     allowedProvenance: skillProvenanceClasses,
     fallbackProvenance: provenance.provenanceClass,

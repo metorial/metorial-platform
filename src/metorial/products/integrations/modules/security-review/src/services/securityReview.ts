@@ -31,6 +31,10 @@ import { MIN_USAGE_CALLS } from '../lib/usage/policy';
 import { hasObservedUsage } from '../lib/usage/presence';
 import { USAGE_WINDOW_DAYS } from '../lib/usage/stats';
 import { enqueueSecurityReview } from '../queues/run';
+import {
+  SECURITY_REVIEW_RULES_VERSION,
+  SECURITY_REVIEW_PROMPT_VERSION
+} from '../definitions/versions';
 
 let REASSESS_LIMITS = [
   { windowMs: 15 * 60 * 1000, max: 2, label: '15 minutes' },
@@ -260,7 +264,9 @@ class SecurityReviewServiceImpl {
           Date.now() - FAILED_RETRY_MS);
 
     if (
-      !state.current &&
+      (!state.current ||
+        state.current.rulesVersion != SECURITY_REVIEW_RULES_VERSION ||
+        state.current.promptVersion != SECURITY_REVIEW_PROMPT_VERSION) &&
       canRetry &&
       review.status != 'disabled' &&
       (await internalSecurityReviewGateService.isTenantReviewGenerationAllowed({
@@ -269,7 +275,7 @@ class SecurityReviewServiceImpl {
     ) {
       await enqueueSecurityReview({
         reviewId: review.id,
-        trigger: 'page_open',
+        trigger: state.current ? 'prompt_update' : 'page_open',
         immediate: true
       });
     }
@@ -328,7 +334,9 @@ class SecurityReviewServiceImpl {
     let state = await this.loadState(review);
 
     if (
-      !state.current &&
+      (!state.current ||
+        state.current.rulesVersion != SECURITY_REVIEW_RULES_VERSION ||
+        state.current.promptVersion != SECURITY_REVIEW_PROMPT_VERSION) &&
       !state.inProgress &&
       review.status == 'active' &&
       !review.dismissedAt &&
@@ -336,7 +344,12 @@ class SecurityReviewServiceImpl {
         tenantOid: tenant.oid
       }))
     ) {
-      await requestSecurityReview({ subject: 'skill', id: d.skill.id, trigger: 'page_open' });
+      await requestSecurityReview({
+        subject: 'skill',
+        id: d.skill.id,
+        trigger: state.current ? 'prompt_update' : 'page_open',
+        immediateAi: !!state.current
+      });
     }
 
     return this.withVerdict(state);

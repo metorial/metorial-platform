@@ -96,11 +96,49 @@ export type SecurityReportTool = {
   behavior: string;
   declaredHints: SecurityToolHints;
   hintAccuracy: 'matches' | 'mismatch' | 'undeclared';
+  actions?: SecurityReviewAction[];
+  unclassified?: boolean;
+};
+
+export type SecurityReviewAction = {
+  operation:
+    | 'read'
+    | 'write'
+    | 'delete'
+    | 'send'
+    | 'execute'
+    | 'install'
+    | 'credentials'
+    | 'persist'
+    | 'access_control'
+    | 'financial'
+    | 'infrastructure';
+  scope:
+    | 'provided_data'
+    | 'selected_resource'
+    | 'workspace'
+    | 'account'
+    | 'unrestricted'
+    | 'unknown';
+  data: 'public' | 'user_provided' | 'private' | 'credentials' | 'unknown';
+  destination: 'none' | 'expected_service' | 'user_selected' | 'arbitrary' | 'unknown';
+  target: string;
+  evidence: SecurityLedgerRef[];
 };
 
 export type SecurityReportBehavior = {
+  observationKeys?: string[];
   tag: SecuritySkillCapabilityTag;
   body: string;
+  evidence: SecurityLedgerRef[];
+  actions?: SecurityReviewAction[];
+  unclassified?: boolean;
+};
+
+export type SecurityReviewObservation = {
+  key: string;
+  title: string;
+  detail: string;
   evidence: SecurityLedgerRef[];
 };
 
@@ -123,6 +161,12 @@ export type SecurityReportFinding = {
 };
 
 export type SecurityReport = {
+  checks?: {
+    key: string;
+    disposition: 'confirmed' | 'benign' | 'unresolved';
+    reason: string;
+    evidence: SecurityLedgerRef[];
+  }[];
   summary?: { text: string; trustNote: string; exposureNote: string };
   provenance?: { class: SecurityProvenanceClass; body: string; evidence: SecurityLedgerRef[] };
   capabilities?: { tools: SecurityReportTool[]; behaviors?: SecurityReportBehavior[] };
@@ -130,7 +174,12 @@ export type SecurityReport = {
   findings?: SecurityReportFinding[];
   resolvedFindings?: { key: string; reason: string }[];
   changes?: { body: string };
-  method?: { included: string[]; outOfScope: string[]; limitations: string[] };
+  method?: {
+    included: string[];
+    outOfScope: string[];
+    limitations: string[];
+    coverage?: 'complete' | 'partial';
+  };
 };
 
 export type SecurityReportSectionName = keyof SecurityReport;
@@ -143,6 +192,7 @@ export type SecurityReviewScoreCounts = {
 };
 
 export type SecurityReviewComputedScores = {
+  assessmentComplete?: boolean;
   rulesVersion: string;
   security: number;
   band: SecurityBand;
@@ -218,6 +268,8 @@ export type SecurityUsageToolStat = {
   errors: number;
   allowed: boolean;
   tags: SecurityCapabilityTag[];
+  actions?: SecurityReviewAction[];
+  unclassified?: boolean;
 };
 
 export type SecurityUsageScopeStat = {

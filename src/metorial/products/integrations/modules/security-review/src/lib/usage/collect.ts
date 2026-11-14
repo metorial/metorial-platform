@@ -149,13 +149,15 @@ export let collectUsageEvidence = async (d: {
       )
     : [[]];
 
-  let baseTags = new Map(
-    (d.baseRevision.report?.capabilities?.tools ?? []).map(tool => [tool.key, tool.tags])
+  let baseTools = new Map(
+    (d.baseRevision.report?.capabilities?.tools ?? []).map(tool => [tool.key, tool])
   );
 
   let catalog: UsageCatalogTool[] = specificationTools.map(tool => ({
     key: tool.key,
-    tags: baseTags.get(tool.key) ?? [],
+    tags: baseTools.get(tool.key)?.tags ?? [],
+    actions: baseTools.get(tool.key)?.actions,
+    unclassified: baseTools.get(tool.key)?.unclassified ?? !baseTools.has(tool.key),
     scopes: (tool.value.scopes?.AND ?? []).flatMap(clause => clause.OR),
     allowed: chains.some(chain => checkToolAccess(tool, chain, 'call').allowed)
   }));

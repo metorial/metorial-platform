@@ -56,7 +56,7 @@ let tierDefinitions: Record<
   SecurityReviewThoroughness,
   Omit<ThoroughnessTier, 'model'> & { model: keyof Pick<ReviewModelSet, 'fast' | 'balanced'> }
 > = {
-  basic: { model: 'fast', maxSteps: 10, maxCostMicros: 100_000, maxFixRounds: 2 },
+  basic: { model: 'fast', maxSteps: 40, maxCostMicros: 100_000, maxFixRounds: 2 },
   standard: { model: 'balanced', maxSteps: 350, maxCostMicros: 750_000, maxFixRounds: 3 },
   deep: { model: 'balanced', maxSteps: 60, maxCostMicros: 3_000_000, maxFixRounds: 3 }
 };

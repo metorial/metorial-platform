@@ -92,29 +92,29 @@ export let provenanceLabels: Record<Provenance['class'], string> = {
 };
 
 export let capabilityTags: Record<CapabilityTag, { label: string; level: SecurityLevel }> = {
-  read: { label: 'Read', level: 'low' },
-  write: { label: 'Write', level: 'moderate' },
-  untrusted_input: { label: 'Untrusted Input', level: 'moderate' },
-  destructive: { label: 'Destructive', level: 'high' },
-  external_send: { label: 'External Send', level: 'high' },
-  bulk_private_data: { label: 'Bulk Private Data', level: 'high' },
-  access_control: { label: 'Access Control', level: 'critical' },
-  financial: { label: 'Financial', level: 'critical' },
-  code_execution: { label: 'Code Execution', level: 'critical' },
-  infrastructure: { label: 'Infrastructure', level: 'critical' }
+  read: { label: 'Read', level: 'unknown' },
+  write: { label: 'Write', level: 'unknown' },
+  untrusted_input: { label: 'Untrusted Input', level: 'unknown' },
+  destructive: { label: 'Destructive', level: 'unknown' },
+  external_send: { label: 'External Send', level: 'unknown' },
+  bulk_private_data: { label: 'Bulk Private Data', level: 'unknown' },
+  access_control: { label: 'Access Control', level: 'unknown' },
+  financial: { label: 'Financial', level: 'unknown' },
+  code_execution: { label: 'Code Execution', level: 'unknown' },
+  infrastructure: { label: 'Infrastructure', level: 'unknown' }
 };
 
 export let behaviorTags: Record<BehaviorTag, { label: string; level: SecurityLevel }> = {
-  mcp_dependency: { label: 'MCP Dependency', level: 'low' },
-  subagents: { label: 'Subagents', level: 'low' },
-  network_egress: { label: 'Network Egress', level: 'moderate' },
-  package_install: { label: 'Package Install', level: 'high' },
-  filesystem_outside_skill: { label: 'Filesystem Outside Skill', level: 'high' },
-  persistence: { label: 'Persistence', level: 'high' },
-  binary_payload: { label: 'Binary Payload', level: 'high' },
-  credential_access: { label: 'Credential Access', level: 'critical' },
-  code_execution: { label: 'Code Execution', level: 'critical' },
-  financial: { label: 'Financial', level: 'critical' }
+  mcp_dependency: { label: 'MCP Dependency', level: 'unknown' },
+  subagents: { label: 'Subagents', level: 'unknown' },
+  network_egress: { label: 'Network Egress', level: 'unknown' },
+  package_install: { label: 'Package Install', level: 'unknown' },
+  filesystem_outside_skill: { label: 'File Access', level: 'unknown' },
+  persistence: { label: 'Persistence', level: 'unknown' },
+  binary_payload: { label: 'Binary Payload', level: 'unknown' },
+  credential_access: { label: 'Credential Access', level: 'unknown' },
+  code_execution: { label: 'Code Execution', level: 'unknown' },
+  financial: { label: 'Financial', level: 'unknown' }
 };
 
 export let skillVerdicts: Record<

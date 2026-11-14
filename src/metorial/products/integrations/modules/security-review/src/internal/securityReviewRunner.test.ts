@@ -37,7 +37,7 @@ vi.mock('@metorial/review-engine', () => ({
   runConsistencyJudge: mocks.judge,
   runReviewAgent: mocks.agent,
   emptyUsage: () => ({ inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, costMicros: 0 }),
-  createRunState: () => ({ submitted: true }),
+  createRunState: () => ({ submitted: true, lastErrors: [] }),
   createReviewWorkspace: async () => ({ serializeWorkspace: async () => ({}) }),
   createReviewTools: () => ({}),
   ReportDraft: class {
@@ -55,7 +55,7 @@ vi.mock('../definitions/thoroughness', () => ({
   getJudgeModel: () => ({ slug: 'judge' })
 }));
 vi.mock('../env', () => ({}));
-vi.mock('../lib/assemble', () => ({ assembleReport: () => ({ scores: {} }) }));
+vi.mock('../lib/assemble', () => ({ assembleReport: () => ({ scores: {}, report: {} }) }));
 vi.mock('../lib/findings', () => ({}));
 vi.mock('../lib/playbooks', () => ({
   buildSystemPrompt: () => 'system',
@@ -115,6 +115,10 @@ beforeEach(() => {
   });
   mocks.findRunning.mockResolvedValue(null);
   mocks.allowed.mockResolvedValue(false);
+  mocks.judge.mockResolvedValue({
+    verdict: { consistent: true, issues: [] },
+    usage: emptyUsage()
+  });
   mocks.rateLimit.mockResolvedValue({ allowed: true });
   mocks.collectEvidence.mockResolvedValue({
     kind: 'skill',
@@ -148,7 +152,7 @@ let runAgent = async (runLog: RunLog, signal?: AbortSignal) =>
   });
 
 describe('security review consistency checks', () => {
-  it('keeps a submitted report without logging a successful verdict when the judge fails', async () => {
+  it('keeps a submitted report with an explicit gap when the judge fails', async () => {
     mocks.judge.mockRejectedValue(
       new DOMException('The operation timed out.', 'TimeoutError')
     );
@@ -156,10 +160,32 @@ describe('security review consistency checks', () => {
 
     let result = await runAgent(runLog);
 
-    expect(result.complete).toBe(true);
+    expect(result.complete).toBe(false);
+    expect(result.gaps).toContain(
+      'The final evidence consistency check could not be completed.'
+    );
     expect(runLog.toString()).toContain('consistency check failed and was skipped');
     expect(runLog.toString()).not.toContain('report is consistent');
     expect(mocks.agent).toHaveBeenCalledTimes(1);
+  });
+
+  it('revalidates repaired output and preserves remaining consistency failures', async () => {
+    mocks.agent.mockImplementation(async ({ state }) => {
+      state.submitted = true;
+      return { outcome: 'submitted', usage: emptyUsage(), steps: 1, modelSteps: {} };
+    });
+    mocks.judge.mockResolvedValue({
+      verdict: {
+        consistent: false,
+        issues: [{ section: 'capabilities', message: 'Scope contradicts source.' }]
+      },
+      usage: emptyUsage()
+    });
+    let result = await runAgent(new RunLog());
+    expect(mocks.judge).toHaveBeenCalledTimes(2);
+    expect(mocks.agent).toHaveBeenCalledTimes(2);
+    expect(result.complete).toBe(false);
+    expect(result.gaps).toContain('capabilities: Scope contradicts source.');
   });
 
   it('persists retry progress and refreshes the revision heartbeat', async () => {

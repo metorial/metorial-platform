@@ -40,6 +40,7 @@ import { containsTokenForReview } from '@metorial-subspace/module-protoguard';
 import { securityReviewWebAccessService } from '../services/securityReviewWebAccess';
 import {
   type AgentRunResult,
+  buildJudgeEvidence,
   carryOverReport,
   restoreWebSnapshots,
   sumUsage
@@ -242,18 +243,26 @@ class InternalSecurityReviewRunnerServiceImpl {
           )
           .map(finding => finding.key)
       );
+      let methodChanged =
+        !!d.previous &&
+        (d.previous.rulesVersion != SECURITY_REVIEW_RULES_VERSION ||
+          d.previous.promptVersion != SECURITY_REVIEW_PROMPT_VERSION);
       let initialReport = d.previous?.report
         ? carryOverReport({ report: d.previous.report, keepFindingKeys })
         : undefined;
 
-      let isRecheck = !!d.input.recheck && d.review.scope == 'tenant' && !!initialReport;
+      if (methodChanged) initialReport = undefined;
+      let isRecheck =
+        !methodChanged && !!d.input.recheck && d.review.scope == 'tenant' && !!initialReport;
 
       let definition = createSecurityReportDefinition({
+        observations: d.evidence.observations,
+        expectedBehaviors: d.evidence.behaviors,
         expectedToolKeys: d.evidence.tools?.map(tool => tool.key) ?? null,
         allowedProvenance: d.evidence.allowedProvenance,
         requiresImplementation: d.evidence.kind == 'function' && !!d.evidence.codeReadable,
         isSkill: d.evidence.kind == 'skill',
-        hasHistory: !!initialReport,
+        hasHistory: !!d.previous?.report,
         previousFindingKeys: [...keepFindingKeys],
         lockedFindings: d.lockedFindings
       });
@@ -364,6 +373,7 @@ class InternalSecurityReviewRunnerServiceImpl {
           title: d.evidence.title,
           isUpdate: !!initialReport,
           isRecheck,
+          methodChanged,
           reason: d.input.reason,
           changes: d.input.changes
         }),
@@ -389,8 +399,12 @@ class InternalSecurityReviewRunnerServiceImpl {
         let judged = await runConsistencyJudge({
           model: getJudgeModel(),
           modelAccess: reviewModelAccess,
-          report: draft.current,
+          report: preview(draft.current).report,
           scores: preview(draft.current).scores,
+          evidence: buildJudgeEvidence({
+            report: preview(draft.current).report,
+            files: d.files
+          }),
           abortSignal: signal,
           onLog: async entry => {
             runLog.add(redactSecrets(entry));
@@ -415,12 +429,13 @@ class InternalSecurityReviewRunnerServiceImpl {
           );
         }
 
-        let issues =
-          !judged || judged.verdict.consistent
+        let issues = !judged
+          ? ['The final evidence consistency check could not be completed.']
+          : judged.verdict.consistent
             ? []
             : judged.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
 
-        if (issues.length && spent.costMicros < tier.maxCostMicros) {
+        if (judged && issues.length && spent.costMicros < tier.maxCostMicros) {
           state.submitted = false;
 
           runLog.add('fix round started: resolving the consistency check issues');
@@ -446,9 +461,34 @@ class InternalSecurityReviewRunnerServiceImpl {
           spent = sumUsage(spent, fix.usage);
           steps += fix.steps;
           runLog.add(`fix round finished: ${fix.outcome} after ${fix.steps} steps`);
+          if (state.submitted) {
+            let finalCheck = await runConsistencyJudge({
+              model: getJudgeModel(),
+              modelAccess: reviewModelAccess,
+              report: preview(draft.current).report,
+              scores: preview(draft.current).scores,
+              evidence: buildJudgeEvidence({
+                report: preview(draft.current).report,
+                files: d.files
+              }),
+              abortSignal: signal
+            }).catch(error => {
+              signal.throwIfAborted();
+              runLog.add(
+                `Final consistency check unavailable: ${redactSecrets(String(error))}`
+              );
+              return null;
+            });
+            if (finalCheck) spent = sumUsage(spent, finalCheck.usage);
+            issues = !finalCheck
+              ? ['The final evidence consistency check could not be completed.']
+              : finalCheck.verdict.consistent
+                ? []
+                : finalCheck.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
+          }
         }
 
-        if (issues.length && !state.submitted) unresolvedIssues = issues;
+        unresolvedIssues = issues;
       }
 
       await workspace
@@ -467,7 +507,7 @@ class InternalSecurityReviewRunnerServiceImpl {
         draft: draft.current,
         complete: state.submitted && !unresolvedIssues.length,
         budgetExhausted,
-        gaps: state.submitted ? [] : [...state.lastErrors, ...unresolvedIssues],
+        gaps: [...(state.submitted ? [] : state.lastErrors), ...unresolvedIssues],
         model: tier.model.slug,
         costMicros: spent.costMicros,
         unchanged

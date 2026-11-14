@@ -7,7 +7,12 @@ let revision = (d: {
   risk: 'low' | 'moderate' | 'high' | 'critical' | null;
   mode?: 'ai' | 'deterministic';
   blockReason?: 'billing' | 'ai_disabled' | 'admin_disabled' | null;
-}) => ({ mode: d.mode ?? 'ai', blockReason: d.blockReason ?? null, risk: d.risk });
+}) => ({
+  mode: d.mode ?? 'ai',
+  blockReason: d.blockReason ?? null,
+  risk: d.risk,
+  scores: null
+});
 
 describe('skillSecurityVerdict', () => {
   it('reports dismissed reviews regardless of their result', () => {

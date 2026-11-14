@@ -156,11 +156,13 @@ class SecurityReviewAdminServiceImpl {
     let computed = computeScores({
       provenance: provenance.class,
       tools,
+      behaviors: report.capabilities?.behaviors,
       findings: openFindings,
       coverage: {
         toolsExpected: tools ? Math.max(baseScores.counts.tools.expected, tools.length) : null,
         toolsReviewed: tools ? tools.length : 0,
         budgetExhausted: false,
+        assessmentComplete: baseScores.assessmentComplete,
         awaitingTools: tools === null
       },
       previous: baseScores.delta

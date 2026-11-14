@@ -78,15 +78,54 @@ export let assembleReport = (d: AssembleInput) => {
   let draft = neutralizeInternalTermsDeep(d.draft ?? {});
   let tools = d.evidence.tools;
 
-  let deterministicBehaviors = d.evidence.behaviors ?? [];
-  let draftBehaviors = (draft.capabilities?.behaviors ?? []).filter(
-    behavior => !deterministicBehaviors.some(known => known.tag == behavior.tag)
+  let deterministicBehaviors = (d.evidence.behaviors ?? []).filter(
+    behavior =>
+      !behavior.observationKeys?.length ||
+      !behavior.observationKeys.every(key =>
+        draft.checks?.some(check => check.key == key && check.disposition == 'benign')
+      )
   );
-  let behaviors = [...deterministicBehaviors, ...draftBehaviors];
+  let draftBehaviors = draft.capabilities?.behaviors ?? [];
+  let behaviors = [
+    ...draftBehaviors,
+    ...deterministicBehaviors.filter(
+      known =>
+        !draftBehaviors.some(behavior => behavior.tag == known.tag && behavior.actions?.length)
+    )
+  ];
+  behaviors = behaviors.filter(
+    (behavior, index) => behaviors.findIndex(other => other.tag == behavior.tag) == index
+  );
 
-  let baseCapabilities =
-    draft.capabilities ?? (tools ? { tools: declaredCapabilities(tools) } : { tools: [] });
-  let capabilities = behaviors.length ? { ...baseCapabilities, behaviors } : baseCapabilities;
+  let reviewedTools = draft.capabilities?.tools ?? [];
+  let missingTools = declaredCapabilities(
+    (tools ?? []).filter(tool => !reviewedTools.some(reviewed => reviewed.key == tool.key))
+  );
+  let capabilities = {
+    tools: [...reviewedTools, ...missingTools],
+    ...(behaviors.length ? { behaviors } : {})
+  };
+  let unresolved = (d.evidence.observations ?? []).filter(
+    observation =>
+      !draft.checks?.some(
+        check => check.key == observation.key && check.disposition != 'unresolved'
+      )
+  );
+  let complete =
+    !!draft.capabilities &&
+    !!draft.summary &&
+    !!draft.provenance &&
+    !!draft.findings &&
+    draft.method?.coverage == 'complete' &&
+    !d.gaps.length &&
+    !missingTools.length &&
+    !unresolved.length &&
+    !capabilities.tools.some(tool => tool.unclassified || !tool.actions?.length) &&
+    !behaviors.some(
+      behavior =>
+        behavior.unclassified || (behavior.tag != 'subagents' && !behavior.actions?.length)
+    );
+
   let provenance = draft.provenance ?? {
     class: d.evidence.fallbackProvenance,
     body: `This server is ${provenanceLabels[d.evidence.fallbackProvenance]}.`,
@@ -110,7 +149,7 @@ export let assembleReport = (d: AssembleInput) => {
   let findings = merged.map(entry => resolveFindingCitations(entry.finding, sources));
   let origins = Object.fromEntries(merged.map(entry => [entry.finding.key, entry.origin]));
 
-  let reviewedKeys = new Set(capabilities.tools.map(tool => tool.key));
+  let reviewedKeys = new Set(reviewedTools.map(tool => tool.key));
   let scores: SecurityReviewComputedScores = computeScores({
     provenance: provenance.class,
     tools: tools ? capabilities.tools : null,
@@ -121,7 +160,10 @@ export let assembleReport = (d: AssembleInput) => {
       toolsReviewed: tools ? tools.filter(tool => reviewedKeys.has(tool.key)).length : 0,
       codeReadable: d.evidence.codeReadable,
       budgetExhausted: d.budgetExhausted,
-      awaitingTools: tools === null
+      awaitingTools: tools === null,
+      assessmentComplete: complete,
+      contentComplete: d.evidence.contentComplete,
+      unresolvedObservations: unresolved.length
     },
     previous: d.previous
   });
@@ -132,10 +174,27 @@ export let assembleReport = (d: AssembleInput) => {
     exposureNote: exposureSentences[scores.exposure]
   };
 
+  if (!scores.assessmentComplete) {
+    summary = {
+      ...summary,
+      trustNote: 'The assessment is incomplete. A final security score requires more evidence.'
+    };
+  }
+  if (scores.exposure == 'unknown')
+    summary = {
+      ...summary,
+      exposureNote: 'Some actions could not be classified from the available evidence.'
+    };
+
   let isSlate = d.evidence.kind == 'slate';
   let limitations = [
     ...(isSlate ? [] : (draft.method?.limitations ?? [])),
     ...neutralizeInternalTermsDeep(d.evidence.limitations),
+    ...(d.gaps.length ? ['Some conclusions could not be validated.'] : []),
+    ...(missingTools.length
+      ? [`${missingTools.length} tools have not been classified by the review.`]
+      : []),
+    ...unresolved.map(observation => `Unresolved observation: ${observation.title}`),
     ...(d.blockReason ? [blockReasonText[d.blockReason]] : []),
     ...(d.budgetExhausted
       ? ['The review reached its analysis budget before covering everything.']
@@ -150,6 +209,7 @@ export let assembleReport = (d: AssembleInput) => {
       capabilities,
       findings,
       method: {
+        coverage: scores.assessmentComplete ? 'complete' : 'partial',
         included: draft.method?.included ?? [
           'Tool specification and declared annotations',
           'Deterministic scanners for prompt injection, secrets and vulnerable dependencies'

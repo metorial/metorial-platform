@@ -7,7 +7,7 @@ export type SkillSecurityVerdict =
 // only a clear failure is final until the agent has run.
 export let skillSecurityVerdict = (d: {
   review: Pick<SecurityReview, 'dismissedAt'>;
-  current: Pick<SecurityReviewRevision, 'mode' | 'blockReason' | 'risk'> | null;
+  current: Pick<SecurityReviewRevision, 'mode' | 'blockReason' | 'risk' | 'scores'> | null;
   inProgress: Pick<SecurityReviewRevision, 'status'> | null;
 }): SkillSecurityVerdict => {
   if (d.review.dismissedAt) return 'dismissed';
@@ -15,11 +15,23 @@ export let skillSecurityVerdict = (d: {
   if (!d.current) return d.inProgress?.status == 'failed' ? 'unavailable' : 'pending';
   if (!d.current.risk) return 'unavailable';
 
-  let fails = d.current.risk == 'high' || d.current.risk == 'critical';
+  let scores = d.current.scores;
+  let counts = scores?.counts.findings;
+  let fails = counts
+    ? counts.high > 0 || counts.critical > 0
+    : d.current.risk == 'high' || d.current.risk == 'critical';
   if (fails) return 'fail';
 
   let awaitingAi = d.current.mode == 'deterministic' && !d.current.blockReason;
   if (awaitingAi) return 'pending';
+
+  if (
+    scores &&
+    (scores.assessmentComplete === false ||
+      scores.confidence == 'low' ||
+      (counts && (counts.medium > 0 || counts.low > 0)))
+  )
+    return 'warn';
 
   return d.current.risk == 'moderate' ? 'warn' : 'pass';
 };
@@ -40,7 +52,7 @@ export let getSkillSecurityVerdicts = async (d: { skillIds: string[] }) => {
     select: {
       skillId: true,
       dismissedAt: true,
-      currentRevision: { select: { mode: true, blockReason: true, risk: true } }
+      currentRevision: { select: { mode: true, blockReason: true, risk: true, scores: true } }
     }
   });
 

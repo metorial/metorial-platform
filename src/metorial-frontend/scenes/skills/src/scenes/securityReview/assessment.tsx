@@ -270,11 +270,7 @@ export let SecurityReviewVerdict = ({
             <RiFlashlightLine size={16} />
             <div>
               <AxisTitle>
-                {scores?.confidence == 'low'
-                  ? 'Observed Exposure'
-                  : isSkill
-                    ? 'Behavior Exposure'
-                    : 'Tool Exposure'}
+                {isSkill ? 'Behavior Exposure' : 'Tool Exposure'}
                 {scores && <AxisStatus>{levelLabels[scores.exposure]}</AxisStatus>}
               </AxisTitle>
               {summary && (

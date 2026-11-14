@@ -29,11 +29,11 @@ let fullCoverage = {
 };
 
 describe('security score', () => {
-  it('starts from the provenance base', () => {
+  it('does not confuse origin uncertainty with a confirmed security defect', () => {
     expect(computeSecurityScore({ provenance: 'metorial_built', findings: [] })).toBe(95);
     expect(
       computeSecurityScore({ provenance: 'tenant_remote_unverifiable', findings: [] })
-    ).toBe(45);
+    ).toBe(95);
   });
 
   it('caps impersonation at 10 regardless of positives', () => {
@@ -50,19 +50,19 @@ describe('security score', () => {
     ).toBe(25);
   });
 
-  it('subtracts 15 per high finding and caps at 60', () => {
+  it('puts confirmed high-severity defects in the weak band', () => {
     expect(
       computeSecurityScore({
         provenance: 'metorial_built',
         findings: [finding('security', 'high')]
       })
-    ).toBe(60);
+    ).toBe(55);
     expect(
       computeSecurityScore({
         provenance: 'tenant_code',
         findings: [finding('security', 'high'), finding('security', 'high')]
       })
-    ).toBe(50);
+    ).toBe(55);
   });
 
   it('caps medium and low deductions', () => {
@@ -73,9 +73,9 @@ describe('security score', () => {
     expect(computeSecurityScore({ provenance: 'metorial_built', findings: lows })).toBe(87);
   });
 
-  it('adds positives only for tenant subjects, capped at +10 and 98', () => {
+  it('does not reward a longer list of positive findings', () => {
     let positives = Array.from({ length: 8 }, () => finding('positive'));
-    expect(computeSecurityScore({ provenance: 'tenant_code', findings: positives })).toBe(90);
+    expect(computeSecurityScore({ provenance: 'tenant_code', findings: positives })).toBe(95);
     expect(
       computeSecurityScore({
         provenance: 'tenant_remote_vendor_verified',
@@ -87,12 +87,18 @@ describe('security score', () => {
     );
   });
 
-  it('keeps a clean imported skill out of the fair band', () => {
-    for (let provenance of ['imported_public_repo', 'imported_private_repo', 'forked'] as const) {
-      expect(bandForScore(computeSecurityScore({ provenance, findings: [] }))).toBe('good');
+  it('gives identical reviewed clean skills the same strong quality across origins', () => {
+    for (let provenance of [
+      'imported_public_repo',
+      'imported_private_repo',
+      'forked'
+    ] as const) {
+      expect(bandForScore(computeSecurityScore({ provenance, findings: [] }))).toBe('strong');
     }
-    expect(computeSecurityScore({ provenance: 'imported_public_repo', findings: [] })).toBe(75);
-    expect(computeSecurityScore({ provenance: 'uploaded_archive', findings: [] })).toBe(70);
+    expect(computeSecurityScore({ provenance: 'imported_public_repo', findings: [] })).toBe(
+      95
+    );
+    expect(computeSecurityScore({ provenance: 'uploaded_archive', findings: [] })).toBe(95);
   });
 
   it('still penalizes findings on public-repo imports', () => {
@@ -101,7 +107,7 @@ describe('security score', () => {
         provenance: 'imported_public_repo',
         findings: [finding('security', 'high')]
       })
-    ).toBe(60);
+    ).toBe(55);
   });
 
   it('ignores capability findings', () => {
@@ -110,7 +116,7 @@ describe('security score', () => {
         provenance: 'tenant_code',
         findings: [finding('capability', 'info')]
       })
-    ).toBe(80);
+    ).toBe(95);
   });
 });
 
@@ -154,31 +160,18 @@ describe('exposure', () => {
 });
 
 describe('risk', () => {
-  it('is the max of posture and exposure', () => {
-    expect(computeRisk({ postureRisk: 'low', exposure: 'high' })).toBe('high');
-    expect(computeRisk({ postureRisk: 'low', exposure: 'low' })).toBe('low');
-  });
-
-  it('raises one tier when posture is at least moderate and exposure is at least high', () => {
-    expect(computeRisk({ postureRisk: 'moderate', exposure: 'high' })).toBe('critical');
-    expect(computeRisk({ postureRisk: 'moderate', exposure: 'moderate' })).toBe('moderate');
-  });
-
-  it('rates first-party code by its posture, not by what its tools can do', () => {
-    expect(
-      computeRisk({ postureRisk: 'low', exposure: 'critical', provenance: 'metorial_built' })
-    ).toBe('low');
-    expect(
-      computeRisk({ postureRisk: 'high', exposure: 'low', provenance: 'metorial_built' })
-    ).toBe('high');
-    expect(
-      computeRisk({ postureRisk: 'low', exposure: 'critical', provenance: 'tenant_code' })
-    ).toBe('critical');
-  });
-
-  it('treats unknown exposure as moderate', () => {
-    expect(computeRisk({ postureRisk: 'low', exposure: 'unknown' })).toBe('moderate');
-  });
+  it.each(['metorial_built', 'tenant_code', 'imported_public_repo'] as const)(
+    'keeps confirmed defects separate from capability exposure for %s',
+    provenance => {
+      expect(computeRisk({ postureRisk: 'low', exposure: 'critical', provenance })).toBe(
+        'low'
+      );
+      expect(computeRisk({ postureRisk: 'high', exposure: 'low', provenance })).toBe('high');
+      expect(computeRisk({ postureRisk: 'moderate', exposure: 'unknown', provenance })).toBe(
+        'moderate'
+      );
+    }
+  );
 });
 
 describe('confidence', () => {
@@ -197,7 +190,7 @@ describe('confidence', () => {
     ).toBe('low');
   });
 
-  it('drops one level per gap', () => {
+  it('does not claim high confidence with unreviewed evidence', () => {
     expect(computeConfidence({ provenance: 'tenant_code', coverage: fullCoverage })).toBe(
       'high'
     );
@@ -206,7 +199,7 @@ describe('confidence', () => {
         provenance: 'tenant_code',
         coverage: { ...fullCoverage, toolsReviewed: 1 }
       })
-    ).toBe('medium');
+    ).toBe('low');
     expect(
       computeConfidence({
         provenance: 'tenant_code',
@@ -215,9 +208,9 @@ describe('confidence', () => {
     ).toBe('low');
   });
 
-  it('never rates container images above medium', () => {
+  it('keeps opaque container implementations uncertain', () => {
     expect(computeConfidence({ provenance: 'tenant_image', coverage: fullCoverage })).toBe(
-      'medium'
+      'low'
     );
   });
 });
@@ -234,11 +227,11 @@ describe('computeScores', () => {
     expect(scores.security).toBe(95);
     expect(scores.exposure).toBe('high');
     expect(scores.risk).toBe('low');
-    expect(scores.headline).toEqual(['Trusted implementation.', 'Powerful permissions.']);
+    expect(scores.headline).toEqual(['No security issues found.', 'Powerful permissions.']);
     expect(scores.counts.capabilities).toEqual({ read: 1, write: 0, destructive: 1 });
   });
 
-  it('keeps tenant code at the higher of posture and exposure', () => {
+  it('preserves powerful exposure without inventing a defect in clean tenant code', () => {
     let scores = computeScores({
       provenance: 'tenant_code',
       tools: [tool('read'), tool('write', 'destructive')],
@@ -246,7 +239,8 @@ describe('computeScores', () => {
       coverage: fullCoverage
     });
 
-    expect(scores.risk).toBe('critical');
+    expect(scores.risk).toBe('low');
+    expect(scores.exposure).toBe('high');
   });
 
   it('counts read tools that touch private data as read', () => {
@@ -266,14 +260,17 @@ describe('skill scoring', () => {
     let scores = computeScores({
       provenance: 'tenant_authored',
       tools: [],
-      behaviors: [{ tag: 'subagents' }],
+      behaviors: [{ tag: 'subagents', body: 'Delegates the documented task.', evidence: [] }],
       findings: [],
       coverage: fullCoverage
     });
 
-    expect(scores.security).toBe(85);
+    expect(scores.security).toBe(95);
     expect(scores.exposure).toBe('low');
     expect(scores.risk).toBe('low');
-    expect(scores.headline).toEqual(['Solid implementation.', 'No risky capabilities.']);
+    expect(scores.headline).toEqual([
+      'No security issues found.',
+      'Limited, scoped behavior.'
+    ]);
   });
 });

@@ -1,6 +1,7 @@
 import type {
   SecurityCapabilityTag,
   SecurityReportFinding,
+  SecurityReviewAction,
   SecurityUsageProtoGuardStat,
   SecurityUsageScopeStat,
   SecurityUsageStats,
@@ -10,9 +11,6 @@ import type { LedgerFact } from '@metorial/review-engine';
 import { isMutatingTag } from '../evidence';
 
 export let USAGE_WINDOW_DAYS = 30;
-export let MAX_TOOL_STATS = 100;
-export let MAX_SCOPE_STATS = 100;
-export let MAX_PROTOGUARD_STATS = 50;
 
 let SEVERE_PROTOGUARD_SEVERITIES = ['high', 'critical'];
 
@@ -21,6 +19,8 @@ export type UsageCatalogTool = {
   tags: SecurityCapabilityTag[];
   scopes: string[];
   allowed: boolean;
+  actions?: SecurityReviewAction[];
+  unclassified?: boolean;
 };
 
 export type UsageStatsInput = {
@@ -42,7 +42,9 @@ export let buildUsageStats = (d: UsageStatsInput): SecurityUsageStats => {
       calls: usage.get(key)?.calls ?? 0,
       errors: usage.get(key)?.errors ?? 0,
       allowed: catalog.get(key)?.allowed ?? false,
-      tags: catalog.get(key)?.tags ?? []
+      tags: catalog.get(key)?.tags ?? [],
+      actions: catalog.get(key)?.actions,
+      unclassified: catalog.get(key)?.unclassified ?? !catalog.has(key)
     }))
     .sort((a, b) => b.calls - a.calls || a.key.localeCompare(b.key));
 
@@ -64,15 +66,14 @@ export let buildUsageStats = (d: UsageStatsInput): SecurityUsageStats => {
     errors: tools.reduce((sum, tool) => sum + tool.errors, 0),
     authConfigs: d.authConfigs,
     configs: d.configs,
-    tools: tools.slice(0, MAX_TOOL_STATS),
-    scopes: scopes.slice(0, MAX_SCOPE_STATS),
+    tools,
+    scopes,
     protoguard: {
       matches: d.protoguard.reduce((sum, row) => sum + row.matches, 0),
       alerts: d.protoguard.reduce((sum, row) => sum + row.alerts, 0),
       filters: d.protoguard
         .map(({ alerts: _alerts, ...row }) => row)
         .sort((a, b) => b.matches - a.matches)
-        .slice(0, MAX_PROTOGUARD_STATS)
     }
   };
 };
@@ -96,9 +97,9 @@ export let usageDeterministicFindings = (stats: SecurityUsageStats) => {
 
     findings.push({
       key: 'usage-calls-outside-filter',
-      kind: 'security',
+      kind: 'capability',
       category: 'capability',
-      severity: 'medium',
+      severity: 'info',
       title: 'Tools that are now blocked were called in the observed window',
       body: `Within the last ${stats.windowDays} days, ${outsideFilter.length} tool${outsideFilter.length == 1 ? ' was' : 's were'} called that the current tool filters no longer allow. The filters were likely tightened recently; earlier calls may have reached more than is allowed today.`,
       recommendation: 'Review what those calls did and keep the tool filter tightened.',
@@ -121,7 +122,7 @@ export let usageDeterministicFindings = (stats: SecurityUsageStats) => {
       key: 'usage-unused-mutating-tools',
       kind: 'capability',
       category: 'over_privilege',
-      severity: 'low',
+      severity: 'info',
       title: 'State-changing tools are available but unused',
       body: `${unusedMutating.length} tool${unusedMutating.length == 1 ? ' that can change' : 's that can change'} data in the connected account ${unusedMutating.length == 1 ? 'is' : 'are'} allowed but were not called in the last ${stats.windowDays} days.`,
       recommendation: 'Block tools you do not need with a tool filter on the integration.',
@@ -142,7 +143,7 @@ export let usageDeterministicFindings = (stats: SecurityUsageStats) => {
       key: 'usage-unused-scopes',
       kind: 'capability',
       category: 'excessive_scope',
-      severity: 'low',
+      severity: 'info',
       title: 'Some granted scopes are not needed by the tools in use',
       body: `${unusedScopes.length} granted scope${unusedScopes.length == 1 ? ' is' : 's are'} not required by any tool called in the last ${stats.windowDays} days.`,
       recommendation:

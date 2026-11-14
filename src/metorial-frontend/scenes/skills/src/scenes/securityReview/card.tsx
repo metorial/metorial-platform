@@ -81,7 +81,7 @@ export let SecurityAssessmentCard = ({
                 <Text size="1" color="gray600" as="span">
                   <FooterMeta>
                     <RiLockLine size={13} />
-                    Read-only review · No tools are executed
+                    Metorial Protoguard Security Assessment
                   </FooterMeta>
                 </Text>
               )}

@@ -32,16 +32,19 @@ export let computeUsageScores = (d: {
 }): SecurityUsageComputedScores => {
   let usedTools = d.stats.tools.filter(tool => tool.calls > 0);
   let exposure: SecurityLevel = d.stats.calls
-    ? computeExposure(usedTools.map(tool => ({ tags: tool.tags }))).exposure
+    ? computeExposure(usedTools).exposure
     : 'unknown';
 
-  let confidence: SecurityConfidenceLevel = d.budgetExhausted
-    ? 'low'
-    : d.stats.calls >= HIGH_CONFIDENCE_CALLS
-      ? 'high'
-      : d.stats.calls >= MEDIUM_CONFIDENCE_CALLS
-        ? 'medium'
-        : 'low';
+  let confidence: SecurityConfidenceLevel =
+    d.budgetExhausted ||
+    usedTools.some(tool => tool.unclassified || !tool.tags.length) ||
+    exposure == 'unknown'
+      ? 'low'
+      : d.stats.calls >= HIGH_CONFIDENCE_CALLS
+        ? 'high'
+        : d.stats.calls >= MEDIUM_CONFIDENCE_CALLS
+          ? 'medium'
+          : 'low';
 
   let allowed = d.stats.tools.filter(tool => tool.allowed);
   let securityFindings = d.findings.filter(finding => finding.kind == 'security');

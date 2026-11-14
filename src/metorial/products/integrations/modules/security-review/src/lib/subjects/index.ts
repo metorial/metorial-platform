@@ -153,6 +153,7 @@ export let buildEvidenceFiles = (evidence: CollectedEvidence) => {
     'facts.json': JSON.stringify(
       {
         facts: evidence.facts,
+        observations: evidence.observations ?? [],
         findings: evidence.findings.map(finding => ({ ...finding, recorded: true })),
         census: evidence.census
           ? {

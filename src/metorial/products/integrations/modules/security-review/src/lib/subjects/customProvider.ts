@@ -220,6 +220,7 @@ let codeEvidence = async (d: {
     facts,
     findings,
     limitations,
+    contentComplete: !!code && !code.skipped && !limitations.length,
     codeReadable: !!code && Object.keys(codeFiles).length > 0
   };
 };
@@ -301,9 +302,10 @@ export let collectCustomProviderEvidence = async (d: {
   let files: Record<string, string> = { ...(specification?.files ?? {}) };
   let codeFiles: Record<string, string> = {};
   let facts: LedgerFact[] = [...poisoning.facts, ...variance.facts];
-  let findings: SecurityReportFinding[] = [...poisoning.findings, ...variance.findings];
+  let findings: SecurityReportFinding[] = [...variance.findings];
   let limitations: string[] = [];
   let codeReadable: boolean | undefined;
+  let contentComplete: boolean | undefined;
 
   if (from.type == 'function') {
     let code = await codeEvidence({
@@ -317,6 +319,7 @@ export let collectCustomProviderEvidence = async (d: {
     findings.push(...code.findings);
     limitations.push(...code.limitations);
     codeReadable = code.codeReadable;
+    contentComplete = code.contentComplete;
   }
 
   if (from.type == 'remote') {
@@ -343,6 +346,19 @@ export let collectCustomProviderEvidence = async (d: {
     );
   }
 
+  let observations = [
+    ...poisoning.observations,
+    ...findings
+      .filter(finding => finding.kind == 'security')
+      .map(finding => ({
+        key: finding.key,
+        title: `Review signal: ${finding.title}`,
+        detail: finding.body,
+        evidence: finding.evidence
+      }))
+  ];
+  findings = findings.filter(finding => finding.kind != 'security');
+
   return {
     kind,
     title: d.customProvider.name,
@@ -352,6 +368,7 @@ export let collectCustomProviderEvidence = async (d: {
     tools,
     facts,
     findings,
+    observations,
     allowedProvenance:
       kind == 'remote'
         ? [...remoteProvenance]
@@ -365,6 +382,7 @@ export let collectCustomProviderEvidence = async (d: {
           ? 'tenant_code'
           : 'tenant_image',
     codeReadable,
+    contentComplete,
     census: census ?? undefined,
     specificationOid: specification?.oid,
     limitations

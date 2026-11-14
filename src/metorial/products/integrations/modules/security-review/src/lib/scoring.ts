@@ -13,26 +13,11 @@ import type {
 } from '@metorial-subspace/db';
 import { SECURITY_REVIEW_RULES_VERSION } from '../definitions/versions';
 import { isMutatingTag } from './evidence';
+import { actionsExposure, highestExposure } from './actionRules';
 
 type KnownLevel = Exclude<SecurityLevel, 'unknown'>;
 
 let LEVELS: KnownLevel[] = ['low', 'moderate', 'high', 'critical'];
-
-let provenanceBase: Record<SecurityProvenanceClass, number> = {
-  metorial_built: 95,
-  tenant_code: 80,
-  tenant_image: 65,
-  tenant_remote_vendor_verified: 85,
-  tenant_remote_vendor_plausible: 72,
-  tenant_remote_third_party: 60,
-  tenant_remote_unverifiable: 45,
-  impersonation_suspected: 10,
-  tenant_authored: 85,
-  imported_public_repo: 75,
-  imported_private_repo: 80,
-  uploaded_archive: 70,
-  forked: 78
-};
 
 let tagTiers: Record<SecurityCapabilityTag, KnownLevel> = {
   read: 'low',
@@ -62,11 +47,6 @@ let skillTagTiers: Record<SecuritySkillCapabilityTag, KnownLevel> = {
 
 let levelIndex = (level: KnownLevel) => LEVELS.indexOf(level);
 let raise = (level: KnownLevel) => LEVELS[Math.min(levelIndex(level) + 1, LEVELS.length - 1)]!;
-let maxLevel = (a: KnownLevel, b: KnownLevel) => (levelIndex(a) >= levelIndex(b) ? a : b);
-
-export let isTenantProvenance = (provenance: SecurityProvenanceClass) =>
-  provenance != 'metorial_built';
-
 export let computeSecurityScore = (d: {
   provenance: SecurityProvenanceClass;
   findings: Pick<SecurityReportFinding, 'kind' | 'severity'>[];
@@ -75,18 +55,13 @@ export let computeSecurityScore = (d: {
   let count = (severity: SecurityFindingSeverityLevel) =>
     security.filter(finding => finding.severity == severity).length;
 
-  let score = provenanceBase[d.provenance];
-
-  if (isTenantProvenance(d.provenance)) {
-    let positives = d.findings.filter(finding => finding.kind == 'positive').length;
-    score = Math.min(score + Math.min(positives * 2, 10), 98);
-  }
+  let score = d.provenance == 'impersonation_suspected' ? 10 : 95;
 
   score -= count('high') * 15;
   score -= Math.min(count('medium') * 6, 24);
   score -= Math.min(count('low') * 2, 8);
 
-  if (count('high') > 0) score = Math.min(score, 60);
+  if (count('high') > 0) score = Math.min(score, 55);
   if (count('critical') > 0) score = Math.min(score, 25);
   if (d.provenance == 'impersonation_suspected') score = Math.min(score, 10);
 
@@ -108,24 +83,56 @@ export let postureRiskForScore = (score: number): KnownLevel =>
   score >= 85 ? 'low' : score >= 70 ? 'moderate' : score >= 50 ? 'high' : 'critical';
 
 export let computeExposure = (
-  tools: Pick<SecurityReportTool, 'tags'>[] | null,
-  behaviors?: Pick<SecurityReportBehavior, 'tag'>[]
+  tools:
+    | (Pick<SecurityReportTool, 'tags'> &
+        Partial<Pick<SecurityReportTool, 'actions' | 'unclassified'>>)[]
+    | null,
+  behaviors?: (Pick<SecurityReportBehavior, 'tag'> &
+    Partial<Pick<SecurityReportBehavior, 'actions' | 'unclassified'>>)[]
 ) => {
   if (!tools) return { exposure: 'unknown' as SecurityLevel, trifecta: false };
 
   let tags = new Set(tools.flatMap(tool => tool.tags));
   let skillTags = new Set((behaviors ?? []).map(behavior => behavior.tag));
-  let exposure: KnownLevel = 'low';
-  for (let tag of tags) exposure = maxLevel(exposure, tagTiers[tag]);
-  for (let tag of skillTags) exposure = maxLevel(exposure, skillTagTiers[tag]);
-
-  let trifecta =
-    (tags.has('untrusted_input') &&
-      tags.has('bulk_private_data') &&
-      tags.has('external_send')) ||
-    (skillTags.has('network_egress') &&
-      (skillTags.has('credential_access') || skillTags.has('filesystem_outside_skill')));
-  if (trifecta) exposure = raise(exposure);
+  let levels = [
+    ...tools.map(tool =>
+      tool.actions?.length
+        ? actionsExposure(tool.actions)
+        : tool.unclassified
+          ? highestExposure([...tool.tags.map(tag => tagTiers[tag]), 'unknown'])
+          : !tool.tags.length
+            ? ('unknown' as const)
+            : highestExposure(tool.tags.map(tag => tagTiers[tag]))
+    ),
+    ...(behaviors ?? []).map(behavior =>
+      behavior.actions?.length
+        ? actionsExposure(behavior.actions)
+        : behavior.unclassified
+          ? ('unknown' as const)
+          : skillTagTiers[behavior.tag]
+    )
+  ];
+  let exposure = highestExposure(levels);
+  let actions = [
+    ...tools.flatMap(tool => tool.actions ?? []),
+    ...(behaviors ?? []).flatMap(behavior => behavior.actions ?? [])
+  ];
+  let hasStructuredActions =
+    tools.some(tool => tool.actions?.length) ||
+    (behaviors ?? []).some(behavior => behavior.actions?.length);
+  let trifecta = hasStructuredActions
+    ? actions.some(
+        action =>
+          ['read', 'credentials'].includes(action.operation) &&
+          ['private', 'credentials'].includes(action.data)
+      ) &&
+      actions.some(action => action.operation == 'send' && action.destination == 'arbitrary')
+    : (tags.has('untrusted_input') &&
+        tags.has('bulk_private_data') &&
+        tags.has('external_send')) ||
+      (skillTags.has('network_egress') &&
+        (skillTags.has('credential_access') || skillTags.has('filesystem_outside_skill')));
+  if (trifecta && exposure != 'unknown') exposure = raise(exposure);
 
   return { exposure: exposure as SecurityLevel, trifecta };
 };
@@ -135,14 +142,7 @@ export let computeRisk = (d: {
   exposure: SecurityLevel;
   provenance?: SecurityProvenanceClass;
 }) => {
-  if (d.provenance == 'metorial_built') return d.postureRisk;
-
-  let exposure: KnownLevel = d.exposure == 'unknown' ? 'moderate' : d.exposure;
-  let risk = maxLevel(d.postureRisk, exposure);
-
-  if (levelIndex(d.postureRisk) >= 1 && levelIndex(exposure) >= 2) risk = raise(risk);
-
-  return risk;
+  return d.postureRisk;
 };
 
 export type ScoringCoverage = {
@@ -152,6 +152,9 @@ export type ScoringCoverage = {
   vendorDocsReachable?: boolean;
   budgetExhausted: boolean;
   awaitingTools: boolean;
+  assessmentComplete?: boolean;
+  contentComplete?: boolean;
+  unresolvedObservations?: number;
 };
 
 export let computeConfidence = (d: {
@@ -159,7 +162,14 @@ export let computeConfidence = (d: {
   coverage: ScoringCoverage;
 }): SecurityConfidenceLevel => {
   let { coverage } = d;
-  if (coverage.awaitingTools || coverage.budgetExhausted || coverage.toolsExpected === null) {
+  if (
+    coverage.assessmentComplete === false ||
+    coverage.contentComplete === false ||
+    coverage.unresolvedObservations ||
+    coverage.awaitingTools ||
+    coverage.budgetExhausted ||
+    coverage.toolsExpected === null
+  ) {
     return 'low';
   }
 
@@ -169,14 +179,20 @@ export let computeConfidence = (d: {
     coverage.vendorDocsReachable === false
   ].filter(Boolean).length;
 
-  let confidence: SecurityConfidenceLevel = gaps == 0 ? 'high' : gaps == 1 ? 'medium' : 'low';
-  if (d.provenance == 'tenant_image' && confidence == 'high') confidence = 'medium';
+  let confidence: SecurityConfidenceLevel = gaps == 0 ? 'high' : 'low';
+  if (
+    ['tenant_remote_vendor_plausible', 'tenant_remote_third_party'].includes(d.provenance) &&
+    confidence == 'high'
+  )
+    confidence = 'medium';
+  if (d.provenance == 'tenant_remote_unverifiable') confidence = 'low';
+  if (d.provenance == 'tenant_image') confidence = 'low';
 
   return confidence;
 };
 
 let trustLines: Record<SecurityBand, string> = {
-  strong: 'Trusted implementation.',
+  strong: 'No security issues found.',
   good: 'Solid implementation.',
   fair: 'Some security concerns.',
   weak: 'Significant security concerns.',
@@ -185,7 +201,7 @@ let trustLines: Record<SecurityBand, string> = {
 
 let exposureLines: Record<SecurityLevel, string> = {
   unknown: 'Tools not yet inspected.',
-  low: 'Read-only access.',
+  low: 'Limited, scoped access.',
   moderate: 'Can change your data.',
   high: 'Powerful permissions.',
   critical: 'Broad, powerful permissions.'
@@ -193,7 +209,7 @@ let exposureLines: Record<SecurityLevel, string> = {
 
 let skillExposureLines: Record<SecurityLevel, string> = {
   ...exposureLines,
-  low: 'No risky capabilities.'
+  low: 'Limited, scoped behavior.'
 };
 
 let skillProvenanceClasses: SecurityProvenanceClass[] = [
@@ -226,6 +242,15 @@ export let computeScores = (d: {
   let security = computeSecurityScore({ provenance: d.provenance, findings: d.findings });
   let band = bandForScore(security);
   let { exposure, trifecta } = computeExposure(d.tools, d.behaviors);
+  if (
+    d.findings.some(
+      finding =>
+        finding.kind == 'security' &&
+        finding.category == 'exfiltration' &&
+        finding.severity == 'critical'
+    )
+  )
+    exposure = 'critical';
   let postureRisk = postureRiskForScore(security);
   let risk = computeRisk({ postureRisk, exposure, provenance: d.provenance });
 
@@ -233,6 +258,20 @@ export let computeScores = (d: {
   let countSeverity = (severity: SecurityFindingSeverityLevel) =>
     securityFindings.filter(finding => finding.severity == severity).length;
   let tools = d.tools ?? [];
+  let confidence = computeConfidence({ provenance: d.provenance, coverage: d.coverage });
+  if (
+    exposure == 'unknown' ||
+    [
+      ...(d.tools ?? []).flatMap(tool => tool.actions ?? []),
+      ...(d.behaviors ?? []).flatMap(behavior => behavior.actions ?? [])
+    ].some(
+      action =>
+        action.scope == 'unknown' ||
+        action.data == 'unknown' ||
+        action.destination == 'unknown'
+    )
+  )
+    confidence = 'low';
 
   return {
     rulesVersion: SECURITY_REVIEW_RULES_VERSION,
@@ -241,13 +280,19 @@ export let computeScores = (d: {
     exposure,
     postureRisk,
     risk,
-    confidence: computeConfidence({ provenance: d.provenance, coverage: d.coverage }),
+    confidence,
     trifecta,
-    headline: headlineFor({ band, exposure, provenance: d.provenance }),
+    assessmentComplete: d.coverage.assessmentComplete !== false && confidence != 'low',
+    headline:
+      confidence == 'low'
+        ? ['Assessment incomplete.', 'Some behavior remains unclassified.']
+        : headlineFor({ band, exposure, provenance: d.provenance }),
     counts: {
       tools: { expected: d.coverage.toolsExpected ?? 0, reviewed: d.coverage.toolsReviewed },
       capabilities: {
-        read: tools.filter(tool => !tool.tags.some(isMutatingTag)).length,
+        read: tools.filter(
+          tool => tool.tags.includes('read') && !tool.tags.some(isMutatingTag)
+        ).length,
         write: tools.filter(
           tool => tool.tags.includes('write') && !tool.tags.includes('destructive')
         ).length,

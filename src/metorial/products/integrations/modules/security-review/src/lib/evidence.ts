@@ -4,6 +4,7 @@ import type {
   SecurityReportBehavior,
   SecurityReportFinding,
   SecurityReportTool,
+  SecurityReviewObservation,
   SecuritySpecCensus,
   SecurityToolHints
 } from '@metorial-subspace/db';
@@ -29,6 +30,7 @@ export type CollectedEvidence = {
   tools: EvidenceTool[] | null;
   facts: LedgerFact[];
   findings: SecurityReportFinding[];
+  observations?: SecurityReviewObservation[];
   allowedProvenance: SecurityProvenanceClass[];
   fallbackProvenance: SecurityProvenanceClass;
   behaviors?: SecurityReportBehavior[];
@@ -36,6 +38,7 @@ export type CollectedEvidence = {
   contentHash?: string;
   skill?: { fileCount: number; analyzedFileCount: number; kinds: Record<string, number> };
   codeReadable?: boolean;
+  contentComplete?: boolean;
   census?: SecuritySpecCensus;
   specificationOid?: bigint;
   limitations: string[];
@@ -67,8 +70,8 @@ let hasAnyHint = (hints: SecurityToolHints) =>
 export let tagsFromHints = (hints: SecurityToolHints): SecurityCapabilityTag[] => {
   if (hints.readOnly) return hints.openWorld ? ['read', 'untrusted_input'] : ['read'];
 
-  let tags: SecurityCapabilityTag[] = ['write'];
-  if (hints.destructive !== false) tags.push('destructive');
+  let tags: SecurityCapabilityTag[] = hints.readOnly === false ? ['write'] : [];
+  if (hints.destructive === true) tags.push('destructive');
   if (hints.openWorld) tags.push('untrusted_input');
   return tags;
 };
@@ -81,7 +84,8 @@ export let declaredCapabilities = (tools: EvidenceTool[]): SecurityReportTool[] 
     behavior:
       (tool.description ?? '').replace(/\s+/g, ' ').trim().slice(0, 300) || 'No description.',
     declaredHints: tool.hints,
-    hintAccuracy: hasAnyHint(tool.hints) ? 'matches' : 'undeclared'
+    hintAccuracy: hasAnyHint(tool.hints) ? 'matches' : 'undeclared',
+    unclassified: true
   }));
 
 export let hintMismatchFindings = (d: {

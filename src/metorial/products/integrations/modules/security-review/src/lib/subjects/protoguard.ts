@@ -1,4 +1,4 @@
-import type { SecurityReportFinding } from '@metorial-subspace/db';
+import type { SecurityReviewObservation } from '@metorial-subspace/db';
 import {
   scanTextForReview,
   scanToolDefinitionForReview
@@ -16,7 +16,7 @@ let toolKeySlug = (key: string) =>
 
 export let scanToolDefinitions = (tools: EvidenceTool[]) => {
   let facts: LedgerFact[] = [];
-  let findings: SecurityReportFinding[] = [];
+  let observations: SecurityReviewObservation[] = [];
 
   for (let tool of tools) {
     let hits = scanToolDefinitionForReview({
@@ -42,20 +42,10 @@ export let scanToolDefinitions = (tools: EvidenceTool[]) => {
 
     facts.push({ id: factId, title: `Suspicious text in ${tool.key}`, detail });
 
-    let critical = aimedAtReviewer || hits.some(hit => hit.severity == 'critical');
-
-    findings.push({
+    observations.push({
       key: `tool-poisoning-${toolKeySlug(tool.key)}`,
-      kind: 'security',
-      category: 'tool_poisoning',
-      severity: critical ? 'critical' : 'high',
-      title: `${tool.key} contains instructions aimed at the model`,
-      body: `The definition of ${tool.key} contains text that tries to steer the AI agent using it (${
-        [...new Set(hits.map(hit => hit.familyName.toLowerCase()))].join(', ') ||
-        'reviewer manipulation'
-      }). Agents read tool definitions as trusted context.`,
-      recommendation: 'Remove instructions from tool descriptions and schemas.',
-      tools: [tool.key],
+      title: `Potential instruction manipulation in ${tool.key}`,
+      detail,
       evidence: [
         { type: 'tool', key: tool.key },
         { type: 'fact', id: factId }
@@ -63,7 +53,7 @@ export let scanToolDefinitions = (tools: EvidenceTool[]) => {
     });
   }
 
-  return { facts, findings };
+  return { facts, observations };
 };
 
 export let scanText = (d: { label: string; content: string }) => {

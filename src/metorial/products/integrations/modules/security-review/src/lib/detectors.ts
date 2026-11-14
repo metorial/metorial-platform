@@ -47,10 +47,8 @@ export let scanSecrets = (files: Record<string, string>): SecretHit[] => {
 
 let reviewerAddressingPatterns = [
   /ignore (all |any )?(previous|prior|above) (instructions|prompts?)/i,
-  /\b(you are|as) an? (ai|llm|language model|assistant)\b/i,
   /\b(security|safety) (review(er)?|audit(or)?|scanner)s?\b.{0,60}\b(should|must|ignore|skip|approve|rate)\b/i,
   /\b(rate|score|mark|classify) (this|it) (as )?(safe|secure|trusted|low risk)\b/i,
-  /<\/?(system|instructions?|important)>/i,
   /\bdo not (tell|inform|mention|reveal) (this )?(to )?the user\b/i
 ];
 

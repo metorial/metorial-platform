@@ -80,7 +80,7 @@ let presentReport = (report: SecurityReport | null) => ({
 });
 
 let presentScores = (scores: SecurityReviewComputedScores | null) =>
-  scores
+  scores && scores.assessmentComplete !== false
     ? {
         security_score: scores.security,
         band: scores.band,
