@@ -1,0 +1,65 @@
+{
+  "claude-haiku-4-5-20251001": {
+    "decision": "link",
+    "model": "anthropic/claude-haiku-4.5",
+    "reason": "Anthropic docs confirm claude-haiku-4-5-20251001 is the pinned snapshot of claude-haiku-4-5, i.e. Claude Haiku 4.5; reseller price is far below median",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-5.5": {
+    "decision": "link",
+    "model": "openai/gpt-5.5",
+    "reason": "Exact match: GPT-5.5 (Apr 23 2026, 1.05M context); reseller price is far below OpenAI's median",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-5.6-sol": {
+    "decision": "link",
+    "model": "openai/gpt-5.6-sol",
+    "reason": "Exact match: GPT-5.6 Sol; reseller price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-5.6-terra": {
+    "decision": "link",
+    "model": "openai/gpt-5.6-terra",
+    "reason": "Exact match: GPT-5.6 Terra; reseller price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-6-astra": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "Exact match: GPT-6 Astra (Sep 4 2026); reseller price is far below the $10 median",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-6.1-sol": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "Exact match: GPT-6.1 Sol (Sep 29 2026); reseller price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-6.1-terra": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "Exact match: GPT-6.1 Terra (Oct 26 2026); reseller price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "grok-4.7": {
+    "decision": "link",
+    "model": "xai/grok-4.7",
+    "reason": "Exact match: Grok 4.7 (Sep 21 2026, 500K context); reseller price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "kimi-k2.6": {
+    "decision": "link",
+    "model": "moonshot/kimi-k2.6",
+    "reason": "Exact match: Kimi K2.6 (Apr 20 2026); reseller price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

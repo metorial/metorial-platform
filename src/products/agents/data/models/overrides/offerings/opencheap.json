@@ -1,4 +1,25 @@
 {
+  "devstral-2-123b": {
+    "decision": "link",
+    "model": "mistral/devstral-2512",
+    "reason": "Devstral 2 123B is Mistral's Dec 9 2025 coding model; mistral/devstral-2512 is the catalog entry for Devstral 2; low price is the vendor's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-4o-mini": {
+    "decision": "link",
+    "model": "openai/gpt-4o-mini",
+    "reason": "Exact match: GPT-4o mini; OpenCheap's $0.014 input is its own discount pricing",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "kimi-k3": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3",
+    "reason": "Exact match: Kimi K3, Moonshot's 2.8T flagship (Jul 16 2026); OpenCheap's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "llama-3.3-70b": {
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",
