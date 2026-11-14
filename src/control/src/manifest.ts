@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { normalizeBuild } from './dockerfile/normalize';
+import { flattenJson } from './environment';
 import { MARKER } from './marker';
 import { packageScripts, readJson, sortedEntries, walk, walkManifests } from './files';
 import { validateStacks } from './stack/validate';
@@ -36,12 +37,12 @@ export let validateTemplates = (value: string, allowed: string[]) => {
 let evaluator = join(import.meta.dir, 'evaluate.ts');
 let loaderConfig = join(import.meta.dir, '..', 'tsconfig.loader.json');
 
-let evaluate = (paths: string[]): Record<string, unknown> => {
+let evaluate = (paths: string[], env: Record<string, string>): Record<string, unknown> => {
   if (!paths.length) return {};
 
   let result = Bun.spawnSync(
     [process.execPath, '--tsconfig-override', loaderConfig, evaluator, ...paths],
-    { stdout: 'pipe', stderr: 'pipe' }
+    { stdout: 'pipe', stderr: 'pipe', env: { ...process.env, ...env } }
   );
   let output = result.stdout.toString();
   let start = output.lastIndexOf(MARKER);
@@ -54,8 +55,22 @@ let evaluate = (paths: string[]): Record<string, unknown> => {
   return JSON.parse(output.slice(start + MARKER.length));
 };
 
-export let loadMany = (paths: string[]): LoadedManifest[] => {
-  let evaluated = evaluate(paths) as Record<string, { raw: unknown } | { error: string }>;
+// Manifests see env.json layered over the process environment, the same precedence that
+// inherit() and fromEnv() resolve with, so a checkout-local opt-in reaches the daemon too.
+let evaluationEnvironment = (root: string): Record<string, string> => {
+  let path = join(root, 'env.json');
+
+  return {
+    ...(existsSync(path) ? flattenJson(readJson(path)) : {}),
+    CONTROL_PROJECT_ROOT: root
+  };
+};
+
+export let loadMany = (
+  paths: string[],
+  env: Record<string, string> = {}
+): LoadedManifest[] => {
+  let evaluated = evaluate(paths, env) as Record<string, { raw: unknown } | { error: string }>;
 
   return paths.map(path => {
     let item = evaluated[path];
@@ -362,7 +377,7 @@ export let validate = (manifest: Manifest, path: string, scripts: string[] = [])
       name('dependency endpoint', entry.endpoint);
       structured(
         entry,
-        ['HOSTNAME', 'PORT'],
+        ['HOSTNAME', 'PORT', 'BIND_PORT'],
         `dependency ${JSON.stringify(dependency.identifier)}`
       );
     }
@@ -482,7 +497,7 @@ export let discover = (
   root: string,
   options: { stackOnly?: boolean } = {}
 ): LoadedManifest[] => {
-  let manifests = loadMany(walkManifests(root)).filter(
+  let manifests = loadMany(walkManifests(root), evaluationEnvironment(root)).filter(
     loaded => options.stackOnly || !loaded.manifest.stack_only
   );
   let packages = new Map<string, LoadedManifest>();
@@ -585,7 +600,7 @@ export let refreshDependencyEndpoints = (
         Object.fromEntries(
           sortedEntries(item.manifest.endpoints).map(([name, endpoint]) => [
             name,
-            { hostname, port: endpoint.port }
+            { hostname, port: endpoint.port, bind_port: endpoint.bind_port }
           ])
         )
       ])

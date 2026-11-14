@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { atomicWrite, writeJson } from '../src/files';
+import * as environment from '../src/environment';
 import * as manifest from '../src/manifest';
 import { packageFixture, temporary } from './helpers';
 
@@ -214,5 +215,42 @@ describe('manifest graphs and selection', () => {
     );
 
     expect(() => manifest.loadExternals(root, all)).toThrow('missing mapping');
+  });
+
+  test('dependency env can address the private bind port', () => {
+    let root = temporary();
+    packageFixture(
+      root,
+      'a',
+      'a',
+      "name='a'\n[[dependencies]]\nidentifier='b'\nstart=false\nenv=[{endpoint='http',key='DIRECT',value='http://127.0.0.1:{{BIND_PORT}}'},{endpoint='http',key='PUBLIC',value='http://{{HOSTNAME}}:{{PORT}}'}]"
+    );
+    packageFixture(root, 'b', 'b', "name='b'\n[endpoints.http]\nport=4310");
+
+    let all = manifest.discover(root);
+    all.find(item => item.manifest.package?.name === 'b')!.manifest.endpoints.http!.bind_port =
+      30001;
+    manifest.refreshDependencyEndpoints(all, 'ws.localhost');
+
+    expect(
+      environment.allForManifest(
+        all.find(item => item.manifest.package?.name === 'a')!,
+        {}
+      )
+    ).toMatchObject({ DIRECT: 'http://127.0.0.1:30001', PUBLIC: 'http://ws.localhost:4310' });
+  });
+
+  test('manifests are evaluated with env.json over the process environment', () => {
+    let root = temporary();
+    let directory = packageFixture(root, 'a', 'a');
+    atomicWrite(
+      join(directory, 'control', 'index.ts'),
+      "import { rawProject } from '@metorial/control/raw';\n\nexport default rawProject({ name: process.env.CONTROL_TEST_NAME, group: process.env.CONTROL_PROJECT_ROOT === undefined ? 'missing' : 'root' });\n"
+    );
+    writeJson(join(root, 'env.json'), { CONTROL_TEST_NAME: 'from-env-json' });
+
+    let [loaded] = manifest.discover(root);
+
+    expect(loaded!.manifest.package).toEqual({ name: 'from-env-json', groups: ['root'] });
   });
 });

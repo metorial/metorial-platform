@@ -90,7 +90,10 @@ export interface Manifest {
   mode: 'both' | RootKind;
   dependencies: Dependency[];
   endpoints: Record<string, Endpoint>;
-  dependency_endpoints: Record<string, Record<string, { hostname: string; port: number }>>;
+  dependency_endpoints: Record<
+    string,
+    Record<string, { hostname: string; port: number; bind_port?: number }>
+  >;
   resources: {
     type: 'redis' | 'nats' | 'etcd' | 'mail' | 'postgres';
     env: { key: string; value: string }[];

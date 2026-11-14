@@ -179,7 +179,8 @@ export let allForManifest = (loaded: LoadedManifest, root: Environment): Environ
         );
       output[env.key] = interpolateStructured(env.value, {
         HOSTNAME: endpoint.hostname,
-        PORT: String(endpoint.port)
+        PORT: String(endpoint.port),
+        BIND_PORT: String(endpoint.bind_port ?? endpoint.port)
       });
     }
   }
