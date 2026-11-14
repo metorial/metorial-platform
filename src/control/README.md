@@ -297,7 +297,7 @@ start = ["e2e:start"]       # package.json scripts started from source (no watch
 image = "app-api"           # tested image artifact name for --images
 
 # Stack-only keys:
-tests = ["../../products/*/modules/*", "../../../products/identity/modules/*", "../../apis/*"]
+tests = ["../../products/*/modules/*", "../../../products/*/modules/*", "../../apis/*"]
 services = ["@metorial/shuttle"]   # started in addition to [[dependencies]]
 health_timeout = 300
 

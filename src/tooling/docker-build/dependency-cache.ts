@@ -41,7 +41,6 @@ if (command === 'fingerprint') {
           )
         : path.startsWith(tooling + '/')) ||
       path.startsWith(tooling.replace('docker-build', 'warp-cache') + '/') ||
-      (metadataOnly && /(^|\/)src\/origin\/apps\/code-bucket\//.test(path)) ||
       (!metadataOnly &&
         (path.startsWith('.github/actions/') || path.startsWith('.github/workflows/'))) ||
       /(^|\/)(tsconfig[^/]*\.json|prisma\.config\.ts)$/.test(path) ||

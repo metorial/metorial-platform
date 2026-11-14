@@ -178,8 +178,8 @@
       "dependsOn": ["^build", "@mtsrc/secret-store-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/origin-client#build": {
-      "dependsOn": ["^build", "@metorial/origin#prisma:generate"],
+    "@mtsrc/scm-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/scm-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@mtsrc/email-client-internal#build": {

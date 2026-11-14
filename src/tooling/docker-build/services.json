@@ -65,15 +65,15 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "origin": {
-    "dockerfile": "src/origin/apps/service/Dockerfile",
-    "image": "ghcr.io/metorial/mte-origin",
+  "scm": {
+    "dockerfile": "src/products/storage/services/scm/services/api/Dockerfile",
+    "image": "ghcr.io/metorial/mte-scm",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/origin"
+      "--filter=@mtsrc/scm-service"
     ],
     "buildArguments": {},
     "extraInputs": []
@@ -210,7 +210,7 @@
     "extraInputs": []
   },
   "code-bucket": {
-    "dockerfile": "src/origin/apps/code-bucket/Dockerfile",
+    "dockerfile": "src/products/storage/services/scm/services/code-bucket/Dockerfile",
     "image": "ghcr.io/metorial/mte-code-bucket",
     "platform": "linux/amd64",
     "workspace": ".",

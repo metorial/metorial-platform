@@ -4,9 +4,9 @@ The OSS source tree groups code by product and team ownership while allowing the
 monolith to span every product. Each product owns its standalone services, shared product
 packages, and the modules that run inside the monolith.
 
-The refactor is in progress. Runtime's move into `products/runtime` is complete, and agents has
-started moving into `products/agents`. Auth Core and five monolith modules now live under
-`products/identity`. The target layout below also covers code still in the previous tree.
+The refactor is in progress. Runtime’s move is complete. Agents, auditing, identity, skills,
+storage, and workforce now live under `products/`. The layout below also covers code still in
+the previous tree.
 
 **All new packages, modules, and services must follow this specification**, including additions
 to products whose existing code has not yet migrated. Existing paths describe migration state,
@@ -25,11 +25,8 @@ oss/src/
         <service-name>/
       packages/
         <package-name>/
-      core/
-        packages/
-          <package-name>/
-        modules/
-          <module-name>/
+      modules/
+        <module-name>/          # Product modules running in the Metorial monolith
       clients/
         <client-name>/          # Clients for this product's services
       data/                     # Optional product data and generators
@@ -72,8 +69,7 @@ Place code at the narrowest scope that matches its responsibility:
 | Clients for product or platform services                       | `products/<product>/clients/<client>` or `platform/clients/<client>` |
 | Utilities private to one service                               | That service's `packages/`                                           |
 | Product packages shared by services and/or the monolith        | `products/<product>/packages/<package>`                              |
-| Product business logic running in the Metorial monolith        | `products/<product>/core/modules/<module>`                           |
-| Utilities shared within that product's monolith code           | `products/<product>/core/packages/<package>`                         |
+| Product business logic running in the Metorial monolith        | `products/<product>/modules/<module>`                                |
 | A shared service supporting multiple products                  | `platform/services/<service>`                                        |
 | The main Metorial database                                     | `platform/db`                                                        |
 | A shared API used across products                              | `platform/apis/<api>`                                                |
@@ -140,6 +136,12 @@ For example, the agents product owns `products/agents/services/ai-gateway/`, wit
 `@mtsrc/ai-gateway-db`, `@mtsrc/ai-gateway-api-internal`, and `@mtsrc/ai-gateway-service`. Its
 `@mtsrc/ai-gateway-client-internal` package lives at `products/agents/clients/ai-gateway/`.
 
+SCM uses `services/api`, `services/code-bucket`, and `services/code-workspace` under
+`products/storage/services/scm/`. Their packages are `@mtsrc/scm-service`,
+`@mtsrc/scm-code-bucket-service`, and `@mtsrc/scm-code-workspace`. Its clients are
+`@mtsrc/scm-client-internal` and `@mtsrc/scm-code-bucket-client-internal`, under
+`products/storage/clients/{scm,code-bucket}/`.
+
 The service host composes API packages and starts listeners and workers. The database package
 owns Prisma generation and migrations; other packages import its public exports. Clients depend
 on the API contract rather than the runnable service. Runtime imports between packages use
@@ -152,9 +154,8 @@ container images in the same change.
 
 ## The Metorial monolith
 
-`products/<product>/core/` contains the part of a product that runs inside the Metorial monolith.
-Here, `core` describes where code runs; it does not assign that code to a separate product or
-team. Each product team continues to own its modules and packages.
+`products/<product>/modules/` contains the parts of a product that run inside the Metorial
+monolith. Each product team owns its modules and packages.
 
 The shared monolith entry point composes modules from multiple products, mounts their API
 surfaces, imports lifecycle listeners, and registers background processors. Product boundaries
@@ -162,10 +163,7 @@ do not require a separate process or deployment for each product. The current
 `metorial/services/api` already composes APIs and workers across products; the refactor preserves
 that model while relocating the code it consumes.
 
-The identity product keeps its monolith modules directly in `products/identity/modules/`.
-The Metorial API and worker load those modules through their existing package names.
-
-Product core modules may use their product's shared packages, call services owned by that
+Product modules may use their product's shared packages, call services owned by that
 product, and use platform services. Consume standalone services through their client or public
 contract. Dependencies between monolith modules use their public package exports, following the
 existing module conventions.
@@ -203,20 +201,22 @@ Changing a package's directory does not by itself require changing its package n
 
 ## Migration status and rules
 
-| Area                           | Status                                                                                                                                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Runtime                        | Structural move complete under `products/runtime`, including services, clients, and shared packages. This status concerns directory organization, not every runtime feature or deployment change.                  |
-| Agents                         | Started: the model catalog is under `products/agents/data/models`, and synthesis moved to `products/agents/services/ai-gateway` with `@mtsrc/ai-gateway-*` packages. Monolith modules remain in the previous tree. |
-| Identity                       | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
-| Platform services              | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                       |
-| Other products and shared code | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                           |
+| Area                            | Status                                                                                                                                                                                                                                                                                                      |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime                         | Structural move complete under `products/runtime`, including services, clients, and shared packages. This status concerns directory organization, not every runtime feature or deployment change.                                                                                                           |
+| Agents                          | Modules and shared packages live alongside the model catalog and AI Gateway under `products/agents/`.                                                                                                                                                                                                       |
+| Auditing, skills, and workforce | Modules and shared packages live under their product directories.                                                                                                                                                                                                                                           |
+| Storage                         | Storage modules and SCM live under `products/storage/`. SCM, formerly Origin, uses `@mtsrc/scm-*` packages. Code Bucket and the editor live with the service. The SCM and Code Bucket clients live in `products/storage/clients/`.                                                                          |
+| Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
+| Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
+| Other products and shared code  | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                                                                                                                    |
 
 As remaining code moves, use these destination rules:
 
 | Current location                                                      | Target placement                                                                           |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `metorial/products/<product>/modules/`                                | `products/<product>/core/modules/` for monolith modules                                    |
-| `metorial/products/<product>/packages/`                               | Product `packages/` or `core/packages/`, according to consumers                            |
+| `metorial/products/<product>/modules/`                                | `products/<product>/modules/`                                                              |
+| `metorial/products/<product>/packages/`                               | Product `packages/`                                                                        |
 | Standalone services at the source root or inside the old product tree | Product `services/` or `platform/services/`, according to ownership                        |
 | `metorial/db/`                                                        | `platform/db/`                                                                             |
 | `metorial/apis/`                                                      | `surfaces/metorial/apis/` or `platform/apis/`, according to responsibility                 |

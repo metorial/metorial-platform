@@ -17,7 +17,7 @@ client type from the controller (`InferClient<typeof controller>`), so there is 
 generate from. The wire protocol already allows it (the Go client is tested against a real
 TypeScript server), so a hand-written Go client is possible if one is ever needed.
 
-Today Go services talk to TypeScript over gRPC + ts-proto (e.g. `oss/src/origin/apps/code-bucket`),
+Today Go services talk to TypeScript over gRPC + ts-proto (e.g. `oss/src/products/storage/services/scm/services/code-bucket`),
 which brings protobuf tooling, a second error model and no request signing. This plan replaces
 that for new work.
 

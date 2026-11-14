@@ -1,0 +1,31 @@
+{
+  "name": "@mtsrc/scm-code-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "setup_vscode": "./setup.sh",
+    "setup_vscode:force": "FORCE_SETUP=true ./setup.sh",
+    "enterprise:dev": "./setup.sh && vite --port 3302 || true",
+    "dev": "./setup.sh && vite --port 3302",
+    "frontend:build": "./setup.sh && tsc && vite build",
+    "preview": "vite preview",
+    "dev:start": "vite --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "@types/vscode": "*",
+    "rollup": "^4.65.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.7",
+    "vscode": "*",
+    "vscode-web": "^1.91.1"
+  },
+  "dependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  },
+  "overrides": {
+    "rollup": "^4.64.6"
+  }
+}

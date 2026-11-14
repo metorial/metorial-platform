@@ -73,11 +73,7 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'app-api',
-    tests: [
-      '../../products/*/modules/*',
-      '../../../products/identity/modules/*',
-      '../../apis/*'
-    ],
+    tests: ['../../products/*/modules/*', '../../../products/*/modules/*', '../../apis/*'],
     services: [
       '@metorial/shuttle',
       '@mtsrc/search-service',

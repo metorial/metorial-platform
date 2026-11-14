@@ -102,12 +102,12 @@ jobs:
           - name: deflector
             image: ghcr.io/metorial/deflector
             dockerfile: ./src/products/runtime/services/networking/legacy/deflector/Dockerfile
-          - name: origin
-            image: ghcr.io/metorial/mte-origin
-            dockerfile: ./src/origin/apps/service/Dockerfile
+          - name: scm
+            image: ghcr.io/metorial/mte-scm
+            dockerfile: ./src/products/storage/services/scm/services/api/Dockerfile
           - name: code-bucket
             image: ghcr.io/metorial/mte-code-bucket
-            dockerfile: ./src/origin/apps/code-bucket/Dockerfile
+            dockerfile: ./src/products/storage/services/scm/services/code-bucket/Dockerfile
           - name: object-store
             image: ghcr.io/metorial/mte-object-store
             dockerfile: ./src/object-storage/Dockerfile
