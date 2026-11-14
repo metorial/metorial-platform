@@ -1,0 +1,195 @@
+# The dev platform namespace is metorial-runtime-dev; in a real install it is the Metorial
+# platform namespace (usually metorial).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-dev
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metorial-functions
+  namespace: metorial-runtime-dev
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metorial-build
+  namespace: metorial-runtime-dev
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: function-runtime
+  namespace: metorial-runtime-functions
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: build-runtime
+  namespace: metorial-runtime-builds
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: runtime-cluster-manager-auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: runtime-cluster-manager
+rules:
+  - apiGroups: ["node.k8s.io"]
+    resources: ["runtimeclasses"]
+    verbs: ["get", "list"]
+  # Preflight's cluster CIDR detection; not needed when CLUSTER_MANAGER_CLUSTER_CIDRS is set.
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["servicecidrs"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: runtime-cluster-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: runtime-cluster-manager
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-functions
+rules:
+  - apiGroups: ["serving.knative.dev"]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-functions
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: runtime-cluster-manager
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-builds
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-builds
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: runtime-cluster-manager
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: runtime-cluster-manager-knative-config
+  namespace: knative-serving
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["config-features", "config-autoscaler", "config-defaults", "config-network", "config-deployment"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: runtime-cluster-manager-knative-config
+  namespace: knative-serving
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: runtime-cluster-manager-knative-config
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-dev
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "create", "update"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["runtime-cluster-manager"]
+    verbs: ["get"]
+  # Preflight mints short-lived tokens for itself to check TokenReview per audience.
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["runtime-cluster-manager"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: runtime-cluster-manager
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev
