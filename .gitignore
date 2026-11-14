@@ -148,6 +148,8 @@ __pycache__/
 *.so
 .Python
 build/
+!src/products/runtime/services/build/
+!src/products/runtime/clients/build/
 develop-eggs/
 dist/
 downloads/

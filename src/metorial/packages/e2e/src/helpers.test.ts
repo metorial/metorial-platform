@@ -58,6 +58,7 @@ describe('remote stack', () => {
     process.env.METORIAL_E2E_REMOTE_URL = 'http://metorial.localhost:18080/';
     expect(isRemoteE2E()).toBe(true);
     expect(metorialEndpoints().api).toBe('http://metorial.localhost:18080/v1');
+    expect(metorialEndpoints().mcp).toBe('http://metorial.localhost:18080');
     expect(() => metorialEndpoints().integrations).toThrow('remote stack');
   });
 

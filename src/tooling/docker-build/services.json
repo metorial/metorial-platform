@@ -13,7 +13,7 @@
     "extraInputs": []
   },
   "forge": {
-    "dockerfile": "src/forge/service/Dockerfile",
+    "dockerfile": "src/products/runtime/services/build/service/Dockerfile",
     "image": "ghcr.io/metorial/forge",
     "platform": "linux/amd64",
     "workspace": ".",
@@ -78,7 +78,7 @@
     "extraInputs": []
   },
   "function-bay": {
-    "dockerfile": "src/function-bay/service/Dockerfile",
+    "dockerfile": "src/products/runtime/services/functions/service/Dockerfile",
     "image": "ghcr.io/metorial/function-bay",
     "platform": "linux/amd64",
     "workspace": ".",
@@ -131,17 +131,8 @@
     "extraInputs": []
   },
   "deflector": {
-    "dockerfile": "src/function-bay/deflector/Dockerfile",
+    "dockerfile": "src/products/runtime/services/networking/legacy/deflector/Dockerfile",
     "image": "ghcr.io/metorial/deflector",
-    "platform": "linux/amd64",
-    "workspace": ".",
-    "tasks": [],
-    "buildArguments": {},
-    "extraInputs": []
-  },
-  "function-bay-observer": {
-    "dockerfile": "src/function-bay/observer/Dockerfile",
-    "image": "ghcr.io/metorial/function-bay-observer",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [],
@@ -223,6 +214,51 @@
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-cluster-manager": {
+    "dockerfile": "src/products/runtime/services/cluster-manager/service/Dockerfile",
+    "image": "ghcr.io/metorial/runtime-cluster-manager",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-egress-gateway": {
+    "dockerfile": "src/products/runtime/services/networking/service/gateway.Dockerfile",
+    "image": "ghcr.io/metorial/runtime-egress-gateway",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-network-logs": {
+    "dockerfile": "src/products/runtime/services/networking/service/logstore.Dockerfile",
+    "image": "ghcr.io/metorial/runtime-network-logs",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-function-node24": {
+    "dockerfile": "src/products/runtime/services/cluster-manager/images/function-node24/Dockerfile",
+    "image": "ghcr.io/metorial/runtime-function-node24",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-build-ubuntu": {
+    "dockerfile": "src/products/runtime/services/cluster-manager/images/build-ubuntu/Dockerfile",
+    "image": "ghcr.io/metorial/runtime-build-ubuntu",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": ["build", "--filter=function-bay", "--filter=@function-bay/nodejs"],
     "buildArguments": {},
     "extraInputs": []
   }

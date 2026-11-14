@@ -228,6 +228,25 @@
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
     },
+    "@metorial-platform-products/runtime#test": {
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README*",
+        "!**/Dockerfile",
+        "!**/*.Dockerfile",
+        "!.dockerignore",
+        "!**/control/**",
+        "$TURBO_ROOT$/src/lowerdeck/go/**/*.go",
+        "$TURBO_ROOT$/src/lowerdeck/go/**/go.mod",
+        "$TURBO_ROOT$/src/lowerdeck/go/**/go.sum",
+        "$TURBO_ROOT$/src/object-storage/clients/go/**/*.go",
+        "$TURBO_ROOT$/src/object-storage/clients/go/**/go.mod",
+        "$TURBO_ROOT$/src/object-storage/clients/go/**/go.sum"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
     "rust:fmt": {
       "inputs": ["**/*.rs", "Cargo.toml", "Cargo.lock", "rustfmt.toml"],
       "outputs": []

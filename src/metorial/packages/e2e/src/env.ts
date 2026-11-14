@@ -96,7 +96,7 @@ export let metorialEndpoints = () => {
       get subspaceInternal() {
         return remoteOnly('subspaceInternal');
       },
-      mcp: undefined as string | undefined,
+      mcp: remote as string | undefined,
       portal: undefined as string | undefined
     };
   }

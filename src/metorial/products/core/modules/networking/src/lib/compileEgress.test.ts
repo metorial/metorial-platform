@@ -114,6 +114,24 @@ describe('compileEgressRules', () => {
     expect(result.warnings).toHaveLength(1);
   });
 
+  it('drops allows inside embedded-IPv4 prefixes', () => {
+    let result = compileEgressRules({
+      firewalls: [
+        firewall(
+          rule({
+            effect: 'allow',
+            cidrs: ['64:ff9b::a00:0/104', '2002:a00::/24', '2001::/32', '2606:2800::/32']
+          })
+        )
+      ]
+    });
+    expect(result.rules).toEqual([
+      { action: 'allow', protocol: 'any', cidr: '2606:2800::/32' },
+      ...denyAll
+    ]);
+    expect(result.warnings).toHaveLength(3);
+  });
+
   it('rejects results that exceed the rule limit', () => {
     let cidrs = Array.from({ length: 150 }, (_, i) => `93.${i}.0.0/24`);
     expect(() =>

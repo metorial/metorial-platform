@@ -102,9 +102,6 @@ jobs:
           - name: deflector
             image: ghcr.io/metorial/deflector
             dockerfile: ./src/products/runtime/services/networking/legacy/deflector/Dockerfile
-          - name: function-bay-observer
-            image: ghcr.io/metorial/function-bay-observer
-            dockerfile: ./src/products/runtime/services/networking/legacy/observer/Dockerfile
           - name: origin
             image: ghcr.io/metorial/mte-origin
             dockerfile: ./src/origin/apps/service/Dockerfile

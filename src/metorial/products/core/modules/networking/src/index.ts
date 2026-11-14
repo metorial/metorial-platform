@@ -6,6 +6,7 @@ import { indexFirewallQueueProcessor } from './queues/search';
 export * from '@lowerdeck/ip-range';
 export * from './lib/compileEgress';
 export * from './lib/compileNetworkAllowList';
+export * from './lib/internalRanges';
 export * from './lib/networkPolicyRules';
 export * from './lib/networkPolicyValidation';
 export * from './lib/portRangeSet';

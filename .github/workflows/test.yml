@@ -46,6 +46,12 @@ jobs:
         with:
           bun-version: '1.4.2'
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/products/runtime/go.mod
+          cache-dependency-path: src/products/runtime/go.sum
+
       - name: Set up Warp Cache
         uses: ./.github/actions/setup-warp-cache
         with:
