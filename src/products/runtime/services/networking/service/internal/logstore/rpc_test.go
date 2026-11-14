@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc"
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc/kubeauth"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go/kubeauth"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/networking/service/rpc/networklogsrpc"
 )
 

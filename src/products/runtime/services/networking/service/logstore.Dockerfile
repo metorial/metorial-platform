@@ -5,7 +5,7 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /src
 
-COPY src/lowerdeck/go/ldrpc/ src/lowerdeck/go/ldrpc/
+COPY src/lib/rpc/go/ src/lib/rpc/go/
 COPY src/object-storage/clients/go/ src/object-storage/clients/go/
 COPY src/products/runtime/go.mod src/products/runtime/go.sum src/products/runtime/
 

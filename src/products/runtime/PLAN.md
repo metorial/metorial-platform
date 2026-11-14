@@ -144,10 +144,10 @@ oss/src/products/runtime/
   package.json                  # `go test ./...` and `rpc-spec generate --check`, so Turbo runs Go CI
 ```
 
-The Go module points at `oss/src/lowerdeck/go/ldrpc` with a `replace` directive. Generated files
+The Go module points at `oss/src/lib/rpc/go` with a `replace` directive. Generated files
 are committed, so Go builds don't need Bun. CI runs `rpc-spec generate --check` and fails when a
 generated file is out of date. Spec packages are private TS packages with a `generate` script, as in
-the ldrpc plan (`oss/src/lowerdeck/docs/rpc/go-services-plan.md`).
+the ldrpc plan (`oss/src/lib/rpc/docs/go-services-plan.md`).
 
 Move map for M0:
 

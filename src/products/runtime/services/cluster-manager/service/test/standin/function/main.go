@@ -24,7 +24,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go"
 	frpc "github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/rpc/functionruntimerpc"
 )
 

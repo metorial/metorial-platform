@@ -201,3 +201,6 @@ HOST.md
 
 # Cargo build output
 src/control/target/
+
+!src/lib/rpc/go/interop/generated/
+!src/lib/rpc/go/interop/generated/bucket.ts

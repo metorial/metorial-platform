@@ -21,7 +21,7 @@ import (
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/utils/ptr"
 
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/auth"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/config"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/kube"

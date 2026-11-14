@@ -48,12 +48,12 @@ test('unchanged and unrelated workspaces do not select tests', () => {
 test('source, shared dependency, deleted files and imported configuration select tests', () => {
   let directories = [
     'src/products/runtime/services/build/service',
-    'src/lowerdeck/packages/rpc-client',
+    'src/lib/rpc/node/client',
     'src/shared/vitest.config.ts'
   ];
   for (let path of [
     'src/products/runtime/services/build/service/src/deleted.ts',
-    'src/lowerdeck/packages/rpc-client/src/index.ts',
+    'src/lib/rpc/node/client/src/index.ts',
     'src/shared/vitest.config.ts'
   ]) {
     expect(affected([path], directories, false)).toBe(true);

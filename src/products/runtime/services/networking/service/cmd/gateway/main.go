@@ -20,8 +20,8 @@ import (
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/servicediscovery"
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc"
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc/kubeauth"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go/kubeauth"
 	"github.com/metorial/metorial-platform/src/products/runtime/packages/egress"
 	"github.com/metorial/metorial-platform/src/products/runtime/packages/egress/policy"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/networking/service/internal/gateway"

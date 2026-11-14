@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/ptr"
 
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go"
 	objectstorage "github.com/metorial/object-storage/clients/go"
 
 	cm "github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/rpc/clustermanagerrpc"

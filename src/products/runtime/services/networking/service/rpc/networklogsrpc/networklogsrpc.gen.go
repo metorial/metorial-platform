@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go"
 )
 
 type ObservationIngestManyInput struct {

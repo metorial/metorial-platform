@@ -657,7 +657,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/rpc-client": {
+    "src/lib/rpc/node/client": {
       "name": "@lowerdeck/rpc-client",
       "version": "2.0.0",
       "dependencies": {
@@ -677,7 +677,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/rpc-server": {
+    "src/lib/rpc/node/server": {
       "name": "@lowerdeck/rpc-server",
       "version": "2.0.0",
       "dependencies": {
@@ -699,7 +699,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/rpc-signature": {
+    "src/lib/rpc/node/signature": {
       "name": "@lowerdeck/rpc-signature",
       "version": "2.0.0",
       "devDependencies": {
@@ -708,7 +708,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/rpc-spec": {
+    "src/lib/rpc/spec": {
       "name": "@lowerdeck/rpc-spec",
       "version": "2.0.0",
       "bin": {
@@ -8331,13 +8331,13 @@
 
     "@lowerdeck/retention-runner": ["@lowerdeck/retention-runner@workspace:src/lowerdeck/packages/retention-runner"],
 
-    "@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@workspace:src/lowerdeck/packages/rpc-client"],
+    "@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@workspace:src/lib/rpc/node/client"],
 
-    "@lowerdeck/rpc-server": ["@lowerdeck/rpc-server@workspace:src/lowerdeck/packages/rpc-server"],
+    "@lowerdeck/rpc-server": ["@lowerdeck/rpc-server@workspace:src/lib/rpc/node/server"],
 
-    "@lowerdeck/rpc-signature": ["@lowerdeck/rpc-signature@workspace:src/lowerdeck/packages/rpc-signature"],
+    "@lowerdeck/rpc-signature": ["@lowerdeck/rpc-signature@workspace:src/lib/rpc/node/signature"],
 
-    "@lowerdeck/rpc-spec": ["@lowerdeck/rpc-spec@workspace:src/lowerdeck/packages/rpc-spec"],
+    "@lowerdeck/rpc-spec": ["@lowerdeck/rpc-spec@workspace:src/lib/rpc/spec"],
 
     "@lowerdeck/sentry": ["@lowerdeck/sentry@workspace:src/lowerdeck/packages/sentry"],
 

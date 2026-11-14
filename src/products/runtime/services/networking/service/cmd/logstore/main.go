@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc/kubeauth"
+	"github.com/metorial/metorial-platform/src/lib/rpc/go/kubeauth"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/networking/service/internal/healthcheck"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/networking/service/internal/logstore"
 )

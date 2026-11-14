@@ -203,6 +203,12 @@ target home for domain-free primitives currently grouped under `lowerdeck/`. The
 remain independent of product business logic, Metorial surfaces, and frontend applications.
 Changing a package's directory does not by itself require changing its package name or scope.
 
+Groups with implementations in multiple languages may organize packages by language. RPC uses
+`lib/rpc/node/{client,server,signature}/`, `lib/rpc/go/`, and `lib/rpc/spec/` for the shared spec
+DSL and generators. Protocol documentation lives in `lib/rpc/docs/`. The npm package names stay
+`@lowerdeck/rpc-*`; the Go module is `github.com/metorial/metorial-platform/src/lib/rpc/go`.
+The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/go/otel/`.
+
 ## Migration status and rules
 
 | Area                            | Status                                                                                                                                                                                                                                                                                                      |
@@ -214,6 +220,7 @@ Changing a package's directory does not by itself require changing its package n
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
+| RPC libraries | Node packages, the shared spec package, Go runtime, and protocol documentation live under `lib/rpc/`. |
 | Other products and shared code  | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                                                                                                                    |
 
 As remaining code moves, use these destination rules:

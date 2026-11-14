@@ -3,7 +3,7 @@ module github.com/metorial/metorial-platform/src/products/runtime
 go 1.26.0
 
 require (
-	github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc v0.0.0
+	github.com/metorial/metorial-platform/src/lib/rpc/go v0.0.0
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 )
 
@@ -80,6 +80,6 @@ require (
 	sigs.k8s.io/yaml v1.6.0
 )
 
-replace github.com/metorial/metorial-platform/src/lowerdeck/go/ldrpc => ../../lowerdeck/go/ldrpc
+replace github.com/metorial/metorial-platform/src/lib/rpc/go => ../../lib/rpc/go
 
 replace github.com/metorial/object-storage/clients/go => ../../object-storage/clients/go
