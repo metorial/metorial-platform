@@ -1,0 +1,191 @@
+enum FunctionStatus {
+  active
+  deleted
+}
+
+model Function {
+  oid BigInt @id
+  id  String @unique
+
+  status FunctionStatus
+
+  identifier String
+  name       String
+
+  currentVersionOid BigInt?
+  currentVersion    FunctionVersion? @relation(fields: [currentVersionOid], references: [oid], name: "CurrentVersion")
+
+  cloneOfFunctionOid BigInt?
+  cloneOfFunction    Function?  @relation("FunctionClones", fields: [cloneOfFunctionOid], references: [oid])
+  clones             Function[] @relation("FunctionClones")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  functionVersions                          FunctionVersion[]
+  functionDeployments                       FunctionDeployment[]
+  runtime                                   Runtime?                            @relation(fields: [runtimeOid], references: [oid])
+  runtimeOid                                BigInt?
+  functionBundles                           FunctionBundle[]
+  enclaveFunctions                          EnclaveFunction[]
+  enclaveFunctionOverrides                  EnclaveFunctionOverride[]
+  enclaveFunctionOverrideBackings           EnclaveFunctionOverride[]           @relation("EnclaveFunctionOverrideFunction")
+  enclaveFunctionOverrideDeploymentSources  EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentSourceFunction")
+  enclaveFunctionOverrideDeploymentBackings EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentFunction")
+
+  @@unique([identifier, tenantOid])
+}
+
+enum FunctionDeploymentStatus {
+  pending
+  running
+  succeeded
+  failed
+}
+
+model FunctionDeployment {
+  oid    BigInt                   @id
+  id     String                   @unique
+  status FunctionDeploymentStatus
+
+  identifier String
+  name       String
+
+  forgeRunId      String?
+  forgeWorkflowId String?
+
+  functionVersionOid BigInt?
+  functionVersion    FunctionVersion? @relation(fields: [functionVersionOid], references: [oid])
+
+  functionBundleOid BigInt?
+  functionBundle    FunctionBundle? @relation(fields: [functionBundleOid], references: [oid])
+
+  runtimeOid BigInt
+  runtime    Runtime @relation(fields: [runtimeOid], references: [oid])
+
+  functionOid BigInt
+  function    Function @relation(fields: [functionOid], references: [oid])
+
+  encryptedEnvironmentVariables String
+
+  /// [FunctionConfiguration]
+  configuration Json
+
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  steps FunctionDeploymentStep[]
+
+  @@unique([identifier, functionOid])
+}
+
+enum FunctionDeploymentStepStatus {
+  pending
+  running
+  succeeded
+  failed
+  canceled
+}
+
+enum FunctionDeploymentStepType {
+  deploy
+}
+
+model FunctionDeploymentStep {
+  oid BigInt @id
+  id  String @unique
+
+  status FunctionDeploymentStepStatus
+  type   FunctionDeploymentStepType
+
+  name   String
+  output String
+
+  functionDeploymentOid BigInt
+  functionDeployment    FunctionDeployment @relation(fields: [functionDeploymentOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+}
+
+enum FunctionVersionStatus {
+  active
+  deleted
+}
+
+model FunctionVersion {
+  oid    BigInt                @id
+  id     String                @unique
+  status FunctionVersionStatus
+
+  encryptedEnvironmentVariables String
+
+  identifier String
+  name       String
+
+  supportsV2Proxy Boolean @default(false)
+
+  functionOid BigInt
+  function    Function @relation(fields: [functionOid], references: [oid])
+
+  runtimeOid BigInt
+  runtime    Runtime @relation(fields: [runtimeOid], references: [oid])
+
+  functionBundleOid BigInt
+  functionBundle    FunctionBundle @relation(fields: [functionBundleOid], references: [oid])
+
+  cloneOfFunctionVersionOid BigInt?
+  cloneOfFunctionVersion    FunctionVersion?  @relation("FunctionVersionClones", fields: [cloneOfFunctionVersionOid], references: [oid])
+  clones                    FunctionVersion[] @relation("FunctionVersionClones")
+
+  /// [FunctionConfiguration]
+  configuration Json
+
+  /// [FunctionVersionProviderData]
+  providerData Json
+
+  /// [FunctionVersionManifest]
+  manifest Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  functions                                       Function[]                          @relation(name: "CurrentVersion")
+  functionDeployments                             FunctionDeployment[]
+  enclaveFunctionOverrideSourceVersions           EnclaveFunctionOverride[]           @relation("EnclaveFunctionOverrideSourceVersion")
+  enclaveFunctionOverrideVersionBackings          EnclaveFunctionOverride[]           @relation("EnclaveFunctionOverrideVersion")
+  enclaveFunctionOverrideDeploymentSourceVersions EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentSourceVersion")
+  enclaveFunctionOverrideDeploymentBackings       EnclaveFunctionOverrideDeployment[] @relation("EnclaveFunctionOverrideDeploymentVersion")
+
+  @@unique([identifier, functionOid])
+}
+
+enum FunctionBundleStatus {
+  uploading
+  available
+  failed
+}
+
+model FunctionBundle {
+  oid    BigInt               @id
+  id     String               @unique
+  status FunctionBundleStatus
+
+  functionOid BigInt
+  function    Function @relation(fields: [functionOid], references: [oid])
+
+  storageKey String?
+  bucket     String?
+
+  createdAt DateTime @default(now())
+
+  functionDeployments FunctionDeployment[]
+  functionVersions    FunctionVersion[]
+}
