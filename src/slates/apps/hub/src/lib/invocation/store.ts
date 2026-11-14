@@ -1,5 +1,5 @@
 import { getSentry } from '@lowerdeck/sentry';
-import type { FunctionInvokeResponse } from '@metorial-platform-systems/function-bay-client';
+import type { FunctionInvokeResponse } from '@mtsrc/functions-client-internal';
 import PQueue from 'p-queue';
 import type { SlateInvocation } from '../../../prisma/generated/client';
 import { db } from '../../db';

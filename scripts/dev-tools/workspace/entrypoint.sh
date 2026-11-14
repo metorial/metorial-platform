@@ -11,10 +11,10 @@ enter_workspace() {
 }
 
 control_entrypoint() {
-  if [[ -f "${workspace}/oss/src/control/src/main.ts" ]]; then
-    printf '%s\n' "${workspace}/oss/src/control/src/main.ts"
-  elif [[ -f "${workspace}/src/control/src/main.ts" ]]; then
-    printf '%s\n' "${workspace}/src/control/src/main.ts"
+  if [[ -f "${workspace}/oss/src/tooling/control/src/main.ts" ]]; then
+    printf '%s\n' "${workspace}/oss/src/tooling/control/src/main.ts"
+  elif [[ -f "${workspace}/src/tooling/control/src/main.ts" ]]; then
+    printf '%s\n' "${workspace}/src/tooling/control/src/main.ts"
   else
     echo "Could not find the Control TypeScript entrypoint in ${workspace}" >&2
     return 1

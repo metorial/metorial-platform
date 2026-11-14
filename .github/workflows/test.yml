@@ -25,7 +25,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+          tasks: test --filter=./src/platform/packages/* --filter=./src/platform/modules/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=@metorial/slates --filter=@mtsrc/email-service
 
   build-and-test-ts:
     needs: changes
@@ -45,6 +45,12 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.4.2'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/products/runtime/go.mod
+          cache-dependency-path: src/products/runtime/go.sum
 
       - name: Set up Warp Cache
         uses: ./.github/actions/setup-warp-cache

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-dev
+  labels:
+    app: runtime-cluster-manager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: runtime-cluster-manager
+  template:
+    metadata:
+      labels:
+        app: runtime-cluster-manager
+    spec:
+      serviceAccountName: runtime-cluster-manager
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cluster-manager
+          image: dev.local/runtime-cluster-manager:dev
+          imagePullPolicy: Never
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CLUSTER_MANAGER_PLATFORM_NAMESPACE
+              value: metorial-runtime-dev
+            - name: CLUSTER_MANAGER_POD_SERVICE
+              value: runtime-cluster-manager
+            # The e2e stand-ins; the real images are dev.local/runtime-function-nodejs-24:dev and
+            # dev.local/runtime-build-ubuntu:dev. Knative skips tag resolution only for dev.local/.
+            - name: CLUSTER_MANAGER_FUNCTION_IMAGE_NODE24
+              value: dev.local/runtime-standin-function:dev
+            - name: CLUSTER_MANAGER_BUILD_IMAGE_UBUNTU
+              value: dev.local/runtime-standin-build:dev
+            - name: CLUSTER_MANAGER_KNATIVE_GATEWAY_URL
+              value: http://kourier-internal.kourier-system.svc.cluster.local
+            - name: OBJECT_STORAGE_URL
+              value: http://object-storage.metorial-runtime-dev.svc.cluster.local:8080
+            - name: CLUSTER_MANAGER_BUNDLE_CACHE_DIR
+              value: /var/cache/bundles
+            - name: CLUSTER_MANAGER_TMP_DIR
+              value: /tmp
+            - name: CLUSTER_MANAGER_AUTOSCALING_WINDOW
+              value: 6s
+            # Local clusters differ in how (and how quickly) they enforce NetworkPolicy; warn keeps
+            # preflight failures visible without blocking startup.
+            - name: CLUSTER_MANAGER_PREFLIGHT
+              value: warn
+            - name: LOG_LEVEL
+              value: debug
+          ports:
+            - name: control
+              containerPort: 52240
+            - name: pod
+              containerPort: 52241
+            - name: metrics
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: metrics
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 120
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: bundle-cache
+              mountPath: /var/cache/bundles
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: bundle-cache
+          emptyDir:
+            sizeLimit: 3Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-dev
+spec:
+  selector:
+    app: runtime-cluster-manager
+  ports:
+    - name: control
+      port: 52240
+      targetPort: control
+    - name: pod
+      port: 52241
+      targetPort: pod
+    - name: metrics
+      port: 9090
+      targetPort: metrics

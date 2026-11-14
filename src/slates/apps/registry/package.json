@@ -78,7 +78,7 @@
     "@metorial-io/layout": "^1.0.1",
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
-    "@metorial-platform-systems/ares-client": "workspace:*",
+    "@mtsrc/auth-core-client-internal": "workspace:*",
     "@metorial/editions": "workspace:*",
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",

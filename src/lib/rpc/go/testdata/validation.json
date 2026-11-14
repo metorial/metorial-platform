@@ -1,0 +1,3090 @@
+{
+  "types": {
+    "StringInput": {
+      "name": "StringInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "BoundedInput": {
+      "name": "BoundedInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "string",
+            "minLength": 2,
+            "maxLength": 4
+          }
+        }
+      ]
+    },
+    "PatternInput": {
+      "name": "PatternInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "string",
+            "pattern": "^[a-z]+(-[a-z]+)*$"
+          }
+        }
+      ]
+    },
+    "SlashInput": {
+      "name": "SlashInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "string",
+            "pattern": "^[^/].*$"
+          }
+        }
+      ]
+    },
+    "EmailInput": {
+      "name": "EmailInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "string",
+            "format": "email"
+          }
+        }
+      ]
+    },
+    "UrlInput": {
+      "name": "UrlInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "string",
+            "format": "url"
+          }
+        }
+      ]
+    },
+    "IntInput": {
+      "name": "IntInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "int"
+          }
+        }
+      ]
+    },
+    "BoundedIntInput": {
+      "name": "BoundedIntInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "int",
+            "min": 1,
+            "max": 10
+          }
+        }
+      ]
+    },
+    "NumberInput": {
+      "name": "NumberInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "number"
+          }
+        }
+      ]
+    },
+    "BoundedNumberInput": {
+      "name": "BoundedNumberInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "number",
+            "min": -1.5,
+            "max": 2.5
+          }
+        }
+      ]
+    },
+    "BooleanInput": {
+      "name": "BooleanInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "DatetimeInput": {
+      "name": "DatetimeInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "datetime"
+          }
+        }
+      ]
+    },
+    "BytesInput": {
+      "name": "BytesInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "bytes"
+          }
+        }
+      ]
+    },
+    "JsonInput": {
+      "name": "JsonInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "json"
+          }
+        }
+      ]
+    },
+    "StringLiteralInput": {
+      "name": "StringLiteralInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "literal",
+            "value": "on"
+          }
+        }
+      ]
+    },
+    "NumberLiteralInput": {
+      "name": "NumberLiteralInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "literal",
+            "value": 2
+          }
+        }
+      ]
+    },
+    "BooleanLiteralInput": {
+      "name": "BooleanLiteralInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    "EnumInput": {
+      "name": "EnumInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "ref",
+            "name": "EnumInputValue"
+          }
+        }
+      ]
+    },
+    "EnumInputValue": {
+      "name": "EnumInputValue",
+      "kind": "enum",
+      "values": [
+        "active",
+        "archived"
+      ]
+    },
+    "ArrayInput": {
+      "name": "ArrayInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "int"
+            }
+          }
+        }
+      ]
+    },
+    "BoundedArrayInput": {
+      "name": "BoundedArrayInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "string"
+            },
+            "minLength": 1,
+            "maxLength": 2
+          }
+        }
+      ]
+    },
+    "RecordInput": {
+      "name": "RecordInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "record",
+            "values": {
+              "kind": "int"
+            }
+          }
+        }
+      ]
+    },
+    "NullableInput": {
+      "name": "NullableInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "nullable",
+            "type": {
+              "kind": "int"
+            }
+          }
+        }
+      ]
+    },
+    "OptionalInput": {
+      "name": "OptionalInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    "NestedInput": {
+      "name": "NestedInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "ref",
+            "name": "NestedInputValue"
+          }
+        }
+      ]
+    },
+    "NestedInputValue": {
+      "name": "NestedInputValue",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "a",
+          "type": {
+            "kind": "ref",
+            "name": "NestedInputValueA"
+          }
+        }
+      ]
+    },
+    "NestedInputValueA": {
+      "name": "NestedInputValueA",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "b",
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "name": "NestedInputValueABItem"
+            }
+          }
+        }
+      ]
+    },
+    "NestedInputValueABItem": {
+      "name": "NestedInputValueABItem",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "c",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "RecursiveInput": {
+      "name": "RecursiveInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "ref",
+            "name": "Node"
+          }
+        }
+      ]
+    },
+    "Node": {
+      "name": "Node",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "children",
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "name": "Node"
+            }
+          },
+          "optional": true
+        }
+      ]
+    },
+    "AliasInput": {
+      "name": "AliasInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "ref",
+            "name": "ShortCode"
+          }
+        }
+      ]
+    },
+    "ShortCode": {
+      "name": "ShortCode",
+      "kind": "alias",
+      "type": {
+        "kind": "string",
+        "maxLength": 3
+      }
+    },
+    "UnionInput": {
+      "name": "UnionInput",
+      "kind": "union",
+      "discriminator": "type",
+      "variants": [
+        {
+          "tag": "file",
+          "type": "UnionInputFile"
+        },
+        {
+          "tag": "directory",
+          "type": "UnionInputDirectory"
+        }
+      ]
+    },
+    "UnionInputFile": {
+      "name": "UnionInputFile",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "path",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "size",
+          "type": {
+            "kind": "int"
+          }
+        }
+      ]
+    },
+    "UnionInputDirectory": {
+      "name": "UnionInputDirectory",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "path",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "MultiInput": {
+      "name": "MultiInput",
+      "kind": "object",
+      "fields": [
+        {
+          "name": "a",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "b",
+          "type": {
+            "kind": "int"
+          }
+        },
+        {
+          "name": "c",
+          "type": {
+            "kind": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":\"\"}",
+      "value": "{\"value\":\"\"}"
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":\"hello\"}",
+      "value": "{\"value\":\"hello\"}"
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":\"ünïcødé 🎉\"}",
+      "value": "{\"value\":\"ünïcødé 🎉\"}"
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":1}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":true}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received boolean",
+          "received": "boolean",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received object",
+          "received": "object",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":[]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received object",
+          "received": "object",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{\"value\":{}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received object",
+          "received": "object",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "string",
+      "type": "StringInput",
+      "payload": "{}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received undefined",
+          "received": "undefined",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"a\"}",
+      "issues": [
+        {
+          "code": "invalid_min_length",
+          "message": "Invalid min length, expected 2",
+          "expected": 2,
+          "received": 1,
+          "min": 2,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"ab\"}",
+      "value": "{\"value\":\"ab\"}"
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"abcd\"}",
+      "value": "{\"value\":\"abcd\"}"
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"abcde\"}",
+      "issues": [
+        {
+          "code": "invalid_max_length",
+          "message": "Invalid max length, expected 4",
+          "expected": 4,
+          "received": 5,
+          "max": 4,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"🎉\"}",
+      "value": "{\"value\":\"🎉\"}"
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"🎉🎉\"}",
+      "value": "{\"value\":\"🎉🎉\"}"
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"🎉🎉🎉\"}",
+      "issues": [
+        {
+          "code": "invalid_max_length",
+          "message": "Invalid max length, expected 4",
+          "expected": 4,
+          "received": 6,
+          "max": 4,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "bounded",
+      "type": "BoundedInput",
+      "payload": "{\"value\":\"éé\"}",
+      "value": "{\"value\":\"éé\"}"
+    },
+    {
+      "method": "pattern",
+      "type": "PatternInput",
+      "payload": "{\"value\":\"abc\"}",
+      "value": "{\"value\":\"abc\"}"
+    },
+    {
+      "method": "pattern",
+      "type": "PatternInput",
+      "payload": "{\"value\":\"abc-def\"}",
+      "value": "{\"value\":\"abc-def\"}"
+    },
+    {
+      "method": "pattern",
+      "type": "PatternInput",
+      "payload": "{\"value\":\"Abc\"}",
+      "issues": [
+        {
+          "code": "invalid_regex",
+          "message": "Invalid regex, expected /^[a-z]+(-[a-z]+)*$/",
+          "received": "Abc",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "pattern",
+      "type": "PatternInput",
+      "payload": "{\"value\":\"abc-\"}",
+      "issues": [
+        {
+          "code": "invalid_regex",
+          "message": "Invalid regex, expected /^[a-z]+(-[a-z]+)*$/",
+          "received": "abc-",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "pattern",
+      "type": "PatternInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_regex",
+          "message": "Invalid regex, expected /^[a-z]+(-[a-z]+)*$/",
+          "received": "",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "pattern",
+      "type": "PatternInput",
+      "payload": "{\"value\":\"a b\"}",
+      "issues": [
+        {
+          "code": "invalid_regex",
+          "message": "Invalid regex, expected /^[a-z]+(-[a-z]+)*$/",
+          "received": "a b",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "slash",
+      "type": "SlashInput",
+      "payload": "{\"value\":\"x\"}",
+      "value": "{\"value\":\"x\"}"
+    },
+    {
+      "method": "slash",
+      "type": "SlashInput",
+      "payload": "{\"value\":\"x/y\"}",
+      "value": "{\"value\":\"x/y\"}"
+    },
+    {
+      "method": "slash",
+      "type": "SlashInput",
+      "payload": "{\"value\":\"/x\"}",
+      "issues": [
+        {
+          "code": "invalid_regex",
+          "message": "Invalid regex, expected /^[^/].*$/",
+          "received": "/x",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "slash",
+      "type": "SlashInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_regex",
+          "message": "Invalid regex, expected /^[^/].*$/",
+          "received": "",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"a@b.co\"}",
+      "value": "{\"value\":\"a@b.co\"}"
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"first.last+tag@example.com\"}",
+      "value": "{\"value\":\"first.last+tag@example.com\"}"
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"nope\"}",
+      "issues": [
+        {
+          "code": "invalid_email",
+          "message": "Invalid email address",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"a@b\"}",
+      "issues": [
+        {
+          "code": "invalid_email",
+          "message": "Invalid email address",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"@b.co\"}",
+      "issues": [
+        {
+          "code": "invalid_email",
+          "message": "Invalid email address",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"a@@b.co\"}",
+      "issues": [
+        {
+          "code": "invalid_email",
+          "message": "Invalid email address",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\" a@b.co\"}",
+      "issues": [
+        {
+          "code": "invalid_email",
+          "message": "Invalid email address",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "type": "EmailInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_email",
+          "message": "Invalid email address",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"https://example.com\"}",
+      "value": "{\"value\":\"https://example.com\"}"
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"http://localhost:3000/path?q=1#h\"}",
+      "value": "{\"value\":\"http://localhost:3000/path?q=1#h\"}"
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"ftp://files.example.com\"}",
+      "value": "{\"value\":\"ftp://files.example.com\"}"
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"mailto:a@b.co\"}",
+      "value": "{\"value\":\"mailto:a@b.co\"}"
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"example.com\"}",
+      "issues": [
+        {
+          "code": "invalid_url",
+          "message": "Invalid URL",
+          "received": "example.com",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"//example.com\"}",
+      "issues": [
+        {
+          "code": "invalid_url",
+          "message": "Invalid URL",
+          "received": "//example.com",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"https://\"}",
+      "issues": [
+        {
+          "code": "invalid_url",
+          "message": "Invalid URL",
+          "received": "https://",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"not a url\"}",
+      "issues": [
+        {
+          "code": "invalid_url",
+          "message": "Invalid URL",
+          "received": "not a url",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "url",
+      "type": "UrlInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_url",
+          "message": "Invalid URL",
+          "received": "",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":0}",
+      "value": "{\"value\":0}"
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":-1}",
+      "value": "{\"value\":-1}"
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":42}",
+      "value": "{\"value\":42}"
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":9007199254740991}",
+      "value": "{\"value\":9007199254740991}"
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":9007199254740992}",
+      "issues": [
+        {
+          "code": "invalid_max",
+          "message": "Invalid max, expected 9007199254740991",
+          "expected": 9007199254740991,
+          "received": 9007199254740992,
+          "max": 9007199254740991,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":-9007199254740992}",
+      "issues": [
+        {
+          "code": "invalid_min",
+          "message": "Invalid min, expected -9007199254740991",
+          "expected": -9007199254740991,
+          "received": -9007199254740992,
+          "min": -9007199254740991,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":1.5}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": 1.5,
+          "received": 1.5,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":\"5\"}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": "5",
+          "received": "5",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":\"5.5\"}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": "5.5",
+          "received": "5.5",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":\" 7 \"}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": " 7 ",
+          "received": " 7 ",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":\"abc\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":\"-Infinity\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":true}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received boolean",
+          "received": "boolean",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received object",
+          "received": "object",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "int",
+      "type": "IntInput",
+      "payload": "{\"value\":1e+21}",
+      "issues": [
+        {
+          "code": "invalid_max",
+          "message": "Invalid max, expected 9007199254740991",
+          "expected": 9007199254740991,
+          "received": 1e+21,
+          "max": 9007199254740991,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":0}",
+      "issues": [
+        {
+          "code": "invalid_min",
+          "message": "Invalid min, expected 1",
+          "expected": 1,
+          "received": 0,
+          "min": 1,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":1}",
+      "value": "{\"value\":1}"
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":10}",
+      "value": "{\"value\":10}"
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":11}",
+      "issues": [
+        {
+          "code": "invalid_max",
+          "message": "Invalid max, expected 10",
+          "expected": 10,
+          "received": 11,
+          "max": 10,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":5.5}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": 5.5,
+          "received": 5.5,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":\"3\"}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": "3",
+          "received": "3",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedInt",
+      "type": "BoundedIntInput",
+      "payload": "{\"value\":\"11\"}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": "11",
+          "received": "11",
+          "path": [
+            "value"
+          ]
+        },
+        {
+          "code": "invalid_max",
+          "message": "Invalid max, expected 10",
+          "expected": 10,
+          "received": "11",
+          "max": 10,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":0}",
+      "value": "{\"value\":0}"
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":-0.5}",
+      "value": "{\"value\":-0.5}"
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":1e+300}",
+      "value": "{\"value\":1e+300}"
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"1.25\"}",
+      "value": "{\"value\":1.25}"
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"  \"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"NaN\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"Infinity\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"0x10\"}",
+      "value": "{\"value\":0}"
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":\"1e3\"}",
+      "value": "{\"value\":1000}"
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":true}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received boolean",
+          "received": "boolean",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":false}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received boolean",
+          "received": "boolean",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received object",
+          "received": "object",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":[]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received object",
+          "received": "object",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":[3]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received object",
+          "received": "object",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "number",
+      "type": "NumberInput",
+      "payload": "{\"value\":{}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received object",
+          "received": "object",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedNumber",
+      "type": "BoundedNumberInput",
+      "payload": "{\"value\":-1.5}",
+      "value": "{\"value\":-1.5}"
+    },
+    {
+      "method": "boundedNumber",
+      "type": "BoundedNumberInput",
+      "payload": "{\"value\":-1.6}",
+      "issues": [
+        {
+          "code": "invalid_min",
+          "message": "Invalid min, expected -1.5",
+          "expected": -1.5,
+          "received": -1.6,
+          "min": -1.5,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedNumber",
+      "type": "BoundedNumberInput",
+      "payload": "{\"value\":2.5}",
+      "value": "{\"value\":2.5}"
+    },
+    {
+      "method": "boundedNumber",
+      "type": "BoundedNumberInput",
+      "payload": "{\"value\":2.51}",
+      "issues": [
+        {
+          "code": "invalid_max",
+          "message": "Invalid max, expected 2.5",
+          "expected": 2.5,
+          "received": 2.51,
+          "max": 2.5,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedNumber",
+      "type": "BoundedNumberInput",
+      "payload": "{\"value\":\"2.6\"}",
+      "issues": [
+        {
+          "code": "invalid_max",
+          "message": "Invalid max, expected 2.5",
+          "expected": 2.5,
+          "received": "2.6",
+          "max": 2.5,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedNumber",
+      "type": "BoundedNumberInput",
+      "payload": "{\"value\":0}",
+      "value": "{\"value\":0}"
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":true}",
+      "value": "{\"value\":true}"
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":false}",
+      "value": "{\"value\":false}"
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":\"true\"}",
+      "value": "{\"value\":true}"
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":\"false\"}",
+      "value": "{\"value\":false}"
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":\"yes\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a boolean, received string",
+          "received": "string",
+          "expected": "boolean",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":1}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a boolean, received number",
+          "received": "number",
+          "expected": "boolean",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":0}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a boolean, received number",
+          "received": "number",
+          "expected": "boolean",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a boolean, received object",
+          "received": "object",
+          "expected": "boolean",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boolean",
+      "type": "BooleanInput",
+      "payload": "{\"value\":\"TRUE\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a boolean, received string",
+          "received": "string",
+          "expected": "boolean",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"2024-01-02T03:04:05.678Z\"}",
+      "value": "{\"value\":\"2024-01-02T03:04:05.678Z\"}"
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"2024-01-02T03:04:05Z\"}",
+      "value": "{\"value\":\"2024-01-02T03:04:05.000Z\"}"
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"2024-01-02\"}",
+      "value": "{\"value\":\"2024-01-02T00:00:00.000Z\"}"
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"2024-01-02T03:04:05+02:00\"}",
+      "value": "{\"value\":\"2024-01-02T01:04:05.000Z\"}"
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"2024-13-02T00:00:00Z\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received string",
+          "received": "string",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"not a date\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received string",
+          "received": "string",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":\"\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received string",
+          "received": "string",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":0}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received number",
+          "received": "number",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":1700000000000}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received number",
+          "received": "number",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":-1}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received number",
+          "received": "number",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":1.5}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received number",
+          "received": "number",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":true}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received boolean",
+          "received": "boolean",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received object",
+          "received": "object",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "datetime",
+      "type": "DatetimeInput",
+      "payload": "{\"value\":{}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected a date, received object",
+          "received": "object",
+          "expected": "date",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "bytes",
+      "type": "BytesInput",
+      "payload": "{\"value\":\"\"}",
+      "value": "{\"value\":\"\"}"
+    },
+    {
+      "method": "bytes",
+      "type": "BytesInput",
+      "payload": "{\"value\":\"aGVsbG8=\"}",
+      "value": "{\"value\":\"aGVsbG8=\"}"
+    },
+    {
+      "method": "bytes",
+      "type": "BytesInput",
+      "payload": "{\"value\":\"not base64!\"}",
+      "value": "{\"value\":\"not base64!\"}"
+    },
+    {
+      "method": "bytes",
+      "type": "BytesInput",
+      "payload": "{\"value\":1}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "json",
+      "type": "JsonInput",
+      "payload": "{\"value\":null}",
+      "value": "{\"value\":null}"
+    },
+    {
+      "method": "json",
+      "type": "JsonInput",
+      "payload": "{\"value\":1}",
+      "value": "{\"value\":1}"
+    },
+    {
+      "method": "json",
+      "type": "JsonInput",
+      "payload": "{\"value\":\"x\"}",
+      "value": "{\"value\":\"x\"}"
+    },
+    {
+      "method": "json",
+      "type": "JsonInput",
+      "payload": "{\"value\":[1,{\"a\":true}]}",
+      "value": "{\"value\":[1,{\"a\":true}]}"
+    },
+    {
+      "method": "json",
+      "type": "JsonInput",
+      "payload": "{\"value\":{\"nested\":{\"deep\":[null]}}}",
+      "value": "{\"value\":{\"nested\":{\"deep\":[null]}}}"
+    },
+    {
+      "method": "json",
+      "type": "JsonInput",
+      "payload": "{}",
+      "value": "{}"
+    },
+    {
+      "method": "stringLiteral",
+      "type": "StringLiteralInput",
+      "payload": "{\"value\":\"on\"}",
+      "value": "{\"value\":\"on\"}"
+    },
+    {
+      "method": "stringLiteral",
+      "type": "StringLiteralInput",
+      "payload": "{\"value\":\"off\"}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected on, received off",
+          "received": "off",
+          "expected": "on",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "stringLiteral",
+      "type": "StringLiteralInput",
+      "payload": "{\"value\":\"ON\"}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected on, received ON",
+          "received": "ON",
+          "expected": "on",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "stringLiteral",
+      "type": "StringLiteralInput",
+      "payload": "{\"value\":1}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected on, received 1",
+          "received": 1,
+          "expected": "on",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "stringLiteral",
+      "type": "StringLiteralInput",
+      "payload": "{\"value\":true}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected on, received true",
+          "received": true,
+          "expected": "on",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "stringLiteral",
+      "type": "StringLiteralInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected on, received null",
+          "received": null,
+          "expected": "on",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":2}",
+      "value": "{\"value\":2}"
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":2}",
+      "value": "{\"value\":2}"
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":\"2\"}",
+      "value": "{\"value\":2}"
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":\" 2 \"}",
+      "value": "{\"value\":2}"
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":3}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected 2, received 3",
+          "received": 3,
+          "expected": 2,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":true}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected 2, received true",
+          "received": true,
+          "expected": 2,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected 2, received null",
+          "received": null,
+          "expected": 2,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":[2]}",
+      "value": "{\"value\":2}"
+    },
+    {
+      "method": "numberLiteral",
+      "type": "NumberLiteralInput",
+      "payload": "{\"value\":[\"2\"]}",
+      "value": "{\"value\":2}"
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":true}",
+      "value": "{\"value\":true}"
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":false}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected true, received false",
+          "received": false,
+          "expected": true,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":\"true\"}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected true, received true",
+          "received": "true",
+          "expected": true,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":1}",
+      "value": "{\"value\":true}"
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":\"1\"}",
+      "value": "{\"value\":true}"
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":0}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected true, received 0",
+          "received": 0,
+          "expected": true,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "booleanLiteral",
+      "type": "BooleanLiteralInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected true, received null",
+          "received": null,
+          "expected": true,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "enum",
+      "type": "EnumInput",
+      "payload": "{\"value\":\"active\"}",
+      "value": "{\"value\":\"active\"}"
+    },
+    {
+      "method": "enum",
+      "type": "EnumInput",
+      "payload": "{\"value\":\"archived\"}",
+      "value": "{\"value\":\"archived\"}"
+    },
+    {
+      "method": "enum",
+      "type": "EnumInput",
+      "payload": "{\"value\":\"deleted\"}",
+      "issues": [
+        {
+          "code": "invalid_enum",
+          "message": "Invalid input, expected one of active, archived, received deleted",
+          "received": "deleted",
+          "expected": [
+            "active",
+            "archived"
+          ],
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "enum",
+      "type": "EnumInput",
+      "payload": "{\"value\":\"Active\"}",
+      "issues": [
+        {
+          "code": "invalid_enum",
+          "message": "Invalid input, expected one of active, archived, received Active",
+          "received": "Active",
+          "expected": [
+            "active",
+            "archived"
+          ],
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "enum",
+      "type": "EnumInput",
+      "payload": "{\"value\":1}",
+      "issues": [
+        {
+          "code": "invalid_enum",
+          "message": "Invalid input, expected one of active, archived, received 1",
+          "received": 1,
+          "expected": [
+            "active",
+            "archived"
+          ],
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "enum",
+      "type": "EnumInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_enum",
+          "message": "Invalid input, expected one of active, archived, received null",
+          "received": null,
+          "expected": [
+            "active",
+            "archived"
+          ],
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":[]}",
+      "value": "{\"value\":[]}"
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":[1,2]}",
+      "value": "{\"value\":[1,2]}"
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":[1,\"x\",3.5]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value",
+            "1"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":[\"1\"]}",
+      "issues": [
+        {
+          "code": "invalid_integer",
+          "message": "Invalid value, expected integer",
+          "expected": "1",
+          "received": "1",
+          "path": [
+            "value",
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":\"nope\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected array, received string",
+          "received": "string",
+          "expected": "array",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":{}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected array, received object",
+          "received": "object",
+          "expected": "array",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected array, received object",
+          "received": "object",
+          "expected": "array",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "array",
+      "type": "ArrayInput",
+      "payload": "{\"value\":{\"0\":1,\"length\":1}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected array, received object",
+          "received": "object",
+          "expected": "array",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedArray",
+      "type": "BoundedArrayInput",
+      "payload": "{\"value\":[]}",
+      "issues": [
+        {
+          "code": "invalid_min_length",
+          "message": "Invalid min length, expected 1",
+          "expected": 1,
+          "received": 0,
+          "min": 1,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedArray",
+      "type": "BoundedArrayInput",
+      "payload": "{\"value\":[\"a\"]}",
+      "value": "{\"value\":[\"a\"]}"
+    },
+    {
+      "method": "boundedArray",
+      "type": "BoundedArrayInput",
+      "payload": "{\"value\":[\"a\",\"b\"]}",
+      "value": "{\"value\":[\"a\",\"b\"]}"
+    },
+    {
+      "method": "boundedArray",
+      "type": "BoundedArrayInput",
+      "payload": "{\"value\":[\"a\",\"b\",\"c\"]}",
+      "issues": [
+        {
+          "code": "invalid_max_length",
+          "message": "Invalid max length, expected 2",
+          "expected": 2,
+          "received": 3,
+          "max": 2,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "boundedArray",
+      "type": "BoundedArrayInput",
+      "payload": "{\"value\":[1,2,3]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "value",
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":{}}",
+      "value": "{\"value\":{}}"
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":{\"a\":1}}",
+      "value": "{\"value\":{\"a\":1}}"
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":{\"a\":\"x\",\"b\":2,\"c\":1.5}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value",
+            "a"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":[]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object",
+          "received": [],
+          "expected": "object",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":[1]}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object",
+          "received": [
+            1
+          ],
+          "expected": "object",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":\"nope\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object",
+          "received": "nope",
+          "expected": "object",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object",
+          "received": null,
+          "expected": "object",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "record",
+      "type": "RecordInput",
+      "payload": "{\"value\":{\"0\":2,\"\":1}}",
+      "value": "{\"value\":{\"0\":2,\"\":1}}"
+    },
+    {
+      "method": "nullable",
+      "type": "NullableInput",
+      "payload": "{\"value\":null}",
+      "value": "{\"value\":null}"
+    },
+    {
+      "method": "nullable",
+      "type": "NullableInput",
+      "payload": "{\"value\":1}",
+      "value": "{\"value\":1}"
+    },
+    {
+      "method": "nullable",
+      "type": "NullableInput",
+      "payload": "{\"value\":\"x\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "nullable",
+      "type": "NullableInput",
+      "payload": "{}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received undefined",
+          "received": "undefined",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "optional",
+      "type": "OptionalInput",
+      "payload": "{}",
+      "value": "{}"
+    },
+    {
+      "method": "optional",
+      "type": "OptionalInput",
+      "payload": "{\"value\":1}",
+      "value": "{\"value\":1}"
+    },
+    {
+      "method": "optional",
+      "type": "OptionalInput",
+      "payload": "{\"value\":null}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received object",
+          "received": "object",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "optional",
+      "type": "OptionalInput",
+      "payload": "{\"value\":\"x\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received string",
+          "received": "string",
+          "expected": "number",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "nested",
+      "type": "NestedInput",
+      "payload": "{\"value\":{\"a\":{\"b\":[]}}}",
+      "value": "{\"value\":{\"a\":{\"b\":[]}}}"
+    },
+    {
+      "method": "nested",
+      "type": "NestedInput",
+      "payload": "{\"value\":{\"a\":{\"b\":[{\"c\":\"x\"},{\"c\":1},{}]}}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "value",
+            "a",
+            "b",
+            "1",
+            "c"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "nested",
+      "type": "NestedInput",
+      "payload": "{\"value\":{\"a\":{\"b\":\"nope\"}}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected array, received string",
+          "received": "string",
+          "expected": "array",
+          "path": [
+            "value",
+            "a",
+            "b"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "nested",
+      "type": "NestedInput",
+      "payload": "{\"value\":{\"a\":null}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "object",
+          "expected": "object",
+          "path": [
+            "value",
+            "a"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "nested",
+      "type": "NestedInput",
+      "payload": "{\"value\":{\"a\":{\"b\":[{\"c\":\"x\",\"extra\":true}]},\"extra\":1}}",
+      "value": "{\"value\":{\"a\":{\"b\":[{\"c\":\"x\"}]}}}"
+    },
+    {
+      "method": "recursive",
+      "type": "RecursiveInput",
+      "payload": "{\"value\":{\"name\":\"root\"}}",
+      "value": "{\"value\":{\"name\":\"root\"}}"
+    },
+    {
+      "method": "recursive",
+      "type": "RecursiveInput",
+      "payload": "{\"value\":{\"name\":\"root\",\"children\":[{\"name\":\"a\",\"children\":[{\"name\":1}]}]}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "value",
+            "children",
+            "0",
+            "children",
+            "0",
+            "name"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "recursive",
+      "type": "RecursiveInput",
+      "payload": "{\"value\":{\"name\":\"root\",\"children\":[{}]}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received undefined",
+          "received": "undefined",
+          "expected": "string",
+          "path": [
+            "value",
+            "children",
+            "0",
+            "name"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "recursive",
+      "type": "RecursiveInput",
+      "payload": "{\"value\":{\"children\":null}}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received undefined",
+          "received": "undefined",
+          "expected": "string",
+          "path": [
+            "value",
+            "name"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "alias",
+      "type": "AliasInput",
+      "payload": "{\"value\":\"abc\"}",
+      "value": "{\"value\":\"abc\"}"
+    },
+    {
+      "method": "alias",
+      "type": "AliasInput",
+      "payload": "{\"value\":\"abcd\"}",
+      "issues": [
+        {
+          "code": "invalid_max_length",
+          "message": "Invalid max length, expected 3",
+          "expected": 3,
+          "received": 4,
+          "max": 3,
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "alias",
+      "type": "AliasInput",
+      "payload": "{\"value\":3}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"type\":\"file\",\"path\":\"a\",\"size\":1}",
+      "value": "{\"type\":\"file\",\"path\":\"a\",\"size\":1}"
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"type\":\"directory\",\"path\":\"a\"}",
+      "value": "{\"type\":\"directory\",\"path\":\"a\"}"
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"type\":\"directory\",\"path\":\"a\",\"size\":\"ignored\"}",
+      "value": "{\"type\":\"directory\",\"path\":\"a\"}"
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"type\":\"file\",\"path\":\"a\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected number, received undefined",
+          "received": "undefined",
+          "expected": "number",
+          "path": [
+            "size"
+          ]
+        },
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected directory, received file",
+          "received": "file",
+          "expected": "directory",
+          "path": [
+            "type"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"type\":\"link\",\"path\":\"a\"}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected file, received link",
+          "received": "link",
+          "expected": "file",
+          "path": [
+            "type"
+          ]
+        },
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected directory, received link",
+          "received": "link",
+          "expected": "directory",
+          "path": [
+            "type"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"path\":\"a\"}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected file, received undefined",
+          "expected": "file",
+          "path": [
+            "type"
+          ]
+        },
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected directory, received undefined",
+          "expected": "directory",
+          "path": [
+            "type"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "{\"type\":1}",
+      "issues": [
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected file, received 1",
+          "received": 1,
+          "expected": "file",
+          "path": [
+            "type"
+          ]
+        },
+        {
+          "code": "invalid_literal",
+          "message": "Invalid input, expected directory, received 1",
+          "received": 1,
+          "expected": "directory",
+          "path": [
+            "type"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "\"file\"",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received string",
+          "received": "string",
+          "expected": "object"
+        },
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received string",
+          "received": "string",
+          "expected": "object"
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "null",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "object",
+          "expected": "object"
+        },
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "object",
+          "expected": "object"
+        }
+      ]
+    },
+    {
+      "method": "union",
+      "type": "UnionInput",
+      "payload": "[]",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "array",
+          "expected": "object"
+        },
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "array",
+          "expected": "object"
+        }
+      ]
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "{\"a\":\"x\",\"b\":1}",
+      "value": "{\"a\":\"x\",\"b\":1}"
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "{}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received undefined",
+          "received": "undefined",
+          "expected": "string",
+          "path": [
+            "a"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "{\"a\":1,\"b\":\"x\",\"c\":\"y\"}",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected string, received number",
+          "received": "number",
+          "expected": "string",
+          "path": [
+            "a"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "{\"b\":1,\"a\":\"x\",\"c\":true,\"z\":0}",
+      "value": "{\"a\":\"x\",\"b\":1,\"c\":true}"
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "null",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "object",
+          "expected": "object"
+        }
+      ]
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "\"x\"",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received string",
+          "received": "string",
+          "expected": "object"
+        }
+      ]
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "[]",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received object",
+          "received": "array",
+          "expected": "object"
+        }
+      ]
+    },
+    {
+      "method": "multi",
+      "type": "MultiInput",
+      "payload": "5",
+      "issues": [
+        {
+          "code": "invalid_type",
+          "message": "Invalid input, expected object, received number",
+          "received": "number",
+          "expected": "object"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# In a real install the key-publishing hook writes function-bay's public keys here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runtime-trust
+  namespace: metorial-runtime-functions
+data:
+  keys.json: '{"keys":{}}'

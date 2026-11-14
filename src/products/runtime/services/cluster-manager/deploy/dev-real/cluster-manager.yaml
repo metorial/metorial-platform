@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-cluster-manager
+  namespace: metorial-runtime-dev
+spec:
+  template:
+    spec:
+      containers:
+        - name: cluster-manager
+          env:
+            - name: CLUSTER_MANAGER_FUNCTION_IMAGE_NODE24
+              value: dev.local/runtime-function-nodejs-24:dev
+            - name: CLUSTER_MANAGER_BUILD_IMAGE_UBUNTU
+              value: dev.local/runtime-build-ubuntu:dev
+            - name: CLUSTER_MANAGER_EGRESS_GATEWAY_SERVICE
+              value: runtime-egress-gateway
+            - name: CLUSTER_MANAGER_BUILD_CPU
+              value: "1"
+            - name: CLUSTER_MANAGER_BUILD_MEMORY
+              value: 2Gi
+            # OrbStack enforces NetworkPolicy, so the gate can be strict even though dev's
+            # preflight only warns.
+            - name: CLUSTER_MANAGER_POLICY_GATE
+              value: enforce

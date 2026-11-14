@@ -6,8 +6,8 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../packages/rest/src/controller';
-import { introspectApi } from '../../../../../../packages/rest/src/introspect';
+} from '../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
 import { v1SandboxDiskPresenter } from '../../../../../../presenters/src/implementation/sandbox/disk';
 import { v1SandboxDiskMountPresenter } from '../../../../../../presenters/src/implementation/sandbox/diskMount';
 import { sandboxDiskMountType, sandboxDiskType } from '../../../../../../presenters/src/types';

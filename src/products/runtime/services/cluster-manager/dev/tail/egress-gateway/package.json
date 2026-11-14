@@ -1,0 +1,7 @@
+{
+  "name": "@metorial/runtime-egress-gateway",
+  "private": true,
+  "scripts": {
+    "dev:start": "bun ../../src/main.ts logs runtime-egress-gateway"
+  }
+}

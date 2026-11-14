@@ -148,6 +148,8 @@ __pycache__/
 *.so
 .Python
 build/
+!src/products/runtime/services/build/
+!src/products/runtime/clients/build/
 develop-eggs/
 dist/
 downloads/
@@ -162,16 +164,16 @@ wheels/
 
 # Cache
 cache/
-!src/metorial/packages/cache/
-!src/metorial/packages/cache/**
-src/metorial/packages/cache/.turbo/
-src/metorial/packages/cache/dist/
-src/metorial/packages/cache/node_modules/
-!src/lowerdeck/packages/cache/
-!src/lowerdeck/packages/cache/**
-src/lowerdeck/packages/cache/.turbo/
-src/lowerdeck/packages/cache/dist/
-src/lowerdeck/packages/cache/node_modules/
+!src/platform/packages/cache/
+!src/platform/packages/cache/**
+src/platform/packages/cache/.turbo/
+src/platform/packages/cache/dist/
+src/platform/packages/cache/node_modules/
+!src/lib/storage/cache/
+!src/lib/storage/cache/**
+src/lib/storage/cache/.turbo/
+src/lib/storage/cache/dist/
+src/lib/storage/cache/node_modules/
 generated/
 !/src/metorial-frontend/packages/state/src/config/generated/
 /src/metorial-frontend/packages/state/src/config/generated/*
@@ -189,8 +191,8 @@ venv/
 *.swo
 
 bin
-!src/control/bin/
-!src/control/bin/**
+!src/tooling/control/bin/
+!src/tooling/control/bin/**
 .DS_Store
 
 env.json
@@ -198,4 +200,7 @@ env.json
 HOST.md
 
 # Cargo build output
-src/control/target/
+src/tooling/control/target/
+
+!src/lib/rpc/go/interop/generated/
+!src/lib/rpc/go/interop/generated/bucket.ts

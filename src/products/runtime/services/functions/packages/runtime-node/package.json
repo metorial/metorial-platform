@@ -1,0 +1,26 @@
+{
+  "name": "@function-bay/runtime-node",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/bootstrap.ts",
+  "main": "./dist/bootstrap.cjs",
+  "files": [
+    "dist/bootstrap.cjs",
+    "PROTOCOL.md"
+  ],
+  "scripts": {
+    "build": "bun build src/bootstrap.ts --target=node --format=cjs --outfile=dist/bootstrap.cjs",
+    "test": "vitest run",
+    "lint": "prettier src/**/*.ts test/**/*.ts --check"
+  },
+  "devDependencies": {
+    "@function-bay/build": "^1.0.0",
+    "@function-bay/nodejs": "^1.0.17",
+    "@function-bay/tsconfig": "^1.0.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

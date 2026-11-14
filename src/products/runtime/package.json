@@ -1,0 +1,8 @@
+{
+  "name": "@metorial-platform-products/runtime",
+  "private": true,
+  "scripts": {
+    "test": "packages=$(go list ./...) && if [ -n \"$packages\" ]; then go vet ./... && go test ./...; fi",
+    "vet": "packages=$(go list ./...) && if [ -n \"$packages\" ]; then go vet ./...; fi"
+  }
+}

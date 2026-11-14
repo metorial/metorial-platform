@@ -1,0 +1,32 @@
+{
+  "name": "@mtsrc/ai-gateway-db",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "prisma:generate": "bun run db:generate",
+    "prisma:push": "bun run db:push:dev",
+    "db:generate": "bun prisma generate --config ./prisma.config.ts",
+    "db:push:dev": "bun prisma db push --config ./prisma.config.ts --accept-data-loss",
+    "typecheck": "tsc --noEmit",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
+  },
+  "dependencies": {
+    "@lowerdeck/execution-context": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/snowflake": "workspace:2.0.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@prisma/extension-read-replicas": "^0.5.0",
+    "p-queue": "^10.0.0",
+    "prisma": "^7.10.1",
+    "prisma-json-types-generator": "^5.2.0",
+    "dotenv": "^18.0.9"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3"
+  }
+}

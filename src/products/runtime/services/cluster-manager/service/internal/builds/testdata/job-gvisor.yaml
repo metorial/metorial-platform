@@ -1,0 +1,153 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    runtime.metorial.com/run-id: brun_01HZY3K8Q2W7
+  labels:
+    app.kubernetes.io/managed-by: runtime-cluster-manager
+    runtime.metorial.com/build-id: brun_01HZY3K8Q2W7
+    runtime.metorial.com/component: build
+  name: build-tgmqhlnygs5miwye7bz2
+  namespace: metorial-runtime-builds
+spec:
+  activeDeadlineSeconds: 1200
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: runtime-cluster-manager
+        runtime.metorial.com/build-id: brun_01HZY3K8Q2W7
+        runtime.metorial.com/component: build
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - |-
+          metorial_policy_gate() {
+            local mode="${METORIAL_POLICY_GATE:-enforce}" targets="$METORIAL_POLICY_GATE_TARGETS" list target host open deadline
+            case "$mode" in off) return 0 ;; warn) ;; *) mode=enforce ;; esac
+            if [ -z "$targets" ] && [ -n "$KUBERNETES_SERVICE_HOST" ]; then targets="$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT"; fi
+            IFS=, read -ra list <<<"$targets"
+            if [ "${#list[@]}" -eq 0 ]; then echo "policy gate: no targets to probe" >&2; return 1; fi
+            deadline=$((SECONDS + ${METORIAL_POLICY_GATE_TIMEOUT_SECONDS:-30}))
+            while :; do
+              open=
+              for target in "${list[@]}"; do
+                host=${target%:*}; host=${host#[}; host=${host%]}
+                if timeout 0.1 bash -c 'exec 3<>"/dev/tcp/$0/$1"' "$host" "${target##*:}" 2>/dev/null; then open=$target; break; fi
+              done
+              [ -z "$open" ] && return 0
+              if [ "$SECONDS" -ge "$deadline" ]; then
+                if [ "$mode" = warn ]; then echo "policy gate: NetworkPolicy is not in force ($open is reachable); running the build anyway" >&2; return 0; fi
+                echo "policy gate: NetworkPolicy is not in force ($open is reachable); not running the build" >&2
+                return 1
+              fi
+              sleep 0.05
+            done
+          }
+          metorial_policy_gate || exit 1
+          set -a; . /var/run/metorial/build/env; set +a; exec /bin/bash /var/run/metorial/build/script.sh
+        env:
+        - name: METORIAL_BUILD_RUN_ID
+          value: brun_01HZY3K8Q2W7
+        - name: CLUSTER_MANAGER_POD_ADDR
+          value: https://10.43.0.20:52241
+        - name: CLUSTER_MANAGER_POD_SERVER_NAME
+          value: runtime-cluster-manager-pod.metorial.svc
+        - name: CLUSTER_MANAGER_TOKEN_FILE
+          value: /var/run/metorial/identity/token
+        - name: METORIAL_POLICY_GATE
+          value: enforce
+        - name: METORIAL_POLICY_GATE_TIMEOUT_SECONDS
+          value: "30"
+        - name: HTTP_PROXY
+          valueFrom:
+            secretKeyRef:
+              key: proxy-url
+              name: build-tgmqhlnygs5miwye7bz2
+        - name: HTTPS_PROXY
+          valueFrom:
+            secretKeyRef:
+              key: proxy-url
+              name: build-tgmqhlnygs5miwye7bz2
+        - name: http_proxy
+          valueFrom:
+            secretKeyRef:
+              key: proxy-url
+              name: build-tgmqhlnygs5miwye7bz2
+        - name: https_proxy
+          valueFrom:
+            secretKeyRef:
+              key: proxy-url
+              name: build-tgmqhlnygs5miwye7bz2
+        - name: NO_PROXY
+          value: 10.43.0.20
+        - name: no_proxy
+          value: 10.43.0.20
+        image: registry.example.com/build-ubuntu@sha256:0000
+        name: build
+        resources:
+          limits:
+            cpu: "2"
+            ephemeral-storage: 10Gi
+            memory: 4Gi
+          requests:
+            cpu: "2"
+            ephemeral-storage: 10Gi
+            memory: 4Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /workspace
+          name: workspace
+        - mountPath: /var/run/metorial/build
+          name: build
+          readOnly: true
+        - mountPath: /var/run/metorial/identity
+          name: identity
+          readOnly: true
+        - mountPath: /var/run/metorial/trust
+          name: trust
+          readOnly: true
+        workingDir: /workspace
+      enableServiceLinks: false
+      hostUsers: false
+      restartPolicy: Never
+      runtimeClassName: gvisor
+      serviceAccountName: build-runtime
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir:
+          sizeLimit: 8Gi
+        name: workspace
+      - name: build
+        secret:
+          defaultMode: 292
+          items:
+          - key: script.sh
+            path: script.sh
+          - key: env
+            path: env
+          secretName: build-tgmqhlnygs5miwye7bz2
+      - name: identity
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: runtime-cluster-manager-pod
+              expirationSeconds: 3600
+              path: token
+      - name: trust
+        projected:
+          sources:
+          - configMap:
+              name: runtime-ca
+              optional: true
+  ttlSecondsAfterFinished: 3600
+status: {}

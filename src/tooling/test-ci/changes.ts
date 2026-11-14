@@ -290,7 +290,7 @@ if (import.meta.main) {
           closure(name)
         ),
         ...controlTestPackages(controlSuite, packages).flatMap(name => closure(name)),
-        `${prefix}src/control`,
+        `${prefix}src/tooling/control`,
         `${prefix}scripts/dev-tools/e2e`
       ],
       e2eGlobal

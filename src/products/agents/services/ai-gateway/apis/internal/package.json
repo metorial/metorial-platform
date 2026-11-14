@@ -1,0 +1,21 @@
+{
+  "name": "@mtsrc/ai-gateway-api-internal",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hono": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

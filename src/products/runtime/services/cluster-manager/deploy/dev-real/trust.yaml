@@ -1,0 +1,9 @@
+# Dev-only signing key: seed = sha256("metorial-runtime-dev-e2e-signing-key"), kid = default
+# (first 16 hex chars of sha256(public key)). Never use it outside a local cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runtime-trust
+  namespace: metorial-runtime-functions
+data:
+  keys.json: '{"keys":{"4332912093164269":"oe1YYXDkg5mGKpA5eOfkA_rkIalPMjEZap6gfs0eXa4"}}'
