@@ -177,7 +177,10 @@ describe('security review consistency checks', () => {
     mocks.judge.mockResolvedValue({
       verdict: {
         consistent: false,
-        issues: [{ section: 'capabilities', message: 'Scope contradicts source.' }]
+        issues: [
+          { section: 'capabilities', message: 'Scope contradicts source.' },
+          { message: 'The explanation conflicts with the score.' }
+        ]
       },
       usage: emptyUsage()
     });
@@ -186,6 +189,7 @@ describe('security review consistency checks', () => {
     expect(mocks.agent).toHaveBeenCalledTimes(2);
     expect(result.complete).toBe(false);
     expect(result.gaps).toContain('capabilities: Scope contradicts source.');
+    expect(result.gaps).toContain('The explanation conflicts with the score.');
   });
 
   it('persists retry progress and refreshes the revision heartbeat', async () => {

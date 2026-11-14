@@ -216,6 +216,51 @@ describe('confidence', () => {
 });
 
 describe('computeScores', () => {
+  it('completes a supported report when the operator cannot be verified', () => {
+    let scores = computeScores({
+      provenance: 'tenant_remote_unverifiable',
+      tools: [tool('read'), tool('write')],
+      findings: [],
+      coverage: fullCoverage
+    });
+
+    expect(scores).toMatchObject({
+      confidence: 'low',
+      assessmentComplete: true,
+      security: 95
+    });
+    expect(scores.headline[0]).toBe('No security issues found.');
+  });
+
+  it('keeps a strong score with a low-severity finding without claiming zero issues', () => {
+    let scores = computeScores({
+      provenance: 'metorial_built',
+      tools: [tool('read'), tool('write', 'destructive')],
+      findings: [
+        {
+          key: 'spec-variance',
+          kind: 'security',
+          category: 'spec_variance',
+          severity: 'low',
+          title: 'Unavailable operation',
+          body: 'The description lists an operation that the tools do not support.',
+          tools: [],
+          evidence: []
+        }
+      ],
+      coverage: fullCoverage
+    });
+
+    expect(scores).toMatchObject({
+      security: 93,
+      band: 'strong',
+      exposure: 'high',
+      headline: ['Strong security quality.', 'Powerful permissions.'],
+      counts: { findings: { low: 1 } },
+      assessmentComplete: true
+    });
+  });
+
   it('builds the headline from band and exposure', () => {
     let scores = computeScores({
       provenance: 'metorial_built',

@@ -13,7 +13,7 @@ import type {
 } from '@metorial-subspace/db';
 import { SECURITY_REVIEW_RULES_VERSION } from '../definitions/versions';
 import { isMutatingTag } from './evidence';
-import { actionsExposure, highestExposure } from './actionRules';
+import { actionExposure, actionsExposure, highestExposure } from './actionRules';
 
 type KnownLevel = Exclude<SecurityLevel, 'unknown'>;
 
@@ -157,42 +157,34 @@ export type ScoringCoverage = {
   unresolvedObservations?: number;
 };
 
+let isCoverageComplete = (coverage: ScoringCoverage) =>
+  coverage.assessmentComplete !== false &&
+  coverage.contentComplete !== false &&
+  !coverage.unresolvedObservations &&
+  !coverage.awaitingTools &&
+  !coverage.budgetExhausted &&
+  coverage.toolsExpected !== null &&
+  coverage.toolsReviewed >= coverage.toolsExpected &&
+  coverage.codeReadable !== false;
+
 export let computeConfidence = (d: {
   provenance: SecurityProvenanceClass;
   coverage: ScoringCoverage;
 }): SecurityConfidenceLevel => {
-  let { coverage } = d;
-  if (
-    coverage.assessmentComplete === false ||
-    coverage.contentComplete === false ||
-    coverage.unresolvedObservations ||
-    coverage.awaitingTools ||
-    coverage.budgetExhausted ||
-    coverage.toolsExpected === null
-  ) {
+  if (!isCoverageComplete(d.coverage) || d.coverage.vendorDocsReachable === false)
     return 'low';
+
+  if (d.provenance == 'tenant_remote_unverifiable' || d.provenance == 'tenant_image')
+    return 'low';
+  if (['tenant_remote_vendor_plausible', 'tenant_remote_third_party'].includes(d.provenance)) {
+    return 'medium';
   }
 
-  let gaps = [
-    coverage.toolsReviewed < coverage.toolsExpected,
-    coverage.codeReadable === false,
-    coverage.vendorDocsReachable === false
-  ].filter(Boolean).length;
-
-  let confidence: SecurityConfidenceLevel = gaps == 0 ? 'high' : 'low';
-  if (
-    ['tenant_remote_vendor_plausible', 'tenant_remote_third_party'].includes(d.provenance) &&
-    confidence == 'high'
-  )
-    confidence = 'medium';
-  if (d.provenance == 'tenant_remote_unverifiable') confidence = 'low';
-  if (d.provenance == 'tenant_image') confidence = 'low';
-
-  return confidence;
+  return 'high';
 };
 
 let trustLines: Record<SecurityBand, string> = {
-  strong: 'No security issues found.',
+  strong: 'Strong security quality.',
   good: 'Solid implementation.',
   fair: 'Some security concerns.',
   weak: 'Significant security concerns.',
@@ -223,9 +215,12 @@ let skillProvenanceClasses: SecurityProvenanceClass[] = [
 export let headlineFor = (d: {
   band: SecurityBand;
   exposure: SecurityLevel;
+  securityFindingCount: number;
   provenance?: SecurityProvenanceClass;
 }): [string, string] => [
-  trustLines[d.band],
+  d.band == 'strong' && d.securityFindingCount == 0
+    ? 'No security issues found.'
+    : trustLines[d.band],
   (d.provenance && skillProvenanceClasses.includes(d.provenance)
     ? skillExposureLines
     : exposureLines)[d.exposure]
@@ -264,14 +259,18 @@ export let computeScores = (d: {
     [
       ...(d.tools ?? []).flatMap(tool => tool.actions ?? []),
       ...(d.behaviors ?? []).flatMap(behavior => behavior.actions ?? [])
-    ].some(
-      action =>
-        action.scope == 'unknown' ||
-        action.data == 'unknown' ||
-        action.destination == 'unknown'
-    )
+    ].some(action => actionExposure(action) == 'unknown')
   )
     confidence = 'low';
+
+  let assessmentComplete = isCoverageComplete(d.coverage);
+  let headline = headlineFor({
+    band,
+    exposure,
+    securityFindingCount: securityFindings.length,
+    provenance: d.provenance
+  });
+  if (!assessmentComplete) headline[0] = 'Partial assessment';
 
   return {
     rulesVersion: SECURITY_REVIEW_RULES_VERSION,
@@ -282,11 +281,8 @@ export let computeScores = (d: {
     risk,
     confidence,
     trifecta,
-    assessmentComplete: d.coverage.assessmentComplete !== false && confidence != 'low',
-    headline:
-      confidence == 'low'
-        ? ['Assessment incomplete.', 'Some behavior remains unclassified.']
-        : headlineFor({ band, exposure, provenance: d.provenance }),
+    assessmentComplete,
+    headline,
     counts: {
       tools: { expected: d.coverage.toolsExpected ?? 0, reviewed: d.coverage.toolsReviewed },
       capabilities: {

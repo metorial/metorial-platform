@@ -582,22 +582,15 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
           'What this review covered, what it did not, and its limitations (unreadable files, ' +
           'unreachable docs, tools not yet discovered). Use short scope labels and list only real ' +
           'gaps. Do not explain routine authentication or repeat the verdict. Empty optional lists ' +
-          'are fine. coverage is complete only when the material evidence needed for the review ' +
-          'was examined; use partial for unreadable material files, unreachable verification ' +
-          'sources or an unfinished analysis. Routine out-of-scope runtime checks do not make it partial.',
-        shape:
-          "{ included: string[]; outOfScope: string[]; limitations: string[]; coverage: 'complete' | 'partial' }",
+          'are fine. This is a static review. Put live calls and executing the subject outside ' +
+          'the scope. The platform determines completeness from the evidence and validation.',
+        shape: '{ included: string[]; outOfScope: string[]; limitations: string[] }',
         validate: section(
           v.object({
-            coverage: v.optional(v.enumOf(['complete', 'partial'])),
             included: v.array(text(BODY_MAX), { modifiers: [v.minLength(1)] }),
             outOfScope: v.array(text(BODY_MAX)),
             limitations: v.array(text(BODY_MAX))
-          }),
-          value =>
-            value.coverage
-              ? []
-              : ['coverage: state whether the material evidence was completely examined']
+          })
         )
       }
     },

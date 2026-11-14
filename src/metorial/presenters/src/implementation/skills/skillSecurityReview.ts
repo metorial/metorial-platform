@@ -9,7 +9,12 @@ import type {
 } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { skillSecurityReviewRevisionType, skillSecurityReviewType } from '../../types';
-import { levelSchema, severitySchema } from '../provider/provider/securityReview';
+import {
+  levelSchema,
+  presentReviewHeadline,
+  presentReviewSummary,
+  severitySchema
+} from '../provider/provider/securityReview';
 
 type ReviewInput = Prisma.SecurityReviewGetPayload<{
   include: { provider: true; providerVersion: true };
@@ -32,14 +37,11 @@ let presentEvidence = (evidence: SecurityLedgerRef[] | undefined) =>
       : []
   );
 
-let presentReport = (report: SecurityReport | null) => ({
-  summary: report?.summary
-    ? {
-        text: report.summary.text,
-        trust_note: report.summary.trustNote,
-        exposure_note: report.summary.exposureNote
-      }
-    : null,
+let presentReport = (
+  report: SecurityReport | null,
+  scores: SecurityReviewComputedScores | null
+) => ({
+  summary: presentReviewSummary(report?.summary, scores),
   provenance: report?.provenance
     ? {
         class: report.provenance.class,
@@ -79,8 +81,8 @@ let presentReport = (report: SecurityReport | null) => ({
     : null
 });
 
-let presentScores = (scores: SecurityReviewComputedScores | null) =>
-  scores && scores.assessmentComplete !== false
+let presentScores = (scores: SecurityReviewComputedScores | null, completed = false) =>
+  scores
     ? {
         security_score: scores.security,
         band: scores.band,
@@ -88,7 +90,7 @@ let presentScores = (scores: SecurityReviewComputedScores | null) =>
         risk: scores.risk,
         confidence: scores.confidence,
         lethal_trifecta: scores.trifecta,
-        headline: [...scores.headline],
+        headline: completed ? presentReviewHeadline(scores) : [...scores.headline],
         finding_counts: {
           info: scores.counts.findings.info,
           low: scores.counts.findings.low,
@@ -127,8 +129,14 @@ let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
         }
       : null,
 
-    scores: presentScores(revision.scores as SecurityReviewComputedScores | null),
-    report: presentReport(revision.report as SecurityReport | null),
+    scores: presentScores(
+      revision.scores as SecurityReviewComputedScores | null,
+      revision.status == 'completed'
+    ),
+    report: presentReport(
+      revision.report as SecurityReport | null,
+      revision.scores as SecurityReviewComputedScores | null
+    ),
     findings: revision.findings.map(finding => {
       let value = finding.value as SecurityReviewFindingPayload;
 

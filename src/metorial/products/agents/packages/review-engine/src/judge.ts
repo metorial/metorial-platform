@@ -24,6 +24,10 @@ Flag an issue when:
 - exposureNote describes only harmless drafting or a selected output file while exposure is High/Critical
 - a High/Critical exposure explanation does not name a concrete action supporting that reach
 
+Strong security quality can coexist with low-severity findings. A claim that no security issues were
+found requires zero security findings. For each issue, identify the report section to revise. Use
+"scores" for issues in the computed scores or headline.
+
 Do not flag style, length, or anything you would merely phrase differently. An empty issue list is the
 expected result for a well-written report.`;
 

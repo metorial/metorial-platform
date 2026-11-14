@@ -76,6 +76,11 @@ let reviewInclude = {
   providerVersion: { include: { slate: true } }
 } as const;
 
+let describeJudgeIssue = (issue: { section?: string; message: string }) => {
+  let section = issue.section?.trim();
+  return section && section != 'undefined' ? `${section}: ${issue.message}` : issue.message;
+};
+
 class BillingBlockedError extends Error {}
 
 class InternalSecurityReviewRunnerServiceImpl {
@@ -424,7 +429,7 @@ class InternalSecurityReviewRunnerServiceImpl {
             judged.verdict.consistent
               ? 'consistency check: report is consistent'
               : `consistency check found ${judged.verdict.issues.length} issue(s):\n${judged.verdict.issues
-                  .map(issue => `  - ${issue.section}: ${issue.message}`)
+                  .map(issue => `  - ${describeJudgeIssue(issue)}`)
                   .join('\n')}`
           );
         }
@@ -433,7 +438,7 @@ class InternalSecurityReviewRunnerServiceImpl {
           ? ['The final evidence consistency check could not be completed.']
           : judged.verdict.consistent
             ? []
-            : judged.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
+            : judged.verdict.issues.map(describeJudgeIssue);
 
         if (judged && issues.length && spent.costMicros < tier.maxCostMicros) {
           state.submitted = false;
@@ -484,7 +489,7 @@ class InternalSecurityReviewRunnerServiceImpl {
               ? ['The final evidence consistency check could not be completed.']
               : finalCheck.verdict.consistent
                 ? []
-                : finalCheck.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
+                : finalCheck.verdict.issues.map(describeJudgeIssue);
           }
         }
 
@@ -747,7 +752,9 @@ class InternalSecurityReviewRunnerServiceImpl {
     });
 
     let completionStatus = this.completionStatus({
-      agent,
+      agent: agent
+        ? { complete: agent.complete && !!assembled.scores.assessmentComplete }
+        : null,
       blockReason,
       deferred: !!input.deterministicOnly && !failureCode
     });

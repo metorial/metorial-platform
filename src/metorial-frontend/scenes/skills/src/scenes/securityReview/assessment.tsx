@@ -186,16 +186,17 @@ export let SecurityReviewVerdict = ({
   let scores = revision.scores;
   let isSkill = isSkillRevision(revision);
   let summary = revision.report.summary;
-  let [verdict, reason] = scores?.headline ?? [];
+  let isProvisional = !!scores && revision.status != 'completed';
+  let [verdict, reason] = isProvisional ? ['Partial assessment'] : (scores?.headline ?? []);
 
   return (
     <>
       <VerdictRow>
         <ScoreRing
           score={scores?.securityScore}
-          color={scores ? bandColors[scores.band] : 'gray'}
+          color={scores && !isProvisional ? bandColors[scores.band] : 'gray'}
           caption="Security / 100"
-          label={scores ? bandLabels[scores.band] : undefined}
+          label={isProvisional ? 'Provisional' : scores ? bandLabels[scores.band] : undefined}
           placeholder={
             <PlaceholderIcon>
               <RiShieldCheckLine size={28} />
@@ -206,7 +207,9 @@ export let SecurityReviewVerdict = ({
         <VerdictCopy>
           {scores && (
             <BadgeRow>
-              <LevelBadge level={scores.risk}>{levelLabels[scores.risk]} Risk</LevelBadge>
+              {(!isProvisional || scores.risk == 'high' || scores.risk == 'critical') && (
+                <LevelBadge level={scores.risk}>{levelLabels[scores.risk]} Risk</LevelBadge>
+              )}
               {(detailed || scores.confidence == 'low') && (
                 <LevelBadge level={confidenceLevels[scores.confidence]}>
                   {confidenceLabels[scores.confidence]} Confidence
@@ -254,13 +257,16 @@ export let SecurityReviewVerdict = ({
                 Security Quality
                 {scores && (
                   <AxisStatus>
-                    {bandLabels[scores.band]} · {scores.securityScore}/100
+                    {isProvisional ? 'Provisional' : bandLabels[scores.band]} ·{' '}
+                    {scores.securityScore}/100
                   </AxisStatus>
                 )}
               </AxisTitle>
               {summary && (
                 <Text size="1" color="gray700" style={{ marginTop: 4 }}>
-                  {summary.trustNote}
+                  {isProvisional
+                    ? 'This score reflects the available evidence.'
+                    : summary.trustNote}
                 </Text>
               )}
             </div>
