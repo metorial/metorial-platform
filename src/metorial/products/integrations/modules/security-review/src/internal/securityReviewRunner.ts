@@ -391,25 +391,34 @@ class InternalSecurityReviewRunnerServiceImpl {
           modelAccess: reviewModelAccess,
           report: draft.current,
           scores: preview(draft.current).scores,
-          abortSignal: signal
+          abortSignal: signal,
+          onLog: async entry => {
+            runLog.add(redactSecrets(entry));
+            await onStep({ usage: emptyUsage(), steps: 0 });
+          }
         }).catch(error => {
+          signal.throwIfAborted();
           runLog.add(
             `consistency check failed and was skipped: ${redactSecrets(error instanceof Error ? error.message : String(error))}`
           );
-          return { verdict: { consistent: true, issues: [] }, usage: emptyUsage() };
+          return null;
         });
-        spent = sumUsage(spent, judged.usage);
-        runLog.add(
-          judged.verdict.consistent
-            ? 'consistency check: report is consistent'
-            : `consistency check found ${judged.verdict.issues.length} issue(s):\n${judged.verdict.issues
-                .map(issue => `  - ${issue.section}: ${issue.message}`)
-                .join('\n')}`
-        );
 
-        let issues = judged.verdict.consistent
-          ? []
-          : judged.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
+        if (judged) {
+          spent = sumUsage(spent, judged.usage);
+          runLog.add(
+            judged.verdict.consistent
+              ? 'consistency check: report is consistent'
+              : `consistency check found ${judged.verdict.issues.length} issue(s):\n${judged.verdict.issues
+                  .map(issue => `  - ${issue.section}: ${issue.message}`)
+                  .join('\n')}`
+          );
+        }
+
+        let issues =
+          !judged || judged.verdict.consistent
+            ? []
+            : judged.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
 
         if (issues.length && spent.costMicros < tier.maxCostMicros) {
           state.submitted = false;

@@ -8,7 +8,12 @@ let mocks = vi.hoisted(() => ({
   rateLimit: vi.fn(),
   collectEvidence: vi.fn(),
   start: vi.fn(),
-  complete: vi.fn()
+  complete: vi.fn(),
+  judge: vi.fn(),
+  agent: vi.fn(),
+  progress: vi.fn(),
+  createRun: vi.fn(),
+  updateRun: vi.fn()
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -16,6 +21,7 @@ vi.mock('@metorial-subspace/db', () => ({
     securityReview: { findUnique: mocks.findReview },
     securityReviewRevision: {
       findFirst: mocks.findRunning,
+      findMany: async () => [],
       updateMany: mocks.updateRevisions
     }
   }
@@ -27,23 +33,43 @@ vi.mock('@metorial-subspace/module-protoguard', () => ({
 }));
 vi.mock('../services/securityReviewWebAccess', () => ({ securityReviewWebAccessService: {} }));
 vi.mock('@metorial/fabric', () => ({}));
-vi.mock('@metorial/review-engine', () => ({}));
-vi.mock('../definitions/thoroughness', () => ({}));
-vi.mock('../env', () => ({}));
-vi.mock('../lib/agentRun', () => ({}));
-vi.mock('../lib/assemble', () => ({}));
-vi.mock('../lib/findings', () => ({}));
-vi.mock('../lib/runLog', () => ({
-  RunLog: class {
-    add() {}
+vi.mock('@metorial/review-engine', () => ({
+  runConsistencyJudge: mocks.judge,
+  runReviewAgent: mocks.agent,
+  emptyUsage: () => ({ inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, costMicros: 0 }),
+  createRunState: () => ({ submitted: true }),
+  createReviewWorkspace: async () => ({ serializeWorkspace: async () => ({}) }),
+  createReviewTools: () => ({}),
+  ReportDraft: class {
+    current = {};
   }
 }));
-vi.mock('../lib/playbooks', () => ({}));
-vi.mock('../lib/report', () => ({}));
-vi.mock('../lib/storage', () => ({}));
+vi.mock('../definitions/thoroughness', () => ({
+  reviewModelAccess: undefined,
+  getThoroughnessTier: () => ({
+    model: { slug: 'judge' },
+    maxCostMicros: 100_000,
+    maxSteps: 10,
+    maxFixRounds: 1
+  }),
+  getJudgeModel: () => ({ slug: 'judge' })
+}));
+vi.mock('../env', () => ({}));
+vi.mock('../lib/assemble', () => ({ assembleReport: () => ({ scores: {} }) }));
+vi.mock('../lib/findings', () => ({}));
+vi.mock('../lib/playbooks', () => ({
+  buildSystemPrompt: () => 'system',
+  buildUserPrompt: () => 'prompt'
+}));
+vi.mock('../lib/report', () => ({ createSecurityReportDefinition: () => ({}) }));
+vi.mock('../lib/storage', () => ({
+  workspaceKeyFor: () => 'workspace',
+  workspaceStore: { load: async () => null, save: async () => {} }
+}));
 
 vi.mock('../lib/subjects', () => ({
   collectEvidence: mocks.collectEvidence,
+  buildLedger: () => ({}),
   buildEvidenceFiles: () => ({}),
   hashEvidence: () => 'hash_1'
 }));
@@ -58,13 +84,24 @@ vi.mock('./securityReviewGate', () => ({
 
 vi.mock('./securityReviewLease', () => ({}));
 vi.mock('./securityReviewMirror', () => ({}));
-vi.mock('./securityReviewStore', () => ({}));
+vi.mock('./securityReviewStore', () => ({
+  internalSecurityReviewStoreService: {
+    createRun: mocks.createRun,
+    updateRun: mocks.updateRun
+  }
+}));
 vi.mock('./securityUsageReviewRunner', () => ({}));
 
 vi.mock('./securityReviewSink', () => ({
-  internalSecurityReviewSinkService: { start: mocks.start, complete: mocks.complete }
+  internalSecurityReviewSinkService: {
+    start: mocks.start,
+    complete: mocks.complete,
+    progress: mocks.progress
+  }
 }));
 
+import { emptyUsage } from '@metorial/review-engine';
+import { RunLog } from '../lib/runLog';
 import { internalSecurityReviewRunnerService } from './securityReviewRunner';
 
 beforeEach(() => {
@@ -84,6 +121,84 @@ beforeEach(() => {
     title: 'Skill',
     limitations: [],
     findings: []
+  });
+  mocks.createRun.mockResolvedValue({ id: 'run_1', oid: 2n });
+  mocks.agent.mockResolvedValue({
+    outcome: 'submitted',
+    usage: emptyUsage(),
+    steps: 1,
+    modelSteps: { judge: 1 }
+  });
+});
+
+let runAgent = async (runLog: RunLog, signal?: AbortSignal) =>
+  (internalSecurityReviewRunnerService as any).runAgent({
+    review: { id: 'rev_1', scope: 'tenant' },
+    revision: {},
+    gate: {},
+    evidence: { kind: 'skill', title: 'Skill' },
+    files: {},
+    previous: null,
+    previousFindings: [],
+    lockedFindings: [],
+    input: {},
+    runLog,
+    onRunCreated: () => {},
+    signal
+  });
+
+describe('security review consistency checks', () => {
+  it('keeps a submitted report without logging a successful verdict when the judge fails', async () => {
+    mocks.judge.mockRejectedValue(
+      new DOMException('The operation timed out.', 'TimeoutError')
+    );
+    let runLog = new RunLog();
+
+    let result = await runAgent(runLog);
+
+    expect(result.complete).toBe(true);
+    expect(runLog.toString()).toContain('consistency check failed and was skipped');
+    expect(runLog.toString()).not.toContain('report is consistent');
+    expect(mocks.agent).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists retry progress and refreshes the revision heartbeat', async () => {
+    mocks.judge.mockImplementation(async ({ onLog }) => {
+      await onLog('consistency check attempt 1/3 started');
+      return { verdict: { consistent: true, issues: [] }, usage: emptyUsage() };
+    });
+    let runLog = new RunLog();
+
+    await runAgent(runLog);
+
+    expect(mocks.progress).toHaveBeenCalledWith({
+      review: { id: 'rev_1', scope: 'tenant' },
+      revision: {},
+      progress: {}
+    });
+    expect(mocks.updateRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        steps: 1,
+        log: expect.stringContaining('consistency check attempt 1/3 started')
+      })
+    );
+    expect(runLog.toString()).toContain('report is consistent');
+  });
+
+  it('does not swallow cancellation of the review as a skipped judge', async () => {
+    let controller = new AbortController();
+    let error = new DOMException('Review timed out', 'TimeoutError');
+    mocks.judge.mockImplementation(async () => {
+      controller.abort(error);
+      throw error;
+    });
+    let runLog = new RunLog();
+
+    await expect(runAgent(runLog, controller.signal)).rejects.toBe(error);
+    expect(runLog.toString()).not.toContain('was skipped');
+    expect(mocks.updateRun).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'failed' })
+    );
   });
 });
 

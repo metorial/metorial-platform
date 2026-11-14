@@ -281,9 +281,10 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
     sections: {
       summary: {
         description:
-          'Two sentences. Sentence one is the trust verdict and why. Sentence two names the most ' +
-          'important dangerous operations, or the top fix for custom code. trustNote and ' +
-          'exposureNote are one sentence each, shown under the Security and Exposure scores.',
+          'At most two short sentences: the trust verdict and its main reason, then the most ' +
+          'consequential access or concrete issue (or top fix for custom code). Do not list every ' +
+          'capability. trustNote and exposureNote are one short sentence each, shown under the ' +
+          'Security and Exposure scores.',
         shape: '{ text: string; trustNote: string; exposureNote: string }',
         validate: section(
           v.object({
@@ -296,10 +297,19 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
       },
 
       provenance: {
-        description:
-          'Who built and operates this server, and how you know. Cite the URLs or files that ' +
-          'establish it. Use impersonation_suspected when a brand in the name or description does ' +
-          'not match the host or OAuth issuer.',
+        description: subject.isSkill
+          ? 'In one short sentence, state where the skill came from using the platform fact ' +
+            'provenance, and cite that fact. Keep the given class. Describe an import, upload or ' +
+            'fork without inferring original authorship. No server operator, metadata inventory ' +
+            'or routine vendor affiliation disclaimers. Report concrete impersonation as a finding.'
+          : subject.allowedProvenance.includes('metorial_built')
+            ? 'Ownership is established. Use class metorial_built, body "Built and operated by ' +
+              'Metorial." and evidence [{"type":"fact","id":"metorial-origin"}]. No vendor ' +
+              'affiliation disclaimers, branding evidence, registry identifiers or versions.'
+            : 'Identify who built or operates this server or skill in one short sentence. Add a ' +
+              'second only for a material uncertainty about ownership. Keep supporting proof in ' +
+              'evidence references rather than narrating it. Use impersonation_suspected only for ' +
+              'evidence of a misleading authorship or affiliation claim, not a service name alone.',
         shape: `{ class: ${subject.allowedProvenance.map(value => `'${value}'`).join(' | ')}; body: string; evidence: LedgerRef[] }`,
         validate: section(
           v.object({
@@ -323,7 +333,9 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
             'behaviors, one entry per tag, each with a one-sentence body and evidence. Deterministic ' +
             'behaviors are already recorded and kept.'
           : 'Every tool in the specification exactly once. Tag what the tool can actually do, not ' +
-            'what its annotations claim. hintAccuracy compares your tags to the declared MCP hints.',
+            'what its annotations claim. behavior is one short sentence naming the operation and ' +
+            'the data or access it affects; omit parameter inventories and routine API mechanics. ' +
+            'hintAccuracy compares your tags to the declared MCP hints.',
         shape:
           '{ tools: { key: string; name?: string; tags: CapabilityTag[]; behavior: string; ' +
           'declaredHints: { readOnly?: boolean; destructive?: boolean; idempotent?: boolean; openWorld?: boolean }; ' +
@@ -364,9 +376,12 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
       },
 
       implementation: {
-        description:
-          'Only for source code you could read: concrete strengths and weaknesses of the ' +
-          'implementation, each citing file and line ranges.',
+        description: subject.isSkill
+          ? 'Optional, only for reviewable scripts with substantive security properties. Omit for ' +
+            'prose-only skills. Do not manufacture strengths or weaknesses from absent features, ' +
+            'or assess writing quality. Cite file and line ranges for each point.'
+          : 'Only for source code you could read: concrete strengths and weaknesses of the ' +
+            'implementation, each citing file and line ranges.',
         shape:
           '{ strengths: Point[]; weaknesses: Point[] }\ntype Point = { title: string; body: string; evidence: LedgerRef[] }',
         validate: section(
@@ -382,8 +397,10 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
         description:
           'Security findings (with severity), capability findings (severity info, they describe ' +
           'what the tools can do) and positive findings (severity info, good practices in custom ' +
-          'code). Keys are stable kebab-case identifiers: reuse a previous key when the same issue ' +
-          'persists.',
+          'code). State the concrete behavior and consequence briefly; recommendations name a ' +
+          'specific fix only when needed. Group related capability observations rather than ' +
+          'repeating the tool catalog. An empty list is correct when there is nothing notable. ' +
+          'Keys are stable kebab-case identifiers: reuse a previous key when the same issue persists.',
         shape:
           "{ key: string; kind: 'security' | 'capability' | 'positive'; category: FindingCategory; " +
           "severity: 'info' | 'low' | 'medium' | 'high' | 'critical'; title: string; body: string; " +
@@ -424,8 +441,8 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
 
       changes: {
         description:
-          'What changed since the previous revision and how it affected the assessment. Required ' +
-          'when /history is not empty.',
+          'Briefly state what materially changed since the previous revision and its effect. ' +
+          'Do not retell the previous review. Required when /history is not empty.',
         shape: '{ body: string }',
         validate: section(v.object({ body: text(BODY_MAX) }))
       },
@@ -433,7 +450,9 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
       method: {
         description:
           'What this review covered, what it did not, and its limitations (unreadable files, ' +
-          'unreachable docs, tools not yet discovered).',
+          'unreachable docs, tools not yet discovered). Use short scope labels and list only real ' +
+          'gaps. Do not explain routine authentication or repeat the verdict. Empty optional lists ' +
+          'are fine.',
         shape: '{ included: string[]; outOfScope: string[]; limitations: string[] }',
         validate: section(
           v.object({

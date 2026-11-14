@@ -26,9 +26,10 @@ export let createUsageReportDefinition = (subject: UsageReportContext) =>
     sections: {
       summary: {
         description:
-          'Two sentences. Sentence one says what the observed usage shows about how this ' +
-          'integration is really used. Sentence two names the most important gap between what is ' +
-          'allowed and what is used. exposureNote is one sentence shown under the observed exposure.',
+          'At most two short sentences: what observed use means for access, then the most ' +
+          'important actionable gap between allowed and used capabilities, if one exists. ' +
+          'Do not invent a gap to fill a sentence. exposureNote is one short sentence shown ' +
+          'under the observed exposure.',
         shape: '{ text: string; exposureNote: string }',
         validate: section(
           v.object({ text: text(SUMMARY_MAX), exposureNote: text(NOTE_MAX) }),
