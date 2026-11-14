@@ -245,7 +245,7 @@ let GroupPill = styled(Pill)`
 `;
 
 let AccessSelectWrap = styled.div`
-  width: 132px;
+  width: 180px;
   flex: 0 0 auto;
 `;
 
@@ -272,9 +272,9 @@ let EmptyState = styled.div`
   padding: 4px 0 8px 0;
 `;
 
-type InvitePermission = 'read' | 'write' | 'owner';
+type InvitePermission = 'read' | 'write' | 'manage' | 'owner';
 
-type AccountPermission = 'none' | InvitePermission;
+type AccountPermission = 'none' | Exclude<InvitePermission, 'manage'>;
 
 let inviteAccessItems = [
   { id: 'read', label: 'Can view' },
@@ -283,33 +283,27 @@ let inviteAccessItems = [
 
 let ownerAccessItem = { id: 'owner', label: 'Owner' };
 
-let viewOnlyAccessItems = [
-  { id: 'none', label: 'Remove' },
-  { id: 'read', label: 'Can view' }
-];
+let manageAccessItem = { id: 'manage', label: 'Can edit and share' };
 
 let accountAccessItems = [{ id: 'none', label: 'Remove' }, ...inviteAccessItems];
 
-type GroupPermission = 'read' | 'manage';
+type GroupPermission = 'read' | 'write' | 'manage';
 
-let groupLevelItems = [
-  { id: 'read', label: 'Can view' },
-  { id: 'manage', label: 'Can edit' }
-];
+let groupLevelItems = [...inviteAccessItems, manageAccessItem];
 
 let groupAccessItems = [{ id: 'none', label: 'Remove' }, ...groupLevelItems];
 
 let isGroupPermission = (value: string): value is GroupPermission =>
-  value == 'read' || value == 'manage';
+  value == 'read' || value == 'write' || value == 'manage';
 
 let groupPermissionOf = (permission: InvitePermission): GroupPermission =>
-  permission == 'read' ? 'read' : 'manage';
+  permission == 'owner' ? 'manage' : permission;
 
 let isInvitePermission = (value: string): value is InvitePermission =>
-  value == 'read' || value == 'write' || value == 'owner';
+  isGroupPermission(value) || value == 'owner';
 
 let isAccountPermission = (value: string): value is AccountPermission =>
-  value == 'none' || isInvitePermission(value);
+  value == 'none' || value == 'read' || value == 'write' || value == 'owner';
 
 let getSkillLabel = (skill: SkillSharePanelSkill) => skill.name || skill.id;
 
@@ -470,9 +464,6 @@ export let SkillSharePanelContent = (p: {
     !!portalStorePermissions.data?.canManageAccess ||
     isCurrentConsumerOwner;
   let canAssignOwners = mode == 'dashboard' || isCurrentConsumerOwner;
-  let invitePermissionItems = canAssignOwners
-    ? [...inviteAccessItems, ownerAccessItem]
-    : inviteAccessItems;
 
   let skillAccess = useSkillAccess(p.instanceId, selectedSkillId, canManageAccess);
   let inheritedSkillGroupIds = useMemo(
@@ -579,6 +570,17 @@ export let SkillSharePanelContent = (p: {
     search
   ]);
 
+  let selectedCandidates = candidates.filter(candidate =>
+    selectedKeys.has(`${candidate.type}:${candidate.id}`)
+  );
+  let selectedHasConsumer = selectedCandidates.some(candidate => candidate.type == 'consumer');
+  let selectedHasGroup = selectedCandidates.some(candidate => candidate.type == 'group');
+  let invitePermissionItems = [
+    ...inviteAccessItems,
+    ...(canManagePortalGroups && !selectedHasConsumer ? [manageAccessItem] : []),
+    ...(canAssignOwners && (!selectedHasGroup || selectedHasConsumer) ? [ownerAccessItem] : [])
+  ];
+
   let toggleCandidate = (candidate: ShareCandidate) => {
     let key = `${candidate.type}:${candidate.id}`;
     setSelectedKeys(current => {
@@ -596,8 +598,20 @@ export let SkillSharePanelContent = (p: {
   };
 
   useEffect(() => {
-    if (!canAssignOwners) setPermission(current => (current == 'owner' ? 'read' : current));
-  }, [canAssignOwners]);
+    if (
+      (permission == 'owner' &&
+        (!canAssignOwners || (selectedHasGroup && !selectedHasConsumer))) ||
+      (permission == 'manage' && (!canManagePortalGroups || selectedHasConsumer))
+    ) {
+      setPermission('read');
+    }
+  }, [
+    canAssignOwners,
+    canManagePortalGroups,
+    permission,
+    selectedHasConsumer,
+    selectedHasGroup
+  ]);
 
   useEffect(() => {
     if (canManageAccess) return;
@@ -672,11 +686,18 @@ export let SkillSharePanelContent = (p: {
       }
     }
 
+    if (
+      permission == 'manage' &&
+      (consumerProfileIds.length || organizationMemberProfileIds.length)
+    ) {
+      return;
+    }
+
     for (let [profileIds, profilePermission] of [
-      [consumerProfileIds, permission],
+      [consumerProfileIds, permission == 'manage' ? null : permission],
       [organizationMemberProfileIds, 'read']
     ] as const) {
-      if (!profileIds.length) continue;
+      if (!profileIds.length || !profilePermission) continue;
 
       let [shared] = await shareSkill.mutate({
         instanceId: p.instanceId,
@@ -773,13 +794,9 @@ export let SkillSharePanelContent = (p: {
   }
 
   let selectedCount = selectedKeys.size;
-  let selectedCandidates = candidates.filter(candidate =>
-    selectedKeys.has(`${candidate.type}:${candidate.id}`)
-  );
   let selectedHasViewOnly = selectedCandidates.some(
     candidate => candidate.type == 'consumer' && candidate.isOrganizationMember
   );
-  let selectedHasGroup = selectedCandidates.some(candidate => candidate.type == 'group');
   let isSharing = shareSkill.isLoading || createPortalAccess.isLoading;
 
   return (
@@ -835,7 +852,9 @@ export let SkillSharePanelContent = (p: {
                   hideLabel
                   size="2"
                   style={{ flex: 1 }}
-                  placeholder={canManagePortalGroups ? 'Add people or access groups' : 'Add people'}
+                  placeholder={
+                    canManagePortalGroups ? 'Add people or access groups' : 'Add people'
+                  }
                   value={search}
                   onFocus={() => setIsSearching(true)}
                   onInput={value => {
@@ -890,12 +909,14 @@ export let SkillSharePanelContent = (p: {
 
                 <InvitePermissionFooter>
                   <InvitePermissionLabel>
-                    {selectedCount ? `${selectedCount} selected` : 'Pick people or access groups'}
+                    {selectedCount
+                      ? `${selectedCount} selected`
+                      : 'Pick people or access groups'}
                     {selectedHasViewOnly && permission != 'read'
-                      ? ' · organization members can only view'
+                      ? ' · organization members already can edit and share'
                       : ''}
                     {selectedHasGroup && permission == 'owner'
-                      ? ' · groups can edit but not own'
+                      ? ' · groups can edit and share but not own'
                       : ''}
                   </InvitePermissionLabel>
                   <AccessSelectWrap>
@@ -936,19 +957,17 @@ export let SkillSharePanelContent = (p: {
                     let grantedPermission = consumerProfileId
                       ? grantedPermissionByProfileId.get(consumerProfileId)
                       : undefined;
-                    let hasOnlyImplicitAccess =
-                      hasOrganizationMemberAccess && !isOwner && !grantedPermission;
-                    let participantPermission: AccountPermission = isOwner
+                    let participantPermission = isOwner
                       ? 'owner'
-                      : hasOnlyImplicitAccess
-                        ? getParticipantPermission(participant.roles)
+                      : hasOrganizationMemberAccess
+                        ? 'manage'
                         : consumerProfileId && skillAccess.data
                           ? (grantedPermission ?? 'none')
                           : getParticipantPermission(participant.roles);
                     let participantAccessItems = isOwner
                       ? [...accountAccessItems, ownerAccessItem]
                       : hasOrganizationMemberAccess
-                        ? viewOnlyAccessItems
+                        ? [manageAccessItem]
                         : canAssignOwners && !isOrganizationMember
                           ? [...accountAccessItems, ownerAccessItem]
                           : accountAccessItems;
@@ -973,7 +992,7 @@ export let SkillSharePanelContent = (p: {
                             hideLabel
                             size="2"
                             disabled={
-                              hasOnlyImplicitAccess ||
+                              hasOrganizationMemberAccess ||
                               !canManageAccess ||
                               !consumerProfileId ||
                               (isOwner && mode != 'dashboard') ||

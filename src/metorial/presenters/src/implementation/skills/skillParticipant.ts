@@ -67,7 +67,7 @@ export let dashboardSkillParticipantPresenter = Presenter.create(skillParticipan
         ),
         has_organization_member_access: v.boolean({
           description:
-            'Whether the participant has full access through an organization membership instead of its skill grants.'
+            'Whether the participant can edit and share through an organization membership instead of its skill grants.'
         })
       })
     ])
