@@ -1,0 +1,9 @@
+{
+  "deepseek-v4.1-flash-1017-fast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Vercel/Baseten listings describe the Fast id as a higher-throughput variant of DeepSeek V4.1 Flash 1017, the same Oct 17 checkpoint; serving-tier pricing explains the lower input price.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

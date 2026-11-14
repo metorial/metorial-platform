@@ -1,0 +1,9 @@
+{
+  "qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Offering is Qwen3.8 27B, Alibaba's Aug 2026 dense vision-language model with matching 262K context; the vendor's own low input/high output pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}
