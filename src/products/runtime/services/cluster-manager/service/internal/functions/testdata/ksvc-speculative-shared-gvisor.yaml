@@ -1,0 +1,140 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    runtime.metorial.com/bundle-bucket: function-bay-bundles
+    runtime.metorial.com/bundle-key: runtime/bundles/abc.tar.zst
+    runtime.metorial.com/materialized-reason: speculative
+  labels:
+    app.kubernetes.io/managed-by: runtime-cluster-manager
+    networking.knative.dev/visibility: cluster-local
+    runtime.metorial.com/component: function
+    runtime.metorial.com/function-id: fn_01HZY3K8Q2W6
+    runtime.metorial.com/tenant-id: ten_01HZY3K8Q2W5
+    runtime.metorial.com/version-id: fver_01HZY3K8Q2W7
+  name: fn-i3r2q46vcrrtjem3ncdz
+  namespace: metorial-runtime-functions
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/initial-scale: "3"
+        autoscaling.knative.dev/max-scale: "20"
+        autoscaling.knative.dev/min-scale: "0"
+        autoscaling.knative.dev/scale-down-delay: 0s
+        autoscaling.knative.dev/target-utilization-percentage: "70"
+        autoscaling.knative.dev/window: 30s
+      labels:
+        app.kubernetes.io/managed-by: runtime-cluster-manager
+        runtime.metorial.com/component: function
+        runtime.metorial.com/function-id: fn_01HZY3K8Q2W6
+        runtime.metorial.com/tenant-id: ten_01HZY3K8Q2W5
+        runtime.metorial.com/version-id: fver_01HZY3K8Q2W7
+    spec:
+      automountServiceAccountToken: false
+      containerConcurrency: 25
+      containers:
+      - env:
+        - name: METORIAL_FUNCTION_ID
+          value: fn_01HZY3K8Q2W6
+        - name: METORIAL_FUNCTION_VERSION_ID
+          value: fver_01HZY3K8Q2W7
+        - name: METORIAL_TENANT_ID
+          value: ten_01HZY3K8Q2W5
+        - name: METORIAL_EXECUTION_ENV
+          value: knative
+        - name: METORIAL_RUNTIME
+          value: nodejs:24
+        - name: METORIAL_ENTRYPOINT
+          value: '{"path":"dist/index.js","export":"handler","kind":"module"}'
+        - name: METORIAL_CONCURRENCY
+          value: shared
+        - name: METORIAL_TIMEOUT_SECONDS
+          value: "300"
+        - name: METORIAL_MEMORY_MB
+          value: "128"
+        - name: METORIAL_BUNDLE_SHA256
+          value: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        - name: METORIAL_BUNDLE_SIZE_BYTES
+          value: "123456"
+        - name: CLUSTER_MANAGER_POD_ADDR
+          value: https://10.43.0.20:52241
+        - name: CLUSTER_MANAGER_POD_SERVER_NAME
+          value: runtime-cluster-manager-pod.metorial.svc
+        - name: EGRESS_GATEWAY_ADDR
+          value: 10.43.0.30:443
+        - name: EGRESS_GATEWAY_SERVER_NAME
+          value: egress-gateway.metorial.svc
+        - name: METORIAL_POLICY_GATE
+          value: warn
+        - name: METORIAL_POLICY_GATE_TIMEOUT_SECONDS
+          value: "10"
+        - name: METORIAL_POLICY_GATE_TARGETS
+          value: 10.43.0.9:52240
+        envFrom:
+        - secretRef:
+            name: fn-i3r2q46vcrrtjem3ncdz-env
+        image: registry.example.com/function-runtime-node24@sha256:0000
+        name: function
+        ports:
+        - containerPort: 8080
+          name: http1
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 0
+        resources:
+          limits:
+            ephemeral-storage: 2Gi
+            memory: 128Mi
+          requests:
+            cpu: 62m
+            ephemeral-storage: 128Mi
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /var/runtime/bundle
+          name: bundle
+        - mountPath: /var/run/metorial/identity
+          name: identity
+          readOnly: true
+        - mountPath: /var/run/metorial/trust
+          name: trust
+          readOnly: true
+      enableServiceLinks: false
+      runtimeClassName: gvisor
+      serviceAccountName: function-runtime
+      timeoutSeconds: 360
+      volumes:
+      - emptyDir:
+          sizeLimit: 512Mi
+        name: tmp
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: bundle
+      - name: identity
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: runtime-cluster-manager-pod
+              expirationSeconds: 3600
+              path: token
+      - name: trust
+        projected:
+          sources:
+          - configMap:
+              name: runtime-trust
+          - configMap:
+              name: runtime-ca
+              optional: true
