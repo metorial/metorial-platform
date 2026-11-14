@@ -23,7 +23,7 @@ import {
   emptyUsage,
   ReportDraft,
   type ReviewUsage,
-  runConsistencyJudge,
+  createSubmissionVerifier,
   runReviewAgent
 } from '@metorial/review-engine';
 import {
@@ -50,7 +50,11 @@ import type { CollectedEvidence } from '../lib/evidence';
 import { classifyFindings, isReportStatus, toReportFinding } from '../lib/findings';
 import { STALE_RUNNING_MS, type SecurityReviewRunInput } from '../lib/revisions';
 import { redactSecrets, RunLog } from '../lib/runLog';
-import { buildSystemPrompt, buildUserPrompt } from '../lib/playbooks';
+import {
+  buildConsistencyCriteria,
+  buildSystemPrompt,
+  buildUserPrompt
+} from '../lib/playbooks';
 import { createSecurityReportDefinition } from '../lib/report';
 import { workspaceKeyFor, workspaceStore } from '../lib/storage';
 import {
@@ -68,7 +72,6 @@ import { internalSecurityUsageReviewRunnerService } from './securityUsageReviewR
 
 let RUN_TIMEOUT_MS = 20 * 60 * 1000;
 let HISTORY_REVISIONS = 5;
-let JUDGE_FIX_STEPS = 6;
 let STAGES: SecurityReviewStage[] = ['collecting', 'verifying', 'analyzing', 'writing'];
 
 let reviewInclude = {
@@ -296,6 +299,44 @@ class InternalSecurityReviewRunnerServiceImpl {
           lockedFindings: d.lockedFindings
         });
 
+      let system = buildSystemPrompt({ kind: d.evidence.kind, definition });
+      let agentProgress = { usage: emptyUsage(), steps: 0 };
+      let onStep = async (progress: { usage: ReviewUsage; steps: number }) => {
+        agentProgress = progress;
+        await internalSecurityReviewSinkService.progress({
+          review: d.review,
+          revision: d.revision,
+          progress: {}
+        });
+        await internalSecurityReviewStoreService.updateRun({
+          runOid: run.oid,
+          steps: progress.steps,
+          usage: sumUsage(spent, progress.usage),
+          log: runLog.toString()
+        });
+      };
+      let validateSubmission = createSubmissionVerifier<SecurityReport>({
+        model: getJudgeModel(),
+        modelAccess: reviewModelAccess,
+        sectionNames: draft.sectionNames,
+        reviewInstructions: buildConsistencyCriteria({ kind: d.evidence.kind }),
+        prepare: report => {
+          let assembled = preview(report);
+          return {
+            report: assembled.report,
+            scores: assembled.scores,
+            evidence: buildJudgeEvidence({ report: assembled.report, files: d.files })
+          };
+        },
+        abortSignal: signal,
+        onUsage: usage => {
+          spent = sumUsage(spent, usage);
+        },
+        onLog: async entry => {
+          runLog.add(redactSecrets(entry));
+          await onStep(agentProgress);
+        }
+      });
       let state = createRunState();
       let tools = createReviewTools<SecurityReport>({
         workspace,
@@ -319,6 +360,7 @@ class InternalSecurityReviewRunnerServiceImpl {
               })
             : undefined,
         hooks: {
+          validateSubmission,
           onStage: async ({ stage, activity }) =>
             await internalSecurityReviewSinkService.progress({
               review: d.review,
@@ -350,21 +392,6 @@ class InternalSecurityReviewRunnerServiceImpl {
         }
       });
 
-      let system = buildSystemPrompt({ kind: d.evidence.kind, definition });
-      let onStep = async (progress: { usage: ReviewUsage; steps: number }) => {
-        await internalSecurityReviewSinkService.progress({
-          review: d.review,
-          revision: d.revision,
-          progress: {}
-        });
-        await internalSecurityReviewStoreService.updateRun({
-          runOid: run.oid,
-          steps: steps + progress.steps,
-          usage: sumUsage(spent, progress.usage),
-          log: runLog.toString()
-        });
-      };
-
       let result = await runReviewAgent({
         model: tier.model,
         modelAccess: reviewModelAccess,
@@ -382,6 +409,7 @@ class InternalSecurityReviewRunnerServiceImpl {
         maxSteps: tier.maxSteps,
         maxCostMicros: tier.maxCostMicros,
         maxFixRounds: tier.maxFixRounds,
+        extraCostMicros: () => spent.costMicros,
         abortSignal: signal,
         onLog: entry => runLog.add(entry),
         onStep
@@ -392,104 +420,7 @@ class InternalSecurityReviewRunnerServiceImpl {
         `agent finished: ${result.outcome} after ${result.steps} steps · ${JSON.stringify(result.modelSteps)} · $${(result.usage.costMicros / 1_000_000).toFixed(4)}`
       );
 
-      let unresolvedIssues: string[] = [];
       let unchanged = result.outcome == 'unchanged' ? state.recheck : null;
-
-      if (state.submitted && !unchanged) {
-        let judged = await runConsistencyJudge({
-          model: getJudgeModel(),
-          modelAccess: reviewModelAccess,
-          report: preview(draft.current).report,
-          scores: preview(draft.current).scores,
-          evidence: buildJudgeEvidence({
-            report: preview(draft.current).report,
-            files: d.files
-          }),
-          abortSignal: signal,
-          onLog: async entry => {
-            runLog.add(redactSecrets(entry));
-            await onStep({ usage: emptyUsage(), steps: 0 });
-          }
-        }).catch(error => {
-          signal.throwIfAborted();
-          runLog.add(
-            `consistency check failed and was skipped: ${redactSecrets(error instanceof Error ? error.message : String(error))}`
-          );
-          return null;
-        });
-
-        if (judged) {
-          spent = sumUsage(spent, judged.usage);
-          runLog.add(
-            judged.verdict.consistent
-              ? 'consistency check: report is consistent'
-              : `consistency check found ${judged.verdict.issues.length} issue(s):\n${judged.verdict.issues
-                  .map(issue => `  - ${issue.section}: ${issue.message}`)
-                  .join('\n')}`
-          );
-        }
-
-        let issues = !judged
-          ? ['The final evidence consistency check could not be completed.']
-          : judged.verdict.consistent
-            ? []
-            : judged.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
-
-        if (judged && issues.length && spent.costMicros < tier.maxCostMicros) {
-          state.submitted = false;
-
-          runLog.add('fix round started: resolving the consistency check issues');
-
-          let fix = await runReviewAgent({
-            model: tier.model,
-            modelAccess: reviewModelAccess,
-            system,
-            prompt: `A consistency check of your submitted report found these problems:\n${issues
-              .map(issue => `- ${issue}`)
-              .join(
-                '\n'
-              )}\n\nFix the affected sections with write_section, then submit again.`,
-            tools,
-            state,
-            maxSteps: JUDGE_FIX_STEPS,
-            maxCostMicros: tier.maxCostMicros - spent.costMicros,
-            maxFixRounds: 1,
-            abortSignal: signal,
-            onLog: entry => runLog.add(entry),
-            onStep
-          });
-          spent = sumUsage(spent, fix.usage);
-          steps += fix.steps;
-          runLog.add(`fix round finished: ${fix.outcome} after ${fix.steps} steps`);
-          if (state.submitted) {
-            let finalCheck = await runConsistencyJudge({
-              model: getJudgeModel(),
-              modelAccess: reviewModelAccess,
-              report: preview(draft.current).report,
-              scores: preview(draft.current).scores,
-              evidence: buildJudgeEvidence({
-                report: preview(draft.current).report,
-                files: d.files
-              }),
-              abortSignal: signal
-            }).catch(error => {
-              signal.throwIfAborted();
-              runLog.add(
-                `Final consistency check unavailable: ${redactSecrets(String(error))}`
-              );
-              return null;
-            });
-            if (finalCheck) spent = sumUsage(spent, finalCheck.usage);
-            issues = !finalCheck
-              ? ['The final evidence consistency check could not be completed.']
-              : finalCheck.verdict.consistent
-                ? []
-                : finalCheck.verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
-          }
-        }
-
-        unresolvedIssues = issues;
-      }
 
       await workspace
         .serializeWorkspace()
@@ -505,9 +436,9 @@ class InternalSecurityReviewRunnerServiceImpl {
 
       return {
         draft: draft.current,
-        complete: state.submitted && !unresolvedIssues.length,
+        complete: state.submitted,
         budgetExhausted,
-        gaps: [...(state.submitted ? [] : state.lastErrors), ...unresolvedIssues],
+        gaps: state.submitted ? [] : state.lastErrors,
         model: tier.model.slug,
         costMicros: spent.costMicros,
         unchanged
@@ -747,7 +678,9 @@ class InternalSecurityReviewRunnerServiceImpl {
     });
 
     let completionStatus = this.completionStatus({
-      agent,
+      agent: agent
+        ? { complete: agent.complete && !!assembled.scores.assessmentComplete }
+        : null,
       blockReason,
       deferred: !!input.deterministicOnly && !failureCode
     });

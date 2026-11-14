@@ -24,6 +24,7 @@ import {
   RiShieldKeyholeLine,
   RiFlowChart,
   RiStackLine,
+  RiFolderLine,
   RiStore2Line,
   RiCompassDiscoverLine,
   RiUploadCloud2Line,
@@ -234,6 +235,14 @@ export let ProjectPageLayout = () => {
                           { ...i, to: Paths.instance.skills(...params) },
                           { exact: true }
                         ) && isOwnedSkillsView()
+                    })
+                  },
+                  {
+                    icon: <RiFolderLine />,
+                    label: 'Groups',
+                    to: Paths.instance.skillGroups(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: i.pathname.endsWith('/skills/groups')
                     })
                   },
                   {

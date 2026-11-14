@@ -112,14 +112,43 @@ export let presentPoint = (point: SecurityReportPoint) => ({
   evidence: presentEvidence(point.evidence)
 });
 
-let presentReport = (report: SecurityReport | null) => ({
-  summary: report?.summary
-    ? {
-        text: report.summary.text,
-        trust_note: report.summary.trustNote,
-        exposure_note: report.summary.exposureNote
-      }
-    : null,
+export let presentReviewSummary = (
+  summary: SecurityReport['summary'],
+  scores: SecurityReviewComputedScores | null
+) => {
+  if (!summary) return null;
+
+  let trustNote = summary.trustNote;
+  if (
+    scores &&
+    trustNote == 'The assessment is incomplete. A final security score requires more evidence.'
+  ) {
+    trustNote = 'This score reflects the available evidence.';
+  }
+
+  return { text: summary.text, trust_note: trustNote, exposure_note: summary.exposureNote };
+};
+
+export let presentReviewHeadline = (scores: SecurityReviewComputedScores) => {
+  let [verdict, reason] = scores.headline;
+  if (verdict != 'Assessment incomplete.' && verdict != 'Partial assessment') {
+    return [...scores.headline];
+  }
+
+  let hasFindings = Object.values(scores.counts.findings).some(count => count > 0);
+  return [
+    !hasFindings && scores.band == 'strong'
+      ? 'No security issues found in the reviewed evidence.'
+      : 'See the security assessment findings.',
+    reason == 'Some behavior remains unclassified.' ? '' : reason
+  ];
+};
+
+let presentReport = (
+  report: SecurityReport | null,
+  scores: SecurityReviewComputedScores | null
+) => ({
+  summary: presentReviewSummary(report?.summary, scores),
   provenance: report?.provenance
     ? {
         class: report.provenance.class,
@@ -159,8 +188,8 @@ let presentReport = (report: SecurityReport | null) => ({
     : null
 });
 
-export let presentScores = (scores: SecurityReviewComputedScores | null) =>
-  scores && scores.assessmentComplete !== false
+export let presentScores = (scores: SecurityReviewComputedScores | null, completed = false) =>
+  scores
     ? {
         security_score: scores.security,
         band: scores.band,
@@ -168,7 +197,7 @@ export let presentScores = (scores: SecurityReviewComputedScores | null) =>
         risk: scores.risk,
         confidence: scores.confidence,
         lethal_trifecta: scores.trifecta,
-        headline: [...scores.headline],
+        headline: completed ? presentReviewHeadline(scores) : [...scores.headline],
         counts: {
           tools_expected: scores.counts.tools.expected,
           tools_reviewed: scores.counts.tools.reviewed,
@@ -231,8 +260,14 @@ let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
 
     ai_generated: revision.mode == 'ai',
 
-    scores: presentScores(revision.scores as SecurityReviewComputedScores | null),
-    report: presentReport(revision.report as SecurityReport | null),
+    scores: presentScores(
+      revision.scores as SecurityReviewComputedScores | null,
+      revision.status == 'completed'
+    ),
+    report: presentReport(
+      revision.report as SecurityReport | null,
+      revision.scores as SecurityReviewComputedScores | null
+    ),
     findings: presentFindings(revision.findings),
 
     started_at: revision.startedAt,

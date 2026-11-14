@@ -116,7 +116,7 @@ export let assembleReport = (d: AssembleInput) => {
     !!draft.summary &&
     !!draft.provenance &&
     !!draft.findings &&
-    draft.method?.coverage == 'complete' &&
+    !!draft.method &&
     !d.gaps.length &&
     !missingTools.length &&
     !unresolved.length &&
@@ -177,7 +177,7 @@ export let assembleReport = (d: AssembleInput) => {
   if (!scores.assessmentComplete) {
     summary = {
       ...summary,
-      trustNote: 'The assessment is incomplete. A final security score requires more evidence.'
+      trustNote: 'The score is provisional while coverage or validation is incomplete.'
     };
   }
   if (scores.exposure == 'unknown')

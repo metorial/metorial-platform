@@ -5,11 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { assembleReport } from './assemble';
 import { createSecurityReportDefinition } from './report';
 import { qualityFixtures as fixtures } from './qualityFixtures';
+import { buildConsistencyCriteria } from './playbooks';
 import { scanSkill } from './skillDetectors';
 import { buildUsageStats } from './usage/stats';
 import { computeUsageScores } from './usage/assemble';
 
-let reviewFixture = (fixture: (typeof fixtures)[number]) => {
+let reviewFixture = (
+  fixture: (typeof fixtures)[number],
+  method?: SecurityReport['method']
+) => {
   let path = fixture.path ?? 'SKILL.md';
   let scan = scanSkill({
     texts: [{ path, content: fixture.source, ships: true, inAgentView: true }],
@@ -32,7 +36,7 @@ let reviewFixture = (fixture: (typeof fixtures)[number]) => {
       body: 'Created in your organization.',
       evidence: []
     },
-    method: {
+    method: method ?? {
       included: ['Skill instructions and scripts'],
       outOfScope: [],
       limitations: [],
@@ -99,6 +103,60 @@ let reviewFixture = (fixture: (typeof fixtures)[number]) => {
 };
 
 describe('review quality regression corpus', () => {
+  it('shares assessment criteria with the verifier without the agent execution workflow', () => {
+    let slate = buildConsistencyCriteria({ kind: 'slate' });
+    let skill = buildConsistencyCriteria({ kind: 'skill' });
+
+    expect(slate).toContain('Built and operated by Metorial.');
+    expect(skill).toContain('Scope: security only');
+    expect(skill).toContain('realistically harm');
+    for (let criteria of [slate, skill]) {
+      expect(criteria).toContain('Classifying actual reach');
+      expect(criteria).not.toContain('## How to work');
+      expect(criteria).not.toContain('## The shell');
+      expect(criteria).not.toContain('## Report sections');
+    }
+  });
+
+  it('completes a static skill review with known exposure and an untested live workflow', () => {
+    let { scores } = reviewFixture(
+      {
+        name: 'GitHub review requests',
+        source: 'Fetch review requests from the signed-in GitHub account through Bash.',
+        behaviors: [
+          {
+            tag: 'code_execution',
+            actions: [
+              {
+                operation: 'execute',
+                scope: 'unrestricted',
+                data: 'unknown',
+                destination: 'none',
+                target: 'Bash',
+                evidence: []
+              }
+            ]
+          }
+        ],
+        exposure: 'high'
+      },
+      {
+        included: ['Skill instructions and source'],
+        outOfScope: ['Live GitHub API responses'],
+        limitations: ['The script was assessed by reading the source.'],
+        coverage: 'partial'
+      }
+    );
+
+    expect(scores).toMatchObject({
+      security: 95,
+      exposure: 'high',
+      confidence: 'high',
+      assessmentComplete: true,
+      headline: ['No security issues found.', 'Powerful permissions.']
+    });
+  });
+
   it.each(fixtures)('$name', fixture => {
     let { scores, findings } = reviewFixture(fixture);
     expect(findings).toEqual([]);

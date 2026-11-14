@@ -1,3 +1,3 @@
-export let SECURITY_REVIEW_RULES_VERSION = 'rules-2026-11.2';
-export let SECURITY_REVIEW_PROMPT_VERSION = 'prompt-2026-11.4';
+export let SECURITY_REVIEW_RULES_VERSION = 'rules-2026-11.3';
+export let SECURITY_REVIEW_PROMPT_VERSION = 'prompt-2026-11.6';
 export let SECURITY_USAGE_PROMPT_VERSION = 'usage-prompt-2026-11.2';

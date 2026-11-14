@@ -15,8 +15,8 @@ export type ThoroughnessTier = {
   maxFixRounds: number;
 };
 
-let SLATE_MIN_COST_MICROS = 3_000_000;
-let SLATE_MIN_STEPS = 1000;
+let SLATE_MIN_COST_MICROS = 6_000_000;
+let SLATE_MIN_STEPS = 2000;
 let MODEL_RATE_LIMIT_MAX_WAIT_MS = 2 * 60 * 1000;
 let USAGE_REVIEW_MAX_STEPS = 80;
 let USAGE_REVIEW_MAX_COST_MICROS = 400_000;
