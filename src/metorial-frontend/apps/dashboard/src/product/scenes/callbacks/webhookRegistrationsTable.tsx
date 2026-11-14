@@ -1,41 +1,26 @@
 import { CodeEditor } from '@metorial/code-editor';
 import { useForm } from '@metorial/data-hooks';
+import {
+  createDataList,
+  col,
+  defineAction,
+  defineStatus,
+  EmptyValue,
+  f
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import { Markdown } from '@metorial/markdown';
 import {
   useCreateWebhookRegistration,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useDeleteWebhookRegistration,
   useSetupWebhookRegistration,
   useWebhookRegistrations,
   WebhookRegistrationPreview
 } from '@metorial/state';
-import {
-  Table as DashboardTable,
-  getConstrainedEnumListFilterValue,
-  getListFilterValue,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import {
-  Badge,
-  Button,
-  Callout,
-  confirm,
-  Dialog,
-  Input,
-  Panel,
-  RenderDate,
-  showModal,
-  Spacer,
-  Text
-} from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { Button, Callout, Dialog, Input, Panel, showModal, Spacer, Text } from '@metorial/ui';
 import { RiDeleteBinLine, RiSettings3Line } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ComponentProps } from 'react';
+import { useInstanceContext } from '../../lib/dataList';
 import {
   getJsonSchemaDefaultObject,
   getJsonSchemaObject,
@@ -49,23 +34,30 @@ import {
 } from '../jsonSchemaInput';
 import { entityFilters } from '../entityFilters';
 import { ProviderSelectionStep } from '../providerCreationPanel';
+import { isWebhookRegistrationRemoved } from './shared';
 import {
-  getWebhookRegistrationStatusColor,
-  WEBHOOK_REGISTRATION_STATUS_LABELS
-} from './shared';
+  WEBHOOK_REGISTRATION_COPY,
+  type WebhookRegistrationTarget
+} from './webhookRegistrationPurpose';
+import {
+  getWebhookSetupErrorMessages,
+  orderJsonSchemaPropertiesByRequired
+} from './webhookRegistrationSetup';
 
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
   provider?: { id: string; name: string };
+  target: WebhookRegistrationTarget;
   onCreate: (created: { id: string }) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     let [providerId, setProviderId] = useState(p.provider?.id ?? '');
     let createRegistration = useCreateWebhookRegistration();
+    let copy = WEBHOOK_REGISTRATION_COPY[p.target.purpose];
 
     let form = useForm({
       initialValues: {
-        name: p.provider ? `${p.provider.name} Webhook Receiver` : '',
+        name: p.provider ? copy.createName(p.provider.name) : '',
         description: ''
       },
       onSubmit: async values => {
@@ -74,6 +66,8 @@ let showCreateWebhookRegistrationModal = (p: {
         let [created] = await createRegistration.mutate({
           instanceId: p.instanceId,
           providerId,
+          authCredentialsId:
+            p.target.purpose === 'delivery_setup' ? p.target.authCredentialsId : undefined,
           name: values.name.trim(),
           description: values.description.trim() || undefined
         });
@@ -100,19 +94,14 @@ let showCreateWebhookRegistrationModal = (p: {
       <Panel.Wrapper {...dialogProps} width={900}>
         <Panel.Header>
           <Panel.Title>
-            {p.provider
-              ? `Set Up ${p.provider.name} Webhook Receiver`
-              : 'Create Webhook Receiver'}
+            {p.provider ? copy.createTitle(p.provider.name) : 'Create Webhook Receiver'}
           </Panel.Title>
         </Panel.Header>
 
         <Panel.Content>
           {providerId ? (
             <form onSubmit={form.handleSubmit}>
-              <Callout color="gray">
-                Metorial will create a secure receive URL, then guide you through adding it to
-                the provider and saving any required verification values.
-              </Callout>
+              <Callout color="gray">{copy.createIntro}</Callout>
 
               <Spacer size={16} />
 
@@ -151,7 +140,7 @@ let showCreateWebhookRegistrationModal = (p: {
                   loading={createRegistration.isLoading}
                   success={createRegistration.isSuccess}
                 >
-                  Create Webhook Receiver
+                  {copy.createSubmit}
                 </Button>
               </Dialog.Actions>
 
@@ -177,18 +166,18 @@ let getWebhookSetupSchemaFieldErrors = (p: {
   let fieldErrors: Record<string, string> = {};
 
   for (let field of getEmptyRequiredFieldLabels({ schema: p.schema, value: p.value })) {
-    fieldErrors[field] = `\`${field}\` is required before continuing.`;
+    fieldErrors[field] = `${field} is required before continuing.`;
   }
 
   for (let field of getEmptyRequiredJsonStringFieldLabels({
     schema: p.schema,
     value: p.value
   })) {
-    fieldErrors[field] = `\`${field}\` is required before continuing.`;
+    fieldErrors[field] = `${field} is required before continuing.`;
   }
 
   for (let field of getInvalidJsonStringFieldLabels({ schema: p.schema, value: p.value })) {
-    fieldErrors[field] = `\`${field}\` must contain valid JSON before continuing.`;
+    fieldErrors[field] = `${field} must contain valid JSON before continuing.`;
   }
 
   return fieldErrors;
@@ -204,7 +193,11 @@ let showWebhookRegistrationSetupPanel = (p: {
     let isPending = p.registration.setup.status === 'pending';
 
     let hasSchema = hasJsonSchemaProperties(p.registration.setup.schema);
-    let schemaObj = getJsonSchemaObject(p.registration.setup.schema);
+    let schemaObj = useMemo(
+      () =>
+        orderJsonSchemaPropertiesByRequired(getJsonSchemaObject(p.registration.setup.schema)),
+      [p.registration.setup.schema]
+    );
 
     let [configValue, setConfigValue] = useState<Record<string, unknown>>(() =>
       getJsonSchemaDefaultObject(p.registration.setup.schema)
@@ -217,6 +210,15 @@ let showWebhookRegistrationSetupPanel = (p: {
       hasSchema && attemptedSubmit
         ? getWebhookSetupSchemaFieldErrors({ schema: schemaObj, value: configValue })
         : {};
+
+    // A server error is about the submitted values, so it goes away once they are edited.
+    let setupError = getWebhookSetupErrorMessages({
+      schema: schemaObj,
+      error:
+        !hasSchema || setupRegistration.input?.userConfig === configValue
+          ? setupRegistration.error
+          : null
+    });
 
     let submit = async () => {
       let userConfig: Record<string, any>;
@@ -286,7 +288,7 @@ let showWebhookRegistrationSetupPanel = (p: {
                     schema={schemaObj}
                     value={configValue}
                     onChange={setConfigValue}
-                    fieldErrors={schemaFieldErrors}
+                    fieldErrors={{ ...setupError.fieldErrors, ...schemaFieldErrors }}
                     variant="raw"
                   />
                 </>
@@ -311,6 +313,13 @@ let showWebhookRegistrationSetupPanel = (p: {
                 </>
               ) : null}
 
+              {setupError.message ? (
+                <>
+                  <Spacer size={12} />
+                  <Callout color="red">{setupError.message}</Callout>
+                </>
+              ) : null}
+
               <Spacer size={18} />
 
               <Dialog.Actions>
@@ -331,14 +340,12 @@ let showWebhookRegistrationSetupPanel = (p: {
                   Complete Setup
                 </Button>
               </Dialog.Actions>
-
-              <setupRegistration.RenderError />
             </>
           ) : (
             <>
               <Spacer size={20} />
               <Callout color="green">
-                <span>Setup is complete — this receiver is live.</span>
+                <span>{WEBHOOK_REGISTRATION_COPY[p.registration.purpose].setupComplete}</span>
               </Callout>
               <Spacer size={18} />
               <Dialog.Actions>
@@ -353,208 +360,116 @@ let showWebhookRegistrationSetupPanel = (p: {
     );
   });
 
-type WebhookRegistrationsTableProps = {
-  instanceId: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+export let webhookRegistrationStatus = defineStatus({
+  awaiting_setup: { label: 'Awaiting Setup', color: 'orange' },
+  active: { label: 'Active', color: 'green' },
+  archived: { label: 'Archived', color: 'orange' },
+  deleted: { label: 'Deleted', color: 'gray' }
+});
 
-let useWebhookRegistrationsTableState: TableStateProvider<
-  WebhookRegistrationsTableProps,
-  WebhookRegistrationPreview,
-  TableStateProviderResult<WebhookRegistrationPreview> & {
-    registrations: ReturnType<typeof useWebhookRegistrations>;
-  }
-> = (props, opts) => {
-  let registrations = useWebhookRegistrations(props.instanceId, {
-    order: 'desc',
-    status: getConstrainedEnumListFilterValue(
-      opts.filter.status,
-      ['awaiting_setup', 'active', 'archived', 'deleted'],
-      undefined
-    ),
-    providerId: getListFilterValue(opts.filter.providerId)
-  });
-
-  return {
-    isLoading: registrations.isLoading,
-    error: registrations.error,
-    hasMoreAfter: registrations.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: registrations.data?.pagination.hasMoreBefore ?? false,
-    items: registrations.data?.items ?? [],
-    loadNext: registrations.next,
-    loadPrevious: registrations.previous,
-    registrations
-  };
-};
-
-let useWebhookRegistrationsTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<WebhookRegistrationPreview>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'awaiting_setup', label: 'Awaiting Setup' },
-          { id: 'active', label: 'Active' },
-          { id: 'archived', label: 'Archived' }
-        ]
-      },
-      entityFilters.provider(instanceId)
-    ],
-    [instanceId]
-  );
-
-let webhookRegistrationsTable = new DashboardTable<
-  WebhookRegistrationsTableProps,
-  WebhookRegistrationPreview
->('webhook-registrations')
-  .state(useWebhookRegistrationsTableState)
-  .hookState((state, props) => {
-    let deleteRegistration = useDeleteWebhookRegistration();
-
-    return {
-      instanceId: props.instanceId,
-      registrations: state.registrations,
-      deleteRegistration
-    };
-  })
+let WebhookRegistrationsList = createDataList<{ instanceId?: string }>('webhook-registrations')
+  .context(useInstanceContext)
+  .filters((props, ctx) => ({
+    status: f.status(webhookRegistrationStatus, {
+      only: ['awaiting_setup', 'active', 'archived']
+    }),
+    providerId: f.entity(entityFilters.provider(props.instanceId ?? ctx.instanceId))
+  }))
+  .paginated(({ props, ctx, filters }) =>
+    useWebhookRegistrations(props.instanceId ?? ctx.instanceId, {
+      order: 'desc',
+      status: filters.status,
+      providerId: filters.providerId
+    })
+  )
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Receiver',
-      render: registration => (
-        <div>
-          <Text size="2" weight="strong">
-            {registration.name}
-          </Text>
-          <Text size="1" color="gray600">
-            {registration.provider.name}
-          </Text>
-        </div>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: registration => (
-        <Badge color={getWebhookRegistrationStatusColor(registration.status)}>
-          {WEBHOOK_REGISTRATION_STATUS_LABELS[registration.status] ?? registration.status}
-        </Badge>
-      )
-    },
-    {
+    col.name({ header: 'Receiver', description: row => row.provider.name }),
+    col.status(webhookRegistrationStatus),
+    col.custom({
       id: 'receiveUrl',
-      isDefault: true,
       header: 'Receive URL',
-      render: registration =>
-        registration.receiveUrl ? (
+      render: row =>
+        row.receiveUrl && !isWebhookRegistrationRemoved(row) ? (
           <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-            {registration.receiveUrl}
+            {row.receiveUrl}
           </Text>
         ) : (
-          <Text size="2" color="gray600">
-            Not provisioned
-          </Text>
+          <EmptyValue>
+            {isWebhookRegistrationRemoved(row) ? 'Removed' : 'Not provisioned'}
+          </EmptyValue>
         )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: registration => <RenderDate date={registration.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Receiver ID',
-      render: registration => <ID id={registration.id} />
-    }
+    }),
+    col.createdAt(),
+    col.id({ header: 'Receiver ID' })
   ])
-  .link((registration, props) =>
-    Paths.instance.webhookRegistration(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      registration.id
-    )
+  .link((row, _props, ctx) =>
+    Paths.instance.webhookRegistration(ctx.organization, ctx.project, ctx.instance, row.id)
   )
-  .actions({
-    setup: async (registrations, state) => {
-      let registration = registrations[0];
-      if (!registration) return;
-
-      showWebhookRegistrationSetupPanel({
-        instanceId: state.instanceId,
-        registration,
-        onComplete: () => void state.registrations.refetch()
-      });
-    },
-    delete: async (registrations, state) => {
-      let registration = registrations[0];
-      if (!registration) return;
-
-      confirm({
-        title: `Delete ${registration.name}?`,
-        description:
-          'Metorial tears down the receiver on the provider and stops accepting webhooks at this URL. This cannot be undone.',
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await state.deleteRegistration.mutate({
-            instanceId: state.instanceId,
-            webhookRegistrationId: registration.id
-          });
-          await state.registrations.refetch();
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
+  .itemActions([
+    defineAction<WebhookRegistrationPreview>({
       id: 'setup',
       label: 'View Setup',
       icon: <RiSettings3Line />,
-      action: 'setup'
-    },
-    {
+      row: true,
+      hidden: isWebhookRegistrationRemoved,
+      useRun:
+        ({ props, ctx }) =>
+        async row => {
+          showWebhookRegistrationSetupPanel({
+            instanceId: (props.instanceId ?? ctx.instanceId)!,
+            registration: row,
+            onComplete: () => {}
+          });
+        }
+    }),
+    defineAction<WebhookRegistrationPreview>({
       id: 'delete',
       label: 'Delete',
       icon: <RiDeleteBinLine />,
-      action: 'delete'
-    }
+      row: true,
+      hidden: isWebhookRegistrationRemoved,
+      destructive: true,
+      confirm: {
+        title: 'Delete Receiver',
+        confirmText: 'Delete',
+        description: ([row]) => WEBHOOK_REGISTRATION_COPY[row.purpose].deleteDescription
+      },
+      useRun: ({ props, ctx }) => {
+        let deleteRegistration = useDeleteWebhookRegistration();
+
+        return async row => {
+          await deleteRegistration.mutate({
+            instanceId: (props.instanceId ?? ctx.instanceId)!,
+            webhookRegistrationId: row.id
+          });
+        };
+      }
+    })
   ])
   .build();
 
-export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useWebhookRegistrationsTableFilters(instanceId);
-
-  return webhookRegistrationsTable({
-    instanceId,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState:
-      'No webhook receivers yet. Create one to get a Metorial URL you can point a provider at.'
-  });
-};
+export let WebhookRegistrationsTable = (
+  props: ComponentProps<typeof WebhookRegistrationsList>
+) => (
+  <WebhookRegistrationsList
+    emptyState={{
+      initial:
+        'No webhook registrations yet. A callback shows the setup when its provider needs one.',
+      filtered: 'No webhook receivers match your filters.'
+    }}
+    {...props}
+  />
+);
 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
   provider,
+  target,
   onCreate
 }: {
   instanceId: string;
   provider?: { id: string; name: string };
+  target: WebhookRegistrationTarget;
   onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
@@ -563,11 +478,12 @@ export let CreateWebhookRegistrationButton = ({
       showCreateWebhookRegistrationModal({
         instanceId,
         provider,
+        target,
         onCreate: created => onCreate?.(created)
       })
     }
   >
-    Create Webhook Receiver
+    {WEBHOOK_REGISTRATION_COPY[target.purpose].createButton}
   </Button>
 );
 

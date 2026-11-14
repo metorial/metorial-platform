@@ -12,5 +12,5 @@ export let fileFabricOwnerFromFile = (
 ) => ({
   instance: file.instanceOid != null ? { oid: file.instanceOid } : undefined,
   organization: file.organizationOid != null ? { oid: file.organizationOid } : undefined,
-  fileSize: file.fileSize
+  fileSize: Number(file.fileSize)
 });

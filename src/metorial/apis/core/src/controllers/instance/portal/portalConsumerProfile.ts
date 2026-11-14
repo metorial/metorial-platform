@@ -68,6 +68,7 @@ export let portalConsumerProfileController = Controller.create(
               ])
             ),
             consumer_group_id: v.optional(v.string()),
+            source: v.optional(v.enumOf(['manual', 'sso'])),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'invited']),
@@ -86,6 +87,7 @@ export let portalConsumerProfileController = Controller.create(
               search: ctx.query.search,
               emails: normalizeArrayParam(ctx.query.email),
               consumerGroupId: ctx.query.consumer_group_id,
+              source: ctx.query.source,
               statuses: normalizeArrayParam(ctx.query.status)
             })
           : await consumerProfileService.listConsumerProfiles({
@@ -93,6 +95,7 @@ export let portalConsumerProfileController = Controller.create(
               search: ctx.query.search,
               emails: normalizeArrayParam(ctx.query.email),
               consumerGroupId: ctx.query.consumer_group_id,
+              source: ctx.query.source,
               statuses: normalizeArrayParam(ctx.query.status)
             });
         let list = await paginator.run(ctx.query);

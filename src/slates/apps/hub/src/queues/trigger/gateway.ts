@@ -9,8 +9,6 @@ import {
   WebSocketUrlNotAllowedError
 } from '../../lib/network/assertPublicWebSocketUrl';
 import { AuthConfigSecretSerializer } from '../../lib/secretSerializer';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
-import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
 import {
   TRIGGER_GATEWAY_CONNECT_FAILURES_BEFORE_ERROR,
@@ -31,6 +29,7 @@ import {
 } from './_config';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
 import { createTriggerRawEvents } from './_rawEvent';
+import { prepareTriggerInstanceStack } from './_stack';
 
 let Sentry = getSentry();
 
@@ -169,38 +168,14 @@ export class GatewayConnection {
     }
 
     let instance = record.triggerRegistrationInstance;
-    let registration = instance.triggerRegistration;
-
-    let version = await getActiveSlateVersion({
-      slate: registration.slate,
-      instance: registration.instance
+    let { auth, createStack } = await prepareTriggerInstanceStack({
+      registration: instance.triggerRegistration,
+      sessionId: instance.id,
+      note: `trigger-gateway:${record.id}`,
+      minExpirationBuffer: TRIGGER_GATEWAY_CONTEXT_TTL_MS + 5 * 60 * 1000
     });
 
-    let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
-    if (registration.authConfig) {
-      let decrypted = await secretService.DANGEROUSLY_decryptSecret({
-        secretOid: registration.authConfig.secretOid,
-        purpose: 'slate_authentication_configuration',
-        tenant: registration.tenant,
-        note: `trigger-gateway:${record.id}`
-      });
-      auth = {
-        authenticationMethodId: registration.authConfig.authMethod.key,
-        data: decrypted.output ?? decrypted.input ?? {}
-      };
-    }
-
     let serializer = auth ? new AuthConfigSecretSerializer(auth.data) : null;
-
-    let createStack = () =>
-      slateInvocationService.createInvocationWithState({
-        participants: [],
-        slateVersion: version,
-        tenant: registration.tenant,
-        session: { id: instance.id, state: {} },
-        config: registration.instanceConfig.value ?? {},
-        auth
-      });
 
     this.#context = { loadedAt: Date.now(), createStack, serializer };
     return this.#context;

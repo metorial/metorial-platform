@@ -6,6 +6,7 @@ export type ManagementInstancePortalsListingsDeleteOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type ManagementInstancePortalsListingsDeleteOutput = {
 export let mapManagementInstancePortalsListingsDeleteOutput =
   /* @__PURE__ */ mapObject<ManagementInstancePortalsListingsDeleteOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,

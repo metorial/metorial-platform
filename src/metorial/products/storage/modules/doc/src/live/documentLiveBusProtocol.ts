@@ -5,7 +5,8 @@ export type DocumentLiveBusMessageType =
   | 'document_snapshot'
   | 'document_snapshot_saved'
   | 'collaboration_reset'
-  | 'participant_list';
+  | 'participant_list'
+  | 'document_comment_thread_updated';
 
 export type DocumentLiveBusMessage = {
   originInstanceId: string;

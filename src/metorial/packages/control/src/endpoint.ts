@@ -27,6 +27,10 @@ export class EndpointDefinition {
     return this.with({ link });
   }
 
+  devLogin(path: string) {
+    return this.with({ dev_login: { path } });
+  }
+
   url(path = ''): Template {
     return `http://{{HOSTNAME}}:${this.spec.port}${path}`;
   }

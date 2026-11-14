@@ -9,7 +9,13 @@ export let callbackInclude = {
       }
     }
   },
-  provider: { include: { type: true } }
+  provider: { include: { type: true } },
+  callbackInstances: {
+    where: { status: 'active', generationStatus: 'primary' },
+    select: { selectableTriggerGroups: true },
+    orderBy: { createdAt: 'desc' },
+    take: 25
+  }
 } as const;
 
 export type CallbackWithRelations = Prisma.CallbackGetPayload<{

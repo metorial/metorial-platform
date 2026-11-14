@@ -9,6 +9,15 @@ import type {
   CustomProviderConfig,
   CustomProviderFrom,
   CustomProviderFromUpdate,
+  ProtoGuardFamilyScore,
+  ProtoGuardToolFinding,
+  SecurityReport,
+  SecurityReviewComputedScores,
+  SecurityReviewFindingPayload,
+  SecurityReviewRevisionContext,
+  SecuritySpecCensus,
+  SecurityUsageReport,
+  SecurityUsageComputedScores,
   Specification,
   SpecificationAuthMethod,
   SpecificationFeatures,
@@ -27,6 +36,7 @@ export type EntityImage =
       url?: string;
     }
   | { type: 'url'; url: string }
+  | { type: 'icon'; icon: string; color: string }
   | { type: 'default' };
 
 type EntityImageOuter = EntityImage;
@@ -227,6 +237,24 @@ declare global {
       ui?: ProviderSetupSessionUi;
     };
 
+    type ProtoGuardFamilyScores = ProtoGuardFamilyScore[];
+
+    type ProtoGuardToolFindings = ProtoGuardToolFinding[];
+
+    type SecurityReviewReport = SecurityReport;
+
+    type SecurityReviewScores = SecurityReviewComputedScores;
+
+    type SecurityUsageReviewReport = SecurityUsageReport;
+
+    type SecurityUsageReviewScores = SecurityUsageComputedScores;
+
+    type SecurityReviewCensus = SecuritySpecCensus;
+
+    type SecurityReviewFindingValue = SecurityReviewFindingPayload;
+
+    type SecurityReviewRunContext = SecurityReviewRevisionContext;
+
     type SessionConnectionMcpData = {
       capabilities?: InitializeRequest['params']['capabilities'];
       protocolVersion?: InitializeRequest['params']['protocolVersion'];
@@ -294,7 +322,11 @@ declare global {
       triggers:
         | {
             status: 'enabled';
-            webhookRegistration: { status: 'supported' | 'unsupported' };
+            webhookRegistration: {
+              status: 'supported' | 'unsupported';
+              // Absent means `webhook_receiver`, so existing provider types keep their identifier.
+              purpose?: 'webhook_receiver' | 'delivery_setup';
+            };
           }
         | { status: 'disabled' };
 
@@ -322,6 +354,16 @@ declare global {
           }
         | { status: 'disabled'; read?: undefined };
     };
+
+    type TriggerGroupSelections = globalThis.Record<string, globalThis.Record<string, any>>;
+
+    type SelectableTriggerGroups = {
+      key: string;
+      name: string;
+      description: string | null;
+      selectionSchema: globalThis.Record<string, any>;
+      status: 'active' | 'selection_required';
+    }[];
 
     type WebhookRegistrationSetup = {
       document: string;

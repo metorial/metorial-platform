@@ -1,3 +1,4 @@
+import { col, createDataList } from '@metorial/data-list';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
@@ -10,12 +11,12 @@ import {
   useProviderConfigs,
   useProviderAuthConfigs
 } from '@metorial/state';
-import { Button, RenderDate, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Button } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ApiKeysTable } from '../../scenes/apiKeys';
-import { getVisibleApiKeys } from '../../scenes/apiKeys/visibleApiKeys';
+import { useInstanceContext } from '../../lib/dataList';
 
 let previewLimit = 5;
 
@@ -28,110 +29,72 @@ let Resources = styled.div`
 let ApiKeysPreview = ({ instanceId }: { instanceId: string }) => {
   let keys = useApiKeys({ type: 'instance_access_token', instanceId });
 
-  return renderWithLoader({ keys })(({ keys }) => {
-    let items = getVisibleApiKeys(keys.data).slice(0, previewLimit);
-
-    return items.length ? (
-      <ApiKeysTable items={items} compact />
-    ) : (
-      <Text size="2" color="gray600">
-        No API keys found.
-      </Text>
-    );
-  });
+  return renderWithLoader({ keys })(({ keys }) => <ApiKeysTable items={keys.data} compact />);
 };
 
-let DeploymentsPreview = ({ instanceId }: { instanceId: string }) => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let deployments = useProviderDeployments(instanceId, { limit: previewLimit, order: 'desc' });
+let DeploymentsPreviewList = createDataList<{ instanceId: string }>(
+  'developer-deployments-preview'
+)
+  .context(useInstanceContext)
+  .paginated(({ props, limit }) =>
+    useProviderDeployments(props.instanceId, { limit, order: 'desc' })
+  )
+  .columns([col.name({ description: false, get: row => row.name ?? row.id }), col.createdAt()])
+  .link((row, _props, ctx) =>
+    Paths.instance.providerDeployment(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
 
-  return renderWithLoader({ deployments })(({ deployments }) =>
-    deployments.data.items.length ? (
-      <Table
-        headers={['Name', 'Created']}
-        data={deployments.data.items.slice(0, previewLimit).map(item => ({
-          href: Paths.instance.providerDeployment(
-            organization.data,
-            project.data,
-            instance.data,
-            item.id
-          ),
-          data: [item.name ?? item.id, <RenderDate date={item.createdAt} />]
-        }))}
-      />
-    ) : (
-      <Text size="2" color="gray600">
-        No deployments found.
-      </Text>
-    )
-  );
-};
+let ConfigsPreviewList = createDataList<{ instanceId: string }>('developer-configs-preview')
+  .context(useInstanceContext)
+  .paginated(({ props, limit }) =>
+    useProviderConfigs(props.instanceId, { limit, order: 'desc' })
+  )
+  .columns([col.name({ description: false, get: row => row.name ?? row.id }), col.createdAt()])
+  .link((row, _props, ctx) =>
+    Paths.instance.providerConfig(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
 
-let ConfigsPreview = ({ instanceId }: { instanceId: string }) => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let configs = useProviderConfigs(instanceId, {
-    ownership: 'all',
-    limit: previewLimit,
-    order: 'desc'
-  });
+let AuthConfigsPreviewList = createDataList<{ instanceId: string }>(
+  'developer-auth-configs-preview'
+)
+  .context(useInstanceContext)
+  .paginated(({ props, limit }) =>
+    useProviderAuthConfigs(props.instanceId, { limit, order: 'desc' })
+  )
+  .columns([col.name({ description: false, get: row => row.name ?? row.id }), col.createdAt()])
+  .link((row, _props, ctx) =>
+    Paths.instance.providerAuthConfig(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
 
-  return renderWithLoader({ configs })(({ configs }) =>
-    configs.data.items.length ? (
-      <Table
-        headers={['Name', 'Created']}
-        data={configs.data.items.slice(0, previewLimit).map(item => ({
-          href: Paths.instance.providerConfig(
-            organization.data,
-            project.data,
-            instance.data,
-            item.id
-          ),
-          data: [item.name ?? item.id, <RenderDate date={item.createdAt} />]
-        }))}
-      />
-    ) : (
-      <Text size="2" color="gray600">
-        No configs found.
-      </Text>
-    )
-  );
-};
+let DeploymentsPreview = ({ instanceId }: { instanceId: string }) => (
+  <DeploymentsPreviewList
+    instanceId={instanceId}
+    listVariant="preview"
+    listLimit={previewLimit}
+    emptyState="No deployments found."
+  />
+);
 
-let AuthConfigsPreview = ({ instanceId }: { instanceId: string }) => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let configs = useProviderAuthConfigs(instanceId, {
-    ownership: 'all',
-    limit: previewLimit,
-    order: 'desc'
-  });
+let ConfigsPreview = ({ instanceId }: { instanceId: string }) => (
+  <ConfigsPreviewList
+    instanceId={instanceId}
+    listVariant="preview"
+    listLimit={previewLimit}
+    emptyState="No configs found."
+  />
+);
 
-  return renderWithLoader({ configs })(({ configs }) =>
-    configs.data.items.length ? (
-      <Table
-        headers={['Name', 'Created']}
-        data={configs.data.items.slice(0, previewLimit).map(item => ({
-          href: Paths.instance.providerAuthConfig(
-            organization.data,
-            project.data,
-            instance.data,
-            item.id
-          ),
-          data: [item.name ?? item.id, <RenderDate date={item.createdAt} />]
-        }))}
-      />
-    ) : (
-      <Text size="2" color="gray600">
-        No auth configs found.
-      </Text>
-    )
-  );
-};
+let AuthConfigsPreview = ({ instanceId }: { instanceId: string }) => (
+  <AuthConfigsPreviewList
+    instanceId={instanceId}
+    listVariant="preview"
+    listLimit={previewLimit}
+    emptyState="No auth configs found."
+  />
+);
 
 export let DeveloperHomePage = () => {
   let organization = useCurrentOrganization();

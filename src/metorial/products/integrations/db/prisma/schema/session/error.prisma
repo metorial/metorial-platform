@@ -80,6 +80,9 @@ model SessionError {
   groupOid BigInt?
   group    SessionErrorGroup? @relation(fields: [groupOid], references: [oid])
 
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
+
   connectionOid BigInt?
   connection    SessionConnection? @relation(fields: [connectionOid], references: [oid])
 
@@ -116,6 +119,7 @@ model SessionError {
   @@index([instanceOid])
   @@index([connectionOid])
   @@index([providerRunOid])
+  @@index([issueOid])
   @@index([tenantOid, createdAt])
   @@index([sessionOid])
 }

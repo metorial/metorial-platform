@@ -12,13 +12,7 @@ import {
   createSkillEditingTools,
   skillMcpAvailabilityService
 } from '../src';
-import {
-  consumerView,
-  createProfile,
-  createSurface,
-  getEveryoneGroup,
-  useStoreResourceFlags
-} from './_fixtures';
+import { consumerView, createProfile, createSurface, getEveryoneGroup } from './_fixtures';
 
 type Profile = Awaited<ReturnType<typeof createProfile>>;
 
@@ -41,13 +35,9 @@ let setFullSkillAccess = async (fixture: OrganizationFixture, enabled: boolean) 
   });
 };
 
-describe.each([
-  ['legacy', false],
-  ['v2', true]
-])('skills over MCP with organization member access (%s)', (_, enabled) => {
+describe('skills over MCP with organization member access', () => {
   let org = useOrganization();
   let leaver = useMember(org);
-  useStoreResourceFlags(enabled);
 
   let setup = async (fixture: OrganizationFixture) => {
     let surface = await createSurface(fixture, { allowConsumerSkillAuthoring: true });
@@ -188,19 +178,16 @@ describe.each([
     }
   });
 
-  it(`${enabled ? 'lets' : 'does not let'} linked members edit the skills they can read`, async () => {
+  it('lets linked members edit the skills they can read', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let { skill, member, peer } = await setup(fixture);
 
     await expectServiceError(write(fixture, peer, skill.id, 'peer\n'), 'forbidden');
 
-    let memberWrite = write(fixture, member, skill.id, 'member\n');
-    if (!enabled) {
-      await expectServiceError(memberWrite, 'forbidden');
-      return;
-    }
-
-    expect(await memberWrite).toMatchObject({ type: 'put', path: '/notes.md' });
+    expect(await write(fixture, member, skill.id, 'member\n')).toMatchObject({
+      type: 'put',
+      path: '/notes.md'
+    });
 
     let catalog = await catalogFor(fixture, peer);
     let [entry] = (await catalog.listSkills({})).skills;

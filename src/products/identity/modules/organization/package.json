@@ -16,6 +16,7 @@
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/patch": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@lowerdeck/timezone": "workspace:*",

@@ -14,6 +14,7 @@ vi.mock('@metorial/config', () => ({
   getConfig: () => ({ urls: { apiUrl: 'https://api.metorial.test' } })
 }));
 vi.mock('@metorial/skills-images', () => ({ internalImageService: { downloadImage } }));
+vi.mock('../../../lib/securityReviewPolicy', () => ({ getWithheldSkillIds: async () => new Set<string>() }));
 vi.mock('../../../lib/limits', () => ({}));
 
 import { getManifestScopeViolation, scopeContains } from '../../../lib/manifestFile/scope';

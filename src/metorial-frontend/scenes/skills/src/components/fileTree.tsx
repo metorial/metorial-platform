@@ -1,3 +1,4 @@
+import { prefetchDocument, prefetchStoreItem } from '@metorial/state';
 import { ContextMenu, Menu, Spinner, Text, theme } from '@metorial/ui';
 import * as RadixCollapsible from '@radix-ui/react-collapsible';
 import {
@@ -10,7 +11,7 @@ import {
   RiMore2Line
 } from '@remixicon/react';
 import type { DragEvent, MouseEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillFilePreviewLightbox } from './filePreviewLightbox';
@@ -121,6 +122,8 @@ let TreeRowLink = styled(Link)`
   }
 `;
 
+export let SkillFileTreeStoreContext = createContext<string | null | undefined>(null);
+
 let TreeRowShell = styled.div<{ $active?: boolean; $dropTarget?: boolean }>`
   display: flex;
   align-items: center;
@@ -191,7 +194,7 @@ let TreeIconWrap = styled.span<{ $kind: SkillFileTreeNode['kind'] }>`
   flex: 0 0 auto;
   color: ${p =>
     p.$kind == 'directory'
-      ? theme.colors.orange800
+      ? theme.colors.gray700
       : p.$kind == 'document'
         ? theme.colors.purple800
         : theme.colors.blue800};
@@ -599,6 +602,7 @@ let SkillFileTreeRow = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
@@ -613,6 +617,7 @@ let SkillFileTreeRow = (p: {
 }) => {
   let location = useLocation();
   let navigate = useNavigate();
+  let storeId = useContext(SkillFileTreeStoreContext);
   let isDirectory = p.node.kind == 'directory';
   let isOpen = p.expandedPaths.has(p.node.path);
   let creatingInDirectory = p.creatingItem?.parentPath == p.node.path;
@@ -627,7 +632,8 @@ let SkillFileTreeRow = (p: {
       ? p.getDocumentPath(p.node.documentId, p.node.itemId)
       : p.node.kind == 'file' &&
           p.node.itemId &&
-          isSkillTextFile({ fileName: p.node.name, fileType: p.node.fileType })
+          (p.openFilesInline ||
+            isSkillTextFile({ fileName: p.node.name, fileType: p.node.fileType }))
         ? p.getDocumentPath('', p.node.itemId)
         : null;
   let isActive = documentPath?.split(/[?#]/)[0] == location.pathname;
@@ -691,6 +697,16 @@ let SkillFileTreeRow = (p: {
       <TreeRowShell
         $active={isActive}
         draggable={canDrag}
+        onPointerEnter={() => {
+          if (p.node.kind != 'document') return;
+
+          prefetchStoreItem({
+            instanceId: p.instanceId,
+            storeId,
+            itemId: p.node.itemId
+          });
+          prefetchDocument({ instanceId: p.instanceId, documentId: p.node.documentId });
+        }}
         onClick={e => {
           if (isNestedTreeActionClick(e)) return;
           if (documentPath) {
@@ -1085,6 +1101,7 @@ let SkillFileTreeRow = (p: {
                   onFileSelect={p.onFileSelect}
                   onFilesDrop={p.onFilesDrop}
                   getDocumentPath={p.getDocumentPath}
+                  openFilesInline={p.openFilesInline}
                   shareContext={p.shareContext}
                   instanceId={p.instanceId}
                   editingItemPath={p.editingItemPath}
@@ -1126,6 +1143,7 @@ let SkillFileTreeInner = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
@@ -1156,6 +1174,7 @@ let SkillFileTreeInner = (p: {
             onFileSelect={p.onFileSelect}
             onFilesDrop={p.onFilesDrop}
             getDocumentPath={p.getDocumentPath}
+            openFilesInline={p.openFilesInline}
             shareContext={p.shareContext}
             instanceId={p.instanceId}
             editingItemPath={p.editingItemPath}
@@ -1192,6 +1211,7 @@ export let SkillFileTree = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   onRename: (itemId: string, parentPath: string, name: string) => Promise<void>;
@@ -1223,6 +1243,7 @@ export let SkillFileTree = (p: {
       onFileSelect={p.onFileSelect}
       onFilesDrop={p.onFilesDrop}
       getDocumentPath={p.getDocumentPath}
+      openFilesInline={p.openFilesInline}
       shareContext={p.shareContext}
       instanceId={p.instanceId}
       onCancelRename={() => setEditingItemPath(null)}

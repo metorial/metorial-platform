@@ -14,6 +14,8 @@ export type SlateVersionSignatureInput = { kid: string; signature: string };
 
 export let slateVersionSignaturePrefix = 'metorial-slate-version/v1\n';
 
+export let slatePackManifestSignaturePrefix = 'metorial-slatepack-manifest/v1\n';
+
 export let contentChecksumAlgorithm = 'paths-bytes-sha256/v1';
 
 let keyPattern = /^[A-Za-z0-9_-]{43}$/;
@@ -73,53 +75,40 @@ export let buildSlateVersionSigningInput = (statement: SlateVersionStatement) =>
       })
   );
 
-export let signSlateVersion = async (d: {
-  privateKey: SigningPrivateKey;
-  statement: SlateVersionStatement;
-}) => {
+let signBytes = async (privateKey: SigningPrivateKey, input: Uint8Array<ArrayBuffer>) => {
   let key = await crypto.subtle.importKey(
     'jwk',
-    { kty: d.privateKey.kty, crv: d.privateKey.crv, x: d.privateKey.x, d: d.privateKey.d },
+    { kty: privateKey.kty, crv: privateKey.crv, x: privateKey.x, d: privateKey.d },
     'Ed25519',
     false,
     ['sign']
   );
-  let signature = await crypto.subtle.sign(
-    'Ed25519',
-    key,
-    buildSlateVersionSigningInput(d.statement)
-  );
 
-  return toBase64Url(signature);
+  return toBase64Url(await crypto.subtle.sign('Ed25519', key, input));
 };
 
-export let verifySlateVersionSignature = async (d: {
-  publicKey: SigningPublicKey;
-  signature: string;
-  statement: SlateVersionStatement;
-}) => {
+let verifyBytes = async (
+  publicKey: SigningPublicKey,
+  signature: string,
+  input: Uint8Array<ArrayBuffer>
+) => {
   try {
     let key = await crypto.subtle.importKey(
       'jwk',
-      { kty: d.publicKey.kty, crv: d.publicKey.crv, x: d.publicKey.x },
+      { kty: publicKey.kty, crv: publicKey.crv, x: publicKey.x },
       'Ed25519',
       false,
       ['verify']
     );
 
-    return await crypto.subtle.verify(
-      'Ed25519',
-      key,
-      fromBase64Url(d.signature),
-      buildSlateVersionSigningInput(d.statement)
-    );
+    return await crypto.subtle.verify('Ed25519', key, fromBase64Url(signature), input);
   } catch {
     return false;
   }
 };
 
-export let findValidSlateVersionSignature = async (d: {
-  statement: SlateVersionStatement;
+let findValidSignature = async (d: {
+  input: Uint8Array<ArrayBuffer>;
   signatures: SlateVersionSignatureInput[];
   trustedKeys: Map<string, SigningPublicKey>;
 }) => {
@@ -127,13 +116,57 @@ export let findValidSlateVersionSignature = async (d: {
     let publicKey = d.trustedKeys.get(signature.kid);
     if (!publicKey) continue;
 
-    let valid = await verifySlateVersionSignature({
-      publicKey,
-      signature: signature.signature,
-      statement: d.statement
-    });
-    if (valid) return signature.kid;
+    if (await verifyBytes(publicKey, signature.signature, d.input)) return signature.kid;
   }
 
   return null;
 };
+
+export let signSlateVersion = async (d: {
+  privateKey: SigningPrivateKey;
+  statement: SlateVersionStatement;
+}) => signBytes(d.privateKey, buildSlateVersionSigningInput(d.statement));
+
+export let verifySlateVersionSignature = async (d: {
+  publicKey: SigningPublicKey;
+  signature: string;
+  statement: SlateVersionStatement;
+}) => verifyBytes(d.publicKey, d.signature, buildSlateVersionSigningInput(d.statement));
+
+export let findValidSlateVersionSignature = async (d: {
+  statement: SlateVersionStatement;
+  signatures: SlateVersionSignatureInput[];
+  trustedKeys: Map<string, SigningPublicKey>;
+}) =>
+  findValidSignature({
+    input: buildSlateVersionSigningInput(d.statement),
+    signatures: d.signatures,
+    trustedKeys: d.trustedKeys
+  });
+
+// The manifest is signed byte for byte, so it must be stored exactly as it was signed.
+export let buildSlatePackManifestSigningInput = (manifest: Uint8Array) => {
+  let prefix = encoder.encode(slatePackManifestSignaturePrefix);
+  let input = new Uint8Array(prefix.byteLength + manifest.byteLength);
+
+  input.set(prefix, 0);
+  input.set(manifest, prefix.byteLength);
+
+  return input;
+};
+
+export let signSlatePackManifest = async (d: {
+  privateKey: SigningPrivateKey;
+  manifest: Uint8Array;
+}) => signBytes(d.privateKey, buildSlatePackManifestSigningInput(d.manifest));
+
+export let findValidSlatePackManifestSignature = async (d: {
+  manifest: Uint8Array;
+  signatures: SlateVersionSignatureInput[];
+  trustedKeys: Map<string, SigningPublicKey>;
+}) =>
+  findValidSignature({
+    input: buildSlatePackManifestSigningInput(d.manifest),
+    signatures: d.signatures,
+    trustedKeys: d.trustedKeys
+  });

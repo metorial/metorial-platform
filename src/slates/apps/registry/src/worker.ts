@@ -8,7 +8,8 @@ import {
   mirrorSyncCron,
   mirrorSyncUpstreamProcessor
 } from './queues/mirror/sync';
-import { processSlatePackProcessor } from './queues/mirror/packs';
+import { cleanupSlatePackBatchesCron, processSlatePackProcessor } from './queues/mirror/packs';
+import { buildSlatePackChannelProcessor, slatePackChannelCron } from './queues/packs/channels';
 import { backfillSignaturesProcessor, ensureSigningKeyCron } from './queues/signing';
 
 await runQueueProcessors([
@@ -20,7 +21,10 @@ await runQueueProcessors([
   mirrorSyncAllProcessor,
   mirrorSyncUpstreamProcessor,
   mirrorImportUpstreamVersionProcessor,
-  processSlatePackProcessor
+  processSlatePackProcessor,
+  cleanupSlatePackBatchesCron,
+  slatePackChannelCron,
+  buildSlatePackChannelProcessor
 ]);
 
 void bootstrapRegistry();

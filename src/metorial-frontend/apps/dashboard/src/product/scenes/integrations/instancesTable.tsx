@@ -1,299 +1,87 @@
+import {
+  col,
+  createDataList,
+  deleteAction,
+  f,
+  lifecycleStatusWithDraft,
+  withDefaults
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import {
-  IntegrationInstance,
-  IntegrationPreview,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useDeleteIntegrationInstance,
-  useIntegrationInstances
+  useIntegrationInstances,
+  type IntegrationInstance,
+  type IntegrationPreview
 } from '@metorial/state';
-import {
-  Table as DashboardTable,
-  FilterPayload,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue,
-  getStringFilterValue,
-  TableFilter
-} from '@metorial/table';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { useMemo, useState } from 'react';
-import { entityFilters } from '../entityFilters';
+import type { ComponentProps } from 'react';
 import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
+import { useInstanceContext } from '../../lib/dataList';
+import { entityFilters } from '../entityFilters';
 
-type IntegrationInstancesTableProps = {
-  instanceId: string;
+let IntegrationInstancesList = createDataList<{
+  instanceId?: string;
   integration: IntegrationPreview;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let getInstanceStatusColor = (status: IntegrationInstance['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'draft') return 'blue';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
-let getStatusFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['draft', 'active', 'archived', 'deleted']);
-
-let useIntegrationInstancesTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<IntegrationInstance>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'draft', label: 'Draft' },
-          { id: 'active', label: 'Active' },
-          { id: 'archived', label: 'Archived' },
-          { id: 'deleted', label: 'Deleted' }
-        ]
-      },
-      entityFilters.identity(instanceId),
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      },
-      {
-        id: 'updatedAt',
-        fields: ['updatedAt'],
-        label: 'Updated',
-        description: 'Filter by updated date',
-        type: 'date'
-      }
-    ],
-    [instanceId]
-  );
-
-let useIntegrationInstancesTableState = (
-  props: IntegrationInstancesTableProps,
-  opts: { filter: Record<string, FilterPayload>; search?: string }
-) => {
-  let instances = useIntegrationInstances(props.instanceId, {
-    ownership: 'all',
-    integrationId: props.integration.id,
-    order: 'desc',
-    status: getStatusFilterValue(opts.filter.status) ?? ['active'],
-    integrationProviderId: getStringFilterValue(opts.filter.integrationProviderId),
-    identityId: getListFilterValue(opts.filter.identityId),
-    search: opts.search,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt),
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt)
-  });
-
-  return {
-    isLoading: instances.isLoading,
-    error: instances.error,
-    hasMoreAfter: instances.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: instances.data?.pagination.hasMoreBefore ?? false,
-    items: instances.data?.items ?? [],
-    loadNext: instances.next,
-    loadPrevious: instances.previous
-  };
-};
-
-let useIntegrationInstancesTableHookState = (
-  _: ReturnType<typeof useIntegrationInstancesTableState>,
-  props: IntegrationInstancesTableProps
-) => {
-  let deleteInstance = useDeleteIntegrationInstance();
-  let [loadingIds, setLoadingIds] = useState<string[]>([]);
-
-  return {
-    deleteInstance,
-    instanceId: props.instanceId,
-    loadingIds,
-    setLoadingIds
-  };
-};
-
-let deleteIntegrationInstanceImmediately = async (
-  integrationInstance: IntegrationInstance,
-  state: ReturnType<typeof useIntegrationInstancesTableHookState>
-) => {
-  state.setLoadingIds(current => [...new Set([...current, integrationInstance.id])]);
-
-  try {
-    await state.deleteInstance.mutate({
-      instanceId: state.instanceId,
-      integrationInstanceId: integrationInstance.id
-    });
-  } finally {
-    state.setLoadingIds(current => current.filter(id => id !== integrationInstance.id));
-  }
-};
-
-let integrationInstancesTable = new DashboardTable<
-  IntegrationInstancesTableProps,
-  IntegrationInstance
->('integration-instances')
-  .state(useIntegrationInstancesTableState)
-  .hookState(useIntegrationInstancesTableHookState)
+}>('integration-instances')
+  .context(useInstanceContext)
+  .filters((props, ctx) => ({
+    status: f.status(lifecycleStatusWithDraft),
+    identityId: f.entity(entityFilters.identity(props.instanceId ?? ctx.instanceId)),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search integration instances…')
+  .paginated(({ props, ctx, filters, search, limit }) =>
+    useIntegrationInstances(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(
+        {
+          ownership: 'all' as const,
+          integrationId: props.integration.id,
+          order: 'desc' as const,
+          status: ['active' as const]
+        },
+        { ...filters, search, limit }
+      )
+    )
+  )
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: (integrationInstance: IntegrationInstance) => (
-        <Text size="2" weight="strong">
-          {integrationInstance.name}
-        </Text>
-      )
-    },
-    {
-      id: 'providers',
-      isDefault: true,
-      header: 'Providers',
-      render: (integrationInstance: IntegrationInstance) => (
-        <Text size="2">
-          {integrationInstance.providers?.length ?? 0} provider
-          {integrationInstance.providers?.length === 1 ? '' : 's'}
-        </Text>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: (integrationInstance: IntegrationInstance) => (
-        <Badge color={getInstanceStatusColor(integrationInstance.status)}>
-          {integrationInstance.status}
-        </Badge>
-      )
-    },
-    {
-      id: 'identity',
-      isDefault: false,
-      header: 'Identity',
-      render: (integrationInstance: IntegrationInstance) =>
-        integrationInstance.identityId ? (
-          <ID id={integrationInstance.identityId} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
+    col.name<IntegrationInstance>({ description: false }),
+    col.count<IntegrationInstance>('providers', row => row.providers?.length, 'provider', {
+      header: 'Providers'
+    }),
+    col.status<IntegrationInstance, string>(lifecycleStatusWithDraft, { isDefault: false }),
+    col.refId<IntegrationInstance>('identity', row => row.identityId, { header: 'Identity' }),
+    col.custom<IntegrationInstance>({
       id: 'owner',
-      isDefault: true,
       header: 'Owner',
-      render: (integrationInstance: IntegrationInstance) => (
-        <ResourceOwnerInline resource={integrationInstance} linked={false} />
-      )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: (integrationInstance: IntegrationInstance) =>
-        integrationInstance.createdAt ? (
-          <RenderDate date={integrationInstance.createdAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: (integrationInstance: IntegrationInstance) =>
-        integrationInstance.updatedAt ? (
-          <RenderDate date={integrationInstance.updatedAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: (integrationInstance: IntegrationInstance) => <ID id={integrationInstance.id} />
-    }
+      render: row => <ResourceOwnerInline resource={row} linked={false} />
+    }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ isDefault: true })
   ])
-  .search('Search integration instances...')
-  .link(((integrationInstance: IntegrationInstance, props: IntegrationInstancesTableProps) =>
-    Paths.instance.integrationInstance(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      integrationInstance.id
-    )) as any)
-  .actions({
-    deleteImmediate: async (instances, state) => {
-      let integrationInstance = instances[0];
-      if (!integrationInstance) return;
-
-      await deleteIntegrationInstanceImmediately(integrationInstance, state);
-    },
-    delete: async (instances, state) => {
-      let integrationInstance = instances[0];
-      if (!integrationInstance) return;
-
-      confirm({
-        title: 'Delete instance',
-        description: `Delete ${integrationInstance.name}?`,
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await deleteIntegrationInstanceImmediately(integrationInstance, state);
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      action: 'delete'
-    }
-  ])
-  .bulkActions([
-    {
-      id: 'delete-selected',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      action: 'deleteImmediate',
-      bulkExecution: {
-        mode: 'per-row',
-        batchSize: 5
-      }
-    }
+  .link((row, _props, ctx) =>
+    Paths.instance.integrationInstance(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .itemActions([
+    deleteAction({
+      noun: 'Instance',
+      name: row => row.name,
+      batchSize: 5,
+      useMutate: () => useDeleteIntegrationInstance(),
+      input: (row, { props, ctx }) => ({
+        instanceId: props.instanceId ?? ctx.instanceId!,
+        integrationInstanceId: row.id
+      })
+    })
   ])
   .build();
 
-export let IntegrationInstancesTable = (p: {
-  instanceId: string;
-  integration: IntegrationPreview;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useIntegrationInstancesTableFilters(p.instanceId);
-
-  return integrationInstancesTable({
-    instanceId: p.instanceId,
-    integration: p.integration,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState: 'No instances have been created for this integration yet.'
-  });
-};
+export let IntegrationInstancesTable = (
+  p: ComponentProps<typeof IntegrationInstancesList>
+) => (
+  <IntegrationInstancesList
+    emptyState="No instances have been created for this integration yet."
+    {...p}
+  />
+);

@@ -11,6 +11,7 @@
     "dev:start": "vite --host 0.0.0.0"
   },
   "dependencies": {
+    "@metorial/access-ui": "^1.0.0",
     "@floating-ui/react": "^0.27.20",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/case": "workspace:2.0.0",
@@ -28,6 +29,7 @@
     "@metorial/code-editor": "^1.0.0",
     "@metorial/dashboard-sdk": "1.0.0-internal",
     "@metorial/data-hooks": "^1.0.0",
+    "@metorial/data-list": "^1.0.0",
     "@metorial/details-layout": "^1.0.0",
     "@metorial/dynamic-component": "^1.0.0",
     "@metorial/editor-tabs": "^1.0.0",

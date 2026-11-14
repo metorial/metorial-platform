@@ -20,7 +20,7 @@ import { composeProjectName, planStack, type StackMode, type StackPlan } from '.
 import type { Environment, ProjectRoot, WorkspaceMetadata } from '../types';
 import { containerCacheEnvironment } from './cache';
 import { LogStore } from './logs';
-import { linksFor } from './runtime';
+import { devLoginFor, linksFor } from './runtime';
 import type { Runtime } from './runtime-types';
 import type {
   JobInfo,
@@ -74,6 +74,7 @@ export class StackRuntime implements Runtime {
   private containers: ComposeContainer[] = [];
   private stoppedUnits = new Set<string>();
   private links: LinkInfo[] = [];
+  private devLogin?: string;
   private unregister?: () => Promise<void>;
   private follower?: ChildProcess;
   private poller?: ReturnType<typeof setInterval>;
@@ -111,7 +112,8 @@ export class StackRuntime implements Runtime {
       startedAt: this.startedAt,
       units: this.units(),
       jobs: [],
-      links: this.links
+      links: this.links,
+      devLogin: this.devLogin
     };
   }
 
@@ -231,6 +233,8 @@ export class StackRuntime implements Runtime {
       this.plan = plan;
       this.data = plan.data;
       this.links = linksFor(plan.data, plan.selected);
+      this.devLogin =
+        plan.mode === 'development' ? devLoginFor(plan.data, plan.selected) : undefined;
 
       let assets = join(stackAssets(this.project), 'e2e');
       let directory = this.directory();

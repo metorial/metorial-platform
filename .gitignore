@@ -175,6 +175,9 @@ src/lowerdeck/packages/cache/.turbo/
 src/lowerdeck/packages/cache/dist/
 src/lowerdeck/packages/cache/node_modules/
 generated/
+!/src/metorial-frontend/packages/state/src/config/generated/
+/src/metorial-frontend/packages/state/src/config/generated/*
+!/src/metorial-frontend/packages/state/src/config/generated/organizationConfigs.ts
 
 # Virtual Environment
 venv/

@@ -1,3 +1,4 @@
+import { useMetorialAssistantEnabled } from '@metorial/state';
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { theme } from '@metorial/ui';
 import { useEffect, useRef, useState } from 'react';
@@ -115,6 +116,7 @@ export let SessionTraceTabsPane = ({
   setAssistantConversationId: (tabId: string, conversationId: string) => void;
   session: DashboardInstanceSessionsGetOutput;
 }) => {
+  let assistantEnabled = useMetorialAssistantEnabled();
   let paneBodyRef = useRef<HTMLDivElement>(null);
   let [mountedExplorerTabIds, setMountedExplorerTabIds] = useState<Set<string>>(
     () => new Set()
@@ -144,13 +146,13 @@ export let SessionTraceTabsPane = ({
         if (!mountedExplorerTabIds.has(id)) return null;
 
         let connectionId = connectionIdByExplorerTabId[id];
-        let mode = explorerModeByTabId[id] ?? 'manual';
-        let modeSelector = (
+        let mode = assistantEnabled ? (explorerModeByTabId[id] ?? 'manual') : 'manual';
+        let modeSelector = assistantEnabled ? (
           <ExplorerModeToggle
             value={mode}
             onChange={nextMode => onSelectOrCreateExplorerMode(nextMode)}
           />
-        );
+        ) : undefined;
 
         return (
           <ExplorerHost key={id} data-active={id === activeTabId}>

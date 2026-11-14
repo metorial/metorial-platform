@@ -1,0 +1,19 @@
+[
+  {
+    "model_name": "test/chat",
+    "type": "text-generation",
+    "pricing": {
+      "type": "tokens",
+      "cents_per_input_token": 0.0001,
+      "cents_per_output_token": 0.0002,
+      "rate_per_input_token_cached": 0.1
+    }
+  },
+  {
+    "model_name": "test/audio",
+    "pricing": {
+      "type": "input_length",
+      "cents_per_input_sec": 0.001
+    }
+  }
+]

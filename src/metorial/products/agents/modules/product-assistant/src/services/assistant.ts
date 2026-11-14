@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { ProductAssistant, Project } from '@metorial/db';
 import { db, ID, Prisma } from '@metorial/db';
 import { assistants } from '../definitions/assistants';
+import { assertAiChatAllowed } from '../lib/reducedSubprocessors';
 import {
   implementationModelInclude,
   type ImplementationModelWithProvider
@@ -101,6 +102,7 @@ class ProductAssistantServiceImpl {
   }
 
   async get(d: { project: Project; assistantId: string }) {
+    assertAiChatAllowed(d.project);
     await this.syncSystemAssistants();
 
     let assistant = await db.productAssistant.findFirst({
@@ -113,6 +115,7 @@ class ProductAssistantServiceImpl {
   }
 
   async getMany(d: { project: Project; assistantIds: string[] }) {
+    assertAiChatAllowed(d.project);
     await this.syncSystemAssistants();
 
     let assistantIds = Array.from(new Set(d.assistantIds));
@@ -139,6 +142,7 @@ class ProductAssistantServiceImpl {
   }
 
   async list(d: { project: Project }) {
+    assertAiChatAllowed(d.project);
     await this.syncSystemAssistants();
 
     return Paginator.create(({ prisma }) =>
@@ -158,6 +162,8 @@ class ProductAssistantServiceImpl {
     assistant: ProductAssistant;
     project: Project;
   }): Promise<ProductAssistantInstanceWithRelations> {
+    assertAiChatAllowed(d.project);
+
     return await db.productAssistantInstance.upsert({
       where: {
         assistantOid_projectOid: {

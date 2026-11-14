@@ -1,19 +1,25 @@
 import { formatBytes, formatNumber } from '@metorial/chart';
+import { col, createDataList } from '@metorial/data-list';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { MetricTile, MetricsUnavailable, useMetricsTimeRange } from '@metorial/metrics-page';
 import {
   useSandboxMachineErrors,
   useSandboxMachineEvents,
-  useSandboxMachineUsageTimeline
+  useSandboxMachineUsageTimeline,
+  type DashboardInstanceSandboxMachinesEventsListOutput
 } from '@metorial/state';
 import { Button, Callout, Flex, RenderDate, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Box } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { useInstanceContext } from '../../../lib/dataList';
 import { useSandboxMachinePage } from '../../../scenes/sandbox/machines/context';
-import { getSandboxMachineEventCopy } from '../../../scenes/sandbox/shared/eventCopy';
+import {
+  getSandboxMachineEventCopy,
+  getSandboxMachineEventSourceLabel
+} from '../../../scenes/sandbox/shared/eventCopy';
 
 let operationMessages = {
   start: 'Your machine is starting. It will be ready shortly.',
@@ -163,14 +169,49 @@ let OverviewMetrics = () => {
   });
 };
 
+type MachineEvent = DashboardInstanceSandboxMachinesEventsListOutput['items'][number];
+
+let RecentEventsList = createDataList<{ machineId: string; logsPath: string }>(
+  'sandbox-machine-recent-events',
+  { customizable: false }
+)
+  .context(useInstanceContext)
+  .paginated(({ props, ctx, limit }) =>
+    useSandboxMachineEvents(
+      ctx.instanceId,
+      props.machineId,
+      { order: 'desc', limit },
+      { pollInterval: 10000 }
+    )
+  )
+  .columns([
+    col.custom<MachineEvent>({
+      id: 'event',
+      header: 'Event',
+      render: event => {
+        let copy = getSandboxMachineEventCopy(event.type);
+        let Icon = copy.icon;
+
+        return (
+          <Flex gap={8} align="center">
+            <Icon size={16} color={copy.isError ? 'red' : undefined} />
+            <Text size="2">{copy.sentence}</Text>
+          </Flex>
+        );
+      }
+    }),
+    col.text<MachineEvent>({
+      id: 'source',
+      header: 'Source',
+      get: event => getSandboxMachineEventSourceLabel(event.source)
+    }),
+    col.date<MachineEvent>('occurredAt', { id: 'time', header: 'Time', isDefault: true })
+  ])
+  .link((event, props) => `${props.logsPath}?event_id=${event.id}`)
+  .build();
+
 export let SandboxMachineOverviewPage = () => {
   let { machine, machineId, instance, path } = useSandboxMachinePage();
-  let events = useSandboxMachineEvents(
-    instance.data?.id,
-    machineId,
-    { order: 'desc', limit: 6 },
-    { pollInterval: 10000 }
-  );
   let errors = useSandboxMachineErrors(
     instance.data?.id,
     machineId,
@@ -327,33 +368,15 @@ export let SandboxMachineOverviewPage = () => {
             </Link>
           }
         >
-          {renderWithLoader({ events })(({ events }) => (
-            <>
-              {events.data.items.length === 0 && (
-                <Text size="2" color="gray600">
-                  No events yet.
-                </Text>
-              )}
-              <Table
-                headers={['Event', 'Source', 'Time']}
-                data={events.data.items.map(event => {
-                  let copy = getSandboxMachineEventCopy(event.type);
-                  let Icon = copy.icon;
-                  return {
-                    href: `${path('logs')}?event_id=${event.id}`,
-                    data: [
-                      <Flex gap={8} align="center">
-                        <Icon size={16} color={copy.isError ? 'red' : undefined} />
-                        <Text size="2">{copy.sentence}</Text>
-                      </Flex>,
-                      event.source,
-                      <RenderDate date={event.occurredAt} />
-                    ]
-                  };
-                })}
-              />
-            </>
-          ))}
+          {machineId && (
+            <RecentEventsList
+              machineId={machineId}
+              logsPath={path('logs')}
+              listVariant="preview"
+              listLimit={6}
+              emptyState="No events yet."
+            />
+          )}
         </Box>
       </Flex>
     </DetailsOverviewLayout>

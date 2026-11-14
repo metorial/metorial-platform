@@ -98,6 +98,35 @@ export type WebOperation = (
   status: ItemStatus;
 };
 
+export type DocumentEditOperationKind =
+  | 'replace'
+  | 'insert_before'
+  | 'insert_after'
+  | 'delete';
+
+export type DocumentEditOperation = {
+  kind: DocumentEditOperationKind;
+  target: string;
+  targetEnd?: string;
+  ref?: string;
+  refEnd?: string;
+  content: string;
+  finished: boolean;
+  error?: string;
+};
+
+export type DocumentEditReview = 'direct' | 'pending';
+
+export type SkillWorkspaceChange = {
+  op: 'create' | 'modify' | 'delete' | 'move';
+  path: string;
+  fromPath?: string;
+  kind: 'document' | 'file' | 'directory';
+  status: 'committed' | 'failed';
+  error?: string;
+  storeItemId?: string;
+};
+
 export type StateItem = {
   id: string;
 } & (
@@ -156,6 +185,20 @@ export type StateItem = {
       tokensAfter?: number;
       tokensRemoved?: number;
       messagesRemoved?: number;
+    }
+  | {
+      type: 'document/edit';
+      toolCallId: string;
+      documentId: string;
+      status: ItemStatus;
+      review: DocumentEditReview;
+      operations: DocumentEditOperation[];
+      output?: unknown;
+      error?: { message: string };
+    }
+  | {
+      type: 'skill/changes';
+      changes: SkillWorkspaceChange[];
     }
   | {
       type: 'error';

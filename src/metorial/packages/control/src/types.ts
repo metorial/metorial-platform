@@ -23,6 +23,7 @@ export interface RawEndpoint {
     menu?: string;
     path?: string;
   };
+  dev_login?: { path: string };
 }
 
 export interface RawDependency {

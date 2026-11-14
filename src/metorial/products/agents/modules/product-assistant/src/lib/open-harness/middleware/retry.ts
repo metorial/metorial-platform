@@ -33,7 +33,11 @@ export function withRetry(config?: Partial<RetryConfig>): Middleware {
 
         try {
           for await (const event of runner(history, input, options)) {
-            if (event.type === 'text.delta' || event.type === 'tool.start') {
+            if (
+              event.type === 'text.delta' ||
+              event.type === 'tool.start' ||
+              event.type === 'tool.input.delta'
+            ) {
               hasYieldedContent = true;
             }
 

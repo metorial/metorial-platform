@@ -36,7 +36,7 @@ describe('module-file', () => {
 
     let file = await uploadFile(fixture, { name, content });
     expect(file.fileName).toBe(name);
-    expect(file.fileSize).toBe(content.length);
+    expect(file.fileSize).toBe(BigInt(content.length));
     expect(file.status).toBe('active');
     expect(file.isReadOnly).toBe(true);
     expect(file.purpose.slug).toBeTruthy();

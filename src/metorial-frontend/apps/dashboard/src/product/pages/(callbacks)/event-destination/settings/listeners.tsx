@@ -1,4 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import {
   EventDestinationListenerPreview,
@@ -11,8 +12,8 @@ import {
   useEventDestination,
   useUpdateEventDestinationListener
 } from '@metorial/state';
-import { Button, Callout, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Button, Callout, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -67,6 +68,24 @@ export let getOtherInstanceListenerGroups = (input: {
     })
     .sort((a, b) => a.label.localeCompare(b.label));
 };
+
+type OtherInstanceGroup = ReturnType<typeof getOtherInstanceListenerGroups>[number] & {
+  id: string;
+};
+
+let OtherInstancesList = createDataList<{ groups: OtherInstanceGroup[] }>(
+  'event-destination-other-instances',
+  { customizable: false }
+)
+  .items(({ props }) => ({ items: props.groups }))
+  .columns([
+    col.text({ id: 'label', header: 'Instance', get: row => row.label }),
+    col.text({ id: 'count', header: 'Listeners', get: row => row.count })
+  ])
+  .clickable(row => {
+    if (row.href) window.location.href = row.href;
+  })
+  .build();
 
 let Actions = styled.div`
   display: flex;
@@ -254,21 +273,11 @@ export let EventDestinationListenersSettingsPage = () => {
                 title="Other Instances"
                 description="This destination also has listeners on other instances. Open an instance to manage them."
               >
-                <Table
-                  headers={['Instance', 'Listeners']}
-                  data={otherInstanceGroups.map(group => ({
-                    // href: group.href,
-                    onClick: group.href
-                      ? () => {
-                          window.location.href = group.href!;
-                        }
-                      : undefined,
-                    data: [
-                      group.label,
-                      <Text size="2" key="count">
-                        {group.count}
-                      </Text>
-                    ]
+                <OtherInstancesList
+                  listVariant="embedded"
+                  groups={otherInstanceGroups.map(group => ({
+                    ...group,
+                    id: group.instanceId
                   }))}
                 />
               </Box>

@@ -9,6 +9,7 @@ import {
   internalDocumentDraftService
 } from '../internal';
 import { documentInclude } from '../services/document';
+import { queueDocumentCommentAnchorSync } from './documentCommentAnchorSync';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 
 let batchSize = 100;
@@ -126,6 +127,9 @@ export let flushDocumentDraft = async (d: {
       d.documentId,
       draft.revision
     );
+    if (result.didPersistAnnotations) {
+      await queueDocumentCommentAnchorSync(result.document.id);
+    }
 
     if (result.createdVersionId) {
       await storeVersionService.markStoresDirtyForDocument({

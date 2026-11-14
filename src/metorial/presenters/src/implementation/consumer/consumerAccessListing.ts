@@ -122,6 +122,7 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
     name: consumerAccessListing.name,
     description: consumerAccessListing.description,
     readme: consumerAccessListing.readme,
+    is_discoverable: consumerAccessListing.isDiscoverable,
     access:
       consumerAccessListing.providerTemplate != null
         ? {
@@ -186,6 +187,10 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
       name: v.string(),
       description: v.nullable(v.string()),
       readme: v.nullable(v.string()),
+      is_discoverable: v.boolean({
+        description:
+          'Whether every consumer on the portal can find this listing in the catalog and request access. When false, only consumers who already have access through one of their groups see it.'
+      }),
       access: v.union([
         v.object({
           type: v.literal('provider_template'),

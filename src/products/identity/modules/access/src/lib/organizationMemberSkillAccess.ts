@@ -2,7 +2,6 @@ import type { Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 import type { StoreResourceAccessLevel } from '../definitions/storeResourceAccess';
 import type { ResourceAuthorization } from '../services/resourceAuthorization';
-import { isStoreResourceFlagEnabled } from './storeResourceFlags';
 
 let consumerProfileOrganizationLinkSelect = {
   organizationActorOid: true,
@@ -73,9 +72,7 @@ let getAllowOrganizationMemberFullSkillAccess = async (
 
 export let isOrganizationMemberFullSkillAccessEnabled = async (d: {
   project: OrganizationMemberSkillAccessProject;
-}) =>
-  (await getAllowOrganizationMemberFullSkillAccess(d.project)) &&
-  (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }));
+}) => await getAllowOrganizationMemberFullSkillAccess(d.project);
 
 let resolveOrganizationMemberSkillAccess = async (d: {
   project: OrganizationMemberSkillAccessProject;

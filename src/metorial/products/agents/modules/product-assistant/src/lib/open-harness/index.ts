@@ -5,6 +5,7 @@ export {
   ToolDeniedError,
   type AgentCompaction,
   type AgentEvent,
+  type StepModelSelector,
   type ApproveFn,
   type SubagentEventFn,
   type TokenUsage,

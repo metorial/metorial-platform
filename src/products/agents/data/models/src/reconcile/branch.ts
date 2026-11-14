@@ -15,7 +15,7 @@ let baseTrailer = /^Base: ([0-9a-f]{40})$/m;
 export interface OverrideBranch {
   name: string;
   resumed: boolean;
-  save: (message: string) => Promise<void>;
+  save: (message: string, sourceFiles?: string[]) => Promise<void>;
 }
 
 // Accepted decisions are committed and pushed to one long-lived branch after every batch, so a
@@ -27,6 +27,7 @@ export let openOverrideBranch = async (opts: {
   root: string;
   name: string;
   overridesDir: string;
+  allowedSourceDirectories?: string[];
   log: Log;
   redact?: (text: string) => string;
 }): Promise<OverrideBranch | null> => {
@@ -85,9 +86,10 @@ export let openOverrideBranch = async (opts: {
     }
   }
 
-  let commit = async (message: string) => {
-    await git('add', '-A', '--', overrides);
-    if (!(await git('diff', '--cached', '--name-only', '--', overrides))) return false;
+  let commit = async (message: string, sourceFiles: string[] = []) => {
+    let files = [overrides, ...sourceFiles];
+    await git('add', '-A', '--', ...files);
+    if (!(await git('diff', '--cached', '--name-only', '--', ...files))) return false;
 
     await git(
       '-c',
@@ -96,10 +98,13 @@ export let openOverrideBranch = async (opts: {
       `user.email=${botEmail}`,
       'commit',
       '--quiet',
+      '--only',
       '-m',
       message,
       '-m',
-      `Base: ${base}`
+      `Base: ${base}`,
+      '--',
+      ...files
     );
     return true;
   };
@@ -116,9 +121,17 @@ export let openOverrideBranch = async (opts: {
     name: opts.name,
     resumed,
 
-    save: async message => {
+    save: async (message, sourceFiles = []) => {
+      if (
+        sourceFiles.some(
+          file =>
+            path.normalize(file) !== file ||
+            !opts.allowedSourceDirectories?.some(directory => file.startsWith(`${directory}/`))
+        )
+      )
+        throw new Error('Cannot save a source outside the repair allowlist');
       try {
-        let committed = await commit(message);
+        let committed = await commit(message, sourceFiles);
         if (!committed) return;
 
         // Runs are serialized by the workflow, so whatever is on origin is this branch's own history.

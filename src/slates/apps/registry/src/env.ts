@@ -32,7 +32,10 @@ export let env = defineSettings({
     SLATES_REGISTRY_MODE: v.optional(v.enumOf(['root', 'mirror'])),
     SLATES_SIGNATURE_VERIFICATION: v.optional(v.enumOf(['required', 'disabled'])),
     SLATES_UPSTREAM_REGISTRIES: v.optional(v.string()),
-    SLATES_PACK_MAX_BYTES: v.optional(v.number())
+    SLATES_PACK_MAX_BYTES: v.optional(v.number()),
+    SLATES_PACK_CHANNELS: v.optional(v.string()),
+    SLATES_PACK_TARGET_BYTES: v.optional(v.number()),
+    SLATES_PACK_INCREMENTAL_RETENTION_DAYS: v.optional(v.number())
   },
 
   encryption: {

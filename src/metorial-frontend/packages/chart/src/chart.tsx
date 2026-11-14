@@ -277,6 +277,8 @@ export let Chart = memo(
   }: ChartProps) => {
     let { formatValue, formatTick } = useStableFormatters(valueFormatter, tickFormatter);
     let isEmpty = !hasChartData(series);
+    let isTimeline = type == 'line' || type == 'bar';
+    let showEmptyState = isEmpty && (loading || !isTimeline || emptyText !== undefined);
 
     let placeholder = useMemo(() => {
       if (!loading || !isEmpty) return null;
@@ -319,9 +321,9 @@ export let Chart = memo(
       <ChartFrame
         height={height}
         loading={loading}
-        isEmpty={isEmpty}
+        isEmpty={showEmptyState}
         error={error}
-        emptyText={emptyText ?? (type == 'line' || type == 'bar' ? undefined : 'No data.')}
+        emptyText={emptyText ?? (isTimeline ? undefined : 'No data.')}
         placeholder={placeholder}
       >
         {type == 'line' || type == 'bar' ? (

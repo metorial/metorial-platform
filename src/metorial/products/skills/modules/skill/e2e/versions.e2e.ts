@@ -206,16 +206,19 @@ describe('module-skill versions', () => {
       fork: { id: fork.id, parentSkillId: parent.id }
     });
 
-    let parentParticipants = await db.skillParticipant.findMany({
-      where: { skillOid: parent.oid }
+    let parentParticipants = await db.storeParticipantActor.findMany({
+      where: { storeOid: parent.store!.oid }
     });
     expect(parentParticipants.map(participant => participant.roles)).toEqual([['forker']]);
     expect(parentParticipants[0]!.resourceActorOid).toBe(authorization.resourceActor!.oid);
 
-    let forkParticipants = await db.skillParticipant.findMany({
-      where: { skillOid: fork.oid }
+    let forkParticipants = await db.storeParticipantActor.findMany({
+      where: { storeOid: fork.store!.oid }
     });
-    expect(forkParticipants.map(participant => participant.roles)).toEqual([['creator']]);
+    expect(forkParticipants.map(participant => participant.roles)).toEqual([
+      ['creator', 'editor']
+    ]);
+    expect(forkParticipants[0]!.resourceActorOid).toBe(authorization.resourceActor!.oid);
 
     expect(created.events.find(event => event.skill.id === fork.id)).toMatchObject({
       parentSkillId: parent.id,

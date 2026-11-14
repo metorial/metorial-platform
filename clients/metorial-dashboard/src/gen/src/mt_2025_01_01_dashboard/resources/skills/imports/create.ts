@@ -84,6 +84,7 @@ export type SkillsImportsCreateBody = {
         path?: string | undefined;
       }
     | { type: 'file'; fileId: string };
+  skillGroupId?: string | undefined;
 };
 
 export let mapSkillsImportsCreateBody =
@@ -92,5 +93,6 @@ export let mapSkillsImportsCreateBody =
       'source',
       0,
       [3, [[0, [1, ['repository_url', 'repository_id', 'file_id']]]]]
-    ]
+    ],
+    'skill_group_id'
   ]);

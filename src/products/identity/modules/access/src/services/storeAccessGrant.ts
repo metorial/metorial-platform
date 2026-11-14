@@ -103,18 +103,51 @@ class StoreAccessGrantServiceImpl {
     );
   }
 
-  async listLegacySkillGrants(d: { skillOid: bigint }) {
+  async listAccessTagGrants(d: {
+    storeOids: bigint[];
+    organizationOid: bigint;
+    access: StoreResourceAccessDefinition;
+    accessTagOids: bigint[];
+  }) {
+    if (!d.storeOids.length || !d.accessTagOids.length) return [];
+
     return await withTransaction(
       async db => {
         let entities = await db.accessTagEntity.findMany({
-          where: { skillOid: d.skillOid },
+          where: {
+            storeOid: { in: d.storeOids },
+            accessTagOid: { in: d.accessTagOids },
+            accessTagPolicy: {
+              organizationOid: d.organizationOid,
+              systemIdentifier: {
+                in: storeResourceAccessLevels.map(
+                  level => d.access.policies[level].systemIdentifier
+                )
+              }
+            }
+          },
           select: {
+            storeOid: true,
             accessTagOid: true,
             accessTagPolicy: { select: { roles: true } }
           }
         });
 
-        return this.getHighestLevels({ entities, access: skillStoreResourceAccess });
+        let entitiesByStore = new Map<bigint, typeof entities>();
+        for (let entity of entities) {
+          if (entity.storeOid == null) continue;
+          entitiesByStore.set(entity.storeOid, [
+            ...(entitiesByStore.get(entity.storeOid) ?? []),
+            entity
+          ]);
+        }
+
+        return [...entitiesByStore.entries()].flatMap(([storeOid, storeEntities]) =>
+          this.getHighestLevels({ entities: storeEntities, access: d.access }).map(grant => ({
+            storeOid,
+            ...grant
+          }))
+        );
       },
       { ifExists: true }
     );
@@ -216,7 +249,9 @@ class StoreAccessGrantServiceImpl {
     });
   }
 
-  async syncLegacySkillGrants(d: { skillOid: bigint }) {
+  // Skill grants are kept per source (consumer access, share) on the skill, so revoking one
+  // source cannot remove access another source still grants. Store grants are derived from them.
+  async syncSkillGrants(d: { skillOid: bigint }) {
     await withTransaction(async db => {
       let skill = await db.skill.findUnique({
         where: { oid: d.skillOid },

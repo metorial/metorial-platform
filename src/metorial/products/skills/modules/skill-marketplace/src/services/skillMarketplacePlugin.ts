@@ -22,6 +22,7 @@ import {
 } from '../lib/limits';
 import {
   assertSkillMarketplaceWriteAccess,
+  assertSkillPluginWriteAccess,
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
 import {
@@ -100,6 +101,7 @@ class SkillMarketplacePluginServiceImpl {
     project: Project;
     instance: Instance;
     skillMarketplace: SkillMarketplaceRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
     ids?: string[];
     skillPluginIds?: string[];
     skillConfigurationIds?: string[];
@@ -111,9 +113,8 @@ class SkillMarketplacePluginServiceImpl {
     let skillMarketplacePlugins = await resolveSkillMarketplacePlugins(d, d.ids);
     let skillPlugins = await resolveSkillPlugins(d, d.skillPluginIds);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
-    let statuses: SkillMarketplacePluginStatus[] = d.statuses?.length
-      ? d.statuses
-      : ['active'];
+    let statuses: SkillMarketplacePluginStatus[] =
+      d.statuses?.length && !d.accessTags ? d.statuses : ['active'];
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -182,6 +183,7 @@ class SkillMarketplacePluginServiceImpl {
     if (skillPlugin.status !== 'active') {
       throw new ServiceError(notFoundError('skill.plugin', skillPlugin.id));
     }
+    await assertSkillPluginWriteAccess({ skillPlugin, accessTags: d.accessTags });
 
     let existingSkillMarketplacePlugin = await db.skillMarketplacePlugin.findFirst({
       where: {

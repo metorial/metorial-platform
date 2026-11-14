@@ -346,7 +346,7 @@ class FileServiceImpl {
           data: {
             storeId: d.storeId,
             fileName,
-            fileSize: d.input.size,
+            fileSize: BigInt(d.input.size),
             fileType: d.input.mimeType,
             title: d.input.title,
             expiresAt: d.input.expiresAt,
@@ -414,7 +414,7 @@ class FileServiceImpl {
           purposeOid: purpose.oid,
           storeId: d.storeId,
           fileName,
-          fileSize: d.input.size,
+          fileSize: BigInt(d.input.size),
           fileType: d.input.mimeType,
           title: d.input.title,
           expiresAt: d.input.expiresAt,
@@ -428,7 +428,7 @@ class FileServiceImpl {
       await this.persistFileContent(createdFile.oid, d.internal?.contentPersistence);
 
       await Fabric.fire('file.created:after', {
-        ...fileFabricOwnerFromScope(d, createdFile.fileSize),
+        ...fileFabricOwnerFromScope(d, Number(createdFile.fileSize)),
         auditScope: d.auditScope,
         file: createdFile
       });
@@ -530,7 +530,7 @@ class FileServiceImpl {
           purposeOid: purpose.oid,
           storeId: '',
           fileName,
-          fileSize: d.input.size,
+          fileSize: BigInt(d.input.size),
           fileType: d.input.mimeType,
           title: d.input.title,
           expiresAt: d.input.expiresAt,

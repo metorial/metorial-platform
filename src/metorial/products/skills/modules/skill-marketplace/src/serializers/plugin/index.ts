@@ -5,6 +5,7 @@ import { getConfig } from '@metorial/config';
 import { db } from '@metorial/db';
 import { internalImageService } from '@metorial/skills-images';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
+import { getWithheldSkillIds } from '../../lib/securityReviewPolicy';
 import { createApplicator } from '../_lib/apply';
 import { claimVersion } from '../_lib/claimVersion';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
@@ -26,7 +27,7 @@ let json = (data: any) => JSON.stringify(data, null, 2);
 export let applyPlugin = createApplicator(
   'plugin',
   async input => {
-    let skills = await db.skillPluginSkill.findMany({
+    let pluginSkills = await db.skillPluginSkill.findMany({
       where: {
         skillPluginOid: input.skillPlugin.oid,
         status: 'active',
@@ -37,13 +38,26 @@ export let applyPlugin = createApplicator(
       include: {
         skill: {
           include: { store: true }
-        }
+        },
+        skillConfiguration: true
       },
       orderBy: { id: 'asc' }
     });
     await assertSkillPluginSkillLimit({
       skillPluginOid: input.skillPlugin.oid
     });
+
+    let withheldSkillIds = await getWithheldSkillIds({
+      projectOid: input.skillPlugin.projectOid,
+      instanceOid: input.skillPlugin.instanceOid,
+      skills: pluginSkills,
+      configs: [
+        input.skillPlugin.skillConfiguration,
+        input.skillMarketplacePlugin?.skillConfiguration,
+        input.skillMarketplace?.skillConfiguration
+      ]
+    });
+    let skills = pluginSkills.filter(entry => !withheldSkillIds.has(entry.skill.id));
 
     let project = await db.project.findFirstOrThrow({
       where: { oid: input.skillPlugin.projectOid },
@@ -62,12 +76,15 @@ export let applyPlugin = createApplicator(
       orderBy: { id: 'asc' }
     });
     let image = input.skillPlugin.image;
-    if (image?.type !== 'file') {
+    let isCustomImage = (candidate: typeof image | null | undefined) =>
+      candidate?.type === 'file' || candidate?.type === 'icon';
+
+    if (!isCustomImage(image)) {
       for (let skill of skills) {
-        if (skill.skill.image?.type === 'file') image = skill.skill.image;
+        if (isCustomImage(skill.skill.image)) image = skill.skill.image;
       }
     }
-    if (image?.type !== 'file' && project.organization.image?.type === 'file') {
+    if (!isCustomImage(image) && project.organization.image?.type === 'file') {
       image = project.organization.image;
     }
     let plugin = {
@@ -96,6 +113,7 @@ export let applyPlugin = createApplicator(
               ownerName: project.organization.name
             },
         agents: agentHashInput,
+        withheldSkillIds: [...withheldSkillIds].sort(),
         mcpUrl
       })
     );

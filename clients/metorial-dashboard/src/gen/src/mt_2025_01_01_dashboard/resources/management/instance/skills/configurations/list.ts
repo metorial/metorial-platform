@@ -8,6 +8,7 @@ export type ManagementInstanceSkillsConfigurationsListOutput = {
     allowScripts: boolean;
     allowedFileExtensions: string[];
     allowNonStandardDirectories: boolean;
+    securityReviewPolicy: 'off' | 'warn' | 'block';
     deletedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -26,6 +27,7 @@ export let mapManagementInstanceSkillsConfigurationsListOutput =
           'allow_scripts',
           'allowed_file_extensions',
           'allow_non_standard_directories',
+          'security_review_policy',
           'deleted_at',
           'created_at',
           'updated_at'

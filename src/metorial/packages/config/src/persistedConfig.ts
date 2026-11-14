@@ -1,29 +1,23 @@
 import { createLocallyCachedFunction } from '@lowerdeck/cache';
-import { db } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 
-db.metorialConfig
-  .upsert({
-    where: { id: 'metorial' },
-    update: {},
-    create: {}
-  })
-  .catch(err => {
-    console.error('Error initializing metorial config:', err);
+let ensureConfig = async () =>
+  await withTransaction(async db => {
+    await db.metorialConfig.createMany({ data: { id: 'metorial' }, skipDuplicates: true });
+    return await db.metorialConfig.findUniqueOrThrow({ where: { id: 'metorial' } });
   });
+
+ensureConfig().catch(err => {
+  console.error('Error initializing metorial config:', err);
+});
 
 export let getDistributedConfig = createLocallyCachedFunction({
   getHash: (i: void) => 'config',
   provider: async (i: void) => {
-    let config = await db.metorialConfig.findFirst({
+    let config = await db.metorialConfig.findUnique({
       where: { id: 'metorial' }
     });
-    if (config) return config;
-
-    return db.metorialConfig.upsert({
-      where: { id: 'metorial' },
-      update: {},
-      create: {}
-    });
+    return config ?? (await ensureConfig());
   },
   ttlSeconds: 10
 });

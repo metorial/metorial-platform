@@ -243,6 +243,7 @@ class ConsumerAccessRequestServiceImpl {
     consumerProfile: ConsumerProfile & {
       personalConsumerGroup: ConsumerGroup;
     };
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
     accessRequest: ConsumerAccessRequestCreateInput;
     auditScope: AuditScope;
     input?: {
@@ -287,6 +288,12 @@ class ConsumerAccessRequestServiceImpl {
     ) {
       throw new ServiceError(notFoundError('consumer.access_request.resource'));
     }
+
+    await this.assertListingRequestable({
+      consumerProfile: d.consumerProfile,
+      consumerGroups: d.consumerGroups,
+      accessRequest: d.accessRequest
+    });
 
     try {
       let consumerAccessRequest = await withTransaction(async db => {
@@ -411,6 +418,39 @@ class ConsumerAccessRequestServiceImpl {
     });
 
     return consumerAccessRequest;
+  }
+
+  private async assertListingRequestable(d: {
+    consumerProfile: Pick<ConsumerProfile, 'surfaceOid'>;
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[];
+    accessRequest: ConsumerAccessRequestCreateInput;
+  }) {
+    let hiddenListing = await db.consumerAccessListing.findFirst({
+      where: {
+        surfaceOid: d.consumerProfile.surfaceOid,
+        isDiscoverable: false,
+        providerTemplateOid:
+          d.accessRequest.type == 'provider_template'
+            ? d.accessRequest.providerTemplate.oid
+            : undefined,
+        magicMcpServerOid:
+          d.accessRequest.type == 'magic_mcp_server'
+            ? d.accessRequest.magicMcpServer.oid
+            : undefined,
+        consumerAccesses: {
+          none: {
+            consumerGroupOid: {
+              in: d.consumerGroups.map(group => group.oid)
+            }
+          }
+        }
+      },
+      select: { oid: true }
+    });
+
+    if (hiddenListing) {
+      throw new ServiceError(notFoundError('consumer.access_request.resource'));
+    }
   }
 }
 

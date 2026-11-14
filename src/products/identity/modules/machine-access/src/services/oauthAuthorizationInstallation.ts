@@ -34,22 +34,9 @@ import {
 import { createConsumerProfileAuditScope } from '../lib/consumerAuditScope';
 import { matchesUpdate } from '../lib/matches';
 import { getOAuthApplicationScopes } from '../lib/oauthAuthorizationScopes';
+import { installationInclude } from '../lib/oauthInstallationInclude';
 import { machineAccessService } from './machineAccess';
-import { machineAccessInclude } from './machineAccessAuth';
 import { authorizationInclude, OAuthAuthorizationWithRelations } from './oauthAuthorization';
-
-export let installationInclude = {
-  organization: true,
-  appActor: true,
-  oauthApplication: {
-    include: {
-      organization: true
-    }
-  },
-  serverSideMachineAccess: {
-    include: machineAccessInclude
-  }
-} as const;
 
 let actorCreateLock = createLock({
   name: 'macc/oauth-install/actor-create'

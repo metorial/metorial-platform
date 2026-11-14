@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { keyframes, styled } from 'styled-components';
+import { css, keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { useDialogZIndex } from '../dialog/state';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
+import { surface } from '../controlSize/scale';
 
 let fadeInBottom = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
@@ -13,6 +14,14 @@ let fadeInBottom = keyframes`
 let fadeOutBottom = keyframes`
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateY(-10px); }
+`;
+
+let openingAnimation = css`
+  ${fadeInBottom} 0.2s ease forwards
+`;
+
+let closingAnimation = css`
+  ${fadeOutBottom} 0.2s ease forwards
 `;
 
 let Trigger = styled.div`
@@ -28,10 +37,10 @@ let Content = styled.div<{ $closing?: boolean }>`
   color: ${theme.colors.background};
   box-shadow: ${theme.shadows.large};
   background: ${theme.colors.foreground};
-  border-radius: 10px;
+  border-radius: ${surface.borderRadius};
   min-width: 200px;
   gap: 5px;
-  animation: ${p => (p.$closing ? fadeOutBottom : fadeInBottom)} 0.2s ease forwards;
+  animation: ${p => (p.$closing ? closingAnimation : openingAnimation)};
 `;
 
 let Separator = styled.div`
@@ -48,7 +57,7 @@ let Item = styled.button`
   text-align: left;
   gap: 5px;
   padding: 7px 13px;
-  border-radius: 6px;
+  border-radius: ${surface.itemBorderRadius};
   outline: none;
   border: none;
   background: transparent;
@@ -87,7 +96,7 @@ let Title = styled.div`
   font-weight: 600;
   color: ${theme.colors.gray100};
   padding: 7px 13px;
-  border-radius: 6px;
+  border-radius: ${surface.itemBorderRadius};
   background: transparent;
   transition: all 0.3s ease;
   display: flex;

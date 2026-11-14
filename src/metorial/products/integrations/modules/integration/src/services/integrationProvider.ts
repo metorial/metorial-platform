@@ -452,6 +452,7 @@ export type EnableIntegrationProviderCallbacksParams = {
   input: {
     name?: string;
     description?: string | null;
+    triggerGroupSelections?: Record<string, Record<string, any>>;
   };
 };
 

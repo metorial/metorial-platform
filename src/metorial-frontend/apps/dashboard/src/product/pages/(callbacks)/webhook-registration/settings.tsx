@@ -10,6 +10,7 @@ import {
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
+import { WEBHOOK_REGISTRATION_COPY } from '../../../scenes/callbacks/webhookRegistrationPurpose';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 
 export let WebhookRegistrationSettingsPage = () => {
@@ -41,59 +42,66 @@ export let WebhookRegistrationSettingsPage = () => {
       })
   });
 
-  return renderWithLoader({ registration })(({ registration }) => (
-    <DetailsSettingsLayout>
-      <Box
-        title="Receiver Settings"
-        description="Modify the saved details for this webhook receiver."
-      >
-        <form onSubmit={form.handleSubmit}>
-          <Input label="Name" {...form.getFieldProps('name')} />
-          <form.RenderError field="name" />
+  return renderWithLoader({ registration })(({ registration }) => {
+    let copy = WEBHOOK_REGISTRATION_COPY[registration.data.purpose];
 
-          <Spacer size={15} />
+    return (
+      <DetailsSettingsLayout>
+        <Box title={copy.settingsTitle} description={copy.settingsDescription}>
+          <form onSubmit={form.handleSubmit}>
+            <Input label="Name" {...form.getFieldProps('name')} />
+            <form.RenderError field="name" />
 
-          <Input
-            label="Description"
-            {...form.getFieldProps('description')}
-            as="textarea"
-            minRows={5}
-          />
-          <form.RenderError field="description" />
+            <Spacer size={15} />
 
-          <Spacer size={15} />
+            <Input
+              label="Description"
+              {...form.getFieldProps('description')}
+              as="textarea"
+              minRows={5}
+            />
+            <form.RenderError field="description" />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              size="2"
-              type="submit"
-              loading={updateMutator.isLoading}
-              success={updateMutator.isSuccess}
-            >
-              Save
-            </Button>
-          </div>
+            <Spacer size={15} />
 
-          <updateMutator.RenderError />
-        </form>
-      </Box>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                size="2"
+                type="submit"
+                loading={updateMutator.isLoading}
+                success={updateMutator.isSuccess}
+              >
+                Save
+              </Button>
+            </div>
 
-      <Spacer size={20} />
+            <updateMutator.RenderError />
+          </form>
+        </Box>
 
-      <DeleteResourceDangerZone
-        description="Metorial tears down the receiver on the provider and stops accepting webhooks at this URL. This cannot be undone."
-        buttonLabel="Delete Receiver"
-        confirmTitle={`Delete ${registration.data.name}?`}
-        confirmDescription={`Are you sure you want to delete ${registration.data.name}?`}
-        loading={deleteMutator.isLoading}
-        success={deleteMutator.isSuccess}
-        onDelete={async () => {
-          let [res] = await deleteMutator.mutate(undefined as never);
-          if (!res) return;
+        <Spacer size={20} />
 
-          navigate(Paths.instance.callbacks(organization.data, project.data, instance.data));
-        }}
-      />
-    </DetailsSettingsLayout>
-  ));
+        <DeleteResourceDangerZone
+          description={copy.deleteDescription}
+          buttonLabel={copy.deleteButton}
+          confirmTitle={`Delete ${registration.data.name}?`}
+          confirmDescription={copy.deleteConfirm(registration.data.name)}
+          loading={deleteMutator.isLoading}
+          success={deleteMutator.isSuccess}
+          onDelete={async () => {
+            let [res] = await deleteMutator.mutate(undefined as never);
+            if (!res) return;
+
+            navigate(
+              Paths.instance.webhookRegistrations(
+                organization.data,
+                project.data,
+                instance.data
+              )
+            );
+          }}
+        />
+      </DetailsSettingsLayout>
+    );
+  });
 };

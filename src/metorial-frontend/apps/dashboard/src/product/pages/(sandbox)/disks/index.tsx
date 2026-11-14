@@ -1,17 +1,12 @@
+import { col, createDataList, f } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
+import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import { useCurrentInstance, useSandboxDisks, useSandboxRegions } from '@metorial/state';
-import {
-  Table as DashboardTable,
-  FilterPayload,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import { Button, RenderDate, Text } from '@metorial/ui';
+import { useSandboxDisks, useSandboxRegions } from '@metorial/state';
+import { Button, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import { useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useInstanceContext } from '../../../lib/dataList';
 import { entityFilters } from '../../../scenes/entityFilters';
 import {
   SandboxDiskMenu,
@@ -22,59 +17,76 @@ import { formatBytes } from '../../../scenes/sandbox/lib/format';
 import { SandboxDiskStatusBadge } from '../../../scenes/sandbox/shared/statusBadges';
 import { SandboxManagedPage, useSandboxAccess } from '../_gate';
 
-type Props = {
-  instanceId?: string;
-  diskPath: (id: string) => string;
-  machinePath: (id: string) => string;
-  openDisk: (id: string) => void;
-};
+let diskTypes = [
+  { id: 'standard', label: 'Standard (Default)' },
+  { id: 'root_fs', label: 'Root Filesystems' },
+  { id: 'all', label: 'All' }
+] as const;
 
-let selected = (payload: FilterPayload | undefined): string[] | undefined => {
-  if (typeof payload === 'string') return [payload];
-  if (payload && typeof payload === 'object' && !(payload instanceof Date) && 'in' in payload)
-    return payload.in as string[];
-  return undefined;
-};
+let attachedOptions = [
+  { id: 'yes', label: 'Attached' },
+  { id: 'no', label: 'Not Attached' }
+] as const;
 
-let state: TableStateProvider<Props, SandboxDisk, TableStateProviderResult<SandboxDisk>> = (
-  props,
-  { filter, search }
-) => {
-  let types = selected(filter.type);
-  let attached = selected(filter.attached)?.[0];
-  let disks = useSandboxDisks(props.instanceId, {
-    search: search || undefined,
-    type: types?.includes('all')
-      ? undefined
-      : ((types ?? ['standard']) as ('standard' | 'root_fs')[]),
-    machineId: selected(filter.machineId),
-    region: selected(filter.region),
-    attached: attached === 'yes' ? true : attached === 'no' ? false : undefined,
-    order: 'desc'
-  });
+let DisksTable = createDataList<{ openDisk: (id: string) => void }>('sandbox-disks')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    type: f.select('type', 'Type', diskTypes, { pinned: true }),
+    machineId: f.entity(entityFilters.sandboxMachine(ctx.instanceId)),
+    region: f.entity({
+      id: 'region',
+      fields: ['region'],
+      label: 'Region',
+      description: 'Filter by region',
+      type: 'entity',
+      useOptions: () => {
+        let regions = useSandboxRegions(ctx.instanceId);
+        return {
+          items: (regions.data?.items ?? []).map(region => ({
+            id: region.id,
+            label: region.name || region.id
+          })),
+          isLoading: regions.isLoading
+        };
+      }
+    }),
+    attached: f.select('attached', 'Attached', attachedOptions, {
+      description: 'Filter by attachment'
+    })
+  }))
+  .search('Search disks…')
+  .paginated(({ ctx, filters, search }) => {
+    let attached = filters.attached?.[0];
 
-  return {
-    items: disks.data?.items ?? [],
-    isLoading: disks.isLoading,
-    error: disks.error,
-    hasMoreAfter: disks.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: disks.data?.pagination.hasMoreBefore ?? false,
-    loadNext: disks.next,
-    loadPrevious: disks.previous
-  };
-};
-
-let table = new DashboardTable<Props, SandboxDisk>('sandbox-disks')
-  .state(state)
-  .search('Search disks')
+    return useSandboxDisks(ctx.instanceId, {
+      search,
+      type: filters.type?.includes('all')
+        ? undefined
+        : ((filters.type ?? ['standard']) as ('standard' | 'root_fs')[]),
+      machineId: filters.machineId,
+      region: filters.region,
+      attached: attached === 'yes' ? true : attached === 'no' ? false : undefined,
+      order: 'desc'
+    });
+  })
   .columns([
-    {
+    col.custom<
+      SandboxDisk,
+      { openDisk: (id: string) => void },
+      ReturnType<typeof useInstanceContext>
+    >({
       id: 'name',
       header: 'Name',
-      isDefault: true,
-      render: (disk, props) => (
+      render: (disk, _props, ctx) => (
         <div>
-          <Link to={props.diskPath(disk.id)}>
+          <Link
+            to={Paths.instance.sandboxDisk(
+              ctx.organization,
+              ctx.project,
+              ctx.instance,
+              disk.id
+            )}
+          >
             <Text size="2" weight="strong">
               {disk.name || 'Untitled disk'}
             </Text>
@@ -82,27 +94,32 @@ let table = new DashboardTable<Props, SandboxDisk>('sandbox-disks')
           <ID id={disk.id} />
         </div>
       )
-    },
-    {
+    }),
+    col.text<SandboxDisk>({
       id: 'size',
       header: 'Size',
-      isDefault: true,
-      render: disk => (
-        <Text size="2">
-          {formatBytes(disk.sizeBytes)}
-          {disk.activeResize && ` → ${formatBytes(disk.activeResize.targetSizeBytes)}`}
-        </Text>
-      )
-    },
-    {
+      get: disk =>
+        `${formatBytes(disk.sizeBytes)}${disk.activeResize ? ` → ${formatBytes(disk.activeResize.targetSizeBytes)}` : ''}`
+    }),
+    col.custom<
+      SandboxDisk,
+      { openDisk: (id: string) => void },
+      ReturnType<typeof useInstanceContext>
+    >({
       id: 'machine',
       header: 'Attached To',
-      isDefault: true,
-      render: (disk, props) =>
+      render: (disk, _props, ctx) =>
         disk.machine ? (
           <div>
             {disk.type === 'root_fs' && 'Root disk of '}
-            <Link to={props.machinePath(disk.machine.id)}>
+            <Link
+              to={Paths.instance.sandboxMachine(
+                ctx.organization,
+                ctx.project,
+                ctx.instance,
+                disk.machine.id
+              )}
+            >
               {disk.machine.name || disk.machine.slug || disk.machine.id}
             </Link>
             {disk.type === 'standard' && (
@@ -112,131 +129,60 @@ let table = new DashboardTable<Props, SandboxDisk>('sandbox-disks')
             )}
           </div>
         ) : (
-          'Not attached'
+          <Text size="2" color="gray600">
+            Not attached
+          </Text>
         )
-    },
-    {
+    }),
+    col.custom<SandboxDisk>({
       id: 'status',
       header: 'Status',
       isDefault: false,
       render: disk => (
         <SandboxDiskStatusBadge status={disk.status} activeResize={disk.activeResize} />
       )
-    },
-    {
+    }),
+    col.text<SandboxDisk>({
       id: 'type',
       header: 'Type',
       isDefault: false,
-      render: disk => (disk.type === 'root_fs' ? 'Root Filesystem' : 'Standard')
-    },
-    { id: 'region', header: 'Region', isDefault: false, render: disk => disk.region },
-    {
-      id: 'created',
-      header: 'Created',
+      get: disk => (disk.type === 'root_fs' ? 'Root Filesystem' : 'Standard')
+    }),
+    col.text<SandboxDisk>({
+      id: 'region',
+      header: 'Region',
       isDefault: false,
-      render: disk => <RenderDate date={disk.createdAt} />
-    },
-    { id: 'id', header: 'ID', isDefault: false, render: disk => <ID id={disk.id} /> },
-    {
+      get: disk => disk.region
+    }),
+    col.createdAt<SandboxDisk>(),
+    col.id<SandboxDisk>(),
+    col.custom<SandboxDisk>({
       id: 'actions',
       header: '',
-      isDefault: true,
       render: disk => (disk.status !== 'deleted' ? <SandboxDiskMenu disk={disk} /> : null)
-    }
+    })
   ])
   .clickable((disk, props) => props.openDisk(disk.id))
   .build();
 
 let SandboxDisksContent = () => {
-  let instance = useCurrentInstance();
   let paths = useSandboxDiskPaths();
   let navigate = useNavigate();
-  let [params, setParams] = useSearchParams();
-  let filterKeys = ['search', 'type', 'machine', 'machineId', 'region', 'attached'];
-  let hasFilters = filterKeys.some(key => !!params.get(key)?.trim());
-
-  let clearFilters = () =>
-    setParams(
-      previous => {
-        let next = new URLSearchParams(previous);
-        for (let key of [...filterKeys, 'before', 'after']) next.delete(key);
-        return next;
-      },
-      { replace: true }
-    );
-  let instanceId = instance.data?.id;
-  let filters = useMemo<TableFilter<SandboxDisk>[]>(
-    () => [
-      {
-        id: 'type',
-        fields: ['type'],
-        label: 'Type',
-        description: 'Filter by type',
-        pinned: true,
-        type: 'select',
-        options: [
-          { id: 'standard', label: 'Standard (Default)' },
-          { id: 'root_fs', label: 'Root Filesystems' },
-          { id: 'all', label: 'All' }
-        ]
-      },
-      entityFilters.sandboxMachine(instanceId),
-      {
-        id: 'region',
-        fields: ['region'],
-        label: 'Region',
-        description: 'Filter by region',
-        type: 'entity',
-        useOptions: () => {
-          let regions = useSandboxRegions(instanceId);
-          return {
-            items: (regions.data?.items ?? []).map(region => ({
-              id: region.id,
-              label: region.name || region.id
-            })),
-            isLoading: regions.isLoading
-          };
-        }
-      },
-      {
-        id: 'attached',
-        fields: ['machine'],
-        label: 'Attached',
-        description: 'Filter by attachment',
-        type: 'select',
-        options: [
-          { id: 'yes', label: 'Attached' },
-          { id: 'no', label: 'Not Attached' }
-        ]
-      }
-    ],
-    [instanceId]
-  );
 
   return (
-    <>
-      {table({
-        instanceId,
-        diskPath: paths.disk,
-        machinePath: paths.machine,
-        openDisk: id => navigate(paths.disk(id)),
-        tableFilters: filters,
-        emptyState: () => (
+    <DisksTable
+      openDisk={id => navigate(paths.disk(id))}
+      emptyState={{
+        initial: () => (
           <EmptyState
-            title={hasFilters ? 'No Matching Disks' : 'Create Reusable Disks'}
-            description={
-              hasFilters
-                ? 'Adjust or clear your filters.'
-                : 'Persistent storage that can be attached to machines.'
-            }
-            action={{
-              label: hasFilters ? 'Clear Filters' : 'Create Disk',
-              onClick: hasFilters ? clearFilters : showSandboxCreateDiskDialog
-            }}
+            title="Create Reusable Disks"
+            description="Persistent storage that can be attached to machines."
+            action={{ label: 'Create Disk', onClick: showSandboxCreateDiskDialog }}
           />
-        )
-      })}
-    </>
+        ),
+        filtered: 'No disks match these filters.'
+      }}
+    />
   );
 };
 

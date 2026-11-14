@@ -7,6 +7,7 @@ export type PortalsListingsListOutput = {
     name: string;
     description: string | null;
     readme: string | null;
+    isDiscoverable: boolean;
     access:
       | {
           type: 'provider_template';
@@ -98,6 +99,7 @@ export let mapPortalsListingsListOutput =
       [
         1,
         [
+          'is_discoverable',
           [
             'access',
             0,
@@ -164,6 +166,7 @@ export type PortalsListingsListQuery = {
         | 'skill_marketplace'
       )[]
     | undefined;
+  hasAccess?: boolean | undefined;
 };
 
 export let mapPortalsListingsListQuery =
@@ -181,7 +184,8 @@ export let mapPortalsListingsListQuery =
             'skill_id',
             'skill_template_id',
             'skill_group_id',
-            'skill_marketplace_id'
+            'skill_marketplace_id',
+            'has_access'
           ]
         ]
       ]

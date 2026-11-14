@@ -1575,6 +1575,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "z-ai/glm-5.2": {
+    "decision": "link",
+    "model": "zhipu/glm-5.2",
+    "reason": "NanoGPT's GLM 5.2 is Z.ai's flagship 1M-context coding model released June 2026 (NVIDIA NIM, Vercel), matching zhipu/glm-5.2 (2026-06-13, 1M context). The 0.189/0.594 price is NanoGPT's discount aggregator pricing, not a different model.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "z-ai/glm-5.2:thinking": {
+    "decision": "link",
+    "model": "zhipu/glm-5.2",
+    "reason": "The :thinking suffix is thinking-mode serving of GLM-5.2, Z.ai's flagship 1M-context model (Together docs describe the same checkpoint's thinking modes); same 1M context and price as NanoGPT's base offering, still zhipu/glm-5.2.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "z-ai/glm-5.3-flash-apex": {
     "decision": "exclude",
     "category": "fine-tune",

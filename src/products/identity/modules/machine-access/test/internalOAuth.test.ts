@@ -70,7 +70,6 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('./../src/services/oauthAuthorizationInstallation', () => ({
-  installationInclude: {},
   oauthAuthorizationInstallationService: {
     getOrCreateInstallation: (...args: any[]) => getOrCreateInstallationMock(...args)
   }

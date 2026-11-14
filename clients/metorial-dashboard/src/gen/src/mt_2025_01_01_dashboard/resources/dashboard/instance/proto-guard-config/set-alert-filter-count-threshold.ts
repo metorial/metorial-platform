@@ -6,6 +6,8 @@ import {
 export type DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput =
   {
     object: 'protoguard.filter_config';
+    enabled: boolean;
+    alertProbabilityThreshold: number;
     alertFilterCountThreshold: number;
     filters: {
       object: 'protoguard.filter';
@@ -23,7 +25,17 @@ export type DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput 
         | 'instruction_block'
         | 'unicode_smuggling'
         | 'encoded_payload'
-        | 'typoglycemia';
+        | 'typoglycemia'
+        | 'ascii_smuggling'
+        | 'exfil_channel'
+        | 'hidden_content'
+        | 'cross_tool_reference'
+        | 'addressed_to_agent'
+        | 'secret_in_arguments'
+        | 'tool_poisoning'
+        | 'tool_shadowing'
+        | 'tool_rug_pull'
+        | 'injection_followed_by_sink';
       severity: 'low' | 'medium' | 'high' | 'critical';
       scoreWeight: number;
       defaultEnabled: boolean;
@@ -36,6 +48,7 @@ export type DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput 
 export let mapDashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput>(
     [
+      'alert_probability_threshold',
       'alert_filter_count_threshold',
       [
         'filters',

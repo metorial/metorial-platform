@@ -4,23 +4,33 @@ import {
   DashboardInstanceMagicMcpTokensListOutput,
   DashboardInstanceMagicMcpTokensListQuery
 } from '@metorial/dashboard-sdk';
-import { useForm } from '@metorial/data-hooks';
+import { useForm, useMutation } from '@metorial/data-hooks';
 import {
+  col,
+  createDataList,
+  defineAction,
+  deleteAction,
+  f,
+  lifecycleStatus,
+  withDefaults
+} from '@metorial/data-list';
+import {
+  magicMcpTokensLoader,
   useCreateMagicMcpToken,
   useCurrentInstance,
   useMagicMcpGroups,
-  useMagicMcpTokens
+  useMagicMcpToken,
+  useMagicMcpTokens,
+  withAuth
 } from '@metorial/state';
 import {
   Badge,
   Button,
   Checkbox,
-  confirm,
   Copy,
   Dialog,
   Flex,
   Input,
-  RenderDate,
   showModal,
   Spacer,
   Text,
@@ -29,27 +39,14 @@ import {
   Tooltip,
   useCopy
 } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiClipboardLine, RiDeleteBinLine, RiMoreLine } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { RiClipboardLine, RiEditLine, RiLockLine } from '@remixicon/react';
+import { useMemo, useState, type ComponentProps } from 'react';
 import styled from 'styled-components';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult,
-  getEnumListFilterValue,
-  getListFilterValue,
-  getStringFilterValue
-} from '@metorial/table';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 
 export type TokenRow = DashboardInstanceMagicMcpTokensListOutput['items'][number];
 type MagicMcpGroupRow = DashboardInstanceMagicMcpGroupsListOutput['items'][number];
-type MagicMcpTokensTableProps = DashboardInstanceMagicMcpTokensListQuery & {
-  instanceId: string;
-};
 
 export let formatGroupRestrictions = (token: Pick<TokenRow, 'groups'>) => {
   if (!token.groups.length) {
@@ -174,9 +171,9 @@ let showCreatedTokenModal = (secret: string) =>
 export let showManageRestrictionsModal = (p: { token: TokenRow }) =>
   showModal(({ dialogProps, close }) => {
     let instance = useCurrentInstance();
-    let tokens = useMagicMcpTokens(instance.data?.id);
-    let addGroupsMutator = tokens.addGroupsMutator();
-    let removeGroupsMutator = tokens.removeGroupsMutator();
+    let token = useMagicMcpToken(instance.data?.id, p.token.id);
+    let addGroupsMutator = token.useAddGroupsMutator();
+    let removeGroupsMutator = token.useRemoveGroupsMutator();
     let { groups, items } = useRestrictionOptions(p.token);
     let [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(
       p.token.groups.map(group => group.id)
@@ -226,7 +223,6 @@ export let showManageRestrictionsModal = (p: { token: TokenRow }) =>
 
               if (groupsToAdd.length > 0) {
                 let [res] = await addGroupsMutator.mutate({
-                  magicMcpTokenId: p.token.id,
                   magicMcpGroupIds: groupsToAdd
                 });
                 if (!res) didSucceed = false;
@@ -234,7 +230,6 @@ export let showManageRestrictionsModal = (p: { token: TokenRow }) =>
 
               if (didSucceed && groupsToRemove.length > 0) {
                 let [res] = await removeGroupsMutator.mutate({
-                  magicMcpTokenId: p.token.id,
                   magicMcpGroupIds: groupsToRemove
                 });
                 if (!res) didSucceed = false;
@@ -253,33 +248,27 @@ export let showManageRestrictionsModal = (p: { token: TokenRow }) =>
     );
   });
 
-let getTokenStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceMagicMcpTokensListQuery['status'] =>
-  getEnumListFilterValue(value, ['active', 'deleted']);
-
 export let updateTokenModal = ({
   tokenId,
-  instanceId
+  instanceId,
+  token: initialToken
 }: {
   tokenId: string;
   instanceId: string;
+  token?: Pick<TokenRow, 'name' | 'description'>;
 }) =>
   showModal(({ dialogProps, close }) => {
-    let tokens = useMagicMcpTokens(instanceId);
-    let token = tokens.data?.items?.find(item => item.id === tokenId);
-    let mutator = tokens.updateMutator();
+    let token = useMagicMcpToken(instanceId, tokenId);
+    let mutator = token.useUpdateMutator();
+    let current = initialToken ?? token.data;
 
     let form = useForm({
       initialValues: {
-        name: token?.name ?? undefined,
-        description: token?.description ?? undefined
+        name: current?.name ?? undefined,
+        description: current?.description ?? undefined
       },
       onSubmit: async values => {
-        let [res] = await mutator.mutate({
-          ...values,
-          magicMcpTokenId: tokenId
-        });
+        let [res] = await mutator.mutate(values);
         if (res) close();
       },
       schema: yup =>
@@ -318,195 +307,81 @@ export let updateTokenModal = ({
     );
   });
 
-let useMagicTokensTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<TokenRow>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'active', label: 'Active' },
-          { id: 'deleted', label: 'Deleted' }
-        ]
-      },
-      entityFilters.magicMcpGroup(instanceId)
-    ],
-    [instanceId]
+let useDeleteMagicMcpToken = () =>
+  useMutation(
+    (i: { instanceId: string; magicMcpTokenId: string }) =>
+      withAuth(sdk => sdk.magicMcp.tokens.delete(i.instanceId, i.magicMcpTokenId)),
+    { onSuccess: () => void magicMcpTokensLoader.refetchAll() }
   );
 
-let magicTokensTableState: TableStateProvider<
-  MagicMcpTokensTableProps,
-  TokenRow,
-  TableStateProviderResult<TokenRow>
-> = (props, opts) => {
-  let tokens = useMagicMcpTokens(props.instanceId, {
-    order: props.order ?? 'asc',
-    status: getTokenStatusFilterValue(opts.filter.status) ?? props.status,
-    magicMcpGroupId: getListFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
-    magicMcpServerId:
-      getStringFilterValue(opts.filter.magicMcpServerId) ?? props.magicMcpServerId
-  });
-
-  return {
-    isLoading: tokens.isLoading,
-    error: tokens.error,
-    hasMoreAfter: tokens.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: tokens.data?.pagination.hasMoreBefore ?? false,
-    items: tokens.data?.items ?? [],
-    loadNext: tokens.next,
-    loadPrevious: tokens.previous
-  };
-};
-
-let magicTokensTable = new DashboardTable<
-  MagicMcpTokensTableProps,
-  TokenRow,
-  {
-    instanceId: string;
-    openUpdateModal: (tokenId: string) => void;
-    openRestrictionsModal: (token: TokenRow) => void;
-    deleteToken: (tokenId: string) => Promise<void>;
-  }
->('magic-mcp-tokens')
-  .state(magicTokensTableState)
-  .hookState((_, input) => {
-    let tokens = useMagicMcpTokens(input.instanceId);
-    let deleteMutation = tokens.revokeMutator();
-
-    return {
-      instanceId: input.instanceId,
-      openUpdateModal: (tokenId: string) => {
-        updateTokenModal({ tokenId, instanceId: input.instanceId });
-      },
-      openRestrictionsModal: (token: TokenRow) => {
-        showManageRestrictionsModal({ token });
-      },
-      deleteToken: async (tokenId: string) => {
-        let [res] = await deleteMutation.mutate({
-          magicMcpTokenId: tokenId
-        });
-
-        if (res) toast.success('Magic MCP token deleted');
+export let magicTokenActions = [
+  defineAction<TokenRow, any, { instanceId?: string }>({
+    id: 'update',
+    label: 'Update Details',
+    icon: <RiEditLine />,
+    disabled: row => row.status !== 'active',
+    useRun:
+      ({ ctx }) =>
+      row => {
+        updateTokenModal({ tokenId: row.id, instanceId: ctx.instanceId!, token: row });
       }
-    };
+  }),
+  defineAction<TokenRow, any, { instanceId?: string }>({
+    id: 'restrictions',
+    label: 'Edit Restrictions',
+    icon: <RiLockLine />,
+    disabled: row => row.status !== 'active',
+    useRun: () => row => {
+      showManageRestrictionsModal({ token: row });
+    }
+  }),
+  deleteAction<TokenRow, any, { instanceId?: string }>({
+    noun: 'Token',
+    name: row => row.name,
+    disabled: row => row.status !== 'active',
+    useMutate: () => useDeleteMagicMcpToken(),
+    input: (row, { ctx }) => ({ instanceId: ctx.instanceId!, magicMcpTokenId: row.id })
   })
-  .columns([
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: token =>
-        token.status === 'active' ? (
-          <Badge size="2" color="green">
-            Active
-          </Badge>
-        ) : (
-          <Badge size="2" color="red">
-            Revoked
-          </Badge>
-        )
-    },
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: token => (
-        <div>
-          <Text size="2" weight="strong">
-            {token.name ?? 'Unnamed Token'}
-          </Text>
-          {token.description && (
-            <Text size="2" color="gray600">
-              {token.description}
-            </Text>
-          )}
-        </div>
+];
+
+let MagicTokensList = createDataList<DashboardInstanceMagicMcpTokensListQuery>(
+  'magic-mcp-tokens'
+)
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'deleted'] }),
+    magicMcpGroupId: f.entity(entityFilters.magicMcpGroup(ctx.instanceId))
+  }))
+  .paginated(({ props, ctx, filters, limit }) =>
+    useMagicMcpTokens(
+      ctx.instanceId,
+      withDefaults(
+        {
+          order: props.order ?? 'asc',
+          status: props.status,
+          magicMcpGroupId: props.magicMcpGroupId,
+          magicMcpServerId: props.magicMcpServerId,
+          magicMcpEndpointId: props.magicMcpEndpointId,
+          limit: props.limit
+        },
+        { ...filters, limit }
       )
-    },
-    {
-      id: 'secret',
-      isDefault: true,
-      header: 'Secret',
-      render: token => <TokenSecret token={token} />
-    },
-    {
+    )
+  )
+  .columns([
+    col.status(lifecycleStatus),
+    col.name({ fallback: 'Unnamed Token' }),
+    col.custom({ id: 'secret', header: 'Secret', render: row => <TokenSecret token={row} /> }),
+    col.custom({
       id: 'groupRestrictions',
-      isDefault: true,
       header: 'Group Restrictions',
-      render: token => formatGroupRestrictions(token)
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: token => <RenderDate date={token.createdAt} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: token => <RenderDate date={token.updatedAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Token ID',
-      render: token => <ID id={token.id} />
-    }
+      render: row => formatGroupRestrictions(row)
+    }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ header: 'Token ID' })
   ])
-  .actions({
-    update: async (rows, state) => {
-      let token = rows[0];
-      if (!token) return;
-
-      state.openUpdateModal(token.id);
-    },
-    restrictions: async (rows, state) => {
-      let token = rows[0];
-      if (!token) return;
-
-      state.openRestrictionsModal(token);
-    },
-    delete: async (rows, state) => {
-      let token = rows[0];
-      if (!token) return;
-
-      confirm({
-        title: 'Delete Magic MCP token',
-        description: 'Are you sure you want to delete this Magic MCP token?',
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await state.deleteToken(token.id);
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
-      id: 'update',
-      label: 'Update Details',
-      icon: <RiMoreLine />,
-      disabled: token => token.status !== 'active',
-      action: 'update'
-    },
-    {
-      id: 'restrictions',
-      label: 'Edit Restrictions',
-      icon: <RiMoreLine />,
-      disabled: token => token.status !== 'active',
-      action: 'restrictions'
-    },
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      disabled: token => token.status !== 'active',
-      action: 'delete'
-    }
-  ])
+  .itemActions(magicTokenActions)
   .build();
 
 let SecretWrapper = styled('div')`
@@ -604,18 +479,9 @@ export let TokenSecret = ({
   );
 };
 
-export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery = {}) => {
-  let instance = useCurrentInstance();
-  let instanceId = instance.data!.id;
-  let tableFilters = useMagicTokensTableFilters(instanceId);
-
-  return magicTokensTable({
-    instanceId,
-    ...filter,
-    tableFilters,
-    emptyState: 'No Magic MCP tokens found.'
-  });
-};
+export let MagicTokensTable = (props: ComponentProps<typeof MagicTokensList>) => (
+  <MagicTokensList emptyState="No Magic MCP tokens found." {...props} />
+);
 
 export let createMagicMcpTokenModal = (opts?: { groupId?: string }) =>
   showModal(({ dialogProps, close }) => {

@@ -30,7 +30,7 @@ beforeEach(() => {
 
 describe('computeStoreByteSize', () => {
   it('sums the file sizes of every item in the store', async () => {
-    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 260_000_000 } });
+    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 260_000_000n } });
 
     expect(await computeStoreByteSize({ storeOid: 4n })).toBe(260_000_000n);
 
@@ -38,6 +38,12 @@ describe('computeStoreByteSize', () => {
       where: { storeItems: { some: { storeOid: 4n } } },
       _sum: { fileSize: true }
     });
+  });
+
+  it('sums sizes beyond the 32-bit integer range', async () => {
+    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 5_000_000_000n } });
+
+    expect(await computeStoreByteSize({ storeOid: 4n })).toBe(5_000_000_000n);
   });
 
   it('treats an empty store as zero rather than null', async () => {
@@ -57,7 +63,7 @@ describe('getStoreByteSize', () => {
 
   it('backfills from null and writes the result back', async () => {
     db.store.findUnique.mockResolvedValue({ byteSize: null });
-    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 500 } });
+    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 500n } });
 
     expect(await getStoreByteSize({ storeOid: 4n })).toBe(500n);
 
@@ -69,7 +75,7 @@ describe('getStoreByteSize', () => {
 
   it('backfills when the store row is missing entirely', async () => {
     db.store.findUnique.mockResolvedValue(null);
-    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 0 } });
+    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 0n } });
 
     expect(await getStoreByteSize({ storeOid: 4n })).toBe(0n);
   });
@@ -84,7 +90,7 @@ describe('getStoreByteSize', () => {
 
 describe('refreshStoreByteSize', () => {
   it('always recomputes, even when a cached value exists', async () => {
-    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 900 } });
+    db.file.aggregate.mockResolvedValue({ _sum: { fileSize: 900n } });
 
     expect(await refreshStoreByteSize({ storeOid: 4n })).toBe(900n);
 

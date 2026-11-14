@@ -132,6 +132,7 @@ export let ID = createIdGenerator({
   sessionConnectionProviderSpecification: idType.sorted('sconps'),
   sessionError: idType.sorted('serr'),
   sessionErrorGroup: idType.sorted('serg'),
+  providerIssue: idType.sorted('pis'),
   sessionWarning: idType.sorted('swarn'),
   protoGuardFilter: idType.sorted('pgf'),
   protoGuardTenantSetting: idType.sorted('pgts'),
@@ -139,12 +140,22 @@ export let ID = createIdGenerator({
   protoGuardRun: idType.sorted('pgrn'),
   protoGuardAlert: idType.sorted('pga'),
   protoGuardAlertInstance: idType.sorted('pgai'),
+  protoGuardSuppression: idType.sorted('pgsp'),
+  protoGuardToolScan: idType.sorted('pgtsc'),
   monitor: idType.sorted('mon'),
   monitorAlert: idType.sorted('mal'),
   monitorAlertEvent: idType.sorted('mae'),
   monitorAlertRecipient: idType.sorted('mar'),
 
   providerRun: idType.sorted('prun'),
+
+  securityReview: idType.sorted('srev'),
+  securityReviewRevision: idType.sorted('srevr'),
+  securityReviewFinding: idType.sorted('srevf'),
+  securityReviewRun: idType.sorted('srevx'),
+  securityReviewWebDomainUsage: idType.sorted('srevwd'),
+  securityReviewWebDomainUsageReview: idType.sorted('srevwdr'),
+  securityReviewFileCheck: idType.sorted('srevfc'),
 
   callback: idType.sorted('cb'),
   callbackInstance: idType.sorted('cbi'),
@@ -231,8 +242,7 @@ export let ID = createIdGenerator({
 });
 
 export type RegionalClientSecretType =
-  | 'providerSetupSession_clientSecret'
-  | 'integrationSetupSession_clientSecret';
+  'providerSetupSession_clientSecret' | 'integrationSetupSession_clientSecret';
 
 export let appendRegionToClientSecret = (clientSecret: string, region: string) => {
   if (!/^[a-z0-9-]+$/.test(region)) {

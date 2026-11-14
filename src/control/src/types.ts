@@ -37,6 +37,7 @@ export interface Endpoint {
     menu?: string;
     path?: string;
   };
+  dev_login?: { path: string };
 }
 
 export interface Database {

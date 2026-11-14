@@ -1,5 +1,11 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { EmptyValue, col, createDataList } from '@metorial/data-list';
+import { renderWithLoader } from '@metorial/data-hooks';
+import type {
+  DashboardInstanceSandboxDisksMountsListOutput,
+  DashboardInstanceSandboxDisksResizesListOutput
+} from '@metorial/dashboard-sdk';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
+import { Paths } from '@metorial/frontend-config';
 import {
   useSandboxDisk,
   useSandboxDiskMounts,
@@ -7,9 +13,11 @@ import {
   useSandboxDiskResizes
 } from '@metorial/state';
 import { Button, Callout, RenderDate, Text, theme } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Box } from '@metorial/ui-product';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useInstanceContext, type InstanceContext } from '../../../lib/dataList';
 import {
   DiskMachineLink,
   DiskStack,
@@ -50,63 +58,155 @@ let RetryResize = ({ diskId, resizeId }: { diskId: string; resizeId: string }) =
   );
 };
 
-let Mounts = ({ disk }: { disk: SandboxDisk }) => {
-  let paths = useSandboxDiskPaths();
-  let mounts = useSandboxDiskMounts(paths.instanceId, disk.id, { order: 'desc' });
+type Mount = DashboardInstanceSandboxDisksMountsListOutput['items'][number];
+type Resize = DashboardInstanceSandboxDisksResizesListOutput['items'][number];
 
-  return (
-    <Box title="Mounts">
-      {renderWithPagination(mounts, { hidePaginationWhenUnavailable: true })(mounts => {
-        let sorted = [...mounts.data.items].sort(
+type DiskProps = { disk: SandboxDisk };
+
+let MountsList = createDataList<DiskProps>('sandbox-disk-mounts', { customizable: false })
+  .context(useInstanceContext)
+  .paginated(({ props, ctx }) =>
+    useSandboxDiskMounts(ctx.instanceId, props.disk.id, { order: 'desc' })
+  )
+  .enrich((mounts, { props }) => ({
+    items: useMemo(
+      () =>
+        [...mounts].sort(
           (a, b) =>
-            Number(!b.releasedAt && b.machineId === disk.machine?.id) -
-            Number(!a.releasedAt && a.machineId === disk.machine?.id)
-        );
-
-        return sorted.length ? (
-          <Table
-            headers={['Machine', 'Mount Path', 'Status', 'Mounted', '']}
-            data={sorted.map(mount => ({
-              data: [
-                <div>{mount.machineId ? <DiskMachineLink id={mount.machineId} /> : '—'}</div>,
-                mount.machineId ? (
-                  <Link to={paths.machine(mount.machineId)}>
-                    <Text style={{ fontFamily: 'monospace' }}>{mount.mountPath}</Text>
-                  </Link>
-                ) : (
-                  <Text style={{ fontFamily: 'monospace' }}>{mount.mountPath}</Text>
-                ),
-                <Link to={mount.machineId ? paths.machine(mount.machineId) : '#'}>
-                  <SandboxMountStatusBadge status={mount.status} />
-                </Link>,
-                <>
-                  <RenderDate date={mount.mountedAt || mount.createdAt} />
-                  {mount.releasedAt && (
-                    <>
-                      {' '}
-                      – <RenderDate date={mount.releasedAt} />
-                    </>
-                  )}
-                </>,
-                mount.machineId && !mount.releasedAt ? (
-                  <Link
-                    to={`${paths.machine(mount.machineId, 'files')}?path=${encodeURIComponent(mount.mountPath)}`}
-                  >
-                    Browse Files
-                  </Link>
-                ) : (
-                  '—'
-                )
-              ]
-            }))}
-          />
+            Number(!b.releasedAt && b.machineId === props.disk.machine?.id) -
+            Number(!a.releasedAt && a.machineId === props.disk.machine?.id)
+        ),
+      [mounts, props.disk.machine?.id]
+    )
+  }))
+  .columns([
+    col.custom<Mount, DiskProps, InstanceContext>({
+      id: 'machine',
+      header: 'Machine',
+      render: mount => (
+        <div>
+          {mount.machineId ? <DiskMachineLink id={mount.machineId} /> : <EmptyValue />}
+        </div>
+      )
+    }),
+    col.custom<Mount, DiskProps, InstanceContext>({
+      id: 'mountPath',
+      header: 'Mount Path',
+      render: (mount, _props, ctx) =>
+        mount.machineId ? (
+          <Link
+            to={Paths.instance.sandboxMachine(
+              ctx.organization,
+              ctx.project,
+              ctx.instance,
+              mount.machineId
+            )}
+          >
+            <Text style={{ fontFamily: 'monospace' }}>{mount.mountPath}</Text>
+          </Link>
         ) : (
-          <Text>No mounts yet.</Text>
-        );
-      })}
-    </Box>
-  );
-};
+          <Text style={{ fontFamily: 'monospace' }}>{mount.mountPath}</Text>
+        )
+    }),
+    col.custom<Mount, DiskProps, InstanceContext>({
+      id: 'status',
+      header: 'Status',
+      render: (mount, _props, ctx) => (
+        <Link
+          to={
+            mount.machineId
+              ? Paths.instance.sandboxMachine(
+                  ctx.organization,
+                  ctx.project,
+                  ctx.instance,
+                  mount.machineId
+                )
+              : '#'
+          }
+        >
+          <SandboxMountStatusBadge status={mount.status} />
+        </Link>
+      )
+    }),
+    col.custom<Mount>({
+      id: 'mounted',
+      header: 'Mounted',
+      render: mount => (
+        <>
+          <RenderDate date={mount.mountedAt || mount.createdAt} />
+          {mount.releasedAt && (
+            <>
+              {' '}
+              – <RenderDate date={mount.releasedAt} />
+            </>
+          )}
+        </>
+      )
+    }),
+    col.custom<Mount, DiskProps, InstanceContext>({
+      id: 'files',
+      header: '',
+      render: (mount, _props, ctx) =>
+        mount.machineId && !mount.releasedAt ? (
+          <Link
+            to={`${Paths.instance.sandboxMachine(ctx.organization, ctx.project, ctx.instance, mount.machineId, 'files')}?path=${encodeURIComponent(mount.mountPath)}`}
+          >
+            Browse Files
+          </Link>
+        ) : (
+          <EmptyValue />
+        )
+    })
+  ])
+  .build();
+
+let Mounts = ({ disk }: { disk: SandboxDisk }) => (
+  <Box title="Mounts">
+    <MountsList disk={disk} listVariant="embedded" emptyState="No mounts yet." />
+  </Box>
+);
+
+let ResizesList = createDataList<DiskProps>('sandbox-disk-resizes', { customizable: false })
+  .context(useInstanceContext)
+  .paginated(({ props, ctx }) =>
+    useSandboxDiskResizes(ctx.instanceId, props.disk.id, { order: 'desc' })
+  )
+  .columns([
+    col.custom<Resize, DiskProps>({
+      id: 'change',
+      header: 'Change',
+      render: (resize, { disk }) => (
+        <div>
+          {formatBytes(resize.originalSizeBytes)} → {formatBytes(resize.targetSizeBytes)}
+          {resize.status === 'failed' && (
+            <FailedResize>
+              <Text>{resize.failure?.message || 'The disk could not be resized.'}</Text>
+              {disk.status !== 'deleted' && !disk.activeResize && (
+                <RetryResize diskId={disk.id} resizeId={resize.id} />
+              )}
+            </FailedResize>
+          )}
+        </div>
+      )
+    }),
+    col.custom<Resize>({
+      id: 'status',
+      header: 'Status',
+      render: resize => <SandboxResizeStatusBadge status={resize.status} />
+    }),
+    col.date<Resize>('createdAt', { id: 'started', header: 'Started', isDefault: true }),
+    col.text<Resize>({
+      id: 'duration',
+      header: 'Duration',
+      get: resize =>
+        resize.completedAt
+          ? formatDurationBetween(resize.createdAt, resize.completedAt)
+          : resize.status === 'failed'
+            ? formatDurationBetween(resize.createdAt, resize.updatedAt)
+            : 'Running'
+    })
+  ])
+  .build();
 
 let ResizeHistory = ({ disk }: { disk: SandboxDisk }) => {
   let paths = useSandboxDiskPaths();
@@ -138,39 +238,10 @@ let ResizeHistory = ({ disk }: { disk: SandboxDisk }) => {
         <Mounts disk={disk} />
       )}
 
-      {renderWithPagination(resizes, {
-        hidePaginationWhenUnavailable: true
-      })(resizes =>
-        resizes.data.items.length ? (
-          <Box title="Recent Resizes">
-            <Table
-              headers={['Change', 'Status', 'Started', 'Duration']}
-              data={resizes.data.items.map(resize => [
-                <div>
-                  {formatBytes(resize.originalSizeBytes)} →{' '}
-                  {formatBytes(resize.targetSizeBytes)}
-                  {resize.status === 'failed' && (
-                    <FailedResize>
-                      <Text>
-                        {resize.failure?.message || 'The disk could not be resized.'}
-                      </Text>
-                      {disk.status !== 'deleted' && !disk.activeResize && (
-                        <RetryResize diskId={disk.id} resizeId={resize.id} />
-                      )}
-                    </FailedResize>
-                  )}
-                </div>,
-                <SandboxResizeStatusBadge status={resize.status} />,
-                <RenderDate date={resize.createdAt} />,
-                resize.completedAt
-                  ? formatDurationBetween(resize.createdAt, resize.completedAt)
-                  : resize.status === 'failed'
-                    ? formatDurationBetween(resize.createdAt, resize.updatedAt)
-                    : 'Running'
-              ])}
-            />
-          </Box>
-        ) : null
+      {!!resizes.data?.items.length && (
+        <Box title="Recent Resizes">
+          <ResizesList disk={disk} listVariant="embedded" />
+        </Box>
       )}
     </DiskStack>
   );

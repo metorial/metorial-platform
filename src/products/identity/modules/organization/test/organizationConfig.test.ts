@@ -96,6 +96,11 @@ describe('OrganizationConfigService', () => {
     configs = [];
 
     mockDb = {
+      $queryRaw: vi.fn(async (_strings: TemplateStringsArray, oid: bigint) => {
+        let config = configs.find(config => config.oid === oid);
+
+        return config ? [{ value: config.value }] : [];
+      }),
       organizationConfigType: {
         upsert: vi.fn(async ({ where, create, update }) => {
           let existing = types.find(type => type.identifier === where.identifier);
@@ -243,6 +248,111 @@ describe('OrganizationConfigService', () => {
       'organization.config.updated:after',
       expect.objectContaining({ config: updated })
     );
+  });
+
+  it('patches the locked value, validates the result and fires lifecycle events', async () => {
+    let auditScope = createOrganizationActorAuditScope({
+      organization,
+      organizationActor: actor,
+      context: { ip: '127.0.0.1' }
+    });
+
+    let [userConfig] = (
+      await organizationConfigService.listOrganizationConfigs({
+        user: user as any,
+        organization: organization as any
+      })
+    ).filter(config => config.type.identifier === 'test.user');
+
+    let patched = await organizationConfigService.patchOrganizationConfig({
+      selector: 'test.user',
+      operations: [{ op: 'set', path: ['enabled'], value: true }],
+      user: user as any,
+      organization: organization as any,
+      auditScope
+    });
+
+    expect(patched.value).toEqual({ enabled: true });
+    expect(mockDb.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(Fabric.fire).toHaveBeenCalledWith(
+      'organization.config.updated:after',
+      expect.objectContaining({
+        config: patched,
+        previousConfig: expect.objectContaining({ id: userConfig!.id })
+      })
+    );
+
+    await expect(
+      organizationConfigService.patchOrganizationConfig({
+        selector: 'test.user',
+        operations: [{ op: 'set', path: ['enabled'], value: 'yes' }],
+        user: user as any,
+        organization: organization as any,
+        auditScope
+      })
+    ).rejects.toThrow('The provided data is invalid');
+  });
+
+  it('patches against the locked value, not the value resolved before locking', async () => {
+    let auditScope = createOrganizationActorAuditScope({
+      organization,
+      organizationActor: actor,
+      context: { ip: '127.0.0.1' }
+    });
+
+    await organizationConfigService.listOrganizationConfigs({
+      user: user as any,
+      organization: organization as any
+    });
+
+    mockDb.$queryRaw.mockResolvedValueOnce([{ value: { enabled: true } }]);
+
+    await organizationConfigService.patchOrganizationConfig({
+      selector: 'test.user',
+      operations: [],
+      user: user as any,
+      organization: organization as any,
+      auditScope
+    });
+
+    expect(Fabric.fire).toHaveBeenCalledWith(
+      'organization.config.updated:before',
+      expect.objectContaining({
+        config: expect.objectContaining({ value: { enabled: true } })
+      })
+    );
+  });
+
+  it('rejects invalid and oversized patches', async () => {
+    let auditScope = createOrganizationActorAuditScope({
+      organization,
+      organizationActor: actor,
+      context: { ip: '127.0.0.1' }
+    });
+
+    await expect(
+      organizationConfigService.patchOrganizationConfig({
+        selector: 'test.user',
+        operations: [{ op: 'add', path: ['enabled'], value: true }],
+        user: user as any,
+        organization: organization as any,
+        auditScope
+      })
+    ).rejects.toThrow('The provided data is invalid');
+
+    await expect(
+      organizationConfigService.patchOrganizationConfig({
+        selector: 'test.user',
+        operations: Array.from({ length: 51 }, () => ({
+          op: 'set' as const,
+          path: ['enabled'],
+          value: true
+        })),
+        user: user as any,
+        organization: organization as any,
+        auditScope
+      })
+    ).rejects.toThrow('The provided data is invalid');
   });
 
   it('rejects persisted ownership drift', async () => {

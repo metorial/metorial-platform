@@ -86,6 +86,9 @@ model ProductAssistantRequest {
 
   historySize Int?
 
+  /// [ProductAssistantRequestInput]
+  input Json?
+
   resourceActorOid BigInt?
   resourceActor    ResourceActor? @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
 

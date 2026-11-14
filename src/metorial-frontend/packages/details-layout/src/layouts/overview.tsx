@@ -20,8 +20,11 @@ let OverviewContent = styled.div`
   min-width: 0;
 `;
 
-let OverviewAttributes = styled.aside`
+let OverviewAside = styled.aside`
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 
   a {
     color: ${theme.colors.gray700};
@@ -42,17 +45,22 @@ let OverviewAttributes = styled.aside`
   }
 `;
 
-export let DetailsOverviewLayout = ({ children }: { children: React.ReactNode }) => {
+export let DetailsOverviewLayout = ({
+  children,
+  aside
+}: {
+  children: React.ReactNode;
+  aside?: React.ReactNode;
+}) => {
   let { attributes } = useDetailsLayout();
 
   return (
-    <>
-      <OverviewGrid>
-        <OverviewContent>{children}</OverviewContent>
-        <OverviewAttributes>
-          <Datalist items={attributes} variant="large" />
-        </OverviewAttributes>
-      </OverviewGrid>
-    </>
+    <OverviewGrid>
+      <OverviewContent>{children}</OverviewContent>
+      <OverviewAside>
+        {aside}
+        {attributes.length > 0 && <Datalist items={attributes} variant="large" />}
+      </OverviewAside>
+    </OverviewGrid>
   );
 };

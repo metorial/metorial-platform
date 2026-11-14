@@ -11,3 +11,4 @@ export * from './tenant';
 export * from './user';
 export * from './userToken';
 export * from './workspace';
+export * from './slatePack';

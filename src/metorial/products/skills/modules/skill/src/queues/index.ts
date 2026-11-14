@@ -7,7 +7,6 @@ import {
 } from './reconcileSkillProviderLinks';
 import { reconcileSkillSlugsProcessors } from './reconcileSkillSlugs';
 import { searchQueues } from './search';
-import { skillStoreResourceBackfillProcessors } from './storeResourceBackfill';
 
 export let skillQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
@@ -15,12 +14,10 @@ export let skillQueueProcessor = combineQueueProcessors([
   reconcileSkillProviderLinksQueueProcessor,
   reconcileSkillProviderLinksForIntegrationProviderQueueProcessor,
   reconcileSkillProviderLinksForProviderQueueProcessor,
-  reconcileSkillSlugsProcessors,
-  skillStoreResourceBackfillProcessors
+  reconcileSkillSlugsProcessors
 ]);
 
 export * from './lifecycle';
 export * from './reconcileSkillProviderLinks';
 export * from './reconcileSkillSlugs';
 export * from './search';
-export * from './storeResourceBackfill';

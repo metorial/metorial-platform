@@ -78,7 +78,7 @@ describe('module-consumer-entities consumer skills', () => {
         where: {
           accessTagOid: profile.personalConsumerGroup!.accessTagOid,
           skill: { id: skillId },
-          accessTagPolicy: { systemIdentifier: { startsWith: 'skill_participant:' } }
+          accessTagPolicy: { systemIdentifier: { startsWith: 'skill_share:' } }
         },
         include: { accessTagPolicy: true }
       })
@@ -86,10 +86,30 @@ describe('module-consumer-entities consumer skills', () => {
       .map(entity => entity.accessTagPolicy.systemIdentifier!.split(':').at(-1))
       .sort();
 
+  let storeRoles = async (skillId: string, profile: Profile) =>
+    (
+      await db.storeParticipantActor.findFirst({
+        where: {
+          store: { skill: { id: skillId } },
+          resourceActor: { consumerProfileOid: profile.oid }
+        }
+      })
+    )?.roles ?? [];
+
+  let legacySkillParticipantCount = async (skillId: string) => {
+    let [row] = await db.$queryRaw<{ count: bigint }[]>`
+      SELECT count(*)::bigint AS count
+      FROM "SkillParticipant" participant
+      JOIN "Skill" skill ON skill.oid = participant."skillOid"
+      WHERE skill.id = ${skillId}
+    `;
+    return Number(row!.count);
+  };
+
   let share = async (
     fixture: OrganizationFixture,
     skillId: string,
-    permission: 'read' | 'write' | 'none',
+    permission: 'read' | 'write' | 'owner' | 'none',
     targets: { consumerProfileIds?: string[]; organizationMemberIds?: string[] },
     sharer?: { consumerProfile: Profile; consumerGroups: ConsumerGroup[] }
   ) =>
@@ -120,6 +140,7 @@ describe('module-consumer-entities consumer skills', () => {
       'skill_read',
       'skill_write'
     ]);
+    expect(await storeRoles(skill.id, author)).toEqual(['creator', 'owner']);
     expect(await canRead(fixture, skill.id, author)).toBe(true);
     expect(await canManage(skill.id, author)).toBe(true);
 
@@ -141,21 +162,75 @@ describe('module-consumer-entities consumer skills', () => {
 
     await share(fixture, skill.id, 'read', { consumerProfileIds: [peer.id] }, sharer);
     expect(await grantedPolicies(skill.id, peer)).toEqual(['skill_read']);
+    expect(await storeRoles(skill.id, peer)).toEqual(['viewer']);
     expect(await canRead(fixture, skill.id, peer)).toBe(true);
     expect(await canManage(skill.id, peer)).toBe(false);
 
     await share(fixture, skill.id, 'write', { consumerProfileIds: [peer.id] }, sharer);
     expect(await grantedPolicies(skill.id, peer)).toEqual(['skill_read', 'skill_write']);
+    expect(await storeRoles(skill.id, peer)).toEqual(['editor']);
 
     await share(fixture, skill.id, 'none', { consumerProfileIds: [peer.id] }, sharer);
     expect(await grantedPolicies(skill.id, peer)).toEqual([]);
+    expect(await storeRoles(skill.id, peer)).toEqual([]);
     expect(await canRead(fixture, skill.id, peer)).toBe(false);
+    expect(await legacySkillParticipantCount(skill.id)).toBe(0);
 
     expect(await grantedPolicies(skill.id, author)).toEqual([
       'skill_manage_access',
       'skill_read',
       'skill_write'
     ]);
+  });
+
+  it('lets owners add owners and only admins remove them', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await authoringSurface(fixture);
+    let author = await createProfile(fixture, surface);
+    let coOwner = await createProfile(fixture, surface);
+    let editor = await createProfile(fixture, surface);
+    let skill = await authorSkill(fixture, surface, author);
+    let everyone = [await getEveryoneGroup(surface)];
+    let as = (consumerProfile: Profile) => ({ consumerProfile, consumerGroups: everyone });
+
+    await share(fixture, skill.id, 'owner', { consumerProfileIds: [coOwner.id] }, as(author));
+    expect(await storeRoles(skill.id, coOwner)).toEqual(['owner']);
+    expect(await grantedPolicies(skill.id, coOwner)).toEqual([
+      'skill_manage_access',
+      'skill_read',
+      'skill_write'
+    ]);
+    expect(await canManage(skill.id, coOwner)).toBe(true);
+
+    await share(fixture, skill.id, 'owner', { consumerProfileIds: [coOwner.id] }, as(author));
+    expect(await storeRoles(skill.id, coOwner)).toEqual(['owner']);
+
+    await share(fixture, skill.id, 'write', { consumerProfileIds: [editor.id] }, as(coOwner));
+    await expectServiceError(
+      share(fixture, skill.id, 'owner', { consumerProfileIds: [editor.id] }, as(editor)),
+      'forbidden'
+    );
+    await expectServiceError(
+      share(fixture, skill.id, 'owner', { consumerProfileIds: [coOwner.id] }, as(editor)),
+      'forbidden'
+    );
+
+    for (let permission of ['write', 'read', 'none'] as const) {
+      await expectServiceError(
+        share(fixture, skill.id, permission, { consumerProfileIds: [author.id] }, as(coOwner)),
+        'forbidden'
+      );
+    }
+    expect(await storeRoles(skill.id, author)).toEqual(['creator', 'owner']);
+
+    await share(fixture, skill.id, 'write', { consumerProfileIds: [author.id] });
+    expect(await storeRoles(skill.id, author)).toEqual(['creator', 'editor']);
+    expect(await grantedPolicies(skill.id, author)).toEqual(['skill_read', 'skill_write']);
+    expect(await canManage(skill.id, author)).toBe(false);
+
+    await share(fixture, skill.id, 'none', { consumerProfileIds: [coOwner.id] });
+    expect(await storeRoles(skill.id, coOwner)).toEqual([]);
+    expect(await canRead(fixture, skill.id, coOwner)).toBe(false);
   });
 
   it('validates share targets and the sharing consumer', async () => {
@@ -230,10 +305,6 @@ describe('module-consumer-entities consumer skills', () => {
     );
     expect(await canRead(fixture, skill.id, grouped)).toBe(true);
 
-    await expectServiceError(
-      share(fixture, skill.id, 'read', { consumerProfileIds: [author.id] }),
-      'bad_request'
-    );
     expect(await grantedPolicies(skill.id, author)).toEqual([
       'skill_manage_access',
       'skill_read',

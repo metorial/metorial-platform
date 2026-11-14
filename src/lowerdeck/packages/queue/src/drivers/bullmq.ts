@@ -24,6 +24,7 @@ import type {
   WorkerOptions
 } from 'bullmq';
 import { Queue, QueueEvents, Worker } from 'bullmq';
+import { getDatabaseConflictCode } from '../lib/databaseConflict';
 import { QueueRetryError } from '../lib/queueRetryError';
 import type { IQueue } from '../types';
 
@@ -111,41 +112,10 @@ let getSerializedExecutionContext = (
   });
 };
 
-let sanitizeJobId = (jobId?: string) => jobId?.replace(/:/g, '_');
+let sanitizeJobId = (jobId?: string) => {
+  if (jobId && /^-?\d+$/.test(jobId)) return `job_${jobId}`;
 
-let getDatabaseConflictCode = (error: unknown) => {
-  let seen = new Set<object>();
-
-  let inspect = (value: unknown): string | undefined => {
-    if (!value || typeof value !== 'object' || seen.has(value)) return undefined;
-    seen.add(value);
-
-    let candidate = value as {
-      code?: unknown;
-      message?: unknown;
-      cause?: unknown;
-      meta?: unknown;
-      driverAdapterError?: unknown;
-    };
-
-    if (
-      candidate.code === 'P2034' ||
-      candidate.code === '40P01' ||
-      candidate.code === '40001'
-    ) {
-      return candidate.code;
-    }
-
-    if (candidate.message === 'deadlock detected') return '40P01';
-
-    return (
-      inspect(candidate.cause) ||
-      inspect(candidate.meta) ||
-      inspect(candidate.driverAdapterError)
-    );
-  };
-
-  return inspect(error);
+  return jobId?.replace(/:/g, '_');
 };
 
 // Matched by shape so the queue does not depend on @lowerdeck/lock.

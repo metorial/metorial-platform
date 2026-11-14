@@ -1,5 +1,6 @@
 import { createLoader } from '@metorial/data-hooks';
 import { useCallback, useMemo } from 'react';
+import { useSecurityReviewFlagsOverride } from '../../security-review/flagsOverride';
 import { withAuth } from '../../user';
 import { useCurrentOrganization, useCurrentProject } from '../current';
 
@@ -28,16 +29,17 @@ export let flagsLoader = createLoader({
 export let useDashboardFlags = () => {
   let current = useCurrentOrganization();
   let project = useCurrentProject();
+  let hasOverride = !!useSecurityReviewFlagsOverride();
   let res = flagsLoader.use(
     useMemo(
       () =>
-        current.data
+        current.data && !hasOverride
           ? {
               organizationIds: [current.data.id],
               projectId: project.data?.id
             }
           : null,
-      [current.data?.id, project.data?.id]
+      [current.data?.id, project.data?.id, hasOverride]
     )
   );
 

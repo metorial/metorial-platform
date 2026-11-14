@@ -6,12 +6,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import {
-  skillParticipantService,
-  skillResourceService,
-  skillService,
-  type SkillRecord
-} from '@metorial/module-skill';
+import { skillResourceService, skillService, type SkillRecord } from '@metorial/module-skill';
 import { skillTemplateService } from '@metorial/module-skill-templates';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
@@ -29,16 +24,14 @@ import {
   withTransaction
 } from '@metorial/db';
 import {
-  accessTagService,
-  consumerSkillManageAccessRoles,
   createResourceAuthorization,
   getStoreResourceKindAccessWhere,
   hasOrganizationMemberSkillAccess,
-  isStoreResourceFlagEnabled,
-  skillStoreResourceAccess,
   skillStoreResourceKind
 } from '@metorial/module-access';
+import { Fabric } from '@metorial/fabric';
 import { resourceActorService } from '@metorial/module-resource-actor';
+import { storeParticipantService, type StoreAccessRole } from '@metorial/module-store';
 import {
   consumerAccessPolicyService,
   consumerAccessService
@@ -63,7 +56,20 @@ type ConsumerSkillCreateInput = {
 
 type ConsumerSkillForkInput = ConsumerSkillCreateInput;
 
-type SkillSharePermission = 'read' | 'write' | 'none';
+type SkillSharePermission = 'none' | 'read' | 'write' | 'owner';
+
+let shareRoleByPermission: Record<SkillSharePermission, StoreAccessRole | null> = {
+  none: null,
+  read: 'viewer',
+  write: 'editor',
+  owner: 'owner'
+};
+
+let permissionByShareRole: Record<StoreAccessRole, SkillSharePermission> = {
+  viewer: 'read',
+  editor: 'write',
+  owner: 'owner'
+};
 
 let getUniqueIds = (ids?: string[]) => Array.from(new Set(ids ?? []));
 
@@ -155,34 +161,28 @@ class ConsumerSkillServiceImpl {
     consumerProfile: ConsumerProfile;
   }) {
     let tags = await this.getConsumerWriteAccessTags(d.consumerProfile);
-    let useStoreAccess =
-      d.skill.projectOid != null &&
-      (await isStoreResourceFlagEnabled({
-        project: { oid: d.skill.projectOid },
-        flag: 'store-access-v2'
-      }));
 
     if (
-      useStoreAccess &&
-      (await this.canManageSkillAsOrganizationMember({
+      await this.canManageSkillAsOrganizationMember({
         skill: d.skill,
         consumerProfile: d.consumerProfile,
         tags
-      }))
+      })
     ) {
       return;
     }
 
-    let accessTagFilter = await accessTagService.getAccessTagFilter({
-      tags,
-      roles: useStoreAccess
-        ? skillStoreResourceAccess.policies.manage.roles
-        : [...consumerSkillManageAccessRoles]
-    });
     let manageableSkill = await db.skill.findFirst({
-      where: useStoreAccess
-        ? { oid: d.skill.oid, store: { is: { accessTagEntities: accessTagFilter } } }
-        : { oid: d.skill.oid, accessTagEntities: accessTagFilter },
+      where: {
+        oid: d.skill.oid,
+        store: {
+          is: await getStoreResourceKindAccessWhere({
+            kind: skillStoreResourceKind,
+            accessTags: tags,
+            level: 'manage'
+          })
+        }
+      },
       select: {
         oid: true
       }
@@ -203,42 +203,75 @@ class ConsumerSkillServiceImpl {
     consumerProfile: ConsumerProfile;
     skill: Skill;
     permission: Exclude<SkillSharePermission, 'none'>;
-    grantManageAccess?: boolean;
   }) {
     let { actor } = await this.getConsumerActor({
       instance: d.instance,
       consumerProfile: d.consumerProfile
     });
-    let participant = await skillParticipantService.setSkillParticipantAccessRole({
-      skill: d.skill,
-      actor,
-      permission: d.permission
-    });
-    if (!participant) {
-      throw new ServiceError(notFoundError('skill.participant'));
-    }
+    await this.setSkillShareRole({ skill: d.skill, actor, permission: d.permission });
     await this.grantConsumerPersonalSkillAccess({
       organization: d.organization,
       consumerProfile: d.consumerProfile,
       skill: d.skill,
-      participant,
-      permission: d.permission,
-      grantManageAccess: d.grantManageAccess
+      permission: d.permission
     });
+  }
+
+  private async setSkillShareRole(d: {
+    skill: Pick<Skill, 'storeOid'>;
+    actor: { oid: bigint };
+    permission: SkillSharePermission;
+  }) {
+    if (!d.skill.storeOid) return;
+
+    await storeParticipantService.setAccessRole({
+      store: { oid: d.skill.storeOid },
+      actor: d.actor,
+      role: shareRoleByPermission[d.permission]
+    });
+  }
+
+  private async getSkillSharePermission(d: {
+    skill: Pick<Skill, 'storeOid'>;
+    actor: { oid: bigint };
+  }): Promise<SkillSharePermission> {
+    if (!d.skill.storeOid) return 'none';
+
+    let role = await storeParticipantService.getActorAccessRole({
+      store: { oid: d.skill.storeOid },
+      actor: d.actor
+    });
+
+    return role ? permissionByShareRole[role] : 'none';
+  }
+
+  private async assertConsumerIsSkillOwner(d: {
+    instance: Instance;
+    skill: Skill;
+    consumerProfile: ConsumerProfile;
+  }) {
+    let { actor } = await this.getConsumerActor({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile
+    });
+    let permission = await this.getSkillSharePermission({ skill: d.skill, actor });
+
+    if (permission != 'owner') {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Only owners of this skill can add other owners.'
+        })
+      );
+    }
   }
 
   private async grantConsumerPersonalSkillAccess(d: {
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
     skill: Pick<Skill, 'oid'>;
-    participant: { id: string };
     permission: Exclude<SkillSharePermission, 'none'>;
-    grantManageAccess?: boolean;
   }) {
-    let policyScope = {
-      type: 'skill_participant' as const,
-      skillParticipantId: d.participant.id
-    };
+    let policyScope = { type: 'skill_share' as const };
     await consumerAccessPolicyService.grantAccess({
       organization: d.organization,
       permission: 'skill_read',
@@ -251,7 +284,7 @@ class ConsumerSkillServiceImpl {
       policyScope
     });
 
-    if (d.permission == 'write') {
+    if (d.permission == 'write' || d.permission == 'owner') {
       await consumerAccessPolicyService.grantAccess({
         organization: d.organization,
         permission: 'skill_write',
@@ -264,7 +297,7 @@ class ConsumerSkillServiceImpl {
         policyScope
       });
     }
-    if (d.grantManageAccess) {
+    if (d.permission == 'owner') {
       await consumerAccessPolicyService.grantAccess({
         organization: d.organization,
         permission: 'skill_manage_access',
@@ -279,7 +312,7 @@ class ConsumerSkillServiceImpl {
     }
   }
 
-  async grantImportedSkillAccess(d: { consumerProfileOid: bigint; skill: Skill }) {
+  async grantConsumerSkillOwnership(d: { consumerProfileOid: bigint; skill: Skill }) {
     let consumerProfile = await db.consumerProfile.findUnique({
       where: { oid: d.consumerProfileOid },
       include: {
@@ -303,8 +336,7 @@ class ConsumerSkillServiceImpl {
       instance: consumerProfile.instance,
       consumerProfile,
       skill: d.skill,
-      permission: 'write',
-      grantManageAccess: true
+      permission: 'owner'
     });
   }
 
@@ -351,24 +383,6 @@ class ConsumerSkillServiceImpl {
     return { OR: or } satisfies Prisma.ConsumerProfileWhereInput;
   }
 
-  private async assertCanSetConsumerSharePermission(d: {
-    skill: Skill;
-    actor: { oid: bigint };
-    permission: SkillSharePermission;
-  }) {
-    if (d.permission == 'write') return;
-
-    let isOwner = d.skill.createdByResourceActorOid === d.actor.oid;
-
-    if (isOwner) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'The skill owner cannot be removed or downgraded.'
-        })
-      );
-    }
-  }
-
   private async deleteLegacyPersonalConsumerAccess(d: {
     database: Prisma.TransactionClient;
     organization: Organization;
@@ -408,25 +422,15 @@ class ConsumerSkillServiceImpl {
   private async setConsumerSkillSharePermission(d: {
     organization: Organization;
     auditScope: AuditScope;
-    instance: Instance;
     consumerProfile: ConsumerProfileForSkill;
     skill: SkillRecord;
+    actor: { oid: bigint };
     permission: SkillSharePermission;
   }) {
-    let { actor } = await this.getConsumerActor({
-      instance: d.instance,
-      consumerProfile: d.consumerProfile
-    });
-    await this.assertCanSetConsumerSharePermission({
-      skill: d.skill,
-      actor,
-      permission: d.permission
-    });
-
     await withTransaction(async database => {
-      let participant = await skillParticipantService.setSkillParticipantAccessRole({
+      await this.setSkillShareRole({
         skill: d.skill,
-        actor,
+        actor: d.actor,
         permission: d.permission
       });
       await this.deleteLegacyPersonalConsumerAccess({
@@ -436,18 +440,17 @@ class ConsumerSkillServiceImpl {
         skill: d.skill,
         auditScope: d.auditScope
       });
-      await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
+      await consumerAccessPolicyService.revokeSkillShareAccessForPersonalGroup({
         organization: d.organization,
         consumerProfile: d.consumerProfile,
         skill: d.skill
       });
-      if (!participant || d.permission == 'none') return;
+      if (d.permission == 'none') return;
 
       await this.grantConsumerPersonalSkillAccess({
         organization: d.organization,
         consumerProfile: d.consumerProfile,
         skill: d.skill,
-        participant,
         permission: d.permission
       });
     });
@@ -527,8 +530,7 @@ class ConsumerSkillServiceImpl {
       instance: d.instance,
       consumerProfile: d.consumerProfile,
       skill: localSkill,
-      permission: 'write',
-      grantManageAccess: true
+      permission: 'owner'
     });
 
     return await skillResourceService.hydrateSkill(localSkill);
@@ -601,11 +603,40 @@ class ConsumerSkillServiceImpl {
       instance: d.instance,
       consumerProfile: d.consumerProfile,
       skill: localSkill,
-      permission: 'write',
-      grantManageAccess: true
+      permission: 'owner'
     });
 
     return await skillResourceService.hydrateSkill(localSkill);
+  }
+
+  // Organization members can already edit and share skills; a view-only grant only controls
+  // whether the skill shows up in their portal.
+  private async assertOrganizationMemberTargetsGetViewOnly(d: {
+    instance: Instance;
+    permission: SkillSharePermission;
+    targetProfiles: Pick<ConsumerProfile, 'oid'>[];
+  }) {
+    if (d.permission == 'read' || d.permission == 'none') return;
+
+    let project = await db.project.findUniqueOrThrow({
+      where: { oid: d.instance.projectOid },
+      select: { oid: true, allowOrganizationMemberFullSkillAccess: true }
+    });
+
+    for (let targetProfile of d.targetProfiles) {
+      let hasMemberAccess = await hasOrganizationMemberSkillAccess({
+        project,
+        consumerProfileOid: targetProfile.oid
+      });
+      if (!hasMemberAccess) continue;
+
+      throw new ServiceError(
+        forbiddenError({
+          message:
+            'Organization members can already edit and share skills. They can only be given view access, which makes the skill show up in their portal.'
+        })
+      );
+    }
   }
 
   async shareSkill(d: {
@@ -652,6 +683,14 @@ class ConsumerSkillServiceImpl {
         skill: d.skill,
         consumerProfile: d.consumerProfile
       });
+
+      if (d.permission == 'owner') {
+        await this.assertConsumerIsSkillOwner({
+          instance: d.instance,
+          skill: d.skill,
+          consumerProfile: d.consumerProfile
+        });
+      }
     }
 
     if (!consumerProfileIds.length) return;
@@ -681,16 +720,67 @@ class ConsumerSkillServiceImpl {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
 
-    for (let targetProfile of targetProfiles) {
-      await this.setConsumerSkillSharePermission({
-        organization: d.organization,
-        instance: d.instance,
-        auditScope: d.auditScope,
-        consumerProfile: targetProfile,
-        skill: d.skill,
-        permission: d.permission
-      });
+    await this.assertOrganizationMemberTargetsGetViewOnly({
+      instance: d.instance,
+      permission: d.permission,
+      targetProfiles
+    });
+
+    let shares = await Promise.all(
+      targetProfiles.map(async consumerProfile => {
+        let { actor } = await this.getConsumerActor({
+          instance: d.instance,
+          consumerProfile
+        });
+
+        return {
+          consumerProfile,
+          actor,
+          previousPermission: await this.getSkillSharePermission({ skill: d.skill, actor })
+        };
+      })
+    );
+
+    // Owners can add owners, but only admins (callers without a consumer profile) can remove
+    // or downgrade one.
+    if (
+      d.consumerProfile &&
+      d.permission != 'owner' &&
+      shares.some(share => share.previousPermission == 'owner')
+    ) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Only admins can remove or downgrade the owners of a skill.'
+        })
+      );
     }
+
+    let changedShares = shares.filter(share => share.previousPermission != d.permission);
+
+    await withTransaction(async () => {
+      for (let share of shares) {
+        await this.setConsumerSkillSharePermission({
+          organization: d.organization,
+          auditScope: d.auditScope,
+          consumerProfile: share.consumerProfile,
+          actor: share.actor,
+          skill: d.skill,
+          permission: d.permission
+        });
+      }
+
+      if (!changedShares.length) return;
+
+      await Fabric.fire('skill.audit.shared:after', {
+        auditScope: d.auditScope,
+        skill: d.skill,
+        shares: changedShares.map(share => ({
+          consumerProfileId: share.consumerProfile.id,
+          permission: d.permission,
+          previousPermission: share.previousPermission
+        }))
+      });
+    });
   }
 
   async publishConsumerSkill(d: {

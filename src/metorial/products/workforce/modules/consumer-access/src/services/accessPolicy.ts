@@ -48,8 +48,7 @@ type ConsumerAccessPolicyScope =
       consumerAccessId: string;
     }
   | {
-      type: 'skill_participant';
-      skillParticipantId: string;
+      type: 'skill_share';
     }
   | undefined;
 
@@ -142,11 +141,18 @@ let getPolicyConfig = (d: {
   }
 
   return {
-    name: `${base.name} (${d.policyScope.skillParticipantId})`,
-    systemIdentifier: `skill_participant:${d.policyScope.skillParticipantId}:${d.permission}`,
+    name: `${base.name} (Share)`,
+    systemIdentifier: `skill_share:${d.permission}`,
     roles: base.roles
   };
 };
+
+// Skill shares made before shares moved to store participants are kept under these policies.
+let skillSharePolicyPrefixes = [
+  'skill_share:',
+  'skill_participant:',
+  'skill_participant_migration:'
+];
 
 let isProviderTemplatePermission = (permission: ConsumerAccessPermission) => {
   return permission == 'provider_template_read';
@@ -320,7 +326,7 @@ class ConsumerAccessPolicyServiceImpl {
     );
 
     for (let skillOid of uniqueSkillOids) {
-      await storeAccessGrantService.syncLegacySkillGrants({ skillOid });
+      await storeAccessGrantService.syncSkillGrants({ skillOid });
     }
   }
 
@@ -472,7 +478,10 @@ class ConsumerAccessPolicyServiceImpl {
       );
     }
 
-    if (isSkillMarketplaceWritePermission(d.permission) && !('skillMarketplace' in d.resource)) {
+    if (
+      isSkillMarketplaceWritePermission(d.permission) &&
+      !('skillMarketplace' in d.resource)
+    ) {
       throw new Error(
         'Skill marketplace write permissions can only be attached to skill marketplaces'
       );
@@ -512,10 +521,11 @@ class ConsumerAccessPolicyServiceImpl {
 
     if (
       (d.permission == 'skill_write' || d.permission == 'skill_manage_access') &&
-      !('skill' in d.resource)
+      !('skill' in d.resource) &&
+      !('skillGroup' in d.resource)
     ) {
       throw new Error(
-        'Skill write and access-management permissions can only be attached to skills'
+        'Skill write and access-management permissions can only be attached to skills and skill groups'
       );
     }
   }
@@ -640,7 +650,7 @@ class ConsumerAccessPolicyServiceImpl {
     });
   }
 
-  async revokeSkillParticipantAccessForPersonalGroup(d: {
+  async revokeSkillShareAccessForPersonalGroup(d: {
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
     skill: Pick<Skill, 'oid'>;
@@ -660,18 +670,9 @@ class ConsumerAccessPolicyServiceImpl {
           skillOid: d.skill.oid,
           accessTagPolicy: {
             organizationOid: d.organization.oid,
-            OR: [
-              {
-                systemIdentifier: {
-                  startsWith: 'skill_participant:'
-                }
-              },
-              {
-                systemIdentifier: {
-                  startsWith: 'skill_participant_migration:'
-                }
-              }
-            ]
+            OR: skillSharePolicyPrefixes.map(prefix => ({
+              systemIdentifier: { startsWith: prefix }
+            }))
           }
         }
       });
@@ -755,20 +756,22 @@ class ConsumerAccessPolicyServiceImpl {
     }
 
     if (resource.type == 'skill_group') {
-      await this.revokeAccess({
-        organization: d.organization,
-        permission: 'skill_read',
-        subject: {
-          consumerGroup: d.consumerAccess.consumerGroup
-        },
-        resource: {
-          skillGroup: resource.skillGroup
-        },
-        policyScope: {
-          type: 'consumer_access',
-          consumerAccessId: d.consumerAccess.id
-        }
-      });
+      for (let permission of ['skill_read', 'skill_write', 'skill_manage_access'] as const) {
+        await this.revokeAccess({
+          organization: d.organization,
+          permission,
+          subject: {
+            consumerGroup: d.consumerAccess.consumerGroup
+          },
+          resource: {
+            skillGroup: resource.skillGroup
+          },
+          policyScope: {
+            type: 'consumer_access',
+            consumerAccessId: d.consumerAccess.id
+          }
+        });
+      }
 
       return;
     }

@@ -15,7 +15,7 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
 
         let refreshedError = await db.sessionError.findUniqueOrThrow({
           where: { oid: sessionError.oid },
-          include: { group: true }
+          include: { group: true, issue: true }
         });
         sessionError = Object.assign(sessionError, refreshedError);
       }
@@ -40,6 +40,7 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
 
       group_id: sessionError.group?.id ?? null,
       similar_error_count: sessionError.group?.occurrenceCount ?? 0,
+      issue_id: sessionError.issue?.id ?? null,
 
       created_at: sessionError.createdAt
     };
@@ -105,6 +106,13 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
         description: 'Count of similar errors in the group',
         examples: [5]
       }),
+      issue_id: v.nullable(
+        v.string({
+          name: 'issue_id',
+          description: 'The provider issue this occurrence is aggregated into',
+          examples: ['pis_9kLmNpQrStUvWxYz']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

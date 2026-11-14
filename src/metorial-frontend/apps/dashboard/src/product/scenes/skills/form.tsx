@@ -1,14 +1,20 @@
 import { DashboardInstanceSkillsCreateOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
-import { useCreateSkill, useSkillTemplates } from '@metorial/state';
+import {
+  refetchSkillGroupMembershipLoaders,
+  useCreateSkill,
+  useSkillTemplates
+} from '@metorial/state';
 import { Button, Dialog, Input, Select, Spacer } from '@metorial/ui';
 
 export let SkillForm = ({
   instanceId,
+  skillGroupId,
   close,
   onCreate
 }: {
   instanceId: string;
+  skillGroupId?: string;
   close?: () => void;
   onCreate?: (skill: DashboardInstanceSkillsCreateOutput) => void;
 }) => {
@@ -25,10 +31,12 @@ export let SkillForm = ({
         instanceId,
         name: values.name.trim(),
         description: values.description.trim() || undefined,
-        templateId: values.templateId || undefined
+        templateId: values.templateId || undefined,
+        skillGroupId
       });
 
       if (!result) return;
+      if (skillGroupId) refetchSkillGroupMembershipLoaders();
 
       onCreate?.(result);
       close?.();

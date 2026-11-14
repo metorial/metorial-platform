@@ -8,6 +8,7 @@ import { loadAiSdk } from '../sources/aiSdk';
 import { readPinnedSources, type SourceResult } from '../sources/fetch';
 import { loadLiteLlm } from '../sources/litellm';
 import { readModelsDev, type ModelsDevSnapshot } from '../sources/modelsDev';
+import { loadPricingSources, pricingSources } from '../sources/providers';
 import { loadOpenRouter } from '../sources/openrouter';
 import type { Catalog, CatalogSource, Offering, ResolutionMethod, SourceKind } from '../types';
 import {
@@ -16,9 +17,11 @@ import {
   linkFamilies,
   type CanonicalCatalog
 } from './canonicalize';
+import { buildAgents } from './agents';
 import { applyContinuity, type CatalogDiff } from './continuity';
 import { buildNames } from './names';
 import { buildModelsDevOfferings } from './offerings';
+import { mergePublishedPrices } from './pricing';
 import { buildOrganizations } from './organizations';
 import { collectIssues, type CatalogIssue } from './issues';
 import { createResolver } from './resolver';
@@ -158,17 +161,19 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
     now
   };
 
-  let [snapshot, openrouter, gateway, litellm, aiSdk, previous] = await Promise.all([
+  let [snapshot, openrouter, gateway, litellm, aiSdk, prices, previous] = await Promise.all([
     readModelsDev(opts.modelsDevPath),
     loadOpenRouter(sourceOpts),
     loadAiGateway(sourceOpts),
     loadLiteLlm(sourceOpts),
     loadAiSdk(sourceOpts),
+    loadPricingSources(sourceOpts),
     readPreviousCatalog(opts.previousDir)
   ]);
 
   let orgs = buildOrganizations(snapshot);
   let vendors = buildVendors(snapshot, orgs);
+  let agents = buildAgents({ orgs, vendors: vendors.vendors });
   let files = collectSourceFiles(snapshot, orgs, vendors);
   let canonical = canonicalize(files, orgs, patches.merges);
 
@@ -218,6 +223,19 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
     );
   }
 
+  for (let result of prices) {
+    let vendorId = pricingSources.find(source => source.kind === result.meta.kind)!.vendorId;
+    if (result.data)
+      merges.push(
+        mergePublishedPrices({
+          source: result.meta.kind,
+          vendorId,
+          prices: result.data,
+          offerings
+        })
+      );
+  }
+
   assignOfferingCounts(canonical, offerings.values());
 
   let names = buildNames({
@@ -232,7 +250,7 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
     now
   });
 
-  let secondary: SourceResult<unknown>[] = [openrouter, gateway, litellm, aiSdk];
+  let secondary: SourceResult<unknown>[] = [openrouter, gateway, litellm, aiSdk, ...prices];
   let current: Catalog = {
     schemaVersion: 1,
     generatedAt: now,
@@ -245,7 +263,8 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
     vendors: [...vendors.vendors.values()],
     endpoints: [...vendors.endpoints.values()],
     offerings: [...offerings.values()],
-    names: [...names.values()]
+    names: [...names.values()],
+    agents: agents.agents
   };
 
   let { catalog, diff } = applyContinuity(current, previous, now);
@@ -269,7 +288,11 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
         .filter(source => source.raw !== null)
         .map(source => [source.meta.kind, source.raw])
     ),
-    sourceIssues: [...snapshot.issues, ...secondary.flatMap(source => source.issues)],
+    sourceIssues: [
+      ...snapshot.issues,
+      ...secondary.flatMap(source => source.issues),
+      ...agents.issues
+    ],
     staleOverrides: offeringOverrides.stale,
     modelsDevSha: snapshot.sha
   };
@@ -288,6 +311,7 @@ let sortCatalog = (catalog: Catalog): Catalog => {
     vendors: byId(catalog.vendors),
     endpoints: byId(catalog.endpoints),
     offerings: byId(catalog.offerings),
-    names: byId(catalog.names)
+    names: byId(catalog.names),
+    agents: byId(catalog.agents)
   };
 };

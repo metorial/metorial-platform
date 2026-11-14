@@ -6,6 +6,7 @@ export type PortalsListingsDeleteOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type PortalsListingsDeleteOutput = {
 export let mapPortalsListingsDeleteOutput =
   /* @__PURE__ */ mapObject<PortalsListingsDeleteOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,

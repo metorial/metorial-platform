@@ -1,18 +1,39 @@
 import { Chart } from '@metorial/chart';
+import { col, createDataList, lifecycleStatus } from '@metorial/data-list';
 import { renderWithLoader } from '@metorial/data-hooks';
+import type { DashboardInstanceFirewallsListOutput } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useFirewalls,
   useIntegrationInternetGateway,
   useNetworkLogs
 } from '@metorial/state';
-import { Badge, Callout, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Callout, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { useMemo } from 'react';
+import { useInstanceContext } from '../../../lib/dataList';
 import { EmptyText } from '../_common';
+
+type Firewall = DashboardInstanceFirewallsListOutput['items'][number];
+
+let FirewallsPreviewList = createDataList('network-overview-firewalls', {
+  customizable: false
+})
+  .context(useInstanceContext)
+  .paginated(({ ctx, limit }) => useFirewalls(ctx.instanceId, { limit, order: 'desc' }))
+  .columns([
+    col.name<Firewall>({ description: false }),
+    col.status<Firewall, 'active' | 'archived' | 'deleted'>(lifecycleStatus),
+    col.count<Firewall>('policies', firewall => firewall.networkPolicies.length, 'policy', {
+      header: 'Policies'
+    }),
+    col.updatedAt<Firewall>({ isDefault: true })
+  ])
+  .link((firewall, _props, ctx) =>
+    Paths.instance.networkFirewall(ctx.organization, ctx.project, ctx.instance, firewall.id)
+  )
+  .build();
 
 let getNetworkLogRange = () => {
   let to = new Date();
@@ -88,11 +109,8 @@ let getDeniedNetworkLogCount = (
     .reduce((sum, record) => sum + record.count, 0);
 
 export let NetworkOverviewPage = () => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
   let instance = useCurrentInstance();
   let internetGateway = useIntegrationInternetGateway(instance.data?.id);
-  let firewalls = useFirewalls(instance.data?.id, { limit: 10, order: 'desc' });
   let range = useMemo(() => getNetworkLogRange(), []);
   let networkLogsQuery = useMemo(
     () => ({
@@ -105,73 +123,43 @@ export let NetworkOverviewPage = () => {
   );
   let networkLogs = useNetworkLogs(instance.data?.id, networkLogsQuery);
 
-  return renderWithLoader({ internetGateway, firewalls, networkLogs })(
-    ({ firewalls, networkLogs }) => {
-      let series = getNetworkLogSeries(networkLogs.data.records, range.from, range.to);
-      let deniedCount = getDeniedNetworkLogCount(networkLogs.data.records);
+  return renderWithLoader({ internetGateway, networkLogs })(({ networkLogs }) => {
+    let series = getNetworkLogSeries(networkLogs.data.records, range.from, range.to);
+    let deniedCount = getDeniedNetworkLogCount(networkLogs.data.records);
 
-      return (
-        <>
-          <Box
-            title="Recent Connections"
-            description="Ingress connections grouped by IP and result in 60-minute intervals over the last 24 hours."
-          >
-            {series.length > 0 ? (
-              <Chart height={300} type="line" series={series} />
-            ) : (
-              <EmptyText>No network connections found in the last 24 hours.</EmptyText>
-            )}
+    return (
+      <>
+        <Box
+          title="Recent Connections"
+          description="Ingress connections grouped by IP and result in 60-minute intervals over the last 24 hours."
+        >
+          {series.length > 0 ? (
+            <Chart height={300} type="line" series={series} />
+          ) : (
+            <EmptyText>No network connections found in the last 24 hours.</EmptyText>
+          )}
 
-            {deniedCount > 0 ? (
-              <>
-                <Spacer size={12} />
-                <Callout color="red">
-                  {deniedCount} ingress {deniedCount === 1 ? 'request was' : 'requests were'}{' '}
-                  denied by Metorial Magic Network policies.
-                </Callout>
-              </>
-            ) : null}
-          </Box>
+          {deniedCount > 0 ? (
+            <>
+              <Spacer size={12} />
+              <Callout color="red">
+                {deniedCount} ingress {deniedCount === 1 ? 'request was' : 'requests were'}{' '}
+                denied by Metorial Magic Network policies.
+              </Callout>
+            </>
+          ) : null}
+        </Box>
 
-          <Spacer size={20} />
+        <Spacer size={20} />
 
-          <Box title="Firewalls" description="Firewalls available to your instance.">
-            {firewalls.data.items.length > 0 ? (
-              <Table
-                headers={['Name', 'Status', 'Policies', 'Updated']}
-                data={firewalls.data.items.map(firewall => ({
-                  href: Paths.instance.networkFirewall(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    firewall.id
-                  ),
-                  data: [
-                    <Text size="2" weight="strong">
-                      {firewall.name}
-                    </Text>,
-                    <Badge
-                      color={
-                        firewall.status === 'active'
-                          ? 'green'
-                          : firewall.status === 'archived'
-                            ? 'orange'
-                            : 'gray'
-                      }
-                    >
-                      {firewall.status}
-                    </Badge>,
-                    <Text size="2">{firewall.networkPolicies.length}</Text>,
-                    <RenderDate date={firewall.updatedAt} />
-                  ]
-                }))}
-              />
-            ) : (
-              <EmptyText>No firewalls configured.</EmptyText>
-            )}
-          </Box>
-        </>
-      );
-    }
-  );
+        <Box title="Firewalls" description="Firewalls available to your instance.">
+          <FirewallsPreviewList
+            listVariant="preview"
+            listLimit={10}
+            emptyState="No firewalls configured."
+          />
+        </Box>
+      </>
+    );
+  });
 };

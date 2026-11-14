@@ -7,6 +7,7 @@ export type VendorId = string;
 export type EndpointId = string;
 export type OfferingId = string;
 export type NameId = string;
+export type AgentId = string;
 
 export type IsoDate = string;
 export type IsoDateTime = string;
@@ -25,9 +26,32 @@ export interface Catalog {
   endpoints: Endpoint[];
   offerings: Offering[];
   names: Name[];
+  agents: Agent[];
 }
 
-export type SourceKind = 'models.dev' | 'openrouter' | 'ai-gateway' | 'litellm' | 'ai-sdk';
+export type SourceKind =
+  | 'models.dev'
+  | 'openrouter'
+  | 'ai-gateway'
+  | 'litellm'
+  | 'ai-sdk'
+  | 'openai'
+  | 'anthropic'
+  | 'cerebras'
+  | 'deepinfra'
+  | 'novita'
+  | 'huggingface'
+  | 'llmgateway'
+  | 'venice'
+  | 'together'
+  | 'xai'
+  | 'zai'
+  | 'fireworks'
+  | 'groq'
+  | 'perplexity'
+  | 'mistral'
+  | 'deepseek'
+  | 'google-ai-studio';
 
 export interface CatalogSource {
   kind: SourceKind;
@@ -37,7 +61,7 @@ export interface CatalogSource {
   error: string | null;
 }
 
-export type OrganizationRole = 'lab' | 'vendor';
+export type OrganizationRole = 'lab' | 'vendor' | 'agent-maker';
 
 export interface Organization {
   id: OrganizationId;
@@ -279,6 +303,13 @@ export interface Pricing {
   contextTiers: ContextTier[];
   units: UnitPrice[];
   webSearchPer1k: number | null;
+  conditions?: {
+    label: string;
+    description: string;
+    modality: 'text' | 'image' | 'audio' | 'video';
+    rates: TokenRates;
+  }[];
+  validUntil?: string;
 }
 
 export interface TokenRates {
@@ -306,6 +337,34 @@ export interface UnitPrice {
   direction: 'input' | 'output';
   unit: string;
   price: number;
+}
+
+export type AgentSurface = 'cli' | 'ide' | 'ide-extension' | 'desktop' | 'web' | 'cloud';
+
+// `default` is the vendor the agent calls out of the box, `subscription` a plan sold for the
+// agent that bundles model access, and `supported` a vendor the agent can be configured to use.
+export type AgentVendorRole = 'default' | 'subscription' | 'supported';
+
+export interface AgentVendor {
+  vendorId: VendorId;
+  role: AgentVendorRole;
+}
+
+export interface Agent {
+  id: AgentId;
+  name: string;
+  makerId: OrganizationId;
+  description: string | null;
+  website: string | null;
+  docs: string | null;
+  repository: string | null;
+  openSource: boolean;
+  license: string | null;
+  surfaces: AgentSurface[];
+  aliases: string[];
+  vendors: AgentVendor[];
+  derivedFrom: AgentId | null;
+  status: 'active' | 'retired';
 }
 
 export type NamespaceKind = 'vendor' | 'sdk' | 'catalog' | 'display' | 'metorial';

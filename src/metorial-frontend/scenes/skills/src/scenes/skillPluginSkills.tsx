@@ -1,10 +1,17 @@
-import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
+import {
+  ResourcePicker,
+  showResourcePicker,
+  submitEach,
+  useResourcePicker
+} from '@metorial/access-ui';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   type Skill,
   type SkillPluginSkill,
   useAllSkillPluginSkills,
   useCreateSkillPluginSkill,
   useDeleteSkillPluginSkill,
+  skillsLoader,
   useSkillPlugin,
   useSkills,
   useUpdateSkillPluginSkill
@@ -13,21 +20,21 @@ import {
   Avatar,
   Badge,
   Button,
+  Callout,
   Dialog,
   Input,
   Menu,
-  Panel,
   Spacer,
   Text,
   confirm,
   showModal,
   theme
 } from '@metorial/ui';
-import { Box, ItemGrid, Table } from '@metorial/ui-product';
-import { useSearchFilter } from '@metorial/use-search-filter';
+import { Box, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import styled from 'styled-components';
+import { useEntityPickerSource } from '../components/entityPickerSource';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -53,20 +60,6 @@ let Actions = styled.div`
   align-items: center;
   justify-content: flex-end;
 `;
-
-let PickerStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-let PickerScroll = styled.div`
-  max-height: calc(100vh - 205px);
-  overflow: auto;
-  padding-right: 2px;
-`;
-
-let paginationOpts = { hidePaginationWhenUnavailable: true };
 
 let Slug = styled.div`
   background: ${theme.colors.gray300};
@@ -99,132 +92,46 @@ let ActionsRow = styled.div`
   justify-content: flex-end;
 `;
 
-let truncate = (value: string | null | undefined, length = 100) => {
-  if (!value) return undefined;
-  if (value.length <= length) return value;
-  return `${value.slice(0, length)}...`;
-};
-
-let SkillPickerResults = (p: {
-  skills: ReturnType<typeof useSkills>;
-  excludedSkillIds: Set<string>;
-  search: string;
-  selectedId: string | null;
-  onSelect: (skill: Skill) => void;
-}) =>
-  renderWithPagination(p.skills, paginationOpts)(skills => {
-    let items = skills.data.items.filter(skill => !p.excludedSkillIds.has(skill.id));
-
-    if (items.length === 0) {
-      return (
-        <Text size="2" color="gray600">
-          {p.search.trim()
-            ? 'No skills match your search.'
-            : 'All active skills are already linked to this plugin.'}
-        </Text>
-      );
-    }
-
-    return (
-      <ItemGrid.Root width="270px">
-        {items.map(skill => (
-          <ItemGrid.Item
-            key={skill.id}
-            title={skill.name}
-            description={truncate(skill.description)}
-            height={200}
-            onClick={() => !p.selectedId && p.onSelect(skill)}
-            icon={
-              <Avatar
-                entity={{
-                  name: skill.name,
-                  imageUrl: `https://avatar-cdn.metorial.com/${skill.id}`
-                }}
-                size={30}
-              />
-            }
-            bottom={
-              <div style={{ display: 'flex' }}>
-                <Slug>{skill.slug}</Slug>
-              </div>
-            }
-          />
-        ))}
-      </ItemGrid.Root>
-    );
-  });
-
 let SkillPickerPanel = (p: {
   instanceId: string;
   excludeSkillIds: string[];
   close: () => void;
-  onSelect: (skill: Skill) => Promise<void> | void;
+  onSelect: (skill: Skill) => Promise<boolean>;
+  onDone: () => Promise<void> | void;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
-  let [selectedId, setSelectedId] = useState<string | null>(null);
-  let excludedSkillIds = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
-  let skills = useSkills(p.instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 30,
-    ...(searchQuery ? { search: searchQuery } : {})
-  });
+  let picker = useResourcePicker<Skill>();
+  let excluded = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
 
-  let selectSkill = async (skill: Skill) => {
-    if (selectedId) return;
-    setSelectedId(skill.id);
-    await p.onSelect(skill);
-    p.close();
-  };
+  let source = useEntityPickerSource({
+    loader: skillsLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill',
+    subtitle: skill => skill.slug,
+    exclude: skill => excluded.has(skill.id)
+  });
 
   return (
-    <>
-      <Panel.Header>
-        <div>
-          <Panel.Title>Add Skill</Panel.Title>
-          <Panel.Description>
-            Choose a skill to add to this plugin. Skills already in the plugin are hidden.
-          </Panel.Description>
-        </div>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search skills"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <PickerScroll>
-            <SkillPickerResults
-              skills={skills}
-              excludedSkillIds={excludedSkillIds}
-              search={search}
-              selectedId={selectedId}
-              onSelect={selectSkill}
-            />
-          </PickerScroll>
-        </PickerStack>
-      </Panel.Content>
-    </>
+    <ResourcePicker
+      picker={picker}
+      title="Add Skills"
+      description="Pick one or more skills to add to this plugin."
+      placeholder="Search skills…"
+      source={source}
+      empty={{ title: 'All active skills are already linked to this plugin.' }}
+      verb="Add"
+      success={count => (count == 1 ? 'Added 1 skill.' : `Added ${count} skills.`)}
+      onSubmit={async selected => {
+        let result = await submitEach(selected, selection => p.onSelect(selection.value));
+        await p.onDone();
+        return result;
+      }}
+      close={p.close}
+    />
   );
 };
 
-let showSkillPickerPanel = (p: {
-  instanceId: string;
-  excludeSkillIds: string[];
-  onSelect: (skill: Skill) => Promise<void> | void;
-}) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={1050}>
-      <SkillPickerPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+let showSkillPickerPanel = (p: Omit<Parameters<typeof SkillPickerPanel>[0], 'close'>) =>
+  showResourcePicker(close => <SkillPickerPanel {...p} close={close} />);
 
 let showPluginSkillFormModal = (p: {
   instanceId: string;
@@ -318,6 +225,7 @@ let getSkillTableRow = (p: {
   pluginSkill: SkillPluginSkill;
   skill?: Skill;
   getSkillPath?: (skillId: string) => string;
+  canEdit: boolean;
   isDeleting: boolean;
   onEdit: () => void;
   onRemove: () => void;
@@ -355,33 +263,37 @@ let getSkillTableRow = (p: {
       <Text size="2" color={p.pluginSkill.clientName ? 'gray800' : 'gray500'}>
         {p.pluginSkill.clientName || 'Default'}
       </Text>,
-      <Actions onClick={e => e.stopPropagation()}>
-        <Menu
-          items={[
-            { id: 'edit', label: 'Edit' },
-            { id: 'remove', label: 'Remove' }
-          ]}
-          onItemClick={item => {
-            if (item === 'edit') p.onEdit();
-            if (item === 'remove') {
-              confirm({
-                title: `Remove ${title}?`,
-                description: 'Remove this skill from the plugin?',
-                confirmText: 'Remove',
-                onConfirm: p.onRemove
-              });
-            }
-          }}
-        >
-          <Button
-            size="1"
-            variant="outline"
-            iconRight={<RiMore2Line />}
-            loading={p.isDeleting}
-            title="Plugin skill options"
-          />
-        </Menu>
-      </Actions>
+      p.canEdit ? (
+        <Actions onClick={e => e.stopPropagation()}>
+          <Menu
+            items={[
+              { id: 'edit', label: 'Edit' },
+              { id: 'remove', label: 'Remove' }
+            ]}
+            onItemClick={item => {
+              if (item === 'edit') p.onEdit();
+              if (item === 'remove') {
+                confirm({
+                  title: `Remove ${title}?`,
+                  description: 'Remove this skill from the plugin?',
+                  confirmText: 'Remove',
+                  onConfirm: p.onRemove
+                });
+              }
+            }}
+          >
+            <Button
+              size="1"
+              variant="outline"
+              iconRight={<RiMore2Line />}
+              loading={p.isDeleting}
+              title="Plugin skill options"
+            />
+          </Menu>
+        </Actions>
+      ) : (
+        <span />
+      )
     ]
   };
 };
@@ -430,10 +342,11 @@ export let SkillPluginSkillsScene = (p: {
           license: skill.license ?? undefined,
           compatibility: skill.compatibility ?? undefined
         });
-        if (created) {
-          await pluginSkills.refetch();
-          await plugin.refetch();
-        }
+        return !!created;
+      },
+      onDone: async () => {
+        await pluginSkills.refetch();
+        await plugin.refetch();
       }
     });
   };
@@ -465,27 +378,49 @@ export let SkillPluginSkillsScene = (p: {
 
   return renderWithLoader({ pluginSkills })(({ pluginSkills }) => {
     let skillLookup = new Map((skills.data?.items ?? []).map(skill => [skill.id, skill]));
+    let canEditSkills = plugin.data?.canEditSkills ?? false;
+    let skillGroupSource =
+      plugin.data?.source.type === 'skill_group' ? plugin.data.source : null;
 
     return (
       <Box
         title="Skills"
-        description="Choose which skills are included in this plugin."
+        description={
+          skillGroupSource
+            ? `Skills are synced from the ${skillGroupSource.skillGroup.name} skill group.`
+            : 'Choose which skills are included in this plugin.'
+        }
         rightActions={
-          <Button
-            size="2"
-            iconLeft={<RiAddLine />}
-            disabled={!p.instanceId || !p.skillPluginId}
-            onClick={openPicker}
-            variant="outline"
-          >
-            Add Skill
-          </Button>
+          canEditSkills ? (
+            <Button
+              size="2"
+              iconLeft={<RiAddLine />}
+              disabled={!p.instanceId || !p.skillPluginId}
+              onClick={openPicker}
+              variant="outline"
+            >
+              Add Skill
+            </Button>
+          ) : undefined
         }
       >
+        {skillGroupSource && (
+          <>
+            <Callout color={skillGroupSource.unsyncedSkills.length ? 'orange' : 'gray'}>
+              {skillGroupSource.unsyncedSkills.length
+                ? `${skillGroupSource.unsyncedSkills.length} of the group's skills could not be synced: ${skillGroupSource.unsyncedSkills[0].message}`
+                : 'To add or remove skills, change the skill group. Its changes are synced to this plugin automatically.'}
+            </Callout>
+            <Spacer size={12} />
+          </>
+        )}
+
         {pluginSkills.data.length === 0 ? (
           <EmptyState>
             <Text color="gray600" size="2">
-              This plugin does not include any skills yet.
+              {skillGroupSource
+                ? 'The skill group has no skills yet.'
+                : 'This plugin does not include any skills yet.'}
             </Text>
           </EmptyState>
         ) : (
@@ -497,6 +432,7 @@ export let SkillPluginSkillsScene = (p: {
                   pluginSkill,
                   skill: skillLookup.get(pluginSkill.skillId),
                   getSkillPath: p.getSkillPath,
+                  canEdit: canEditSkills,
                   isDeleting: deletePluginSkill.isLoading,
                   onEdit: () => openEdit(pluginSkill),
                   onRemove: () => removeSkill(pluginSkill)

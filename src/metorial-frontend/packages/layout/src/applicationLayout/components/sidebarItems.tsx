@@ -18,6 +18,7 @@ export interface ISidebarItem {
   children?: {
     label: string;
     to: string;
+    onClick?: () => void;
     getProps?: (props: { pathname: string; to: string }) => { isActive: boolean };
   }[];
 }
@@ -107,7 +108,7 @@ let Item = styled('div').withConfig({
 
   &:hover,
   &:focus {
-    background: ${theme.colors.gray400};
+    background: ${p => (p.activeBackground ? theme.colors.gray400 : theme.colors.gray350)};
   }
 
   &::after {
@@ -129,8 +130,9 @@ let ItemFrame = styled('div')`
   position: relative;
   min-width: 0;
 
-  &:hover ${Item}, &:focus-within ${Item} {
-    background: ${theme.colors.gray400};
+  &:hover ${Item}:not([data-active='true']),
+  &:focus-within ${Item}:not([data-active='true']) {
+    background: ${theme.colors.gray350};
   }
 `;
 
@@ -215,6 +217,7 @@ let SidebarItemRow = ({
   let active = item.isActive && !item.childrenActive;
   let itemContent = (
     <Item
+      data-active={active || menuOpen}
       activeBackground={active || menuOpen}
       activeBar={active}
       activeColor={active}
@@ -286,25 +289,20 @@ let SidebarGroup = ({
     return () => clearTimeout(to);
   }, []);
 
-  useLocation(); // Force re-render on location change
+  let { pathname } = useLocation();
 
   let items = _items
     .filter(i => i.enabled !== false)
     .map(({ getProps, ...item }) => {
       let children =
         item.children?.map(child => {
-          let isActive = child.getProps?.({
-            pathname: window.location.pathname,
-            to: child.to
-          }).isActive;
+          let isActive = child.getProps?.({ pathname, to: child.to }).isActive;
           return { ...child, isActive };
         }) ?? [];
 
       let childrenActive = children?.some(child => child.isActive);
 
-      let isActive =
-        getProps?.({ pathname: window.location.pathname, to: item.to ?? '' }).isActive ||
-        childrenActive;
+      let isActive = getProps?.({ pathname, to: item.to ?? '' }).isActive || childrenActive;
 
       return { ...item, isActive, children, childrenActive };
     });
@@ -357,7 +355,7 @@ let SidebarGroup = ({
           >
             <Items>
               {items.map((item, index) => (
-                <Fragment key={index}>
+                <Fragment key={item.to ?? `${item.label}-${index}`}>
                   <SidebarItemRow item={item} />
 
                   <AnimatePresence>
@@ -369,7 +367,7 @@ let SidebarGroup = ({
                         style={{ overflow: 'hidden' }}
                       >
                         {item.children?.map((child, index) => (
-                          <Link to={child.to} key={index}>
+                          <Link to={child.to} key={index} onClick={child.onClick}>
                             <Item
                               activeBackground={child.isActive}
                               activeBar={child.isActive}

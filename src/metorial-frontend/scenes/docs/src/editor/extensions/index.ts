@@ -22,13 +22,15 @@ import Highlight from '@tiptap/extension-highlight';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
-import Underline from '@tiptap/extension-underline';
 import CharacterCount from '@tiptap/extension-character-count';
 import Collaboration from '@tiptap/extension-collaboration';
 import { Markdown } from 'tiptap-markdown';
 import type { Awareness } from 'y-protocols/awareness';
 import type { Doc as YDoc } from 'yjs';
 
+import { AgentBlockNode } from '../agent/AgentBlockNode';
+import { AgentChangeHighlight } from '../agent/highlight';
+import { AgentRewritePreview } from '../agent/rewritePreview';
 import { Callout } from './Callout';
 import { CustomCodeBlock } from './CustomCodeBlock';
 import { EquationBlock } from './EquationBlock';
@@ -36,6 +38,9 @@ import { ImagePlaceholder } from './ImagePlaceholder';
 import { HeadingWithId } from './HeadingWithId';
 import { lowlight } from './lowlight';
 import { RemoteCursorOverlay } from './RemoteCursorOverlay';
+import { CommentHighlights, type CommentHighlightsOptions } from './CommentHighlights';
+import { EditorAttribution, type EditorAttributionOptions } from './EditorAttribution';
+import { CommentThreadMark, DocumentAnnotationAttributes } from '@metorial/docs-editor-schema';
 
 export { lowlight } from './lowlight';
 
@@ -49,6 +54,8 @@ export let buildExtensions = (opts?: {
       imageUrl?: string;
     };
     onFirstRender?: () => void;
+    attribution?: EditorAttributionOptions;
+    comments?: CommentHighlightsOptions;
   };
 }) => [
   StarterKit.configure({
@@ -93,7 +100,6 @@ export let buildExtensions = (opts?: {
     multicolor: false
   }),
 
-  Underline,
   Subscript,
   Superscript,
   Typography,
@@ -154,12 +160,24 @@ export let buildExtensions = (opts?: {
         RemoteCursorOverlay({
           awareness: opts.collaboration.awareness,
           user: opts.collaboration.user
-        })
+        }),
+        ...(opts.collaboration.attribution
+          ? [EditorAttribution.configure(opts.collaboration.attribution)]
+          : []),
+        ...(opts.collaboration.comments
+          ? [CommentHighlights.configure(opts.collaboration.comments)]
+          : [])
       ]
     : []),
 
+  DocumentAnnotationAttributes,
+  CommentThreadMark,
+
   Callout,
   ImagePlaceholder,
+  AgentBlockNode,
+  AgentChangeHighlight,
+  AgentRewritePreview,
 
   Markdown.configure({
     html: true,

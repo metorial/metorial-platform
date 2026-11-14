@@ -17,6 +17,7 @@ type CollaborationServerMessage =
       type: 'collaboration_snapshot';
       data: {
         sessionId: string;
+        actorId?: string;
         document: Document;
         stateUpdate?: string | null;
         generation?: number;
@@ -85,6 +86,12 @@ type CollaborationServerMessage =
   | {
       type: 'participant_list';
       data: DocumentParticipant[];
+    }
+  | {
+      type: 'document_comment_thread_updated';
+      data: {
+        threadIds?: string[];
+      };
     }
   | {
       type: 'pong';
@@ -287,6 +294,9 @@ export let useDocumentCollaboration = (
   let [initialBodyStateReceived, setInitialBodyStateReceived] = useState(false);
   let [initialBodySeeded, setInitialBodySeeded] = useState(false);
   let [effectiveCanWrite, setEffectiveCanWrite] = useState(false);
+  let [isAccessResolved, setIsAccessResolved] = useState(false);
+  let [actorId, setActorId] = useState<string | null>(null);
+  let [commentThreadsRevision, setCommentThreadsRevision] = useState(0);
   let [collaborationEpoch, setCollaborationEpoch] = useState(0);
   let wsRef = useRef<WebSocket | null>(null);
   let sessionIdRef = useRef<string | null>(null);
@@ -366,6 +376,7 @@ export let useDocumentCollaboration = (
       setIsFallback(false);
       effectiveCanWriteRef.current = false;
       setEffectiveCanWrite(false);
+      setIsAccessResolved(false);
       return;
     }
 
@@ -376,6 +387,7 @@ export let useDocumentCollaboration = (
       setIsFallback(true);
       effectiveCanWriteRef.current = false;
       setEffectiveCanWrite(false);
+      setIsAccessResolved(true);
       return;
     }
 
@@ -397,6 +409,7 @@ export let useDocumentCollaboration = (
       let writable = access.permissions.includes('content_write');
       effectiveCanWriteRef.current = writable;
       setEffectiveCanWrite(writable);
+      setIsAccessResolved(true);
       scheduleTokenRefresh(new Date(access.expiresAt));
     };
 
@@ -571,6 +584,7 @@ export let useDocumentCollaboration = (
         if (message.type === 'collaboration_snapshot') {
           applyAccess(message.data.access);
           sessionIdRef.current = message.data.sessionId;
+          setActorId(message.data.actorId ?? null);
           generationRef.current = message.data.generation ?? 0;
           setSnapshot(message.data.document);
           let bodyStateReceived = false;
@@ -712,6 +726,11 @@ export let useDocumentCollaboration = (
           return;
         }
 
+        if (message.type === 'document_comment_thread_updated') {
+          setCommentThreadsRevision(revision => revision + 1);
+          return;
+        }
+
         if (message.type === 'error') {
           setError(message.data);
           setSnapshotSaveStatus('error');
@@ -830,7 +849,10 @@ export let useDocumentCollaboration = (
     initialBodyStateReceived,
     initialBodySeeded,
     canWrite: effectiveCanWrite,
+    isAccessResolved,
     sessionId: sessionIdRef.current,
+    actorId,
+    commentThreadsRevision,
     saveSnapshot,
     markSnapshotPending
   };

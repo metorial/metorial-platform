@@ -26,7 +26,7 @@ export let consumerDeviceManagementController = Controller.create(
   },
   {
     list: instanceGroup
-      .get(instancePath('consumer-devices', 'consumerDevices.list'), {
+      .get(instancePath('consumer-devices', 'consumers.devices.list'), {
         name: 'List consumer devices',
         description:
           'Returns the Metorial Desktop devices enrolled by consumers of an instance.'
@@ -77,7 +77,7 @@ export let consumerDeviceManagementController = Controller.create(
       }),
 
     get: consumerDeviceGroup
-      .get(instancePath('consumer-devices/:consumerDeviceId', 'consumerDevices.get'), {
+      .get(instancePath('consumer-devices/:consumerDeviceId', 'consumers.devices.get'), {
         name: 'Get consumer device',
         description: 'Retrieves a Metorial Desktop device enrolled by a consumer.'
       })
@@ -90,7 +90,7 @@ export let consumerDeviceManagementController = Controller.create(
 
     revoke: consumerDeviceGroup
       .post(
-        instancePath('consumer-devices/:consumerDeviceId/revoke', 'consumerDevices.revoke'),
+        instancePath('consumer-devices/:consumerDeviceId/revoke', 'consumers.devices.revoke'),
         {
           name: 'Revoke consumer device',
           description:

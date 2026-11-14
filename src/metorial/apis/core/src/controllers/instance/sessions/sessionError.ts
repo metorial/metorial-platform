@@ -105,6 +105,9 @@ export let sessionErrorController = Controller.create(
             provider_run_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider run ID(s)'
             }),
+            issue_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider issue ID(s)'
+            }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
@@ -136,6 +139,7 @@ export let sessionErrorController = Controller.create(
           sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
           sessionErrorGroupIds: normalizeArrayParam(ctx.query.session_error_group_id),
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
+          issueIds: normalizeArrayParam(ctx.query.issue_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
           createdAt: ctx.query.created_at,

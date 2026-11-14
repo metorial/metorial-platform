@@ -8,6 +8,13 @@ export type ManagementInstanceSkillsGroupsListOutput = {
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
+    imageUrl: string;
+    image: {
+      object: 'skill.image';
+      type: 'file' | 'url' | 'icon' | 'default';
+      icon: string | null;
+      color: string | null;
+    };
     allowConsumerSkillAssignment: boolean;
     skills: {
       object: 'skill';
@@ -17,6 +24,12 @@ export type ManagementInstanceSkillsGroupsListOutput = {
       name: string;
       description: string | null;
       imageUrl: string;
+      image: {
+        object: 'skill.image';
+        type: 'file' | 'url' | 'icon' | 'default';
+        icon: string | null;
+        color: string | null;
+      };
       clientName: string;
       clientDescription: string | null;
       clientMetadata: Record<string, any> | null;
@@ -39,6 +52,7 @@ export let mapManagementInstanceSkillsGroupsListOutput =
       [
         1,
         [
+          'image_url',
           'allow_consumer_skill_assignment',
           [
             'skills',

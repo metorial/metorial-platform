@@ -2,7 +2,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import React, { useId } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { css, styled } from 'styled-components';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { Error } from '../error';
 import { theme } from '../theme';
 import { calc } from '../theme/calc';
@@ -168,7 +168,7 @@ export let InputHeader = ({
 
 export let Input = ({
   style,
-  size = '3',
+  size: sizeProp,
   label,
   description,
   help,
@@ -182,7 +182,7 @@ export let Input = ({
   ...props
 }: {
   style?: React.CSSProperties;
-  size?: ButtonSize;
+  size?: ControlSize;
   label: React.ReactNode;
   description?: React.ReactNode;
   help?: React.ReactNode;
@@ -193,7 +193,8 @@ export let Input = ({
   maxRows?: number;
   onInput?: (value: string, e: React.ChangeEvent<HTMLInputElement>) => void;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'onInput'>) => {
-  let sizeStyles = getButtonSize(size);
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getControlSize(size);
   let id = useId();
 
   return (
@@ -242,7 +243,7 @@ export let Input = ({
             maxRows={maxRows}
             style={{
               padding: sizeStyles.padding,
-              fontSize: '14px',
+              fontSize: getFieldFontSize(size),
               height: style?.height
             }}
             onChange={(e: any) => {
@@ -258,7 +259,7 @@ export let Input = ({
             style={{
               padding: sizeStyles.padding,
               height: sizeStyles.height,
-              fontSize: '14px'
+              fontSize: getFieldFontSize(size)
             }}
             onChange={(e: any) => {
               onInput?.(e.target.value, e);

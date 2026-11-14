@@ -2,7 +2,7 @@ import { expectServiceError, firstPage, uniqueId, useOrganization } from '@metor
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
-import { storeAccessService } from '@metorial/module-store';
+import { storeAccessService, storeParticipantService } from '@metorial/module-store';
 import { describe, expect, it } from 'vitest';
 import {
   documentAuthoritativeWriteService,
@@ -164,7 +164,7 @@ describe('module-documents access', () => {
         }
       }
     });
-    expect(storeParticipant.permissions).toEqual([]);
+    expect(storeParticipant.roles).toEqual(['viewer']);
 
     await expectServiceError(
       editDocument(fixture, document, {
@@ -319,6 +319,89 @@ describe('module-documents access', () => {
       getDocument(fixture, document.id, consumer.authorization),
       'forbidden'
     );
+  });
+
+  it('materializes store participants with access into document participants', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let creator = await ensureOrganizationResourceActor(fixture);
+    let granted = await createConsumer(fixture);
+    let reader = await createConsumer(fixture);
+    let revoked = await createConsumer(fixture);
+    let forker = await createConsumer(fixture);
+    let visitor = await createConsumer(fixture);
+    let store = await createStore(fixture, 'public_read');
+    let document = await createDocument(fixture, {
+      store,
+      authorization: actorAuthorization(creator)
+    });
+
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: granted.actor,
+      permissions: ['content_read', 'content_write']
+    });
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: reader.actor,
+      permissions: ['content_read']
+    });
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: revoked.actor,
+      permissions: ['content_read', 'content_write']
+    });
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: revoked.actor,
+      permissions: [],
+      overridePermissions: true
+    });
+    await storeParticipantService.recordParticipation({
+      store,
+      actor: forker.actor,
+      roles: ['forker']
+    });
+    await storeAccessService.resolveAccessibleStoreOids({
+      ...scopeOf(fixture),
+      storeOids: [store.oid],
+      requiredPermission: 'content_read',
+      authorization: visitor.authorization
+    });
+    expect(
+      await db.storeParticipantActor.findUniqueOrThrow({
+        where: {
+          storeOid_resourceActorOid: {
+            storeOid: store.oid,
+            resourceActorOid: visitor.actor.oid
+          }
+        }
+      })
+    ).toMatchObject({ roles: [] });
+
+    let participants = await firstPage(
+      await documentParticipantService.listDocumentParticipants({
+        ...scopeOf(fixture),
+        documentId: document.id,
+        authorization: privileged
+      })
+    );
+    expect(
+      Object.fromEntries(
+        participants.map(participant => [participant.resourceActor.id, participant.role])
+      )
+    ).toEqual({
+      [creator.id]: 'editor',
+      [granted.actor.id]: 'editor',
+      [reader.actor.id]: 'viewer'
+    });
+
+    let materialized = await participantOf(document, granted.actor);
+    expect(materialized).toMatchObject({
+      lastViewedAt: null,
+      lastEditedAt: null,
+      editCount: 0
+    });
+    expect(materialized!.storeParticipantOid).not.toBeNull();
   });
 
   it('lists participants with their roles and hides system actors', async () => {

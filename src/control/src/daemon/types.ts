@@ -50,6 +50,7 @@ export interface WorkspaceInfo {
   units: UnitInfo[];
   jobs: JobInfo[];
   links: LinkInfo[];
+  devLogin?: string;
 }
 
 export interface StartOptions {

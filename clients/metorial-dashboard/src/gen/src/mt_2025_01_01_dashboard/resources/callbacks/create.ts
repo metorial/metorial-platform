@@ -18,8 +18,18 @@ export type CallbacksCreateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  triggerGroupSelections: Record<string, Record<string, any>> | null;
+  triggerGroups: {
+    object: 'callback.trigger_group';
+    key: string;
+    name: string;
+    description: string | null;
+    selectionSchema: Record<string, any>;
+    status: 'active' | 'selection_required';
+  }[];
   createdAt: Date;
   updatedAt: Date;
+  authCredentialsId: string | null;
   authCredentialsIsManaged: boolean;
   sync: {
     object: 'callback.sync';
@@ -39,8 +49,11 @@ export let mapCallbacksCreateOutput =
       'integration_id',
       'integration_provider_id',
       ['provider', 0, 8],
+      'trigger_group_selections',
+      ['trigger_groups', 1, [2, [1, ['selection_schema']]]],
       'created_at',
       'updated_at',
+      'auth_credentials_id',
       'auth_credentials_is_managed',
       ['sync', 0, [1, ['synced_at']]]
     ],
@@ -52,10 +65,12 @@ export type CallbacksCreateBody = {
   integrationProviderId: string;
   name?: string | undefined;
   description?: string | null | undefined;
+  triggerGroupSelections?: Record<string, Record<string, any>> | undefined;
 };
 
 export let mapCallbacksCreateBody =
   /* @__PURE__ */ mapObject<CallbacksCreateBody>([
     'integration_id',
-    'integration_provider_id'
+    'integration_provider_id',
+    'trigger_group_selections'
   ]);

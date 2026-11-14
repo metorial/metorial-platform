@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { internalServerError, ServiceError } from '@lowerdeck/error';
-import React, { act, useState } from 'react';
+import React, { act, useEffect, useState } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InitialLoadBoundary } from './initialLoad';
@@ -218,7 +218,8 @@ describe('renderWithLoader', () => {
     });
 
     expect(getByTestId(container, 'root-loading')).toBeNull();
-    expectLoaderHidden(container, 'child-loading');
+    expect(getByTestId(container, 'child-loading')).toBeNull();
+    expect(getByTestId(container, 'ready')).not.toBeNull();
 
     await advance(100);
     expect(getByTestId(container, 'root-loading')).toBeNull();
@@ -267,7 +268,8 @@ describe('renderWithLoader', () => {
 
     expect(parentChildrenRenderCount).toBe(countAfterReveal + 1);
     expect(getByTestId(container, 'root-loading')).toBeNull();
-    expectLoaderHidden(container, 'child-loading');
+    expect(getByTestId(container, 'child-loading')).toBeNull();
+    expect(getByTestId(container, 'ready')).not.toBeNull();
 
     await advance(100);
     expect(parentChildrenRenderCount).toBe(countAfterReveal + 1);
@@ -483,6 +485,190 @@ describe('renderWithLoader', () => {
     ).toBe('none');
     expect(getByTestId(container, 'pagination-loading')).not.toBeNull();
     expect(getByTestId(container, 'pagination-ready')).toBeNull();
+  });
+
+  it('keeps previous content during a quick reload instead of blanking it', async () => {
+    let controls: {
+      setLoaded: (loaded: boolean) => void;
+    };
+
+    let App = () => {
+      let [loaded, setLoaded] = useState(true);
+      controls = { setLoaded };
+
+      return renderWithLoader(
+        { data: loader(loaded) },
+        { loading: () => <div data-testid="loading">Loading</div> }
+      )(() => <div data-testid="ready">Ready</div>);
+    };
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    let ready = getByTestId(container, 'ready');
+    expect(ready).not.toBeNull();
+
+    await act(async () => {
+      controls.setLoaded(false);
+    });
+
+    expect(getByTestId(container, 'loading')).toBeNull();
+    expect(getByTestId(container, 'ready')).toBe(ready);
+
+    await advance(50);
+
+    await act(async () => {
+      controls.setLoaded(true);
+    });
+
+    expect(getByTestId(container, 'loading')).toBeNull();
+    expect(getByTestId(container, 'ready')).toBe(ready);
+
+    await advance(100);
+    expect(getByTestId(container, 'loading')).toBeNull();
+    expect(getByTestId(container, 'ready')).toBe(ready);
+  });
+
+  it('does not remount children when the parent re-renders', async () => {
+    let controls: {
+      rerender: () => void;
+    };
+    let mounts = { loader: 0, pagination: 0 };
+    let loaded = loader(true);
+    let loadedPage = paginationLoader(true);
+
+    let Counted = ({ kind }: { kind: keyof typeof mounts }) => {
+      useEffect(() => {
+        mounts[kind]++;
+      }, []);
+
+      return null;
+    };
+
+    let App = () => {
+      let [, setTick] = useState(0);
+      controls = { rerender: () => setTick(tick => tick + 1) };
+
+      return (
+        <>
+          {renderWithLoader({ data: loaded })(() => (
+            <Counted kind="loader" />
+          ))}
+          {renderWithPagination(loadedPage)(() => (
+            <Counted kind="pagination" />
+          ))}
+        </>
+      );
+    };
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    expect(mounts).toEqual({ loader: 1, pagination: 1 });
+
+    await act(async () => {
+      controls.rerender();
+    });
+    await act(async () => {
+      controls.rerender();
+    });
+
+    expect(mounts).toEqual({ loader: 1, pagination: 1 });
+  });
+
+  it('keeps hook state inside pagination children across parent renders', async () => {
+    let controls: {
+      rerender: () => void;
+      increment: () => void;
+    };
+
+    let loadedPage = paginationLoader(true);
+
+    let App = () => {
+      let [, setTick] = useState(0);
+
+      return renderWithPagination(loadedPage)(() => {
+        let [count, setCount] = useState(0);
+        controls = {
+          rerender: () => setTick(tick => tick + 1),
+          increment: () => setCount(count => count + 1)
+        };
+
+        return <div data-testid="count">{count}</div>;
+      });
+    };
+
+    await act(async () => {
+      root.render(<App />);
+    });
+    await act(async () => {
+      controls.increment();
+    });
+    await act(async () => {
+      controls.rerender();
+    });
+
+    expect(getByTestId(container, 'count')!.textContent).toBe('1');
+  });
+
+  it('delays the initial pagination spinner', async () => {
+    let App = () =>
+      renderWithPagination(paginationLoader(false), {
+        loading: () => <div data-testid="pagination-loading">Pagination loading</div>
+      })(() => <div data-testid="pagination-ready">Pagination ready</div>);
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    expectLoaderHidden(container, 'pagination-loading');
+
+    await advance(100);
+    expectLoaderVisible(container, 'pagination-loading');
+  });
+
+  it('keeps the parent spinner until nested pagination finishes its first load', async () => {
+    let controls: {
+      setParentLoaded: (loaded: boolean) => void;
+      setPaginationLoaded: (loaded: boolean) => void;
+    };
+
+    let Nested = ({ loaded }: { loaded: boolean }) =>
+      renderWithPagination(paginationLoader(loaded))(() => (
+        <div data-testid="pagination-ready">Pagination ready</div>
+      ));
+
+    let App = () => {
+      let [parentLoaded, setParentLoaded] = useState(false);
+      let [paginationLoaded, setPaginationLoaded] = useState(false);
+      controls = { setParentLoaded, setPaginationLoaded };
+
+      return renderWithLoader(
+        { parent: loader(parentLoaded) },
+        { loading: () => <div data-testid="root-loading">Root loading</div> }
+      )(() => <Nested loaded={paginationLoaded} />);
+    };
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    await act(async () => {
+      controls.setParentLoaded(true);
+    });
+    await advance(50);
+
+    expect(getByTestId(container, 'root-loading')).not.toBeNull();
+
+    await act(async () => {
+      controls.setPaginationLoaded(true);
+    });
+    await advance(20);
+
+    expect(getByTestId(container, 'root-loading')).toBeNull();
+    expect(getByTestId(container, 'pagination-ready')).not.toBeNull();
   });
 });
 

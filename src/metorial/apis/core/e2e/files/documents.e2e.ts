@@ -125,7 +125,9 @@ describe('api-core documents', () => {
       })
     );
 
-    expectPresented(created, 'document');
+    let { annotations, ...presented } = created;
+    expectPresented(presented, 'document');
+    expect(annotations).toMatchObject({ v: 1, contentHash: expect.any(String) });
     expect(created).toMatchObject({
       title,
       content: '# Hello',

@@ -78,6 +78,10 @@ export let skillMarketplaceController = Controller.create(
               ])
             ),
             skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return marketplaces that contain an active plugin synced from these skill groups.'
+            }),
             search: v.optional(v.string()),
             created_at: dateFilterValidator('skill marketplace creation time'),
             updated_at: dateFilterValidator('skill marketplace last update time')
@@ -91,6 +95,7 @@ export let skillMarketplaceController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
+          skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at

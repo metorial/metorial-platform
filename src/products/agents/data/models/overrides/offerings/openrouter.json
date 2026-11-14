@@ -97,6 +97,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "deepseek/deepseek-v4.1-flash-1017": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Correct link: this is the Oct 17 2026 snapshot (deepseek-ai/DeepSeek-V4.1-Flash-1017). Input price 0.038 is far below the 0.3 median because OpenRouter passes through DeepSeek's own deepseek-flash API rates; other providers charge more.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "deepseek/deepseek-v4.1-flash-1017:batch": {
     "decision": "link",
     "model": "deepseek/deepseek-v4.1-flash-1017",
@@ -138,6 +145,13 @@
     "reason": "OpenRouter lists inclusionAI's Ling 3.1 Flash (Hugging Face inclusionAI/Ling-3.1-flash, 560B MoE with 25B active, hybrid reasoning), matching inclusionai/ling-3.1-flash; its 0.045/0.135 rate is a discount off the model's 0.3 median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "inclusionai/ling-3.2-flash:free": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "inclusionAI's Ling 3.2 Flash, the 560B/25B-active native multimodal MoE launched ~2026-11-05 (Hugging Face inclusionAI/Ling-3.2-flash, 1M context); the free tier is a promo serving of that model. The index has only Ling 3.0/3.1 Flash, no 3.2 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-13"
   },
   "kt/midm-k-3.0-pro": {
     "decision": "defer",

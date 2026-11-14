@@ -1,25 +1,38 @@
-import { markdownToYjsUpdate, replaceYjsBodyFromMarkdown } from '@metorial/docs-editor-schema';
+import {
+  getCommentAnchorForRange,
+  markdownToYjsUpdate,
+  replaceYjsBodyFromMarkdown
+} from '@metorial/docs-editor-schema';
 import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
   getDocumentEditToken,
+  peekDocumentEditToken,
   DocumentVersion as StateDocumentVersion,
   useCreateFileLink,
   useDocument,
   useDocumentCollaboration,
+  useDocumentCommentThreads,
   useDocumentParticipants,
+  type DocumentCommentThread,
   useDocumentPermissions,
   useDocumentVersions,
+  useSkillAssistantWorkspace,
   useUploadFile,
   useUser
 } from '@metorial/state';
 import { theme } from '@metorial/ui';
 import type { Editor as TiptapEditor } from '@tiptap/react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
+import { type DocumentEditorChrome, usePublishDocumentEditorChrome } from '../chrome';
+import { DocumentEditorChromeToolbar } from '../chrome/toolbar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import styled, { ThemeProvider } from 'styled-components';
 import { parseDocument } from 'yaml';
+import { DocsAgentProvider } from '../editor/agent/DocsAgentProvider';
+import { getCollaboratorColor } from '../editor/collaboratorColors';
 import { Editor } from '../editor/Editor';
 import {
   BackButton,
@@ -32,7 +45,15 @@ import {
   TitleButton,
   type SharedPerson
 } from '../editor/HeaderActions';
-import { IconEdit, IconEye, IconSplit } from '../editor/icons';
+import type { AttributionPerson } from '../editor/AttributionPopover';
+import { CommentsPanel } from '../comments/CommentsPanel';
+import { COMMENTS_RAIL_WIDTH, CommentsRail } from '../comments/CommentsRail';
+import type { CommentsAccess } from '../comments/CommentThreadCard';
+import {
+  getCommentThreadAnchors,
+  getPendingCommentRange
+} from '../editor/extensions/CommentHighlights';
+import { IconComment, IconEdit, IconEditors, IconEye, IconSplit } from '../editor/icons';
 import { ImageUploadProvider } from '../editor/ImageUploadContext';
 import { KeyboardShortcutsPanel } from '../editor/KeyboardShortcutsPanel';
 import { PageInfoDialog } from '../editor/PageInfoDialog';
@@ -40,23 +61,20 @@ import { Toolbar } from '../editor/Toolbar';
 import { VersionHistoryPanel, type DocumentVersion } from '../editor/VersionHistoryPanel';
 import { Preview } from '../preview/Preview';
 import { DocsStyles } from '../styles/GlobalStyles';
+import {
+  DocumentSkeletonContent,
+  Main,
+  Shell,
+  SkeletonBlock,
+  SkeletonEditorScroll,
+  SkeletonHeaderButton
+} from './documentSkeleton';
 import { lightTheme } from '../styles/theme';
 
 let AUTOSAVE_DELAY_MS = 1000;
 let MIN_PREVIEW_WIDTH = 360;
 let DEFAULT_PREVIEW_WIDTH = 520;
 let MIN_EDITOR_WIDTH = 420;
-
-let Shell = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  background: ${({ theme }) => theme.color.bg};
-  color: ${({ theme }) => theme.color.text};
-  font-family: ${({ theme }) => theme.font.sans};
-  line-height: 1.6;
-`;
 
 let Header = styled.header`
   display: flex;
@@ -145,6 +163,18 @@ let SegBtn = styled.button<{ $active?: boolean }>`
   }
 `;
 
+let CommentsSegBtn = styled(SegBtn)`
+  width: auto;
+  min-width: 28px;
+  gap: 4px;
+  padding: 0 6px;
+`;
+
+let SegCount = styled.span`
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+`;
+
 let ReadOnlyBadge = styled.span<{ $active?: boolean }>`
   display: inline-flex;
   align-items: center;
@@ -164,13 +194,6 @@ let ReadOnlyBadge = styled.span<{ $active?: boolean }>`
     width: 14px;
     height: 14px;
   }
-`;
-
-let Main = styled.div`
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
 `;
 
 let PreviewResizeHandle = styled.div<{ $active?: boolean }>`
@@ -218,68 +241,7 @@ let Toast = styled.div<{ $visible?: boolean }>`
   z-index: 100;
 `;
 
-let SkeletonBlock = styled.div<{ $width?: string; $height?: string; $radius?: string }>`
-  width: ${({ $width }) => $width ?? '100%'};
-  height: ${({ $height }) => $height ?? '14px'};
-  border-radius: ${({ $radius }) => $radius ?? '999px'};
-  background: linear-gradient(
-    90deg,
-    ${({ theme }) => theme.color.bgAlt} 0%,
-    ${({ theme }) => theme.color.bgHover} 48%,
-    ${({ theme }) => theme.color.bgAlt} 100%
-  );
-  background-size: 220% 100%;
-  animation: docsSkeletonPulse 1.4s ease-in-out infinite;
-
-  @keyframes docsSkeletonPulse {
-    0% {
-      background-position: 100% 0;
-    }
-    100% {
-      background-position: -100% 0;
-    }
-  }
-`;
-
-let SkeletonHeaderButton = styled(SkeletonBlock)`
-  flex: 0 0 auto;
-`;
-
-let SkeletonEditorScroll = styled.div`
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-`;
-
-let SkeletonEditorContent = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 48px 64px;
-`;
-
-let SkeletonTitle = styled(SkeletonBlock)`
-  margin-bottom: 16px;
-`;
-
-let SkeletonStatusBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-height: 24px;
-  margin: 0 0 25px -8px;
-`;
-
-let SkeletonParagraph = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 6px 0 22px;
-`;
-
-let SkeletonHeading = styled(SkeletonBlock)`
-  margin: 34px 0 14px;
-`;
+let noop = () => {};
 
 let FadeHost = styled.div`
   position: relative;
@@ -287,10 +249,10 @@ let FadeHost = styled.div`
   min-height: 0;
 `;
 
-let SkeletonFadeLayer = styled.div<{ $fading?: boolean }>`
+let SkeletonFadeLayer = styled.div<{ $fading?: boolean; $belowAssistant?: boolean }>`
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: ${({ $belowAssistant, $fading }) => ($belowAssistant || $fading ? 25 : 50)};
   opacity: ${({ $fading }) => ($fading ? 0 : 1)};
   pointer-events: ${({ $fading }) => ($fading ? 'none' : 'auto')};
   transition: opacity 200ms ease;
@@ -320,27 +282,7 @@ let EditorMessage = styled.div`
 type ViewMode = 'split' | 'editor' | 'preview';
 type SaveStatus = 'saved' | 'pending' | 'saving' | 'error';
 type PendingDocumentSave = { title: string; content: string };
-
-let collaboratorColors = [
-  '#2563eb',
-  '#16a34a',
-  '#9333ea',
-  '#dc2626',
-  '#ea580c',
-  '#0891b2',
-  '#4f46e5',
-  '#be123c'
-];
-
-let getCollaboratorColor = (seed: string) => {
-  let hash = 0;
-
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-
-  return collaboratorColors[hash % collaboratorColors.length]!;
-};
+type AttributionActor = { name: string; email?: string; imageUrl?: string };
 
 let seedYjsBodyFromMarkdown = (d: { initialMarkdown: string; origin: unknown }) =>
   markdownToYjsUpdate(d.initialMarkdown, d.origin);
@@ -353,7 +295,10 @@ export type DocumentEditorSceneProps = {
   setRestrictHeight?: (enabled: boolean) => void;
   hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
+  skillMetadataSkillId?: string | null;
   loadError?: unknown;
+  chrome?: DocumentEditorChrome;
+  titleAccessory?: ReactNode;
 };
 
 let getCanonicalDocumentLink = () => {
@@ -550,7 +495,10 @@ let getSkillShareContextFromState = (
   };
 };
 
-let DocumentEditorSkeleton = (p: { onBack?: () => void }) => {
+export let DocumentEditorSkeleton = (p: {
+  onBack?: () => void;
+  chrome?: DocumentEditorChrome;
+}) => {
   let theme = useMemo(() => lightTheme, []);
 
   return (
@@ -558,50 +506,28 @@ let DocumentEditorSkeleton = (p: { onBack?: () => void }) => {
       <DocsStyles>
         <ImageUploadProvider>
           <Shell>
-            <Header>
-              <HeaderLeft>
-                {p.onBack && <BackButton onClick={p.onBack} />}
-                <SkeletonBlock $width="180px" $height="18px" />
-                <CloudStatus status="pending" />
-              </HeaderLeft>
+            {p.chrome != 'external' && (
+              <Header>
+                <HeaderLeft>
+                  {p.onBack && <BackButton onClick={p.onBack} />}
+                  <SkeletonBlock $width="180px" $height="18px" />
+                  <CloudStatus status="pending" />
+                </HeaderLeft>
 
-              <HeaderCenter>
-                <SkeletonHeaderButton $width="320px" $height="32px" $radius="8px" />
-              </HeaderCenter>
+                <HeaderCenter>
+                  <SkeletonHeaderButton $width="320px" $height="32px" $radius="8px" />
+                </HeaderCenter>
 
-              <HeaderRight>
-                <SkeletonHeaderButton $width="80px" $height="28px" $radius="6px" />
-                <SkeletonHeaderButton $width="92px" $height="28px" $radius="6px" />
-                <SkeletonHeaderButton $width="32px" $height="32px" $radius="8px" />
-              </HeaderRight>
-            </Header>
+                <HeaderRight>
+                  <SkeletonHeaderButton $width="80px" $height="28px" $radius="6px" />
+                  <SkeletonHeaderButton $width="92px" $height="28px" $radius="6px" />
+                  <SkeletonHeaderButton $width="32px" $height="32px" $radius="8px" />
+                </HeaderRight>
+              </Header>
+            )}
 
             <Main>
-              <SkeletonEditorScroll>
-                <SkeletonEditorContent>
-                  <SkeletonTitle $width="52%" $height="44px" $radius="10px" />
-                  <SkeletonStatusBar>
-                    <SkeletonBlock $width="92px" $height="24px" $radius="8px" />
-                    <SkeletonBlock $width="128px" $height="24px" $radius="8px" />
-                    <SkeletonBlock $width="112px" $height="24px" $radius="8px" />
-                    <SkeletonBlock $width="138px" $height="24px" $radius="8px" />
-                  </SkeletonStatusBar>
-
-                  <SkeletonParagraph>
-                    <SkeletonBlock $width="94%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="89%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="96%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="72%" $height="16px" $radius="5px" />
-                  </SkeletonParagraph>
-
-                  <SkeletonHeading $width="34%" $height="26px" $radius="7px" />
-                  <SkeletonParagraph>
-                    <SkeletonBlock $width="91%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="84%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="62%" $height="16px" $radius="5px" />
-                  </SkeletonParagraph>
-                </SkeletonEditorContent>
-              </SkeletonEditorScroll>
+              <DocumentSkeletonContent />
             </Main>
           </Shell>
         </ImageUploadProvider>
@@ -610,22 +536,34 @@ let DocumentEditorSkeleton = (p: { onBack?: () => void }) => {
   );
 };
 
-let DocumentEditorLoadError = (p: { onBack?: () => void; message: string }) => {
+let DocumentEditorLoadError = (p: {
+  onBack?: () => void;
+  message: string;
+  chrome?: DocumentEditorChrome;
+}) => {
   let theme = useMemo(() => lightTheme, []);
 
   return (
     <ThemeProvider theme={theme}>
       <DocsStyles>
         <Shell>
-          <Header>
-            <HeaderLeft>{p.onBack && <BackButton onClick={p.onBack} />}</HeaderLeft>
-            <HeaderCenter />
-            <HeaderRight />
-          </Header>
+          {p.chrome != 'external' && (
+            <Header>
+              <HeaderLeft>{p.onBack && <BackButton onClick={p.onBack} />}</HeaderLeft>
+              <HeaderCenter />
+              <HeaderRight />
+            </Header>
+          )}
 
           <Main>
             <SkeletonEditorScroll>
-              <EditorMessage>
+              <EditorMessage
+                style={
+                  p.chrome == 'external'
+                    ? { marginTop: 'calc(72px + var(--docs-inset-top, 0px))' }
+                    : undefined
+                }
+              >
                 <strong>Could not load document</strong>
                 <span>{p.message}</span>
               </EditorMessage>
@@ -644,6 +582,9 @@ let DocumentEditorInner = (p: {
   onBack?: () => void;
   hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
+  skillMetadataSkillId?: string | null;
+  chrome?: DocumentEditorChrome;
+  titleAccessory?: ReactNode;
 }) => {
   let document = useDocument(p.instanceId, p.documentId);
   let permissions = useDocumentPermissions(p.instanceId, p.documentId);
@@ -659,14 +600,29 @@ let DocumentEditorInner = (p: {
   let [documentEditToken, setDocumentEditToken] = useState<{
     status: 'idle' | 'loading' | 'ready' | 'error';
     token: Awaited<ReturnType<typeof getDocumentEditToken>> | null;
-  }>({
-    status: 'loading',
-    token: null
+  }>(() => {
+    let token = peekDocumentEditToken({
+      instanceId: p.instanceId,
+      documentId: p.documentId
+    });
+    return token ? { status: 'ready', token } : { status: 'loading', token: null };
   });
   useEffect(() => {
     let cancelled = false;
     let retryTimer: number | null = null;
     let attempts = 0;
+
+    let knownToken = peekDocumentEditToken({
+      instanceId: p.instanceId,
+      documentId: p.documentId
+    });
+    if (knownToken) {
+      setDocumentEditToken(current =>
+        current.token == knownToken ? current : { status: 'ready', token: knownToken }
+      );
+      return;
+    }
+
     setDocumentEditToken({
       status: 'loading',
       token: null
@@ -706,8 +662,14 @@ let DocumentEditorInner = (p: {
   }, [p.documentId, p.instanceId]);
   let isEditTokenReady =
     documentEditToken.status === 'ready' || documentEditToken.status === 'error';
-  let isReady = !!document.data && !!permissions.data && !!user.data && isEditTokenReady;
-  let [showSkeleton, setShowSkeleton] = useState(true);
+  let isInitialGeneration = !!useSkillAssistantWorkspace()?.isInitialGeneration;
+  let isReady =
+    !!document.data &&
+    !!permissions.data &&
+    !!user.data &&
+    isEditTokenReady &&
+    !isInitialGeneration;
+  let [showSkeleton, setShowSkeleton] = useState(!isReady);
 
   useEffect(() => {
     if (!isReady) {
@@ -722,10 +684,16 @@ let DocumentEditorInner = (p: {
   if (!document.data || !permissions.data || !user.data) {
     let error = document.error ?? permissions.error ?? user.error;
     if (error) {
-      return <DocumentEditorLoadError onBack={p.onBack} message={getErrorMessage(error)} />;
+      return (
+        <DocumentEditorLoadError
+          onBack={p.onBack}
+          message={getErrorMessage(error)}
+          chrome={p.chrome}
+        />
+      );
     }
 
-    return <DocumentEditorSkeleton onBack={p.onBack} />;
+    return <DocumentEditorSkeleton onBack={p.onBack} chrome={p.chrome} />;
   }
 
   let editor = (
@@ -743,6 +711,9 @@ let DocumentEditorInner = (p: {
       onSharedSkill={() => participants.refetch()}
       hideSharingControls={p.hideSharingControls}
       skillShareContext={p.skillShareContext}
+      skillMetadataSkillId={p.skillMetadataSkillId}
+      chrome={p.chrome}
+      titleAccessory={p.titleAccessory}
     />
   );
 
@@ -750,8 +721,8 @@ let DocumentEditorInner = (p: {
     <FadeHost>
       {isReady ? editor : null}
       {showSkeleton && (
-        <SkeletonFadeLayer $fading={isReady}>
-          <DocumentEditorSkeleton onBack={p.onBack} />
+        <SkeletonFadeLayer $fading={isReady} $belowAssistant={isInitialGeneration}>
+          <DocumentEditorSkeleton onBack={p.onBack} chrome={p.chrome} />
         </SkeletonFadeLayer>
       )}
     </FadeHost>
@@ -772,7 +743,11 @@ let DocumentEditorLoaded = (p: {
   onSharedSkill?: () => void | Promise<void>;
   hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
+  skillMetadataSkillId?: string | null;
+  chrome?: DocumentEditorChrome;
+  titleAccessory?: ReactNode;
 }) => {
+  let isExternalChrome = p.chrome == 'external';
   let [viewMode, setViewMode] = useState<ViewMode>('editor');
   let initialDocumentState = useMemo(
     () => parseStoredDocumentForEditor(p.document),
@@ -780,9 +755,6 @@ let DocumentEditorLoaded = (p: {
   );
   let [title, setTitle] = useState(p.document.title);
   let [frontMatter, setFrontMatter] = useState(initialDocumentState.frontMatter);
-  let [frontMatterOpen, setFrontMatterOpen] = useState(
-    initialDocumentState.frontMatter.trim().length > 0
-  );
   let [markdown, setMarkdown] = useState(initialDocumentState.body);
   let titleRef = useRef(p.document.title);
   let frontMatterRef = useRef(initialDocumentState.frontMatter);
@@ -840,8 +812,15 @@ let DocumentEditorLoaded = (p: {
     getInitialMarkdown: getInitialMarkdownForCollaboration,
     seedInitialBody: seedYjsBodyFromMarkdown
   });
+  let readyDocumentRef = useRef<string | null>(null);
+  if (collaboration.isReadyForEditor) readyDocumentRef.current = p.documentId;
+  let showCachedContent =
+    !collaboration.isReadyForEditor && readyDocumentRef.current !== p.documentId;
   let canWrite = collaboration.canWrite;
   let readOnly = !canWrite;
+  let isAccessResolved = collaboration.isAccessResolved;
+  let skillAssistantWorkspace = useSkillAssistantWorkspace();
+  let assistantWorkspace = isAccessResolved ? skillAssistantWorkspace : null;
   let collaborationMeta = useMemo(
     () => collaboration.ydoc.getMap<string>('meta'),
     [collaboration.ydoc]
@@ -1018,7 +997,6 @@ let DocumentEditorLoaded = (p: {
       markdownRef.current = titleSplit.body;
       setTitle(importedTitle);
       setFrontMatter(split.frontMatter);
-      setFrontMatterOpen(split.frontMatter.trim().length > 0);
       setMarkdown(titleSplit.body);
 
       if (collaboration.isFallback) {
@@ -1092,23 +1070,19 @@ let DocumentEditorLoaded = (p: {
   );
 
   let people = useMemo(() => p.participants.map(mapParticipantToPerson), [p.participants]);
-  let livePeople = useMemo(
-    () => collaboration.participants.map(mapParticipantToPerson),
-    [collaboration.participants]
-  );
   let sharePeople = useMemo(() => {
-    let byEmail = new Map<string, SharedPerson>();
+    let byParticipantId = new Map<string, SharedPerson>();
 
-    for (let person of people) {
-      byEmail.set(person.email, person);
+    for (let participant of p.participants) {
+      byParticipantId.set(participant.id, mapParticipantToPerson(participant));
     }
 
-    for (let person of livePeople) {
-      byEmail.set(person.email, person);
+    for (let participant of collaboration.participants) {
+      byParticipantId.set(participant.id, mapParticipantToPerson(participant));
     }
 
-    return [...byEmail.values()];
-  }, [livePeople, people]);
+    return [...byParticipantId.values()];
+  }, [collaboration.participants, p.participants]);
   let versionHistory = useMemo(() => p.versions.map(mapVersion), [p.versions]);
   let documentLink = getCanonicalDocumentLink();
   let fallbackStats = useMemo(() => countFallbackStats(markdown), [markdown]);
@@ -1131,6 +1105,202 @@ let DocumentEditorLoaded = (p: {
     if (editors.some(person => person.email === p.user.email)) return editors;
     return [currentAsEditor, ...editors];
   }, [canWrite, lastUpdatedAt, p.user.email, p.user.imageUrl, p.user.name, sharePeople]);
+  let attributionActorsRef = useRef(new Map<string, AttributionActor>());
+  let attributionActors = useMemo(() => {
+    let actors = new Map(attributionActorsRef.current);
+
+    for (let actor of p.document.annotationActors ?? []) {
+      actors.set(actor.id, {
+        name: actor.name,
+        email: actor.email ?? undefined,
+        imageUrl: actor.imageUrl ?? undefined
+      });
+    }
+
+    for (let participant of collaboration.participants) {
+      let actorId = (participant.actor as { id?: string }).id;
+      if (!actorId) continue;
+
+      actors.set(actorId, {
+        name: participant.actor.name,
+        email: getParticipantEmail(participant),
+        imageUrl: participant.actor.imageUrl ?? undefined
+      });
+    }
+
+    if (collaboration.actorId) {
+      actors.set(collaboration.actorId, {
+        name: p.user.name,
+        email: p.user.email,
+        imageUrl: p.user.imageUrl
+      });
+    }
+
+    attributionActorsRef.current = actors;
+    return actors;
+  }, [
+    collaboration.actorId,
+    collaboration.participants,
+    p.document.annotationActors,
+    p.user.email,
+    p.user.imageUrl,
+    p.user.name
+  ]);
+  let resolveAttributionPerson = useCallback(
+    (actorId: string): AttributionPerson => {
+      let actor = attributionActors.get(actorId);
+      if (!actor) {
+        return {
+          id: actorId,
+          name: 'Former collaborator',
+          color: getCollaboratorColor(actorId)
+        };
+      }
+
+      return { id: actorId, ...actor, color: getCollaboratorColor(actor.email || actor.name) };
+    },
+    [attributionActors]
+  );
+  let localActorIdRef = useRef(collaboration.actorId);
+  localActorIdRef.current = collaboration.actorId;
+  let getLocalActorId = useCallback(() => localActorIdRef.current, []);
+  let [showEditors, setShowEditors] = useState(false);
+
+  useEffect(() => {
+    if (!editorInstance || !('setShowEditors' in editorInstance.commands)) return;
+    editorInstance.commands.setShowEditors(showEditors);
+  }, [editorInstance, showEditors]);
+
+  let commentThreads = useDocumentCommentThreads(p.instanceId, p.documentId);
+  let createCommentThread = commentThreads.useCreateThreadMutator();
+  let [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
+  let [activeCommentThreadId, setActiveCommentThreadId] = useState<string | null>(null);
+  let [dismissedThreadIds, setDismissedThreadIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+
+  let activateCommentThread = useCallback((threadId: string) => {
+    setActiveCommentThreadId(threadId);
+    setDismissedThreadIds(current => {
+      if (!current.has(threadId)) return current;
+      let next = new Set(current);
+      next.delete(threadId);
+      return next;
+    });
+  }, []);
+
+  let dismissCommentThread = useCallback((threadId: string) => {
+    setDismissedThreadIds(current => new Set(current).add(threadId));
+    setActiveCommentThreadId(current => (current === threadId ? null : current));
+  }, []);
+  let [pendingComment, setPendingComment] = useState(false);
+  let canComment = !collaboration.isFallback && !!collaboration.actorId;
+  let commentThreadList = commentThreads.data?.items ?? [];
+  let openCommentThreads = commentThreadList.filter(thread => thread.status === 'open');
+  let railCommentThreads = openCommentThreads.filter(
+    thread => thread.anchorStatus === 'attached' && !dismissedThreadIds.has(thread.id)
+  );
+  let openCommentThreadIds = openCommentThreads.map(thread => thread.id).join(',');
+  let commentsAccess: CommentsAccess = {
+    instanceId: p.instanceId,
+    documentId: p.documentId,
+    actorId: collaboration.actorId,
+    canWrite
+  };
+
+  useEffect(() => {
+    if (collaboration.commentThreadsRevision) commentThreads.refetch();
+  }, [collaboration.commentThreadsRevision]);
+
+  useEffect(() => {
+    if (!editorInstance || !('setCommentThreads' in editorInstance.commands)) return;
+    editorInstance.commands.setCommentThreads(
+      openCommentThreadIds ? openCommentThreadIds.split(',') : []
+    );
+  }, [editorInstance, openCommentThreadIds]);
+
+  useEffect(() => {
+    if (!editorInstance || !('setActiveCommentThread' in editorInstance.commands)) return;
+    editorInstance.commands.setActiveCommentThread(activeCommentThreadId);
+  }, [editorInstance, activeCommentThreadId]);
+
+  let cancelPendingComment = useCallback(() => {
+    setPendingComment(false);
+    let editor = editorInstanceRef.current;
+    if (editor && 'setPendingComment' in editor.commands) {
+      editor.commands.setPendingComment(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!editorInstance || !pendingComment) return;
+    let onTransaction = () => {
+      if (!getPendingCommentRange(editorInstance.state)) cancelPendingComment();
+    };
+    editorInstance.on('transaction', onTransaction);
+    return () => {
+      editorInstance.off('transaction', onTransaction);
+    };
+  }, [cancelPendingComment, editorInstance, pendingComment]);
+
+  let handleRequestComment = useCallback((range: { from: number; to: number }) => {
+    let editor = editorInstanceRef.current;
+    if (!editor || !('setPendingComment' in editor.commands)) return;
+
+    editor.commands.setPendingComment(range);
+    setActiveCommentThreadId(null);
+    setPendingComment(true);
+  }, []);
+
+  let submitPendingComment = async (body: string) => {
+    let editor = editorInstanceRef.current;
+    let range = editor ? getPendingCommentRange(editor.state) : null;
+    let anchor = editor && range ? getCommentAnchorForRange(editor.state.doc, range) : null;
+    if (!anchor) {
+      showToast('This selection can no longer be commented on');
+      cancelPendingComment();
+      return false;
+    }
+
+    let [thread] = await createCommentThread.mutate({ anchor, body });
+    if (!thread) return false;
+
+    cancelPendingComment();
+    setActiveCommentThreadId(thread.id);
+    return true;
+  };
+
+  let selectCommentThread = (thread: DocumentCommentThread) => {
+    activateCommentThread(thread.id);
+
+    let editor = editorInstanceRef.current;
+    let anchor = editor ? getCommentThreadAnchors(editor.state).get(thread.id) : undefined;
+    if (!editor || !anchor) return;
+
+    setCommentsPanelOpen(false);
+    let { node } = editor.view.domAtPos(anchor.from);
+    let element = node instanceof Element ? node : node.parentElement;
+    element?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  };
+
+  let commentRail =
+    editorInstance && canComment && (railCommentThreads.length > 0 || pendingComment) ? (
+      <CommentsRail
+        editor={editorInstance}
+        access={commentsAccess}
+        threads={railCommentThreads}
+        activeThreadId={activeCommentThreadId}
+        onActivate={activateCommentThread}
+        onClose={dismissCommentThread}
+        pending={pendingComment}
+        creating={createCommentThread.isLoading}
+        createSucceeded={createCommentThread.isSuccess}
+        CreateError={createCommentThread.RenderError}
+        onSubmitPending={submitPendingComment}
+        onCancelPending={cancelPendingComment}
+      />
+    ) : null;
+
   let editorCollaboration = useMemo(
     () => ({
       ydoc: collaboration.ydoc,
@@ -1149,6 +1319,17 @@ let DocumentEditorLoaded = (p: {
       p.skillShareContext ??
       getSkillShareContextFromState(location.state, p.currentConsumerId),
     [location.state, p.currentConsumerId, p.skillShareContext]
+  );
+  let skillMetadata = useMemo(
+    () =>
+      p.skillMetadataSkillId
+        ? {
+            instanceId: p.instanceId,
+            skillId: p.skillMetadataSkillId,
+            documentId: p.documentId
+          }
+        : undefined,
+    [p.documentId, p.instanceId, p.skillMetadataSkillId]
   );
   let hasUnsavedChanges =
     canWrite &&
@@ -1187,7 +1368,6 @@ let DocumentEditorLoaded = (p: {
         if (typeof nextFrontMatter == 'string' && nextFrontMatter !== frontMatterRef.current) {
           frontMatterRef.current = nextFrontMatter;
           setFrontMatter(nextFrontMatter);
-          setFrontMatterOpen(nextFrontMatter.trim().length > 0);
           setLastUpdatedAt(new Date());
         }
       } finally {
@@ -1210,8 +1390,7 @@ let DocumentEditorLoaded = (p: {
   let getCurrentSaveInput = useCallback((): PendingDocumentSave => {
     let editorMarkdown = (
       editorInstanceRef.current?.storage as
-        | { markdown?: { getMarkdown: () => string } }
-        | undefined
+        { markdown?: { getMarkdown: () => string } } | undefined
     )?.markdown?.getMarkdown();
     let body = editorMarkdown ?? markdownRef.current;
 
@@ -1285,7 +1464,6 @@ let DocumentEditorLoaded = (p: {
     markdownRef.current = nextDocumentState.body;
     setTitle(p.document.title);
     setFrontMatter(nextDocumentState.frontMatter);
-    setFrontMatterOpen(nextDocumentState.frontMatter.trim().length > 0);
     setMarkdown(nextDocumentState.body);
     setLastUpdatedAt(p.document.updatedAt);
     setSaveStatus('saved');
@@ -1296,7 +1474,11 @@ let DocumentEditorLoaded = (p: {
     pendingSaveRef.current = null;
     autosaveHydratedRef.current = false;
     setEditorKey(k => k + 1);
-  }, [p.document.content, p.document.id, p.document.title, p.document.updatedAt]);
+  }, [p.document.content, p.document.id, p.document.title]);
+
+  useEffect(() => {
+    setLastUpdatedAt(p.document.updatedAt);
+  }, [p.document.updatedAt]);
 
   useEffect(() => {
     if (!readOnly || !collaboration.isFallback || !collaboration.snapshot) return;
@@ -1307,7 +1489,6 @@ let DocumentEditorLoaded = (p: {
     markdownRef.current = nextDocumentState.body;
     setTitle(collaboration.snapshot.title);
     setFrontMatter(nextDocumentState.frontMatter);
-    setFrontMatterOpen(nextDocumentState.frontMatter.trim().length > 0);
     setMarkdown(nextDocumentState.body);
     setLastUpdatedAt(
       collaboration.snapshot.updatedAt instanceof Date
@@ -1339,33 +1520,13 @@ let DocumentEditorLoaded = (p: {
   useEffect(() => {
     if (!hasUnsavedChanges) return;
 
-    let handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    let handleBeforeUnload = () => {
       void flushSave();
-      e.preventDefault();
-      e.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [flushSave, hasUnsavedChanges]);
-
-  useEffect(() => {
-    if (!hasUnsavedChanges) return;
-
-    let handleReloadShortcut = (e: KeyboardEvent) => {
-      let isReloadShortcut =
-        e.key === 'F5' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r');
-      if (!isReloadShortcut) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      showToast('Saving document before reload.');
-      void flushSave();
-    };
-
-    window.addEventListener('keydown', handleReloadShortcut, true);
-    return () => window.removeEventListener('keydown', handleReloadShortcut, true);
-  }, [flushSave, hasUnsavedChanges, showToast]);
 
   useBlocker(tx => {
     if (!hasUnsavedChanges) return false;
@@ -1408,98 +1569,171 @@ let DocumentEditorLoaded = (p: {
     };
   }, [flushSave]);
 
+  usePublishDocumentEditorChrome(
+    isExternalChrome && isAccessResolved,
+    {
+      documentId: p.documentId,
+      title,
+      readOnly,
+      saveStatus,
+      editor: editorInstance,
+      Toolbar: DocumentEditorChromeToolbar,
+      toolbarDisabled,
+      isCollaborative: !collaboration.isFallback,
+      commentsOpen: commentsPanelOpen,
+      openCommentCount: openCommentThreads.length,
+      showEditors,
+      viewMode,
+      contentWidth
+    },
+    {
+      setTitle: handleTitleChange,
+      requestLinkEdit: handleRequestLinkEdit,
+      setCommentsOpen: setCommentsPanelOpen,
+      setShowEditors,
+      setViewMode,
+      setContentWidth,
+      openVersionHistory: () => setVersionHistoryOpen(true),
+      openPageInfo: () => setPageInfoOpen(true),
+      openShortcuts: () => setShortcutsOpen(true),
+      importMarkdown: handleImport,
+      exportMarkdown: handleDownload,
+      copyLink: handleCopyLink
+    }
+  );
+
   return (
     <ThemeProvider theme={theme}>
       <DocsStyles>
         <ImageUploadProvider upload={uploadImage}>
-          <Shell>
-            <Header>
-              <HeaderLeft>
-                <TitleButton
-                  title={title}
-                  readOnly={readOnly}
-                  onTitleChange={handleTitleChange}
-                />
-                <CloudStatus status={saveStatus} />
-              </HeaderLeft>
-
-              <HeaderCenter>
-                {!readOnly && (
-                  <Toolbar
-                    editor={editorInstance}
-                    disabled={toolbarDisabled}
-                    onRequestLinkEdit={handleRequestLinkEdit}
-                  />
-                )}
-              </HeaderCenter>
-
-              <HeaderRight>
-                {readOnly && (
-                  <ReadOnlyBadge $active>
-                    <IconEye />
-                    Read-only
-                  </ReadOnlyBadge>
-                )}
-
-                <Segmented role="tablist" aria-label="Layout">
-                  <SegBtn
-                    type="button"
-                    $active={viewMode === 'editor'}
-                    onClick={() => setViewMode('editor')}
-                    title="Editor only"
-                    aria-label="Editor only"
-                  >
-                    <IconEdit />
-                  </SegBtn>
-                  <SegBtn
-                    type="button"
-                    $active={viewMode === 'split'}
-                    onClick={() => setViewMode('split')}
-                    title="Split view"
-                    aria-label="Split view"
-                  >
-                    <IconSplit />
-                  </SegBtn>
-                  <SegBtn
-                    type="button"
-                    $active={viewMode === 'preview'}
-                    onClick={() => setViewMode('preview')}
-                    title="Preview only"
-                    aria-label="Preview only"
-                  >
-                    <IconEye />
-                  </SegBtn>
-                </Segmented>
-
-                {!p.hideSharingControls && (
-                  <>
-                    <HeaderDivider />
-                    <CurrentUserDisplay
-                      name={p.user.name}
-                      imageUrl={p.user.imageUrl}
-                      email={p.user.email}
+          <DocsAgentProvider
+            editor={editorInstance}
+            documentId={p.documentId}
+            workspace={assistantWorkspace}
+            enabled={!!assistantWorkspace && !collaboration.isFallback}
+            canWrite={canWrite && !!assistantWorkspace?.canWrite}
+            setTitle={handleTitleChange}
+            setFrontMatter={handleFrontMatterChange}
+          >
+            <Shell>
+              {!isExternalChrome && (
+                <Header>
+                  <HeaderLeft>
+                    <TitleButton
+                      title={title}
+                      readOnly={readOnly}
+                      onTitleChange={handleTitleChange}
                     />
-                    <ShareButton
-                      instanceId={p.instanceId}
-                      documentLink={documentLink}
-                      people={sharePeople}
-                      onCopyLink={handleCopyLink}
-                      skillShareContext={skillShareContext}
-                      onSharedSkill={p.onSharedSkill}
+                    <CloudStatus status={saveStatus} />
+                  </HeaderLeft>
+
+                  <HeaderCenter>
+                    {!readOnly && (
+                      <Toolbar
+                        editor={editorInstance}
+                        disabled={toolbarDisabled}
+                        onRequestLinkEdit={handleRequestLinkEdit}
+                      />
+                    )}
+                  </HeaderCenter>
+
+                  <HeaderRight>
+                    {readOnly && (
+                      <ReadOnlyBadge $active>
+                        <IconEye />
+                        Read-only
+                      </ReadOnlyBadge>
+                    )}
+
+                    {!collaboration.isFallback && (
+                      <Segmented>
+                        <CommentsSegBtn
+                          type="button"
+                          $active={commentsPanelOpen}
+                          aria-pressed={commentsPanelOpen}
+                          onClick={() => setCommentsPanelOpen(current => !current)}
+                          title="Comments"
+                          aria-label={`Comments (${openCommentThreads.length})`}
+                        >
+                          <IconComment />
+                          {openCommentThreads.length > 0 && (
+                            <SegCount>{openCommentThreads.length}</SegCount>
+                          )}
+                        </CommentsSegBtn>
+                        <SegBtn
+                          type="button"
+                          $active={showEditors}
+                          aria-pressed={showEditors}
+                          onClick={() => setShowEditors(current => !current)}
+                          title={showEditors ? 'Hide editors' : 'Show editors'}
+                          aria-label={showEditors ? 'Hide editors' : 'Show editors'}
+                        >
+                          <IconEditors />
+                        </SegBtn>
+                      </Segmented>
+                    )}
+
+                    <Segmented role="tablist" aria-label="Layout">
+                      <SegBtn
+                        type="button"
+                        $active={viewMode === 'editor'}
+                        onClick={() => setViewMode('editor')}
+                        title="Editor only"
+                        aria-label="Editor only"
+                      >
+                        <IconEdit />
+                      </SegBtn>
+                      <SegBtn
+                        type="button"
+                        $active={viewMode === 'split'}
+                        onClick={() => setViewMode('split')}
+                        title="Split view"
+                        aria-label="Split view"
+                      >
+                        <IconSplit />
+                      </SegBtn>
+                      <SegBtn
+                        type="button"
+                        $active={viewMode === 'preview'}
+                        onClick={() => setViewMode('preview')}
+                        title="Preview only"
+                        aria-label="Preview only"
+                      >
+                        <IconEye />
+                      </SegBtn>
+                    </Segmented>
+
+                    {!p.hideSharingControls && (
+                      <>
+                        <HeaderDivider />
+                        <CurrentUserDisplay
+                          name={p.user.name}
+                          imageUrl={p.user.imageUrl}
+                          email={p.user.email}
+                        />
+                        <ShareButton
+                          instanceId={p.instanceId}
+                          documentLink={documentLink}
+                          people={sharePeople}
+                          onCopyLink={handleCopyLink}
+                          skillShareContext={skillShareContext}
+                          onSharedSkill={p.onSharedSkill}
+                        />
+                      </>
+                    )}
+                    <SettingsButton
+                      contentWidth={contentWidth}
+                      readOnly={readOnly}
+                      onContentWidthChange={setContentWidth}
+                      onImport={handleImport}
+                      onExport={handleDownload}
+                      onPageInfo={() => setPageInfoOpen(true)}
+                      onVersionHistory={() => setVersionHistoryOpen(true)}
+                      onKeyboardShortcuts={() => setShortcutsOpen(true)}
                     />
-                  </>
-                )}
-                <SettingsButton
-                  contentWidth={contentWidth}
-                  readOnly={readOnly}
-                  onContentWidthChange={setContentWidth}
-                  onImport={handleImport}
-                  onExport={handleDownload}
-                  onPageInfo={() => setPageInfoOpen(true)}
-                  onVersionHistory={() => setVersionHistoryOpen(true)}
-                  onKeyboardShortcuts={() => setShortcutsOpen(true)}
-                />
-              </HeaderRight>
+                  </HeaderRight>
+                </Header>
+              )}
 
               <input
                 ref={fileInputRef}
@@ -1508,79 +1742,113 @@ let DocumentEditorLoaded = (p: {
                 style={{ display: 'none' }}
                 onChange={handleFile}
               />
-            </Header>
 
-            <Main ref={mainRef}>
-              {viewMode !== 'preview' && collaboration.isReadyForEditor && (
-                <Editor
-                  key={editorKey}
-                  initialMarkdown={markdown}
-                  readOnly={readOnly}
-                  title={title}
-                  frontMatter={frontMatter}
-                  frontMatterOpen={frontMatterOpen}
-                  frontMatterError={frontMatterValidation.error}
-                  onTitleChange={handleTitleChange}
-                  onMarkdownChange={handleMarkdownChange}
-                  onFrontMatterChange={handleFrontMatterChange}
-                  onToggleFrontMatter={() => setFrontMatterOpen(current => !current)}
-                  onEditorReady={setEditorInstance}
-                  onTitleFocusChange={setToolbarDisabled}
-                  linkPromptToken={linkPromptToken}
-                  onRequestLinkEdit={handleRequestLinkEdit}
-                  onOpenPageInfo={() => setPageInfoOpen(true)}
-                  statusCurrentUser={{
-                    name: p.user.name,
-                    email: p.user.email,
-                    imageUrl: p.user.imageUrl,
-                    role: canWrite ? 'editor' : 'viewer'
-                  }}
-                  statusEditors={statusEditors}
-                  statusUpdatedAt={lastUpdatedAt}
-                  statusWordCount={wordCount}
-                  statusCharCount={charCount}
-                  allowInitialHashScroll={allowInitialHashScroll}
-                  onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
-                  collaboration={collaboration.isFallback ? undefined : editorCollaboration}
-                />
-              )}
-              {viewMode === 'split' && (
-                <PreviewResizeHandle
-                  role="separator"
-                  aria-orientation="vertical"
-                  aria-label="Resize markdown preview"
-                  $active={resizingPreview}
-                  onPointerDown={handlePreviewResizeStart}
-                />
-              )}
-              {viewMode !== 'editor' && (
-                <Preview
-                  markdown={fullMarkdown}
-                  width={viewMode === 'split' ? previewWidth : undefined}
-                  onCopy={handleCopy}
-                  onDownload={handleDownload}
-                />
-              )}
-            </Main>
+              <Main ref={mainRef}>
+                {viewMode !== 'preview' && showCachedContent && (
+                  <Editor
+                    key="cached-content"
+                    initialMarkdown={markdown}
+                    readOnly
+                    title={title}
+                    onTitleChange={noop}
+                    onMarkdownChange={noop}
+                    statusCurrentUser={{
+                      name: p.user.name,
+                      email: p.user.email,
+                      imageUrl: p.user.imageUrl,
+                      role: 'viewer'
+                    }}
+                    statusEditors={statusEditors}
+                    statusUpdatedAt={lastUpdatedAt}
+                    statusWordCount={wordCount}
+                    statusCharCount={charCount}
+                    commentRailWidth={COMMENTS_RAIL_WIDTH}
+                    titleAccessory={p.titleAccessory}
+                  />
+                )}
+                {viewMode !== 'preview' && collaboration.isReadyForEditor && (
+                  <Editor
+                    key={editorKey}
+                    initialMarkdown={markdown}
+                    readOnly={readOnly}
+                    title={title}
+                    skillMetadata={skillMetadata}
+                    onTitleChange={handleTitleChange}
+                    onMarkdownChange={handleMarkdownChange}
+                    onEditorReady={setEditorInstance}
+                    onTitleFocusChange={setToolbarDisabled}
+                    linkPromptToken={linkPromptToken}
+                    onRequestLinkEdit={handleRequestLinkEdit}
+                    onOpenPageInfo={() => setPageInfoOpen(true)}
+                    statusCurrentUser={{
+                      name: p.user.name,
+                      email: p.user.email,
+                      imageUrl: p.user.imageUrl,
+                      role: canWrite ? 'editor' : 'viewer'
+                    }}
+                    statusEditors={statusEditors}
+                    statusUpdatedAt={lastUpdatedAt}
+                    statusWordCount={wordCount}
+                    statusCharCount={charCount}
+                    allowInitialHashScroll={allowInitialHashScroll}
+                    onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
+                    collaboration={collaboration.isFallback ? undefined : editorCollaboration}
+                    resolveAttributionPerson={resolveAttributionPerson}
+                    getLocalActorId={getLocalActorId}
+                    commentRail={commentRail}
+                    commentRailWidth={COMMENTS_RAIL_WIDTH}
+                    onRequestComment={canComment ? handleRequestComment : undefined}
+                    onActivateCommentThread={activateCommentThread}
+                    titleAccessory={p.titleAccessory}
+                  />
+                )}
+                {viewMode === 'split' && (
+                  <PreviewResizeHandle
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Resize markdown preview"
+                    $active={resizingPreview}
+                    onPointerDown={handlePreviewResizeStart}
+                  />
+                )}
+                {viewMode !== 'editor' && (
+                  <Preview
+                    markdown={fullMarkdown}
+                    width={viewMode === 'split' ? previewWidth : undefined}
+                    onCopy={handleCopy}
+                    onDownload={handleDownload}
+                  />
+                )}
+              </Main>
 
-            <Toast $visible={!!toast}>{toast}</Toast>
+              {createPortal(<Toast $visible={!!toast}>{toast}</Toast>, document.body)}
 
-            <VersionHistoryPanel
-              open={versionHistoryOpen}
-              onOpenChange={setVersionHistoryOpen}
-              versions={versionHistory}
-            />
+              <VersionHistoryPanel
+                open={versionHistoryOpen}
+                onOpenChange={setVersionHistoryOpen}
+                versions={versionHistory}
+              />
 
-            <KeyboardShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+              <CommentsPanel
+                open={commentsPanelOpen}
+                onOpenChange={setCommentsPanelOpen}
+                access={commentsAccess}
+                threads={commentThreadList}
+                activeThreadId={activeCommentThreadId}
+                onSelectThread={selectCommentThread}
+              />
 
-            <PageInfoDialog
-              open={pageInfoOpen}
-              onOpenChange={setPageInfoOpen}
-              people={people}
-              wordCount={wordCount}
-              charCount={charCount}
-            />
-          </Shell>
+              <KeyboardShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+              <PageInfoDialog
+                open={pageInfoOpen}
+                onOpenChange={setPageInfoOpen}
+                people={people}
+                wordCount={wordCount}
+                charCount={charCount}
+              />
+            </Shell>
+          </DocsAgentProvider>
         </ImageUploadProvider>
       </DocsStyles>
     </ThemeProvider>
@@ -1595,7 +1863,10 @@ export let DocumentEditorScene = ({
   setRestrictHeight,
   hideSharingControls,
   skillShareContext,
-  loadError
+  skillMetadataSkillId,
+  loadError,
+  chrome,
+  titleAccessory
 }: DocumentEditorSceneProps) => {
   useEffect(() => {
     setRestrictHeight?.(true);
@@ -1604,18 +1875,28 @@ export let DocumentEditorScene = ({
 
   if (!instanceId) return null;
   if (loadError) {
-    return <DocumentEditorLoadError onBack={onBack} message={getErrorMessage(loadError)} />;
+    return (
+      <DocumentEditorLoadError
+        onBack={onBack}
+        message={getErrorMessage(loadError)}
+        chrome={chrome}
+      />
+    );
   }
-  if (!documentId) return <DocumentEditorSkeleton onBack={onBack} />;
+  if (!documentId) return <DocumentEditorSkeleton onBack={onBack} chrome={chrome} />;
 
   return (
     <DocumentEditorInner
+      key={`${instanceId}:${documentId}`}
       instanceId={instanceId}
       documentId={documentId}
       currentConsumerId={currentConsumerId}
       onBack={onBack}
       hideSharingControls={hideSharingControls}
       skillShareContext={skillShareContext}
+      skillMetadataSkillId={skillMetadataSkillId}
+      chrome={chrome}
+      titleAccessory={titleAccessory}
     />
   );
 };

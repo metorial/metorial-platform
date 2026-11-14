@@ -7,10 +7,13 @@ import {
   buildCatalog,
   createNameLookup,
   emitCatalog,
+  type Agent,
   type BuildResult,
   type Catalog
 } from '../src';
-import { fixturePath, noOverrides, now } from './helpers';
+import { buildSite } from '../src/publish/site';
+import { fixturePath, noOverrides, now, readPricingFixture } from './helpers';
+import { pricingSources } from '../src/sources/providers';
 
 let snapshots = {
   openrouter: {
@@ -64,6 +67,11 @@ beforeAll(async () => {
   for (let [kind, raw] of Object.entries(snapshots))
     await writeFile(path.join(previousDir, 'sources', `${kind}.json`), JSON.stringify(raw));
 
+  for (let { kind } of pricingSources) {
+    let raw = await readPricingFixture(kind);
+    await writeFile(path.join(previousDir, 'sources', `${kind}.json`), JSON.stringify(raw));
+  }
+
   result = await buildCatalog({
     modelsDevPath: fixturePath,
     previousDir,
@@ -84,12 +92,28 @@ describe('buildCatalog', () => {
       ['openrouter', 'fallback'],
       ['ai-gateway', 'fallback'],
       ['litellm', 'fallback'],
-      ['ai-sdk', 'fallback']
+      ['ai-sdk', 'fallback'],
+      ...pricingSources.map(source => [source.kind, 'fallback'])
     ]);
   });
 
   it('produces a valid catalog', () => {
     expect(result.validation.errors).toEqual([]);
+  });
+
+  it('applies official prices to direct offerings and preserves reseller prices', () => {
+    expect(offering('anthropic:claude-opus-4-5-20251101')?.pricing?.text).toMatchObject({
+      input: 5,
+      output: 25,
+      cacheRead: 0.5,
+      cacheWrite: [
+        { ttl: '5m', price: 6.25 },
+        { ttl: '1h', price: 10 }
+      ]
+    });
+    expect(offering('anthropic:claude-opus-4-5-20251101')?.sources).toContain('anthropic');
+    expect(offering('openrouter:anthropic/claude-opus-4.5')?.pricing?.text?.input).toBe(4);
+    expect(result.merges.find(merge => merge.source === 'anthropic')?.delisted).toEqual([]);
   });
 
   it('lets a vendor listing update prices, add offerings and delist the rest', () => {
@@ -155,7 +179,12 @@ describe('buildCatalog', () => {
   });
 
   it('sorts every entity list by id', () => {
-    for (let list of [result.catalog.models, result.catalog.offerings, result.catalog.names]) {
+    for (let list of [
+      result.catalog.models,
+      result.catalog.offerings,
+      result.catalog.names,
+      result.catalog.agents
+    ]) {
       let ids = list.map(item => item.id);
       expect(ids).toEqual([...ids].sort());
     }
@@ -172,11 +201,49 @@ describe('emitCatalog', () => {
       'vendors/openrouter.json',
       'organizations/anthropic.json',
       'names.json',
+      'agents.json',
+      'agents/claude-code.json',
       'unresolved.json',
       'report.md',
-      'sources/openrouter.json'
+      'sources/openrouter.json',
+      'sources/openai.json',
+      'sources/anthropic.json'
     ])
       expect(existsSync(path.join(outDir, file)), file).toBe(true);
+  });
+
+  it('writes agents with their maker and vendors expanded', async () => {
+    let agents: Agent[] = JSON.parse(await readFile(path.join(outDir, 'agents.json'), 'utf8'));
+    let claudeCode = JSON.parse(
+      await readFile(path.join(outDir, 'agents', 'claude-code.json'), 'utf8')
+    );
+
+    expect(agents.map(agent => agent.id)).toEqual(
+      result.catalog.agents.map(agent => agent.id)
+    );
+    expect(emitted.agents).toEqual(result.catalog.agents);
+    expect(claudeCode).toMatchObject({
+      id: 'claude-code',
+      maker: { id: 'anthropic', roles: expect.arrayContaining(['agent-maker', 'lab']) },
+      vendors: [
+        { vendorId: 'anthropic', role: 'default', vendor: { id: 'anthropic' } },
+        { vendorId: 'aws-bedrock', role: 'supported', vendor: { id: 'aws-bedrock' } }
+      ]
+    });
+  });
+
+  it('publishes agents on the site', async () => {
+    let siteDir = path.join(path.dirname(outDir), 'site');
+    await mkdir(path.join(outDir, 'logos'), { recursive: true });
+    await buildSite({
+      outDir,
+      siteDir,
+      assetsDir: path.join(import.meta.dirname, '..', 'site-assets'),
+      now
+    });
+
+    expect(existsSync(path.join(siteDir, 'agents.json'))).toBe(true);
+    expect(existsSync(path.join(siteDir, 'agents', 'codex.json'))).toBe(true);
   });
 
   it('carries ids and first-seen times into the next build', async () => {

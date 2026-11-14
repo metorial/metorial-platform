@@ -4,6 +4,7 @@ import { fileService } from '@metorial/module-file';
 import type { Prisma, Skill, SkillConfiguration, Store } from '@metorial/db';
 import { db } from '@metorial/db';
 import { renderSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
+import { internalImageService } from '@metorial/skills-images';
 import PQueue from 'p-queue';
 import { combineConfigs } from '../../lib/combineConfigs';
 import {
@@ -14,9 +15,9 @@ import {
   getSkillStoreSizes
 } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
-import type { SerializerInputByType } from '../_lib/types';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
+import type { SerializerInputByType, SkillSerializerInput } from '../_lib/types';
 import {
   getEffectiveAllowedFileExtensions,
   isAllowedBySkillConfig,
@@ -25,6 +26,8 @@ import {
 } from './config';
 
 export { getSkillPath };
+
+let skillIconBasePath = 'assets/icon';
 
 let storeItemInclude = {
   document: {
@@ -56,6 +59,27 @@ let normalizeSkillDocumentPath = (path: string) => {
   if (!sanitizedExtension.startsWith('.')) sanitizedExtension = `.${sanitizedExtension}`;
 
   return [...pathParts, `${sanitizedBaseName}${sanitizedExtension}`].join('/');
+};
+
+let hasCustomSkillImage = (image: Skill['image']) =>
+  image?.type == 'file' || image?.type == 'icon';
+
+let resolveSkillIconAsset = async (input: SkillSerializerInput, skillStore: Store) => {
+  if (!hasCustomSkillImage(input.skill.image)) return null;
+
+  let image = await internalImageService.downloadImage({
+    id: input.skill.id,
+    image: input.skill.image
+  });
+  let path = `${skillIconBasePath}.${image.extension}`;
+
+  let existing = await db.storeItem.findFirst({
+    where: { storeOid: skillStore.oid, path: { in: [path, `/${path}`] } },
+    select: { oid: true }
+  });
+  if (existing) return null;
+
+  return { path, fetch: image.fetch };
 };
 
 type SkillInput = SerializerInputByType<'skill'>;
@@ -208,7 +232,7 @@ export let applySkill = createApplicator(
     getHash: async (input, { skillStore, config, effectiveAllowedFileExtensions }) => {
       return await Hash.sha256(
         canonicalize({
-          serializerVersion: 4,
+          serializerVersion: 5,
           ...getMarketplaceForceSyncHashInput(input.skillMarketplace),
           path: getSkillPath(input),
           skill: {
@@ -218,7 +242,8 @@ export let applySkill = createApplicator(
             clientDescription: input.skill.clientDescription,
             license: input.skill.license,
             compatibility: input.skill.compatibility,
-            clientMetadata: input.skill.clientMetadata
+            clientMetadata: input.skill.clientMetadata,
+            image: input.skill.image
           },
           storeLastEditedAt: skillStore.lastEditedAt,
           config: {
@@ -233,6 +258,15 @@ export let applySkill = createApplicator(
 
     apply: async (input, context, { skillStore, config }) => {
       context.setBasePath(getSkillPath(input));
+
+      let iconAsset = await resolveSkillIconAsset(input, skillStore);
+      if (iconAsset && !isAllowedBySkillConfig(iconAsset.path, config)) iconAsset = null;
+
+      if (iconAsset) {
+        let content = await iconAsset.fetch().catch(() => null);
+        if (content) await context.setFile(iconAsset.path, content);
+        else iconAsset = null;
+      }
 
       let q = new PQueue({ concurrency: 10 });
       let cursor: string | null = null;
@@ -260,7 +294,10 @@ export let applySkill = createApplicator(
             if (!isAllowedBySkillConfig(documentPath, config)) continue;
 
             let content = isRootSkillDocument(documentPath)
-              ? renderSkillDocumentFrontmatter(item.document.content.content, input)
+              ? renderSkillDocumentFrontmatter(item.document.content.content, {
+                  skill: input.skill,
+                  iconPath: iconAsset?.path ?? null
+                })
               : item.document.content.content;
 
             await context.setFile(documentPath, content);

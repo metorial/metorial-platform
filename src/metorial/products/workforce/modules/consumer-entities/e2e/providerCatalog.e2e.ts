@@ -98,6 +98,99 @@ describe('module-consumer-entities provider catalog', () => {
     expect(outsiderCatalog.items.flatMap(item => item.consumerAccessIds)).toEqual([]);
   });
 
+  it('hides non-discoverable listings from consumers without access', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let group = await createGroup(fixture, surface);
+    let member = await createProfile(fixture, surface);
+    let outsider = await createProfile(fixture, surface);
+    await addToGroups(fixture, member, [group.id]);
+
+    let granted = await createMagicServer(fixture, { name: uniqueId('A hidden granted') });
+    let unlisted = await createMagicServer(fixture, { name: uniqueId('B hidden unlisted') });
+    let visible = await createMagicServer(fixture, { name: uniqueId('C visible') });
+    let access = await grantMagicServer(fixture, surface, group, granted);
+    let grantedListing = await consumerAccessListingService.update({
+      consumerAccessListing: await consumerAccessListingService.getById({
+        consumerSurface: surface,
+        consumerAccessListingId: access.listing!.id
+      }),
+      auditScope: fixture.auditScope,
+      input: { isDiscoverable: false }
+    });
+    let unlistedListing = await consumerAccessListingService.create({
+      consumerSurface: surface,
+      auditScope: fixture.auditScope,
+      input: {
+        isDiscoverable: false,
+        access: { type: 'magic_mcp_server', magicMcpServerId: unlisted.id }
+      }
+    });
+    let visibleListing = await consumerAccessListingService.create({
+      consumerSurface: surface,
+      auditScope: fixture.auditScope,
+      input: { access: { type: 'magic_mcp_server', magicMcpServerId: visible.id } }
+    });
+
+    let memberCatalog = await listCatalog(fixture, surface, member);
+    expect(memberCatalog.items.map(item => [item.id, item.availability])).toEqual([
+      [grantedListing.id, 'available_now'],
+      [visibleListing.id, 'request_access']
+    ]);
+    expect((await getItem(fixture, surface, member, granted.id)).id).toBe(grantedListing.id);
+
+    let outsiderCatalog = await listCatalog(fixture, surface, outsider);
+    expect(outsiderCatalog.items.map(item => item.id)).toEqual([visibleListing.id]);
+
+    let featured = await consumerProviderCatalogService.listFeaturedCatalogItems({
+      instance: fixture.instance,
+      consumerSurface: surface,
+      consumerProfile: outsider,
+      ...(await consumerView(outsider))
+    });
+    expect(featured.map(item => item.id)).toEqual([visibleListing.id]);
+
+    for (let catalogItemId of [grantedListing.id, access.id, granted.id, unlistedListing.id]) {
+      await expectServiceError(
+        getItem(fixture, surface, outsider, catalogItemId),
+        'not_found'
+      );
+    }
+    await expectServiceError(
+      getItem(fixture, surface, member, unlistedListing.id),
+      'not_found'
+    );
+
+    for (let magicMcpServer of [granted, unlisted]) {
+      await expectServiceError(
+        consumerAccessRequestService.createConsumerAccessRequest({
+          consumerProfile: outsider,
+          consumerGroups: (await consumerView(outsider)).consumerGroups,
+          accessRequest: { type: 'magic_mcp_server', magicMcpServer },
+          auditScope: fixture.auditScope
+        }),
+        'not_found'
+      );
+    }
+
+    let request = await consumerAccessRequestService.createConsumerAccessRequest({
+      consumerProfile: outsider,
+      consumerGroups: (await consumerView(outsider)).consumerGroups,
+      accessRequest: { type: 'magic_mcp_server', magicMcpServer: visible },
+      auditScope: fixture.auditScope
+    });
+    expect(request.status).toBe('pending');
+
+    await consumerAccessListingService.update({
+      consumerAccessListing: unlistedListing,
+      auditScope: fixture.auditScope,
+      input: { isDiscoverable: true }
+    });
+    expect((await listCatalog(fixture, surface, outsider)).items.map(item => item.id)).toEqual(
+      [unlistedListing.id, visibleListing.id]
+    );
+  });
+
   it('flags a pending access request only for the requesting consumer', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let surface = await createSurface(fixture);
@@ -112,6 +205,7 @@ describe('module-consumer-entities provider catalog', () => {
 
     let request = await consumerAccessRequestService.createConsumerAccessRequest({
       consumerProfile: requester,
+      consumerGroups: (await consumerView(requester)).consumerGroups,
       accessRequest: { type: 'magic_mcp_server', magicMcpServer: server },
       auditScope: fixture.auditScope
     });

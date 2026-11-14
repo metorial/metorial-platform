@@ -346,9 +346,17 @@ class mirrorServiceImpl {
   async listResults(d: {
     upstreamId?: string;
     packImportId?: string;
+    packImportBatchId?: string;
     status?: MirrorResultStatus[];
   }) {
     let upstream = d.upstreamId ? await this.getUpstreamById({ id: d.upstreamId }) : null;
+    let batch = d.packImportBatchId
+      ? await db.slatePackImportBatch.findFirst({ where: { id: d.packImportBatchId } })
+      : null;
+    if (d.packImportBatchId && !batch) {
+      throw new ServiceError(notFoundError('mirror.pack_import_batch'));
+    }
+
     let packImport = d.packImportId
       ? await db.slatePackImport.findFirst({ where: { id: d.packImportId } })
       : null;
@@ -364,6 +372,7 @@ class mirrorServiceImpl {
             where: {
               upstreamOid: upstream?.oid,
               packImportOid: packImport?.oid,
+              packImport: batch ? { batchOid: batch.oid } : undefined,
               status: d.status?.length ? { in: d.status } : undefined
             },
             include: { upstream: true, packImport: true }

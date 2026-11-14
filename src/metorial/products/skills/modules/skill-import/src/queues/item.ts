@@ -1,7 +1,9 @@
 import { skillService, type SkillRecord } from '@metorial/module-skill';
 import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { consumerSkillService } from '@metorial/module-consumer-entities';
+import { skillGroupItemService } from '@metorial/module-skill-groups';
 import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../lib/materialize';
 import { skillImportFinishQueue } from './finish';
@@ -23,6 +25,7 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
       skillImport: {
         include: {
           creatorResourceActor: true,
+          skillGroup: true,
           project: true,
           instance: true
         }
@@ -91,20 +94,22 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
   if (claimed.count === 0) return;
 
   let createdSkill: SkillRecord | undefined;
+  let completedSkillId: string | undefined;
   try {
     if (!item.skillImport.codeBucketId) throw new Error('Import codebucket is missing');
 
     let actor = item.skillImport.creatorResourceActor ?? undefined;
     let consumerProfileOid = actor?.consumerProfileOid ?? undefined;
+    let auditScope = createSystemAuditScope({
+      organization: { oid: item.skillImport.instance.organizationOid },
+      instance: item.skillImport.instance,
+      job: 'skill-import',
+      metadata: { skillImportId: item.skillImport.id }
+    });
     createdSkill = await materializeImportedSkill({
       project: item.skillImport.project,
       instance: item.skillImport.instance,
-      auditScope: createSystemAuditScope({
-        organization: { oid: item.skillImport.instance.organizationOid },
-        instance: item.skillImport.instance,
-        job: 'skill-import',
-        metadata: { skillImportId: item.skillImport.id }
-      }),
+      auditScope,
       codeBucketId: item.skillImport.codeBucketId,
       skillId: item.targetSkillId,
       rootPath: item.path,
@@ -137,9 +142,18 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     });
 
     if (consumerProfileOid != null) {
-      await consumerSkillService.grantImportedSkillAccess({
+      await consumerSkillService.grantConsumerSkillOwnership({
         skill: createdSkill,
         consumerProfileOid
+      });
+    }
+
+    if (item.skillImport.skillGroup?.status === 'active') {
+      await skillGroupItemService.createSkillGroupItem({
+        project: item.skillImport.project,
+        instance: item.skillImport.instance,
+        auditScope,
+        input: { skillGroupId: item.skillImport.skillGroup.id, skillId: createdSkill.id }
       });
     }
 
@@ -159,6 +173,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         skill: createdSkill,
         authorization: { type: 'privileged' }
       });
+    } else {
+      completedSkillId = createdSkill.id;
     }
   } catch (error) {
     let cleanupSucceeded = !createdSkill;
@@ -185,6 +201,13 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         cleanupCompletedAt: cleanupSucceeded ? new Date() : undefined,
         completedAt: new Date()
       }
+    });
+  }
+
+  if (completedSkillId) {
+    await Fabric.fire('skill.import.item.completed:after', {
+      skillImportId: item.skillImport.id,
+      skillId: completedSkillId
     });
   }
 

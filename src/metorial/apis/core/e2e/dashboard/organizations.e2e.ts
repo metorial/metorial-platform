@@ -288,10 +288,17 @@ describe('api-core dashboard: organizations', () => {
     expectError(await mutableOrg.clients.management.get(path), 403, 'forbidden');
   });
 
-  it('serves organization configs and layouts without declared types', async () => {
-    for (let resource of ['configs', 'layouts']) {
+  it('lists organization configs and layouts and rejects unknown selectors', async () => {
+    let expectedItems = {
+      configs: expect.arrayContaining([
+        expect.objectContaining({ identifier: 'skills.pinned', value: { instances: {} } })
+      ]),
+      layouts: []
+    };
+
+    for (let [resource, items] of Object.entries(expectedItems)) {
       let listed = expectOk(await org.clients.rest.get(orgPath(`/${resource}`)));
-      expect(listed.items).toEqual([]);
+      expect(listed.items).toEqual(items);
 
       let selector = uniqueId('unknown.selector');
       expectError(
@@ -306,7 +313,7 @@ describe('api-core dashboard: organizations', () => {
       );
 
       expect(expectOk(await member.clients.rest.get(orgPath(`/${resource}`))).items).toEqual(
-        []
+        items
       );
       expectError(await outsider().get(orgPath(`/${resource}`)), 404, 'not_found');
       expectError(await org.clients.management.get(orgPath(`/${resource}`)), 403, 'forbidden');

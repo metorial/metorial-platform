@@ -61,6 +61,13 @@ jobs:
       - name: Install dependencies
         run: bun install --filter '@metorial/model-catalog'
 
+      # pi's grep tool shells out to ripgrep, and the agent runs offline so it can't fetch it.
+      - name: Install pi and ripgrep
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends ripgrep bubblewrap
+          npm install -g --ignore-scripts --no-audit --no-fund "@earendil-works/pi-coding-agent@$PI_VERSION"
+
       - name: Run unit tests
         working-directory: ${{ env.PACKAGE_DIR }}
         run: bun run test
@@ -74,14 +81,7 @@ jobs:
           key: model-catalog-${{ github.run_id }}
           restore-keys: model-catalog-
 
-      # pi's grep tool shells out to ripgrep, and the agent runs offline so it can't fetch it.
-      - name: Install pi and ripgrep
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends ripgrep
-          npm install -g --ignore-scripts --no-audit --no-fund "@earendil-works/pi-coding-agent@$PI_VERSION"
-
-      - name: Reconcile overrides
+      - name: Reconcile overrides and pricing sources
         id: reconcile
         continue-on-error: true
         working-directory: ${{ env.PACKAGE_DIR }}
@@ -100,12 +100,14 @@ jobs:
           fi
           bun run reconcile "${args[@]}"
 
-      - name: Test reconciled overrides
+      - name: Test reconciled overrides and sources
         id: verify
         if: steps.reconcile.outcome == 'success' && steps.reconcile.outputs.changed == 'true'
         continue-on-error: true
         working-directory: ${{ env.PACKAGE_DIR }}
-        run: bun run test
+        run: |
+          bun run typecheck
+          bun run test
 
       - name: Merge override pull request
         id: merge
@@ -116,7 +118,7 @@ jobs:
           GIT_CONFIG_COUNT: '1'
           GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/.insteadOf
           GIT_CONFIG_VALUE_0: https://github.com/
-          TITLE: 'Model catalog: reconcile overrides'
+          TITLE: 'Model catalog: reconcile overrides and pricing sources'
         run: |
           base="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
           git config user.name 'metorial-bot'
@@ -126,6 +128,9 @@ jobs:
           # could not commit itself and makes sure origin has the final state.
           git checkout -B "$BRANCH"
           git add -A -- "$PACKAGE_DIR/overrides"
+          if [ -f "$WORK_DIR/source-repairs.json" ]; then
+            (cd "$PACKAGE_DIR" && bun src/reconcile/stageRepairs.ts "$WORK_DIR/source-repairs.json")
+          fi
           if ! git diff --cached --quiet; then
             git commit -q -m "$TITLE" -m "From ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi

@@ -25,6 +25,7 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.skill:read' as const,
   'instance.skill:write' as const,
   'instance.skill:manage_access' as const,
+  'instance.skill.security_review:dismiss' as const,
 
   'instance.session:read' as const,
   'instance.session:write' as const,

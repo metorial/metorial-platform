@@ -426,6 +426,7 @@ class ConsumerProfileServiceImpl {
     search?: string;
     emails?: string[];
     consumerGroupId?: string;
+    source?: 'manual' | 'sso';
     statuses?: Array<'active' | 'invited'>;
     visibleToConsumerGroups?: ConsumerGroup[];
   }) {
@@ -482,29 +483,38 @@ class ConsumerProfileServiceImpl {
       if (!group) {
         groupMembershipWhere = { id: { in: [] } };
       } else if (group.isDefault) {
-        groupMembershipWhere = undefined;
+        groupMembershipWhere = d.source ? { id: { in: [] } } : undefined;
       } else {
-        let or: Prisma.ConsumerProfileWhereInput[] = [
-          {
-            groups: {
-              some: {
-                group: {
-                  id: consumerGroupId,
-                  surfaceOid: d.consumerSurface.oid
-                }
+        let membership = (assignedVia?: 'manual' | 'sso'): Prisma.ConsumerProfileWhereInput => ({
+          groups: {
+            some: {
+              ...(assignedVia ? { assignedVia } : {}),
+              group: {
+                id: consumerGroupId,
+                surfaceOid: d.consumerSurface.oid
               }
             }
-          },
-          { personalConsumerGroupOid: group.oid }
-        ];
+          }
+        });
+        let ssoMapped: Prisma.ConsumerProfileWhereInput | null = group.ssoGroupIds.length
+          ? { ssoGroupIds: { hasSome: group.ssoGroupIds } }
+          : null;
 
-        if (group.ssoGroupIds.length) {
-          or.push({
-            ssoGroupIds: { hasSome: group.ssoGroupIds }
-          });
+        if (d.source == 'sso') {
+          groupMembershipWhere = { OR: [membership('sso'), ...(ssoMapped ? [ssoMapped] : [])] };
+        } else if (d.source == 'manual') {
+          groupMembershipWhere = {
+            AND: [membership('manual'), ...(ssoMapped ? [{ NOT: ssoMapped }] : [])]
+          };
+        } else {
+          groupMembershipWhere = {
+            OR: [
+              membership(),
+              { personalConsumerGroupOid: group.oid },
+              ...(ssoMapped ? [ssoMapped] : [])
+            ]
+          };
         }
-
-        groupMembershipWhere = { OR: or };
       }
     }
 
@@ -557,6 +567,7 @@ class ConsumerProfileServiceImpl {
     search?: string;
     emails?: string[];
     consumerGroupId?: string;
+    source?: 'manual' | 'sso';
     statuses?: Array<'active' | 'invited'>;
   }) {
     return await this.listConsumerProfiles({
@@ -564,6 +575,7 @@ class ConsumerProfileServiceImpl {
       search: d.search,
       emails: d.emails,
       consumerGroupId: d.consumerGroupId,
+      source: d.source,
       statuses: d.statuses,
       visibleToConsumerGroups: d.consumerGroups
     });

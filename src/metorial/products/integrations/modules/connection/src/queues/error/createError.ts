@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId, snowflake } from '@metorial-subspace/db';
+import { providerIssueRecorderService } from '@metorial-subspace/module-provider-issue';
 import { withUniqueConstraintRecovery } from '@metorial/db';
 import { endOfDay, startOfDay } from 'date-fns';
 import { env } from '../../env';
@@ -138,4 +139,6 @@ export let createErrorQueueProcessor = createErrorQueue.process(async data => {
     where: { id: error.id },
     data: { isProcessing: false, groupOid: group.oid }
   });
+
+  await providerIssueRecorderService.recordSessionError({ sessionErrorId: error.id });
 });

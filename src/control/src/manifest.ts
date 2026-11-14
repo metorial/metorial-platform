@@ -342,7 +342,17 @@ export let validate = (manifest: Manifest, path: string, scripts: string[] = [])
 
     for (let entry of endpoint.env)
       structured(entry, ['HOSTNAME', 'PORT', 'BIND_PORT'], `endpoint ${JSON.stringify(key)}`);
+
+    if (
+      endpoint.dev_login &&
+      (!endpoint.dev_login.path.startsWith('/') || /\s/.test(endpoint.dev_login.path))
+    )
+      fail(
+        `endpoint ${JSON.stringify(key)} dev login path must start with '/' and contain no whitespace`
+      );
   }
+  if (Object.values(manifest.endpoints).filter(endpoint => endpoint.dev_login).length > 1)
+    fail('only one endpoint may declare a dev login');
   unique(
     manifest.resources.map(resource => resource.type),
     'resource declaration'

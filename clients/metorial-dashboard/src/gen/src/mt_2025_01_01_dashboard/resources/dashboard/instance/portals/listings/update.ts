@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsListingsUpdateOutput = {
   object: 'consumer.access_listing';
@@ -9,6 +6,7 @@ export type DashboardInstancePortalsListingsUpdateOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -94,6 +92,7 @@ export type DashboardInstancePortalsListingsUpdateOutput = {
 export let mapDashboardInstancePortalsListingsUpdateOutput =
   /* @__PURE__ */ mapObject<DashboardInstancePortalsListingsUpdateOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,
@@ -131,7 +130,10 @@ export type DashboardInstancePortalsListingsUpdateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
   readme?: string | null | undefined;
+  isDiscoverable?: boolean | undefined;
 };
 
 export let mapDashboardInstancePortalsListingsUpdateBody =
-  /* @__PURE__ */ createMapper<DashboardInstancePortalsListingsUpdateBody>(0);
+  /* @__PURE__ */ mapObject<DashboardInstancePortalsListingsUpdateBody>([
+    'is_discoverable'
+  ]);

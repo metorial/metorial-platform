@@ -113,7 +113,9 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
   .presenter(async ({ consumerAccess }, opts) => ({
     object: 'consumer.access' as const,
     id: consumerAccess.id,
-    access_level: consumerAccess.accessLevel,
+    access_level:
+      consumerAccess.accessLevel ??
+      (consumerAccess.type == 'skill' || consumerAccess.type == 'skill_group' ? 'read' : null),
     name:
       consumerAccess.listing?.name ??
       (consumerAccess.type == 'provider_template'
@@ -145,7 +147,8 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
       ? {
           id: consumerAccess.listing.id,
           name: consumerAccess.listing.name,
-          description: consumerAccess.listing.description
+          description: consumerAccess.listing.description,
+          is_discoverable: consumerAccess.listing.isDiscoverable
         }
       : null,
 
@@ -198,7 +201,12 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
     v.object({
       object: v.literal('consumer.access'),
       id: v.string(),
-      access_level: v.nullable(v.enumOf(['read', 'manage'])),
+      access_level: v.nullable(
+        v.enumOf(['read', 'write', 'manage'], {
+          description:
+            'What the consumer group can do with the resource. Skills and skill groups support read, write and manage (share with others); skill marketplaces support read and manage.'
+        })
+      ),
       name: v.string(),
       description: v.nullable(v.string()),
       readme: v.nullable(v.string()),
@@ -206,7 +214,11 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
         v.object({
           id: v.string(),
           name: v.string(),
-          description: v.nullable(v.string())
+          description: v.nullable(v.string()),
+          is_discoverable: v.boolean({
+            description:
+              'Whether every consumer on the portal can find the listing in the catalog and request access.'
+          })
         })
       ),
       access: v.union([

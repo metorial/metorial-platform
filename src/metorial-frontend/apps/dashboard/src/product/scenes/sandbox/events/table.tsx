@@ -1,68 +1,69 @@
+import { col, createDataList, f } from '@metorial/data-list';
 import {
   useSandboxMachineEvents,
   type DashboardInstanceSandboxMachinesEventsListOutput
 } from '@metorial/state';
-import {
-  Table,
-  getEnumListFilterValue,
-  getStringFilterValue,
-  type TableStateProviderResult
-} from '@metorial/table';
-import { RenderDate, Flex, Text, theme } from '@metorial/ui';
+import { Flex, Text, theme } from '@metorial/ui';
 import {
   getSandboxMachineEventCopy,
   getSandboxMachineEventSourceLabel,
   sandboxMachineEventGroups,
-  sandboxMachineEventTypes
+  type SandboxMachineEventSource
 } from '../shared/eventCopy';
 
 type Event = DashboardInstanceSandboxMachinesEventsListOutput['items'][number];
 
-export let SandboxMachineEventsTable = new Table('sandbox-machine-events')
-  .state<{ instanceId: string; machineId: string }, Event, TableStateProviderResult<Event>>(
-    (props, opts) => {
-      let events = useSandboxMachineEvents(
-        props.instanceId,
-        props.machineId,
-        {
-          order: 'desc',
-          limit: 20,
-          type: getEnumListFilterValue(opts.filter.type, sandboxMachineEventTypes),
-          source: getEnumListFilterValue(opts.filter.source, [
-            'agent',
-            'api',
-            'policy',
-            'guest',
-            'system'
-          ]),
-          scope: getStringFilterValue(opts.filter.scope) as
-            | 'all'
-            | 'machine'
-            | 'instance'
-            | undefined
-        },
-        { pollInterval: 5000 }
-      );
+let eventSources: SandboxMachineEventSource[] = ['agent', 'api', 'policy', 'guest', 'system'];
 
-      return {
-        isLoading: events.isLoading,
-        error: events.error,
-        items: events.data?.items ?? [],
-        hasMoreAfter: events.data?.pagination.hasMoreAfter ?? false,
-        hasMoreBefore: events.data?.pagination.hasMoreBefore ?? false,
-        loadNext: events.next,
-        loadPrevious: events.previous
-      };
-    }
+let eventScopes = [
+  { id: 'all', label: 'All' },
+  { id: 'machine', label: 'Machine' },
+  { id: 'instance', label: 'Runtime' }
+] as const;
+
+let eventTypeOptions = sandboxMachineEventGroups.flatMap(group =>
+  group.types.map(type => ({
+    id: type,
+    label: `${group.label} · ${getSandboxMachineEventCopy(type).sentence}`
+  }))
+);
+
+export let SandboxMachineEventsTable = createDataList<{
+  instanceId: string;
+  machineId: string;
+}>('sandbox-machine-events')
+  .filters(() => ({
+    type: f.select('type', 'Type', eventTypeOptions, { description: 'Filter by event type' }),
+    source: f.select(
+      'source',
+      'Source',
+      eventSources.map(id => ({ id, label: getSandboxMachineEventSourceLabel(id) })),
+      { description: 'Filter by source' }
+    ),
+    scope: f.select('scope', 'Scope', eventScopes, { description: 'Filter by scope' })
+  }))
+  .paginated(({ props, filters }) =>
+    useSandboxMachineEvents(
+      props.instanceId,
+      props.machineId,
+      {
+        order: 'desc',
+        limit: 20,
+        type: filters.type,
+        source: filters.source,
+        scope: filters.scope?.[0]
+      },
+      { pollInterval: 5000 }
+    )
   )
   .columns([
-    {
+    col.custom<Event>({
       id: 'event',
       header: 'Event',
-      isDefault: true,
       render: event => {
         let copy = getSandboxMachineEventCopy(event.type);
         let Icon = copy.icon;
+
         return (
           <Flex gap={10}>
             <Icon
@@ -73,56 +74,12 @@ export let SandboxMachineEventsTable = new Table('sandbox-machine-events')
           </Flex>
         );
       }
-    },
-    {
+    }),
+    col.text<Event>({
       id: 'source',
       header: 'Source',
-      isDefault: true,
-      render: event => getSandboxMachineEventSourceLabel(event.source)
-    },
-    {
-      id: 'time',
-      header: 'Time',
-      isDefault: true,
-      render: event => <RenderDate date={event.occurredAt} />
-    }
-  ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by event type',
-      type: 'select',
-      options: sandboxMachineEventGroups.flatMap(group =>
-        group.types.map(type => ({
-          id: type,
-          label: `${group.label} · ${getSandboxMachineEventCopy(type).sentence}`
-        }))
-      )
-    },
-    {
-      id: 'source',
-      fields: ['source'],
-      label: 'Source',
-      description: 'Filter by source',
-      type: 'select',
-      options: ['agent', 'api', 'policy', 'guest', 'system'].map(id => ({
-        id,
-        label: getSandboxMachineEventSourceLabel(id)
-      }))
-    },
-    {
-      id: 'scope',
-      fields: ['scope'],
-      label: 'Scope',
-      description: 'Filter by scope',
-      type: 'select',
-      options: [
-        { id: 'all', label: 'All' },
-        { id: 'machine', label: 'Machine' },
-        { id: 'instance', label: 'Runtime' }
-      ]
-    }
+      get: event => getSandboxMachineEventSourceLabel(event.source)
+    }),
+    col.date<Event>('occurredAt', { id: 'time', header: 'Time', isDefault: true })
   ])
   .build();

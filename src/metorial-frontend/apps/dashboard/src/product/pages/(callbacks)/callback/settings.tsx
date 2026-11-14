@@ -10,6 +10,7 @@ import {
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
+import { TriggerSelectionsForm } from '../../../scenes/callbacks/triggerSelections';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 
 export let CallbackSettingsPage = () => {
@@ -19,6 +20,7 @@ export let CallbackSettingsPage = () => {
   let { callbackId } = useParams();
   let callback = useCallbackById(instance.data?.id, callbackId);
   let updateMutator = callback.useUpdateMutator();
+  let selectionsMutator = callback.useUpdateMutator();
   let deleteMutator = callback.useDeleteMutator();
   let navigate = useNavigate();
 
@@ -71,6 +73,24 @@ export let CallbackSettingsPage = () => {
 
           <updateMutator.RenderError />
         </form>
+      </Box>
+
+      <Spacer size={20} />
+
+      <Box
+        title="Trigger Selections"
+        description="Some triggers only deliver events for what you choose, such as a folder or a spreadsheet. Saving re-registers the affected triggers."
+      >
+        <TriggerSelectionsForm
+          triggerGroups={callback.data.triggerGroups}
+          selections={callback.data.triggerGroupSelections}
+          loading={selectionsMutator.isLoading}
+          success={selectionsMutator.isSuccess}
+          onSave={selections =>
+            selectionsMutator.mutate({ triggerGroupSelections: selections })
+          }
+        />
+        <selectionsMutator.RenderError />
       </Box>
 
       <Spacer size={20} />

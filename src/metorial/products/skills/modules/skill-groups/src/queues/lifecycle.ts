@@ -1,6 +1,7 @@
 import { addAfterTransactionHook, db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { indexSkillQueue } from '@metorial/module-skill';
+import { enqueueSkillGroupPluginSync } from '@metorial/module-skill-marketplace';
 import { indexSkillGroupQueue } from './search';
 import { getLifecycleJobId, type LifecycleEvent } from '@metorial/skills-common';
 
@@ -21,6 +22,7 @@ export let enqueueSkillGroupLifecycle = async (d: {
       id: getLifecycleJobId('skillGroup', d.skillGroupId)
     });
   });
+  await enqueueSkillGroupPluginSync({ skillGroupIds: [d.skillGroupId] });
 };
 
 export let skillGroupLifecycleQueueProcessor = skillGroupLifecycleQueue.process(async data => {

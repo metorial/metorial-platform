@@ -187,6 +187,37 @@ export let recordProjectReducedSubprocessorsUpdated = async (
   });
 };
 
+export let recordProjectAiAnalysisUpdated = async (
+  event: FabricEvents['organization.project.ai_analysis_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_ai_analysis_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          assistantEnabled: event.configuration.assistantEnabled,
+          reducedSubprocessors: event.configuration.reducedSubprocessors,
+          aiAnalysisEnabled: event.configuration.aiAnalysisEnabled,
+          usageReviewsEnabled: event.configuration.usageReviewsEnabled,
+          skillReviewHoldPending: event.configuration.skillReviewHoldPending
+        },
+        previousPayload: {
+          project: event.project,
+          assistantEnabled: event.previousConfiguration.assistantEnabled,
+          reducedSubprocessors: event.previousConfiguration.reducedSubprocessors,
+          aiAnalysisEnabled: event.previousConfiguration.aiAnalysisEnabled,
+          usageReviewsEnabled: event.previousConfiguration.usageReviewsEnabled,
+          skillReviewHoldPending: event.previousConfiguration.skillReviewHoldPending
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectResourceOwnershipUpdated = async (
   event: FabricEvents['organization.project.resource_ownership_configuration.updated:after']
 ) => {
@@ -287,6 +318,10 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.reduced_subprocessors_configuration.updated:after',
   recordProjectReducedSubprocessorsUpdated
+);
+Fabric.listen(
+  'organization.project.ai_analysis_configuration.updated:after',
+  recordProjectAiAnalysisUpdated
 );
 Fabric.listen(
   'organization.project.resource_ownership_configuration.updated:after',

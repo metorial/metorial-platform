@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "id": "test/chat",
+      "providers": [
+        {
+          "provider": "first",
+          "pricing": {
+            "input": 1,
+            "output": 2
+          }
+        },
+        {
+          "provider": "second",
+          "pricing": {
+            "input": 3,
+            "output": 4
+          }
+        }
+      ]
+    }
+  ]
+}

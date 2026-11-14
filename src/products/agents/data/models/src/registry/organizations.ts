@@ -259,5 +259,36 @@ export let organizationSeeds: OrganizationSeed[] = [
   { id: 'nomic', name: 'Nomic AI', aliases: ['nomic-ai'], country: 'US' },
   { id: 'elevenlabs', name: 'ElevenLabs', country: 'US' },
   { id: 'deepgram', name: 'Deepgram', country: 'US' },
-  { id: 'cognitivecomputations', name: 'Cognitive Computations', country: 'US' }
+  { id: 'cognitivecomputations', name: 'Cognitive Computations', country: 'US' },
+  { id: 'anysphere', name: 'Anysphere', country: 'US', website: 'https://cursor.com' },
+  { id: 'jetbrains', name: 'JetBrains', country: 'CZ', website: 'https://www.jetbrains.com' },
+  { id: 'opencode', name: 'OpenCode', website: 'https://opencode.ai' },
+  { id: 'kilo', name: 'Kilo Code', country: 'US', website: 'https://kilo.ai' },
+  {
+    id: 'cline',
+    name: 'Cline',
+    aliases: ['cline-pass'],
+    country: 'US',
+    website: 'https://cline.bot'
+  },
+  { id: 'block', name: 'Block', country: 'US', website: 'https://block.xyz' },
+  { id: 'factory', name: 'Factory', country: 'US', website: 'https://factory.ai' },
+  { id: 'continue', name: 'Continue', country: 'US', website: 'https://continue.dev' },
+  { id: 'cognition', name: 'Cognition', country: 'US', website: 'https://cognition.ai' },
+  {
+    id: 'sourcegraph',
+    name: 'Sourcegraph',
+    country: 'US',
+    website: 'https://sourcegraph.com'
+  },
+  {
+    id: 'augment',
+    name: 'Augment Code',
+    country: 'US',
+    website: 'https://www.augmentcode.com'
+  },
+  { id: 'zed-industries', name: 'Zed Industries', country: 'US', website: 'https://zed.dev' },
+  { id: 'aider-ai', name: 'Aider', website: 'https://aider.chat' },
+  { id: 'warp', name: 'Warp', country: 'US', website: 'https://www.warp.dev' },
+  { id: 'charm', name: 'Charm', country: 'US', website: 'https://charm.sh' }
 ];

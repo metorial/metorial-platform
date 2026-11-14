@@ -792,20 +792,90 @@ export let proseStyles = css`
     outline-offset: 2px;
     border-radius: ${({ theme }) => theme.size.radiusSm};
   }
+
+  .agent-change {
+    border-radius: ${({ theme }) => theme.size.radiusSm};
+    box-shadow: -10px 0 0 0 ${({ theme }) => theme.color.accentSoft};
+    background: color-mix(in srgb, ${({ theme }) => theme.color.accentSoft} 45%, transparent);
+    transition:
+      background 600ms ease,
+      box-shadow 600ms ease;
+  }
+
+  .agent-change--streaming {
+    box-shadow: -10px 0 0 0 ${({ theme }) => theme.color.accent};
+  }
+
+  .agent-rewrite-old {
+    color: ${({ theme }) => theme.color.textMuted};
+    text-decoration: line-through;
+    text-decoration-color: ${({ theme }) => theme.color.danger};
+    background: color-mix(in srgb, ${({ theme }) => theme.color.danger} 8%, transparent);
+  }
+
+  .agent-rewrite-new {
+    margin-left: 4px;
+    color: ${({ theme }) => theme.color.text};
+    white-space: pre-wrap;
+    user-select: none;
+  }
+
+  .agent-rewrite-new__text {
+    background: color-mix(in srgb, ${({ theme }) => theme.color.success} 14%, transparent);
+  }
+
+  .agent-rewrite-new__text--streaming {
+    opacity: 0.75;
+  }
+
+  .agent-rewrite-new__text--error {
+    background: transparent;
+    color: ${({ theme }) => theme.color.danger};
+  }
+
+  .agent-rewrite-new__actions {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .agent-rewrite-accept,
+  .agent-rewrite-discard {
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid ${({ theme }) => theme.color.border};
+    border-radius: 6px;
+    background: ${({ theme }) => theme.color.bg};
+    color: ${({ theme }) => theme.color.text};
+    font: inherit;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .agent-rewrite-accept {
+    border-color: ${({ theme }) => theme.color.text};
+    background: ${({ theme }) => theme.color.text};
+    color: ${({ theme }) => theme.color.bg};
+  }
 `;
 
 export let EditorScroll = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding: 0 var(--docs-inset-right, 0px) 0 var(--docs-inset-left, 0px);
   background: ${({ theme }) => theme.color.bg};
+  transition: padding 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 `;
 
 export let EditorContent = styled.div<{ $readOnly?: boolean }>`
   position: relative;
   max-width: ${({ theme }) => theme.size.contentWidth};
   margin: 0 auto;
-  padding: 48px 64px;
+  padding: calc(48px + var(--docs-inset-top, 0px)) 64px
+    calc(140px + var(--docs-inset-bottom, 0px));
 
   ${({ $readOnly }) =>
     $readOnly &&
@@ -878,6 +948,55 @@ export let EditorContent = styled.div<{ $readOnly?: boolean }>`
       float: left;
       height: 0;
       pointer-events: none;
+    }
+
+    .docs-attributed {
+      position: relative;
+    }
+
+    /* Sits in the gap between the block and the BlockHandle so hovering it never
+       steals the handle's hit area. */
+    .docs-attributed::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      left: -6px;
+      width: 5px;
+      border-left: 3px solid var(--editor-color);
+      border-radius: 2px;
+      opacity: 0;
+      cursor: default;
+      transition: opacity ${({ theme }) => theme.motion.fast};
+    }
+
+    .docs-attributed:hover::after {
+      opacity: 0.55;
+    }
+
+    &.docs-show-editors .docs-attributed {
+      background: color-mix(in srgb, var(--editor-color) 8%, transparent);
+      border-radius: 4px;
+    }
+
+    &.docs-show-editors .docs-attributed::after {
+      opacity: 1;
+    }
+
+    .docs-comment-highlight {
+      background: ${({ theme }) => theme.color.commentHighlight};
+      border-bottom: 2px solid ${({ theme }) => theme.color.commentHighlightBorder};
+      cursor: pointer;
+      transition: background ${({ theme }) => theme.motion.fast};
+    }
+
+    .docs-comment-highlight.docs-comment-highlight--active {
+      background: ${({ theme }) => theme.color.commentHighlightActive};
+    }
+
+    .docs-comment-pending {
+      background: ${({ theme }) => theme.color.commentHighlightActive};
+      border-radius: 2px;
     }
   }
 `;

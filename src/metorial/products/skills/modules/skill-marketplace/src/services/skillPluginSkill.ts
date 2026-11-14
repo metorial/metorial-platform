@@ -14,12 +14,8 @@ import {
 import { skillService } from '@metorial/module-skill';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import {
-  assertSkillMarketplaceDestinationSize,
-  assertSkillMarketplaceSkillLimit,
-  assertSkillPluginDestinationSize,
-  assertSkillPluginSkillLimit,
+  assertSkillPluginCanAddSkills,
   CargoSkillLimitError,
-  getSkillStoreSizes,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
 import {
@@ -29,7 +25,7 @@ import {
 } from '../lib/skillMarketplaceAccess';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle';
 import type { SkillPluginRecord } from './skillPlugin';
-import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
+import { assertPluginSkillsEditable, skillPluginInclude } from './skillPlugin';
 
 let skillInclude = {
   store: true,
@@ -203,7 +199,7 @@ class SkillPluginSkillServiceImpl {
       pluginSkillSlug?: string;
     } & SkillPluginSkillInput;
   }) {
-    assertPluginIsNotManaged(d.skillPlugin);
+    assertPluginSkillsEditable(d.skillPlugin);
     await assertSkillPluginWriteAccess({
       skillPlugin: d.skillPlugin,
       accessTags: d.accessTags
@@ -218,11 +214,7 @@ class SkillPluginSkillServiceImpl {
       skillId: d.input.skillId
     });
     if (d.accessTags) {
-      await assertConsumerCanAttachSkillToPlugin({
-        skill,
-        skillPlugin: d.skillPlugin,
-        accessTags: d.accessTags
-      });
+      await assertConsumerCanAttachSkillToPlugin({ skill, accessTags: d.accessTags });
     }
     let existingSkillPluginSkill = await db.skillPluginSkill.findFirst({
       where: {
@@ -286,49 +278,10 @@ class SkillPluginSkillServiceImpl {
 
       if (activeSkillDelta > 0) {
         try {
-          await assertSkillPluginSkillLimit({
+          await assertSkillPluginCanAddSkills({
             skillPluginOid: d.skillPlugin.oid,
-            additionalCount: activeSkillDelta
+            skills: [skill]
           });
-
-          let marketplacePlugins = await db.skillMarketplacePlugin.findMany({
-            where: {
-              skillPluginOid: d.skillPlugin.oid,
-              status: 'active',
-              skillMarketplace: {
-                status: 'active'
-              }
-            },
-            select: {
-              skillMarketplaceOid: true
-            }
-          });
-
-          for (let marketplacePlugin of marketplacePlugins) {
-            await assertSkillMarketplaceSkillLimit({
-              skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
-              additionalCount: activeSkillDelta
-            });
-          }
-
-          let skillSize = skill.storeOid
-            ? (await getSkillStoreSizes([skill.storeOid])).get(skill.storeOid)
-            : undefined;
-          if (skillSize) {
-            await assertSkillPluginDestinationSize({
-              skillPluginOid: d.skillPlugin.oid,
-              additionalFiles: skillSize.files,
-              additionalBytes: skillSize.bytes
-            });
-
-            for (let marketplacePlugin of marketplacePlugins) {
-              await assertSkillMarketplaceDestinationSize({
-                skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
-                additionalFiles: skillSize.files,
-                additionalBytes: skillSize.bytes
-              });
-            }
-          }
         } catch (error) {
           if (error instanceof CargoSkillLimitError) {
             throw toCargoSkillLimitServiceError(error);
@@ -399,7 +352,7 @@ class SkillPluginSkillServiceImpl {
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: SkillPluginSkillInput;
   }) {
-    assertPluginIsNotManaged(d.skillPluginSkill.skillPlugin);
+    assertPluginSkillsEditable(d.skillPluginSkill.skillPlugin);
     await assertSkillPluginWriteAccess({
       skillPlugin: d.skillPluginSkill.skillPlugin,
       accessTags: d.accessTags
@@ -457,7 +410,7 @@ class SkillPluginSkillServiceImpl {
     skillPluginSkill: SkillPluginSkillRecord;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
   }) {
-    assertPluginIsNotManaged(d.skillPluginSkill.skillPlugin);
+    assertPluginSkillsEditable(d.skillPluginSkill.skillPlugin);
     await assertSkillPluginWriteAccess({
       skillPlugin: d.skillPluginSkill.skillPlugin,
       accessTags: d.accessTags

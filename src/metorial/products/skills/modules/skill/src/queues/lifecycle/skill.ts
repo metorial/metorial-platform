@@ -1,7 +1,10 @@
 import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { indexSkillGroupQueue } from '@metorial/module-skill-groups';
-import { enqueueManagedSkillPluginLifecycle } from '@metorial/module-skill-marketplace';
+import {
+  enqueueManagedSkillPluginLifecycle,
+  enqueueSkillGroupPluginSync
+} from '@metorial/module-skill-marketplace';
 import { createQueue } from '@metorial/queue';
 import {
   getLifecycleJobId,
@@ -52,6 +55,9 @@ export let skillLifecycleQueueProcessor = skillLifecycleQueue.process(async data
     );
   }
   await enqueueManagedSkillPluginLifecycle(data);
+  await enqueueSkillGroupPluginSync({
+    skillGroupIds: (skill?.skillGroupItems ?? []).map(item => item.skillGroup.id)
+  });
   await propagateSkillDirtyQueue.add(
     { skillId: data.skillId },
     getPropagationJobOpts('skill', data.skillId)

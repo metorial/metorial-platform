@@ -8,15 +8,14 @@ import {
   useEventDeliveries,
   useEventDestination
 } from '@metorial/state';
-import { Badge, Button, Callout, Entity, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Button, Callout, Entity, Spacer, Text } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
-import { EventDeliveriesSimpleTable } from '../../../scenes/callbacks/eventDeliveriesTable';
-import { EventDestinationListenersBox } from '../../../scenes/callbacks/listenersBox';
 import {
-  getEventDeliveryStatusColor,
-  getEventDeliveryStatusLabel
-} from '../../../scenes/callbacks/shared';
+  EventDeliveriesSimpleTable,
+  EventDeliveryFailuresList
+} from '../../../scenes/callbacks/eventDeliveriesTable';
+import { EventDestinationListenersBox } from '../../../scenes/callbacks/listenersBox';
 
 export let EventDestinationPage = () => {
   let organization = useCurrentOrganization();
@@ -75,32 +74,7 @@ export let EventDestinationPage = () => {
                   below for details.
                 </Callout>
                 <Spacer height={12} />
-                <Table
-                  headers={['Event', 'Status', 'Error', 'Occurred']}
-                  data={failedDeliveries.data.items.map(delivery => ({
-                    href: Paths.instance.eventDelivery(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      delivery.id
-                    ),
-                    data: [
-                      <Text key="event" size="2" weight="strong">
-                        {delivery.eventType}
-                      </Text>,
-                      <Badge key="status" color={getEventDeliveryStatusColor(delivery.status)}>
-                        {getEventDeliveryStatusLabel(delivery.status)}
-                      </Badge>,
-                      <Text key="error" size="2">
-                        {delivery.error?.message ?? delivery.error?.code ?? '-'}
-                      </Text>,
-                      <RenderDate
-                        key="occurred"
-                        date={delivery.lastAttemptAt ?? delivery.createdAt}
-                      />
-                    ]
-                  }))}
-                />
+                <EventDeliveryFailuresList deliveries={failedDeliveries.data.items} />
               </Box>
               <Spacer height={20} />
             </>
@@ -122,18 +96,14 @@ export let EventDestinationPage = () => {
           <Box
             title="Recent Events"
             description="The latest events sent or scheduled for this destination."
-            rightActions={
-              recentDeliveries.data.items.length ? (
-                <Link to={deliveriesPath}>
-                  <Button size="2" as="span" variant="outline">
-                    View All Deliveries
-                  </Button>
-                </Link>
-              ) : undefined
-            }
           >
             {recentDeliveries.data.items.length ? (
-              <EventDeliveriesSimpleTable deliveries={recentDeliveries.data.items} />
+              <EventDeliveriesSimpleTable
+                deliveries={recentDeliveries.data.items}
+                listVariant="preview"
+                listLimit={10}
+                viewAllHref={deliveriesPath}
+              />
             ) : (
               <Text size="2" color="gray600">
                 No events have been delivered to this endpoint yet.

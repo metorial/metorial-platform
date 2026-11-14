@@ -135,6 +135,15 @@ describe('magic MCP endpoint presentation', () => {
     }
   );
 
+  it('presents the explorer source of an endpoint', async () => {
+    let input = await hydrateResourceOwners({
+      magicMcpEndpoint: { ...magicMcpEndpoint(false), source: 'explorer', ownerActor: null }
+    });
+    let presented = await v1MagicMcpEndpointPresenter.present(input).run();
+
+    expect(presented.access.source).toBe('explorer');
+  });
+
   it('documents enable_skill_editing in the schema', () => {
     expect(v1MagicMcpEndpointPresenter.schema.properties).toHaveProperty(
       'enable_skill_editing'

@@ -40,6 +40,25 @@ let commandOptions: Record<
   tui: { values: ['ws', 'stack'] },
   job: { flags: ['no-color'], values: ['ws', 'stack'], min: 1 },
   open: { values: ['ws', 'stack'], max: 1 },
+  auth: {},
+  'auth login': {
+    flags: ['create', 'no-start'],
+    values: ['ws', 'stack', 'redirect', 'timeout'],
+    min: 1,
+    max: 1
+  },
+  user: {},
+  'user list': {
+    flags: ['json', 'no-start'],
+    values: ['ws', 'stack', 'search', 'limit', 'timeout'],
+    max: 0
+  },
+  'user get': {
+    flags: ['json', 'no-start'],
+    values: ['ws', 'stack', 'timeout'],
+    min: 1,
+    max: 1
+  },
   email: {},
   'email list': { values: ['ws', 'stack', 'start', 'limit'], max: 0 },
   'email open': { flags: ['html'], values: ['ws', 'stack'], min: 1, max: 1 },
@@ -115,7 +134,17 @@ let parseArgumentsUnchecked = (args: string[]): Arguments => {
     help: false,
     version: false
   };
-  let nested = new Set(['ci', 'db', 'docker', 'workspace', 'daemon', 'email', 'stack']);
+  let nested = new Set([
+    'ci',
+    'db',
+    'docker',
+    'workspace',
+    'daemon',
+    'auth',
+    'user',
+    'email',
+    'stack'
+  ]);
 
   for (let index = 0; index < args.length; index++) {
     let argument = args[index]!;
@@ -318,6 +347,8 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
     case 'tui':
     case 'job':
     case 'open':
+    case 'auth':
+    case 'user':
     case 'email':
     case 'sh':
     case 'daemon':

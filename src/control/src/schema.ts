@@ -184,7 +184,8 @@ export let manifestSchema = strictObject({
             menu: v.optional(str),
             path: v.optional(str)
           })
-        )
+        ),
+        dev_login: v.optional(strictObject({ path: str }))
       })
     )
   ),

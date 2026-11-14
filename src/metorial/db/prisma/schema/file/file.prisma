@@ -41,7 +41,7 @@ model File {
   delegatedContentUrlExpiresAt DateTime?
 
   fileName          String
-  fileSize          Int
+  fileSize          BigInt
   fileType          String
   isReadOnly        Boolean @default(false)
   isTemplateBacking Boolean @default(false)

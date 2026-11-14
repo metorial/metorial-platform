@@ -32,10 +32,17 @@ import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
   assertSkillMarketplaceDestinationSize,
   assertSkillMarketplacePluginLimit,
+  assertSkillMarketplaceSkillLimit,
   CargoSkillLimitError,
   generatedFilesPerSkillPlugin,
+  maxSkillPluginSkills,
+  sumSkillStoreSizes,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
+import {
+  getSkillGroupPluginTargetSkills,
+  reconcileSkillGroupPluginMembership
+} from '../lib/skillGroupPluginMembership';
 import {
   getArchivedMarketplacePluginSlug,
   getAvailableSkillPluginSlug,
@@ -87,6 +94,18 @@ export let skillPluginInclude = {
       id: true
     }
   },
+  skillGroupPlugin: {
+    include: {
+      skillGroup: {
+        select: {
+          oid: true,
+          id: true,
+          name: true,
+          status: true
+        }
+      }
+    }
+  },
   skillPluginSkills: {
     where: {
       status: 'active'
@@ -119,6 +138,21 @@ export let assertPluginIsNotManaged = (plugin: { isManaged: boolean }) => {
   throw new ServiceError(
     badRequestError({
       message: 'This plugin is managed and cannot be deleted'
+    })
+  );
+};
+
+export let assertPluginSkillsEditable = (plugin: {
+  isManaged: boolean;
+  skillGroupPlugin: { skillGroup: { id: string; name: string } } | null;
+}) => {
+  assertPluginIsNotManaged(plugin);
+  if (!plugin.skillGroupPlugin) return;
+
+  throw new ServiceError(
+    badRequestError({
+      code: 'skill_plugin_managed_by_skill_group',
+      message: `The skills of this plugin are synced from the skill group "${plugin.skillGroupPlugin.skillGroup.name}" (${plugin.skillGroupPlugin.skillGroup.id}). Add or remove skills in the group instead.`
     })
   );
 };
@@ -215,6 +249,7 @@ class SkillPluginServiceImpl {
       skillMarketplaceIds?: string[];
       skillMarketplacePluginIds?: string[];
       skillConfigurationIds?: string[];
+      skillGroupIds?: string[];
       statuses?: SkillPluginStatusFilter[];
       search?: string;
       category?: string;
@@ -263,6 +298,16 @@ class SkillPluginServiceImpl {
                 skillPlugins ? { oid: skillPlugins.in } : undefined!,
                 skillConfigurations
                   ? { skillConfigurationOid: skillConfigurations.in }
+                  : undefined!,
+                d.skillGroupIds
+                  ? {
+                      skillGroupPlugin: {
+                        skillGroup: {
+                          id: { in: d.skillGroupIds },
+                          instanceOid: d.instance.oid
+                        }
+                      }
+                    }
                   : undefined!,
                 skillMarketplaces || skillMarketplacePlugins
                   ? {
@@ -335,7 +380,8 @@ class SkillPluginServiceImpl {
     skillMarketplaceId?: string;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
-      name: string;
+      name?: string;
+      skillGroupId?: string;
       description?: string | null;
       longDescription?: string | null;
       category?: string | null;
@@ -345,7 +391,45 @@ class SkillPluginServiceImpl {
       skillConfigurationId?: string | null;
     };
   }) {
-    this.assertName(d.input.name);
+    if (d.accessTags && d.input.skillGroupId) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'Skill group plugins can only be created from the dashboard or with an API key.'
+        })
+      );
+    }
+
+    let skillGroup = d.input.skillGroupId
+      ? await db.skillGroup.findFirst({
+          where: {
+            id: d.input.skillGroupId,
+            instanceOid: d.instance.oid,
+            status: 'active'
+          }
+        })
+      : null;
+    if (d.input.skillGroupId && !skillGroup) {
+      throw new ServiceError(notFoundError('skill.group', d.input.skillGroupId));
+    }
+
+    let name = d.input.name ?? skillGroup?.name;
+    if (name === undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'name is required unless the plugin is created from a skill group.'
+        })
+      );
+    }
+    this.assertName(name);
+
+    let description =
+      d.input.description !== undefined
+        ? d.input.description
+        : (skillGroup?.description ?? null);
+    let skillGroupSkills = skillGroup
+      ? await getSkillGroupPluginTargetSkills({ skillGroupOid: skillGroup.oid })
+      : [];
 
     if (d.accessTags && !d.skillMarketplaceId) {
       throw new ServiceError(
@@ -377,22 +461,38 @@ class SkillPluginServiceImpl {
         skillMarketplace,
         accessTags: d.accessTags
       });
-      try {
+    }
+
+    try {
+      if (skillGroupSkills.length > maxSkillPluginSkills) {
+        throw new CargoSkillLimitError(
+          `Plugin skills cannot exceed ${maxSkillPluginSkills}; this skill group has ${skillGroupSkills.length}.`
+        );
+      }
+
+      if (skillMarketplace) {
+        let skillGroupSize = await sumSkillStoreSizes(skillGroupSkills);
+
         await assertSkillMarketplacePluginLimit({
           skillMarketplaceOid: skillMarketplace.oid,
           additionalCount: 1
         });
+        await assertSkillMarketplaceSkillLimit({
+          skillMarketplaceOid: skillMarketplace.oid,
+          additionalCount: skillGroupSkills.length
+        });
         await assertSkillMarketplaceDestinationSize({
           skillMarketplaceOid: skillMarketplace.oid,
-          additionalFiles: generatedFilesPerSkillPlugin
+          additionalFiles: generatedFilesPerSkillPlugin + skillGroupSize.files,
+          additionalBytes: skillGroupSize.bytes
         });
-      } catch (error) {
-        if (error instanceof CargoSkillLimitError) {
-          throw toCargoSkillLimitServiceError(error);
-        }
-
-        throw error;
       }
+    } catch (error) {
+      if (error instanceof CargoSkillLimitError) {
+        throw toCargoSkillLimitServiceError(error);
+      }
+
+      throw error;
     }
 
     let skillConfigurationOid =
@@ -425,7 +525,7 @@ class SkillPluginServiceImpl {
       let skillPlugin: SkillPluginRecord | undefined;
 
       for (let attempt = 0; attempt < slugAllocationAttempts; attempt++) {
-        let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
+        let slug = await getAvailableSkillPluginSlug(d.input.slug ?? name);
         // ON CONFLICT keeps the transaction usable when another create wins this slug.
         let created = await db.skillPlugin.createMany({
           skipDuplicates: true,
@@ -434,8 +534,8 @@ class SkillPluginServiceImpl {
             status: 'active',
             isManaged: false,
             providerOverrides: d.input.providerOverrides as any,
-            name: d.input.name,
-            description: d.input.description,
+            name,
+            description,
             longDescription: d.input.longDescription,
             category: d.input.category,
             slug,
@@ -483,6 +583,24 @@ class SkillPluginServiceImpl {
         });
       }
 
+      if (skillGroup) {
+        let skillGroupPlugin = await db.skillGroupPlugin.create({
+          data: {
+            id: await ID.generateId('skillGroupPlugin'),
+            skillGroupOid: skillGroup.oid,
+            skillPluginOid: skillPlugin.oid
+          }
+        });
+        await reconcileSkillGroupPluginMembership({
+          skillGroupPluginOid: skillGroupPlugin.oid
+        });
+
+        skillPlugin = await db.skillPlugin.findUniqueOrThrow({
+          where: { oid: skillPlugin.oid },
+          include: skillPluginInclude
+        });
+      }
+
       await Fabric.fire('skill.plugin.created:after', {
         organization,
         instance: d.instance,
@@ -490,7 +608,8 @@ class SkillPluginServiceImpl {
       });
       await Fabric.fire('skill.plugin.audit.created:after', {
         auditScope: d.auditScope,
-        skillPlugin
+        skillPlugin,
+        skillGroupId: skillGroup?.id ?? null
       });
 
       await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
@@ -501,7 +620,7 @@ class SkillPluginServiceImpl {
 
         for (let attempt = 0; attempt < slugAllocationAttempts; attempt++) {
           let pluginSlug = await getMarketplacePluginSlug(
-            { input: d.input.slug ?? d.input.name },
+            { input: d.input.slug ?? name },
             { skillMarketplaceId: skillMarketplace.id }
           );
           let result = await db.skillMarketplacePlugin.createMany({

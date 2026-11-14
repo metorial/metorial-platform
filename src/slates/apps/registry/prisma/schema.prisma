@@ -50,6 +50,8 @@ model SubRegistry {
   createdAt DateTime            @default(now())
   updatedAt DateTime            @default(now()) @updatedAt
   filters   SubRegistryFilter[]
+
+  slatePackChannel SlatePackChannel?
 }
 
 enum SubRegistryFilterType {
@@ -547,6 +549,33 @@ enum SlatePackImportStatus {
   failed
 }
 
+enum SlatePackKind {
+  incremental
+  full
+}
+
+enum SlatePackImportBatchStatus {
+  uploading
+  processing
+  completed
+}
+
+model SlatePackImportBatch {
+  oid    BigInt                     @id
+  id     String                     @unique
+  status SlatePackImportBatchStatus
+
+  expectedFileCount Int
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  completedAt DateTime?
+
+  imports SlatePackImport[]
+
+  @@index([status, createdAt])
+}
+
 model SlatePackImport {
   oid    BigInt                @id
   id     String                @unique
@@ -556,6 +585,19 @@ model SlatePackImport {
   size       BigInt
   bucket     String
   storageKey String
+
+  batchOid BigInt?
+  batch    SlatePackImportBatch? @relation(fields: [batchOid], references: [oid], onDelete: Cascade)
+
+  kind                 SlatePackKind?
+  channelUrl           String?
+  channelSubRegistryId String?
+  sequence             Int?
+  fullSyncId           String?
+  part                 Int?
+  partCount            Int?
+  coversSequence       Int?
+  manifestVerified     Boolean        @default(false)
 
   importedCount Int @default(0)
   skippedCount  Int @default(0)
@@ -570,6 +612,79 @@ model SlatePackImport {
 
   slateVersions SlateVersion[]
   results       MirrorResult[]
+
+  @@index([batchOid])
+  @@index([channelUrl, channelSubRegistryId, kind])
+}
+
+model MirrorPackChannel {
+  oid BigInt @id
+  id  String @unique
+
+  channelUrl    String
+  subRegistryId String
+
+  watermark Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([channelUrl, subRegistryId])
+}
+
+enum SlatePackReleaseStatus {
+  ready
+  pruned
+}
+
+model SlatePackChannel {
+  oid BigInt @id
+  id  String @unique
+
+  subRegistryOid BigInt      @unique
+  subRegistry    SubRegistry @relation(fields: [subRegistryOid], references: [oid], onDelete: Cascade)
+
+  feedCursorOid     BigInt?
+  lastSequence      Int       @default(0)
+  lastFullSyncAt    DateTime?
+  lastIncrementalAt DateTime?
+  lastBuildError    String?
+  lastBuildErrorAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  releases SlatePackRelease[]
+}
+
+model SlatePackRelease {
+  oid    BigInt                 @id
+  id     String                 @unique
+  status SlatePackReleaseStatus @default(ready)
+  kind   SlatePackKind
+
+  channelOid BigInt
+  channel    SlatePackChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  sequence       Int?
+  fullSyncId     String?
+  part           Int?
+  partCount      Int?
+  coversSequence Int?
+
+  fileName   String
+  entryCount Int
+  size       BigInt
+  sha256     String
+  bucket     String
+  storageKey String
+
+  createdAt DateTime  @default(now())
+  prunedAt  DateTime?
+
+  @@unique([channelOid, sequence])
+  @@unique([channelOid, fullSyncId, part])
+  @@index([channelOid, kind, status])
 }
 
 enum MirrorResultStatus {

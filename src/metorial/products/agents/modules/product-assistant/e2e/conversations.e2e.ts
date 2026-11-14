@@ -239,51 +239,53 @@ describe('module-product-assistant: conversations', () => {
     );
   });
 
-  it('does not expose a conversation to another tenant, even without an actor', async () => {
+  it('does not expose a conversation to another tenant', async () => {
     let fixture = await loadAssistantFixture(org.ids);
     let otherFixture = await loadAssistantFixture(otherOrg.ids);
     let title = uniqueId('private');
     let conversation = await createConversation(fixture, { title });
 
-    for (let actor of [otherFixture.resourceActor, undefined]) {
-      let scope = { project: otherFixture.project, instance: otherFixture.instance, actor };
+    let scope = {
+      project: otherFixture.project,
+      instance: otherFixture.instance,
+      actor: otherFixture.resourceActor
+    };
 
-      await expectServiceError(
-        productAssistantConversationService.getAssistantConversationById({
-          ...scope,
-          conversationId: conversation.id
-        }),
-        'not_found'
-      );
+    await expectServiceError(
+      productAssistantConversationService.getAssistantConversationById({
+        ...scope,
+        conversationId: conversation.id
+      }),
+      'not_found'
+    );
 
-      let listed = await firstPage(
-        await productAssistantConversationService.listAssistantConversations(scope)
-      );
-      expect(listed.map(item => item.id)).not.toContain(conversation.id);
+    let listed = await firstPage(
+      await productAssistantConversationService.listAssistantConversations(scope)
+    );
+    expect(listed.map(item => item.id)).not.toContain(conversation.id);
 
-      await expectServiceError(
-        productAssistantConversationService.updateAssistantConversation({
-          ...scope,
-          conversation,
-          input: { title: 'hijacked' }
-        }),
-        'not_found'
-      );
+    await expectServiceError(
+      productAssistantConversationService.updateAssistantConversation({
+        ...scope,
+        conversation,
+        input: { title: 'hijacked' }
+      }),
+      'not_found'
+    );
 
-      await expectServiceError(
-        productAssistantMessageService.listAssistantMessages({ ...scope, conversation }),
-        'not_found'
-      );
+    await expectServiceError(
+      productAssistantMessageService.listAssistantMessages({ ...scope, conversation }),
+      'not_found'
+    );
 
-      await expectServiceError(
-        productAssistantMessageService.getAssistantMessageById({
-          ...scope,
-          conversation,
-          messageId: conversation.rootMessage.id
-        }),
-        'not_found'
-      );
-    }
+    await expectServiceError(
+      productAssistantMessageService.getAssistantMessageById({
+        ...scope,
+        conversation,
+        messageId: conversation.rootMessage.id
+      }),
+      'not_found'
+    );
 
     let row = await db.productAssistantConversation.findUniqueOrThrow({
       where: { id: conversation.id }

@@ -17,7 +17,9 @@ let createCallback = (
     integrationProvider: {
       id: 'inp_1',
       currentVersion: {
-        authCredentials: authCredentialsOrigin ? { origin: authCredentialsOrigin } : null
+        authCredentials: authCredentialsOrigin
+          ? { id: 'par_1', origin: authCredentialsOrigin }
+          : null
       }
     },
     provider: {
@@ -32,6 +34,8 @@ let createCallback = (
     lastSyncErrorCode: null,
     lastSyncErrorMessage: null,
     lastSyncedAt: new Date('2026-01-01T00:00:00Z'),
+    triggerGroupSelections: null,
+    callbackInstances: [],
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z')
   }) as any;
@@ -58,6 +62,23 @@ describe('callback presentation', () => {
       expect(presented.auth_credentials_is_managed).toBe(expected);
     }
   );
+
+  it.each<['tenant_created' | null, string | null]>([
+    ['tenant_created', 'par_1'],
+    [null, null]
+  ])('presents the selected credentials for %s credentials', async (origin, expected) => {
+    let presented = await dashboardCallbackPresenter
+      .present(
+        { callback: createCallback(origin) },
+        {
+          apiVersion: 'mt_2025_01_01_dashboard',
+          accessType: 'user_auth_token'
+        }
+      )
+      .run();
+
+    expect(presented.auth_credentials_id).toBe(expected);
+  });
 
   it('keeps managed credential status out of the public callback shape', async () => {
     let presented = await v1CallbackPresenter

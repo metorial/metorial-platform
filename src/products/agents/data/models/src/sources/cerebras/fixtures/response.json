@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "id": "test-chat",
+      "pricing": {
+        "prompt": "0.00000035",
+        "completion": "0.00000075"
+      }
+    }
+  ]
+}

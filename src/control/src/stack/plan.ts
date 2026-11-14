@@ -169,6 +169,7 @@ let rootFor = (
 ): Environment => {
   let root = environment.rootEnvironment(project);
   delete root[environment.isolated];
+  if (mode === 'production') delete root[environment.devLoginSecretKey];
 
   for (let [name, port] of Object.entries(environment.defaultPorts))
     root[environment.portKey(name)] = String(port);

@@ -4,7 +4,7 @@ export * from './resource';
 export * from './skill';
 export * from './skillAccessGrant';
 export * from './skillAgent';
+export * from './skillContentPreview';
 export * from './skillFile';
 export * from './skillItem';
-export * from './skillParticipant';
 export * from './skillVersion';

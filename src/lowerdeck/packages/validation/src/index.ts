@@ -6,6 +6,7 @@
 
 export * from './lib/introspect';
 export * from './lib/types';
+export * from './lib/typescript';
 export * from './lib/validator';
 
 import * as introspect from './lib/introspect';

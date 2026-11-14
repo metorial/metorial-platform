@@ -1,5 +1,6 @@
 import { median } from '../lib/util';
 import type { Catalog, NameTarget, Pricing } from '../types';
+import { normalizeAgentKey } from './agents';
 
 let outlierFactor = 5;
 let outlierMinOfferings = 3;
@@ -21,7 +22,13 @@ let pricesOf = (pricing: Pricing | null) => {
   if (!pricing) return [];
 
   let values: number[] = [];
-  for (let rates of [pricing.text, pricing.image, pricing.audio, pricing.video]) {
+  for (let rates of [
+    pricing.text,
+    pricing.image,
+    pricing.audio,
+    pricing.video,
+    ...(pricing.conditions ?? []).map(condition => condition.rates)
+  ]) {
     if (!rates) continue;
     values.push(
       ...[rates.input, rates.output, rates.cacheRead, rates.reasoning].filter(
@@ -148,6 +155,29 @@ export let validateCatalog = (catalog: Catalog): ValidationResult => {
   }
 
   for (let name of catalog.names) checkTarget(`name ${name.id}`, name.target);
+
+  let agents = ids('agent', catalog.agents);
+  let agentKeys = new Map<string, string>();
+
+  for (let agent of catalog.agents) {
+    let owner = `agent ${agent.id}`;
+    if (!organizations.has(agent.makerId))
+      errors.push(`${owner} has missing maker ${agent.makerId}`);
+    if (agent.derivedFrom && !agents.has(agent.derivedFrom))
+      errors.push(`${owner} derives from missing agent ${agent.derivedFrom}`);
+    for (let link of agent.vendors)
+      if (!vendors.has(link.vendorId))
+        errors.push(`${owner} links missing vendor ${link.vendorId}`);
+    if (agent.vendors.filter(link => link.role === 'default').length > 1)
+      errors.push(`${owner} has more than one default vendor`);
+
+    for (let key of new Set([agent.id, ...agent.aliases].map(normalizeAgentKey))) {
+      let claimed = agentKeys.get(key);
+      if (claimed && claimed !== agent.id)
+        errors.push(`${owner} alias ${key} is already used by agent ${claimed}`);
+      agentKeys.set(key, claimed ?? agent.id);
+    }
+  }
 
   for (let offering of catalog.offerings) {
     let input = offering.pricing?.text?.input;

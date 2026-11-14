@@ -12,12 +12,15 @@ import {
   useDashboardFlags,
   useProviderAuthMethod
 } from '@metorial/state';
-import { Button, Callout, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { Button, Callout, Entity, Flex, Spacer, Text } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { EventDeliveryBox } from '../../../scenes/callbacks/listenersBox';
-import { ProviderWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
+import { CallbackWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
+import { ChatsTable } from '../../../scenes/chat/chatsTable';
+import { ChatInvocationFailuresTable } from '../../../scenes/chat/eventsTable';
+import { ChatInstancesTable } from '../../../scenes/chat/instancesTable';
 import { showChatInstanceCreateProviderPanelFlow } from '../../../scenes/chat/instanceConfigPanel';
 import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
 
@@ -117,49 +120,28 @@ export let ChatConnectionOverviewPage = () => {
               <Box
                 title="Recent Invocation Failures"
                 description="Failed chat invocations recorded during the last 7 days."
-                rightActions={
-                  <Link to={failedEventsPath}>
-                    <Button size="2" as="span" variant="outline">
-                      View All Events
-                    </Button>
-                  </Link>
-                }
               >
                 <Callout color="red">
                   Some chat invocations failed during the last 7 days. Review the events below
                   for details.
                 </Callout>
                 <Spacer height={12} />
-                <Table
-                  headers={['Operation', 'Error', 'Occurred']}
-                  data={failedInvocationEvents.data.items.map(event => ({
-                    href: Paths.instance.chatEvent(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      event.id
-                    ),
-                    data: [
-                      <Text key="operation" size="2" weight="strong">
-                        {event.error?.operation ?? '-'}
-                      </Text>,
-                      <Text key="error" size="2">
-                        {event.error?.message ?? event.error?.code ?? '-'}
-                      </Text>,
-                      <RenderDate key="occurred" date={event.occurredAt} />
-                    ]
-                  }))}
+                <ChatInvocationFailuresTable
+                  instanceId={instance.data!.id}
+                  chatConnectionId={chatConnection.data.id}
+                  viewAllHref={failedEventsPath}
                 />
               </Box>
               <Spacer height={20} />
             </>
           ) : null}
 
-          {provider?.manualWebhookTriggerGroups.length &&
-          !provider.authCredentialsIsManaged ? (
-            <ProviderWebhookRegistrationsBox
+          {provider ? (
+            <CallbackWebhookRegistrationsBox
               instanceId={instance.data!.id}
-              provider={{ id: provider.provider.id, name: provider.provider.name }}
+              providerId={provider.provider.id}
+              authCredentialsId={provider.authCredentialsId}
+              authCredentialsIsManaged={provider.authCredentialsIsManaged}
             />
           ) : null}
 
@@ -178,34 +160,14 @@ export let ChatConnectionOverviewPage = () => {
           <Box
             title="Recent Instances"
             description="Chat accounts configured for this connection."
-            rightActions={
-              chatInstances.data.items.length ? (
-                <Link to={instancesPath}>
-                  <Button size="2" as="span" variant="outline">
-                    View All Instances
-                  </Button>
-                </Link>
-              ) : undefined
-            }
           >
             {chatInstances.data.items.length ? (
-              <Table
-                headers={['Name', 'Created', 'ID']}
-                data={chatInstances.data.items.slice(0, 10).map(chatInstance => ({
-                  href: Paths.instance.chatInstance(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    chatInstance.id
-                  ),
-                  data: [
-                    <Text key="name" size="2" weight="strong">
-                      {chatInstance.name}
-                    </Text>,
-                    <RenderDate key="created" date={chatInstance.createdAt} />,
-                    <ID key="id" id={chatInstance.id} />
-                  ]
-                }))}
+              <ChatInstancesTable
+                instanceId={instance.data!.id}
+                chatConnectionId={chatConnection.data.id}
+                listVariant="preview"
+                listLimit={10}
+                viewAllHref={instancesPath}
               />
             ) : (
               <Flex align="center" justify="space-between" gap={12}>
@@ -232,34 +194,14 @@ export let ChatConnectionOverviewPage = () => {
           <Box
             title="Recent Chats"
             description="The latest chats connected through this connection."
-            rightActions={
-              chats.data.items.length ? (
-                <Link to={chatsPath}>
-                  <Button size="2" as="span" variant="outline">
-                    View All Chats
-                  </Button>
-                </Link>
-              ) : undefined
-            }
           >
             {chats.data.items.length ? (
-              <Table
-                headers={['Name', 'Created', 'ID']}
-                data={chats.data.items.slice(0, 10).map(chat => ({
-                  href: Paths.instance.chat(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    chat.id
-                  ),
-                  data: [
-                    <Text key="name" size="2" weight="strong">
-                      {chat.name}
-                    </Text>,
-                    <RenderDate key="created" date={chat.createdAt} />,
-                    <ID key="id" id={chat.id} />
-                  ]
-                }))}
+              <ChatsTable
+                instanceId={instance.data!.id}
+                chatConnectionId={chatConnection.data.id}
+                listVariant="preview"
+                listLimit={10}
+                viewAllHref={chatsPath}
               />
             ) : (
               <Text size="2" color="gray600">

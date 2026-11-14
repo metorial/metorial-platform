@@ -5,6 +5,10 @@ let mocks = vi.hoisted(() => ({
   providerUseUpsert: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-security-review-request', () => ({
+  requestSecurityReview: vi.fn()
+}));
+
 vi.mock('@lowerdeck/queue', () => ({
   createQueue: vi.fn(() => ({
     add: vi.fn(),

@@ -1,0 +1,20 @@
+{
+  "name": "@metorial/skill-icons",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "generate": "bun scripts/generate.tsx",
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "@remixicon/react": "^4.9.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

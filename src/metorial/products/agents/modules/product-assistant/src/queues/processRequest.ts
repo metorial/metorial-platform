@@ -5,8 +5,9 @@ import { type Model } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import type { Agent } from '../lib/open-harness';
 import type { AgentRunUsage } from '../lib/run';
-import { AgentRun } from '../lib/run';
-import { reducedSubprocessorsErrorMessage } from '../lib/reducedSubprocessors';
+import { AgentRun, getAgentRunExtensions } from '../lib/run';
+import { assertAiChatAllowed } from '../lib/reducedSubprocessors';
+import { watchAssistantRunCancel } from '../lib/run/cancel';
 import { createAssistantRunDeltaPublisher } from '../lib/run/redisDeltas';
 import type { InputMessage, State } from '../types';
 
@@ -29,6 +30,7 @@ let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value == 'object' && !Array.isArray(value);
 
 let errorMessage = (error: unknown) => {
+  if (error instanceof ServiceError) return error.data.message;
   if (error instanceof Error) return error.message;
   if (typeof error == 'string') return error;
   if (isRecord(error) && typeof error.message == 'string') return error.message;
@@ -182,11 +184,10 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
     });
 
     let agent: Agent | null = null;
+    let cancelWatcher: Awaited<ReturnType<typeof watchAssistantRunCancel>> | null = null;
 
     try {
-      if (conversation.project.reducedSubprocessors) {
-        throw new Error(reducedSubprocessorsErrorMessage);
-      }
+      assertAiChatAllowed(conversation.project);
 
       let definition = await getAssistantDefinition(
         conversation.assistant.implementation.slug
@@ -203,6 +204,8 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
 
       agent = await getAgent({
         input: assistantImplementation.input ? conversation.input : undefined,
+        requestInput: assistantImplementation.requestInput ? request.input : undefined,
+        actor: request.resourceActor,
         model,
         project: conversation.project,
         instance: conversation.instance,
@@ -220,6 +223,11 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         assistantImplementation._persisted,
         assistantImplementation
       );
+      cancelWatcher = await watchAssistantRunCancel({
+        requestId: request.id,
+        onCancel: () => runner.abortController.abort()
+      });
+
       let result =
         data.handoffResponses?.length && existingAssistantMessage
           ? await runner.resume({
@@ -237,10 +245,12 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             });
       let completedAt = new Date();
       let cost = calculateCost(result.usage, model);
+      let requestStatus: 'completed' | 'waiting_for_user' | 'cancelled' =
+        cancelWatcher.cancelled ? 'cancelled' : result.status;
 
       await withTransaction(async tx => {
         let messageStatus: ProductAssistantMessageStatus =
-          result.status == 'waiting_for_user' ? 'waiting_for_user' : 'completed';
+          requestStatus == 'waiting_for_user' ? 'waiting_for_user' : 'completed';
         let assistantMessage = existingAssistantMessage
           ? await tx.productAssistantMessage.update({
               where: {
@@ -283,7 +293,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             oid: request.oid
           },
           data: {
-            status: result.status
+            status: requestStatus
           }
         });
 
@@ -292,12 +302,12 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             oid: run.oid
           },
           data: {
-            status: result.status,
+            status: requestStatus,
             cost,
             metadata: {
               ...result.metadata,
               startedAt: startedAt.toISOString(),
-              ...(result.status == 'completed'
+              ...(requestStatus != 'waiting_for_user'
                 ? { completedAt: completedAt.toISOString() }
                 : {}),
               durationMs: completedAt.getTime() - startedAt.getTime(),
@@ -307,10 +317,14 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         });
       });
       await publisher.markDone({
-        status: result.status
+        status: requestStatus
       });
     } catch (error) {
       if (error instanceof QueueRetryError) throw error;
+
+      let failedStatus: 'failed' | 'cancelled' = cancelWatcher?.cancelled
+        ? 'cancelled'
+        : 'failed';
 
       await withTransaction(async tx => {
         await tx.productAssistantRequest.update({
@@ -318,7 +332,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             oid: request.oid
           },
           data: {
-            status: 'failed'
+            status: failedStatus
           }
         });
 
@@ -327,7 +341,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             oid: run.oid
           },
           data: {
-            status: 'failed',
+            status: failedStatus,
             cost: zeroCost,
             metadata: {
               startedAt: startedAt.toISOString(),
@@ -340,9 +354,17 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         });
       });
       await publisher.markDone({
-        status: 'failed'
+        status: failedStatus
       });
     } finally {
+      await cancelWatcher?.close();
+
+      if (agent) {
+        for (let extension of getAgentRunExtensions(agent)) {
+          await Promise.resolve(extension.close?.()).catch(() => {});
+        }
+      }
+
       await agent?.close();
       await publisher.close();
     }

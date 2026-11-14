@@ -33,7 +33,7 @@ export let getCachedContentHashes = (file: ContentHashFile): ContentHashes | nul
     sha256: file.contentSha256!,
     gitBlobSha: file.contentGitBlobSha!,
     crc32: Number(file.contentCrc32!),
-    size: file.fileSize
+    size: Number(file.fileSize)
   };
 };
 
@@ -76,7 +76,7 @@ export let persistContentHashes = async (d: {
 }) => {
   let columns = getContentHashColumns({
     storeId: d.file.storeId,
-    size: d.file.fileSize,
+    size: Number(d.file.fileSize),
     hashes: d.hashes
   });
   if (!columns) return false;

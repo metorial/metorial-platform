@@ -6,12 +6,22 @@ export let v1SkillAccessPresenter = Presenter.create(skillAccessType)
   .presenter(async ({ skill, grants }) => ({
     object: 'skill.access',
     skill_id: skill.id,
-    grants: grants.map(({ level, accessTag }) => {
+    grants: grants.map(({ level, accessTag, inheritedFrom }) => {
       let consumerProfile =
         accessTag.consumerGroup?.personalOwner ?? accessTag.consumerProfile;
       let consumerGroup = accessTag.consumerGroup?.personalOwner
         ? null
         : accessTag.consumerGroup;
+
+      let source: {
+        type: 'direct' | 'skill_group';
+        skill_group: { id: string; name: string } | null;
+      } = inheritedFrom
+        ? {
+            type: 'skill_group',
+            skill_group: { id: inheritedFrom.id, name: inheritedFrom.name }
+          }
+        : { type: 'direct', skill_group: null };
 
       return {
         object: 'skill.access_grant' as const,
@@ -25,7 +35,8 @@ export let v1SkillAccessPresenter = Presenter.create(skillAccessType)
           consumer_profile_id: consumerProfile?.id ?? null,
           consumer_group_id: consumerGroup?.id ?? null,
           name: consumerProfile?.name ?? consumerGroup?.name ?? null
-        }
+        },
+        source
       };
     })
   }))
@@ -44,7 +55,27 @@ export let v1SkillAccessPresenter = Presenter.create(skillAccessType)
             consumer_profile_id: v.nullable(v.string()),
             consumer_group_id: v.nullable(v.string()),
             name: v.nullable(v.string())
-          })
+          }),
+          source: v.object(
+            {
+              type: v.enumOf(['direct', 'skill_group'], {
+                description:
+                  'Whether access was granted on the skill itself or is inherited from a skill group that contains it.'
+              }),
+              skill_group: v.nullable(
+                v.object(
+                  {
+                    id: v.string({
+                      description: 'The skill group the access is inherited from.'
+                    }),
+                    name: v.string({ description: 'The name of the skill group.' })
+                  },
+                  { description: 'Set when the access is inherited from a skill group.' }
+                )
+              )
+            },
+            { description: 'Where this access grant comes from.' }
+          )
         })
       )
     })

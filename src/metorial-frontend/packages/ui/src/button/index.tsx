@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'react-feather';
 import { styled } from 'styled-components';
 import _useDelayed from 'use-delayed';
+import { useControlSize } from '../controlSize';
 import { Menu, MenuProps } from '../menu';
 import { Skeleton } from '../skeleton';
 import { Spinner } from '../spinner';
@@ -108,10 +109,29 @@ let Content = styled('span')`
   font-weight: 500;
 `;
 
+/**
+ * Button
+ *
+ * Icons:
+ * - `icon` is an alias for `iconRight`. If both are passed, `iconRight` wins.
+ * - `iconLeft` / `iconRight` / `icon` take a rendered element (e.g. `<Plus />`); the
+ *   button sizes it to 16px, so don't pass a size.
+ *
+ * Text + icon: pass the label as `children` and the icon via a prop.
+ *   <Button iconLeft={<Plus />}>Create Thing</Button>
+ *   <Button icon={<ArrowRight />}>Continue</Button>
+ *
+ * Icon-only: pass the icon and NO children. The button becomes a square
+ * (width = height). Never put the icon in `children`, and always add an `aria-label`
+ * (the icon has no text, so screen readers would announce an unnamed button). Add `title`
+ * as well so sighted users get a hover tooltip.
+ *   <Button icon={<Trash />} aria-label="Delete thing" title="Delete thing" />
+ */
 export let Button = React.forwardRef(
   (
     {
       children,
+      icon,
       iconLeft,
       iconRight,
       loading,
@@ -120,7 +140,7 @@ export let Button = React.forwardRef(
       fullWidth,
       variant,
       color,
-      size,
+      size: sizeProp,
       shadow,
       onHover,
       menu,
@@ -128,6 +148,7 @@ export let Button = React.forwardRef(
       ...props
     }: {
       children?: React.ReactNode;
+      icon?: React.ReactNode;
       iconLeft?: React.ReactNode;
       iconRight?: React.ReactNode;
       loading?: boolean;
@@ -144,6 +165,8 @@ export let Button = React.forwardRef(
     let [isHovered, setIsHovered] = useState(false);
     useEffect(() => onHover?.(), [isHovered]);
     let isMouseOverRef = useRef(false);
+
+    let size = useControlSize(sizeProp);
 
     let style = getButtonStyles({
       color,
@@ -261,7 +284,7 @@ export let Button = React.forwardRef(
         >
           {iconLeft && <Icon>{iconLeft}</Icon>}
           {children && <Content>{children}</Content>}
-          {iconRight && <Icon>{iconRight}</Icon>}
+          {(iconRight ?? icon) && <Icon>{iconRight ?? icon}</Icon>}
         </Inner>
       </Wrapper>
     );

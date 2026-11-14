@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
+  useMetorialAssistantEnabled,
   conversationsLoader,
   useConversationHistory,
   useCurrentInstance,
@@ -135,9 +136,7 @@ let getModelOptions = (
 
 let getComposerParentMessageId = (d: {
   referenceMessage:
-    | ReturnType<typeof useConversationHistory>['referenceMessage']
-    | null
-    | undefined;
+    ReturnType<typeof useConversationHistory>['referenceMessage'] | null | undefined;
   rootMessageId: string | null | undefined;
 }) => {
   if (!d.referenceMessage) return d.rootMessageId ?? null;
@@ -148,7 +147,7 @@ let getComposerParentMessageId = (d: {
   return null;
 };
 
-export let AssistantConversationScene = (p: {
+let AssistantConversationSceneInner = (p: {
   assistantConversationId?: string;
   initialPrompt?: string;
   initialModelId?: string;
@@ -575,4 +574,13 @@ export let AssistantConversationScene = (p: {
       </ConversationLayout>
     </ConversationScrollContainer>
   ));
+};
+
+export let AssistantConversationScene = (
+  p: Parameters<typeof AssistantConversationSceneInner>[0]
+) => {
+  let enabled = useMetorialAssistantEnabled();
+  if (!enabled) return null;
+
+  return <AssistantConversationSceneInner {...p} />;
 };

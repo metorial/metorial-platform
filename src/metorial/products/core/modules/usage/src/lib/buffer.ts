@@ -83,6 +83,7 @@ export let bufferUsageEvent = async (event: UsageEvent) => {
     event.durationMs === undefined || event.durationMs === null || event.durationMs < 0
       ? -1
       : Math.round(event.durationMs);
+  let count = event.count ?? 1;
 
   try {
     let client = await getRedis();
@@ -92,8 +93,8 @@ export let bufferUsageEvent = async (event: UsageEvent) => {
       arguments: [
         encodeUsageBucketKey(event),
         String(minute),
-        '1',
-        event.isError ? '1' : '0',
+        String(count),
+        event.isError ? String(count) : '0',
         String(duration),
         String(BUCKET_TTL_SECONDS)
       ]

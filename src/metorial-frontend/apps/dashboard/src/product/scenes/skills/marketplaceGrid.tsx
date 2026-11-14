@@ -1,19 +1,23 @@
-import type { DashboardInstanceSkillsMarketplacesListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import type {
+  DashboardInstanceSkillsMarketplacesListOutput,
+  DashboardInstanceSkillsMarketplacesListQuery
+} from '@metorial/dashboard-sdk';
+import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useSkillMarketplaces
-} from '@metorial/state';
-import { Avatar, Text, theme } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
+import { useSkillMarketplaces } from '@metorial/state';
+import { Avatar, Text } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { useInstanceContext } from '../../lib/dataList';
 import { showSkillMarketplaceFormModal } from './marketplaceModal';
 
+type Marketplace = DashboardInstanceSkillsMarketplacesListOutput['items'][number];
+
+export type SkillMarketplaceFilters = Omit<
+  DashboardInstanceSkillsMarketplacesListQuery,
+  'after' | 'before' | 'cursor' | 'limit'
+>;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -22,126 +26,132 @@ let Description = styled.span`
   -webkit-box-orient: vertical;
 `;
 
+let getActivePlugins = (marketplace: Marketplace) =>
+  marketplace.plugins.filter(plugin => plugin.status === 'active');
+
+let getActiveSkillCount = (marketplace: Marketplace) =>
+  getActivePlugins(marketplace)
+    .flatMap(plugin => plugin.skillPlugin?.skills ?? [])
+    .filter(skill => skill.status === 'active').length;
+
+export let SkillMarketplacesEmptyState = (p: {
+  getHref?: (marketplaceId: string) => string;
+}) => {
+  let ctx = useInstanceContext();
+  let navigate = useNavigate();
+
+  return (
+    <EmptyState
+      extra="Skill Marketplaces"
+      title="Create your first marketplace"
+      description="Marketplaces let you publish selected plugins and skills for your team."
+      action={{
+        label: 'Create Marketplace',
+        onClick: () => {
+          if (!ctx.instanceId) return;
+
+          showSkillMarketplaceFormModal({
+            instanceId: ctx.instanceId,
+            onCreate: marketplace =>
+              navigate(
+                p.getHref?.(marketplace.id) ??
+                  Paths.instance.skillMarketplace(
+                    ctx.organization,
+                    ctx.project,
+                    ctx.instance,
+                    marketplace.id
+                  )
+              )
+          });
+        }
+      }}
+    />
+  );
+};
+
+export let SkillMarketplacesList = createDataList<{
+  instanceId?: string;
+  getHref?: (marketplaceId: string) => string;
+  filters?: SkillMarketplaceFilters;
+}>('skill-marketplaces')
+  .context(useInstanceContext)
+  .filters(() => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search marketplaces…')
+  .paginated(({ props, ctx, filters, search }) =>
+    useSkillMarketplaces(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(
+        { order: 'desc' as const, status: ['active' as const], limit: 21, ...props.filters },
+        { ...filters, search: search ?? props.filters?.search }
+      )
+    )
+  )
+  .columns([
+    col.name<Marketplace>(),
+    col.count<Marketplace>('plugins', row => getActivePlugins(row).length, 'plugin', {
+      header: 'Plugins'
+    }),
+    col.count<Marketplace>('skills', getActiveSkillCount, 'skill', {
+      header: 'Skills',
+      isDefault: false
+    }),
+    col.createdAt<Marketplace>(),
+    col.id<Marketplace>({ isDefault: true }),
+    col.status<Marketplace, any>(lifecycleStatus, { isDefault: false }),
+    col.updatedAt<Marketplace>()
+  ])
+  .link((row, props, ctx) =>
+    props.getHref
+      ? props.getHref(row.id)
+      : Paths.instance.skillMarketplace(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .item(marketplace => ({
+    title: marketplace.name,
+    description: <Description>{marketplace.description}</Description>,
+    icon: (
+      <Avatar
+        entity={{
+          name: marketplace.name,
+          photoUrl: marketplace.imageUrl ?? undefined,
+          imageUrl: `https://avatar-cdn.metorial.com/${marketplace.id}`
+        }}
+        size={30}
+        imageFit="contain"
+      />
+    ),
+    footer: <Text size="1">{marketplace.id}</Text>,
+    height: 200
+  }))
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .build();
+
 export let SkillMarketplacesGrid = (
   p: {
     instanceId: string;
     getHref?: (marketplaceId: string) => string;
     hideCreate?: boolean;
-  } & Omit<
-    DashboardInstanceSkillsMarketplacesListQuery,
-    'after' | 'before' | 'cursor' | 'limit'
-  >
+    layout?: 'table' | 'grid';
+  } & SkillMarketplaceFilters
 ) => {
-  let { instanceId, getHref, hideCreate, ...query } = p;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let navigate = useNavigate();
-  let marketplaces = useSkillMarketplaces(instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 21,
-    ...query
-  });
-  let hasActiveFilters = !!(
-    query.search ||
-    query.createdAt ||
-    query.updatedAt ||
-    (Array.isArray(query.status) ? query.status.length > 0 : query.status)
+  let { instanceId, getHref, hideCreate, layout, ...filters } = p;
+
+  return (
+    <SkillMarketplacesList
+      instanceId={instanceId}
+      getHref={getHref}
+      filters={filters}
+      listLayout={layout}
+      hideToolbar={layout != 'table'}
+      emptyState={{
+        initial: hideCreate
+          ? 'No skill marketplaces yet.'
+          : () => <SkillMarketplacesEmptyState getHref={getHref} />,
+        filtered: 'No marketplaces match the current filters.'
+      }}
+    />
   );
-
-  let marketplaceHref = (marketplaceId: string) =>
-    getHref?.(marketplaceId) ??
-    Paths.instance.skillMarketplace(
-      organization.data,
-      project.data,
-      instance.data,
-      marketplaceId
-    );
-
-  let showCreateModal = () => {
-    if (!instance.data || hideCreate) return;
-
-    showSkillMarketplaceFormModal({
-      instanceId: instance.data.id,
-      onCreate: marketplace => {
-        navigate(marketplaceHref(marketplace.id));
-      }
-    });
-  };
-
-  return renderWithPagination(marketplaces, {
-    emptyState: (
-      <>
-        {query.search && (
-          <Text size="2" color="gray600">
-            No marketplaces found.
-          </Text>
-        )}
-
-        {!hasActiveFilters && !hideCreate && (
-          <EmptyState
-            extra="Skill Marketplaces"
-            title="Create your first marketplace"
-            description="Marketplaces let you publish selected plugins and skills for your team."
-            action={{
-              label: 'Create Marketplace',
-              onClick: showCreateModal
-            }}
-          />
-        )}
-
-        {!hasActiveFilters && hideCreate && (
-          <Text size="2" color="gray600">
-            No skill marketplaces yet.
-          </Text>
-        )}
-
-        {!query.search && hasActiveFilters && (
-          <Text size="2" color="gray600">
-            No marketplaces match the current filters.
-          </Text>
-        )}
-      </>
-    )
-  })(marketplaces => (
-    <>
-      {marketplaces.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
-          {marketplaces.data.items.map(marketplace => {
-            let plugins = marketplace.plugins.filter(plugin => plugin.status === 'active');
-            let skills = plugins
-              .flatMap(plugin => plugin.skillPlugin?.skills ?? [])
-              .filter(skill => skill.status === 'active');
-
-            return (
-              <ItemGrid.Item
-                key={marketplace.id}
-                href={marketplaceHref(marketplace.id)}
-                entity={{ id: marketplace.id, hasUsage: true }}
-                title={marketplace.name}
-                description={<Description>{marketplace.description}</Description>}
-                variant="v2"
-                height={200}
-                icon={
-                  <Avatar
-                    entity={{
-                      name: marketplace.name,
-                      photoUrl: marketplace.imageUrl ?? undefined,
-                      imageUrl: `https://avatar-cdn.metorial.com/${marketplace.id}`
-                    }}
-                    size={30}
-                    imageFit="contain"
-                  />
-                }
-                bottom={
-                  <Text size="1">{marketplace.id}</Text>
-                }
-              />
-            );
-          })}
-        </ItemGrid.Root>
-      )}
-    </>
-  ));
 };

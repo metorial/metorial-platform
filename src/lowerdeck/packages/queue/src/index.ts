@@ -2,6 +2,7 @@ import type { IQueueProcessor } from './types';
 
 export type { BullMqCreateOptions, BullMqQueueOptions } from './drivers/bullmq';
 export * from './lib/createQueue';
+export * from './lib/databaseConflict';
 export * from './lib/deleteInChunks';
 export * from './lib/objectDeleteQueue';
 export * from './lib/pacedDelay';

@@ -940,6 +940,7 @@ enum ConsumerAccessTargetType {
 
 enum ConsumerAccessLevel {
   read
+  write
   manage
 }
 
@@ -999,6 +1000,8 @@ model ConsumerAccessListing {
   name        String
   description String?
   readme      String?
+
+  isDiscoverable Boolean @default(true)
 
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)
@@ -2297,6 +2300,9 @@ model DocumentContent {
   cargoOid BigInt? @unique
   content  String
 
+  /// [DocumentAnnotations]
+  annotations Json?
+
   documents        Document[]
   documentVersions DocumentVersion[]
 }
@@ -2352,6 +2358,7 @@ model Document {
   mergeRequestItemsAsBaseDocument   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseDocument")
   mergeRequestItemsAsSourceDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceDocument")
   mergeRequestItemsAsTargetDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetDocument")
+  commentThreads                    DocumentCommentThread[]
 
   @@index([resourceTenantOid, resourceGroupOid])
   @@index([resourceTenantOid, resourceGroupOid, isTemplateBacking])
@@ -2458,6 +2465,63 @@ model DocumentVersionEditors {
   @@unique([documentVersionOid, resourceActorOid])
 }
 
+enum DocumentCommentThreadStatus {
+  open
+  resolved
+}
+
+enum DocumentCommentThreadAnchorStatus {
+  attached
+  detached
+}
+
+model DocumentCommentThread {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status       DocumentCommentThreadStatus       @default(open)
+  anchorStatus DocumentCommentThreadAnchorStatus @default(attached)
+  quote        String
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  createdByResourceActorOid BigInt
+  createdByResourceActor    ResourceActor @relation("DocumentCommentThreadCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: Cascade)
+
+  resolvedByResourceActorOid BigInt?
+  resolvedByResourceActor    ResourceActor? @relation("DocumentCommentThreadResolver", fields: [resolvedByResourceActorOid], references: [oid], onDelete: SetNull)
+
+  resolvedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  comments DocumentComment[]
+
+  @@index([documentOid, createdAt])
+}
+
+model DocumentComment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  body String
+
+  threadOid BigInt
+  thread    DocumentCommentThread @relation(fields: [threadOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([threadOid, createdAt])
+}
+
 enum FilePurposeOwnerType {
   user
   organization
@@ -2501,7 +2565,7 @@ model File {
   delegatedContentUrlExpiresAt DateTime?
 
   fileName          String
-  fileSize          Int
+  fileSize          BigInt
   fileType          String
   isReadOnly        Boolean @default(false)
   isTemplateBacking Boolean @default(false)
@@ -2934,6 +2998,7 @@ enum StoreParticipantPermissions {
 
 enum StoreParticipantRole {
   creator
+  owner
   editor
   viewer
   user
@@ -2974,7 +3039,8 @@ model StoreParticipantActor {
   id  String @unique
 
   roles       StoreParticipantRole[]        @default([])
-  permissions StoreParticipantPermissions[]
+  /// No longer read or written. Store access is granted through access tags on the store.
+  permissions StoreParticipantPermissions[] @ignore
 
   storeOid BigInt
   store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
@@ -3031,7 +3097,7 @@ model FileUpload {
   storeId String @unique
 
   fileName String
-  fileSize Int
+  fileSize BigInt
   fileType String
   title    String?
 
@@ -5427,7 +5493,11 @@ model Project {
   allowConsumerSkillEditing              Boolean @default(true)
   allowOrganizationMemberFullSkillAccess Boolean @default(false)
 
-  reducedSubprocessors Boolean @default(false)
+  reducedSubprocessors   Boolean @default(false)
+  assistantEnabled       Boolean @default(true)
+  aiAnalysisEnabled      Boolean @default(false)
+  usageReviewsEnabled    Boolean @default(false)
+  skillReviewHoldPending Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)
   allowMemberAccessToConsumerOwnedResources Boolean @default(true)
@@ -5918,6 +5988,9 @@ model ProductAssistantRequest {
   message    ProductAssistantMessage @relation("ProductAssistantRequestParentMessage", fields: [messageOid], references: [oid], onDelete: Cascade)
 
   historySize Int?
+
+  /// [ProductAssistantRequestInput]
+  input Json?
 
   resourceActorOid BigInt?
   resourceActor    ResourceActor? @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
@@ -6895,6 +6968,12 @@ model SkillAgent {
   updatedAt  DateTime  @default(now()) @updatedAt
 }
 
+enum SkillSecurityReviewPolicy {
+  off
+  warn
+  block
+}
+
 model SkillConfiguration {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -6905,6 +6984,8 @@ model SkillConfiguration {
   allowScripts                Boolean  @default(true)
   allowedFileExtensions       String[] @default([])
   allowNonStandardDirectories Boolean  @default(true)
+
+  securityReviewPolicy SkillSecurityReviewPolicy @default(off)
 
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
@@ -7072,6 +7153,8 @@ model SkillGroup {
   name        String
   description String?
   metadata    Json?
+  /// [EntityImage]
+  image       Json?
 
   allowConsumerSkillAssignment Boolean @default(true)
 
@@ -7089,6 +7172,8 @@ model SkillGroup {
   consumerAccesses                ConsumerAccess[]                 @relation("ConsumerAccessSkillGroup")
   consumerAccessListings          ConsumerAccessListing[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
+  skillImports                    SkillImport[]
+  skillGroupPlugins               SkillGroupPlugin[]
 
   @@index([instanceOid, status])
 }
@@ -7176,6 +7261,9 @@ model SkillImport {
 
   creatorResourceActorOid BigInt?
   creatorResourceActor    ResourceActor? @relation("SkillImportCreator", fields: [creatorResourceActorOid], references: [oid], onDelete: SetNull)
+
+  skillGroupOid BigInt?
+  skillGroup    SkillGroup? @relation(fields: [skillGroupOid], references: [oid], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   startedAt   DateTime?
@@ -7692,6 +7780,7 @@ model SkillPlugin {
   magicMcpTokens                 MagicMcpToken[]
   magicMcpEndpoints              MagicMcpEndpoint[]
   managed                        ManagedSkillPlugin?
+  skillGroupPlugin               SkillGroupPlugin?
   skillPluginSkills              SkillPluginSkill[]
   skillMarketplacePlugins        SkillMarketplacePlugin[]
   skillDestinationItems          SkillDestinationItem[]
@@ -7741,6 +7830,7 @@ model SkillMarketplacePlugin {
 
   @@unique([skillMarketplaceOid, skillPluginOid])
   @@unique([skillMarketplaceOid, pluginSlug])
+  @@index([skillPluginOid, status])
 }
 
 model SkillPluginRepository {
@@ -7793,6 +7883,7 @@ model SkillPluginSkill {
 
   @@unique([skillPluginOid, skillOid])
   @@unique([skillPluginOid, pluginSkillSlug])
+  @@index([skillOid, status])
 }
 
 model ManagedSkillPlugin {
@@ -7809,6 +7900,26 @@ model ManagedSkillPlugin {
 
   createdAt       DateTime         @default(now())
   skillExportRefs SkillExportRef[]
+}
+
+model SkillGroupPlugin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  /// [SkillGroupPluginSyncIssues]
+  syncIssues Json?
+
+  lastReconciledAt DateTime?
+  createdAt        DateTime  @default(now())
+
+  skillGroupOid BigInt
+  skillGroup    SkillGroup @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt      @unique
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  @@index([skillGroupOid])
+  @@index([lastReconciledAt])
 }
 
 model SkillRepository {
@@ -7954,7 +8065,7 @@ model Skill {
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]
+  skillParticipants               SkillParticipant[]               @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]
@@ -8000,6 +8111,7 @@ model SkillVersion {
 
   @@unique([skillOid, versionNumber])
   @@index([skillOid, createdAt])
+  @@index([createdAt])
 }
 
 enum SkillDestinationStorageMode {
@@ -8298,6 +8410,7 @@ enum SkillParticipantRole {
   forker
 }
 
+/// No longer read or written. Skill participants are store participants of the skill's store.
 model SkillParticipant {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -8315,6 +8428,7 @@ model SkillParticipant {
 
   @@unique([skillOid, resourceActorOid])
   @@index([resourceActorOid])
+  @@ignore
 }
 
 enum SkillTemplateStatus {
@@ -8516,11 +8630,15 @@ model ResourceActor {
   documentVersionEditors    DocumentVersionEditors[]
   storeParticipantActors    StoreParticipantActor[]
   primaryStoreParticipants  StoreParticipant[]         @relation("StoreParticipantPrimaryActor")
-  skillParticipants         SkillParticipant[]
+  skillParticipants         SkillParticipant[]         @ignore
   resolvedMergeRequestItems SkillMergeRequestItem[]    @relation("SkillMergeRequestItemResolver")
   skillMergeRequestComments SkillMergeRequestComment[]
   skillMergeRequestEvents   SkillMergeRequestEvent[]
   lastModifiedStoreItems    StoreItem[]
+
+  createdDocumentCommentThreads  DocumentCommentThread[] @relation("DocumentCommentThreadCreator")
+  resolvedDocumentCommentThreads DocumentCommentThread[] @relation("DocumentCommentThreadResolver")
+  documentComments               DocumentComment[]
 
   createdProductAssistantConversations     ProductAssistantConversation[]            @relation("ProductAssistantConversationCreator")
   productAssistantRequests                 ProductAssistantRequest[]

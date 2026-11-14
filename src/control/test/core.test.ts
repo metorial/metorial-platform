@@ -333,6 +333,49 @@ describe('workspace and runtime state', () => {
     ).toBe('42000');
     expect(existsSync(join(directory, '.env'))).toBe(false);
   });
+
+  test('dev login endpoints receive a stable per-workspace secret', () => {
+    let root = temporary();
+    packageFixture(
+      root,
+      'federation',
+      'federation',
+      "name='federation'\n[endpoints.http]\nport=4321\ndev_login={path='/.metorial/dev'}"
+    );
+    packageFixture(root, 'other', 'other', "name='other'\n[endpoints.http]\nport=4322");
+
+    let all = manifest.discover(root);
+    let federation = all.find(item => item.manifest.package?.name === 'federation')!;
+    let other = all.find(item => item.manifest.package?.name === 'other')!;
+
+    let secret = environment.allForManifest(
+      federation,
+      environment.rootEnvironment(project(root))
+    ).METORIAL_DEV_LOGIN_SECRET;
+
+    expect(secret).toMatch(/^[0-9a-f]{64}$/);
+    expect(readFileSync(join(root, '.control/dev-login-secret'), 'utf8').trim()).toBe(secret!);
+    expect(
+      environment.allForManifest(federation, environment.rootEnvironment(project(root)))
+        .METORIAL_DEV_LOGIN_SECRET
+    ).toBe(secret);
+    expect(
+      environment.allForManifest(other, environment.rootEnvironment(project(root)))
+        .METORIAL_DEV_LOGIN_SECRET
+    ).toBeUndefined();
+  });
+
+  test('rejects dev login paths that are not absolute', () => {
+    let root = temporary();
+    packageFixture(
+      root,
+      'federation',
+      'federation',
+      "name='federation'\n[endpoints.http]\nport=4321\ndev_login={path='dev/login'}"
+    );
+
+    expect(() => manifest.discover(root)).toThrow(/dev login path must start with '\/'/);
+  });
 });
 
 describe('generated workspaces and infrastructure', () => {

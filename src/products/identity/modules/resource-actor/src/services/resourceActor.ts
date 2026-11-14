@@ -1,6 +1,17 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID, type Instance, type Prisma, type Project } from '@metorial/db';
+import {
+  db,
+  ID,
+  type Instance,
+  type Prisma,
+  type Project,
+  type ResourceActor
+} from '@metorial/db';
+
+let compact = (oids: (bigint | null | undefined)[]) => [
+  ...new Set(oids.filter((oid): oid is bigint => oid != null))
+];
 
 export let resourceActorPresentationInclude = {
   organizationActor: {
@@ -192,6 +203,89 @@ class ResourceActorServiceImpl {
 
       return resourceActor;
     }
+  }
+
+  // A person can act through their organization member and through any consumer (and its
+  // profiles) linked to that member or user; all of those actors resolve to the same person.
+  async listLinkedActorOids(d: {
+    project: Pick<Project, 'oid' | 'organizationOid'>;
+    actor: Pick<ResourceActor, 'oid'>;
+  }) {
+    let actor = await db.resourceActor.findUnique({
+      where: { oid: d.actor.oid },
+      select: {
+        consumerOid: true,
+        organizationActor: {
+          select: { member: { select: { oid: true, userOid: true } } }
+        },
+        consumer: {
+          select: { userOid: true, organizationMemberOid: true }
+        },
+        consumerProfile: {
+          select: { consumerOid: true, organizationMemberOid: true }
+        }
+      }
+    });
+    if (!actor) return [d.actor.oid];
+
+    let member = actor.organizationActor?.member;
+    let consumerOids = compact([actor.consumerOid, actor.consumerProfile?.consumerOid]);
+    let memberOids = compact([
+      member?.oid,
+      actor.consumer?.organizationMemberOid,
+      actor.consumerProfile?.organizationMemberOid
+    ]);
+    let userOids = compact([member?.userOid, actor.consumer?.userOid]);
+
+    if (memberOids.length) {
+      let members = await db.organizationMember.findMany({
+        where: { oid: { in: memberOids } },
+        select: { userOid: true }
+      });
+      userOids = compact([...userOids, ...members.map(m => m.userOid)]);
+    }
+
+    let [members, consumers] = await Promise.all([
+      db.organizationMember.findMany({
+        where: {
+          organizationOid: d.project.organizationOid,
+          OR: [{ oid: { in: memberOids } }, { userOid: { in: userOids } }]
+        },
+        select: { actorOid: true }
+      }),
+      db.consumer.findMany({
+        where: {
+          organizationOid: d.project.organizationOid,
+          OR: [
+            { oid: { in: consumerOids } },
+            { userOid: { in: userOids } },
+            { organizationMemberOid: { in: memberOids } }
+          ]
+        },
+        select: { oid: true, organizationActorOid: true }
+      })
+    ]);
+
+    let organizationActorOids = compact([
+      ...members.map(m => m.actorOid),
+      ...consumers.map(c => c.organizationActorOid)
+    ]);
+    let linkedConsumerOids = consumers.map(c => c.oid);
+
+    let actors = await db.resourceActor.findMany({
+      where: {
+        projectOid: d.project.oid,
+        OR: [
+          { oid: d.actor.oid },
+          { organizationActorOid: { in: organizationActorOids } },
+          { consumerOid: { in: linkedConsumerOids } },
+          { consumerProfile: { consumerOid: { in: linkedConsumerOids } } }
+        ]
+      },
+      select: { oid: true }
+    });
+
+    return actors.map(a => a.oid);
   }
 
   async getActorById(

@@ -1,12 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { DocumentEditorScene } from '@metorial/scene-docs';
-import { isSkillTextFile, SkillTextFileEditorScene } from '@metorial/scene-skills';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useSkill,
-  useStoreItem
-} from '@metorial/state';
+import { SkillItemScene, useSkillWorkspace } from '@metorial/scene-skills';
+import { useCurrentInstance, useCurrentOrganization, useSkill } from '@metorial/state';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export let SkillItemDocumentPage = () => {
@@ -14,53 +9,43 @@ export let SkillItemDocumentPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let navigate = useNavigate();
+  let workspace = useSkillWorkspace();
   let skill = useSkill(instance.data?.id, skillId);
-  let item = useStoreItem(instance.data?.id, skill.data?.storeId, itemId);
+  let setRestrictHeight = (enabled: boolean) =>
+    (window as any).metorial_setRestrictHeight?.(enabled);
 
   return (
     <>
       {renderWithLoader(
-        { item, skill },
+        { skill },
         { spaceTop: 20 }
-      )(({ item, skill }) => {
-        if (
-          item.data.kind == 'file' &&
-          item.data.file &&
-          isSkillTextFile({ fileName: item.data.path, fileType: item.data.file.fileType })
-        ) {
-          return (
-            <SkillTextFileEditorScene
+      )(({ skill }) => (
+        <SkillItemScene
+          instanceId={instance.data?.id}
+          storeId={skill.data.storeId}
+          itemId={itemId}
+          setRestrictHeight={setRestrictHeight}
+          renderDocument={documentId => (
+            <DocumentEditorScene
               instanceId={instance.data?.id}
-              itemId={item.data.id}
-              setRestrictHeight={enabled =>
-                (window as any).metorial_setRestrictHeight?.(enabled)
+              documentId={documentId}
+              chrome={workspace ? 'external' : undefined}
+              onBack={() => navigate(-1)}
+              setRestrictHeight={setRestrictHeight}
+              hideSharingControls
+              skillShareContext={
+                skillId
+                  ? {
+                      mode: 'dashboard',
+                      organizationId: organization.data?.id,
+                      skills: [{ id: skillId, name: skill.data.name }]
+                    }
+                  : null
               }
-              storeId={skill.data.storeId}
             />
-          );
-        }
-
-        return (
-          <DocumentEditorScene
-            instanceId={instance.data?.id}
-            documentId={item.data.document?.id}
-            onBack={() => navigate(-1)}
-            setRestrictHeight={enabled =>
-              (window as any).metorial_setRestrictHeight?.(enabled)
-            }
-            hideSharingControls
-            skillShareContext={
-              skillId
-                ? {
-                    mode: 'dashboard',
-                    organizationId: organization.data?.id,
-                    skills: [{ id: skillId, name: skill.data.name }]
-                  }
-                : null
-            }
-          />
-        );
-      })}
+          )}
+        />
+      ))}
     </>
   );
 };

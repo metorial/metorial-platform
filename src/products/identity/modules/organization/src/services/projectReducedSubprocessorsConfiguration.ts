@@ -62,7 +62,9 @@ class ProjectReducedSubprocessorsConfigurationService {
     let project = await db.project.update({
       where: { oid: d.project.oid },
       data: {
-        reducedSubprocessors: updatedTenant.reducedSubprocessors
+        reducedSubprocessors: updatedTenant.reducedSubprocessors,
+        aiAnalysisEnabled: updatedTenant.aiAnalysisEnabled,
+        usageReviewsEnabled: updatedTenant.usageReviewsEnabled
       }
     });
 

@@ -7,6 +7,7 @@ export type DashboardInstanceWebhookRegistrationsUpdateOutput = {
   object: 'webhook_registration';
   id: string;
   status: 'awaiting_setup' | 'active' | 'archived' | 'deleted';
+  purpose: 'webhook_receiver' | 'delivery_setup';
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
@@ -26,13 +27,20 @@ export type DashboardInstanceWebhookRegistrationsUpdateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  authCredentialsId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export let mapDashboardInstanceWebhookRegistrationsUpdateOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceWebhookRegistrationsUpdateOutput>(
-    ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at'],
+    [
+      'receive_url',
+      ['provider', 0, 8],
+      'auth_credentials_id',
+      'created_at',
+      'updated_at'
+    ],
     1
   );
 

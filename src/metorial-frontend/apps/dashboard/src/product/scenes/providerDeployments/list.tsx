@@ -1,27 +1,21 @@
 import { DashboardInstanceProviderDeploymentsListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { createDataList } from '@metorial/data-list';
 import {
   useCurrentInstance,
   useProviderDeployments,
   useProviderListings
 } from '@metorial/state';
-import {
-  Avatar,
-  Entity,
-  Input,
-  Or,
-  RenderDate,
-  Spacer,
-  Text,
-  theme,
-  Tooltip
-} from '@metorial/ui';
-import { useMemo, useState } from 'react';
+import { Avatar, Entity, Or, RenderDate, Spacer, Text, theme, Tooltip } from '@metorial/ui';
+import { createContext, useContext, useMemo } from 'react';
 import styled from 'styled-components';
-import { useDebounced } from '@metorial/use-debounced';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
 
 type ProviderDeployment = DashboardInstanceProviderDeploymentsListOutput['items'][number];
+type ProviderInfo = {
+  name?: string | null;
+  imageUrl?: string | null;
+};
+type PickerDeployment = ProviderDeployment & { providerInfo?: ProviderInfo };
 type DeploymentSelectionMode =
   | 'default'
   | 'configCreate'
@@ -225,6 +219,94 @@ let ProviderDeploymentListItem = ({
   );
 };
 
+type PickerSelection = {
+  compact: boolean;
+  columns?: number;
+  selectedDeploymentId?: string;
+  onDeploymentClick?: (deployment: ProviderDeployment) => void;
+  selectionMode: DeploymentSelectionMode;
+};
+
+let PickerSelectionContext = createContext<PickerSelection>({
+  compact: false,
+  selectionMode: 'default'
+});
+
+let PickerLayout = ({ items }: { items: PickerDeployment[] }) => {
+  let selection = useContext(PickerSelectionContext);
+
+  let rows = items.map(deployment => (
+    <ProviderDeploymentListItem
+      key={deployment.id}
+      deployment={deployment}
+      providerInfo={deployment.providerInfo}
+      compact={selection.compact}
+      onDeploymentClick={selection.onDeploymentClick}
+      selectedDeploymentId={selection.selectedDeploymentId}
+      selectionMode={selection.selectionMode}
+    />
+  ));
+
+  return selection.compact ? (
+    <GridItems $columns={selection.columns}>{rows}</GridItems>
+  ) : (
+    <Items>{rows}</Items>
+  );
+};
+
+let ProviderDeploymentPickerList = createDataList<{
+  providerId?: string;
+  order?: 'asc' | 'desc';
+}>('provider-deployments-picker', { customizable: false })
+  .context(() => ({ instanceId: useCurrentInstance().data?.id }))
+  .search('Search deployments…')
+  .paginated(({ props, ctx, search, limit }) =>
+    useProviderDeployments(ctx.instanceId, {
+      ...(limit ? { limit } : {}),
+      ...(search ? { search } : {}),
+      order: props.order ?? 'desc',
+      providerId: props.providerId
+    })
+  )
+  .enrich((items, { ctx }) => {
+    let providerIds = useMemo(
+      () => [...new Set(items.map(deployment => deployment.providerId))].sort(),
+      [items]
+    );
+    let listings = useProviderListings(
+      ctx.instanceId,
+      providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
+    );
+
+    let enriched = useMemo<PickerDeployment[]>(() => {
+      let lookup = new Map<string, ProviderInfo>();
+
+      for (let listing of listings.data?.items ?? []) {
+        lookup.set(listing.provider.id, {
+          name: listing.name ?? listing.provider.name,
+          imageUrl: listing.imageUrl
+        });
+      }
+
+      return items.map(deployment => ({
+        ...deployment,
+        providerInfo: lookup.get(deployment.providerId)
+      }));
+    }, [items, listings.data?.items]);
+
+    return {
+      items: enriched,
+      isLoading: providerIds.length > 0 && listings.isLoading,
+      error: providerIds.length > 0 ? listings.error : null
+    };
+  })
+  .layout('compact', {
+    label: 'Compact',
+    render: ({ items }) => <PickerLayout items={items} />
+  })
+  .layout('cards', { label: 'Cards', render: ({ items }) => <PickerLayout items={items} /> })
+  .build();
+
 export let ProviderDeploymentsList = ({
   providerId,
   order = 'desc',
@@ -250,168 +332,34 @@ export let ProviderDeploymentsList = ({
   emptyText?: string;
   selectionMode?: DeploymentSelectionMode;
 }) => {
-  let instance = useCurrentInstance();
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 300);
-  let deployments = useProviderDeployments(instance.data?.id, {
-    ...(limit ? { limit } : {}),
-    ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
-    providerId: providerId
-      ? Array.isArray(providerId)
-        ? providerId[0]
-        : providerId
-      : undefined
-  });
-  let providerIds = useMemo(
-    () =>
-      [
-        ...new Set((deployments.data?.items ?? []).map(deployment => deployment.providerId))
-      ].sort(),
-    [deployments.data?.items]
+  let selection = useMemo(
+    () => ({ compact, columns, selectedDeploymentId, onDeploymentClick, selectionMode }),
+    [compact, columns, selectedDeploymentId, onDeploymentClick, selectionMode]
   );
-  let providerListings = useProviderListings(
-    instance.data?.id,
-    providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
-  );
-
-  let renderContent = () => {
-    let providerLookup = new Map<
-      string,
-      {
-        name?: string | null;
-        imageUrl?: string | null;
-      }
-    >();
-
-    for (let providerListing of providerListings.data?.items ?? []) {
-      if (!providerIds.includes(providerListing.provider.id)) continue;
-      providerLookup.set(providerListing.provider.id, {
-        name: providerListing.name ?? providerListing.provider.name,
-        imageUrl: providerListing.imageUrl
-      });
-    }
-
-    let sortedDeployments = [...(deployments.data?.items ?? [])].sort((a, b) => {
-      let dateA = new Date(a.createdAt).getTime();
-      let dateB = new Date(b.createdAt).getTime();
-      return order === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-    let filteredDeployments = sortedDeployments.filter(deployment => {
-      if (!searchDebounced.trim()) return true;
-
-      let query = searchDebounced.toLowerCase();
-      return (
-        (deployment.name ?? '').toLowerCase().includes(query) ||
-        (deployment.description ?? '').toLowerCase().includes(query) ||
-        deployment.id.toLowerCase().includes(query)
-      );
-    });
-
-    if (sortedDeployments.length === 0) {
-      return (
-        <>
-          {searchable && <Spacer size={10} />}
-          {!searchable && <Spacer size={20} />}
-          <Text size="2" color="gray600" align="center">
-            {emptyText}
-          </Text>
-        </>
-      );
-    }
-
-    return (
-      <div>
-        {filteredDeployments.length === 0 && (
-          <Text size="2" color="gray600" align="center">
-            No deployments found matching your search.
-          </Text>
-        )}
-
-        {!searchable && filteredDeployments.length > 0 && <Spacer size={10} />}
-        {compact ? (
-          <GridItems $columns={columns}>
-            {filteredDeployments.map(deployment => (
-              <ProviderDeploymentListItem
-                key={deployment.id}
-                deployment={deployment}
-                providerInfo={providerLookup.get(deployment.providerId)}
-                compact={compact}
-                onDeploymentClick={onDeploymentClick}
-                selectedDeploymentId={selectedDeploymentId}
-                selectionMode={selectionMode}
-              />
-            ))}
-          </GridItems>
-        ) : (
-          <Items>
-            {filteredDeployments.map(deployment => (
-              <ProviderDeploymentListItem
-                key={deployment.id}
-                deployment={deployment}
-                providerInfo={providerLookup.get(deployment.providerId)}
-                compact={compact}
-                onDeploymentClick={onDeploymentClick}
-                selectedDeploymentId={selectedDeploymentId}
-                selectionMode={selectionMode}
-              />
-            ))}
-          </Items>
-        )}
-      </div>
-    );
-  };
-
-  if (providerIds.length > 0) {
-    return (
-      <div>
-        {searchable && (
-          <>
-            <Input
-              label="Search"
-              hideLabel
-              placeholder="Search deployments..."
-              value={search}
-              onInput={value => setSearch(value)}
-            />
-            {sectionLabel ? (
-              <>
-                <Spacer size={10} />
-                <Or text={sectionLabel} />
-                <Spacer size={10} />
-              </>
-            ) : (
-              <Spacer size={10} />
-            )}
-          </>
-        )}
-        {renderWithLoader({ deployments, providerListings })(renderContent)}
-      </div>
-    );
-  }
 
   return (
-    <div>
-      {searchable && (
-        <>
-          <Input
-            label="Search"
-            hideLabel
-            placeholder="Search deployments..."
-            value={search}
-            onInput={value => setSearch(value)}
-          />
-          {sectionLabel ? (
+    <PickerSelectionContext.Provider value={selection}>
+      <ProviderDeploymentPickerList
+        providerId={Array.isArray(providerId) ? providerId[0] : providerId}
+        order={order}
+        listVariant="embedded"
+        listLayouts={[compact ? 'compact' : 'cards']}
+        listLimit={limit}
+        hideToolbar={!searchable}
+        topContent={
+          sectionLabel ? (
             <>
-              <Spacer size={10} />
               <Or text={sectionLabel} />
               <Spacer size={10} />
             </>
-          ) : (
-            <Spacer size={10} />
-          )}
-        </>
-      )}
-      {renderWithLoader({ deployments })(renderContent)}
-    </div>
+          ) : undefined
+        }
+        emptyState={{
+          initial: emptyText,
+          filtered: 'No deployments found matching your search.',
+          search: 'No deployments found matching your search.'
+        }}
+      />
+    </PickerSelectionContext.Provider>
   );
 };
