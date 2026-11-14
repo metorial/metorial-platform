@@ -20,15 +20,15 @@ let writeJson = (path, value) => writeFileSync(path, JSON.stringify(value));
 test('finds the enterprise Control instance from an OSS subdirectory', () => {
   withTemporaryDirectory(root => {
     mkdirSync(join(root, '.git'));
-    mkdirSync(join(root, 'oss/src/control/src'), { recursive: true });
+    mkdirSync(join(root, 'oss/src/tooling/control/src'), { recursive: true });
     mkdirSync(join(root, 'oss/src/deep/package'), { recursive: true });
     writeJson(join(root, 'package.json'), { name: '@metorial/enterprise' });
     writeJson(join(root, 'oss/package.json'), { name: '@metorial/oss' });
-    writeFileSync(join(root, 'oss/src/control/src/main.ts'), '');
+    writeFileSync(join(root, 'oss/src/tooling/control/src/main.ts'), '');
 
     assert.equal(
       findControlManifest(join(root, 'oss/src/deep/package')),
-      join(root, 'oss/src/control/src/main.ts')
+      join(root, 'oss/src/tooling/control/src/main.ts')
     );
   });
 });
@@ -36,14 +36,14 @@ test('finds the enterprise Control instance from an OSS subdirectory', () => {
 test('finds the standalone OSS Control instance from a subdirectory', () => {
   withTemporaryDirectory(root => {
     mkdirSync(join(root, '.git'));
-    mkdirSync(join(root, 'src/control/src'), { recursive: true });
+    mkdirSync(join(root, 'src/tooling/control/src'), { recursive: true });
     mkdirSync(join(root, 'src/deep/package'), { recursive: true });
     writeJson(join(root, 'package.json'), { name: '@metorial/oss' });
-    writeFileSync(join(root, 'src/control/src/main.ts'), '');
+    writeFileSync(join(root, 'src/tooling/control/src/main.ts'), '');
 
     assert.equal(
       findControlManifest(join(root, 'src/deep/package')),
-      join(root, 'src/control/src/main.ts')
+      join(root, 'src/tooling/control/src/main.ts')
     );
   });
 });

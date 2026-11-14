@@ -2,7 +2,7 @@
   "name": "@metorial/oss",
   "private": true,
   "scripts": {
-    "control": "bun ./src/control/src/main.ts",
+    "control": "bun ./src/tooling/control/src/main.ts",
     "build": "turbo run --ui=stream build",
     "introspect": "bun run --cwd src/metorial/apis/core introspect",
     "generate:config-types": "bun run --cwd src/metorial/apis/core introspect:configs",
@@ -35,7 +35,6 @@
     "clients/metorial-consumer",
     "scripts/*",
     "vendor-placeholder/*",
-    "src/control",
     "src/metorial/*",
     "src/metorial/*/*",
     "src/metorial/*/*/*",

@@ -33,7 +33,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
 
   migrations:
     name: Check Prisma migrations
@@ -54,7 +54,7 @@ jobs:
             git fetch --no-tags origin "+refs/heads/$BASE_BRANCH:refs/remotes/origin/$BASE_BRANCH"
             base="--base origin/$BASE_BRANCH"
           fi
-          bun src/control/src/main.ts db check $base
+          bun src/tooling/control/src/main.ts db check $base
 
   build:
     name: 'Build ${{ matrix.service.name }}'
@@ -119,7 +119,7 @@ jobs:
             dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
           - name: app-api
             image: ghcr.io/metorial/app-api
-            dockerfile: ./src/metorial/services/api/Dockerfile
+            dockerfile: ./src/products/oss/services/oss-core/Dockerfile
 
     steps:
       - name: Checkout repository

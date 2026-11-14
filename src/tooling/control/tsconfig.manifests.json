@@ -10,10 +10,10 @@
     "types": ["bun"]
   },
   "include": [
-    "../../control/index.ts",
-    "../../src/**/control/index.ts",
     "../../../control/index.ts",
-    "../../../src/**/control/index.ts"
+    "../../../src/**/control/index.ts",
+    "../../../../control/index.ts",
+    "../../../../src/**/control/index.ts"
   ],
   "exclude": ["**/node_modules/**"]
 }

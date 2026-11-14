@@ -59,7 +59,7 @@ let initialize = (item: MigrationTarget) => {
 };
 
 beforeAll(() => {
-  let binary = resolve(import.meta.dir, '../../../../node_modules/.bin/prisma');
+  let binary = resolve(import.meta.dir, '../../../../../node_modules/.bin/prisma');
 
   if (!process.env.PRISMA_BIN && existsSync(binary)) process.env.PRISMA_BIN = binary;
 });

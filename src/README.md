@@ -40,7 +40,7 @@ oss/src/
     clients/
       <client-name>/            # Clients for shared platform services
     db/                         # Main Metorial database package
-    apis/                       # Shared APIs, such as files
+    apis/                       # Shared platform APIs
   frontends/
     metorial/                   # Current metorial-frontend contents
   surfaces/
@@ -48,6 +48,7 @@ oss/src/
       apis/                     # Metorial-specific API packages
       presenters/               # Metorial-specific representations
   tooling/
+    control/                    # Control CLI and container migration runtime
   lib/
     <group>/                    # For example crypto, rpc, or http
       <package-name>/
@@ -162,9 +163,9 @@ monolith. Each product team owns its modules and packages.
 
 The shared monolith entry point composes modules from multiple products, mounts their API
 surfaces, imports lifecycle listeners, and registers background processors. Product boundaries
-do not require a separate process or deployment for each product. The current
-`metorial/services/api` already composes APIs and workers across products; the refactor preserves
-that model while relocating the code it consumes.
+do not require a separate process or deployment for each product. `products/oss/services/oss-core` is the OSS
+entry point for this composition. Its authentication API and shared OSS auth package live at
+`products/oss/apis/oss-auth` and `products/oss/packages/auth`.
 
 Product modules may use their product's shared packages, call services owned by that
 product, and use platform services. Consume standalone services through their client or public
@@ -179,7 +180,7 @@ it is distinct from the runnable services grouped at the product level.
 ## Platform and surfaces
 
 `platform/` holds shared infrastructure: services used across products, the main Metorial
-database, and shared APIs such as files. Platform components need explicit ownership just as
+database, and shared platform APIs. Platform components need explicit ownership just as
 product components do.
 
 `surfaces/metorial/` holds the APIs and presenters that expose product capabilities through
@@ -195,8 +196,8 @@ products without taking ownership of their implementations.
 ## Frontends tooling and libraries
 
 `frontends/metorial/` takes over the role of `metorial-frontend/`, preserving its internal
-application and package organization. `tooling/` retains its current purpose for development
-and repository tools.
+application and package organization. `tooling/` holds development and repository tools.
+The Control CLI and its container migration runtime live in `tooling/control/`.
 
 `lib/` groups generic packages by technical area, such as `crypto`, `rpc`, or `http`. This is the
 home for the domain-free `@lowerdeck/*` primitives. These packages must
@@ -220,9 +221,13 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
+| Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
+| Sandbox | Modules and the generated Genesis client live under `products/sandbox/`. |
+| OSS composition | `products/oss/` holds `services/oss-core`, `apis/oss-auth`, and `packages/auth`. |
+| Tooling | Control lives at `tooling/control/`. |
 | Generic libraries | All 62 remaining lowerdeck packages have moved into the groups documented in `lib/README.md`. The `utils` group combines execution, data, text, random, and time helpers. Package names remain unchanged. |
 | RPC libraries | Node packages, the shared spec package, Go runtime, and protocol documentation live under `lib/rpc/`. |
-| Other products and shared code  | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                                                                                                                    |
+| Other products and shared code  | Migration continues. Product modules, APIs, presenters, the main database, and frontends still have legacy locations.                                                                                                                                                                    |
 
 As remaining code moves, use these destination rules:
 

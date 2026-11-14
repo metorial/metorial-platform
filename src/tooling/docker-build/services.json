@@ -157,7 +157,7 @@
     "extraInputs": []
   },
   "app-api": {
-    "dockerfile": "src/metorial/services/api/Dockerfile",
+    "dockerfile": "src/products/oss/services/oss-core/Dockerfile",
     "image": "ghcr.io/metorial/app-api",
     "platform": "linux/amd64",
     "workspace": ".",

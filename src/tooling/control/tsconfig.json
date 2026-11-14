@@ -9,7 +9,7 @@
     "types": ["bun"],
     "allowImportingTsExtensions": true,
     "paths": {
-      "@lowerdeck/validation": ["../lib/framework/validation/src/index.ts"]
+      "@lowerdeck/validation": ["../../lib/framework/validation/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]

@@ -13,7 +13,7 @@ import type {
   Service,
   Stack,
   Step
-} from '../../../scripts/dev-tools/e2e/runner';
+} from '../../../../scripts/dev-tools/e2e/runner';
 
 export type { Service, Stack, Step };
 

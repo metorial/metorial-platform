@@ -35,7 +35,7 @@ let cloud = "[[stack_definitions]]\nid='cloud'\nlabel='Cloud'\n";
 describe('stack startup controls', () => {
   let build = () => {
     let project = fixture(cloud, { api: service('api', '[stacks.cloud]\n') });
-    project.oss = join(import.meta.dir, '../../..');
+    project.oss = join(import.meta.dir, '../../../..');
     let data = workspaceData(project.root);
 
     return new StackRuntime(

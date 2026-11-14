@@ -4,7 +4,10 @@ import { sortedEntries } from '../files';
 import type { TurboPackage } from '../turbo';
 import type { LoadedManifest } from '../types';
 
-export let definitionSources = join(import.meta.dir, '../../../metorial/packages/control/src');
+export let definitionSources = join(
+  import.meta.dir,
+  '../../../../metorial/packages/control/src'
+);
 
 export interface PackageChanges {
   added: TurboPackage[];

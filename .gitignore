@@ -191,8 +191,8 @@ venv/
 *.swo
 
 bin
-!src/control/bin/
-!src/control/bin/**
+!src/tooling/control/bin/
+!src/tooling/control/bin/**
 .DS_Store
 
 env.json
@@ -200,7 +200,7 @@ env.json
 HOST.md
 
 # Cargo build output
-src/control/target/
+src/tooling/control/target/
 
 !src/lib/rpc/go/interop/generated/
 !src/lib/rpc/go/interop/generated/bucket.ts

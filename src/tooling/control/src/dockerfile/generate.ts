@@ -40,7 +40,7 @@ export let renderDockerfile = (
     packageName,
     packageDirectory: relative(workspace, loaded.directory),
     tooling: `${prefix}src/tooling`,
-    runtime: `${prefix}src/control/runtime`,
+    runtime: `${prefix}src/tooling/control/runtime`,
     schemas: Object.fromEntries(
       build.migrations.map(migration => {
         let owner = packages.find(item => item.name === migration.package);

@@ -155,7 +155,7 @@ export default project({
 
 Shared env blocks, service ports and databases live in `@metorial/control/presets`.
 Inspect the compiled result with the manifest typecheck (`bun run typecheck` in
-`oss/src/control`), which type checks every `control/index.ts` in the repo.
+`oss/src/tooling/control`), which type checks every `control/index.ts` in the repo.
 `control-external.toml` is still TOML.
 
 Workspace-wide Prisma generation and schema push are always run by Control via
@@ -297,7 +297,7 @@ start = ["e2e:start"]       # package.json scripts started from source (no watch
 image = "app-api"           # tested image artifact name for --images
 
 # Stack-only keys:
-tests = ["../../products/*/modules/*", "../../../products/*/modules/*", "../../apis/*"]
+tests = ["../../../../metorial/products/*/modules/*", "../../../*/modules/*", "../../../*/apis/*", "../../../../metorial/apis/*"]
 services = ["@metorial/shuttle"]   # started in addition to [[dependencies]]
 health_timeout = 300
 
@@ -567,7 +567,7 @@ control docker generate --check  # fail if any are out of date (CI)
 They are also regenerated on every `control dev` start and whenever a manifest
 changes while the daemon runs. Images run as the unprivileged `metorial` user
 under `tini`, and database migrations run at startup through `control-runtime`
-(`oss/src/control/runtime`) from the `migrations` listed in the spec
+(`oss/src/tooling/control/runtime`) from the `migrations` listed in the spec
 (`migrations.core`, `ownMigration(...)`, ...).
 
 Further `bunService` options:

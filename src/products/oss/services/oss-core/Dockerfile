@@ -29,9 +29,9 @@ RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=tur
 
 FROM base AS control-runtime
 WORKDIR /runtime
-COPY src/control/runtime/package.json src/control/runtime/bun.lock ./
+COPY src/tooling/control/runtime/package.json src/tooling/control/runtime/bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
-COPY src/control/runtime/src ./src
+COPY src/tooling/control/runtime/src ./src
 RUN bun build ./src/cli.ts --target=bun --outfile=./control-runtime.js
 
 FROM base AS prisma-cli
@@ -51,7 +51,7 @@ COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
 FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=10001:10001 /app/src/metorial/services/api/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/oss/services/oss-core/dist ./dist
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/schema/ ./prisma/core/schema/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/migrations/ ./prisma/core/migrations/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/multi-region/prisma/schema/ ./prisma/global/schema/

@@ -42,7 +42,7 @@ let enterpriseControlManifestAt = path => {
     return undefined;
   }
 
-  let manifest = join(path, 'oss/src/control/src/main.ts');
+  let manifest = join(path, 'oss/src/tooling/control/src/main.ts');
   return existsSync(manifest) ? manifest : undefined;
 };
 
@@ -51,7 +51,7 @@ let standaloneControlManifestAt = path => {
     return undefined;
   }
 
-  let manifest = join(path, 'src/control/src/main.ts');
+  let manifest = join(path, 'src/tooling/control/src/main.ts');
   return existsSync(manifest) ? manifest : undefined;
 };
 

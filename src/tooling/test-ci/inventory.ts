@@ -65,18 +65,13 @@ export let readInventory = (): Inventory => {
   if (process.env.CI) throw new Error(`Missing generated control CI inventory: ${path}`);
   if (discoveredInventory) return discoveredInventory;
 
-  let crate = resolve(import.meta.dir, '../../control/Cargo.toml');
+  let root = resolve(import.meta.dir, '../../..');
   let result = Bun.spawnSync(
     [
-      'cargo',
-      'run',
-      '--quiet',
-      '--locked',
-      '--manifest-path',
-      crate,
-      '--',
+      process.execPath,
+      resolve(import.meta.dir, '../control/src/main.ts'),
       '--root',
-      resolve(import.meta.dir, '../../..'),
+      root,
       'ci',
       'describe',
       '--json'

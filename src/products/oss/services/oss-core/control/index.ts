@@ -74,10 +74,10 @@ export default project({
     start: ['e2e:start'],
     image: 'app-api',
     tests: [
-      '../../products/*/modules/*',
-      '../../../products/*/modules/*',
-      '../../../products/*/apis/*',
-      '../../apis/*'
+      '../../../../metorial/products/*/modules/*',
+      '../../../*/modules/*',
+      '../../../*/apis/*',
+      '../../../../metorial/apis/*'
     ],
     services: [
       '@metorial/shuttle',

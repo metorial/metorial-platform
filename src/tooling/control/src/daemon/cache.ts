@@ -6,7 +6,7 @@ import type { Environment } from '../types';
 import { paths } from './home';
 
 let team = 'metorial';
-let entry = resolve(import.meta.dir, '../../../tooling/warp-cache/src/index.ts');
+let entry = resolve(import.meta.dir, '../../../warp-cache/src/index.ts');
 let readyTimeout = 10_000;
 
 export let cacheEnabled = () =>
