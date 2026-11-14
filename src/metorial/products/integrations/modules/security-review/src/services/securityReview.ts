@@ -269,7 +269,7 @@ class SecurityReviewServiceImpl {
     ) {
       await enqueueSecurityReview({
         reviewId: review.id,
-        trigger: review.scope == 'global' ? 'page_open' : 'deployment',
+        trigger: 'page_open',
         immediate: true
       });
     }

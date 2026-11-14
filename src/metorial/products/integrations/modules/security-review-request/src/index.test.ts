@@ -36,6 +36,40 @@ describe('requestSecurityReview', () => {
     ]);
   });
 
+  it.each([undefined, 'false'])(
+    'allows explicit requests when automatic generation is %s',
+    async value => {
+      mocks.env.generation.SECURITY_REVIEW_AUTO_GENERATION = value;
+
+      for (let trigger of ['page_open', 'reassess', 'admin'] as const) {
+        await requestSecurityReview({ subject: 'skill', id: 'skill_1', trigger });
+        await requestSecurityReview({ subject: 'providerVersion', id: 'pv_1', trigger });
+      }
+
+      expect(mocks.add).toHaveBeenCalledTimes(6);
+    }
+  );
+
+  it('keeps speculative requests disabled even if immediate AI was requested', async () => {
+    mocks.env.generation.SECURITY_REVIEW_AUTO_GENERATION = 'false';
+
+    await requestSecurityReview({ subject: 'customProviderVersion', id: 'cpv_1' });
+    await requestSecurityReview({ subject: 'provider', id: 'pro_1' });
+    await requestSecurityReview({
+      subject: 'providerVersion',
+      id: 'pv_1',
+      trigger: 'first_use'
+    });
+    await requestSecurityReview({
+      subject: 'skill',
+      id: 'skill_1',
+      trigger: 'new_version',
+      immediateAi: true
+    });
+
+    expect(mocks.add).not.toHaveBeenCalled();
+  });
+
   it('never fails the caller when queueing fails', async () => {
     mocks.env.generation.SECURITY_REVIEW_AUTO_GENERATION = 'true';
     mocks.add.mockRejectedValue(new Error('redis down'));

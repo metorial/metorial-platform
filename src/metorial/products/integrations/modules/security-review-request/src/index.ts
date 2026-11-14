@@ -26,6 +26,12 @@ export type SecurityReviewRequest =
 export let isAutoGenerationEnabled = () =>
   env.generation.SECURITY_REVIEW_AUTO_GENERATION == 'true';
 
+export let isSecurityReviewGenerationEnabled = (trigger?: SecurityReviewTrigger) =>
+  trigger == 'page_open' ||
+  trigger == 'reassess' ||
+  trigger == 'admin' ||
+  isAutoGenerationEnabled();
+
 // The queue lives here, without its processor, so modules that security review itself depends
 // on can request a review without importing it. The processor is attached in security-review.
 export let securityReviewRequestQueue = createQueue<SecurityReviewRequest>({
@@ -44,9 +50,10 @@ export let securityReviewRequestId = (request: SecurityReviewRequest) => {
 };
 
 export let requestSecurityReview = async (request: SecurityReviewRequest) => {
-  if (!isAutoGenerationEnabled()) return;
+  if (!isSecurityReviewGenerationEnabled('trigger' in request ? request.trigger : undefined))
+    return;
 
-  // A failed request must never fail the caller; the hourly scanners pick the change up.
+  // A failed request must never fail the caller; later page loads or scanners can retry.
   await securityReviewRequestQueue
     .add(request, { id: securityReviewRequestId(request) })
     .catch(error => console.error('Failed to request a security review', error));

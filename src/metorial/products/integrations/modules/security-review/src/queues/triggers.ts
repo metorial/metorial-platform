@@ -9,6 +9,7 @@ import {
 import { db } from '@metorial-subspace/db';
 import {
   isAutoGenerationEnabled,
+  isSecurityReviewGenerationEnabled,
   securityReviewRequestId,
   securityReviewRequestQueue as requestQueue,
   type SecurityReviewRequest
@@ -51,7 +52,7 @@ let skillAiDelayMs = async (d: { reviewOid: bigint; skillCreatedAt: Date }) => {
 };
 
 let requestQueueProcessor = requestQueue.process(async job => {
-  if (!isAutoGenerationEnabled()) return;
+  if (!isSecurityReviewGenerationEnabled('trigger' in job ? job.trigger : undefined)) return;
 
   if (job.subject == 'skill') {
     let review = await internalSecurityReviewSubjectService.ensureSkillReview({
