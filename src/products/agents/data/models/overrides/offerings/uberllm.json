@@ -1,4 +1,32 @@
 {
+  "deepseek/deepseek-v4-pro": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4-pro",
+    "reason": "Offering name and id are DeepSeek V4 Pro exactly; low price is UberLLM's discount pricing, not a different model",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "deepseek/deepseek-v4.1-flash": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "Same DeepSeek V4.1 Flash served by UberLLM at its own discount price",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "google/gemini-2.5-flash": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash",
+    "reason": "Exact match: Gemini 2.5 Flash; UberLLM's $0.003 input is its own discount pricing",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "google/gemini-3.5-flash": {
+    "decision": "link",
+    "model": "google/gemini-3.5-flash",
+    "reason": "Exact match: Gemini 3.5 Flash, released May 2026; low price is the reseller's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "moonshotai/kimi-k3": {
     "decision": "link",
     "model": "moonshot/kimi-k3",
@@ -6,10 +34,24 @@
     "by": "agent",
     "at": "2026-11-14"
   },
+  "openai/gpt-oss-120b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Exact HF repo openai/gpt-oss-120b; UberLLM's low price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "qwen/qwen3-coder": {
     "decision": "link",
     "model": "alibaba/qwen3-coder-480b-a35b-instruct",
     "reason": "Offering name is exactly Qwen3-Coder 480B-A35B Instruct; UberLLM's discounted price explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "z-ai/glm-5.3": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "Same GLM-5.3 checkpoint served by UberLLM at its own discount price",
     "by": "agent",
     "at": "2026-11-14"
   }

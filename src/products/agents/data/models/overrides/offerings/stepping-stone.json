@@ -1,4 +1,18 @@
 {
+  "BAAI/bge-m3": {
+    "decision": "link",
+    "model": "baai/bge-m3",
+    "reason": "Exact match of the BAAI/bge-m3 embedding model; vendor charges a premium over the $0.01 median, which is pricing, not identity",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "BAAI/bge-reranker-v2-m3": {
+    "decision": "link",
+    "model": "baai/bge-reranker-v2-m3",
+    "reason": "Exact match of the BAAI/bge-reranker-v2-m3 reranker; price premium is the vendor's own pricing",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "MiniMaxAI/MiniMax-M2.5": {
     "decision": "link",
     "model": "minimax/minimax-m2.5",

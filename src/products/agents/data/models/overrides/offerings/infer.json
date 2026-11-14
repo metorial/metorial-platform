@@ -1,0 +1,16 @@
+{
+  "infer/gpt-6-astra:low-cost": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "'Low cost' denotes the low-reasoning-effort serving of GPT-6 Astra, still the same model; price is Infer's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "infer/gpt-6.1-sol:low-cost": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "'Low cost' denotes the low-reasoning-effort serving of GPT-6.1 Sol, still the same model; price is Infer's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}
