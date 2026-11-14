@@ -298,7 +298,7 @@ image = "app-api"           # tested image artifact name for --images
 
 # Stack-only keys:
 tests = ["../../../../metorial/products/*/modules/*", "../../../*/modules/*", "../../../*/apis/*", "../../../../metorial/apis/*"]
-services = ["@metorial/shuttle"]   # started in addition to [[dependencies]]
+services = ["@mtsrc/mcp-runtime-service"]   # started in addition to [[dependencies]]
 health_timeout = 300
 
 [[e2e.resources]]

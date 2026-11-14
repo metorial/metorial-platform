@@ -161,6 +161,15 @@ signing identifiers, and deployment hostnames remain compatible.
 On-prem component names and image override keys remain `forge` and `function-bay`, while their
 image repositories use `build` and `functions`.
 
+MCP Runtime, formerly Shuttle, belongs to Integrations at
+`products/integrations/services/mcp-runtime/`; its internal client lives at
+`products/integrations/clients/mcp-runtime/`. Packages use `@mtsrc/mcp-runtime-service` and
+`@mtsrc/mcp-runtime-client-internal`; images use `mcp-runtime` (`mte-mcp-runtime` for SaaS).
+The public `@metorial/mcp`, `@metorial/mcp-server`, and `@metorial/mcp-transport-memory`
+packages retain their names under the service's `sdk/packages/` directory. The legacy RPC paths,
+`SHUTTLE_*` configuration, database identifiers, and on-prem `mcp-controller` component and
+image override keys remain compatible.
+
 Existing services may retain legacy package names until explicitly migrated. A package rename
 does not require renaming its database, environment variables, protocol paths, or published
 container images in the same change.
@@ -230,6 +239,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
+| Integrations | MCP Runtime, its SDK, and its internal client live under `products/integrations/`. Other integrations code continues migrating from the legacy product tree. |
 | Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
 | Sandbox | Modules and the generated Genesis client live under `products/sandbox/`. |
 | OSS composition | `products/oss/` holds `services/oss-core`, `apis/oss-auth`, and `packages/auth`. |

@@ -2869,7 +2869,7 @@
       "devDependencies": {
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@metorial-platform-systems/shuttle-client": "workspace:*",
+        "@mtsrc/mcp-runtime-client-internal": "workspace:*",
         "@metorial-subspace/connection-utils": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
         "@metorial-subspace/provider": "^1.0.0",
@@ -3924,7 +3924,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/shuttle-client": "workspace:*",
+        "@mtsrc/mcp-runtime-client-internal": "workspace:*",
         "@metorial-services/registry-client": "^1.0.0",
         "@metorial-subspace/connection-utils": "^1.0.0",
         "@metorial-subspace/db": "^1.0.0",
@@ -6943,8 +6943,8 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/shuttle/clients/shuttle": {
-      "name": "@metorial-platform-systems/shuttle-client",
+    "src/products/integrations/clients/mcp-runtime": {
+      "name": "@mtsrc/mcp-runtime-client-internal",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -6979,13 +6979,13 @@
         "@types/bun": "^1.4.3",
       },
       "devDependencies": {
-        "@metorial/shuttle": "workspace:*",
+        "@mtsrc/mcp-runtime-service": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
       },
     },
-    "src/shuttle/sdk": {
+    "src/products/integrations/services/mcp-runtime/sdk": {
       "name": "@metorial/root",
       "dependencies": {
         "npm-run-all": "^4.1.5",
@@ -6996,7 +6996,7 @@
         "typescript": "5.9.3",
       },
     },
-    "src/shuttle/sdk/packages/mcp": {
+    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp": {
       "name": "@metorial/mcp",
       "version": "1.0.0-rc.2",
       "dependencies": {
@@ -7009,7 +7009,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/shuttle/sdk/packages/mcp-server": {
+    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp-server": {
       "name": "@metorial/mcp-server",
       "version": "1.0.0-rc.12",
       "dependencies": {
@@ -7024,7 +7024,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/shuttle/sdk/packages/mcp-transport-memory": {
+    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp-transport-memory": {
       "name": "@metorial/mcp-transport-memory",
       "version": "1.0.0",
       "dependencies": {
@@ -7036,8 +7036,8 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/shuttle/service": {
-      "name": "@metorial/shuttle",
+    "src/products/integrations/services/mcp-runtime/service": {
+      "name": "@mtsrc/mcp-runtime-service",
       "dependencies": {
         "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
         "@aws-sdk/client-iam": "^3.1164.0",
@@ -8435,7 +8435,7 @@
 
     "@metorial-platform-systems/network-logs-spec": ["@metorial-platform-systems/network-logs-spec@workspace:src/products/runtime/services/networking/spec"],
 
-    "@metorial-platform-systems/shuttle-client": ["@metorial-platform-systems/shuttle-client@workspace:src/shuttle/clients/shuttle"],
+    "@mtsrc/mcp-runtime-client-internal": ["@mtsrc/mcp-runtime-client-internal@workspace:src/products/integrations/clients/mcp-runtime"],
 
     "@metorial-platform-systems/signal-client": ["@metorial-platform-systems/signal-client@workspace:src/signal/clients/signal"],
 
@@ -8669,13 +8669,13 @@
 
     "@metorial/markdown": ["@metorial/markdown@workspace:src/metorial-frontend/packages/markdown"],
 
-    "@metorial/mcp": ["@metorial/mcp@workspace:src/shuttle/sdk/packages/mcp"],
+    "@metorial/mcp": ["@metorial/mcp@workspace:src/products/integrations/services/mcp-runtime/sdk/packages/mcp"],
 
     "@metorial/mcp-proxy": ["@metorial/mcp-proxy@workspace:src/products/outpost/implementation/apps/mcp-proxy"],
 
-    "@metorial/mcp-server": ["@metorial/mcp-server@workspace:src/shuttle/sdk/packages/mcp-server"],
+    "@metorial/mcp-server": ["@metorial/mcp-server@workspace:src/products/integrations/services/mcp-runtime/sdk/packages/mcp-server"],
 
-    "@metorial/mcp-transport-memory": ["@metorial/mcp-transport-memory@workspace:src/shuttle/sdk/packages/mcp-transport-memory"],
+    "@metorial/mcp-transport-memory": ["@metorial/mcp-transport-memory@workspace:src/products/integrations/services/mcp-runtime/sdk/packages/mcp-transport-memory"],
 
     "@metorial/metrics-page": ["@metorial/metrics-page@workspace:src/metorial-frontend/packages/metrics-page"],
 
@@ -8791,7 +8791,7 @@
 
     "@metorial/review-engine": ["@metorial/review-engine@workspace:src/products/agents/packages/review-engine"],
 
-    "@metorial/root": ["@metorial/root@workspace:src/shuttle/sdk"],
+    "@metorial/root": ["@metorial/root@workspace:src/products/integrations/services/mcp-runtime/sdk"],
 
     "@metorial/runtime-dev": ["@metorial/runtime-dev@workspace:src/products/runtime/services/cluster-manager/dev"],
 
@@ -8809,7 +8809,7 @@
 
     "@metorial/shared-settings": ["@metorial/shared-settings@workspace:src/metorial/packages/shared-settings"],
 
-    "@metorial/shuttle": ["@metorial/shuttle@workspace:src/shuttle/service"],
+    "@mtsrc/mcp-runtime-service": ["@mtsrc/mcp-runtime-service@workspace:src/products/integrations/services/mcp-runtime/service"],
 
     "@metorial/signal": ["@metorial/signal@workspace:src/signal/service"],
 
@@ -12807,7 +12807,7 @@
 
     "@metorial/mcp-proxy/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
 
-    "@metorial/shuttle/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/mcp-runtime-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/signal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -13911,7 +13911,7 @@
 
     "@metorial/mcp-proxy/vitest/why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
 
-    "@metorial/shuttle/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/mcp-runtime-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/signal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 

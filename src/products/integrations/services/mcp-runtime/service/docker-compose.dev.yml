@@ -39,7 +39,7 @@ services:
     profiles: ['infra']
     image: ghcr.io/metorial/mte-object-store:dev
     build:
-      context: ../../..
+      context: ../../../../../..
       dockerfile: src/object-storage/Dockerfile
     container_name: shuttle-object-storage
     restart: unless-stopped
@@ -143,8 +143,8 @@ services:
   shuttle:
     profiles: ['service']
     build:
-      context: ../../..
-      dockerfile: ./src/shuttle/service/dev.Dockerfile
+      context: ../../../../../..
+      dockerfile: ./src/products/integrations/services/mcp-runtime/service/dev.Dockerfile
     container_name: shuttle-service
     restart: unless-stopped
     ports:
@@ -163,12 +163,12 @@ services:
       FUNCTION_BAY_DEFAULT_MEMORY_MB: ${FUNCTION_BAY_DEFAULT_MEMORY_MB}
       FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: ${FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS}
     volumes:
-      - ./src:/app/src/shuttle/service/src:ro
-      - ./package.json:/app/src/shuttle/service/package.json:ro
-      - ./tsconfig.json:/app/src/shuttle/service/tsconfig.json:ro
-      - ./prisma:/app/src/shuttle/service/prisma
-      - ./prisma.config.ts:/app/src/shuttle/service/prisma.config.ts:ro
-      - ../sdk:/app/src/shuttle/sdk
+      - ./src:/app/src/products/integrations/services/mcp-runtime/service/src:ro
+      - ./package.json:/app/src/products/integrations/services/mcp-runtime/service/package.json:ro
+      - ./tsconfig.json:/app/src/products/integrations/services/mcp-runtime/service/tsconfig.json:ro
+      - ./prisma:/app/src/products/integrations/services/mcp-runtime/service/prisma
+      - ./prisma.config.ts:/app/src/products/integrations/services/mcp-runtime/service/prisma.config.ts:ro
+      - ../sdk:/app/src/products/integrations/services/mcp-runtime/sdk
       - /app/node_modules
     depends_on:
       postgres:

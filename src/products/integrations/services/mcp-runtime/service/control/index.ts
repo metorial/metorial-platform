@@ -16,7 +16,7 @@ import {
 import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
-  name: '@metorial/shuttle',
+  name: '@mtsrc/mcp-runtime-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -62,12 +62,16 @@ export default project({
       }
     ),
     databases: {
-      main: postgres({ package: '@metorial/shuttle', name: 'shuttle', env: 'DATABASE_URL' })
+      main: postgres({
+        package: '@mtsrc/mcp-runtime-service',
+        name: 'shuttle',
+        env: 'DATABASE_URL'
+      })
     }
   }),
   e2e: e2e({
     start: ['e2e:start'],
-    image: 'shuttle',
+    image: 'mcp-runtime',
     tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
@@ -77,21 +81,23 @@ export default project({
   ci: {
     images: [
       ciImage({
-        name: 'shuttle',
+        name: 'mcp-runtime',
         group: 'oss',
-        image: 'metorial/mte-shuttle',
-        ecr: 'metorial-enterprise-saas/mte-shuttle',
-        canonical: 'ghcr.io/metorial/shuttle',
+        image: 'metorial/mte-mcp-runtime',
+        ecr: 'metorial-enterprise-saas/mte-mcp-runtime',
+        canonical: 'ghcr.io/metorial/mcp-runtime',
         build: bunService({
           ports: [52080, 52081],
           health: [
             { port: 52080, path: '/ping' },
             { port: 12121, path: '/' }
           ],
-          migrations: [ownMigration('shuttle', '@metorial/shuttle', { prefix: 'SHUTTLE' })]
+          migrations: [
+            ownMigration('shuttle', '@mtsrc/mcp-runtime-service', { prefix: 'SHUTTLE' })
+          ]
         })
       })
     ],
-    suite: ciSuite({ name: 'shuttle', groups: 1 })
+    suite: ciSuite({ name: 'mcp-runtime', groups: 1 })
   }
 });

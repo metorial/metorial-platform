@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/shuttle",
+  "name": "@mtsrc/mcp-runtime-service",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

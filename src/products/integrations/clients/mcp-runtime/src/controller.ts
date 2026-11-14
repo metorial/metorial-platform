@@ -1,5 +1,5 @@
 import { createClient } from '@lowerdeck/rpc-client';
-import type { ShuttleClient } from '../../../service/src/apis/controllers';
+import type { ShuttleClient } from '../../../services/mcp-runtime/service/src/apis/controllers';
 
 type ClientOpts = Parameters<typeof createClient>[0];
 

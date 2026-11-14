@@ -35,11 +35,14 @@ describe('image-only E2E Compose', () => {
   test('maps runtime images to existing Compose services and hostnames', () => {
     for (let [service, image] of [
       ['forge', 'build'],
-      ['function-bay', 'functions']
+      ['function-bay', 'functions'],
+      ['shuttle', 'mcp-runtime']
     ]) {
       let config: any = fixture();
       config.services[service] = config.services.forge;
       if (service !== 'forge') delete config.services.forge;
+      config.services[service].image = `ghcr.io/metorial/${image}:latest`;
+      delete config.services[service].build;
 
       let prepared = prepareCompose({ ...options(), config, suite: image });
 

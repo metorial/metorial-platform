@@ -1,5 +1,5 @@
 {
-  "name": "@metorial-platform-systems/shuttle-client",
+  "name": "@mtsrc/mcp-runtime-client-internal",
   "version": "1.0.0",
   "publishConfig": {
     "access": "public"
@@ -62,7 +62,7 @@
     "@types/bun": "^1.4.3"
   },
   "devDependencies": {
-    "@metorial/shuttle": "workspace:*",
+    "@mtsrc/mcp-runtime-service": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"

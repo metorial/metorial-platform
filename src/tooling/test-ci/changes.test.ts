@@ -62,7 +62,7 @@ test('source, shared dependency, deleted files and imported configuration select
 });
 
 test('E2E suites include every application container dependency', () => {
-  expect(controlSuites.find(suite => suite.name === 'shuttle')!.services).toContain(
+  expect(controlSuites.find(suite => suite.name === 'mcp-runtime')!.services).toContain(
     '@mtsrc/build-service'
   );
   expect(controlSuites.find(suite => suite.name === 'functions')!.services).toContain(
@@ -70,8 +70,8 @@ test('E2E suites include every application container dependency', () => {
   );
 });
 
-test('Shuttle and Function Bay control suites include Forge as a stack dependency', () => {
-  for (let name of ['shuttle', 'functions']) {
+test('MCP Runtime and Functions control suites include Build as a stack dependency', () => {
+  for (let name of ['mcp-runtime', 'functions']) {
     expect(controlSuites.find(suite => suite.name === name)).toMatchObject({
       stackPackages: expect.arrayContaining(['@mtsrc/build-service'])
     });

@@ -1,6 +1,6 @@
 import { IsomorphicWs } from '@metorial/util-websocket';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
-import type { ConnectionMessage } from '../../../service/src/mcp/utils/messenger';
+import type { ConnectionMessage } from '../../../services/mcp-runtime/service/src/mcp/utils/messenger';
 
 export let createLiveConnectionClient = (opts: { endpoint: string }) => ({
   connect: (d: {

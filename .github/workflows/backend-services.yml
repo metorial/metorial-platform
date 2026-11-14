@@ -33,7 +33,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=@metorial/slates --filter=@mtsrc/email-service
 
   migrations:
     name: Check Prisma migrations
@@ -77,9 +77,9 @@ jobs:
           - name: functions
             image: ghcr.io/metorial/functions
             dockerfile: ./src/products/runtime/services/functions/service/Dockerfile
-          - name: shuttle
-            image: ghcr.io/metorial/shuttle
-            dockerfile: ./src/shuttle/service/Dockerfile
+          - name: mcp-runtime
+            image: ghcr.io/metorial/mcp-runtime
+            dockerfile: ./src/products/integrations/services/mcp-runtime/service/Dockerfile
           - name: email
             image: ghcr.io/metorial/email
             dockerfile: ./src/platform/services/email/service/Dockerfile

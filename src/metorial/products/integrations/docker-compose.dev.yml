@@ -295,7 +295,7 @@ services:
       - subspace-network
 
   shuttle:
-    image: ghcr.io/metorial/shuttle:latest
+    image: ghcr.io/metorial/mcp-runtime:latest
     container_name: subspace-shuttle
     restart: unless-stopped
     ports:

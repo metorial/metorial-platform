@@ -80,7 +80,7 @@ export default project({
       '../../../../metorial/apis/*'
     ],
     services: [
-      '@metorial/shuttle',
+      '@mtsrc/mcp-runtime-service',
       '@mtsrc/search-service',
       '@mtsrc/email-service',
       '@metorial-subspace/app-worker'

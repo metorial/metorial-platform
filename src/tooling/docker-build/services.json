@@ -52,15 +52,15 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "shuttle": {
-    "dockerfile": "src/shuttle/service/Dockerfile",
-    "image": "ghcr.io/metorial/shuttle",
+  "mcp-runtime": {
+    "dockerfile": "src/products/integrations/services/mcp-runtime/service/Dockerfile",
+    "image": "ghcr.io/metorial/mcp-runtime",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/shuttle"
+      "--filter=@mtsrc/mcp-runtime-service"
     ],
     "buildArguments": {},
     "extraInputs": []

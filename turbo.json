@@ -186,8 +186,8 @@
       "dependsOn": ["^build", "@mtsrc/email-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/shuttle-client#build": {
-      "dependsOn": ["^build", "@metorial/shuttle#prisma:generate"],
+    "@mtsrc/mcp-runtime-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/mcp-runtime-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/signal-client#build": {
