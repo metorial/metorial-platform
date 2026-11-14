@@ -609,7 +609,7 @@ class ConsumerSkillServiceImpl {
     return await skillResourceService.hydrateSkill(localSkill);
   }
 
-  // Organization members always have full access to skills; a view-only grant only controls
+  // Organization members can already edit and share skills; a view-only grant only controls
   // whether the skill shows up in their portal.
   private async assertOrganizationMemberTargetsGetViewOnly(d: {
     instance: Instance;
@@ -633,7 +633,7 @@ class ConsumerSkillServiceImpl {
       throw new ServiceError(
         forbiddenError({
           message:
-            'Organization members always have full access to skills. They can only be given view access, which makes the skill show up in their portal.'
+            'Organization members can already edit and share skills. They can only be given view access, which makes the skill show up in their portal.'
         })
       );
     }

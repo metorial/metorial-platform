@@ -33,7 +33,7 @@ let levelIcons: Record<AccessLevel, React.ReactNode> = {
 let levelLabels: Record<AccessLevel, string> = {
   use: 'Can use',
   edit: 'Can edit',
-  manage: 'Can manage'
+  manage: 'Can edit and share'
 };
 
 let LevelRoot = styled.span`
