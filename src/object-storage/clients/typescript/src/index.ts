@@ -60,9 +60,7 @@ export interface ObjectData {
   data: Buffer;
 }
 
-export type ByteRange =
-  | { start: number; end?: number }
-  | { suffix: number };
+export type ByteRange = { start: number; end?: number } | { suffix: number };
 
 export interface ObjectStream {
   metadata: ObjectMetadata;
@@ -73,7 +71,8 @@ export interface ObjectStream {
  * A `ReadableStream` or a file-backed `Blob` (`fs.openAsBlob`, `Bun.file`) is sent as it is read,
  * so the object never has to fit in memory.
  */
-export type ObjectBody = Buffer | Uint8Array | ArrayBuffer | Blob | ReadableStream<Uint8Array> | string;
+export type ObjectBody =
+  Buffer | Uint8Array | ArrayBuffer | Blob | ReadableStream<Uint8Array> | string;
 
 export interface ObjectRangeData {
   metadata: ObjectMetadata;
@@ -113,7 +112,7 @@ interface DeleteObjectsResponse {
 
 export enum PublicUrlPurpose {
   Retrieve = 'retrieve',
-  Upload = 'upload',
+  Upload = 'upload'
 }
 
 export interface PublicURLResponse {
@@ -121,6 +120,30 @@ export interface PublicURLResponse {
   /** Headers the caller must send with the request for the signed URL to be accepted. */
   headers: Record<string, string>;
   expires_in: number;
+}
+
+/** Parts other than the last must be at least this large. */
+export let MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024;
+
+/** Largest part a single upload request accepts. */
+export let MULTIPART_MAX_PART_SIZE = 128 * 1024 * 1024;
+
+export let MULTIPART_MAX_PARTS = 10000;
+
+export interface UploadedPart {
+  part: number;
+  etag: string;
+  size: number;
+}
+
+export interface MultipartUpload {
+  key: string;
+  uploadId: string;
+  initiated: string | null;
+}
+
+interface ListUploadsResponse {
+  uploads: { key: string; upload_id: string; initiated?: string | null }[];
 }
 
 export type ZipCompression = 'auto' | 'store' | 'deflate';
@@ -219,8 +242,7 @@ export interface WaitForZipJobOptions {
 const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
 
-const isActive = (job: ZipJob): boolean =>
-  job.state === 'queued' || job.state === 'running';
+const isActive = (job: ZipJob): boolean => job.state === 'queued' || job.state === 'running';
 
 const transientStatuses = new Set([429, 502, 503, 504]);
 
@@ -261,10 +283,15 @@ const toObjectStorageError = async (response: Response): Promise<ObjectStorageEr
   );
 };
 
-const objectMetadataFromHeaders = (key: string, headers: Headers, size: number): ObjectMetadata => {
+const objectMetadataFromHeaders = (
+  key: string,
+  headers: Headers,
+  size: number
+): ObjectMetadata => {
   const metadata: Record<string, string> = {};
   headers.forEach((value, name) => {
-    if (name.startsWith(metaHeaderPrefix)) metadata[name.substring(metaHeaderPrefix.length)] = value;
+    if (name.startsWith(metaHeaderPrefix))
+      metadata[name.substring(metaHeaderPrefix.length)] = value;
   });
 
   return {
@@ -273,7 +300,7 @@ const objectMetadataFromHeaders = (key: string, headers: Headers, size: number):
     content_type: headers.get('content-type') ?? undefined,
     etag: headers.get('etag') ?? '',
     last_modified: headers.get('last-modified') ?? '',
-    metadata,
+    metadata
   };
 };
 
@@ -354,7 +381,7 @@ export class ObjectStorageClient {
         headers,
         body,
         signal: controller.signal,
-        ...(body instanceof ReadableStream ? { duplex: 'half' } : {}),
+        ...(body instanceof ReadableStream ? { duplex: 'half' } : {})
       } as RequestInit);
 
       if (!response.ok) throw await toObjectStorageError(response);
@@ -365,7 +392,11 @@ export class ObjectStorageClient {
     }
   }
 
-  private async request(method: string, path: string, options?: RequestOptions): Promise<Response> {
+  private async request(
+    method: string,
+    path: string,
+    options?: RequestOptions
+  ): Promise<Response> {
     const { response, done } = await this.send(method, path, options);
     try {
       await response.body?.cancel();
@@ -375,7 +406,11 @@ export class ObjectStorageClient {
     return response;
   }
 
-  private async requestJson<T>(method: string, path: string, options?: RequestOptions): Promise<T> {
+  private async requestJson<T>(
+    method: string,
+    path: string,
+    options?: RequestOptions
+  ): Promise<T> {
     const { response, done } = await this.send(method, path, options);
     try {
       return (await response.json()) as T;
@@ -408,13 +443,13 @@ export class ObjectStorageClient {
 
   async createBucket(name: string): Promise<Bucket> {
     return await this.requestJson<Bucket>('POST', '/buckets', {
-      json: { name } as CreateBucketRequest,
+      json: { name } as CreateBucketRequest
     });
   }
 
   async upsertBucket(name: string): Promise<Bucket> {
     return await this.requestJson<Bucket>('PUT', '/buckets', {
-      json: { name } as CreateBucketRequest,
+      json: { name } as CreateBucketRequest
     });
   }
 
@@ -466,11 +501,18 @@ export class ObjectStorageClient {
   }
 
   async getObject(bucket: string, key: string): Promise<ObjectData> {
-    const { response, data } = await this.requestBytes('GET', `/buckets/${bucket}/objects/${key}`);
+    const { response, data } = await this.requestBytes(
+      'GET',
+      `/buckets/${bucket}/objects/${key}`
+    );
 
     return {
-      metadata: objectMetadataFromHeaders(key, response.headers, contentLength(response.headers)),
-      data,
+      metadata: objectMetadataFromHeaders(
+        key,
+        response.headers,
+        contentLength(response.headers)
+      ),
+      data
     };
   }
 
@@ -480,8 +522,12 @@ export class ObjectStorageClient {
     done();
 
     return {
-      metadata: objectMetadataFromHeaders(key, response.headers, contentLength(response.headers)),
-      stream: response.body ?? new ReadableStream<Uint8Array>({ start: c => c.close() }),
+      metadata: objectMetadataFromHeaders(
+        key,
+        response.headers,
+        contentLength(response.headers)
+      ),
+      stream: response.body ?? new ReadableStream<Uint8Array>({ start: c => c.close() })
     };
   }
 
@@ -496,12 +542,10 @@ export class ObjectStorageClient {
     range: ByteRange
   ): Promise<ObjectRangeData> {
     const header =
-      'suffix' in range
-        ? `bytes=-${range.suffix}`
-        : `bytes=${range.start}-${range.end ?? ''}`;
+      'suffix' in range ? `bytes=-${range.suffix}` : `bytes=${range.start}-${range.end ?? ''}`;
 
     const { response, done } = await this.send('GET', `/buckets/${bucket}/objects/${key}`, {
-      headers: { Range: header },
+      headers: { Range: header }
     });
 
     try {
@@ -526,7 +570,7 @@ export class ObjectStorageClient {
       return {
         metadata: objectMetadataFromHeaders(key, response.headers, total),
         data,
-        range: { start, end, total },
+        range: { start, end, total }
       };
     } finally {
       done();
@@ -539,7 +583,10 @@ export class ObjectStorageClient {
   }
 
   async getObjectInfo(bucket: string, key: string): Promise<ObjectMetadata> {
-    return await this.requestJson<ObjectMetadata>('GET', `/buckets/${bucket}/object-info/${key}`);
+    return await this.requestJson<ObjectMetadata>(
+      'GET',
+      `/buckets/${bucket}/object-info/${key}`
+    );
   }
 
   /** Hashes a stored object on the server, streaming it without holding it in memory. */
@@ -571,9 +618,13 @@ export class ObjectStorageClient {
     sourceBucket: string,
     sourceKey: string
   ): Promise<ObjectMetadata> {
-    return await this.requestJson<ObjectMetadata>('POST', `/buckets/${bucket}/copy-object/${key}`, {
-      json: { source_bucket: sourceBucket, source_key: sourceKey },
-    });
+    return await this.requestJson<ObjectMetadata>(
+      'POST',
+      `/buckets/${bucket}/copy-object/${key}`,
+      {
+        json: { source_bucket: sourceBucket, source_key: sourceKey }
+      }
+    );
   }
 
   async listObjectsPage(
@@ -589,14 +640,14 @@ export class ObjectStorageClient {
         query: {
           prefix,
           max_keys: maxKeys,
-          continuation_token: continuationToken,
-        },
+          continuation_token: continuationToken
+        }
       }
     );
 
     return {
       objects: response.objects,
-      nextContinuationToken: response.next_continuation_token ?? undefined,
+      nextContinuationToken: response.next_continuation_token ?? undefined
     };
   }
 
@@ -637,6 +688,92 @@ export class ObjectStorageClient {
   }
 
   /**
+   * Starts a durable multipart upload. Every later call names the returned upload id, so any
+   * process can continue the upload; nothing is held in memory between parts.
+   */
+  async startMultipartUpload(
+    bucket: string,
+    key: string,
+    contentType?: string,
+    metadata?: Record<string, string>
+  ): Promise<string> {
+    let headers: Record<string, string> = {};
+    if (contentType) headers['content-type'] = contentType;
+    for (let [name, value] of Object.entries(metadata ?? {})) {
+      headers[`${metaHeaderPrefix}${name}`] = value;
+    }
+
+    let response = await this.requestJson<{ upload_id: string }>(
+      'POST',
+      `/buckets/${bucket}/uploads/${key}`,
+      { headers }
+    );
+    return response.upload_id;
+  }
+
+  /** Uploads (or replaces) one part. Part numbers start at 1. */
+  async uploadPart(
+    bucket: string,
+    key: string,
+    uploadId: string,
+    part: number,
+    data: Buffer | Uint8Array
+  ): Promise<UploadedPart> {
+    return await this.requestJson<UploadedPart>(
+      'PUT',
+      `/buckets/${bucket}/upload-parts/${key}`,
+      {
+        query: { upload_id: uploadId, part },
+        headers: { 'content-type': 'application/octet-stream' },
+        body: data as RequestBody
+      }
+    );
+  }
+
+  /**
+   * Assembles the parts (numbered 1..n, all but the last at least `MULTIPART_MIN_PART_SIZE`) into
+   * the object. Completing an upload that already completed either returns the object or throws a
+   * 404, depending on the backend.
+   */
+  async completeMultipartUpload(
+    bucket: string,
+    key: string,
+    uploadId: string,
+    parts: { part: number; etag: string }[]
+  ): Promise<ObjectMetadata> {
+    return await this.requestJson<ObjectMetadata>(
+      'POST',
+      `/buckets/${bucket}/upload-complete/${key}`,
+      {
+        json: { upload_id: uploadId, parts: parts.map(({ part, etag }) => ({ part, etag })) },
+        timeoutMs: Math.max(this.timeout, 5 * 60 * 1000)
+      }
+    );
+  }
+
+  /** Discards an upload and its parts. Aborting an unknown upload succeeds. */
+  async abortMultipartUpload(bucket: string, key: string, uploadId: string): Promise<void> {
+    await this.request('DELETE', `/buckets/${bucket}/uploads/${key}`, {
+      query: { upload_id: uploadId }
+    });
+  }
+
+  async listMultipartUploads(bucket: string, prefix?: string): Promise<MultipartUpload[]> {
+    let response = await this.requestJson<ListUploadsResponse>(
+      'GET',
+      `/buckets/${bucket}/uploads`,
+      {
+        query: { prefix }
+      }
+    );
+    return response.uploads.map(upload => ({
+      key: upload.key,
+      uploadId: upload.upload_id,
+      initiated: upload.initiated ?? null
+    }));
+  }
+
+  /**
    * Starts building a ZIP archive, or joins the job if `jobId` already exists with the same spec.
    * Re-submitting after a failure or cancel starts a new attempt; a different spec is a 409.
    * Resolves with the job, which is still `queued` or `running` if it did not end within the wait.
@@ -653,14 +790,14 @@ export class ObjectStorageClient {
       timeoutMs: this.waitTimeout(options.waitSeconds),
       ...(spec instanceof Blob
         ? { body: spec, headers: { 'content-type': 'application/json' } }
-        : { json: spec }),
+        : { json: spec })
     });
   }
 
   async getZipJob(jobId: string, options: ZipJobRequestOptions = {}): Promise<ZipJob> {
     return await this.requestJson<ZipJob>('GET', `/zip-jobs/${encodeURIComponent(jobId)}`, {
       query: { wait: options.waitSeconds },
-      timeoutMs: this.waitTimeout(options.waitSeconds),
+      timeoutMs: this.waitTimeout(options.waitSeconds)
     });
   }
 

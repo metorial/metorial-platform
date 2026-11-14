@@ -23,6 +23,11 @@ use crate::backend::{
     Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
     PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
+use crate::durable::{
+    validate_part_list, validate_part_number, validate_part_size, validate_upload_id, DurablePart,
+    DurablePartRef, DurableUpload,
+};
+use crate::gcs_xml::GcsXmlApi;
 use crate::error::{is_transient_status, BackendError, BackendResult};
 use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, KIB, TIB};
 use crate::uploader::Uploader;
@@ -49,6 +54,7 @@ pub struct GcsBackend {
     bucket_name: String,
     signing_style: SigningStyle,
     sessions: reqwest::Client,
+    xml: GcsXmlApi,
     uploader: Arc<Uploader>,
 }
 
@@ -226,6 +232,10 @@ impl GcsBackend {
             },
         };
 
+        let token = config
+            .token_source_provider
+            .as_ref()
+            .map(|provider| provider.token_source());
         let client = Client::new(config);
 
         let sessions = reqwest::Client::builder()
@@ -240,11 +250,19 @@ impl GcsBackend {
             "Initialized GCS backend with bucket: {} (endpoint: {:?}, public endpoint: {:?})",
             bucket_name, options.endpoint, options.public_endpoint
         );
+        let xml = GcsXmlApi::new(
+            sessions.clone(),
+            options.endpoint.as_deref(),
+            bucket_name.clone(),
+            token,
+        );
+
         Ok(Self {
             client,
             bucket_name,
             signing_style,
             sessions,
+            xml,
             uploader: Arc::default(),
         })
     }
@@ -885,6 +903,50 @@ impl Backend for GcsBackend {
             purpose, key, expiration_secs
         );
         Ok(SignedUrl::new(url))
+    }
+
+    fn backend_name(&self) -> &'static str {
+        "gcs"
+    }
+
+    async fn start_durable_multipart(&self, key: &str, opts: &PutOptions) -> BackendResult<String> {
+        self.xml
+            .start(key, opts.content_type.as_deref(), &opts.metadata)
+            .await
+    }
+
+    async fn upload_durable_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        validate_part_number(number)?;
+        validate_part_size(data.len() as u64)?;
+        validate_upload_id(upload_id)?;
+        self.xml.upload_part(key, upload_id, number, data).await
+    }
+
+    async fn complete_durable_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        validate_part_list(parts)?;
+        validate_upload_id(upload_id)?;
+        self.xml.complete(key, upload_id, parts).await?;
+        self.head_object(key).await
+    }
+
+    async fn abort_durable_multipart(&self, key: &str, upload_id: &str) -> BackendResult<()> {
+        validate_upload_id(upload_id)?;
+        self.xml.abort(key, upload_id).await
+    }
+
+    async fn list_durable_multiparts(&self, prefix: &str) -> BackendResult<Vec<DurableUpload>> {
+        self.xml.list(prefix).await
     }
 }
 

@@ -23,6 +23,10 @@ use crate::backend::{
     copy_through_stream, normalize_etag, Backend, ByteRange, ByteStream, ObjectData,
     ObjectMetadata, ObjectPage, ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
+use crate::durable::{
+    validate_part_list, validate_part_number, validate_part_size, validate_upload_id, DurablePart,
+    DurablePartRef, DurableUpload,
+};
 use crate::error::{is_transient_status, BackendError, BackendResult};
 use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, GIB, MIB, TIB};
 use crate::uploader::Uploader;
@@ -1056,6 +1060,179 @@ impl Backend for S3Backend {
         }
 
         Ok(signed)
+    }
+
+    fn backend_name(&self) -> &'static str {
+        "s3"
+    }
+
+    async fn start_durable_multipart(&self, key: &str, opts: &PutOptions) -> BackendResult<String> {
+        let mut create = self
+            .client
+            .create_multipart_upload()
+            .bucket(&self.bucket_name)
+            .key(key);
+
+        if let Some(ct) = opts.content_type.as_ref() {
+            create = create.content_type(ct);
+        }
+        for (k, v) in opts.metadata.iter() {
+            create = create.metadata(k.clone(), v.clone());
+        }
+
+        let created = create.send().await.map_err(|e| {
+            s3_error(format!("Failed to start upload of '{}': {}", key, e), &e)
+        })?;
+
+        created.upload_id().map(str::to_string).ok_or_else(|| {
+            BackendError::Provider(format!("S3 returned no upload id for '{}'", key))
+        })
+    }
+
+    async fn upload_durable_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        validate_part_number(number)?;
+        validate_part_size(data.len() as u64)?;
+        validate_upload_id(upload_id)?;
+        let size = data.len() as u64;
+
+        let output = self
+            .client
+            .upload_part()
+            .bucket(&self.bucket_name)
+            .key(key)
+            .upload_id(upload_id)
+            .part_number(number as i32)
+            .content_length(size as i64)
+            .body(AwsByteStream::from(data))
+            .send()
+            .await
+            .map_err(|e| {
+                let message = format!("Failed to upload part {} of '{}': {}", number, key, e);
+                if e.code() == Some("NoSuchUpload") {
+                    BackendError::NotFound(message)
+                } else {
+                    s3_error(message, &e)
+                }
+            })?;
+
+        let etag = output.e_tag().map(normalize_etag).ok_or_else(|| {
+            BackendError::Provider(format!("S3 returned no etag for part {} of '{}'", number, key))
+        })?;
+
+        Ok(DurablePart { number, size, etag })
+    }
+
+    async fn complete_durable_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        validate_part_list(parts)?;
+        validate_upload_id(upload_id)?;
+
+        let completed = CompletedMultipartUpload::builder()
+            .set_parts(Some(
+                parts
+                    .iter()
+                    .map(|part| {
+                        CompletedPart::builder()
+                            .e_tag(format!("\"{}\"", part.etag))
+                            .part_number(part.number as i32)
+                            .build()
+                    })
+                    .collect(),
+            ))
+            .build();
+
+        self.client
+            .complete_multipart_upload()
+            .bucket(&self.bucket_name)
+            .key(key)
+            .upload_id(upload_id)
+            .multipart_upload(completed)
+            .send()
+            .await
+            .map_err(|e| match e.code() {
+                Some("InvalidPart") | Some("InvalidPartOrder") | Some("EntityTooSmall") => {
+                    BackendError::InvalidRequest(format!(
+                        "Failed to complete upload of '{}': {}",
+                        key,
+                        DisplayErrorContext(&e)
+                    ))
+                }
+                _ => complete_error(key, &e),
+            })?;
+
+        self.head_object(key).await
+    }
+
+    async fn abort_durable_multipart(&self, key: &str, upload_id: &str) -> BackendResult<()> {
+        validate_upload_id(upload_id)?;
+
+        match self
+            .client
+            .abort_multipart_upload()
+            .bucket(&self.bucket_name)
+            .key(key)
+            .upload_id(upload_id)
+            .send()
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) if e.code() == Some("NoSuchUpload") => Ok(()),
+            Err(e) => Err(s3_error(
+                format!("Failed to abort upload of '{}': {}", key, e),
+                &e,
+            )),
+        }
+    }
+
+    async fn list_durable_multiparts(&self, prefix: &str) -> BackendResult<Vec<DurableUpload>> {
+        let mut uploads = Vec::new();
+        let mut key_marker: Option<String> = None;
+        let mut upload_id_marker: Option<String> = None;
+
+        loop {
+            let output = self
+                .client
+                .list_multipart_uploads()
+                .bucket(&self.bucket_name)
+                .prefix(prefix)
+                .set_key_marker(key_marker.clone())
+                .set_upload_id_marker(upload_id_marker.clone())
+                .send()
+                .await
+                .map_err(|e| s3_error(format!("Failed to list uploads: {}", e), &e))?;
+
+            for upload in output.uploads() {
+                let (Some(key), Some(upload_id)) = (upload.key(), upload.upload_id()) else {
+                    continue;
+                };
+                uploads.push(DurableUpload {
+                    key: key.to_string(),
+                    upload_id: upload_id.to_string(),
+                    initiated: upload.initiated().and_then(|time| {
+                        DateTime::<Utc>::from_timestamp(time.secs(), time.subsec_nanos())
+                    }),
+                });
+            }
+
+            if output.is_truncated() != Some(true) {
+                return Ok(uploads);
+            }
+            key_marker = output.next_key_marker().map(str::to_string);
+            upload_id_marker = output.next_upload_id_marker().map(str::to_string);
+            if key_marker.is_none() && upload_id_marker.is_none() {
+                return Ok(uploads);
+            }
+        }
     }
 }
 

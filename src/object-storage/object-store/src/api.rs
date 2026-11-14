@@ -6,7 +6,9 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use futures::StreamExt;
-use object_store_backends::{BackendError, ByteRange, ContentDigests, ObjectMetadata, PutOptions};
+use object_store_backends::{
+    BackendError, ByteRange, ContentDigests, DurablePartRef, ObjectMetadata, PutOptions,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,6 +20,9 @@ use crate::service::{DigestedObject, ObjectStoreService};
 use crate::zip::{JobRequestError, ZipJob, ZipJobManager};
 
 pub type SharedService = Arc<ObjectStoreService>;
+
+/// Durable parts are buffered whole, so they are capped well below the providers' 5 GiB.
+pub const MAX_DURABLE_PART_BYTES: usize = 128 * 1024 * 1024;
 pub type SharedJobs = Arc<ZipJobManager>;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -122,6 +127,58 @@ pub struct PublicUrlResponse {
     pub expires_in: u64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StartUploadResponse {
+    pub upload_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UploadPartQuery {
+    pub upload_id: String,
+    pub part: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UploadPartResponse {
+    pub part: u32,
+    pub etag: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CompletedPartRequest {
+    pub part: u32,
+    pub etag: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CompleteUploadRequest {
+    pub upload_id: String,
+    pub parts: Vec<CompletedPartRequest>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UploadIdQuery {
+    pub upload_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListUploadsQuery {
+    pub prefix: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UploadResponse {
+    pub key: String,
+    pub upload_id: String,
+    pub initiated: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListUploadsResponse {
+    pub uploads: Vec<UploadResponse>,
+}
+
 impl From<Bucket> for BucketResponse {
     fn from(bucket: Bucket) -> Self {
         Self {
@@ -192,6 +249,125 @@ pub async fn delete_bucket(
 ) -> ServiceResult<StatusCode> {
     service.delete_bucket(&bucket).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+fn upload_options(key: &str, headers: &HeaderMap) -> (Option<String>, HashMap<String, String>) {
+    let content_type = headers
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+        .or_else(|| mime_guess::from_path(key).first().map(|m| m.to_string()));
+
+    let mut metadata = HashMap::new();
+    for (header_key, value) in headers.iter() {
+        if let Some(meta_key) = header_key.as_str().strip_prefix("x-object-meta-") {
+            if let Ok(meta_value) = value.to_str() {
+                metadata.insert(meta_key.to_string(), meta_value.to_string());
+            }
+        }
+    }
+
+    (content_type, metadata)
+}
+
+pub async fn start_upload(
+    State(service): State<SharedService>,
+    Path((bucket, key)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> ServiceResult<Json<StartUploadResponse>> {
+    let (content_type, metadata) = upload_options(&key, &headers);
+    let opts = PutOptions {
+        content_type,
+        metadata,
+        ..Default::default()
+    };
+
+    let upload_id = service.start_durable_upload(&bucket, &key, opts).await?;
+    Ok(Json(StartUploadResponse { upload_id }))
+}
+
+pub async fn upload_part(
+    State(service): State<SharedService>,
+    Path((bucket, key)): Path<(String, String)>,
+    Query(params): Query<UploadPartQuery>,
+    body: Body,
+) -> ServiceResult<Json<UploadPartResponse>> {
+    let mut stream = body.into_data_stream();
+    let mut data = bytes::BytesMut::new();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|error| BackendError::Io(RequestBodyError::from_body(error)))?;
+        if data.len() + chunk.len() > MAX_DURABLE_PART_BYTES {
+            return Err(BackendError::TooLarge(format!(
+                "a part holds at most {} bytes",
+                MAX_DURABLE_PART_BYTES
+            ))
+            .into());
+        }
+        data.extend_from_slice(&chunk);
+    }
+    let data = data.freeze();
+
+    let part = service
+        .upload_durable_part(&bucket, &key, &params.upload_id, params.part, data)
+        .await?;
+
+    Ok(Json(UploadPartResponse {
+        part: part.number,
+        etag: part.etag,
+        size: part.size,
+    }))
+}
+
+pub async fn complete_upload(
+    State(service): State<SharedService>,
+    Path((bucket, key)): Path<(String, String)>,
+    Json(payload): Json<CompleteUploadRequest>,
+) -> ServiceResult<Json<ObjectMetadataResponse>> {
+    let parts: Vec<DurablePartRef> = payload
+        .parts
+        .into_iter()
+        .map(|part| DurablePartRef {
+            number: part.part,
+            etag: part.etag,
+        })
+        .collect();
+
+    let metadata = service
+        .complete_durable_upload(&bucket, &key, &payload.upload_id, &parts)
+        .await?;
+    Ok(Json(metadata.into()))
+}
+
+pub async fn abort_upload(
+    State(service): State<SharedService>,
+    Path((bucket, key)): Path<(String, String)>,
+    Query(params): Query<UploadIdQuery>,
+) -> ServiceResult<StatusCode> {
+    service
+        .abort_durable_upload(&bucket, &key, &params.upload_id)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn list_uploads(
+    State(service): State<SharedService>,
+    Path(bucket): Path<String>,
+    Query(params): Query<ListUploadsQuery>,
+) -> ServiceResult<Json<ListUploadsResponse>> {
+    let uploads = service
+        .list_durable_uploads(&bucket, params.prefix.as_deref())
+        .await?;
+
+    Ok(Json(ListUploadsResponse {
+        uploads: uploads
+            .into_iter()
+            .map(|upload| UploadResponse {
+                key: upload.key,
+                upload_id: upload.upload_id,
+                initiated: upload.initiated.map(|time| time.to_rfc3339()),
+            })
+            .collect(),
+    }))
 }
 
 pub async fn put_object(

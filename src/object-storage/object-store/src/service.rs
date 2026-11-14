@@ -1,7 +1,8 @@
 use bytes::Bytes;
 use object_store_backends::error::BackendError;
 use object_store_backends::{
-    digest_stream, Backend, ByteRange, ByteStream, ContentDigests, ObjectData, ObjectMetadata,
+    digest_stream, Backend, ByteRange, ByteStream, ContentDigests, DurablePart, DurablePartRef,
+    DurableUpload, ObjectData, ObjectMetadata,
     ObjectPage, ObjectRangeData, PublicUrlPurpose, PutOptions, SignedUrl, UploadedObject, Uploader,
 };
 use std::collections::HashMap;
@@ -493,6 +494,107 @@ impl ObjectStoreService {
             .await?;
 
         Ok(url)
+    }
+}
+
+impl ObjectStoreService {
+    pub async fn start_durable_upload(
+        &self,
+        bucket: &str,
+        key: &str,
+        opts: PutOptions,
+    ) -> ServiceResult<String> {
+        self.metadata.get_bucket(bucket).await?;
+        validate_deletable_object_key(key)?;
+
+        let upload_id = self
+            .backend
+            .start_durable_multipart(&format!("{}/{}", bucket, key), &opts)
+            .await?;
+
+        debug!("Started durable upload {} of {}/{}", upload_id, bucket, key);
+        Ok(upload_id)
+    }
+
+    pub async fn upload_durable_part(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> ServiceResult<DurablePart> {
+        self.metadata.get_bucket(bucket).await?;
+        validate_deletable_object_key(key)?;
+
+        Ok(self
+            .backend
+            .upload_durable_part(&format!("{}/{}", bucket, key), upload_id, number, data)
+            .await?)
+    }
+
+    pub async fn complete_durable_upload(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> ServiceResult<ObjectMetadata> {
+        self.metadata.get_bucket(bucket).await?;
+        validate_deletable_object_key(key)?;
+
+        let mut metadata = self
+            .backend
+            .complete_durable_multipart(&format!("{}/{}", bucket, key), upload_id, parts)
+            .await?;
+        metadata.key = key.to_string();
+
+        info!(
+            "Completed durable upload {} of {}/{} ({} bytes in {} parts)",
+            upload_id,
+            bucket,
+            key,
+            metadata.size,
+            parts.len()
+        );
+        Ok(metadata)
+    }
+
+    pub async fn abort_durable_upload(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+    ) -> ServiceResult<()> {
+        self.metadata.get_bucket(bucket).await?;
+        validate_deletable_object_key(key)?;
+
+        self.backend
+            .abort_durable_multipart(&format!("{}/{}", bucket, key), upload_id)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn list_durable_uploads(
+        &self,
+        bucket: &str,
+        prefix: Option<&str>,
+    ) -> ServiceResult<Vec<DurableUpload>> {
+        self.metadata.get_bucket(bucket).await?;
+
+        let bucket_prefix = format!("{}/", bucket);
+        let uploads = self
+            .backend
+            .list_durable_multiparts(&bucket_scoped_prefix(bucket, prefix))
+            .await?;
+
+        Ok(uploads
+            .into_iter()
+            .filter_map(|mut upload| {
+                upload.key = upload.key.strip_prefix(&bucket_prefix)?.to_string();
+                Some(upload)
+            })
+            .collect())
     }
 }
 

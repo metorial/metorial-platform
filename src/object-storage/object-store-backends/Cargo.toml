@@ -19,6 +19,7 @@ aws-sdk-s3 = { workspace = true }
 aws-config = { workspace = true }
 aws-smithy-types = { workspace = true }
 google-cloud-storage = { workspace = true }
+token-source = "1.0"
 azure_storage = { workspace = true }
 azure_storage_blobs = { workspace = true }
 azure_identity = { workspace = true }

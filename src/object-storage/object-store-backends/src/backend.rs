@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use crate::durable::{unsupported, DurablePart, DurablePartRef, DurableUpload};
 use crate::error::BackendResult;
 use crate::multipart::{MultipartUpload, PutOptions, UploadLimits, UploadedObject};
 use crate::uploader::Uploader;
@@ -307,6 +308,51 @@ pub trait Backend: Send + Sync {
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
     ) -> BackendResult<SignedUrl>;
+
+    fn backend_name(&self) -> &'static str {
+        "configured"
+    }
+
+    /// Starts an upload no process holds a handle to: every later call names the upload id, so
+    /// any process or replica can continue it. Uploading a part number again replaces the part.
+    async fn start_durable_multipart(&self, key: &str, opts: &PutOptions) -> BackendResult<String> {
+        let _ = (key, opts);
+        Err(unsupported(self.backend_name()))
+    }
+
+    async fn upload_durable_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        let _ = (key, upload_id, number, data);
+        Err(unsupported(self.backend_name()))
+    }
+
+    /// `parts` are numbered 1..=n in order. Completing an upload that an earlier attempt already
+    /// completed either returns the object again (S3, for a while) or fails with `NotFound`.
+    async fn complete_durable_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        let _ = (key, upload_id, parts);
+        Err(unsupported(self.backend_name()))
+    }
+
+    /// Aborting an upload the backend no longer knows succeeds.
+    async fn abort_durable_multipart(&self, key: &str, upload_id: &str) -> BackendResult<()> {
+        let _ = (key, upload_id);
+        Err(unsupported(self.backend_name()))
+    }
+
+    async fn list_durable_multiparts(&self, prefix: &str) -> BackendResult<Vec<DurableUpload>> {
+        let _ = prefix;
+        Err(unsupported(self.backend_name()))
+    }
 }
 
 /// Copies by reading the source and uploading it again, for backends without a server-side copy

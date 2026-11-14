@@ -118,8 +118,15 @@ impl IntoResponse for ServiceError {
             ServiceError::Backend(object_store_backends::BackendError::Conflict(_)) => {
                 (StatusCode::CONFLICT, self.to_string())
             }
-            ServiceError::Backend(object_store_backends::BackendError::SizeMismatch(_)) => {
+            ServiceError::Backend(object_store_backends::BackendError::SizeMismatch(_))
+            | ServiceError::Backend(object_store_backends::BackendError::InvalidRequest(_)) => {
                 (StatusCode::BAD_REQUEST, self.to_string())
+            }
+            ServiceError::Backend(object_store_backends::BackendError::PreconditionFailed(_)) => {
+                (StatusCode::PRECONDITION_FAILED, self.to_string())
+            }
+            ServiceError::Backend(object_store_backends::BackendError::Unsupported(_)) => {
+                (StatusCode::NOT_IMPLEMENTED, self.to_string())
             }
             ServiceError::Backend(object_store_backends::BackendError::Io(ref error))
                 if RequestBodyError::is(error) =>

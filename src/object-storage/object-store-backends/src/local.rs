@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::StreamExt;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Seek, Write};
 use std::path::{Component, Path, PathBuf};
@@ -16,6 +17,10 @@ use bytes::Bytes;
 use crate::backend::{
     compute_etag, Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage,
     ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
+};
+use crate::durable::{
+    validate_part_list, validate_part_number, validate_part_size, validate_part_sizes,
+    validate_upload_id, DurablePart, DurablePartRef, DurableUpload,
 };
 use crate::error::{BackendError, BackendResult};
 use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits};
@@ -36,6 +41,14 @@ const LEGACY_METADATA_EXTENSION: &str = "meta.json";
 const STALE_UPLOAD_AGE: Duration = Duration::from_secs(6 * 60 * 60);
 
 const UPLOAD_TOUCH_INTERVAL: Duration = Duration::from_secs(10 * 60);
+
+const DURABLE_DIR: &str = "durable";
+
+const DURABLE_MANIFEST: &str = "manifest.json";
+
+// Providers keep unfinished uploads for about a week as well (Azure drops uncommitted blocks
+// after 7 days), so durable uploads behave the same on every backend.
+const STALE_DURABLE_UPLOAD_AGE: Duration = Duration::from_secs(7 * 24 * 60 * 60);
 
 const LOCAL_LIMITS: UploadLimits = UploadLimits {
     max_concurrency: 1,
@@ -79,6 +92,20 @@ struct Layout {
 impl Layout {
     fn uploads_path(&self) -> PathBuf {
         self.root_path.join(UPLOADS_DIR)
+    }
+
+    fn durable_root(&self) -> PathBuf {
+        self.uploads_path()
+            .join(DURABLE_DIR)
+            .join(percent_encode(&self.bucket_name))
+    }
+
+    fn durable_path(&self, upload_id: &str) -> BackendResult<PathBuf> {
+        validate_upload_id(upload_id)?;
+        if !upload_id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(BackendError::NotFound(format!("upload {}", upload_id)));
+        }
+        Ok(self.durable_root().join(upload_id))
     }
 
     fn bucket_path(&self) -> PathBuf {
@@ -470,6 +497,88 @@ impl MultipartUpload for LocalMultipartUpload {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DurableManifest {
+    key: String,
+    initiated: chrono::DateTime<Utc>,
+    content_type: Option<String>,
+    #[serde(default)]
+    metadata: HashMap<String, String>,
+}
+
+/// A part is stored as `<number>.<etag>`, so a replacement never overwrites the bytes a
+/// completion may be reading, and a completion naming an old etag finds nothing instead of the
+/// replacement.
+fn part_file_name(number: u32, etag: &str) -> String {
+    format!("{}.{}", number, etag)
+}
+
+fn parse_part_file_name(name: &str) -> Option<(u32, &str)> {
+    let (number, etag) = name.split_once('.')?;
+    Some((number.parse().ok()?, etag))
+}
+
+async fn read_manifest(dir: &Path, upload_id: &str) -> BackendResult<DurableManifest> {
+    match fs::read(dir.join(DURABLE_MANIFEST)).await {
+        Ok(bytes) => Ok(serde_json::from_slice(&bytes)?),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(BackendError::NotFound(
+            format!("upload {} is no longer in progress", upload_id),
+        )),
+        Err(e) => Err(e.into()),
+    }
+}
+
+async fn touch(path: &Path) {
+    let path = path.to_path_buf();
+    let _ = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)?
+            .set_modified(SystemTime::now())
+    })
+    .await;
+}
+
+impl LocalBackend {
+    async fn durable_upload(&self, key: &str, upload_id: &str) -> BackendResult<PathBuf> {
+        let dir = self.layout.durable_path(upload_id)?;
+        let manifest = read_manifest(&dir, upload_id).await?;
+
+        if manifest.key != key {
+            return Err(BackendError::NotFound(format!(
+                "upload {} does not belong to '{}'",
+                upload_id, key
+            )));
+        }
+        Ok(dir)
+    }
+
+    async fn remove_stale_durable_uploads(&self) -> BackendResult<usize> {
+        let root = self.layout.durable_root();
+        let mut entries = match fs::read_dir(&root).await {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(0),
+            Err(e) => return Err(e.into()),
+        };
+        let cutoff = SystemTime::now() - STALE_DURABLE_UPLOAD_AGE;
+        let mut removed = 0;
+
+        while let Some(entry) = entries.next_entry().await? {
+            let manifest = entry.path().join(DURABLE_MANIFEST);
+            let modified = match fs::metadata(&manifest).await {
+                Ok(metadata) => metadata.modified().ok(),
+                Err(_) => entry.metadata().await.ok().and_then(|m| m.modified().ok()),
+            };
+
+            if modified.is_some_and(|modified| modified < cutoff) {
+                let _ = fs::remove_dir_all(entry.path()).await;
+                removed += 1;
+            }
+        }
+        Ok(removed)
+    }
+}
+
 #[async_trait]
 impl Backend for LocalBackend {
     async fn init(&self) -> BackendResult<()> {
@@ -527,7 +636,179 @@ impl Backend for LocalBackend {
         if removed > 0 {
             info!("Removed {} stale temporary upload files", removed);
         }
+
+        let durable = self.remove_stale_durable_uploads().await?;
+        if durable > 0 {
+            info!("Removed {} stale durable uploads", durable);
+        }
         Ok(())
+    }
+
+    fn backend_name(&self) -> &'static str {
+        "local"
+    }
+
+    async fn start_durable_multipart(&self, key: &str, opts: &PutOptions) -> BackendResult<String> {
+        self.layout.data_path(key)?;
+
+        let upload_id = uuid::Uuid::new_v4().simple().to_string();
+        let dir = self.layout.durable_path(&upload_id)?;
+        fs::create_dir_all(&dir).await?;
+
+        let manifest = DurableManifest {
+            key: key.to_string(),
+            initiated: Utc::now(),
+            content_type: opts.content_type.clone(),
+            metadata: opts.metadata.clone(),
+        };
+        let temp = dir.join(format!("{}.tmp", DURABLE_MANIFEST));
+        fs::write(&temp, serde_json::to_vec(&manifest)?).await?;
+        fs::rename(&temp, dir.join(DURABLE_MANIFEST)).await?;
+
+        debug!("Started durable upload {} of {}", upload_id, key);
+        Ok(upload_id)
+    }
+
+    async fn upload_durable_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        validate_part_number(number)?;
+        validate_part_size(data.len() as u64)?;
+        let dir = self.durable_upload(key, upload_id).await?;
+
+        let size = data.len() as u64;
+        let etag = compute_etag(&data);
+        let temp = dir.join(format!("{}.tmp", uuid::Uuid::new_v4().simple()));
+        fs::write(&temp, &data).await?;
+        fs::rename(&temp, dir.join(part_file_name(number, &etag))).await?;
+
+        let mut entries = fs::read_dir(&dir).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let name = entry.file_name();
+            let Some((other, other_etag)) = name.to_str().and_then(parse_part_file_name) else {
+                continue;
+            };
+            if other == number && other_etag != etag && other_etag != "tmp" {
+                remove_if_present(&entry.path()).await;
+            }
+        }
+        touch(&dir.join(DURABLE_MANIFEST)).await;
+
+        Ok(DurablePart { number, size, etag })
+    }
+
+    async fn complete_durable_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        validate_part_list(parts)?;
+        let dir = self.durable_upload(key, upload_id).await?;
+        let manifest = read_manifest(&dir, upload_id).await?;
+
+        let mut files = Vec::with_capacity(parts.len());
+        let mut sizes = Vec::with_capacity(parts.len());
+        for part in parts {
+            let path = dir.join(part_file_name(part.number, &part.etag));
+            match fs::metadata(&path).await {
+                Ok(metadata) => sizes.push(metadata.len()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    return Err(BackendError::InvalidRequest(format!(
+                        "part {} with etag {} was not uploaded or has been replaced",
+                        part.number, part.etag
+                    )))
+                }
+                Err(e) => return Err(e.into()),
+            }
+            files.push(path);
+        }
+        validate_part_sizes(&sizes)?;
+
+        let paths = self.object_paths(key)?;
+        let temp_path = paths.temp_file();
+        let mut output = create_temp_file(&temp_path).await?;
+        let copied = async {
+            for file in &files {
+                let mut input = fs::File::open(file).await?;
+                tokio::io::copy(&mut input, &mut output).await?;
+            }
+            output.sync_all().await?;
+            Ok::<_, BackendError>(())
+        }
+        .await;
+        drop(output);
+
+        if let Err(e) = copied {
+            remove_if_present(&temp_path).await;
+            return Err(e);
+        }
+
+        let metadata = ObjectMetadata {
+            key: key.to_string(),
+            size: sizes.iter().sum(),
+            content_type: manifest.content_type,
+            etag: uuid::Uuid::new_v4().simple().to_string(),
+            last_modified: Utc::now(),
+            custom_metadata: manifest.metadata,
+        };
+
+        if let Err(e) = paths.publish(&temp_path, &metadata).await {
+            remove_if_present(&temp_path).await;
+            return Err(e);
+        }
+        let _ = fs::remove_dir_all(&dir).await;
+
+        info!(
+            "Object stored: {} ({} bytes in {} durable parts)",
+            key,
+            metadata.size,
+            parts.len()
+        );
+        Ok(metadata)
+    }
+
+    async fn abort_durable_multipart(&self, key: &str, upload_id: &str) -> BackendResult<()> {
+        match self.durable_upload(key, upload_id).await {
+            Ok(dir) => {
+                fs::remove_dir_all(&dir).await?;
+                Ok(())
+            }
+            Err(BackendError::NotFound(_)) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
+    async fn list_durable_multiparts(&self, prefix: &str) -> BackendResult<Vec<DurableUpload>> {
+        let mut entries = match fs::read_dir(self.layout.durable_root()).await {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(e) => return Err(e.into()),
+        };
+        let mut uploads = Vec::new();
+
+        while let Some(entry) = entries.next_entry().await? {
+            let Some(upload_id) = entry.file_name().to_str().map(str::to_string) else {
+                continue;
+            };
+            let Ok(manifest) = read_manifest(&entry.path(), &upload_id).await else {
+                continue;
+            };
+            if manifest.key.starts_with(prefix) {
+                uploads.push(DurableUpload {
+                    key: manifest.key,
+                    upload_id,
+                    initiated: Some(manifest.initiated),
+                });
+            }
+        }
+
+        uploads.sort_by(|a, b| a.initiated.cmp(&b.initiated));
+        Ok(uploads)
     }
 
     fn uploader(&self) -> &Uploader {
@@ -1499,5 +1780,239 @@ mod tests {
         assert_eq!(copied.size, 12);
         assert_eq!(read(&backend, "dest").await, b"new contents");
         assert!(temp_files(temp_dir.path()).is_empty());
+    }
+
+    mod durable {
+        use super::*;
+        use crate::durable::{DurablePartRef, DURABLE_MIN_PART_SIZE};
+
+        async fn backend(root: &Path) -> LocalBackend {
+            let backend = LocalBackend::new(root.to_path_buf(), "bucket".to_string());
+            backend.init().await.unwrap();
+            backend
+        }
+
+        fn part(byte: u8, size: u64) -> Bytes {
+            Bytes::from(vec![byte; size as usize])
+        }
+
+        fn reference(part: &DurablePart) -> DurablePartRef {
+            DurablePartRef {
+                number: part.number,
+                etag: part.etag.clone(),
+            }
+        }
+
+        #[tokio::test]
+        async fn completes_parts_uploaded_by_separate_handles() {
+            let temp_dir = TempDir::new().unwrap();
+            let opts = PutOptions {
+                content_type: Some("application/gzip".to_string()),
+                metadata: HashMap::from([("rows".to_string(), "3".to_string())]),
+                ..Default::default()
+            };
+            let upload_id = backend(temp_dir.path())
+                .await
+                .start_durable_multipart("exports/a.gz", &opts)
+                .await
+                .unwrap();
+
+            let first = backend(temp_dir.path())
+                .await
+                .upload_durable_part("exports/a.gz", &upload_id, 1, part(1, DURABLE_MIN_PART_SIZE))
+                .await
+                .unwrap();
+            let second = backend(temp_dir.path())
+                .await
+                .upload_durable_part("exports/a.gz", &upload_id, 2, part(2, 10))
+                .await
+                .unwrap();
+            assert_eq!(second.size, 10);
+
+            let resumed = backend(temp_dir.path()).await;
+            let metadata = resumed
+                .complete_durable_multipart(
+                    "exports/a.gz",
+                    &upload_id,
+                    &[reference(&first), reference(&second)],
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(metadata.size, DURABLE_MIN_PART_SIZE + 10);
+            assert_eq!(metadata.content_type.as_deref(), Some("application/gzip"));
+            assert_eq!(metadata.custom_metadata.get("rows").map(String::as_str), Some("3"));
+
+            let data = read(&resumed, "exports/a.gz").await;
+            assert_eq!(data.len() as u64, DURABLE_MIN_PART_SIZE + 10);
+            assert!(data[..DURABLE_MIN_PART_SIZE as usize].iter().all(|b| *b == 1));
+            assert!(data[DURABLE_MIN_PART_SIZE as usize..].iter().all(|b| *b == 2));
+            assert!(resumed.list_durable_multiparts("").await.unwrap().is_empty());
+        }
+
+        #[tokio::test]
+        async fn a_replaced_part_wins_even_when_shorter() {
+            let temp_dir = TempDir::new().unwrap();
+            let backend = backend(temp_dir.path()).await;
+            let upload_id = backend
+                .start_durable_multipart("a", &PutOptions::default())
+                .await
+                .unwrap();
+
+            let stale = backend
+                .upload_durable_part("a", &upload_id, 1, part(9, 100))
+                .await
+                .unwrap();
+            let fresh = backend
+                .upload_durable_part("a", &upload_id, 1, part(7, 20))
+                .await
+                .unwrap();
+            assert_ne!(stale.etag, fresh.etag);
+
+            let error = backend
+                .complete_durable_multipart("a", &upload_id, &[reference(&stale)])
+                .await
+                .unwrap_err();
+            assert!(matches!(error, BackendError::InvalidRequest(_)), "{error:?}");
+
+            backend
+                .complete_durable_multipart("a", &upload_id, &[reference(&fresh)])
+                .await
+                .unwrap();
+            assert_eq!(read(&backend, "a").await, vec![7; 20]);
+        }
+
+        #[tokio::test]
+        async fn completing_twice_reports_the_upload_as_gone() {
+            let temp_dir = TempDir::new().unwrap();
+            let backend = backend(temp_dir.path()).await;
+            let upload_id = backend
+                .start_durable_multipart("a", &PutOptions::default())
+                .await
+                .unwrap();
+            let only = backend
+                .upload_durable_part("a", &upload_id, 1, part(1, 5))
+                .await
+                .unwrap();
+
+            backend
+                .complete_durable_multipart("a", &upload_id, &[reference(&only)])
+                .await
+                .unwrap();
+            let again = backend
+                .complete_durable_multipart("a", &upload_id, &[reference(&only)])
+                .await
+                .unwrap_err();
+            assert!(matches!(again, BackendError::NotFound(_)), "{again:?}");
+            assert_eq!(backend.head_object("a").await.unwrap().size, 5);
+        }
+
+        #[tokio::test]
+        async fn enforces_the_minimum_size_of_leading_parts() {
+            let temp_dir = TempDir::new().unwrap();
+            let backend = backend(temp_dir.path()).await;
+            let upload_id = backend
+                .start_durable_multipart("a", &PutOptions::default())
+                .await
+                .unwrap();
+            let first = backend
+                .upload_durable_part("a", &upload_id, 1, part(1, 5))
+                .await
+                .unwrap();
+            let second = backend
+                .upload_durable_part("a", &upload_id, 2, part(2, 5))
+                .await
+                .unwrap();
+
+            let error = backend
+                .complete_durable_multipart("a", &upload_id, &[reference(&first), reference(&second)])
+                .await
+                .unwrap_err();
+            assert!(matches!(error, BackendError::InvalidRequest(_)), "{error:?}");
+            assert!(!backend.object_exists("a").await.unwrap());
+        }
+
+        #[tokio::test]
+        async fn lists_and_aborts_open_uploads() {
+            let temp_dir = TempDir::new().unwrap();
+            let backend = backend(temp_dir.path()).await;
+            let a = backend
+                .start_durable_multipart("exports/a", &PutOptions::default())
+                .await
+                .unwrap();
+            let b = backend
+                .start_durable_multipart("other/b", &PutOptions::default())
+                .await
+                .unwrap();
+
+            let listed = backend.list_durable_multiparts("exports/").await.unwrap();
+            assert_eq!(listed.len(), 1);
+            assert_eq!(listed[0].upload_id, a);
+            assert_eq!(listed[0].key, "exports/a");
+
+            backend.abort_durable_multipart("exports/a", &a).await.unwrap();
+            backend.abort_durable_multipart("exports/a", &a).await.unwrap();
+            assert!(backend.list_durable_multiparts("exports/").await.unwrap().is_empty());
+
+            let error = backend
+                .upload_durable_part("exports/a", &a, 1, part(1, 1))
+                .await
+                .unwrap_err();
+            assert!(matches!(error, BackendError::NotFound(_)), "{error:?}");
+            assert_eq!(backend.list_durable_multiparts("").await.unwrap()[0].upload_id, b);
+        }
+
+        #[tokio::test]
+        async fn an_upload_belongs_to_its_key() {
+            let temp_dir = TempDir::new().unwrap();
+            let backend = backend(temp_dir.path()).await;
+            let upload_id = backend
+                .start_durable_multipart("a", &PutOptions::default())
+                .await
+                .unwrap();
+
+            for error in [
+                backend
+                    .upload_durable_part("b", &upload_id, 1, part(1, 1))
+                    .await
+                    .unwrap_err(),
+                backend
+                    .upload_durable_part("a", "../../escape", 1, part(1, 1))
+                    .await
+                    .unwrap_err(),
+            ] {
+                assert!(
+                    matches!(error, BackendError::NotFound(_) | BackendError::InvalidRequest(_)),
+                    "{error:?}"
+                );
+            }
+        }
+
+        #[tokio::test]
+        async fn sweeps_durable_uploads_older_than_a_week() {
+            let temp_dir = TempDir::new().unwrap();
+            let backend = backend(temp_dir.path()).await;
+            let old = backend
+                .start_durable_multipart("old", &PutOptions::default())
+                .await
+                .unwrap();
+            let fresh = backend
+                .start_durable_multipart("fresh", &PutOptions::default())
+                .await
+                .unwrap();
+
+            let manifest = backend.layout.durable_path(&old).unwrap().join(DURABLE_MANIFEST);
+            age(&manifest, STALE_DURABLE_UPLOAD_AGE + Duration::from_secs(60));
+            backend.remove_stale_uploads().await.unwrap();
+
+            let left: Vec<_> = backend
+                .list_durable_multiparts("")
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|upload| upload.upload_id)
+                .collect();
+            assert_eq!(left, vec![fresh]);
+        }
     }
 }

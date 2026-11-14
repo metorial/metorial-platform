@@ -22,9 +22,35 @@ use crate::backend::{
     normalize_etag, Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage,
     ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
+use crate::durable::{
+    validate_part_list, validate_part_number, validate_part_size, validate_upload_id, DurablePart,
+    DurablePartRef, DurableUpload,
+};
 use crate::error::{is_transient_status, BackendError, BackendResult};
 use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, MIB};
 use crate::uploader::Uploader;
+
+// Azure keeps nothing about an upload besides its uncommitted blocks, so a durable upload records
+// its key, content type and metadata in a manifest blob outside every bucket's prefix. The manifest
+// also tells a completed upload (manifest gone) from one still in progress.
+const DURABLE_MANIFEST_PREFIX: &str = ".durable-uploads/";
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct DurableManifest {
+    key: String,
+    initiated: DateTime<Utc>,
+    content_type: Option<String>,
+    #[serde(default)]
+    metadata: HashMap<String, String>,
+}
+
+fn durable_block_id(upload_id: &str, number: u32) -> String {
+    format!("{}-{:010}", upload_id, number)
+}
+
+fn durable_manifest_key(upload_id: &str) -> String {
+    format!("{}{}.json", DURABLE_MANIFEST_PREFIX, upload_id)
+}
 
 const COPY_POLL_INTERVAL: Duration = Duration::from_millis(250);
 const COPY_POLL_ATTEMPTS: usize = 240;
@@ -510,6 +536,49 @@ impl MultipartUpload for AzureBlockUpload {
     async fn abort(&self) {}
 }
 
+impl AzureBackend {
+    async fn read_durable_manifest(
+        &self,
+        key: &str,
+        upload_id: &str,
+    ) -> BackendResult<DurableManifest> {
+        validate_upload_id(upload_id)?;
+        if !upload_id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(BackendError::NotFound(format!("upload {}", upload_id)));
+        }
+
+        let manifest_key = durable_manifest_key(upload_id);
+        let data = match self.client.blob_client(&manifest_key).get_content().await {
+            Ok(data) => data,
+            Err(e) if is_not_found(&e) => {
+                return Err(BackendError::NotFound(format!(
+                    "upload {} is no longer in progress",
+                    upload_id
+                )))
+            }
+            Err(e) => return Err(provider_error("read upload manifest", &manifest_key, e)),
+        };
+
+        let manifest: DurableManifest = serde_json::from_slice(&data)?;
+        if manifest.key != key {
+            return Err(BackendError::NotFound(format!(
+                "upload {} does not belong to '{}'",
+                upload_id, key
+            )));
+        }
+        Ok(manifest)
+    }
+
+    async fn delete_durable_manifest(&self, upload_id: &str) -> BackendResult<()> {
+        let manifest_key = durable_manifest_key(upload_id);
+        match self.client.blob_client(&manifest_key).delete().await {
+            Ok(_) => Ok(()),
+            Err(e) if is_not_found(&e) => Ok(()),
+            Err(e) => Err(provider_error("delete upload manifest", &manifest_key, e)),
+        }
+    }
+}
+
 #[async_trait]
 impl Backend for AzureBackend {
     async fn init(&self) -> BackendResult<()> {
@@ -823,6 +892,141 @@ impl Backend for AzureBackend {
         );
 
         Ok(signed)
+    }
+
+    fn backend_name(&self) -> &'static str {
+        "azure"
+    }
+
+    async fn start_durable_multipart(&self, key: &str, opts: &PutOptions) -> BackendResult<String> {
+        let upload_id = uuid::Uuid::new_v4().simple().to_string();
+        let manifest = DurableManifest {
+            key: key.to_string(),
+            initiated: Utc::now(),
+            content_type: opts.content_type.clone(),
+            metadata: opts.metadata.clone(),
+        };
+
+        self.put_block_blob(
+            &durable_manifest_key(&upload_id),
+            Bytes::from(serde_json::to_vec(&manifest)?),
+            Some("application/json".to_string()),
+            HashMap::new(),
+            None,
+        )
+        .await?;
+
+        Ok(upload_id)
+    }
+
+    async fn upload_durable_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        validate_part_number(number)?;
+        validate_part_size(data.len() as u64)?;
+        self.read_durable_manifest(key, upload_id).await?;
+
+        let size = data.len() as u64;
+        let etag = crate::backend::compute_etag(&data);
+
+        self.client
+            .blob_client(key)
+            .put_block(durable_block_id(upload_id, number), data)
+            .await
+            .map_err(|e| provider_error(&format!("stage block {} of", number), key, e))?;
+
+        Ok(DurablePart { number, size, etag })
+    }
+
+    async fn complete_durable_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        validate_part_list(parts)?;
+        let manifest = self.read_durable_manifest(key, upload_id).await?;
+
+        let block_list = BlockList {
+            blocks: parts
+                .iter()
+                .map(|part| BlobBlockType::new_latest(durable_block_id(upload_id, part.number)))
+                .collect(),
+        };
+
+        let mut request = self
+            .client
+            .blob_client(key)
+            .put_block_list(block_list)
+            .metadata(to_metadata(&manifest.metadata));
+        if let Some(ct) = manifest.content_type.as_ref() {
+            request = request.content_type(ct.clone());
+        }
+
+        request.await.map_err(|e| {
+            if is_invalid_block_list(&e) {
+                return BackendError::InvalidRequest(format!(
+                    "the blocks of upload {} of '{}' are missing or were discarded",
+                    upload_id, key
+                ));
+            }
+            provider_error("commit blocks for blob", key, e)
+        })?;
+
+        self.delete_durable_manifest(upload_id).await?;
+        self.head_object(key).await
+    }
+
+    // Uncommitted blocks are never visible and Azure discards them after a week.
+    async fn abort_durable_multipart(&self, key: &str, upload_id: &str) -> BackendResult<()> {
+        match self.read_durable_manifest(key, upload_id).await {
+            Ok(_) => self.delete_durable_manifest(upload_id).await,
+            Err(BackendError::NotFound(_)) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
+    async fn list_durable_multiparts(&self, prefix: &str) -> BackendResult<Vec<DurableUpload>> {
+        let mut uploads = Vec::new();
+        let mut token: Option<String> = None;
+
+        loop {
+            let page = self
+                .list_objects(Some(DURABLE_MANIFEST_PREFIX), None, token.as_deref())
+                .await?;
+
+            for object in page.objects {
+                let Some(upload_id) = object
+                    .key
+                    .strip_prefix(DURABLE_MANIFEST_PREFIX)
+                    .and_then(|name| name.strip_suffix(".json"))
+                else {
+                    continue;
+                };
+                let Ok(data) = self.client.blob_client(&object.key).get_content().await else {
+                    continue;
+                };
+                let Ok(manifest) = serde_json::from_slice::<DurableManifest>(&data) else {
+                    continue;
+                };
+                if manifest.key.starts_with(prefix) {
+                    uploads.push(DurableUpload {
+                        key: manifest.key,
+                        upload_id: upload_id.to_string(),
+                        initiated: Some(manifest.initiated),
+                    });
+                }
+            }
+
+            match page.next_continuation_token {
+                Some(next) => token = Some(next),
+                None => return Ok(uploads),
+            }
+        }
     }
 }
 

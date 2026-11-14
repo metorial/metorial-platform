@@ -43,6 +43,12 @@ pub enum BackendError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Invalid request: {0}")]
+    InvalidRequest(String),
+
+    #[error("Unsupported: {0}")]
+    Unsupported(String),
 }
 
 impl BackendError {
