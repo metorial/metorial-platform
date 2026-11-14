@@ -1,0 +1,29 @@
+version: "0.2"
+phases:
+  build:
+    commands:
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"build.start\"}'"
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.start\",\"stepId\":\"wfrs_setup0\"}'"
+      - 'echo "Started build on Metorial Forge (runner: AWS/1) ..."'
+      - echo "Setting up build environment ..."
+      - apt-get update && apt-get install -y zip unzip curl
+      - mkdir -p ./forge
+      - cd ./forge
+      - mkdir -p ./output
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"download-artifacts.start\"}'"
+      - echo "Downloading initial files ..."
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"download-artifacts.end\"}'"
+      - echo "Build environment setup complete."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.end\",\"stepId\":\"wfrs_setup0\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_1\"}'"
+      - echo build
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_1\"}'"
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.start\",\"stepId\":\"wfrs_teardown99\"}'"
+      - echo "Tearing down build environment ..."
+      - echo "Build complete ... powered by Metorial Forge (AWS/1)."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.end\",\"stepId\":\"wfrs_teardown99\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"build.end\"}'"

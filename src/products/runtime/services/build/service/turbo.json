@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test:e2e": {
+      "cache": false
+    }
+  }
+}

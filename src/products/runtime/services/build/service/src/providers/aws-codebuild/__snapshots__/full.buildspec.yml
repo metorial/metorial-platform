@@ -1,0 +1,90 @@
+version: "0.2"
+phases:
+  build:
+    commands:
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"build.start\"}'"
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.start\",\"stepId\":\"wfrs_setup0\"}'"
+      - 'echo "Started build on Metorial Forge (runner: AWS/1) ..."'
+      - echo "Setting up build environment ..."
+      - apt-get update && apt-get install -y zip unzip curl
+      - mkdir -p ./forge
+      - cd ./forge
+      - mkdir -p ./output
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"download-artifacts.start\"}'"
+      - echo "Downloading initial files ..."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"download-artifact.start\",\"artifactId\":\"wfa_11\"}'"
+      - curl -sL 'https://storage.test/artifacts/run_1/input.zip?X-Sig=abc&x=1'
+        -o /tmp/artifact_11.zip
+      - unzip -o /tmp/artifact_11.zip -d ./
+      - rm /tmp/artifact_11.zip
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"download-artifact.end\",\"artifactId\":\"wfa_11\"}'"
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"download-artifact.start\",\"artifactId\":\"wfa_12\"}'"
+      - curl -sL 'https://storage.test/artifacts/run_1/extra.zip?X-Sig=abc&x=1'
+        -o /tmp/artifact_12.zip
+      - unzip -o /tmp/artifact_12.zip -d ./
+      - rm /tmp/artifact_12.zip
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"download-artifact.end\",\"artifactId\":\"wfa_12\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"download-artifacts.end\"}'"
+      - echo "Build environment setup complete."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.end\",\"stepId\":\"wfrs_setup0\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_2\"}'"
+      - npm ci
+      - echo 'init'
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_2\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_3\"}'"
+      - echo "No action"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_3\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_4\"}'"
+      - bun run build
+      - ls -la ./output
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_4\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_5\"}'"
+      - echo "Downloading artifact bundle.tar ..."
+      - curl -sL 'https://storage.test/artifacts/run_1/bundle.tar?X-Sig=abc&x=1'
+        -o /tmp/artifact_13
+      - mv /tmp/artifact_13 './vendor/it'\''s bundle.tar'
+      - echo "Download complete."
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_5\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_6\"}'"
+      - echo "Uploading artifact output.zip from ./output/output.zip ..."
+      - "curl -X PUT
+        'https://storage.test/artifacts/wfr_1/upload1?X-Sig=it'\\''s' -H
+        \"Content-Type: application/octet-stream\" -H 'x-amz-meta-run: wfr_1' -H
+        'x-quote: a'\\''b' --data-binary @'./output/output.zip' "
+      - echo "Upload complete."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"upload-artifact.register\",\"stepId\":\"wfrs_6\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_6\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_7\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_7\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_8\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_8\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_9\"}'"
+      - echo "Uploading artifact second.zip from ./output/second file.zip ..."
+      - "curl -X PUT
+        'https://storage.test/artifacts/wfr_1/upload2?X-Sig=it'\\''s' -H
+        \"Content-Type: application/octet-stream\" -H 'x-amz-meta-run: wfr_1' -H
+        'x-quote: a'\\''b' --data-binary @'./output/second file.zip' "
+      - echo "Upload complete."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"upload-artifact.register\",\"stepId\":\"wfrs_9\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_9\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_10\"}'"
+      - rm -rf ./tmp
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_10\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.start\",\"stepId\":\"wfrs_11\"}'"
+      - echo "No action"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"step.end\",\"stepId\":\"wfrs_11\"}'"
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.start\",\"stepId\":\"wfrs_teardown99\"}'"
+      - echo "Tearing down build environment ..."
+      - echo "Build complete ... powered by Metorial Forge (AWS/1)."
+      - "echo 'X@%%MT0RL-)AL::
+        {\"type\":\"step.end\",\"stepId\":\"wfrs_teardown99\"}'"
+      - "echo 'X@%%MT0RL-)AL:: {\"type\":\"build.end\"}'"
