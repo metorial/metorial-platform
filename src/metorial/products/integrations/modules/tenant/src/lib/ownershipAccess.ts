@@ -412,6 +412,12 @@ export let usableOwnedResourceWhere = (
   };
 };
 
+// Consumers own resources themselves, so hiding owned resources by default would hide their own.
+export let defaultOwnershipFilter = (accessor: OwnershipAccessor): OwnershipFilter => {
+  if (accessor.kind === 'consumer') return 'usable';
+  return accessor.isEnforced ? 'shared' : 'all';
+};
+
 export let usableCoreOwnedResourceWhere = (accessor: OwnershipAccessor) => {
   if (accessor.kind === 'internal') return {};
 
@@ -440,7 +446,7 @@ export let ownedResourceWhere = (
     fallback?: { field: 'identityActorOid' | 'actorOid'; relation: string };
   } = {}
 ) => {
-  let ownership = d.ownership ?? (accessor.isEnforced ? 'shared' : 'all');
+  let ownership = d.ownership ?? defaultOwnershipFilter(accessor);
   let conditions: Record<string, any>[] = [];
 
   if (!(d.includeSystemOwned ?? accessor.allowSystemOwned)) {
@@ -501,7 +507,7 @@ export let ownedCoreResourceWhere = (
   accessor: OwnershipAccessor,
   d: { ownership?: OwnershipFilter; includeSystemOwned?: boolean } = {}
 ) => {
-  let ownership = d.ownership ?? (accessor.isEnforced ? 'shared' : 'all');
+  let ownership = d.ownership ?? defaultOwnershipFilter(accessor);
   let conditions: Record<string, any>[] = [];
 
   if (!(d.includeSystemOwned ?? accessor.allowSystemOwned)) {
