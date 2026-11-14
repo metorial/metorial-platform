@@ -214,6 +214,21 @@
       "dependsOn": ["^build", "@metorial/slates-registry#prisma:generate"],
       "outputs": ["dist/**"]
     },
+    "@mtsrc/functions-service#test": {
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README*",
+        "!Dockerfile",
+        "!dev.Dockerfile",
+        "!.dockerignore",
+        "!control/**",
+        "$TURBO_ROOT$/tsconfig*.json",
+        "$TURBO_ROOT$/src/products/runtime/packages/egress/testdata/vectors.json"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
     "test": {
       "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
       "inputs": [
