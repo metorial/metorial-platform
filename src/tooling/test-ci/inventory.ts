@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { v, type ValidationTypeValue } from '../../lowerdeck/packages/validation/src';
+import { v, type ValidationTypeValue } from '../../lib/framework/validation/src';
 
 let discoveredInventory: Inventory | undefined;
 

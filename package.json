@@ -43,7 +43,6 @@
     "src/products/*/*/*",
     "src/metorial-frontend/*",
     "src/metorial-frontend/*/*",
-    "src/lowerdeck/packages/*",
     "src/lib/*/*",
     "src/lib/*/node/*",
     "src/cargo/*",

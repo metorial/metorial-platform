@@ -5,11 +5,11 @@ import {
   isServiceError,
   notFoundError,
   ServiceError
-} from '../../../../lowerdeck/packages/error/src/index.ts';
+} from '../../../framework/error/src/index.ts';
 import { createClient } from '../../node/client/src/index.ts';
 import { createServer, Group, rpcMux } from '../../node/server/src/index.ts';
-import { serialize } from '../../../../lowerdeck/packages/serialize/src/index.ts';
-import { v } from '../../../../lowerdeck/packages/validation/src/index.ts';
+import { serialize } from '../../../encoding/serialize/src/index.ts';
+import { v } from '../../../framework/validation/src/index.ts';
 
 let moduleDir = new URL('..', import.meta.url).pathname;
 let binDir = `${moduleDir}tmp/interop`;

@@ -20,9 +20,8 @@ let { db, propagate, snapshot, unchangedSync, deletions } = vi.hoisted(() => ({
 vi.mock('@metorial/db', () => ({ db }));
 vi.mock('@metorial/queue', async () => ({
   createQueue: () => ({ process: (run: unknown) => run }),
-  deleteInChunks: (
-    await import('../../../../../../../lowerdeck/packages/queue/src/lib/deleteInChunks')
-  ).deleteInChunks
+  deleteInChunks: (await import('../../../../../../../lib/jobs/queue/src/lib/deleteInChunks'))
+    .deleteInChunks
 }));
 vi.mock('@mtsrc/scm-code-bucket-client-internal', () => ({
   createCodeBucketClient: () => ({ deleteBucketFile: vi.fn() })

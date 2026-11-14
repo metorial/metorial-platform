@@ -7,11 +7,11 @@ import {
   createError,
   isServiceError,
   ServiceError
-} from '../../../../lowerdeck/packages/error/src/index.ts';
+} from '../../../framework/error/src/index.ts';
 import { compile, createValidatorFactory } from '../../spec/src/index.ts';
 import bucketSpec from '../../spec/src/fixtures/bucket.ts';
 import { createServer, Group, rpcMux } from '../../node/server/src/index.ts';
-import { serialize } from '../../../../lowerdeck/packages/serialize/src/index.ts';
+import { serialize } from '../../../encoding/serialize/src/index.ts';
 import { createCodeBucketClient } from './generated/bucket.ts';
 
 let moduleDir = new URL('..', import.meta.url).pathname;

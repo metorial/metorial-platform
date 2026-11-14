@@ -246,7 +246,7 @@ prints the available scripts as `control run <script>` commands. The project roo
 ```sh
 control test:unit
 control test:unit @lowerdeck/hash
-control test:unit './oss/src/lowerdeck/**' '!@lowerdeck/redis'
+control test:unit './oss/src/lib/**' '!@lowerdeck/redis'
 control test:unit '@metorial/api...'
 ```
 

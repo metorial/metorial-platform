@@ -323,7 +323,7 @@ Rules for using it here:
 ### 5.3 Changes to ldrpc and rpc-spec
 
 ldrpc and rpc-spec are new, and this system is their first real user. Improvements needed on the
-way, each landing in `oss/src/lowerdeck` with its own tests:
+way, each landing in `oss/src/lib/rpc` with its own tests:
 
 | Change | Why | Milestone |
 |---|---|---|
@@ -1342,8 +1342,8 @@ It tails cluster-manager and gateway logs like other services.
 |---|---|---|
 | Go unit | cluster-manager, supervisor, networking, `packages/egress` | Grant and invocation-token verification, grant-to-token binding, policy evaluation, hard deny list, embedded-IPv4 normalization (mapped, compatible, NAT64, 6to4; Teredo denied), tar safety, GC decisions, protocol framing, timeout handling, authorization decisions per identity, bucket allowlists, reserved env names, payload byte limits |
 | Token vectors | `packages/egress` | The same JSON vectors run in Go and in function-bay's TS tests, including payload hashes of non-ASCII `payloadJson` |
-| RPC specs | each `spec/` package, CI | `rpc-spec generate --check`; the generated TS clients call the real Go servers in an interop test (as in `ldrpc/interop`), including `invalid_data` parity for malformed inputs and no retries on non-idempotent methods |
-| ldrpc additions | `oss/src/lowerdeck` | Go generator golden tests; `kubeauth` against envtest with real projected tokens; `otel` span propagation; `projectedTokenHeaders` rotation |
+| RPC specs | each `spec/` package, CI | `rpc-spec generate --check`; the generated TS clients call the real Go servers in an interop test (as in `oss/src/lib/rpc/go/interop`), including `invalid_data` parity for malformed inputs and no retries on non-idempotent methods |
+| ldrpc additions | `oss/src/lib/rpc` | Go generator golden tests; `kubeauth` against envtest with real projected tokens; `otel` span propagation; `projectedTokenHeaders` rotation |
 | Controller | cluster-manager, envtest | Knative Service and Job rendering, idempotent ensure, owner references, GC against a real API server; TokenReview-based auth with real projected tokens |
 | Entrypoint conformance | `runtime-node` | Launcher and bootstrap produce identical envelopes for the shared handler fixtures; `enveloped` passthrough |
 | Provider conformance | function-bay and forge e2e | The existing suites become provider-parametrized and run against `local`, `aws.lambda`/`aws.code-build` (nightly) and `knative`/`kubernetes` |

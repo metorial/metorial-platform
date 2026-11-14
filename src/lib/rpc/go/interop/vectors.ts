@@ -4,7 +4,7 @@ import {
   createEd25519RpcSignatureHeader,
   createRpcSignatureHeader
 } from '../../node/signature/src/index.ts';
-import { serialize } from '../../../../lowerdeck/packages/serialize/src/index.ts';
+import { serialize } from '../../../encoding/serialize/src/index.ts';
 
 let d = (ms: number) => new Date(ms);
 

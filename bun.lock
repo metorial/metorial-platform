@@ -110,7 +110,7 @@
         "typescript": "^5.9.3",
       },
     },
-    "src/lowerdeck/packages/anonymize-ip": {
+    "src/lib/network/anonymize-ip": {
       "name": "@lowerdeck/anonymize-ip",
       "version": "2.0.0",
       "devDependencies": {
@@ -119,7 +119,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/api-key": {
+    "src/lib/crypto/api-key": {
       "name": "@lowerdeck/api-key",
       "version": "2.0.0",
       "dependencies": {
@@ -131,7 +131,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/api-mux": {
+    "src/lib/http/api-mux": {
       "name": "@lowerdeck/api-mux",
       "version": "2.0.0",
       "dependencies": {
@@ -143,7 +143,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/base62": {
+    "src/lib/encoding/base62": {
       "name": "@lowerdeck/base62",
       "version": "2.0.0",
       "dependencies": {
@@ -155,7 +155,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/basic-rest": {
+    "src/lib/http/basic-rest": {
       "name": "@lowerdeck/basic-rest",
       "version": "2.0.0",
       "dependencies": {
@@ -169,7 +169,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/cache": {
+    "src/lib/storage/cache": {
       "name": "@lowerdeck/cache",
       "version": "2.0.0",
       "dependencies": {
@@ -184,7 +184,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/canonicalize": {
+    "src/lib/encoding/canonicalize": {
       "name": "@lowerdeck/canonicalize",
       "version": "2.0.0",
       "devDependencies": {
@@ -193,7 +193,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/case": {
+    "src/lib/utils/case": {
       "name": "@lowerdeck/case",
       "version": "2.0.0",
       "devDependencies": {
@@ -202,7 +202,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/cors": {
+    "src/lib/http/cors": {
       "name": "@lowerdeck/cors",
       "version": "2.0.0",
       "devDependencies": {
@@ -211,7 +211,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/cron": {
+    "src/lib/jobs/cron": {
       "name": "@lowerdeck/cron",
       "version": "2.0.0",
       "dependencies": {
@@ -230,7 +230,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/delay": {
+    "src/lib/utils/delay": {
       "name": "@lowerdeck/delay",
       "version": "2.0.0",
       "devDependencies": {
@@ -239,7 +239,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/email-domain-check": {
+    "src/lib/email/email-domain-check": {
       "name": "@lowerdeck/email-domain-check",
       "version": "2.0.0",
       "dependencies": {
@@ -251,7 +251,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/emitter": {
+    "src/lib/events/emitter": {
       "name": "@lowerdeck/emitter",
       "version": "2.0.0",
       "devDependencies": {
@@ -260,7 +260,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/encryption": {
+    "src/lib/crypto/encryption": {
       "name": "@lowerdeck/encryption",
       "version": "2.0.0",
       "dependencies": {
@@ -274,7 +274,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/env": {
+    "src/lib/config/env": {
       "name": "@lowerdeck/env",
       "version": "2.0.0",
       "dependencies": {
@@ -286,7 +286,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/error": {
+    "src/lib/framework/error": {
       "name": "@lowerdeck/error",
       "version": "2.0.0",
       "dependencies": {
@@ -299,7 +299,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/event": {
+    "src/lib/events/event": {
       "name": "@lowerdeck/event",
       "version": "2.0.0",
       "dependencies": {
@@ -314,7 +314,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/execution-context": {
+    "src/lib/observability/execution-context": {
       "name": "@lowerdeck/execution-context",
       "version": "2.0.0",
       "dependencies": {
@@ -328,7 +328,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/flatten": {
+    "src/lib/utils/flatten": {
       "name": "@lowerdeck/flatten",
       "version": "2.0.0",
       "devDependencies": {
@@ -337,7 +337,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/forwarded-for": {
+    "src/lib/http/forwarded-for": {
       "name": "@lowerdeck/forwarded-for",
       "version": "2.0.0",
       "dependencies": {
@@ -349,7 +349,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/hash": {
+    "src/lib/hashing/hash": {
       "name": "@lowerdeck/hash",
       "version": "2.0.0",
       "dependencies": {
@@ -361,7 +361,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/hono": {
+    "src/lib/http/hono": {
       "name": "@lowerdeck/hono",
       "version": "2.0.0",
       "dependencies": {
@@ -376,7 +376,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/id": {
+    "src/lib/ids/id": {
       "name": "@lowerdeck/id",
       "version": "2.0.0",
       "dependencies": {
@@ -392,7 +392,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/ip-info": {
+    "src/lib/network/ip-info": {
       "name": "@lowerdeck/ip-info",
       "version": "2.0.0",
       "devDependencies": {
@@ -401,7 +401,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/ip-range": {
+    "src/lib/network/ip-range": {
       "name": "@lowerdeck/ip-range",
       "version": "2.0.0",
       "dependencies": {
@@ -413,7 +413,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/join-paths": {
+    "src/lib/http/join-paths": {
       "name": "@lowerdeck/join-paths",
       "version": "2.0.0",
       "devDependencies": {
@@ -422,7 +422,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/jwt": {
+    "src/lib/crypto/jwt": {
       "name": "@lowerdeck/jwt",
       "version": "2.0.0",
       "dependencies": {
@@ -434,7 +434,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/lock": {
+    "src/lib/utils/lock": {
       "name": "@lowerdeck/lock",
       "version": "2.0.0",
       "dependencies": {
@@ -451,7 +451,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/memo": {
+    "src/lib/utils/memo": {
       "name": "@lowerdeck/memo",
       "version": "2.0.0",
       "devDependencies": {
@@ -460,7 +460,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/merge": {
+    "src/lib/utils/merge": {
       "name": "@lowerdeck/merge",
       "version": "2.0.0",
       "devDependencies": {
@@ -469,7 +469,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/murmur3": {
+    "src/lib/hashing/murmur3": {
       "name": "@lowerdeck/murmur3",
       "version": "2.0.0",
       "devDependencies": {
@@ -478,7 +478,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/normalize-email": {
+    "src/lib/email/normalize-email": {
       "name": "@lowerdeck/normalize-email",
       "version": "2.0.0",
       "devDependencies": {
@@ -487,7 +487,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/offline": {
+    "src/lib/tooling/offline": {
       "name": "@lowerdeck/offline",
       "version": "2.0.0",
       "devDependencies": {
@@ -496,7 +496,7 @@
         "typescript": "5.8.2",
       },
     },
-    "src/lowerdeck/packages/once": {
+    "src/lib/utils/once": {
       "name": "@lowerdeck/once",
       "version": "2.0.0",
       "devDependencies": {
@@ -505,7 +505,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/pagination": {
+    "src/lib/framework/pagination": {
       "name": "@lowerdeck/pagination",
       "version": "2.0.0",
       "dependencies": {
@@ -520,7 +520,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/patch": {
+    "src/lib/utils/patch": {
       "name": "@lowerdeck/patch",
       "version": "2.0.0",
       "devDependencies": {
@@ -529,7 +529,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/presenter": {
+    "src/lib/framework/presenter": {
       "name": "@lowerdeck/presenter",
       "version": "2.0.0",
       "dependencies": {
@@ -541,7 +541,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/prisma-pg": {
+    "src/lib/storage/prisma-pg": {
       "name": "@lowerdeck/prisma-pg",
       "version": "2.0.0",
       "dependencies": {
@@ -560,7 +560,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/programmable-promise": {
+    "src/lib/utils/programmable-promise": {
       "name": "@lowerdeck/programmable-promise",
       "version": "2.0.0",
       "devDependencies": {
@@ -569,7 +569,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/proxy": {
+    "src/lib/utils/proxy": {
       "name": "@lowerdeck/proxy",
       "version": "2.0.0",
       "devDependencies": {
@@ -578,7 +578,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/queue": {
+    "src/lib/jobs/queue": {
       "name": "@lowerdeck/queue",
       "version": "2.0.0",
       "dependencies": {
@@ -598,7 +598,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/queue-checkpoint": {
+    "src/lib/jobs/queue-checkpoint": {
       "name": "@lowerdeck/queue-checkpoint",
       "version": "2.0.0",
       "devDependencies": {
@@ -607,7 +607,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/random-from-array": {
+    "src/lib/utils/random-from-array": {
       "name": "@lowerdeck/random-from-array",
       "version": "2.0.0",
       "devDependencies": {
@@ -616,7 +616,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/random-number": {
+    "src/lib/utils/random-number": {
       "name": "@lowerdeck/random-number",
       "version": "2.0.0",
       "devDependencies": {
@@ -625,7 +625,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/redis": {
+    "src/lib/storage/redis": {
       "name": "@lowerdeck/redis",
       "version": "2.0.0",
       "dependencies": {
@@ -643,7 +643,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/retention-runner": {
+    "src/lib/jobs/retention-runner": {
       "name": "@lowerdeck/retention-runner",
       "version": "2.0.0",
       "dependencies": {
@@ -723,7 +723,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/sentry": {
+    "src/lib/observability/sentry": {
       "name": "@lowerdeck/sentry",
       "version": "2.0.0",
       "dependencies": {
@@ -735,7 +735,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/serialize": {
+    "src/lib/encoding/serialize": {
       "name": "@lowerdeck/serialize",
       "version": "2.0.0",
       "dependencies": {
@@ -747,7 +747,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/service": {
+    "src/lib/framework/service": {
       "name": "@lowerdeck/service",
       "version": "2.0.0",
       "dependencies": {
@@ -759,7 +759,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/shadow-id": {
+    "src/lib/ids/shadow-id": {
       "name": "@lowerdeck/shadow-id",
       "version": "2.0.0",
       "dependencies": {
@@ -771,7 +771,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/sign": {
+    "src/lib/crypto/sign": {
       "name": "@lowerdeck/sign",
       "version": "2.0.0",
       "dependencies": {
@@ -784,7 +784,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/slugify": {
+    "src/lib/utils/slugify": {
       "name": "@lowerdeck/slugify",
       "version": "2.0.0",
       "dependencies": {
@@ -797,7 +797,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/snowflake": {
+    "src/lib/ids/snowflake": {
       "name": "@lowerdeck/snowflake",
       "version": "2.0.0",
       "devDependencies": {
@@ -806,7 +806,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/ssrf": {
+    "src/lib/http/ssrf": {
       "name": "@lowerdeck/ssrf",
       "version": "2.0.0",
       "dependencies": {
@@ -819,7 +819,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/telemetry": {
+    "src/lib/observability/telemetry": {
       "name": "@lowerdeck/telemetry",
       "version": "2.0.0",
       "dependencies": {
@@ -840,7 +840,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/testing-tools": {
+    "src/lib/tooling/testing-tools": {
       "name": "@lowerdeck/testing-tools",
       "version": "2.0.0",
       "dependencies": {
@@ -855,7 +855,7 @@
         "vitest": ">=3.0.0",
       },
     },
-    "src/lowerdeck/packages/timezone": {
+    "src/lib/utils/timezone": {
       "name": "@lowerdeck/timezone",
       "version": "2.0.0",
       "devDependencies": {
@@ -864,7 +864,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/tokens": {
+    "src/lib/crypto/tokens": {
       "name": "@lowerdeck/tokens",
       "version": "2.0.0",
       "dependencies": {
@@ -877,14 +877,14 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/tsconfig": {
+    "src/lib/tooling/tsconfig": {
       "name": "@lowerdeck/tsconfig",
       "version": "2.0.0",
       "dependencies": {
         "@types/node": "^22.20.5",
       },
     },
-    "src/lowerdeck/packages/unique": {
+    "src/lib/utils/unique": {
       "name": "@lowerdeck/unique",
       "version": "2.0.0",
       "devDependencies": {
@@ -893,7 +893,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/validation": {
+    "src/lib/framework/validation": {
       "name": "@lowerdeck/validation",
       "version": "2.0.0",
       "devDependencies": {
@@ -902,7 +902,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/lowerdeck/packages/websocket-client": {
+    "src/lib/http/websocket-client": {
       "name": "@lowerdeck/websocket-client",
       "version": "2.0.0",
       "dependencies": {
@@ -8239,97 +8239,97 @@
 
     "@looped/hooks": ["@looped/hooks@0.1.3", "", { "dependencies": { "lodash": "^4.17.21", "use-interval": "^1.4.0" }, "peerDependencies": { "react": ">=16" } }, "sha512-1WN1Ak+CBif9/J3Jt/Epxit4ZW92hQuYCLFmEYjJVtiqiBUGuqXsnyz1EC0XPiJCUE5h4L/0jnyetxcgPIB1NQ=="],
 
-    "@lowerdeck/anonymize-ip": ["@lowerdeck/anonymize-ip@workspace:src/lowerdeck/packages/anonymize-ip"],
+    "@lowerdeck/anonymize-ip": ["@lowerdeck/anonymize-ip@workspace:src/lib/network/anonymize-ip"],
 
-    "@lowerdeck/api-key": ["@lowerdeck/api-key@workspace:src/lowerdeck/packages/api-key"],
+    "@lowerdeck/api-key": ["@lowerdeck/api-key@workspace:src/lib/crypto/api-key"],
 
-    "@lowerdeck/api-mux": ["@lowerdeck/api-mux@workspace:src/lowerdeck/packages/api-mux"],
+    "@lowerdeck/api-mux": ["@lowerdeck/api-mux@workspace:src/lib/http/api-mux"],
 
-    "@lowerdeck/base62": ["@lowerdeck/base62@workspace:src/lowerdeck/packages/base62"],
+    "@lowerdeck/base62": ["@lowerdeck/base62@workspace:src/lib/encoding/base62"],
 
-    "@lowerdeck/basic-rest": ["@lowerdeck/basic-rest@workspace:src/lowerdeck/packages/basic-rest"],
+    "@lowerdeck/basic-rest": ["@lowerdeck/basic-rest@workspace:src/lib/http/basic-rest"],
 
-    "@lowerdeck/cache": ["@lowerdeck/cache@workspace:src/lowerdeck/packages/cache"],
+    "@lowerdeck/cache": ["@lowerdeck/cache@workspace:src/lib/storage/cache"],
 
-    "@lowerdeck/canonicalize": ["@lowerdeck/canonicalize@workspace:src/lowerdeck/packages/canonicalize"],
+    "@lowerdeck/canonicalize": ["@lowerdeck/canonicalize@workspace:src/lib/encoding/canonicalize"],
 
-    "@lowerdeck/case": ["@lowerdeck/case@workspace:src/lowerdeck/packages/case"],
+    "@lowerdeck/case": ["@lowerdeck/case@workspace:src/lib/utils/case"],
 
-    "@lowerdeck/cors": ["@lowerdeck/cors@workspace:src/lowerdeck/packages/cors"],
+    "@lowerdeck/cors": ["@lowerdeck/cors@workspace:src/lib/http/cors"],
 
-    "@lowerdeck/cron": ["@lowerdeck/cron@workspace:src/lowerdeck/packages/cron"],
+    "@lowerdeck/cron": ["@lowerdeck/cron@workspace:src/lib/jobs/cron"],
 
-    "@lowerdeck/delay": ["@lowerdeck/delay@workspace:src/lowerdeck/packages/delay"],
+    "@lowerdeck/delay": ["@lowerdeck/delay@workspace:src/lib/utils/delay"],
 
-    "@lowerdeck/email-domain-check": ["@lowerdeck/email-domain-check@workspace:src/lowerdeck/packages/email-domain-check"],
+    "@lowerdeck/email-domain-check": ["@lowerdeck/email-domain-check@workspace:src/lib/email/email-domain-check"],
 
-    "@lowerdeck/emitter": ["@lowerdeck/emitter@workspace:src/lowerdeck/packages/emitter"],
+    "@lowerdeck/emitter": ["@lowerdeck/emitter@workspace:src/lib/events/emitter"],
 
-    "@lowerdeck/encryption": ["@lowerdeck/encryption@workspace:src/lowerdeck/packages/encryption"],
+    "@lowerdeck/encryption": ["@lowerdeck/encryption@workspace:src/lib/crypto/encryption"],
 
-    "@lowerdeck/env": ["@lowerdeck/env@workspace:src/lowerdeck/packages/env"],
+    "@lowerdeck/env": ["@lowerdeck/env@workspace:src/lib/config/env"],
 
-    "@lowerdeck/error": ["@lowerdeck/error@workspace:src/lowerdeck/packages/error"],
+    "@lowerdeck/error": ["@lowerdeck/error@workspace:src/lib/framework/error"],
 
-    "@lowerdeck/event": ["@lowerdeck/event@workspace:src/lowerdeck/packages/event"],
+    "@lowerdeck/event": ["@lowerdeck/event@workspace:src/lib/events/event"],
 
-    "@lowerdeck/execution-context": ["@lowerdeck/execution-context@workspace:src/lowerdeck/packages/execution-context"],
+    "@lowerdeck/execution-context": ["@lowerdeck/execution-context@workspace:src/lib/observability/execution-context"],
 
-    "@lowerdeck/flatten": ["@lowerdeck/flatten@workspace:src/lowerdeck/packages/flatten"],
+    "@lowerdeck/flatten": ["@lowerdeck/flatten@workspace:src/lib/utils/flatten"],
 
-    "@lowerdeck/forwarded-for": ["@lowerdeck/forwarded-for@workspace:src/lowerdeck/packages/forwarded-for"],
+    "@lowerdeck/forwarded-for": ["@lowerdeck/forwarded-for@workspace:src/lib/http/forwarded-for"],
 
-    "@lowerdeck/hash": ["@lowerdeck/hash@workspace:src/lowerdeck/packages/hash"],
+    "@lowerdeck/hash": ["@lowerdeck/hash@workspace:src/lib/hashing/hash"],
 
-    "@lowerdeck/hono": ["@lowerdeck/hono@workspace:src/lowerdeck/packages/hono"],
+    "@lowerdeck/hono": ["@lowerdeck/hono@workspace:src/lib/http/hono"],
 
-    "@lowerdeck/id": ["@lowerdeck/id@workspace:src/lowerdeck/packages/id"],
+    "@lowerdeck/id": ["@lowerdeck/id@workspace:src/lib/ids/id"],
 
-    "@lowerdeck/ip-info": ["@lowerdeck/ip-info@workspace:src/lowerdeck/packages/ip-info"],
+    "@lowerdeck/ip-info": ["@lowerdeck/ip-info@workspace:src/lib/network/ip-info"],
 
-    "@lowerdeck/ip-range": ["@lowerdeck/ip-range@workspace:src/lowerdeck/packages/ip-range"],
+    "@lowerdeck/ip-range": ["@lowerdeck/ip-range@workspace:src/lib/network/ip-range"],
 
-    "@lowerdeck/join-paths": ["@lowerdeck/join-paths@workspace:src/lowerdeck/packages/join-paths"],
+    "@lowerdeck/join-paths": ["@lowerdeck/join-paths@workspace:src/lib/http/join-paths"],
 
-    "@lowerdeck/jwt": ["@lowerdeck/jwt@workspace:src/lowerdeck/packages/jwt"],
+    "@lowerdeck/jwt": ["@lowerdeck/jwt@workspace:src/lib/crypto/jwt"],
 
-    "@lowerdeck/lock": ["@lowerdeck/lock@workspace:src/lowerdeck/packages/lock"],
+    "@lowerdeck/lock": ["@lowerdeck/lock@workspace:src/lib/utils/lock"],
 
-    "@lowerdeck/memo": ["@lowerdeck/memo@workspace:src/lowerdeck/packages/memo"],
+    "@lowerdeck/memo": ["@lowerdeck/memo@workspace:src/lib/utils/memo"],
 
-    "@lowerdeck/merge": ["@lowerdeck/merge@workspace:src/lowerdeck/packages/merge"],
+    "@lowerdeck/merge": ["@lowerdeck/merge@workspace:src/lib/utils/merge"],
 
-    "@lowerdeck/murmur3": ["@lowerdeck/murmur3@workspace:src/lowerdeck/packages/murmur3"],
+    "@lowerdeck/murmur3": ["@lowerdeck/murmur3@workspace:src/lib/hashing/murmur3"],
 
-    "@lowerdeck/normalize-email": ["@lowerdeck/normalize-email@workspace:src/lowerdeck/packages/normalize-email"],
+    "@lowerdeck/normalize-email": ["@lowerdeck/normalize-email@workspace:src/lib/email/normalize-email"],
 
-    "@lowerdeck/offline": ["@lowerdeck/offline@workspace:src/lowerdeck/packages/offline"],
+    "@lowerdeck/offline": ["@lowerdeck/offline@workspace:src/lib/tooling/offline"],
 
-    "@lowerdeck/once": ["@lowerdeck/once@workspace:src/lowerdeck/packages/once"],
+    "@lowerdeck/once": ["@lowerdeck/once@workspace:src/lib/utils/once"],
 
-    "@lowerdeck/pagination": ["@lowerdeck/pagination@workspace:src/lowerdeck/packages/pagination"],
+    "@lowerdeck/pagination": ["@lowerdeck/pagination@workspace:src/lib/framework/pagination"],
 
-    "@lowerdeck/patch": ["@lowerdeck/patch@workspace:src/lowerdeck/packages/patch"],
+    "@lowerdeck/patch": ["@lowerdeck/patch@workspace:src/lib/utils/patch"],
 
-    "@lowerdeck/presenter": ["@lowerdeck/presenter@workspace:src/lowerdeck/packages/presenter"],
+    "@lowerdeck/presenter": ["@lowerdeck/presenter@workspace:src/lib/framework/presenter"],
 
-    "@lowerdeck/prisma-pg": ["@lowerdeck/prisma-pg@workspace:src/lowerdeck/packages/prisma-pg"],
+    "@lowerdeck/prisma-pg": ["@lowerdeck/prisma-pg@workspace:src/lib/storage/prisma-pg"],
 
-    "@lowerdeck/programmable-promise": ["@lowerdeck/programmable-promise@workspace:src/lowerdeck/packages/programmable-promise"],
+    "@lowerdeck/programmable-promise": ["@lowerdeck/programmable-promise@workspace:src/lib/utils/programmable-promise"],
 
-    "@lowerdeck/proxy": ["@lowerdeck/proxy@workspace:src/lowerdeck/packages/proxy"],
+    "@lowerdeck/proxy": ["@lowerdeck/proxy@workspace:src/lib/utils/proxy"],
 
-    "@lowerdeck/queue": ["@lowerdeck/queue@workspace:src/lowerdeck/packages/queue"],
+    "@lowerdeck/queue": ["@lowerdeck/queue@workspace:src/lib/jobs/queue"],
 
-    "@lowerdeck/queue-checkpoint": ["@lowerdeck/queue-checkpoint@workspace:src/lowerdeck/packages/queue-checkpoint"],
+    "@lowerdeck/queue-checkpoint": ["@lowerdeck/queue-checkpoint@workspace:src/lib/jobs/queue-checkpoint"],
 
-    "@lowerdeck/random-from-array": ["@lowerdeck/random-from-array@workspace:src/lowerdeck/packages/random-from-array"],
+    "@lowerdeck/random-from-array": ["@lowerdeck/random-from-array@workspace:src/lib/utils/random-from-array"],
 
-    "@lowerdeck/random-number": ["@lowerdeck/random-number@workspace:src/lowerdeck/packages/random-number"],
+    "@lowerdeck/random-number": ["@lowerdeck/random-number@workspace:src/lib/utils/random-number"],
 
-    "@lowerdeck/redis": ["@lowerdeck/redis@workspace:src/lowerdeck/packages/redis"],
+    "@lowerdeck/redis": ["@lowerdeck/redis@workspace:src/lib/storage/redis"],
 
-    "@lowerdeck/retention-runner": ["@lowerdeck/retention-runner@workspace:src/lowerdeck/packages/retention-runner"],
+    "@lowerdeck/retention-runner": ["@lowerdeck/retention-runner@workspace:src/lib/jobs/retention-runner"],
 
     "@lowerdeck/rpc-client": ["@lowerdeck/rpc-client@workspace:src/lib/rpc/node/client"],
 
@@ -8339,37 +8339,37 @@
 
     "@lowerdeck/rpc-spec": ["@lowerdeck/rpc-spec@workspace:src/lib/rpc/spec"],
 
-    "@lowerdeck/sentry": ["@lowerdeck/sentry@workspace:src/lowerdeck/packages/sentry"],
+    "@lowerdeck/sentry": ["@lowerdeck/sentry@workspace:src/lib/observability/sentry"],
 
-    "@lowerdeck/serialize": ["@lowerdeck/serialize@workspace:src/lowerdeck/packages/serialize"],
+    "@lowerdeck/serialize": ["@lowerdeck/serialize@workspace:src/lib/encoding/serialize"],
 
-    "@lowerdeck/service": ["@lowerdeck/service@workspace:src/lowerdeck/packages/service"],
+    "@lowerdeck/service": ["@lowerdeck/service@workspace:src/lib/framework/service"],
 
-    "@lowerdeck/shadow-id": ["@lowerdeck/shadow-id@workspace:src/lowerdeck/packages/shadow-id"],
+    "@lowerdeck/shadow-id": ["@lowerdeck/shadow-id@workspace:src/lib/ids/shadow-id"],
 
-    "@lowerdeck/sign": ["@lowerdeck/sign@workspace:src/lowerdeck/packages/sign"],
+    "@lowerdeck/sign": ["@lowerdeck/sign@workspace:src/lib/crypto/sign"],
 
-    "@lowerdeck/slugify": ["@lowerdeck/slugify@workspace:src/lowerdeck/packages/slugify"],
+    "@lowerdeck/slugify": ["@lowerdeck/slugify@workspace:src/lib/utils/slugify"],
 
-    "@lowerdeck/snowflake": ["@lowerdeck/snowflake@workspace:src/lowerdeck/packages/snowflake"],
+    "@lowerdeck/snowflake": ["@lowerdeck/snowflake@workspace:src/lib/ids/snowflake"],
 
-    "@lowerdeck/ssrf": ["@lowerdeck/ssrf@workspace:src/lowerdeck/packages/ssrf"],
+    "@lowerdeck/ssrf": ["@lowerdeck/ssrf@workspace:src/lib/http/ssrf"],
 
-    "@lowerdeck/telemetry": ["@lowerdeck/telemetry@workspace:src/lowerdeck/packages/telemetry"],
+    "@lowerdeck/telemetry": ["@lowerdeck/telemetry@workspace:src/lib/observability/telemetry"],
 
-    "@lowerdeck/testing-tools": ["@lowerdeck/testing-tools@workspace:src/lowerdeck/packages/testing-tools"],
+    "@lowerdeck/testing-tools": ["@lowerdeck/testing-tools@workspace:src/lib/tooling/testing-tools"],
 
-    "@lowerdeck/timezone": ["@lowerdeck/timezone@workspace:src/lowerdeck/packages/timezone"],
+    "@lowerdeck/timezone": ["@lowerdeck/timezone@workspace:src/lib/utils/timezone"],
 
-    "@lowerdeck/tokens": ["@lowerdeck/tokens@workspace:src/lowerdeck/packages/tokens"],
+    "@lowerdeck/tokens": ["@lowerdeck/tokens@workspace:src/lib/crypto/tokens"],
 
-    "@lowerdeck/tsconfig": ["@lowerdeck/tsconfig@workspace:src/lowerdeck/packages/tsconfig"],
+    "@lowerdeck/tsconfig": ["@lowerdeck/tsconfig@workspace:src/lib/tooling/tsconfig"],
 
-    "@lowerdeck/unique": ["@lowerdeck/unique@workspace:src/lowerdeck/packages/unique"],
+    "@lowerdeck/unique": ["@lowerdeck/unique@workspace:src/lib/utils/unique"],
 
-    "@lowerdeck/validation": ["@lowerdeck/validation@workspace:src/lowerdeck/packages/validation"],
+    "@lowerdeck/validation": ["@lowerdeck/validation@workspace:src/lib/framework/validation"],
 
-    "@lowerdeck/websocket-client": ["@lowerdeck/websocket-client@workspace:src/lowerdeck/packages/websocket-client"],
+    "@lowerdeck/websocket-client": ["@lowerdeck/websocket-client@workspace:src/lib/http/websocket-client"],
 
     "@mapbox/node-pre-gyp": ["@mapbox/node-pre-gyp@2.0.3", "", { "dependencies": { "consola": "^3.2.3", "detect-libc": "^2.0.0", "https-proxy-agent": "^7.0.5", "node-fetch": "^2.6.7", "nopt": "^8.0.0", "semver": "^7.5.3", "tar": "^7.4.0" }, "bin": { "node-pre-gyp": "bin/node-pre-gyp" } }, "sha512-uwPAhccfFJlsfCxMYTwOdVfOz3xqyj8xYL3zJj8f0pb30tLohnnFPhLuqp4/qoEz8sNxe4SESZedcBojRefIzg=="],
 

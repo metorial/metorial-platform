@@ -199,7 +199,7 @@ application and package organization. `tooling/` retains its current purpose for
 and repository tools.
 
 `lib/` groups generic packages by technical area, such as `crypto`, `rpc`, or `http`. This is the
-target home for domain-free primitives currently grouped under `lowerdeck/`. These packages must
+home for the domain-free `@lowerdeck/*` primitives. These packages must
 remain independent of product business logic, Metorial surfaces, and frontend applications.
 Changing a package's directory does not by itself require changing its package name or scope.
 
@@ -220,6 +220,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
+| Generic libraries | All 62 remaining lowerdeck packages have moved into the groups documented in `lib/README.md`. The `utils` group combines execution, data, text, random, and time helpers. Package names remain unchanged. |
 | RPC libraries | Node packages, the shared spec package, Go runtime, and protocol documentation live under `lib/rpc/`. |
 | Other products and shared code  | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                                                                                                                    |
 
