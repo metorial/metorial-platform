@@ -164,11 +164,11 @@ wheels/
 
 # Cache
 cache/
-!src/metorial/packages/cache/
-!src/metorial/packages/cache/**
-src/metorial/packages/cache/.turbo/
-src/metorial/packages/cache/dist/
-src/metorial/packages/cache/node_modules/
+!src/platform/packages/cache/
+!src/platform/packages/cache/**
+src/platform/packages/cache/.turbo/
+src/platform/packages/cache/dist/
+src/platform/packages/cache/node_modules/
 !src/lib/storage/cache/
 !src/lib/storage/cache/**
 src/lib/storage/cache/.turbo/

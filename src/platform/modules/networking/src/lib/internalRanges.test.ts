@@ -7,7 +7,7 @@ import {
 } from './internalRanges';
 
 let egressVectorsPath = new URL(
-  '../../../../../../../products/runtime/packages/egress/testdata/vectors.json',
+  '../../../../../products/runtime/packages/egress/testdata/vectors.json',
   import.meta.url
 );
 

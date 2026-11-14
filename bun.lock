@@ -2050,7 +2050,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/multi-region": {
+    "src/platform/multi-region": {
       "name": "@metorial/multi-region",
       "version": "1.0.0",
       "dependencies": {
@@ -2089,7 +2089,7 @@
         "typescript": "^5.9.3",
       },
     },
-    "src/metorial/packages/api-keys": {
+    "src/platform/packages/api-keys": {
       "name": "@metorial/api-keys",
       "version": "1.0.0",
       "dependencies": {
@@ -2101,7 +2101,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/bearer": {
+    "src/platform/packages/bearer": {
       "name": "@metorial/bearer",
       "version": "1.0.0",
       "dependencies": {
@@ -2113,7 +2113,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/branding": {
+    "src/platform/packages/branding": {
       "name": "@metorial/branding",
       "version": "1.0.0",
       "dependencies": {
@@ -2128,7 +2128,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/cache": {
+    "src/platform/packages/cache": {
       "name": "@metorial/cache",
       "version": "1.0.0",
       "dependencies": {
@@ -2140,7 +2140,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/config": {
+    "src/platform/packages/config": {
       "name": "@metorial/config",
       "version": "1.0.0",
       "dependencies": {
@@ -2158,7 +2158,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/context": {
+    "src/platform/packages/context": {
       "name": "@metorial/context",
       "version": "1.0.0",
       "dependencies": {
@@ -2170,7 +2170,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/control": {
+    "src/platform/packages/control": {
       "name": "@metorial/control",
       "version": "1.0.0",
       "devDependencies": {
@@ -2178,7 +2178,7 @@
         "typescript": "5.9.3",
       },
     },
-    "src/metorial/packages/cron": {
+    "src/platform/packages/cron": {
       "name": "@metorial/cron",
       "version": "1.0.0",
       "dependencies": {
@@ -2192,7 +2192,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/debug": {
+    "src/platform/packages/debug": {
       "name": "@metorial/debug",
       "version": "1.0.0",
       "devDependencies": {
@@ -2201,7 +2201,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/e2e": {
+    "src/platform/packages/e2e": {
       "name": "@metorial/e2e",
       "version": "1.0.0",
       "bin": {
@@ -2223,7 +2223,7 @@
         "typescript": "5.9.3",
       },
     },
-    "src/metorial/packages/editions": {
+    "src/platform/packages/editions": {
       "name": "@metorial/editions",
       "version": "1.0.0",
       "bin": {
@@ -2239,7 +2239,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/event": {
+    "src/platform/packages/event": {
       "name": "@metorial/event",
       "version": "1.0.0",
       "dependencies": {
@@ -2254,7 +2254,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/fabric": {
+    "src/platform/packages/fabric": {
       "name": "@metorial/fabric",
       "version": "1.0.0",
       "dependencies": {
@@ -2270,7 +2270,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/id": {
+    "src/platform/packages/id": {
       "name": "@metorial/id",
       "version": "1.0.0",
       "dependencies": {
@@ -2287,7 +2287,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/image-url": {
+    "src/platform/packages/image-url": {
       "name": "@metorial/image-url",
       "version": "1.0.0",
       "dependencies": {
@@ -2300,7 +2300,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/list-utils": {
+    "src/platform/packages/list-utils": {
       "name": "@metorial/list-utils",
       "version": "1.0.0",
       "dependencies": {
@@ -2314,7 +2314,7 @@
         "typescript": "^5",
       },
     },
-    "src/metorial/packages/lock": {
+    "src/platform/packages/lock": {
       "name": "@metorial/lock",
       "version": "1.0.0",
       "dependencies": {
@@ -2329,7 +2329,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/logging": {
+    "src/platform/packages/logging": {
       "name": "@metorial/logging",
       "version": "1.0.0",
       "dependencies": {
@@ -2341,7 +2341,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/presenter": {
+    "src/platform/packages/presenter": {
       "name": "@metorial/presenter",
       "version": "1.0.0",
       "dependencies": {
@@ -2353,7 +2353,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/queue": {
+    "src/platform/packages/queue": {
       "name": "@metorial/queue",
       "version": "1.0.0",
       "dependencies": {
@@ -2367,7 +2367,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/redis": {
+    "src/platform/packages/redis": {
       "name": "@metorial/redis",
       "version": "1.0.0",
       "dependencies": {
@@ -2392,7 +2392,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/rest": {
+    "src/platform/packages/rest": {
       "name": "@metorial/rest",
       "version": "1.0.0",
       "dependencies": {
@@ -2414,7 +2414,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/service-init": {
+    "src/platform/packages/service-init": {
       "name": "@metorial/service-init",
       "version": "1.0.0",
       "dependencies": {
@@ -2427,7 +2427,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/settings": {
+    "src/platform/packages/settings": {
       "name": "@metorial/settings",
       "version": "1.0.0",
       "bin": {
@@ -2444,7 +2444,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/shared-settings": {
+    "src/platform/packages/shared-settings": {
       "name": "@metorial/shared-settings",
       "version": "1.0.0",
       "dependencies": {
@@ -2458,7 +2458,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/skill-icons": {
+    "src/platform/packages/skill-icons": {
       "name": "@metorial/skill-icons",
       "version": "1.0.0",
       "devDependencies": {
@@ -2470,7 +2470,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/system-email": {
+    "src/platform/packages/system-email": {
       "name": "@metorial/system-email",
       "version": "1.0.0",
       "dependencies": {
@@ -2482,14 +2482,14 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/packages/tsconfig": {
+    "src/platform/packages/tsconfig": {
       "name": "@metorial/tsconfig",
       "version": "1.0.0",
       "dependencies": {
         "@types/node": "^22.20.5",
       },
     },
-    "src/metorial/packages/unified-id": {
+    "src/platform/packages/unified-id": {
       "name": "@metorial/unified-id",
       "version": "1.0.0",
       "dependencies": {
@@ -2551,7 +2551,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/community": {
+    "src/platform/modules/community": {
       "name": "@metorial/module-community",
       "version": "1.0.0",
       "dependencies": {
@@ -2575,7 +2575,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/email": {
+    "src/platform/modules/email": {
       "name": "@metorial/module-email",
       "version": "1.0.0",
       "dependencies": {
@@ -2597,7 +2597,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/flags": {
+    "src/platform/modules/flags": {
       "name": "@metorial/module-flags",
       "version": "1.0.0",
       "dependencies": {
@@ -2617,7 +2617,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/markdown": {
+    "src/platform/modules/markdown": {
       "name": "@metorial/module-markdown",
       "version": "1.0.0",
       "dependencies": {
@@ -2658,7 +2658,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/networking": {
+    "src/platform/modules/networking": {
       "name": "@metorial/module-networking",
       "version": "1.0.0",
       "dependencies": {
@@ -2692,7 +2692,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/rate-limit": {
+    "src/platform/modules/rate-limit": {
       "name": "@metorial/module-rate-limit",
       "version": "1.0.0",
       "dependencies": {
@@ -2707,7 +2707,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/search": {
+    "src/platform/modules/search": {
       "name": "@metorial/module-search",
       "version": "1.0.0",
       "dependencies": {
@@ -2724,7 +2724,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/secrets": {
+    "src/platform/modules/secrets": {
       "name": "@metorial/module-secrets",
       "version": "1.0.0",
       "dependencies": {
@@ -2746,7 +2746,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/usage": {
+    "src/platform/modules/usage": {
       "name": "@metorial/module-usage",
       "version": "1.0.0",
       "dependencies": {
@@ -2775,7 +2775,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/web": {
+    "src/platform/modules/web": {
       "name": "@metorial/module-web",
       "version": "1.0.0",
       "dependencies": {
@@ -8541,7 +8541,7 @@
 
     "@metorial/api-integrations": ["@metorial/api-integrations@workspace:src/products/integrations/apis/integration-setup"],
 
-    "@metorial/api-keys": ["@metorial/api-keys@workspace:src/metorial/packages/api-keys"],
+    "@metorial/api-keys": ["@metorial/api-keys@workspace:src/platform/packages/api-keys"],
 
     "@metorial/api-oauth": ["@metorial/api-oauth@workspace:src/products/identity/apis/oauth"],
 
@@ -8571,11 +8571,11 @@
 
     "@metorial/avatar-uploader": ["@metorial/avatar-uploader@workspace:src/metorial-frontend/packages/avatar-uploader"],
 
-    "@metorial/bearer": ["@metorial/bearer@workspace:src/metorial/packages/bearer"],
+    "@metorial/bearer": ["@metorial/bearer@workspace:src/platform/packages/bearer"],
 
-    "@metorial/branding": ["@metorial/branding@workspace:src/metorial/packages/branding"],
+    "@metorial/branding": ["@metorial/branding@workspace:src/platform/packages/branding"],
 
-    "@metorial/cache": ["@metorial/cache@workspace:src/metorial/packages/cache"],
+    "@metorial/cache": ["@metorial/cache@workspace:src/platform/packages/cache"],
 
     "@metorial/chart": ["@metorial/chart@workspace:src/metorial-frontend/packages/chart"],
 
@@ -8585,7 +8585,7 @@
 
     "@metorial/code-editor-monaco": ["@metorial/code-editor-monaco@workspace:src/metorial-frontend/packages/code-editor-monaco"],
 
-    "@metorial/config": ["@metorial/config@workspace:src/metorial/packages/config"],
+    "@metorial/config": ["@metorial/config@workspace:src/platform/packages/config"],
 
     "@metorial/consumer-auth": ["@metorial/consumer-auth@workspace:src/products/workforce/packages/consumer-auth"],
 
@@ -8595,11 +8595,11 @@
 
     "@metorial/consumer-sdk": ["@metorial/consumer-sdk@workspace:clients/metorial-consumer"],
 
-    "@metorial/context": ["@metorial/context@workspace:src/metorial/packages/context"],
+    "@metorial/context": ["@metorial/context@workspace:src/platform/packages/context"],
 
-    "@metorial/control": ["@metorial/control@workspace:src/metorial/packages/control"],
+    "@metorial/control": ["@metorial/control@workspace:src/platform/packages/control"],
 
-    "@metorial/cron": ["@metorial/cron@workspace:src/metorial/packages/cron"],
+    "@metorial/cron": ["@metorial/cron@workspace:src/platform/packages/cron"],
 
     "@metorial/dashboard-sdk": ["@metorial/dashboard-sdk@workspace:clients/metorial-dashboard"],
 
@@ -8609,7 +8609,7 @@
 
     "@metorial/db": ["@metorial/db@workspace:src/metorial/db"],
 
-    "@metorial/debug": ["@metorial/debug@workspace:src/metorial/packages/debug"],
+    "@metorial/debug": ["@metorial/debug@workspace:src/platform/packages/debug"],
 
     "@metorial/details-layout": ["@metorial/details-layout@workspace:src/metorial-frontend/packages/details-layout"],
 
@@ -8617,19 +8617,19 @@
 
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/metorial-frontend/packages/dynamic-component"],
 
-    "@metorial/e2e": ["@metorial/e2e@workspace:src/metorial/packages/e2e"],
+    "@metorial/e2e": ["@metorial/e2e@workspace:src/platform/packages/e2e"],
 
-    "@metorial/editions": ["@metorial/editions@workspace:src/metorial/packages/editions"],
+    "@metorial/editions": ["@metorial/editions@workspace:src/platform/packages/editions"],
 
     "@metorial/editor-tabs": ["@metorial/editor-tabs@workspace:src/metorial-frontend/packages/editor-tabs"],
 
     "@metorial/empty-state": ["@metorial/empty-state@workspace:src/metorial-frontend/packages/empty-state"],
 
-    "@metorial/event": ["@metorial/event@workspace:src/metorial/packages/event"],
+    "@metorial/event": ["@metorial/event@workspace:src/platform/packages/event"],
 
     "@metorial/explainer": ["@metorial/explainer@workspace:src/metorial-frontend/packages/explainer"],
 
-    "@metorial/fabric": ["@metorial/fabric@workspace:src/metorial/packages/fabric"],
+    "@metorial/fabric": ["@metorial/fabric@workspace:src/platform/packages/fabric"],
 
     "@metorial/fetch": ["@metorial/fetch@3.0.0", "", { "dependencies": { "cross-fetch": "^4.1.0" } }, "sha512-LrDNEVp5edS3cRQTyV6M2vT6T46Xp4Kkzt47/V1k4qI6VuekfSX/XMQYrWcOeIEo2pSzHpllNf3F4GEQItCGIw=="],
 
@@ -8651,21 +8651,21 @@
 
     "@metorial/genesis-client": ["@metorial/genesis-client@workspace:src/products/sandbox/packages/genesis-client"],
 
-    "@metorial/id": ["@metorial/id@workspace:src/metorial/packages/id"],
+    "@metorial/id": ["@metorial/id@workspace:src/platform/packages/id"],
 
-    "@metorial/image-url": ["@metorial/image-url@workspace:src/metorial/packages/image-url"],
+    "@metorial/image-url": ["@metorial/image-url@workspace:src/platform/packages/image-url"],
 
     "@metorial/json-viewer": ["@metorial/json-viewer@workspace:src/metorial-frontend/packages/json-viewer"],
 
     "@metorial/layout": ["@metorial/layout@workspace:src/metorial-frontend/packages/layout"],
 
-    "@metorial/list-utils": ["@metorial/list-utils@workspace:src/metorial/packages/list-utils"],
+    "@metorial/list-utils": ["@metorial/list-utils@workspace:src/platform/packages/list-utils"],
 
-    "@metorial/lock": ["@metorial/lock@workspace:src/metorial/packages/lock"],
+    "@metorial/lock": ["@metorial/lock@workspace:src/platform/packages/lock"],
 
     "@metorial/log-viewer": ["@metorial/log-viewer@workspace:src/metorial-frontend/packages/log-viewer"],
 
-    "@metorial/logging": ["@metorial/logging@workspace:src/metorial/packages/logging"],
+    "@metorial/logging": ["@metorial/logging@workspace:src/platform/packages/logging"],
 
     "@metorial/markdown": ["@metorial/markdown@workspace:src/metorial-frontend/packages/markdown"],
 
@@ -8691,7 +8691,7 @@
 
     "@metorial/module-audit-tracker": ["@metorial/module-audit-tracker@workspace:src/products/auditing/modules/audit-tracker"],
 
-    "@metorial/module-community": ["@metorial/module-community@workspace:src/metorial/products/core/modules/community"],
+    "@metorial/module-community": ["@metorial/module-community@workspace:src/platform/modules/community"],
 
     "@metorial/module-consumer-access": ["@metorial/module-consumer-access@workspace:src/products/workforce/modules/consumer-access"],
 
@@ -8703,7 +8703,7 @@
 
     "@metorial/module-documents": ["@metorial/module-documents@workspace:src/products/storage/modules/doc"],
 
-    "@metorial/module-email": ["@metorial/module-email@workspace:src/metorial/products/core/modules/email"],
+    "@metorial/module-email": ["@metorial/module-email@workspace:src/platform/modules/email"],
 
     "@metorial/module-event-delivery": ["@metorial/module-event-delivery@workspace:src/products/auditing/modules/event-delivery"],
 
@@ -8715,15 +8715,15 @@
 
     "@metorial/module-file": ["@metorial/module-file@workspace:src/products/storage/modules/file"],
 
-    "@metorial/module-flags": ["@metorial/module-flags@workspace:src/metorial/products/core/modules/flags"],
+    "@metorial/module-flags": ["@metorial/module-flags@workspace:src/platform/modules/flags"],
 
     "@metorial/module-machine-access": ["@metorial/module-machine-access@workspace:src/products/identity/modules/machine-access"],
 
     "@metorial/module-magic": ["@metorial/module-magic@workspace:src/products/workforce/modules/magic"],
 
-    "@metorial/module-markdown": ["@metorial/module-markdown@workspace:src/metorial/products/core/modules/markdown"],
+    "@metorial/module-markdown": ["@metorial/module-markdown@workspace:src/platform/modules/markdown"],
 
-    "@metorial/module-networking": ["@metorial/module-networking@workspace:src/metorial/products/core/modules/networking"],
+    "@metorial/module-networking": ["@metorial/module-networking@workspace:src/platform/modules/networking"],
 
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/products/identity/modules/organization"],
 
@@ -8733,15 +8733,15 @@
 
     "@metorial/module-product-assistant": ["@metorial/module-product-assistant@workspace:src/products/agents/modules/product-assistant"],
 
-    "@metorial/module-rate-limit": ["@metorial/module-rate-limit@workspace:src/metorial/products/core/modules/rate-limit"],
+    "@metorial/module-rate-limit": ["@metorial/module-rate-limit@workspace:src/platform/modules/rate-limit"],
 
     "@metorial/module-resource-actor": ["@metorial/module-resource-actor@workspace:src/products/identity/modules/resource-actor"],
 
     "@metorial/module-sandbox": ["@metorial/module-sandbox@workspace:src/products/sandbox/modules/sandbox"],
 
-    "@metorial/module-search": ["@metorial/module-search@workspace:src/metorial/products/core/modules/search"],
+    "@metorial/module-search": ["@metorial/module-search@workspace:src/platform/modules/search"],
 
-    "@metorial/module-secrets": ["@metorial/module-secrets@workspace:src/metorial/products/core/modules/secrets"],
+    "@metorial/module-secrets": ["@metorial/module-secrets@workspace:src/platform/modules/secrets"],
 
     "@metorial/module-skill": ["@metorial/module-skill@workspace:src/products/skills/modules/skill"],
 
@@ -8759,13 +8759,13 @@
 
     "@metorial/module-store": ["@metorial/module-store@workspace:src/products/storage/modules/store"],
 
-    "@metorial/module-usage": ["@metorial/module-usage@workspace:src/metorial/products/core/modules/usage"],
+    "@metorial/module-usage": ["@metorial/module-usage@workspace:src/platform/modules/usage"],
 
     "@metorial/module-user": ["@metorial/module-user@workspace:src/products/identity/modules/user"],
 
-    "@metorial/module-web": ["@metorial/module-web@workspace:src/metorial/products/core/modules/web"],
+    "@metorial/module-web": ["@metorial/module-web@workspace:src/platform/modules/web"],
 
-    "@metorial/multi-region": ["@metorial/multi-region@workspace:src/metorial/multi-region"],
+    "@metorial/multi-region": ["@metorial/multi-region@workspace:src/platform/multi-region"],
 
     "@metorial/object-storage": ["@metorial/object-storage@workspace:src/object-storage"],
 
@@ -8777,17 +8777,17 @@
 
     "@metorial/portal-url": ["@metorial/portal-url@workspace:src/products/workforce/packages/portal-url"],
 
-    "@metorial/presenter": ["@metorial/presenter@workspace:src/metorial/packages/presenter"],
+    "@metorial/presenter": ["@metorial/presenter@workspace:src/platform/packages/presenter"],
 
     "@metorial/presenters": ["@metorial/presenters@workspace:src/metorial/presenters"],
 
     "@metorial/product-assistant-client": ["@metorial/product-assistant-client@workspace:src/products/agents/packages/product-assistant-client"],
 
-    "@metorial/queue": ["@metorial/queue@workspace:src/metorial/packages/queue"],
+    "@metorial/queue": ["@metorial/queue@workspace:src/platform/packages/queue"],
 
-    "@metorial/redis": ["@metorial/redis@workspace:src/metorial/packages/redis"],
+    "@metorial/redis": ["@metorial/redis@workspace:src/platform/packages/redis"],
 
-    "@metorial/rest": ["@metorial/rest@workspace:src/metorial/packages/rest"],
+    "@metorial/rest": ["@metorial/rest@workspace:src/platform/packages/rest"],
 
     "@metorial/review-engine": ["@metorial/review-engine@workspace:src/products/agents/packages/review-engine"],
 
@@ -8803,17 +8803,17 @@
 
     "@metorial/scene-skills": ["@metorial/scene-skills@workspace:src/metorial-frontend/scenes/skills"],
 
-    "@metorial/service-init": ["@metorial/service-init@workspace:src/metorial/packages/service-init"],
+    "@metorial/service-init": ["@metorial/service-init@workspace:src/platform/packages/service-init"],
 
-    "@metorial/settings": ["@metorial/settings@workspace:src/metorial/packages/settings"],
+    "@metorial/settings": ["@metorial/settings@workspace:src/platform/packages/settings"],
 
-    "@metorial/shared-settings": ["@metorial/shared-settings@workspace:src/metorial/packages/shared-settings"],
+    "@metorial/shared-settings": ["@metorial/shared-settings@workspace:src/platform/packages/shared-settings"],
 
     "@mtsrc/mcp-runtime-service": ["@mtsrc/mcp-runtime-service@workspace:src/products/integrations/services/mcp-runtime/service"],
 
     "@metorial/signal": ["@metorial/signal@workspace:src/signal/service"],
 
-    "@metorial/skill-icons": ["@metorial/skill-icons@workspace:src/metorial/packages/skill-icons"],
+    "@metorial/skill-icons": ["@metorial/skill-icons@workspace:src/platform/packages/skill-icons"],
 
     "@metorial/skills-common": ["@metorial/skills-common@workspace:src/products/skills/packages/common"],
 
@@ -8835,7 +8835,7 @@
 
     "@metorial/subspace-dev": ["@metorial/subspace-dev@workspace:src/metorial/products/integrations/apps/dev"],
 
-    "@metorial/system-email": ["@metorial/system-email@workspace:src/metorial/packages/system-email"],
+    "@metorial/system-email": ["@metorial/system-email@workspace:src/platform/packages/system-email"],
 
     "@metorial/table": ["@metorial/table@workspace:src/metorial-frontend/packages/table"],
 
@@ -8843,13 +8843,13 @@
 
     "@metorial/tool-selection": ["@metorial/tool-selection@workspace:src/metorial-frontend/packages/tool-selection"],
 
-    "@metorial/tsconfig": ["@metorial/tsconfig@workspace:src/metorial/packages/tsconfig"],
+    "@metorial/tsconfig": ["@metorial/tsconfig@workspace:src/platform/packages/tsconfig"],
 
     "@metorial/ui": ["@metorial/ui@workspace:src/metorial-frontend/packages/ui"],
 
     "@metorial/ui-product": ["@metorial/ui-product@workspace:src/metorial-frontend/packages/ui-product"],
 
-    "@metorial/unified-id": ["@metorial/unified-id@workspace:src/metorial/packages/unified-id"],
+    "@metorial/unified-id": ["@metorial/unified-id@workspace:src/platform/packages/unified-id"],
 
     "@metorial/use-debounced": ["@metorial/use-debounced@workspace:src/metorial-frontend/packages/use-debounced"],
 

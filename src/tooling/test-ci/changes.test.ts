@@ -10,6 +10,7 @@ let controlSuiteFixtures = {
     services: [],
     tests: [
       'src/metorial/products/*/modules/*',
+      'src/platform/modules/*',
       'src/products/*/modules/*',
       'src/products/*/apis/*',
       'src/metorial/apis/*'
@@ -88,7 +89,7 @@ test('control suites select stack test packages and prune them for CI', async ()
       { directory: 'src/products/outpost/apis/outpost-api', e2e: true }
     ],
     ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
-    ['@metorial/module-x', { directory: 'src/metorial/products/core/modules/x', e2e: false }]
+    ['@metorial/module-x', { directory: 'src/platform/modules/x', e2e: false }]
   ]);
   expect(controlTestPackages(controlSuiteFixtures.oss, packages)).toEqual([
     '@metorial/api-core',
@@ -96,7 +97,7 @@ test('control suites select stack test packages and prune them for CI', async ()
     '@metorial/module-user'
   ]);
   expect(controlTasks(controlSuiteFixtures.oss)).toBe(
-    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/metorial/apis/*'
+    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/platform/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/metorial/apis/*'
   );
   expect(controlTasks(controlSuiteFixtures.enterprise)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
@@ -113,7 +114,7 @@ test('control suites run as duration-balanced matrix groups with per-package sha
       (_, index) =>
         [
           `@metorial/module-m${index}`,
-          { directory: `src/metorial/products/core/modules/m${index}`, e2e: true }
+          { directory: `src/platform/modules/m${index}`, e2e: true }
         ] as const
     )
   ]);

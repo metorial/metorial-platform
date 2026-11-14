@@ -75,6 +75,7 @@ export default project({
     image: 'app-api',
     tests: [
       '../../../../metorial/products/*/modules/*',
+      '../../../../platform/modules/*',
       '../../../*/modules/*',
       '../../../*/apis/*',
       '../../../../metorial/apis/*'

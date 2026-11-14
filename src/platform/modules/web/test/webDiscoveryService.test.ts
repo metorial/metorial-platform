@@ -10,7 +10,8 @@ let mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial/db', async () => {
-  let { withUniqueConstraintRecovery } = await import('../../../../../db/src/lib/unique');
+  let { withUniqueConstraintRecovery } =
+    await import('../../../../metorial/db/src/lib/unique');
 
   return {
     db: {

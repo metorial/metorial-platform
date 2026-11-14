@@ -121,7 +121,7 @@ provisioning, and removes its isolated containers and volumes.
 
 Every package that Control manages has a `control/index.ts` next to its
 `package.json`. The file default-exports a project built with the
-`@metorial/control` DSL (`oss/src/metorial/packages/control`). Control discovers
+`@metorial/control` DSL (`oss/src/platform/packages/control`). Control discovers
 these files recursively, excluding `.git`, `.control`, `node_modules`, `target`
 and `out`, evaluates them in a subprocess, and validates the result strictly.
 Unknown fields, invalid environment names, invalid database names, and missing

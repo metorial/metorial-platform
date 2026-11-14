@@ -6,7 +6,7 @@ import type { LoadedManifest } from '../types';
 
 export let definitionSources = join(
   import.meta.dir,
-  '../../../../metorial/packages/control/src'
+  '../../../../platform/packages/control/src'
 );
 
 export interface PackageChanges {

@@ -54,8 +54,8 @@ ENV TZ=UTC
 COPY --from=builder --link --chown=10001:10001 /app/src/products/oss/services/oss-core/dist ./dist
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/schema/ ./prisma/core/schema/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/migrations/ ./prisma/core/migrations/
-COPY --from=builder --link --chown=10001:10001 /app/src/metorial/multi-region/prisma/schema/ ./prisma/global/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/metorial/multi-region/prisma/migrations/ ./prisma/global/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/platform/multi-region/prisma/schema/ ./prisma/global/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/platform/multi-region/prisma/migrations/ ./prisma/global/migrations/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/schema/ ./prisma/subspace/schema/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/migrations/ ./prisma/subspace/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json

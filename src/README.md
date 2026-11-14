@@ -39,6 +39,9 @@ oss/src/
       <service-name>/
     clients/
       <client-name>/            # Clients for shared platform services
+    modules/                    # Shared monolith modules
+    packages/                   # Shared Metorial infrastructure packages
+    multi-region/               # Cell registry and cross-region coordination
     db/                         # Main Metorial database package
     apis/                       # Shared platform APIs
   frontends/
@@ -198,8 +201,14 @@ it is distinct from the runnable services grouped at the product level.
 ## Platform and surfaces
 
 `platform/` holds shared infrastructure: services used across products, the main Metorial
-database, and shared platform APIs. Platform components need explicit ownership just as
-product components do.
+database, shared monolith modules, shared packages, multi-region coordination, and shared platform
+APIs. Platform components need explicit ownership just as product components do.
+
+`platform/modules/` contains the remaining shared modules formerly under
+`metorial/products/core/modules/`. They still run in the Metorial monolith. `platform/packages/`
+holds the shared `@metorial/*` packages formerly under `metorial/packages/`, including Control
+definitions, settings, REST, presenters, Fabric, and E2E helpers. `platform/multi-region/` owns the
+cell registry and cross-region coordination. Their package names remain unchanged.
 
 `surfaces/metorial/` holds the APIs and presenters that expose product capabilities through
 Metorial. Controllers validate requests and call modules or services; business logic stays with
@@ -238,6 +247,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Storage                         | Storage modules and SCM live under `products/storage/`. SCM, formerly Origin, uses `@mtsrc/scm-*` packages. Code Bucket and the editor live with the service. The SCM and Code Bucket clients live in `products/storage/clients/`.                                                                          |
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
+| Shared platform code | The remaining Core modules live at `platform/modules/`; shared Metorial packages at `platform/packages/`; the cell registry at `platform/multi-region/`. Package names and runtime behavior remain unchanged. |
 | Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
 | Integrations | MCP Runtime, its SDK, and its internal client live under `products/integrations/`. Other integrations code continues migrating from the legacy product tree. |
 | Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
@@ -258,7 +268,7 @@ As remaining code moves, use these destination rules:
 | `metorial/db/`                                                        | `platform/db/`                                                                             |
 | `metorial/apis/`                                                      | `products/<product>/apis/`, `surfaces/metorial/apis/`, or `platform/apis/`, according to ownership |
 | `metorial/presenters/`                                                | `surfaces/metorial/presenters/`                                                            |
-| `metorial/packages/`                                                  | The owning product, shared platform infrastructure, or `lib/`, according to responsibility |
+| `metorial/packages/`                                                  | Moved to `platform/packages/`; use product packages or `lib/` for new code when appropriate |
 | `metorial-frontend/`                                                  | `frontends/metorial/`                                                                      |
 | `lowerdeck/`                                                          | `lib/<group>/`, grouped by technical area                                                  |
 | `tooling/`                                                            | Remains `tooling/`                                                                         |
