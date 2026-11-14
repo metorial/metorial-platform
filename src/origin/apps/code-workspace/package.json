@@ -26,6 +26,6 @@
     "vscode-textmate": "^9.3.2"
   },
   "overrides": {
-    "rollup": "^4.64.6"
+    "rollup": "^4.68.0"
   }
 }
