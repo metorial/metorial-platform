@@ -1,2 +1,2 @@
-export { sessionClassificationService } from './services/sessionClassification';
+export * from './services';
 export { classificationQueueProcessor } from './queues';

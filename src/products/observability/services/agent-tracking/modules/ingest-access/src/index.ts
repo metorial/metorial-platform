@@ -1,4 +1,2 @@
-export { ingestCredentialService } from './services/ingestCredential';
-export { ingestSourceService } from './services/ingestSource';
-export { ingestTokenService } from './services/ingestToken';
+export * from './services';
 export { parseIngestCredential } from './lib/tokenSecret';

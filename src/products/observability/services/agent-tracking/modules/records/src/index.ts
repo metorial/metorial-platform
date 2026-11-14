@@ -5,7 +5,5 @@ export { createNoopSink } from './lib/noop';
 export { setConfiguredSink as setRecordSink } from './lib/sink';
 export { toRecordDocument } from './lib/mapper';
 export { eraseCollections, eraseFilter, type EraseScope } from './queues/eraseRecords';
-export { recordErasureService } from './services/recordErasure';
-export { recordReadbackService } from './services/recordReadback';
-export { recordWriteService } from './services/recordWrite';
+export * from './services';
 export { recordsQueueProcessor } from './queues';

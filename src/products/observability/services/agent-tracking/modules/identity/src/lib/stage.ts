@@ -10,7 +10,7 @@ import type { PipelineContext, PipelineStage } from '@mtsrc/agent-tracking-modul
 import { buildRecord } from '@mtsrc/agent-tracking-records-model';
 import { getCoordinationRedis, redisKey } from '@mtsrc/agent-tracking-redis';
 import { createIdentityResolver, type IdentityResolver } from './resolver';
-import { identityResolutionService } from '../services/identityResolution';
+import { identityResolutionService } from '../internal/identityResolution';
 
 let sourceTagsTtlSeconds = 24 * 60 * 60;
 

@@ -13,7 +13,7 @@ import type { PrincipalOverrides } from '@mtsrc/agent-tracking-records-model/tes
 import { emailDomainAllowed, planAttribution } from '../src/lib/plan';
 import type { EntityRequest, IdentityResolver, LinkRequest } from '../src/lib/resolver';
 import { createAttributionStage, sourceTagsClaimKey } from '../src/lib/stage';
-import { clientEmailConflictWarning } from '../src/services/identityResolution';
+import { clientEmailConflictWarning } from '../src/internal/identityResolution';
 
 let createFakeResolver = (d: { userEmails?: Record<string, string[]> } = {}) => {
   let requests: EntityRequest[][] = [];

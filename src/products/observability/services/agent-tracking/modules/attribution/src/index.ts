@@ -11,4 +11,4 @@ export {
   toAttributionSession
 } from './lib/context';
 export { entriesToDims, isEntityInScope, resolveAttribution } from './lib/resolver';
-export { attributionService, type SessionAttributionResult } from './services/attribution';
+export * from './services';

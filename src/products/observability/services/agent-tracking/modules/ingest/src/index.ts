@@ -13,4 +13,4 @@ export {
 } from './lib/payload';
 export { configureIngestStages } from './lib/stages';
 export { createRuntime, setRuntime, type IngestRuntime } from './lib/runtime';
-export { ingestService } from './services/ingest';
+export * from './services';
