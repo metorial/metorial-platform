@@ -25,6 +25,8 @@ oss/src/
         <service-name>/
       packages/
         <package-name>/
+      apis/
+        <api-name>/             # APIs owned by this product
       modules/
         <module-name>/          # Product modules running in the Metorial monolith
       clients/
@@ -52,8 +54,8 @@ oss/src/
 ```
 
 Create only the directories a product or service needs. Additional folders such as `data`,
-`deployment`, `spec`, and `e2e` are allowed when their purpose and owner are clear. Service clients
-must live in the owning product's `clients/` directory or in `platform/clients/`.
+`deployment`, `implementation`, `spec`, and `e2e` are allowed when their purpose and owner are
+clear. Service clients must live in the owning product's `clients/` directory or in `platform/clients/`.
 
 ## Products and ownership
 
@@ -70,6 +72,7 @@ Place code at the narrowest scope that matches its responsibility:
 | Utilities private to one service                               | That service's `packages/`                                           |
 | Product packages shared by services and/or the monolith        | `products/<product>/packages/<package>`                              |
 | Product business logic running in the Metorial monolith        | `products/<product>/modules/<module>`                                |
+| An API owned by a product team                                 | `products/<product>/apis/<api>`                                      |
 | A shared service supporting multiple products                  | `platform/services/<service>`                                        |
 | The main Metorial database                                     | `platform/db`                                                        |
 | A shared API used across products                              | `platform/apis/<api>`                                                |
@@ -182,7 +185,8 @@ product components do.
 `surfaces/metorial/` holds the APIs and presenters that expose product capabilities through
 Metorial. Controllers validate requests and call modules or services; business logic stays with
 the owning product. Presenters define the Metorial-facing representation of those capabilities.
-Internal APIs belonging to a standalone service stay in that service's `apis/` directory.
+Product-owned APIs live in `products/<product>/apis/`. Internal APIs belonging to a standalone
+service stay in that service's `apis/` directory.
 
 Keep shared platform API behavior in `platform/apis/` and Metorial-specific routes, composition,
 and representations in `surfaces/metorial/`. A surface can compose capabilities from several
@@ -208,6 +212,7 @@ Changing a package's directory does not by itself require changing its package n
 | Auditing, skills, and workforce | Modules and shared packages live under their product directories.                                                                                                                                                                                                                                           |
 | Storage                         | Storage modules and SCM live under `products/storage/`. SCM, formerly Origin, uses `@mtsrc/scm-*` packages. Code Bucket and the editor live with the service. The SCM and Code Bucket clients live in `products/storage/clients/`.                                                                          |
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
+| Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
 | Other products and shared code  | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                                                                                                                    |
 
@@ -219,7 +224,7 @@ As remaining code moves, use these destination rules:
 | `metorial/products/<product>/packages/`                               | Product `packages/`                                                                        |
 | Standalone services at the source root or inside the old product tree | Product `services/` or `platform/services/`, according to ownership                        |
 | `metorial/db/`                                                        | `platform/db/`                                                                             |
-| `metorial/apis/`                                                      | `surfaces/metorial/apis/` or `platform/apis/`, according to responsibility                 |
+| `metorial/apis/`                                                      | `products/<product>/apis/`, `surfaces/metorial/apis/`, or `platform/apis/`, according to ownership |
 | `metorial/presenters/`                                                | `surfaces/metorial/presenters/`                                                            |
 | `metorial/packages/`                                                  | The owning product, shared platform infrastructure, or `lib/`, according to responsibility |
 | `metorial-frontend/`                                                  | `frontends/metorial/`                                                                      |

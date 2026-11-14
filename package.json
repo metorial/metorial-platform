@@ -77,7 +77,7 @@
     "src/slates/*/*/*",
     "src/slates/*/*/*/*",
     "src/tooling/*",
-    "src/outpost/*/*"
+    "src/products/outpost/implementation/*/*"
   ],
   "dependencies": {
     "sade": "^1.8.1",

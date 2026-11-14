@@ -2176,7 +2176,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/apis/outpost": {
+    "src/products/outpost/apis/outpost-api": {
       "name": "@metorial/api-outpost",
       "version": "1.0.0",
       "dependencies": {
@@ -2881,7 +2881,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/metorial/products/core/modules/outpost": {
+    "src/products/outpost/modules/outpost": {
       "name": "@metorial/module-outpost",
       "version": "1.0.0",
       "dependencies": {
@@ -4354,7 +4354,7 @@
         "typescript": "5.9.3",
       },
     },
-    "src/outpost/adapters/outpost-mcp-adapter": {
+    "src/products/outpost/implementation/adapters/outpost-mcp-adapter": {
       "name": "@metorial-outpost/mcp-adapter",
       "version": "0.1.1",
       "dependencies": {
@@ -4376,7 +4376,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/adapters/outpost-parent-adapter": {
+    "src/products/outpost/implementation/adapters/outpost-parent-adapter": {
       "name": "@metorial-outpost/parent-adapter",
       "version": "0.1.1",
       "dependencies": {
@@ -4399,7 +4399,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/apps/mcp-proxy": {
+    "src/products/outpost/implementation/apps/mcp-proxy": {
       "name": "@metorial/mcp-proxy",
       "version": "0.1.1",
       "dependencies": {
@@ -4426,7 +4426,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-adapter": {
+    "src/products/outpost/implementation/packages/outpost-adapter": {
       "name": "@metorial-outpost/adapter",
       "version": "0.1.1",
       "dependencies": {
@@ -4445,7 +4445,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-auth": {
+    "src/products/outpost/implementation/packages/outpost-auth": {
       "name": "@metorial-outpost/auth",
       "version": "0.1.1",
       "dependencies": {
@@ -4462,7 +4462,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-cache": {
+    "src/products/outpost/implementation/packages/outpost-cache": {
       "name": "@metorial-outpost/cache",
       "version": "0.1.1",
       "devDependencies": {
@@ -4472,7 +4472,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-cache-local": {
+    "src/products/outpost/implementation/packages/outpost-cache-local": {
       "name": "@metorial-outpost/cache-local",
       "version": "0.1.1",
       "dependencies": {
@@ -4485,7 +4485,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-cache-redis": {
+    "src/products/outpost/implementation/packages/outpost-cache-redis": {
       "name": "@metorial-outpost/cache-redis",
       "version": "0.1.1",
       "dependencies": {
@@ -4498,7 +4498,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-cors": {
+    "src/products/outpost/implementation/packages/outpost-cors": {
       "name": "@metorial-outpost/cors",
       "version": "0.1.1",
       "devDependencies": {
@@ -4508,7 +4508,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-credential-envelope": {
+    "src/products/outpost/implementation/packages/outpost-credential-envelope": {
       "name": "@metorial-outpost/credential-envelope",
       "version": "0.1.1",
       "dependencies": {
@@ -4521,7 +4521,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-crypto": {
+    "src/products/outpost/implementation/packages/outpost-crypto": {
       "name": "@metorial-outpost/crypto",
       "version": "0.1.1",
       "devDependencies": {
@@ -4531,7 +4531,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-fetch": {
+    "src/products/outpost/implementation/packages/outpost-fetch": {
       "name": "@metorial-outpost/fetch",
       "version": "0.1.1",
       "dependencies": {
@@ -4547,7 +4547,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-instance": {
+    "src/products/outpost/implementation/packages/outpost-instance": {
       "name": "@metorial-outpost/instance",
       "version": "0.1.1",
       "dependencies": {
@@ -4573,7 +4573,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-logger": {
+    "src/products/outpost/implementation/packages/outpost-logger": {
       "name": "@metorial-outpost/logger",
       "version": "0.1.1",
       "devDependencies": {
@@ -4583,7 +4583,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-logger-console": {
+    "src/products/outpost/implementation/packages/outpost-logger-console": {
       "name": "@metorial-outpost/logger-console",
       "version": "0.1.1",
       "dependencies": {
@@ -4596,7 +4596,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-logger-http": {
+    "src/products/outpost/implementation/packages/outpost-logger-http": {
       "name": "@metorial-outpost/logger-http",
       "version": "0.1.1",
       "dependencies": {
@@ -4609,7 +4609,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-logger-otel": {
+    "src/products/outpost/implementation/packages/outpost-logger-otel": {
       "name": "@metorial-outpost/logger-otel",
       "version": "0.1.1",
       "dependencies": {
@@ -4626,7 +4626,7 @@
         "@opentelemetry/api-logs": "^0.221.0",
       },
     },
-    "src/outpost/packages/outpost-mcp": {
+    "src/products/outpost/implementation/packages/outpost-mcp": {
       "name": "@metorial-outpost/mcp",
       "version": "0.1.1",
       "dependencies": {
@@ -4640,7 +4640,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-proxy": {
+    "src/products/outpost/implementation/packages/outpost-proxy": {
       "name": "@metorial-outpost/proxy",
       "version": "0.1.1",
       "dependencies": {
@@ -4661,7 +4661,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-server": {
+    "src/products/outpost/implementation/packages/outpost-server": {
       "name": "@metorial-outpost/server",
       "version": "0.1.1",
       "dependencies": {
@@ -4677,7 +4677,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-signature": {
+    "src/products/outpost/implementation/packages/outpost-signature": {
       "name": "@metorial-outpost/signature",
       "version": "0.1.1",
       "dependencies": {
@@ -4690,7 +4690,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-status-page": {
+    "src/products/outpost/implementation/packages/outpost-status-page": {
       "name": "@metorial-outpost/status-page",
       "version": "0.1.1",
       "dependencies": {
@@ -4711,7 +4711,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-tokens": {
+    "src/products/outpost/implementation/packages/outpost-tokens": {
       "name": "@metorial-outpost/tokens",
       "version": "0.1.1",
       "dependencies": {
@@ -4724,7 +4724,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/outpost-trust-proxy": {
+    "src/products/outpost/implementation/packages/outpost-trust-proxy": {
       "name": "@metorial-outpost/trust-proxy",
       "version": "0.1.1",
       "dependencies": {
@@ -4738,7 +4738,7 @@
         "vitest": "^4.1.11",
       },
     },
-    "src/outpost/packages/tsconfig": {
+    "src/products/outpost/implementation/packages/tsconfig": {
       "name": "@metorial-outpost/tsconfig",
       "version": "0.1.0",
     },
@@ -8389,53 +8389,53 @@
 
     "@metorial-io/ui-product": ["@metorial-io/ui-product@1.0.0", "", { "dependencies": { "@metorial-io/ui": "latest", "@remixicon/react": "^4.8.0", "copy-to-clipboard": "^3.3.3", "react": "^19.2.3", "react-dom": "^19.2.3", "react-router-dom": "^7.11.0", "styled-components": "^6.2.0" } }, "sha512-lEhM6JNxdRGyf9B73DGV82bn+81G6DrzDTHOigd9LFb8vWmgme2NRjXH0dW7tb3igwdCuJb/DyjgCzcQ+eD0SQ=="],
 
-    "@metorial-outpost/adapter": ["@metorial-outpost/adapter@workspace:src/outpost/packages/outpost-adapter"],
+    "@metorial-outpost/adapter": ["@metorial-outpost/adapter@workspace:src/products/outpost/implementation/packages/outpost-adapter"],
 
-    "@metorial-outpost/auth": ["@metorial-outpost/auth@workspace:src/outpost/packages/outpost-auth"],
+    "@metorial-outpost/auth": ["@metorial-outpost/auth@workspace:src/products/outpost/implementation/packages/outpost-auth"],
 
-    "@metorial-outpost/cache": ["@metorial-outpost/cache@workspace:src/outpost/packages/outpost-cache"],
+    "@metorial-outpost/cache": ["@metorial-outpost/cache@workspace:src/products/outpost/implementation/packages/outpost-cache"],
 
-    "@metorial-outpost/cache-local": ["@metorial-outpost/cache-local@workspace:src/outpost/packages/outpost-cache-local"],
+    "@metorial-outpost/cache-local": ["@metorial-outpost/cache-local@workspace:src/products/outpost/implementation/packages/outpost-cache-local"],
 
-    "@metorial-outpost/cache-redis": ["@metorial-outpost/cache-redis@workspace:src/outpost/packages/outpost-cache-redis"],
+    "@metorial-outpost/cache-redis": ["@metorial-outpost/cache-redis@workspace:src/products/outpost/implementation/packages/outpost-cache-redis"],
 
-    "@metorial-outpost/cors": ["@metorial-outpost/cors@workspace:src/outpost/packages/outpost-cors"],
+    "@metorial-outpost/cors": ["@metorial-outpost/cors@workspace:src/products/outpost/implementation/packages/outpost-cors"],
 
-    "@metorial-outpost/credential-envelope": ["@metorial-outpost/credential-envelope@workspace:src/outpost/packages/outpost-credential-envelope"],
+    "@metorial-outpost/credential-envelope": ["@metorial-outpost/credential-envelope@workspace:src/products/outpost/implementation/packages/outpost-credential-envelope"],
 
-    "@metorial-outpost/crypto": ["@metorial-outpost/crypto@workspace:src/outpost/packages/outpost-crypto"],
+    "@metorial-outpost/crypto": ["@metorial-outpost/crypto@workspace:src/products/outpost/implementation/packages/outpost-crypto"],
 
-    "@metorial-outpost/fetch": ["@metorial-outpost/fetch@workspace:src/outpost/packages/outpost-fetch"],
+    "@metorial-outpost/fetch": ["@metorial-outpost/fetch@workspace:src/products/outpost/implementation/packages/outpost-fetch"],
 
-    "@metorial-outpost/instance": ["@metorial-outpost/instance@workspace:src/outpost/packages/outpost-instance"],
+    "@metorial-outpost/instance": ["@metorial-outpost/instance@workspace:src/products/outpost/implementation/packages/outpost-instance"],
 
-    "@metorial-outpost/logger": ["@metorial-outpost/logger@workspace:src/outpost/packages/outpost-logger"],
+    "@metorial-outpost/logger": ["@metorial-outpost/logger@workspace:src/products/outpost/implementation/packages/outpost-logger"],
 
-    "@metorial-outpost/logger-console": ["@metorial-outpost/logger-console@workspace:src/outpost/packages/outpost-logger-console"],
+    "@metorial-outpost/logger-console": ["@metorial-outpost/logger-console@workspace:src/products/outpost/implementation/packages/outpost-logger-console"],
 
-    "@metorial-outpost/logger-http": ["@metorial-outpost/logger-http@workspace:src/outpost/packages/outpost-logger-http"],
+    "@metorial-outpost/logger-http": ["@metorial-outpost/logger-http@workspace:src/products/outpost/implementation/packages/outpost-logger-http"],
 
-    "@metorial-outpost/logger-otel": ["@metorial-outpost/logger-otel@workspace:src/outpost/packages/outpost-logger-otel"],
+    "@metorial-outpost/logger-otel": ["@metorial-outpost/logger-otel@workspace:src/products/outpost/implementation/packages/outpost-logger-otel"],
 
-    "@metorial-outpost/mcp": ["@metorial-outpost/mcp@workspace:src/outpost/packages/outpost-mcp"],
+    "@metorial-outpost/mcp": ["@metorial-outpost/mcp@workspace:src/products/outpost/implementation/packages/outpost-mcp"],
 
-    "@metorial-outpost/mcp-adapter": ["@metorial-outpost/mcp-adapter@workspace:src/outpost/adapters/outpost-mcp-adapter"],
+    "@metorial-outpost/mcp-adapter": ["@metorial-outpost/mcp-adapter@workspace:src/products/outpost/implementation/adapters/outpost-mcp-adapter"],
 
-    "@metorial-outpost/parent-adapter": ["@metorial-outpost/parent-adapter@workspace:src/outpost/adapters/outpost-parent-adapter"],
+    "@metorial-outpost/parent-adapter": ["@metorial-outpost/parent-adapter@workspace:src/products/outpost/implementation/adapters/outpost-parent-adapter"],
 
-    "@metorial-outpost/proxy": ["@metorial-outpost/proxy@workspace:src/outpost/packages/outpost-proxy"],
+    "@metorial-outpost/proxy": ["@metorial-outpost/proxy@workspace:src/products/outpost/implementation/packages/outpost-proxy"],
 
-    "@metorial-outpost/server": ["@metorial-outpost/server@workspace:src/outpost/packages/outpost-server"],
+    "@metorial-outpost/server": ["@metorial-outpost/server@workspace:src/products/outpost/implementation/packages/outpost-server"],
 
-    "@metorial-outpost/signature": ["@metorial-outpost/signature@workspace:src/outpost/packages/outpost-signature"],
+    "@metorial-outpost/signature": ["@metorial-outpost/signature@workspace:src/products/outpost/implementation/packages/outpost-signature"],
 
-    "@metorial-outpost/status-page": ["@metorial-outpost/status-page@workspace:src/outpost/packages/outpost-status-page"],
+    "@metorial-outpost/status-page": ["@metorial-outpost/status-page@workspace:src/products/outpost/implementation/packages/outpost-status-page"],
 
-    "@metorial-outpost/tokens": ["@metorial-outpost/tokens@workspace:src/outpost/packages/outpost-tokens"],
+    "@metorial-outpost/tokens": ["@metorial-outpost/tokens@workspace:src/products/outpost/implementation/packages/outpost-tokens"],
 
-    "@metorial-outpost/trust-proxy": ["@metorial-outpost/trust-proxy@workspace:src/outpost/packages/outpost-trust-proxy"],
+    "@metorial-outpost/trust-proxy": ["@metorial-outpost/trust-proxy@workspace:src/products/outpost/implementation/packages/outpost-trust-proxy"],
 
-    "@metorial-outpost/tsconfig": ["@metorial-outpost/tsconfig@workspace:src/outpost/packages/tsconfig"],
+    "@metorial-outpost/tsconfig": ["@metorial-outpost/tsconfig@workspace:src/products/outpost/implementation/packages/tsconfig"],
 
     "@metorial-platform-products/runtime": ["@metorial-platform-products/runtime@workspace:src/products/runtime"],
 
@@ -8561,7 +8561,7 @@
 
     "@metorial/api-oauth": ["@metorial/api-oauth@workspace:src/metorial/apis/oauth"],
 
-    "@metorial/api-outpost": ["@metorial/api-outpost@workspace:src/metorial/apis/outpost"],
+    "@metorial/api-outpost": ["@metorial/api-outpost@workspace:src/products/outpost/apis/outpost-api"],
 
     "@metorial/app-api": ["@metorial/app-api@workspace:src/metorial/services/api"],
 
@@ -8687,7 +8687,7 @@
 
     "@metorial/mcp": ["@metorial/mcp@workspace:src/shuttle/sdk/packages/mcp"],
 
-    "@metorial/mcp-proxy": ["@metorial/mcp-proxy@workspace:src/outpost/apps/mcp-proxy"],
+    "@metorial/mcp-proxy": ["@metorial/mcp-proxy@workspace:src/products/outpost/implementation/apps/mcp-proxy"],
 
     "@metorial/mcp-server": ["@metorial/mcp-server@workspace:src/shuttle/sdk/packages/mcp-server"],
 
@@ -8743,7 +8743,7 @@
 
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/products/identity/modules/organization"],
 
-    "@metorial/module-outpost": ["@metorial/module-outpost@workspace:src/metorial/products/core/modules/outpost"],
+    "@metorial/module-outpost": ["@metorial/module-outpost@workspace:src/products/outpost/modules/outpost"],
 
     "@metorial/module-portal": ["@metorial/module-portal@workspace:src/products/workforce/modules/portal"],
 
