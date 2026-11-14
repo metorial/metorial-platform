@@ -2,9 +2,21 @@ name: Image Cache Tests
 on:
   push:
     branches: [dev]
-    paths: ['src/tooling/docker-build/**', '.github/actions/image-cache/**', '.github/workflows/image-cache-test.yml']
+    paths:
+      [
+        'src/tooling/docker-build/**',
+        'src/tooling/test-ci/lockfile.ts',
+        '.github/actions/image-cache/**',
+        '.github/workflows/image-cache-test.yml'
+      ]
   pull_request:
-    paths: ['src/tooling/docker-build/**', '.github/actions/image-cache/**', '.github/workflows/image-cache-test.yml']
+    paths:
+      [
+        'src/tooling/docker-build/**',
+        'src/tooling/test-ci/lockfile.ts',
+        '.github/actions/image-cache/**',
+        '.github/workflows/image-cache-test.yml'
+      ]
 permissions:
   contents: read
 jobs:
@@ -15,4 +27,4 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.4.2'
-      - run: bun test src/tooling/docker-build/image-cache.test.ts
+      - run: bun test src/tooling/docker-build/*.test.ts src/tooling/test-ci/lockfile.test.ts

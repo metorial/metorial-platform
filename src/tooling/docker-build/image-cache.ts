@@ -282,6 +282,7 @@ if (command === 'resolve') {
       }
     }
     inputs.add(`${tooling}/prune.ts`);
+    inputs.add(`${tooling.replace('docker-build', 'test-ci')}/lockfile.ts`);
   }
 
   reportPhase('descriptor publication');
