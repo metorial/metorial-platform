@@ -34,11 +34,11 @@ services:
       timeout: 5s
       retries: 10
 
-  voyager:
+  search:
     profiles: ['service']
     build:
-      context: ../../..
-      dockerfile: src/voyager/service/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: src/platform/services/search/service/dev.Dockerfile
     container_name: voyager-service
     restart: unless-stopped
     ports:
@@ -56,7 +56,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52060/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52060/'').then(()=>process.exit(0)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s

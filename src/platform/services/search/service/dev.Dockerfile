@@ -9,7 +9,7 @@ COPY . .
 RUN bun install --linker=hoisted
 RUN bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
 
-WORKDIR /app/src/voyager/service
+WORKDIR /app/src/platform/services/search/service
 
 EXPOSE 52060
 

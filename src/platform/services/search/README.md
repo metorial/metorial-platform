@@ -1,6 +1,10 @@
-# Voyager
+# Search
 
-Voyager is a multi-tenant search and indexing service that provides full-text search and structured data filtering capabilities. It organizes documents in hierarchical indexes and searches them efficiently with tenant isolation.
+Search is a shared platform service for full-text search and structured data filtering. It organizes documents in hierarchical indexes and searches them with tenant isolation.
+
+The service lives at `oss/src/platform/services/search`. Its packages are
+`@mtsrc/search-service` and `@mtsrc/search-client-internal`.
+The client lives at `oss/src/platform/clients/search`.
 
 ## Features
 
@@ -50,8 +54,8 @@ services:
     networks:
       - voyager-network
 
-  voyager:
-    image: ghcr.io/metorial/voyager:latest
+  search:
+    image: ghcr.io/metorial/search:latest
     ports:
       - "52060:52060"
     environment:
@@ -87,15 +91,15 @@ The Voyager service will be available at `http://localhost:52060`
 ### Installation
 
 ```bash
-npm install @metorial-platform-systems/voyager-client
-yarn add @metorial-platform-systems/voyager-client
-bun add @metorial-platform-systems/voyager-client
+npm install @mtsrc/search-client-internal
+yarn add @mtsrc/search-client-internal
+bun add @mtsrc/search-client-internal
 ```
 
 ### Basic Usage
 
 ```typescript
-import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
+import { createVoyagerClient } from '@mtsrc/search-client-internal';
 
 let client = createVoyagerClient({
   endpoint: 'http://localhost:52060',

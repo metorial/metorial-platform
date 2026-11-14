@@ -13,7 +13,7 @@ import {
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
-  name: '@metorial/voyager',
+  name: '@mtsrc/search-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -27,23 +27,27 @@ export default project({
     run: ['dev:start'],
     env: baseDevEnv('oss'),
     databases: {
-      main: postgres({ package: '@metorial/voyager', name: 'voyager', env: 'DATABASE_URL' }),
+      main: postgres({
+        package: '@mtsrc/search-service',
+        name: 'voyager',
+        env: 'DATABASE_URL'
+      }),
       search: postgres({
-        package: '@metorial/voyager',
+        package: '@mtsrc/search-service',
         name: 'voyager-search',
         env: 'SEARCH_DATABASE_URL'
       })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'voyager', tests: ['.'] }),
+  e2e: e2e({ start: ['e2e:start'], image: 'search', tests: ['.'] }),
   ci: {
     images: [
       ciImage({
-        name: 'voyager',
+        name: 'search',
         group: 'oss',
-        image: 'metorial/mte-voyager',
-        ecr: 'metorial-enterprise-saas/mte-voyager',
-        canonical: 'ghcr.io/metorial/voyager',
+        image: 'metorial/mte-search',
+        ecr: 'metorial-enterprise-saas/mte-search',
+        canonical: 'ghcr.io/metorial/search',
         build: bunService({
           ports: [52060],
           health: [
@@ -51,11 +55,11 @@ export default project({
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('voyager', '@metorial/voyager', { path: 'prisma/schema.prisma' })
+            ownMigration('voyager', '@mtsrc/search-service', { path: 'prisma/schema.prisma' })
           ]
         })
       })
     ],
-    suite: ciSuite({ name: 'voyager', runner: 'compose', profiles: ['infra', 'service'] })
+    suite: ciSuite({ name: 'search', runner: 'compose', profiles: ['infra', 'service'] })
   }
 });
