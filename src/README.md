@@ -173,6 +173,12 @@ packages retain their names under the service's `sdk/packages/` directory. The l
 `SHUTTLE_*` configuration, database identifiers, and on-prem `mcp-controller` component and
 image override keys remain compatible.
 
+Webhook Sender, formerly Signal, lives at `platform/services/webhook-sender/service/`, with its
+internal client at `platform/clients/webhook-sender/`. Packages use
+`@mtsrc/webhook-sender-service` and `@mtsrc/webhook-sender-client-internal`; images use
+`webhook-sender` (`mte-webhook-sender` for SaaS). Signal RPC paths, environment variables, and
+database identifiers remain compatible. Slates no longer depends on or starts this service.
+
 Existing services may retain legacy package names until explicitly migrated. A package rename
 does not require renaming its database, environment variables, protocol paths, or published
 container images in the same change.
@@ -248,7 +254,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Shared platform code | The remaining Core modules live at `platform/modules/`; shared Metorial packages at `platform/packages/`; the cell registry at `platform/multi-region/`. Package names and runtime behavior remain unchanged. |
-| Platform services               | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
+| Platform services               | `secret-store`, `email`, `search`, and `webhook-sender` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
 | Integrations | MCP Runtime, its SDK, and its internal client live under `products/integrations/`. Other integrations code continues migrating from the legacy product tree. |
 | Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
 | Sandbox | Modules and the generated Genesis client live under `products/sandbox/`. |

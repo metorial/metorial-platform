@@ -9,7 +9,7 @@ COPY . .
 RUN bun install --linker=hoisted
 RUN bunx turbo run --ui=stream build --filter='./src/lib/**'
 
-WORKDIR /app/src/signal/service
+WORKDIR /app/src/platform/services/webhook-sender/service
 
 # Run in dev mode with hot reloading
 CMD ["sh", "-c", "bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]

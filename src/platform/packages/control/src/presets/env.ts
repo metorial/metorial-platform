@@ -59,7 +59,6 @@ export let platformEnv = (): EnvInput => ({
   SHUTTLE_LIVE_URL: services.shuttle.wsUrl(),
   SHUTTLE_PUBLIC_URL: services.shuttlePublic.url(),
   SHUTTLE_URL: services.shuttle.url('/metorial-shuttle'),
-  SIGNAL_API_URL: services.signal.url('/metorial-signal'),
   SIGNED_DOWNLOAD_URL_TOKEN_SECRET: 'dev-cargo-download-token-secret',
   SLATES_HUB_PUBLIC_URL: services.slatesHubPublic.url(),
   SLATES_HUB_URL: services.slatesHub.url('/slates-hub'),

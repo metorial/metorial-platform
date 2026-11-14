@@ -92,9 +92,9 @@ jobs:
           - name: slates-registry
             image: ghcr.io/metorial/slates-registry
             dockerfile: ./src/slates/apps/registry/Dockerfile
-          - name: signal
-            image: ghcr.io/metorial/signal
-            dockerfile: ./src/signal/service/Dockerfile
+          - name: webhook-sender
+            image: ghcr.io/metorial/webhook-sender
+            dockerfile: ./src/platform/services/webhook-sender/service/Dockerfile
 
           - name: auth-core
             image: ghcr.io/metorial/auth-core

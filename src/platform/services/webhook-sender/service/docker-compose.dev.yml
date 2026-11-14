@@ -39,7 +39,7 @@ services:
     profiles: ['infra']
     image: ghcr.io/metorial/mte-object-store:dev
     build:
-      context: ../../..
+      context: ../../../../..
       dockerfile: src/object-storage/Dockerfile
     container_name: signal-object-storage
     restart: unless-stopped
@@ -70,8 +70,8 @@ services:
   signal:
     profiles: ['service']
     build:
-      context: ../../..
-      dockerfile: src/signal/service/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: src/platform/services/webhook-sender/service/dev.Dockerfile
     container_name: signal-service
     restart: unless-stopped
     ports:
@@ -82,9 +82,9 @@ services:
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL}
       LOGS_BUCKET_NAME: ${LOGS_BUCKET_NAME}
     volumes:
-      - ./src:/app/src/signal/service/src:ro
-      - ./package.json:/app/src/signal/service/package.json:ro
-      - ./tsconfig.json:/app/src/signal/service/tsconfig.json:ro
+      - ./src:/app/src/platform/services/webhook-sender/service/src:ro
+      - ./package.json:/app/src/platform/services/webhook-sender/service/package.json:ro
+      - ./tsconfig.json:/app/src/platform/services/webhook-sender/service/tsconfig.json:ro
     depends_on:
       postgres:
         condition: service_healthy

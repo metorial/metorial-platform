@@ -138,33 +138,6 @@ services:
     networks:
       - slates-hub-network
 
-  signal:
-    profiles: ['infra']
-    image: ghcr.io/metorial/signal:latest
-    container_name: slates-hub-signal
-    restart: unless-stopped
-    ports:
-      - '65050:52050'
-    environment:
-      DATABASE_URL: postgresql://slates-hub:slates-hub@postgres:5432/signal
-      REDIS_URL: redis://redis:6379/0
-      OBJECT_STORAGE_URL: http://object-storage:52010
-      LOGS_BUCKET_NAME: bundles
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      object-storage:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -s http://localhost:52050/ > /dev/null || exit 1']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - slates-hub-network
-
   slates-registry:
     profiles: ['infra']
     build:
@@ -227,8 +200,6 @@ services:
       SLATES_REGISTRY_URL: ${SLATES_REGISTRY_URL:-http://slates-registry:52040}
       SLATES_SUB_REGISTRY_ID: ${SLATES_SUB_REGISTRY_ID:-}
       SUPPORTS_PREBUILT_SLATES: ${SUPPORTS_PREBUILT_SLATES:-true}
-      SIGNAL_API_URL: ${SIGNAL_API_URL}
-      SIGNAL_SENDER_IDENTIFIER: ${SIGNAL_SENDER_IDENTIFIER}
       SLATES_HUB_INSTANCE_IDENTIFIER: ${SLATES_HUB_INSTANCE_IDENTIFIER}
       SERVICE_PUBLIC_URL: ${SERVICE_PUBLIC_URL}
       METORIAL_API_URL: ${METORIAL_API_URL:-}

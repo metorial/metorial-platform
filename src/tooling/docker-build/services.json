@@ -39,15 +39,15 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "signal": {
-    "dockerfile": "src/signal/service/Dockerfile",
-    "image": "ghcr.io/metorial/signal",
+  "webhook-sender": {
+    "dockerfile": "src/platform/services/webhook-sender/service/Dockerfile",
+    "image": "ghcr.io/metorial/webhook-sender",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/signal"
+      "--filter=@mtsrc/webhook-sender-service"
     ],
     "buildArguments": {},
     "extraInputs": []

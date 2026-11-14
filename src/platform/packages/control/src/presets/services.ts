@@ -37,7 +37,6 @@ export let services = {
   slatesRegistryInternal: service(52041),
   slatesHubPublic: service(52045),
   slatesHub: service(52046),
-  signal: service(52050),
   voyager: service(52060),
   integrationsUi: service(52071),
   shuttle: service(52080),

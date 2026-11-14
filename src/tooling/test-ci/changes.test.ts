@@ -71,6 +71,12 @@ test('E2E suites include every application container dependency', () => {
   );
 });
 
+test('Slates does not start the unused webhook sender', () => {
+  let suite = controlSuites.find(suite => suite.name === 'slates-hub')!;
+
+  expect(suite.stackPackages).not.toContain('@mtsrc/webhook-sender-service');
+});
+
 test('MCP Runtime and Functions control suites include Build as a stack dependency', () => {
   for (let name of ['mcp-runtime', 'functions']) {
     expect(controlSuites.find(suite => suite.name === name)).toMatchObject({

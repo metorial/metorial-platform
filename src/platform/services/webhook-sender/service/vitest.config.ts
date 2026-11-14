@@ -36,9 +36,9 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@metorial-platform-systems/signal-client': resolve(
+    '@mtsrc/webhook-sender-client-internal': resolve(
       __dirname,
-      '../clients/signal/src/index.ts'
+      '../../../clients/webhook-sender/src/index.ts'
     )
   });
 });

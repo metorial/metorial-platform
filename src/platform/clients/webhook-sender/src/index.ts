@@ -1,5 +1,5 @@
 import { createClient } from '@lowerdeck/rpc-client';
-import type { SignalClient } from '../../../service/src/controllers';
+import type { SignalClient } from '../../../services/webhook-sender/service/src/controllers';
 
 type ClientOpts = Parameters<typeof createClient>[0];
 

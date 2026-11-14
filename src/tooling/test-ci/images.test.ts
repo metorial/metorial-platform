@@ -36,7 +36,8 @@ describe('image-only E2E Compose', () => {
     for (let [service, image] of [
       ['forge', 'build'],
       ['function-bay', 'functions'],
-      ['shuttle', 'mcp-runtime']
+      ['shuttle', 'mcp-runtime'],
+      ['signal', 'webhook-sender']
     ]) {
       let config: any = fixture();
       config.services[service] = config.services.forge;

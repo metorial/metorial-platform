@@ -16,7 +16,7 @@ import {
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
-  name: '@metorial/signal',
+  name: '@mtsrc/webhook-sender-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -36,12 +36,16 @@ export default project({
       LOGS_BUCKET_NAME: 'signal-logs'
     }),
     databases: {
-      main: postgres({ package: '@metorial/signal', name: 'signal', env: 'DATABASE_URL' })
+      main: postgres({
+        package: '@mtsrc/webhook-sender-service',
+        name: 'signal',
+        env: 'DATABASE_URL'
+      })
     }
   }),
   e2e: e2e({
     start: ['e2e:start'],
-    image: 'signal',
+    image: 'webhook-sender',
     tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
@@ -51,11 +55,11 @@ export default project({
   ci: {
     images: [
       ciImage({
-        name: 'signal',
+        name: 'webhook-sender',
         group: 'oss',
-        image: 'metorial/mte-signal',
-        ecr: 'metorial-enterprise-saas/mte-signal',
-        canonical: 'ghcr.io/metorial/signal',
+        image: 'metorial/mte-webhook-sender',
+        ecr: 'metorial-enterprise-saas/mte-webhook-sender',
+        canonical: 'ghcr.io/metorial/webhook-sender',
         build: bunService({
           ports: [52050],
           health: [
@@ -63,7 +67,7 @@ export default project({
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('signal', '@metorial/signal', {
+            ownMigration('signal', '@mtsrc/webhook-sender-service', {
               prefix: 'SIGNAL',
               path: 'prisma/schema.prisma'
             })
@@ -71,6 +75,6 @@ export default project({
         })
       })
     ],
-    suite: ciSuite({ name: 'signal', groups: 1 })
+    suite: ciSuite({ name: 'webhook-sender', groups: 1 })
   }
 });

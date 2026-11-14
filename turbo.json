@@ -190,8 +190,8 @@
       "dependsOn": ["^build", "@mtsrc/mcp-runtime-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/signal-client#build": {
-      "dependsOn": ["^build", "@metorial/signal#prisma:generate"],
+    "@mtsrc/webhook-sender-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/webhook-sender-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/slates-client#build": {

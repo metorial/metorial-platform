@@ -3,7 +3,8 @@ import { v } from '@lowerdeck/validation';
 let imageNames: Record<string, string> = {
   forge: 'build',
   'function-bay': 'functions',
-  shuttle: 'mcp-runtime'
+  shuttle: 'mcp-runtime',
+  signal: 'webhook-sender'
 };
 
 let artifactSchema = v.object({
@@ -61,7 +62,9 @@ export let prepareCompose = (d: {
 
     if (
       service.build ||
-      /ghcr.io\/metorial\/(build|functions|mcp-runtime|signal):/.test(service.image ?? '')
+      /ghcr.io\/metorial\/(build|functions|mcp-runtime|webhook-sender):/.test(
+        service.image ?? ''
+      )
     ) {
       let imageName = imageNames[name] ?? name;
       let result = artifactSchema.validate(d.readArtifact(imageName));
