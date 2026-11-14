@@ -61,6 +61,7 @@ export type IRMethod = {
   input: IRType;
   output: IRType;
   errors: string[];
+  idempotent?: false;
   description?: string;
   deprecated?: string;
 };

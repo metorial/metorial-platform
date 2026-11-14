@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -313,6 +314,54 @@ func TestMiddlewareSeesCallInfo(t *testing.T) {
 	}
 	if seen.Load() != "a:b" {
 		t.Fatalf("middleware saw %v", seen.Load())
+	}
+}
+
+func TestClientIntercept(t *testing.T) {
+	_, hs := newTestServer(t, ServerOptions{Path: "/rpc"})
+
+	type ctxKey struct{}
+	var seen []string
+	var results []error
+	c := newTestClient(t, hs.URL+"/rpc", ClientOptions{
+		HeaderFunc: func(ctx context.Context) (http.Header, error) {
+			return http.Header{"X-From-Interceptor": {ctx.Value(ctxKey{}).(string)}}, nil
+		},
+		Intercept: func(ctx context.Context, methods []string, next func(ctx context.Context) error) error {
+			seen = append(seen, methods...)
+			err := next(context.WithValue(ctx, ctxKey{}, "yes"))
+			results = append(results, err)
+			return err
+		},
+	})
+	ctx := context.Background()
+
+	if _, err := Call[bucket](ctx, c, "bucket.get", getBucketInput{BucketID: "a"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Call[bucket](ctx, c, "bucket:get", getBucketInput{BucketID: "missing"}); !isStatus(err, 404) {
+		t.Fatalf("expected 404, got %v", err)
+	}
+	batch := []*BatchCall{{Method: "bucket:get", Input: getBucketInput{BucketID: "b"}}, {Method: "bucket:fail"}}
+	if err := c.Batch(ctx, batch); err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(seen, []string{"bucket:get", "bucket:get", "bucket:get", "bucket:fail"}) {
+		t.Fatalf("interceptor saw %v", seen)
+	}
+	if results[0] != nil || !isStatus(results[1], 404) || results[2] != nil {
+		t.Fatalf("interceptor results %v", results)
+	}
+
+	refused := errors.New("circuit open")
+	c = newTestClient(t, hs.URL+"/rpc", ClientOptions{
+		Intercept: func(ctx context.Context, methods []string, next func(ctx context.Context) error) error {
+			return refused
+		},
+	})
+	if _, err := Call[bucket](ctx, c, "bucket:get", getBucketInput{BucketID: "a"}); !errors.Is(err, refused) {
+		t.Fatalf("expected the interceptor error, got %v", err)
 	}
 }
 

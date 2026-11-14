@@ -173,6 +173,13 @@ func AsError(err error) (*Error, bool) {
 	return nil, false
 }
 
+// IsCode reports whether err is (or wraps) an *Error with the given code, e.g. one of the
+// Code* constants of a generated package.
+func IsCode(err error, code string) bool {
+	e, ok := AsError(err)
+	return ok && e.Code == code
+}
+
 // isErrorBody reports whether a decoded JSON object is a top-level error response, using
 // the same test as @lowerdeck/rpc-client.
 func isErrorBody(raw map[string]json.RawMessage) bool {

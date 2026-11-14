@@ -30,7 +30,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "vectors": "bun src/scripts/vectors.ts",
-    "example": "bun src/cli.ts generate src/fixtures/bucket.ts --go ../../go/ldrpc/example/bucketrpc --ts ../../go/ldrpc/interop/generated/bucket.ts"
+    "example": "bun src/cli.ts generate src/fixtures/bucket.ts --go ../../go/ldrpc/example/bucketrpc --ts ../../go/ldrpc/interop/generated/bucket.ts --ts-client-import ../../../../packages/rpc-client/src/index.ts"
   },
   "dependencies": {
     "@lowerdeck/validation": "workspace:2.0.0"

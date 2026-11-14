@@ -4,6 +4,26 @@ import { maxSafeInteger, type IR, type IRField, type IRNamedType, type IRType } 
 // Defines what a spec-validated input means: the Go runtime (ldrpc's schema interpreter) is
 // tested against these validators issue by issue, and a spec-first TypeScript server would
 // validate its inputs with them.
+// v.number() coerces "Infinity" through parseFloat; spec numbers are finite on the wire, so the
+// string is rejected the way any other non-numeric string is.
+let finite = (validator: ValidationType<number>): ValidationType<number> => ({
+  ...validator,
+  validate: value =>
+    typeof value == 'string' && Math.abs(parseFloat(value)) == Infinity
+      ? {
+          success: false,
+          errors: [
+            {
+              code: 'invalid_type',
+              message: 'Invalid input, expected number, received string',
+              received: 'string',
+              expected: 'number'
+            }
+          ]
+        }
+      : validator.validate(value)
+});
+
 export let createValidatorFactory = (ir: IR) => {
   let named = new Map<string, ValidationType<any>>();
 
@@ -48,7 +68,8 @@ export let createValidatorFactory = (ir: IR) => {
       case 'union': {
         let variants = type.variants.map(variant => {
           let body = ir.types[variant.type];
-          if (body?.kind != 'object') throw new Error(`Union variant ${variant.type} is not an object`);
+          if (body?.kind != 'object')
+            throw new Error(`Union variant ${variant.type} is not an object`);
 
           return v.object({
             [type.discriminator]: v.literal(variant.tag),
@@ -80,19 +101,21 @@ export let createValidatorFactory = (ir: IR) => {
       }
 
       case 'int':
-        return v.number({
-          modifiers: [
-            v.integer(),
-            v.minValue(type.min ?? -maxSafeInteger),
-            v.maxValue(type.max ?? maxSafeInteger)
-          ]
-        });
+        return finite(
+          v.number({
+            modifiers: [
+              v.integer(),
+              v.minValue(type.min ?? -maxSafeInteger),
+              v.maxValue(type.max ?? maxSafeInteger)
+            ]
+          })
+        );
 
       case 'number': {
         let modifiers: ValidationModifier<number>[] = [];
         if (type.min !== undefined) modifiers.push(v.minValue(type.min));
         if (type.max !== undefined) modifiers.push(v.maxValue(type.max));
-        return v.number({ modifiers });
+        return finite(v.number({ modifiers }));
       }
 
       case 'boolean':

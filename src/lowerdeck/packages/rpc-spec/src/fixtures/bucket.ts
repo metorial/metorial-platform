@@ -95,6 +95,8 @@ export default service({
           }),
           output: t.object({ entry: FileEntry, version: t.number() })
         })
+          .idempotent(false)
+          .description('Creates a new version on every call.')
       }
     }
   }

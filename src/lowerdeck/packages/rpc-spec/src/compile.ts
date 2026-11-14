@@ -25,13 +25,11 @@ let reservedErrorKeys = new Set([
   'status',
   'code',
   'message',
-  'hint',
-  'description',
-  'reason',
   'errors',
   'entity'
 ]);
-let reservedGoNames = new Set(['Service', 'Client', 'NewClient', 'Register']);
+export let standardErrorStringKeys = new Set(['hint', 'description', 'reason']);
+let reservedGoNames = new Set(['Service', 'Client', 'NewClient', 'WrapClient', 'Register']);
 let unsupportedPatternSyntax = /\(\?<?[=!]|\\[1-9]|\\k</;
 
 export class SpecError extends Error {
@@ -88,7 +86,8 @@ class Compiler {
     if (def.kind == 'lazy') return this.compileLazy(def.get, ctx);
 
     if (def.kind == 'void') {
-      if (!ctx.allowVoid) this.fail(ctx.path, 't.void() is only allowed as a method input or output');
+      if (!ctx.allowVoid)
+        this.fail(ctx.path, 't.void() is only allowed as a method input or output');
       return { kind: 'void' };
     }
 
@@ -169,7 +168,8 @@ class Compiler {
       return { kind: 'object', fields: this.compileFields(def.fields, name, ctx.path) };
     }
 
-    if (def.kind == 'enum') return { kind: 'enum', values: this.checkEnum(def.values, name, ctx) };
+    if (def.kind == 'enum')
+      return { kind: 'enum', values: this.checkEnum(def.values, name, ctx) };
 
     if (def.kind == 'union') return this.compileUnion(def, name, ctx);
 
@@ -214,7 +214,8 @@ class Compiler {
       let field: IRField = { name: key, type };
       if (fieldType.meta.optional) field.optional = true;
       if (fieldType.meta.description) field.description = fieldType.meta.description;
-      if (fieldType.meta.deprecated !== undefined) field.deprecated = fieldType.meta.deprecated;
+      if (fieldType.meta.deprecated !== undefined)
+        field.deprecated = fieldType.meta.deprecated;
       out.push(field);
     }
 
@@ -273,7 +274,10 @@ class Compiler {
       if (!suffix) this.fail(variantPath, 'variant tags need letters or digits');
       let clash = tags.get(suffix);
       if (clash !== undefined) {
-        this.fail(variantPath, `variant tag maps to the same type name as ${JSON.stringify(clash)}`);
+        this.fail(
+          variantPath,
+          `variant tag maps to the same type name as ${JSON.stringify(clash)}`
+        );
       }
       tags.set(suffix, tag);
 
@@ -329,7 +333,10 @@ class Compiler {
           if (value === undefined) continue;
 
           if (!Number.isFinite(value)) this.fail(ctx.path, `${bound} must be a finite number`);
-          if (def.kind == 'int' && (!Number.isInteger(value) || Math.abs(value) > maxSafeInteger)) {
+          if (
+            def.kind == 'int' &&
+            (!Number.isInteger(value) || Math.abs(value) > maxSafeInteger)
+          ) {
             this.fail(ctx.path, `${bound} must be an integer within ±(2^53 - 1)`);
           }
           out[bound] = value;
@@ -345,7 +352,8 @@ class Compiler {
           typeof def.value == 'string' ||
           typeof def.value == 'boolean' ||
           (typeof def.value == 'number' && Number.isFinite(def.value));
-        if (!valid) this.fail(ctx.path, 'literals must be strings, finite numbers or booleans');
+        if (!valid)
+          this.fail(ctx.path, 'literals must be strings, finite numbers or booleans');
         return { kind: 'literal', value: def.value };
       }
 
@@ -415,7 +423,10 @@ class Compiler {
     try {
       new RegExp(pattern);
     } catch {
-      this.fail(ctx.path, `pattern ${JSON.stringify(pattern)} is not a valid regular expression`);
+      this.fail(
+        ctx.path,
+        `pattern ${JSON.stringify(pattern)} is not a valid regular expression`
+      );
       return;
     }
 
@@ -442,9 +453,18 @@ class Compiler {
       this.fail(path, 'error status must be between 400 and 599');
     }
 
-    for (let key of Object.keys(def.data ?? {})) {
+    for (let [key, type] of Object.entries(def.data ?? {})) {
       if (reservedErrorKeys.has(key)) {
         this.fail(`${path}.data.${key}`, `${key} is a reserved error field`);
+      }
+      if (
+        standardErrorStringKeys.has(key) &&
+        (!(type instanceof Type) || type.def.kind != 'string' || type.meta.nullable)
+      ) {
+        this.fail(
+          `${path}.data.${key}`,
+          `${key} is a standard error field and must be a string`
+        );
       }
     }
 
@@ -475,12 +495,16 @@ let collectMethods = (
     let path = [...prefix, key];
 
     if (!methodSegmentPattern.test(key)) {
-      compiler.fail(`methods.${path.join('.')}`, 'method and namespace names must match [a-z][A-Za-z0-9]*');
+      compiler.fail(
+        `methods.${path.join('.')}`,
+        'method and namespace names must match [a-z][A-Za-z0-9]*'
+      );
     }
 
     if (value instanceof Method) out.push({ path, method: value });
     else if (value && typeof value == 'object') collectMethods(value, path, out, compiler);
-    else compiler.fail(`methods.${path.join('.')}`, 'expected a method() or a namespace object');
+    else
+      compiler.fail(`methods.${path.join('.')}`, 'expected a method() or a namespace object');
   }
 
   return out;
@@ -523,7 +547,8 @@ export let compile = (spec: ServiceSpec<any>): IR => {
   let compiler = new Compiler();
   let def = spec.def;
 
-  if (!/^[a-z][a-z0-9-]*$/.test(def.name)) compiler.fail('name', 'service names must be kebab-case');
+  if (!/^[a-z][a-z0-9-]*$/.test(def.name))
+    compiler.fail('name', 'service names must be kebab-case');
   if (!goPackagePattern.test(def.go?.package ?? '')) {
     compiler.fail('go.package', 'Go package names must be lowercase letters and digits');
   }
@@ -561,6 +586,7 @@ export let compile = (spec: ServiceSpec<any>): IR => {
     );
 
     let ir: IRMethod = { name: path.join(':'), path, input, output, errors };
+    if (method.def.idempotent === false) ir.idempotent = false;
     if (method.def.description) ir.description = method.def.description;
     if (method.def.deprecated !== undefined) ir.deprecated = method.def.deprecated;
     methods.push(ir);

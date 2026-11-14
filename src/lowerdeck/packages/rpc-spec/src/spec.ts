@@ -24,6 +24,7 @@ export type MethodDefinition<I extends Type<any>, O extends Type<any>> = {
   errors?: ErrorSpec[];
   description?: string;
   deprecated?: string;
+  idempotent?: boolean;
 };
 
 export class Method<I extends Type<any> = Type<any>, O extends Type<any> = Type<any>> {
@@ -31,6 +32,10 @@ export class Method<I extends Type<any> = Type<any>, O extends Type<any> = Type<
 
   description(description: string) {
     return new Method<I, O>({ ...this.def, description });
+  }
+
+  idempotent(idempotent: boolean) {
+    return new Method<I, O>({ ...this.def, idempotent });
   }
 
   deprecated(reason = '') {

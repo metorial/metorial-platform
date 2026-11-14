@@ -50,7 +50,15 @@ type ClientOptions struct {
 	// DirectRoute sends single calls as POST <endpoint>/<method> with the bare payload
 	// instead of a one-call batch envelope.
 	DirectRoute bool
+
+	Intercept ClientInterceptor
 }
+
+// ClientInterceptor wraps every Call and Batch, including all of its retries; the context it
+// passes to next reaches HeaderFunc and the HTTP transport. next returns the request error,
+// or the call's own error for a single call. An interceptor that returns without calling
+// next fails the call with its error.
+type ClientInterceptor func(ctx context.Context, methods []string, next func(ctx context.Context) error) error
 
 type Client struct {
 	endpoint *url.URL
@@ -161,6 +169,35 @@ type attemptError struct {
 }
 
 func (c *Client) do(ctx context.Context, calls []*BatchCall, direct, retryCallErrors bool, opts []CallOption) error {
+	if c.opts.Intercept == nil {
+		return c.send(ctx, calls, direct, retryCallErrors, opts)
+	}
+
+	methods := make([]string, len(calls))
+	for i, call := range calls {
+		methods[i] = normalizeMethodName(call.Method)
+	}
+
+	var sendErr error
+	called := false
+	err := c.opts.Intercept(ctx, methods, func(ctx context.Context) error {
+		called = true
+		sendErr = c.send(ctx, calls, direct, retryCallErrors, opts)
+		if sendErr == nil && len(calls) == 1 {
+			return calls[0].Err
+		}
+		return sendErr
+	})
+	if !called {
+		if err == nil {
+			err = InternalServerError().WithCause(errors.New("ldrpc: interceptor did not call next"))
+		}
+		return err
+	}
+	return sendErr
+}
+
+func (c *Client) send(ctx context.Context, calls []*BatchCall, direct, retryCallErrors bool, opts []CallOption) error {
 	cfg := callConfig{timeout: c.opts.Timeout, disableRetry: c.opts.DisableRetry}
 	for _, opt := range opts {
 		opt(&cfg)

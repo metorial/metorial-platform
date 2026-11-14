@@ -1,3 +1,4 @@
+import { isServiceError } from '@lowerdeck/error';
 import { proxy } from '@lowerdeck/proxy';
 import { getSentry } from '@lowerdeck/sentry';
 import type { Ed25519SignatureCredentials } from '@lowerdeck/rpc-signature';
@@ -11,6 +12,13 @@ export type SignatureTokenResult =
       headers?: Record<string, string>;
     };
 
+// Returning true from onUnauthorized (or from getHeaders.onUnauthorized, which
+// projectedTokenHeaders provides) retries a call that failed with 401 once, with fresh headers.
+export type HeadersProvider = (() =>
+  Promise<Record<string, string>> | Record<string, string>) & {
+  onUnauthorized?: () => Promise<boolean> | boolean;
+};
+
 export interface ClientOpts {
   endpoint: string;
   referrerPolicy?: RequestInit['referrerPolicy'];
@@ -20,12 +28,13 @@ export interface ClientOpts {
   captureErrors?: boolean;
   logResponses?: boolean;
   retry?: boolean;
+  nonIdempotentMethods?: readonly string[];
   headers?: Record<string, string | undefined>;
-  getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
+  getHeaders?: HeadersProvider;
+  onUnauthorized?: () => Promise<boolean> | boolean;
   getSignatureToken?: () => Promise<SignatureTokenResult> | SignatureTokenResult;
   getSignatureCredentials?: () =>
-    | Promise<Ed25519SignatureCredentials>
-    | Ed25519SignatureCredentials;
+    Promise<Ed25519SignatureCredentials> | Ed25519SignatureCredentials;
   onRequest?: (d: {
     endpoint: string;
     name: string;
@@ -90,36 +99,43 @@ export let clientBuilder =
             let timeoutMs = requestOpts?.timeoutMs ?? clientOpts.timeoutMs;
             let captureErrors = requestOpts?.captureErrors ?? clientOpts.captureErrors;
             let logResponses = requestOpts?.logResponses ?? clientOpts.logResponses;
-            let retry = requestOpts?.retry ?? clientOpts.retry;
+            let isFull = path[path.length - 1] == 'getFull';
+            let name = (isFull ? path.slice(0, -1) : path).join(':');
+            let retry = clientOpts.nonIdempotentMethods?.includes(name)
+              ? false
+              : (requestOpts?.retry ?? clientOpts.retry);
             let signal = requestOpts?.signal;
-            let signature = clientOpts.getSignatureCredentials
-              ? await clientOpts.getSignatureCredentials()
-              : await clientOpts.getSignatureToken?.();
+            let onUnauthorized =
+              clientOpts.onUnauthorized ?? clientOpts.getHeaders?.onUnauthorized;
 
-            let headers = {
-              ...clientOpts.headers,
-              ...(await clientOpts.getHeaders?.()),
-              ...(typeof signature == 'object' && 'headers' in signature
-                ? signature.headers
-                : undefined),
-              ...requestOpts?.headers
-            };
+            let send = async () => {
+              let signature = clientOpts.getSignatureCredentials
+                ? await clientOpts.getSignatureCredentials()
+                : await clientOpts.getSignatureToken?.();
 
-            headers = injectTraceHeaders(headers);
+              let headers = {
+                ...clientOpts.headers,
+                ...(await clientOpts.getHeaders?.()),
+                ...(typeof signature == 'object' && 'headers' in signature
+                  ? signature.headers
+                  : undefined),
+                ...requestOpts?.headers
+              };
 
-            clientOpts.onRequest?.({
-              endpoint: clientOpts.endpoint,
-              name: path.join(':'),
-              payload: data,
-              headers,
-              query: requestOpts?.query
-            });
+              headers = injectTraceHeaders(headers);
 
-            if (path[path.length - 1] == 'getFull') {
+              clientOpts.onRequest?.({
+                endpoint: clientOpts.endpoint,
+                name,
+                payload: data,
+                headers,
+                query: requestOpts?.query
+              });
+
               return await request({
                 endpoint: clientOpts.endpoint,
                 payload: data,
-                name: path.slice(0, -1).join(':'),
+                name,
                 headers,
                 signature:
                   typeof signature == 'string'
@@ -136,30 +152,20 @@ export let clientBuilder =
                 signal,
                 context
               });
-            }
+            };
 
-            return (
-              await request({
-                endpoint: clientOpts.endpoint,
-                payload: data,
-                name: path.join(':'),
-                headers,
-                signature:
-                  typeof signature == 'string'
-                    ? signature
-                    : signature && { ...signature, headers: undefined },
-                query: requestOpts?.query,
-                referrerPolicy: clientOpts.referrerPolicy,
-                disableBatching,
-                useDirectMethodRoute,
-                timeoutMs,
-                captureErrors,
-                logResponses,
-                retry,
-                signal,
-                context
-              })
-            ).data;
+            let sendOnce = async () => {
+              try {
+                return await send();
+              } catch (error) {
+                let unauthorized = isServiceError(error) && error.data.status == 401;
+                if (!unauthorized || !onUnauthorized || !(await onUnauthorized())) throw error;
+                return await send();
+              }
+            };
+
+            let response = await sendOnce();
+            return isFull ? response : response.data;
           })
       );
     })();

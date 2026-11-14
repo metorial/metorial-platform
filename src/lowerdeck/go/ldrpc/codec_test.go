@@ -224,3 +224,51 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 		t.Fatalf("got %+v, want %+v", out, in)
 	}
 }
+
+type testEvent struct {
+	At time.Time `json:"at"`
+}
+
+type testUnion struct {
+	Variant any
+}
+
+func (u testUnion) UnionVariant() (string, string, any) {
+	return "kind", "event", u.Variant
+}
+
+func TestMarshalUnionKeepsAnnotations(t *testing.T) {
+	encoded, err := Marshal(struct {
+		Items []testUnion `json:"items"`
+		Ptr   *testUnion  `json:"ptr"`
+	}{
+		Items: []testUnion{{Variant: &testEvent{At: time.UnixMilli(5)}}},
+		Ptr:   &testUnion{Variant: testEvent{At: time.UnixMilli(6)}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := `{"$$TYPES$$":{"__mode":"object","v":1,"values":{"items.0.at":["Date"],"ptr.at":["Date"]}},"items":[{"at":"1970-01-01T00:00:00.005Z","kind":"event"}],"ptr":{"at":"1970-01-01T00:00:00.006Z","kind":"event"}}`
+	if string(encoded) != want {
+		t.Fatalf("got  %s\nwant %s", encoded, want)
+	}
+}
+
+func TestMarshalNonNilFields(t *testing.T) {
+	encoded, err := Marshal(struct {
+		Items    []string          `json:"items" ldrpc:"nonnil"`
+		Labels   map[string]string `json:"labels" ldrpc:"nonnil"`
+		Content  []byte            `json:"content" ldrpc:"nonnil"`
+		Nullable []string          `json:"nullable"`
+		Set      []string          `json:"set" ldrpc:"nonnil"`
+	}{Set: []string{"a"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := `{"$$TYPES$$":{"__mode":"object"},"content":"","items":[],"labels":{},"nullable":null,"set":["a"]}`
+	if string(encoded) != want {
+		t.Fatalf("got  %s\nwant %s", encoded, want)
+	}
+}

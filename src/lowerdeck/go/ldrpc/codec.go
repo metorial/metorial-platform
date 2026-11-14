@@ -31,6 +31,7 @@ var (
 	timeType          = reflect.TypeFor[time.Time]()
 	marshalerType     = reflect.TypeFor[json.Marshaler]()
 	textMarshalerType = reflect.TypeFor[encoding.TextMarshaler]()
+	unionValueType    = reflect.TypeFor[UnionValue]()
 	errUndefined      = undefinedValue{}
 )
 
@@ -385,6 +386,10 @@ func (e *encoder) value(v reflect.Value, path []string) (any, error) {
 		return e.value(v.Elem(), path)
 	}
 
+	if v.Type().Implements(unionValueType) {
+		return e.union(v.Interface().(UnionValue), path)
+	}
+
 	if raw, ok, err := marshalCustom(v); ok || err != nil {
 		return raw, err
 	}
@@ -462,6 +467,28 @@ func (e *encoder) value(v reflect.Value, path []string) (any, error) {
 	}
 }
 
+func (e *encoder) union(u UnionValue, path []string) (any, error) {
+	discriminator, tag, value := u.UnionVariant()
+	if value == nil {
+		return nil, nil
+	}
+
+	child, err := e.value(reflect.ValueOf(value), path)
+	if err != nil {
+		return nil, err
+	}
+
+	fields, ok := child.(map[string]any)
+	if !ok && child != nil {
+		return nil, fmt.Errorf("ldrpc: union variant %T must encode as an object", value)
+	}
+	if fields == nil {
+		fields = map[string]any{}
+	}
+	fields[discriminator] = tag
+	return fields, nil
+}
+
 func (e *encoder) list(v reflect.Value, path []string) (any, error) {
 	out := make([]any, v.Len())
 	for i := range out {
@@ -488,6 +515,12 @@ func (e *encoder) structValue(v reflect.Value, path []string) (any, error) {
 		if f.omitZero && isZeroValue(fv) {
 			continue
 		}
+		if f.nonNil {
+			if empty, ok := emptyForNil(fv); ok {
+				out[f.name] = empty
+				continue
+			}
+		}
 
 		child, err := e.value(fv, append(path, f.name))
 		if err != nil {
@@ -497,6 +530,25 @@ func (e *encoder) structValue(v reflect.Value, path []string) (any, error) {
 	}
 
 	return out, nil
+}
+
+// emptyForNil is what an `ldrpc:"nonnil"` field sends instead of null when it is a nil slice
+// or map: generated code tags required arrays, records and bytes this way.
+func emptyForNil(v reflect.Value) (any, bool) {
+	switch v.Kind() {
+	case reflect.Map:
+		if v.IsNil() {
+			return map[string]any{}, true
+		}
+	case reflect.Slice:
+		if v.IsNil() && v.Type().Elem().Kind() == reflect.Uint8 {
+			return "", true
+		}
+		if v.IsNil() {
+			return []any{}, true
+		}
+	}
+	return nil, false
 }
 
 // Values with their own MarshalJSON/MarshalText are opaque to the annotator: their output is
@@ -593,6 +645,7 @@ type field struct {
 	depth     int
 	omitEmpty bool
 	omitZero  bool
+	nonNil    bool
 }
 
 var fieldCache sync.Map
@@ -654,6 +707,7 @@ func typeFields(t reflect.Type) []field {
 				depth:     depth,
 				omitEmpty: hasOption(opts, "omitempty"),
 				omitZero:  hasOption(opts, "omitzero"),
+				nonNil:    hasOption(sf.Tag.Get("ldrpc"), "nonnil"),
 			})
 		}
 	}
