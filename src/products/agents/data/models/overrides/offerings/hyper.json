@@ -6,6 +6,13 @@
     "by": "agent",
     "at": "2026-11-13"
   },
+  "deepseek-v4.1-flash-1017-economy": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Dated Oct 17 revision of DeepSeek V4.1 Flash; index has the exact checkpoint deepseek/deepseek-v4.1-flash-1017 (released 2026-10-17, 1M context). 'Economy' is a cheaper serving tier of the same model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "prism": {
     "decision": "router",
     "reason": "Charm Hyper's Prism is its routing model for coding agents, sending each request to a model picked from its top-tier roster; Prism Core is documented as the same routing product without the top-tier roster (There's An AI For That), so Prism picks a model per request.",
