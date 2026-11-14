@@ -509,7 +509,7 @@ export let SecurityReviewNotices = ({
         updates when the full tool list is available.
       </Callout>
     );
-  } else if (revision.scores?.confidence == 'low') {
+  } else if (!revision.blockReason && revision.scores?.confidence == 'low') {
     notices.push(
       <Callout key="low-confidence" color="orange" size="1">
         <strong>Limited evidence.</strong> Parts of this {subject} could not be verified. See
