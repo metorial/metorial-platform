@@ -13,7 +13,7 @@ vi.mock('@metorial/config', () => ({
   getConfig: () => ({ encryptionSecret: 'test-secret' })
 }));
 
-vi.mock('@metorial-platform-systems/ares-client', () => ({
+vi.mock('@mtsrc/auth-core-client-internal', () => ({
   createAresInternalClient: vi.fn()
 }));
 

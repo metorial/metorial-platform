@@ -96,9 +96,9 @@ jobs:
             image: ghcr.io/metorial/signal
             dockerfile: ./src/signal/service/Dockerfile
 
-          - name: ares
-            image: ghcr.io/metorial/ares
-            dockerfile: ./src/ares/service/Dockerfile
+          - name: auth-core
+            image: ghcr.io/metorial/auth-core
+            dockerfile: ./src/products/identity/services/auth-core/service/Dockerfile
           - name: deflector
             image: ghcr.io/metorial/deflector
             dockerfile: ./src/products/runtime/services/networking/legacy/deflector/Dockerfile

@@ -8,7 +8,11 @@ let controlSuiteFixtures = {
     stackPackages: [],
     workspacePackages: [],
     services: [],
-    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*'],
+    tests: [
+      'src/metorial/products/*/modules/*',
+      'src/products/identity/modules/*',
+      'src/metorial/apis/*'
+    ],
     groups: 4
   },
   enterprise: {
@@ -76,10 +80,7 @@ test('Shuttle and Function Bay control suites include Forge as a stack dependenc
 test('control suites select stack test packages and prune them for CI', async () => {
   let { controlTestPackages, controlTasks } = await import('./changes');
   let packages = new Map([
-    [
-      '@metorial/module-user',
-      { directory: 'src/metorial/products/core/modules/user', e2e: true }
-    ],
+    ['@metorial/module-user', { directory: 'src/products/identity/modules/user', e2e: true }],
     ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
     ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
     ['@metorial/module-x', { directory: 'src/metorial/products/core/modules/x', e2e: false }]
@@ -89,7 +90,7 @@ test('control suites select stack test packages and prune them for CI', async ()
     '@metorial/module-user'
   ]);
   expect(controlTasks(controlSuiteFixtures.oss)).toBe(
-    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/metorial/apis/*'
+    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/products/identity/modules/* --filter=./src/metorial/apis/*'
   );
   expect(controlTasks(controlSuiteFixtures.enterprise)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'

@@ -57,11 +57,11 @@ services:
       timeout: 5s
       retries: 10
 
-  ares:
+  auth-core:
     profiles: ['service']
     build:
-      context: ../../..
-      dockerfile: src/ares/service/dev.Dockerfile
+      context: ../../../../../..
+      dockerfile: src/products/identity/services/auth-core/service/dev.Dockerfile
     container_name: ares-service
     restart: unless-stopped
     ports:
@@ -99,13 +99,13 @@ services:
       EMAIL_SES_SECRET_ACCESS_KEY: ${EMAIL_SES_SECRET_ACCESS_KEY:-}
       EMAIL_SES_REGION: ${EMAIL_SES_REGION:-}
     volumes:
-      - ./src:/app/src/ares/service/src:ro
-      - ./frontend:/app/src/ares/service/frontend:ro
-      - ./package.json:/app/src/ares/service/package.json:ro
-      - ./tsconfig.json:/app/src/ares/service/tsconfig.json:ro
-      - ./tsconfig.backend.json:/app/src/ares/service/tsconfig.backend.json:ro
-      - ./prisma:/app/src/ares/service/prisma:ro
-      - ./prisma.config.ts:/app/src/ares/service/prisma.config.ts:ro
+      - ./src:/app/src/products/identity/services/auth-core/service/src:ro
+      - ./frontend:/app/src/products/identity/services/auth-core/service/frontend:ro
+      - ./package.json:/app/src/products/identity/services/auth-core/service/package.json:ro
+      - ./tsconfig.json:/app/src/products/identity/services/auth-core/service/tsconfig.json:ro
+      - ./tsconfig.backend.json:/app/src/products/identity/services/auth-core/service/tsconfig.backend.json:ro
+      - ./prisma:/app/src/products/identity/services/auth-core/service/prisma:ro
+      - ./prisma.config.ts:/app/src/products/identity/services/auth-core/service/prisma.config.ts:ro
     depends_on:
       postgres:
         condition: service_healthy

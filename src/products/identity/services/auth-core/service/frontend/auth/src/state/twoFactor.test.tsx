@@ -15,7 +15,10 @@ let { api, startAuthentication } = vi.hoisted(() => ({
 }));
 
 vi.mock('./client', () => ({ authClient: { twoFactor: api } }));
-vi.mock('@lowerdeck/memo', () => import('../../../../../../lowerdeck/packages/memo/src/memo'));
+vi.mock(
+  '@lowerdeck/memo',
+  () => import('../../../../../../../../../lowerdeck/packages/memo/src/memo')
+);
 vi.mock('@lowerdeck/sentry', () => ({ getSentry: () => ({ captureException: vi.fn() }) }));
 vi.mock('@metorial-io/ui', () => ({ Error: () => null, CenteredSpinner: () => null }));
 vi.mock('@simplewebauthn/browser', () => ({

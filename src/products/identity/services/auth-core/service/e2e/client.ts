@@ -4,10 +4,10 @@ import type { AuthClient } from '../src/apis/auth/controllers';
 import type { InternalClient } from '../src/apis/internal';
 
 export let ares = rpc<InternalClient>(
-  `${e2eEndpoint('@metorial/ares', 'internal')}/metorial-ares-internal/api`
+  `${e2eEndpoint('@mtsrc/auth-core-service', 'internal')}/metorial-ares-internal/api`
 );
 
-let authEndpoint = `${e2eEndpoint('@metorial/ares', 'auth')}/metorial-ares/auth-api`;
+let authEndpoint = `${e2eEndpoint('@mtsrc/auth-core-service', 'auth')}/metorial-ares/auth-api`;
 
 export let anonymousAuth = rpc<AuthClient>(authEndpoint);
 

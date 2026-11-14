@@ -117,16 +117,16 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "ares": {
-    "dockerfile": "src/ares/service/Dockerfile",
-    "image": "ghcr.io/metorial/ares",
+  "auth-core": {
+    "dockerfile": "src/products/identity/services/auth-core/service/Dockerfile",
+    "image": "ghcr.io/metorial/auth-core",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
       "frontend:build",
-      "--filter=@metorial/ares"
+      "--filter=@mtsrc/auth-core-service"
     ],
     "buildArguments": {},
     "extraInputs": []

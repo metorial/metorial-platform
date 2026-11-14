@@ -14,8 +14,10 @@ vi.mock('@metorial/module-resource-actor', () => ({
 
 vi.mock('@metorial/module-access', async () => {
   let actual = await vi.importActual<
-    typeof import('../../../../../core/modules/access/src/services/resourceAuthorization')
-  >('../../../../../core/modules/access/src/services/resourceAuthorization');
+    typeof import('../../../../../../../products/identity/modules/access/src/services/resourceAuthorization')
+  >(
+    '../../../../../../../products/identity/modules/access/src/services/resourceAuthorization'
+  );
 
   return {
     ...actual,

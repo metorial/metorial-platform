@@ -72,7 +72,7 @@ vi.mock('@lowerdeck/tokens', () => ({
   })
 }));
 
-vi.mock('@metorial-platform-systems/ares-client', () => ({
+vi.mock('@mtsrc/auth-core-client-internal', () => ({
   createAresInternalClient: mocks.createAresInternalClient
 }));
 

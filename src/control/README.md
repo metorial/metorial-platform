@@ -297,7 +297,7 @@ start = ["e2e:start"]       # package.json scripts started from source (no watch
 image = "app-api"           # tested image artifact name for --images
 
 # Stack-only keys:
-tests = ["../../products/*/modules/*", "../../apis/*"]
+tests = ["../../products/*/modules/*", "../../../products/identity/modules/*", "../../apis/*"]
 services = ["@metorial/shuttle"]   # started in addition to [[dependencies]]
 health_timeout = 300
 
@@ -383,10 +383,10 @@ rootProject({ mode: 'enterprise', stacks: [stack({ id: 'cloud', label: 'Metorial
 
 // a service's control/index.ts
 project({
-  name: '@metorial/ares',
+  name: '@mtsrc/auth-core-service',
   stacks: {
     cloud: stackMember(),
-    'on-prem': stackMember({ production: { image: 'ghcr.io/metorial/ares' } })
+    'on-prem': stackMember({ production: { image: 'ghcr.io/metorial/auth-core' } })
   }
 });
 ```
@@ -418,7 +418,7 @@ synced workspace, so the next start comes up empty and fast.
 `--name` defaults to the stack identifier and must be unique; the run is registered as
 `stack-<name>` and shows up in `control ls`, the daemon API and the web UI next to the
 workspaces. Address it with `--stack <name>` on `logs`, `status`, `restart`, `tui`, `open`
-and `sh`, for example `control logs --stack cloud ares --follow`.
+and `sh`, for example `control logs --stack cloud auth-core --follow`.
 
 A development run starts the shared infrastructure the members declare, creates their
 databases, then starts one `app` container that syncs the checkout into a volume, installs,

@@ -5,8 +5,8 @@ monolith to span every product. Each product owns its standalone services, share
 packages, and the modules that run inside the monolith.
 
 The refactor is in progress. Runtime's move into `products/runtime` is complete, and agents has
-started moving into `products/agents`. Other code still lives in the previous layout. The tree
-below defines the target structure; it does not imply that every directory has already moved.
+started moving into `products/agents`. Auth Core and five monolith modules now live under
+`products/identity`. The target layout below also covers code still in the previous tree.
 
 **All new packages, modules, and services must follow this specification**, including additions
 to products whose existing code has not yet migrated. Existing paths describe migration state,
@@ -162,6 +162,9 @@ do not require a separate process or deployment for each product. The current
 `metorial/services/api` already composes APIs and workers across products; the refactor preserves
 that model while relocating the code it consumes.
 
+The identity product keeps its monolith modules directly in `products/identity/modules/`.
+The Metorial API and worker load those modules through their existing package names.
+
 Product core modules may use their product's shared packages, call services owned by that
 product, and use platform services. Consume standalone services through their client or public
 contract. Dependencies between monolith modules use their public package exports, following the
@@ -204,6 +207,7 @@ Changing a package's directory does not by itself require changing its package n
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Runtime                        | Structural move complete under `products/runtime`, including services, clients, and shared packages. This status concerns directory organization, not every runtime feature or deployment change.                  |
 | Agents                         | Started: the model catalog is under `products/agents/data/models`, and synthesis moved to `products/agents/services/ai-gateway` with `@mtsrc/ai-gateway-*` packages. Monolith modules remain in the previous tree. |
+| Identity                       | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Platform services              | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                       |
 | Other products and shared code | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                           |
 

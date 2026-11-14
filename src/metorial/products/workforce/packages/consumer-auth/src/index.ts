@@ -1,6 +1,6 @@
 import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Tokens } from '@lowerdeck/tokens';
-import { createAresInternalClient } from '@metorial-platform-systems/ares-client';
+import { createAresInternalClient } from '@mtsrc/auth-core-client-internal';
 import { createAuditScope } from '@metorial/audit-scope';
 import { getConfig } from '@metorial/config';
 import type { Context } from '@metorial/context';

@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/ares",
+  "name": "@mtsrc/auth-core-service",
   "module": "index.ts",
   "type": "commonjs",
   "private": true,

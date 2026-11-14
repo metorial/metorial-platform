@@ -9,7 +9,7 @@ COPY . .
 RUN bun install --linker=hoisted
 RUN bunx turbo run --ui=stream build --filter='./src/lowerdeck/packages/**'
 
-WORKDIR /app/src/ares/service
+WORKDIR /app/src/products/identity/services/auth-core/service
 
 # Run in dev mode with hot reloading
 CMD ["sh", "-c", "bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]

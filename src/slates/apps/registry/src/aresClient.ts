@@ -1,4 +1,4 @@
-import { createAresInternalClient } from '@metorial-platform-systems/ares-client';
+import { createAresInternalClient } from '@mtsrc/auth-core-client-internal';
 import { env } from './env';
 
 export let aresClient: ReturnType<typeof createAresInternalClient> | null = env.ares

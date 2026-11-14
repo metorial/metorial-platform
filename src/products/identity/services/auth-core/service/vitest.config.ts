@@ -57,10 +57,13 @@ export default defineConfig(({ mode }) => {
   });
 
   return withAliases(config, {
-    '@metorial/ui': resolve(configDir, '../../metorial-frontend/packages/ui/src/index.ts'),
-    '@metorial-platform-systems/ares-client': resolve(
+    '@metorial/ui': resolve(
       configDir,
-      '../clients/ares/src/index.ts'
+      '../../../../../metorial-frontend/packages/ui/src/index.ts'
+    ),
+    '@mtsrc/auth-core-client-internal': resolve(
+      configDir,
+      '../../../clients/auth-core/src/index.ts'
     )
   });
 });

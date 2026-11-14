@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 FROM base AS pruner
 COPY . .
-RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build frontend:build --filter=@metorial/ares
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build frontend:build --filter=@mtsrc/auth-core-service
 
 FROM scratch AS pruned
 COPY --from=pruner /app/out/ /
@@ -23,7 +23,7 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build frontend:build --filter=@metorial/ares
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build frontend:build --filter=@mtsrc/auth-core-service
 
 FROM base AS control-runtime
 WORKDIR /runtime
@@ -49,11 +49,11 @@ COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
 FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/dist ./dist
-COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/frontend/auth/dist ./frontend/auth/dist
-COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/frontend/admin/dist ./frontend/admin/dist
-COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/prisma/schema/ ./prisma/ares/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/prisma/migrations/ ./prisma/ares/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/frontend/auth/dist ./frontend/auth/dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/frontend/admin/dist ./frontend/admin/dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/prisma/schema/ ./prisma/ares/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/prisma/migrations/ ./prisma/ares/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [

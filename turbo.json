@@ -166,8 +166,8 @@
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/ares-client#build": {
-      "dependsOn": ["^build", "@metorial/ares#prisma:generate"],
+    "@mtsrc/auth-core-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/auth-core-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/forge-client#build": {
