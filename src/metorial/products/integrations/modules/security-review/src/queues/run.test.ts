@@ -31,6 +31,23 @@ beforeEach(() => {
 });
 
 describe('security review scheduling', () => {
+  it.each(['new_version', 'skill_import', 'scheduled', 'page_open'] as const)(
+    'queues skill %s runs independently of automatic provider generation',
+    async trigger => {
+      await enqueueSecurityReview({
+        reviewId: 'review_1',
+        subject: 'skill',
+        trigger,
+        immediate: true
+      });
+
+      expect(mocks.add).toHaveBeenCalledWith(
+        { reviewId: 'review_1', subject: 'skill', trigger },
+        { delay: 0, deduplication: { id: 'security-review-now-review_1' } }
+      );
+    }
+  );
+
   it.each(['page_open', 'reassess', 'admin'] as const)(
     'queues an explicit %s request with speculative generation off',
     async trigger => {
@@ -77,6 +94,19 @@ describe('security review scheduling', () => {
     expect(mocks.addMany).toHaveBeenCalledWith([
       expect.objectContaining({ data: { reviewId: 'review_1', trigger: 'page_open' } }),
       expect.objectContaining({ data: { reviewId: 'review_3', trigger: 'reassess' } })
+    ]);
+  });
+
+  it('allows skill version changes in batches while speculative provider work is off', async () => {
+    await enqueueSecurityReviews([
+      { reviewId: 'skill_review', subject: 'skill', trigger: 'new_version' },
+      { reviewId: 'provider_review', trigger: 'new_version' }
+    ]);
+
+    expect(mocks.addMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        data: { reviewId: 'skill_review', subject: 'skill', trigger: 'new_version' }
+      })
     ]);
   });
 });

@@ -14,6 +14,7 @@ import type { StoredFinding } from './findings';
 
 export type SecurityReviewRunInput = {
   reviewId: string;
+  subject?: 'skill';
   trigger: SecurityReviewTrigger;
   reason?: string;
   changes?: { type: string; detail: string }[];

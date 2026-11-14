@@ -40,13 +40,13 @@ export let enqueueSecurityReview = async (
   d: SecurityReviewRunInput & { immediate?: boolean; delayMs?: number }
 ) => {
   let { immediate, delayMs, ...job } = d;
-  if (!isSecurityReviewGenerationEnabled(job.trigger)) return;
+  if (!isSecurityReviewGenerationEnabled(job)) return;
 
   await runSecurityReviewQueue.add(job, runJobOptions(d));
 };
 
 export let enqueueSecurityReviews = async (jobs: SecurityReviewRunInput[]) => {
-  let allowed = jobs.filter(job => isSecurityReviewGenerationEnabled(job.trigger));
+  let allowed = jobs.filter(isSecurityReviewGenerationEnabled);
   if (!allowed.length) return;
 
   await runSecurityReviewQueue.addManyWithOps(

@@ -26,10 +26,14 @@ export type SecurityReviewRequest =
 export let isAutoGenerationEnabled = () =>
   env.generation.SECURITY_REVIEW_AUTO_GENERATION == 'true';
 
-export let isSecurityReviewGenerationEnabled = (trigger?: SecurityReviewTrigger) =>
-  trigger == 'page_open' ||
-  trigger == 'reassess' ||
-  trigger == 'admin' ||
+export let isSecurityReviewGenerationEnabled = (d: {
+  subject?: SecurityReviewRequest['subject'];
+  trigger?: SecurityReviewTrigger;
+}) =>
+  d.subject == 'skill' ||
+  d.trigger == 'page_open' ||
+  d.trigger == 'reassess' ||
+  d.trigger == 'admin' ||
   isAutoGenerationEnabled();
 
 // The queue lives here, without its processor, so modules that security review itself depends
@@ -50,8 +54,7 @@ export let securityReviewRequestId = (request: SecurityReviewRequest) => {
 };
 
 export let requestSecurityReview = async (request: SecurityReviewRequest) => {
-  if (!isSecurityReviewGenerationEnabled('trigger' in request ? request.trigger : undefined))
-    return;
+  if (!isSecurityReviewGenerationEnabled(request)) return;
 
   // A failed request must never fail the caller; later page loads or scanners can retry.
   await securityReviewRequestQueue

@@ -52,7 +52,7 @@ let skillAiDelayMs = async (d: { reviewOid: bigint; skillCreatedAt: Date }) => {
 };
 
 let requestQueueProcessor = requestQueue.process(async job => {
-  if (!isSecurityReviewGenerationEnabled('trigger' in job ? job.trigger : undefined)) return;
+  if (!isSecurityReviewGenerationEnabled(job)) return;
 
   if (job.subject == 'skill') {
     let review = await internalSecurityReviewSubjectService.ensureSkillReview({
@@ -61,7 +61,12 @@ let requestQueueProcessor = requestQueue.process(async job => {
     if (!review || review.status != 'active') return;
     if (review.dismissedAt && job.trigger != 'admin') return;
 
-    let base = { reviewId: review.id, trigger: job.trigger, reason: job.reason };
+    let base = {
+      reviewId: review.id,
+      subject: 'skill' as const,
+      trigger: job.trigger,
+      reason: job.reason
+    };
 
     if (job.immediateAi) {
       await enqueueSecurityReview({ ...base, immediate: true });
