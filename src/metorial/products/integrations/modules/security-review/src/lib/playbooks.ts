@@ -360,6 +360,15 @@ export let buildSystemPrompt = (d: {
     `## Report sections\n\nWrite these with write_section. Shapes are TypeScript.\n\n${describeReport(d.definition)}`
   ].join('\n\n');
 
+export let buildConsistencyCriteria = (d: { kind: SubjectKind }) =>
+  [
+    (d.kind == 'skill' ? skillRules : sharedRules)
+      .replace(/\n## How to work\n[\s\S]*?(?=\n## |$)/, '')
+      .replace(/\n## Evidence references\n[\s\S]*?(?=\n## |$)/, ''),
+    playbooks[d.kind],
+    capabilityRules
+  ].join('\n\n');
+
 export let buildUserPrompt = (d: {
   title: string;
   isUpdate: boolean;

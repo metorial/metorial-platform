@@ -39,7 +39,28 @@ vi.mock('@metorial/review-engine', async importOriginal => ({
 }));
 vi.mock('../definitions/thoroughness', async () => {
   let { MockLanguageModelV4 } = await import('ai/test');
-  let model = new MockLanguageModelV4({ doGenerate: async () => mocks.judge() });
+  let model = new MockLanguageModelV4({
+    doStream: async () => {
+      let result = await mocks.judge();
+      return {
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+            controller.enqueue({ type: 'text-start', id: 'text' });
+            for (let part of result.content)
+              controller.enqueue({ type: 'text-delta', id: 'text', delta: part.text });
+            controller.enqueue({ type: 'text-end', id: 'text' });
+            controller.enqueue({
+              type: 'finish',
+              usage: result.usage,
+              finishReason: result.finishReason
+            });
+            controller.close();
+          }
+        })
+      };
+    }
+  });
   let judge = {
     slug: 'judge',
     model,
@@ -69,6 +90,7 @@ vi.mock('../lib/assemble', () => ({
 vi.mock('../lib/findings', () => ({}));
 vi.mock('../lib/playbooks', () => ({
   buildSystemPrompt: () => 'system',
+  buildConsistencyCriteria: () => 'assessment rubric',
   buildUserPrompt: () => 'prompt'
 }));
 vi.mock('../lib/report', () => ({

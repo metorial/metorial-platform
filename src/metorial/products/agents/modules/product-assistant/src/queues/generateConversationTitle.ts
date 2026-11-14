@@ -38,6 +38,7 @@ let sanitizeTitle = (value: string) => {
     .split('\n')[0]
     ?.replace(/^[Tt]itle:\s*/, '')
     .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/^\s*#+\s*/, '')
     .replace(/\s+/g, ' ')
     .replace(/[.!?]+$/g, '')
     .trim();

@@ -50,7 +50,11 @@ import type { CollectedEvidence } from '../lib/evidence';
 import { classifyFindings, isReportStatus, toReportFinding } from '../lib/findings';
 import { STALE_RUNNING_MS, type SecurityReviewRunInput } from '../lib/revisions';
 import { redactSecrets, RunLog } from '../lib/runLog';
-import { buildSystemPrompt, buildUserPrompt } from '../lib/playbooks';
+import {
+  buildConsistencyCriteria,
+  buildSystemPrompt,
+  buildUserPrompt
+} from '../lib/playbooks';
 import { createSecurityReportDefinition } from '../lib/report';
 import { workspaceKeyFor, workspaceStore } from '../lib/storage';
 import {
@@ -315,7 +319,7 @@ class InternalSecurityReviewRunnerServiceImpl {
         model: getJudgeModel(),
         modelAccess: reviewModelAccess,
         sectionNames: draft.sectionNames,
-        reviewInstructions: system,
+        reviewInstructions: buildConsistencyCriteria({ kind: d.evidence.kind }),
         prepare: report => {
           let assembled = preview(report);
           return {

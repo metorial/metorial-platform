@@ -14,7 +14,11 @@ import {
 import { buildJudgeEvidence, sumUsage } from '../lib/agentRun';
 import { assembleReport } from '../lib/assemble';
 import type { CollectedEvidence } from '../lib/evidence';
-import { buildSystemPrompt, buildUserPrompt } from '../lib/playbooks';
+import {
+  buildConsistencyCriteria,
+  buildSystemPrompt,
+  buildUserPrompt
+} from '../lib/playbooks';
 import { qualityFixtures } from '../lib/qualityFixtures';
 import { createSecurityReportDefinition } from '../lib/report';
 import { scanSkill } from '../lib/skillDetectors';
@@ -153,7 +157,7 @@ for (let fixture of cases) {
       validateSubmission: createSubmissionVerifier<SecurityReport>({
         model: models.fast,
         sectionNames: draft.sectionNames,
-        reviewInstructions: system,
+        reviewInstructions: buildConsistencyCriteria({ kind: 'skill' }),
         prepare: () => {
           let result = preview();
           return {

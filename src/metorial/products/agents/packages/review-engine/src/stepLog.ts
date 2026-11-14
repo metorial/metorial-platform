@@ -19,6 +19,9 @@ let stringify = (value: unknown) =>
 
 let dollars = (micros: number) => `$${(micros / 1_000_000).toFixed(4)}`;
 
+export let formatModelActivity = (kind: 'thinking' | 'said', text: string) =>
+  `${kind}: ${clip(text, MAX_TEXT)}`;
+
 export let formatStepLog = (d: {
   step: StepResult<ToolSet>;
   stepNumber: number;

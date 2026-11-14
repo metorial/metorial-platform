@@ -59,28 +59,47 @@ describe('reviewer and verifier cooperation', () => {
     let draft = new ReportDraft(definition);
     let judgeCalls = 0;
     let judge = new MockLanguageModelV4({
-      doGenerate: async () => ({
-        ...response([
-          {
-            type: 'text',
-            text: JSON.stringify(
-              ++judgeCalls == 1
-                ? {
-                    consistent: false,
-                    issues: [
-                      {
-                        section: 'summary',
-                        message:
-                          'The source allows deleting the selected file; acknowledge deletion.'
-                      }
-                    ]
-                  }
-                : { consistent: true, issues: [] }
-            )
-          }
-        ]),
-        finishReason: { unified: 'stop', raw: 'stop' }
-      })
+      doStream: async () => {
+        let result = {
+          ...response([
+            {
+              type: 'text',
+              text: JSON.stringify(
+                ++judgeCalls == 1
+                  ? {
+                      consistent: false,
+                      issues: [
+                        {
+                          section: 'summary',
+                          message:
+                            'The source allows deleting the selected file; acknowledge deletion.'
+                        }
+                      ]
+                    }
+                  : { consistent: true, issues: [] }
+              )
+            }
+          ]),
+          finishReason: { unified: 'stop' as const, raw: 'stop' }
+        };
+        return {
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({ type: 'text-start', id: 'text' });
+              for (let part of result.content)
+                controller.enqueue({ type: 'text-delta', id: 'text', delta: part.text });
+              controller.enqueue({ type: 'text-end', id: 'text' });
+              controller.enqueue({
+                type: 'finish',
+                usage: result.usage,
+                finishReason: result.finishReason
+              });
+              controller.close();
+            }
+          })
+        };
+      }
     });
     let verificationCost = 0;
     let tools = createReviewTools({

@@ -1,10 +1,16 @@
 import { v } from '@lowerdeck/validation';
-import { generateText, jsonSchema, NoObjectGeneratedError, Output } from 'ai';
+import { jsonSchema, NoObjectGeneratedError, Output, streamText } from 'ai';
 import { setTimeout as delay } from 'node:timers/promises';
 import { addUsage, emptyUsage, type ReviewModel, type ReviewUsage } from './model';
+import { formatModelActivity, formatStepLog } from './stepLog';
 import { acquireReviewModel, type ReviewModelAccess } from './rateLimit';
 
-let JUDGE_TIMEOUT_MS = 3 * 60 * 1000;
+let JUDGE_TIMEOUT_MS = 10 * 60 * 1000;
+let JUDGE_IDLE_TIMEOUT_MS = 90 * 1000;
+let JUDGE_PROGRESS_INTERVAL_MS = 15 * 1000;
+let JUDGE_LOG_INTERVAL_MS = 5 * 1000;
+let JUDGE_MAX_OUTPUT_TOKENS = 8192;
+let JUDGE_MAX_ACTIVITY_CHARS = 12_000;
 let JUDGE_MAX_ATTEMPTS = 3;
 let JUDGE_RETRY_DELAY_MS = 1000;
 
@@ -42,7 +48,9 @@ The shared review criteria describe the reviewer's workflow as well as its asses
 them only to interpret the report; your task is the consistency check, not executing that workflow.
 
 Do not flag style, length, or anything you would merely phrase differently. An empty issue list is the
-expected result for a well-written report.`;
+expected result for a well-written report. This is a read-only check of supplied data. You have no
+tools and must not plan a new investigation. Keep the check focused; return only the verdict JSON,
+with concise, actionable messages for genuine contradictions.`;
 
 export type ConsistencyIssue = {
   section: string;
@@ -75,6 +83,7 @@ export let runConsistencyJudge = async (d: {
   });
   let usage = emptyUsage();
   let feedback = '';
+  let requestedModel = d.model;
   let prompt = `<evidence>${JSON.stringify(d.evidence ?? {})}</evidence>\n\n<report>\n${JSON.stringify(d.report)}\n</report>\n\n<scores>\n${JSON.stringify(d.scores)}\n</scores>`;
 
   for (let attempt = 1; ; attempt++) {
@@ -82,26 +91,113 @@ export let runConsistencyJudge = async (d: {
     await d.onLog?.(`consistency check attempt ${attempt}/${JUDGE_MAX_ATTEMPTS} started`);
 
     let model = await acquireReviewModel({
-      model: d.model,
+      model: requestedModel,
       access: d.modelAccess,
       signal: d.abortSignal
     });
     d.abortSignal?.throwIfAborted();
     await d.onLog?.(`consistency check attempt ${attempt}: using ${model.slug}`);
 
+    let startedAt = Date.now();
+    let lastOutputAt = startedAt;
+    let receivedChars = 0;
+
+    let loggedChars = 0;
+    let lastLogAt = 0;
+    let pending = { thinking: '', said: '' };
+    let accounted = false;
+
+    let idle = new AbortController();
+    let resetIdleTimeout = () =>
+      setTimeout(
+        () =>
+          idle.abort(
+            new DOMException(
+              `Consistency check received no model output for ${JUDGE_IDLE_TIMEOUT_MS / 1000}s`,
+              'TimeoutError'
+            )
+          ),
+        JUDGE_IDLE_TIMEOUT_MS
+      );
+    let idleTimeout = resetIdleTimeout();
+    let deadline = setTimeout(
+      () =>
+        idle.abort(
+          new DOMException(
+            `Consistency check exceeded ${JUDGE_TIMEOUT_MS / 1000}s total limit`,
+            'TimeoutError'
+          )
+        ),
+      JUDGE_TIMEOUT_MS
+    );
+
+    let logQueue = Promise.resolve();
+    let log = (entry: string) => {
+      logQueue = logQueue.then(async () => {
+        await d.onLog?.(entry);
+      });
+      return logQueue;
+    };
+
+    let flushActivity = async () => {
+      for (let kind of ['thinking', 'said'] as const) {
+        let text = pending[kind];
+        pending[kind] = '';
+        if (!text || loggedChars >= JUDGE_MAX_ACTIVITY_CHARS) continue;
+
+        text = text.slice(0, JUDGE_MAX_ACTIVITY_CHARS - loggedChars);
+        loggedChars += text.length;
+        await log(`consistency check attempt ${attempt} ${formatModelActivity(kind, text)}`);
+      }
+      lastLogAt = Date.now();
+    };
+
+    let progress = setInterval(() => {
+      void (async () => {
+        await flushActivity();
+        await log(
+          `consistency check attempt ${attempt}: ${(Date.now() - startedAt) / 1000}s elapsed · ${receivedChars} output characters · ${receivedChars ? `${Math.floor((Date.now() - lastOutputAt) / 1000)}s since last output` : 'waiting for first model output'}`
+        );
+      })().catch(() => {});
+    }, JUDGE_PROGRESS_INTERVAL_MS);
+
     try {
-      let result = await generateText({
-        model: model.model,
-        instructions: `${JUDGE_SYSTEM}
+      let instructions = `${JUDGE_SYSTEM}
 
 <review_criteria>
 ${d.reviewInstructions ?? ''}
 </review_criteria>
 
-Editable report sections: ${sectionNames.join(', ')}.`,
+Editable report sections: ${sectionNames.join(', ')}.`;
+      await log(
+        `consistency check request: ${instructions.length + prompt.length + feedback.length} prompt characters · ${JUDGE_MAX_OUTPUT_TOKENS} output token limit · ${JUDGE_IDLE_TIMEOUT_MS / 1000}s idle / ${JUDGE_TIMEOUT_MS / 1000}s total limit · no tools`
+      );
+      let result = streamText({
+        model: model.model,
+        instructions,
         prompt: prompt + feedback,
-        abortSignal: d.abortSignal,
-        timeout: { stepMs: JUDGE_TIMEOUT_MS },
+        abortSignal: AbortSignal.any([idle.signal, ...(d.abortSignal ? [d.abortSignal] : [])]),
+        maxOutputTokens: JUDGE_MAX_OUTPUT_TOKENS,
+        onError: () => {},
+        onChunk: async ({ chunk }) => {
+          if (chunk.type != 'reasoning-delta' && chunk.type != 'text-delta') return;
+          if (!chunk.text) return;
+
+          clearTimeout(idleTimeout);
+          idleTimeout = resetIdleTimeout();
+          lastOutputAt = Date.now();
+          receivedChars += chunk.text.length;
+          let kind: keyof typeof pending =
+            chunk.type == 'reasoning-delta' ? 'thinking' : 'said';
+          if (loggedChars < JUDGE_MAX_ACTIVITY_CHARS) pending[kind] += chunk.text;
+          if (Date.now() - lastLogAt >= JUDGE_LOG_INTERVAL_MS) await flushActivity();
+        },
+        onStepEnd: async step => {
+          await flushActivity();
+          await log(
+            `consistency check ${formatStepLog({ step, stepNumber: attempt, model, total: addUsage(usage, step.usage, model.pricing), durationMs: Date.now() - startedAt })}`
+          );
+        },
         output: Output.object({
           schema: jsonSchema<ConsistencyVerdict>({
             type: 'object',
@@ -126,11 +222,21 @@ Editable report sections: ${sectionNames.join(', ')}.`,
         })
       });
 
-      let attemptUsage = addUsage(emptyUsage(), result.usage, model.pricing);
+      for await (let part of result.fullStream) {
+        if (part.type == 'error') throw part.error;
+        if (part.type == 'abort')
+          throw (
+            idle.signal.reason ??
+            d.abortSignal?.reason ??
+            new DOMException('Consistency check aborted', 'AbortError')
+          );
+      }
+      let attemptUsage = addUsage(emptyUsage(), await result.usage, model.pricing);
+      accounted = true;
       usage = addReviewUsage(usage, attemptUsage);
       d.onUsage?.(attemptUsage);
 
-      let validated = validator.validate(result.output);
+      let validated = validator.validate(await result.output);
       if (!validated.success) {
         throw new InvalidConsistencyVerdictError(
           'Verdict must contain consistent and issues, each with an editable section and a non-empty message.'
@@ -151,10 +257,15 @@ Editable report sections: ${sectionNames.join(', ')}.`,
       return { verdict, usage };
     } catch (error) {
       d.abortSignal?.throwIfAborted();
+      if (idle.signal.aborted) error = idle.signal.reason;
+      await flushActivity();
+      await log(
+        `consistency check attempt ${attempt} failed after ${((Date.now() - startedAt) / 1000).toFixed(1)}s: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`
+      );
       let invalidOutput =
         error instanceof InvalidConsistencyVerdictError ||
         NoObjectGeneratedError.isInstance(error);
-      if (NoObjectGeneratedError.isInstance(error) && error.usage) {
+      if (!accounted && NoObjectGeneratedError.isInstance(error) && error.usage) {
         let attemptUsage = addUsage(emptyUsage(), error.usage, model.pricing);
         usage = addReviewUsage(usage, attemptUsage);
         d.onUsage?.(attemptUsage);
@@ -166,15 +277,29 @@ Editable report sections: ${sectionNames.join(', ')}.`,
         throw error;
       }
 
+      if (!invalidOutput && model.fallback) {
+        requestedModel = model.fallback;
+        await log(
+          `consistency check: switching from ${model.slug} to ${requestedModel.slug} after timeout`
+        );
+      }
+      clearInterval(progress);
+      clearTimeout(idleTimeout);
+      clearTimeout(deadline);
       if (invalidOutput) {
         feedback =
           '\n\nYour previous response did not satisfy the verdict schema. Return consistent: true with issues: [] if there is no concrete report defect. Otherwise every issue needs an editable section and a message explaining the evidence and correction. Do not return issues about computed scores.';
       }
       let delayMs = JUDGE_RETRY_DELAY_MS * 2 ** (attempt - 1);
       await d.onLog?.(
-        `consistency check attempt ${attempt}/${JUDGE_MAX_ATTEMPTS} ${invalidOutput ? 'returned an invalid verdict' : `timed out (${JUDGE_TIMEOUT_MS / 1000}s limit)`}; retrying in ${delayMs / 1000}s`
+        `consistency check attempt ${attempt}/${JUDGE_MAX_ATTEMPTS} ${invalidOutput ? 'returned an invalid verdict' : `timed out (${JUDGE_IDLE_TIMEOUT_MS / 1000}s idle / ${JUDGE_TIMEOUT_MS / 1000}s total limit)`}; retrying in ${delayMs / 1000}s`
       );
       await delay(delayMs, undefined, { signal: d.abortSignal });
+    } finally {
+      clearInterval(progress);
+      clearTimeout(idleTimeout);
+      clearTimeout(deadline);
+      await logQueue;
     }
   }
 };
