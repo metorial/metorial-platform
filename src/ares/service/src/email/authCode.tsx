@@ -1,10 +1,4 @@
-import {
-  Code,
-  createEmail,
-  createTemplate,
-  Layout,
-  Text
-} from '@metorial-platform-systems/relay-client';
+import { Code, createEmail, createTemplate, Layout, Text } from '@mtsrc/email-client-internal';
 import { createTemplateSender, emailIdentity, sender } from './client';
 
 export let sendAuthCodeEmail = createTemplateSender(

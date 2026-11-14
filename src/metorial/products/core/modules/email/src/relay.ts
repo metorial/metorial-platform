@@ -5,7 +5,7 @@ import {
   createRelayClient,
   type EmailIdentity,
   type ITemplate
-} from '@metorial-platform-systems/relay-client';
+} from '@mtsrc/email-client-internal';
 import { env } from './env';
 import { whenRegistered } from './whenRegistered';
 

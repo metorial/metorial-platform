@@ -81,7 +81,7 @@
     "prisma-json-types-generator": "^5.2.0",
     "protobufjs": "^8.8.1",
     "yaml": "^2.9.1",
-    "@metorial-platform-systems/nebula-client": "workspace:*",
+    "@mtsrc/secret-store-client-internal": "workspace:*",
     "@metorial/code-bucket-service-generated": "^1.0.0",
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",

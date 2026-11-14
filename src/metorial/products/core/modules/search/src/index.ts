@@ -1,5 +1,5 @@
 import { checkEdition } from '@metorial/editions';
-import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
+import { createVoyagerClient } from '@mtsrc/search-client-internal';
 import { env } from './env';
 
 export * from './searchFilter';

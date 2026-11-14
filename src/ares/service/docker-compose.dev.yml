@@ -38,7 +38,7 @@ services:
 
   relay:
     profiles: ['infra']
-    image: ghcr.io/metorial/relay:latest
+    image: ghcr.io/metorial/email:latest
     container_name: ares-relay
     restart: unless-stopped
     environment:

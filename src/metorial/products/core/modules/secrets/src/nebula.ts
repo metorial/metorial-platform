@@ -1,5 +1,5 @@
 import { db, type Prisma, type Project } from '@metorial/db';
-import { createRawNebulaClient } from '@metorial-platform-systems/nebula-client';
+import { createRawNebulaClient } from '@mtsrc/secret-store-client-internal';
 import { env } from './env';
 
 export let nebula = createRawNebulaClient({

@@ -30,13 +30,16 @@ oss/src/
           <package-name>/
         modules/
           <module-name>/
-      clients/                  # Optional service clients
+      clients/
+        <client-name>/          # Clients for this product's services
       data/                     # Optional product data and generators
       deployment/               # Optional product deployment resources
       e2e/                      # Optional tests spanning product components
   platform/
     services/
       <service-name>/
+    clients/
+      <client-name>/            # Clients for shared platform services
     db/                         # Main Metorial database package
     apis/                       # Shared APIs, such as files
   frontends/
@@ -51,8 +54,9 @@ oss/src/
       <package-name>/
 ```
 
-Create only the directories a product or service needs. Additional folders such as `clients`,
-`data`, `deployment`, `spec`, and `e2e` are allowed when their purpose and owner are clear.
+Create only the directories a product or service needs. Additional folders such as `data`,
+`deployment`, `spec`, and `e2e` are allowed when their purpose and owner are clear. Service clients
+must live in the owning product's `clients/` directory or in `platform/clients/`.
 
 ## Products and ownership
 
@@ -62,20 +66,21 @@ resources. A product can have standalone services, monolith code, or both.
 
 Place code at the narrowest scope that matches its responsibility:
 
-| Responsibility                                                 | Location                                     |
-| -------------------------------------------------------------- | -------------------------------------------- |
-| A service owned by a product team                              | `products/<product>/services/<service>`      |
-| Utilities private to one service                               | That service's `packages/`                   |
-| Product packages shared by services and/or the monolith        | `products/<product>/packages/<package>`      |
-| Product business logic running in the Metorial monolith        | `products/<product>/core/modules/<module>`   |
-| Utilities shared within that product's monolith code           | `products/<product>/core/packages/<package>` |
-| A shared service supporting multiple products                  | `platform/services/<service>`                |
-| The main Metorial database                                     | `platform/db`                                |
-| A shared API used across products                              | `platform/apis/<api>`                        |
-| Metorial-specific API composition and presenters               | `surfaces/metorial/`                         |
-| Frontend applications and their shared UI packages             | `frontends/metorial/`                        |
-| Development and repository tools                               | `tooling/`                                   |
-| Generic utilities without product or Metorial domain knowledge | `lib/<group>/<package>`                      |
+| Responsibility                                                 | Location                                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------------------- |
+| A service owned by a product team                              | `products/<product>/services/<service>`                              |
+| Clients for product or platform services                       | `products/<product>/clients/<client>` or `platform/clients/<client>` |
+| Utilities private to one service                               | That service's `packages/`                                           |
+| Product packages shared by services and/or the monolith        | `products/<product>/packages/<package>`                              |
+| Product business logic running in the Metorial monolith        | `products/<product>/core/modules/<module>`                           |
+| Utilities shared within that product's monolith code           | `products/<product>/core/packages/<package>`                         |
+| A shared service supporting multiple products                  | `platform/services/<service>`                                        |
+| The main Metorial database                                     | `platform/db`                                                        |
+| A shared API used across products                              | `platform/apis/<api>`                                                |
+| Metorial-specific API composition and presenters               | `surfaces/metorial/`                                                 |
+| Frontend applications and their shared UI packages             | `frontends/metorial/`                                                |
+| Development and repository tools                               | `tooling/`                                                           |
+| Generic utilities without product or Metorial domain knowledge | `lib/<group>/<package>`                                              |
 
 Sharing a product capability with another product does not transfer its ownership. Keep it with
 the owning product and expose it through a package or service client. Use `platform` for
@@ -105,11 +110,45 @@ a worker. A self-contained service does not need to split its database, API, or 
 separate packages solely to match this example.
 
 Keep service-specific packages inside the service. Move packages to the product's `packages/`
-when multiple services or the product's monolith code need them. Clients may live in the
-product's `clients/` directory, as they do in runtime.
+when multiple services or the product's monolith code need them.
+
+Place service clients alongside the owning product's or platform's `services/` directory:
+`products/<product>/clients/<client-name>/` or `platform/clients/<client-name>/`. Clients must not
+live inside individual service directories. Use the service name for the client directory; add a
+purpose suffix when a service exposes multiple clients. Package names remain governed by the
+service package naming convention below.
 
 Service-owned databases remain with their services. Moving the main Metorial database to
 `platform/db` does not merge the existing independent databases.
+
+### Service package names
+
+New service packages use the `@mtsrc` scope and a shared service name prefix:
+`@mtsrc/<service-name>-<role>`. The directory describes ownership and the package name describes
+the service and the package's role. Apply this convention to services under both products and
+platform. Service names must be unique across products and platform because they share this
+package scope.
+
+| Role                                         | Package name                            | Location relative to the owning product or platform |
+| -------------------------------------------- | --------------------------------------- | --------------------------------------------------- |
+| Database, Prisma client, IDs, and migrations | `@mtsrc/<service-name>-db`              | `services/<service-name>/db/`                       |
+| Internal API and its RPC contract            | `@mtsrc/<service-name>-api-internal`    | `services/<service-name>/apis/internal/`            |
+| Runnable service host                        | `@mtsrc/<service-name>-service`         | `services/<service-name>/service/`                  |
+| Internal API client                          | `@mtsrc/<service-name>-client-internal` | `clients/<client-name>/`                            |
+
+For example, the agents product owns `products/agents/services/ai-gateway/`, with packages
+`@mtsrc/ai-gateway-db`, `@mtsrc/ai-gateway-api-internal`, and `@mtsrc/ai-gateway-service`. Its
+`@mtsrc/ai-gateway-client-internal` package lives at `products/agents/clients/ai-gateway/`.
+
+The service host composes API packages and starts listeners and workers. The database package
+owns Prisma generation and migrations; other packages import its public exports. Clients depend
+on the API contract rather than the runnable service. Runtime imports between packages use
+package names. Clients may use type-only relative imports of API contracts to bundle those types
+into their declarations; keep the contract package declared as a dependency.
+
+Existing services may retain legacy package names until explicitly migrated. A package rename
+does not require renaming its database, environment variables, protocol paths, or published
+container images in the same change.
 
 ## The Metorial monolith
 
@@ -161,11 +200,12 @@ Changing a package's directory does not by itself require changing its package n
 
 ## Migration status and rules
 
-| Area                           | Status                                                                                                                                                                                            |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime                        | Structural move complete under `products/runtime`, including services, clients, and shared packages. This status concerns directory organization, not every runtime feature or deployment change. |
-| Agents                         | Started: the model catalog is under `products/agents/data/models`; other agents code remains in the previous tree.                                                                                |
-| Other products and shared code | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                          |
+| Area                           | Status                                                                                                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Runtime                        | Structural move complete under `products/runtime`, including services, clients, and shared packages. This status concerns directory organization, not every runtime feature or deployment change.                  |
+| Agents                         | Started: the model catalog is under `products/agents/data/models`, and synthesis moved to `products/agents/services/ai-gateway` with `@mtsrc/ai-gateway-*` packages. Monolith modules remain in the previous tree. |
+| Platform services              | `secret-store`, `email`, and `search` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                       |
+| Other products and shared code | Migration continues. Product modules, APIs, presenters, the main database, frontends, and generic libraries still have legacy locations.                                                                           |
 
 As remaining code moves, use these destination rules:
 

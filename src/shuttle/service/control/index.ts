@@ -37,7 +37,7 @@ export default project({
       'FUNCTION_BAY_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-function-bay'
     ),
-    dependency('@metorial/nebula').env(
+    dependency('@mtsrc/secret-store-service').env(
       'api',
       'NEBULA_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-nebula'

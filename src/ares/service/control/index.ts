@@ -36,7 +36,7 @@ export default project({
     internal: endpoint(52123).listenEnv('ARES_INTERNAL_PORT')
   },
   dependencies: [
-    dependency('@metorial/relay').env(
+    dependency('@mtsrc/email-service').env(
       'rpc',
       'RELAY_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-relay'

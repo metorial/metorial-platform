@@ -1,13 +1,13 @@
 {
-  "voyager": {
-    "dockerfile": "src/voyager/service/Dockerfile",
-    "image": "ghcr.io/metorial/voyager",
+  "search": {
+    "dockerfile": "src/platform/services/search/service/Dockerfile",
+    "image": "ghcr.io/metorial/search",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/voyager"
+      "--filter=@mtsrc/search-service"
     ],
     "buildArguments": {},
     "extraInputs": []
@@ -26,14 +26,15 @@
     "extraInputs": []
   },
   "synthesis": {
-    "dockerfile": "src/synthesis/service/Dockerfile",
+    "dockerfile": "src/products/agents/services/ai-gateway/service/Dockerfile",
     "image": "ghcr.io/metorial/synthesis",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/synthesis"
+      "--filter=@mtsrc/ai-gateway-service",
+      "--filter=@mtsrc/ai-gateway-db"
     ],
     "buildArguments": {},
     "extraInputs": []
@@ -90,28 +91,28 @@
     "buildArguments": {},
     "extraInputs": []
   },
-  "nebula": {
-    "dockerfile": "src/nebula/service/Dockerfile",
-    "image": "ghcr.io/metorial/nebula",
+  "secret-store": {
+    "dockerfile": "src/platform/services/secret-store/service/Dockerfile",
+    "image": "ghcr.io/metorial/secret-store",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/nebula"
+      "--filter=@mtsrc/secret-store-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "relay": {
-    "dockerfile": "src/relay/service/Dockerfile",
-    "image": "ghcr.io/metorial/relay",
+  "email": {
+    "dockerfile": "src/platform/services/email/service/Dockerfile",
+    "image": "ghcr.io/metorial/email",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/relay"
+      "--filter=@mtsrc/email-service"
     ],
     "buildArguments": {},
     "extraInputs": []
@@ -258,7 +259,11 @@
     "image": "ghcr.io/metorial/runtime-build-ubuntu",
     "platform": "linux/amd64",
     "workspace": ".",
-    "tasks": ["build", "--filter=function-bay", "--filter=@function-bay/nodejs"],
+    "tasks": [
+      "build",
+      "--filter=function-bay",
+      "--filter=@function-bay/nodejs"
+    ],
     "buildArguments": {},
     "extraInputs": []
   }

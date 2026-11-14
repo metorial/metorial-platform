@@ -26,7 +26,7 @@ test('unchanged and unrelated workspaces do not select tests', () => {
   expect(affected([], ['src/products/runtime/services/build/service'], false)).toBe(false);
   expect(
     affected(
-      ['docs/guide.md', 'src/nebula/service/src/index.ts'],
+      ['docs/guide.md', 'src/platform/services/secret-store/service/src/index.ts'],
       ['src/products/runtime/services/build/service'],
       false
     )

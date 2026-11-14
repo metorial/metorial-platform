@@ -5,7 +5,7 @@ import {
   DataList,
   Layout,
   Text
-} from '@metorial-platform-systems/relay-client';
+} from '@mtsrc/email-client-internal';
 import { UAParser } from 'ua-parser-js';
 import type { User } from '../../prisma/generated/client';
 import { createTemplateSender, emailIdentity, sender } from './client';

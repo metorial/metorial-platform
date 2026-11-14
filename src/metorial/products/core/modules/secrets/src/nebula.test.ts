@@ -17,7 +17,7 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@metorial-platform-systems/nebula-client', () => ({
+vi.mock('@mtsrc/secret-store-client-internal', () => ({
   createRawNebulaClient: vi.fn(() => rawNebula)
 }));
 

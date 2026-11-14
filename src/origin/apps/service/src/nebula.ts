@@ -1,4 +1,4 @@
-import { createNebulaClient } from '@metorial-platform-systems/nebula-client';
+import { createNebulaClient } from '@mtsrc/secret-store-client-internal';
 import os from 'os';
 import { db } from './db';
 import { env } from './env';

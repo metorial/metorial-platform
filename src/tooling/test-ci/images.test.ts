@@ -91,7 +91,7 @@ describe('image-only E2E Compose', () => {
   test('rejects wrong revisions, wrong services and mutable tags', () => {
     for (let patch of [
       { sourceRevision: 'c'.repeat(40) },
-      { name: 'nebula' },
+      { name: 'secret-store' },
       { image: 'ghcr.io/metorial/forge:latest' }
     ]) {
       let base = options();
@@ -112,6 +112,8 @@ describe('image-only E2E Compose', () => {
     } as any;
     delete (base.config.services.forge as any).build;
     expect(prepareCompose(base).config.services.forge.image).toContain('@sha256:');
-    expect(() => prepareCompose({ ...base, suite: 'nebula' })).toThrow('No compiled image');
+    expect(() => prepareCompose({ ...base, suite: 'secret-store' })).toThrow(
+      'No compiled image'
+    );
   });
 });

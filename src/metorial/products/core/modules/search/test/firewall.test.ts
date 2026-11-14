@@ -17,7 +17,7 @@ vi.mock('../src/env', () => ({
     }
   }
 }));
-vi.mock('@metorial-platform-systems/voyager-client', () => ({
+vi.mock('@mtsrc/search-client-internal', () => ({
   createVoyagerClient: () => ({
     source: { upsert: async () => ({ id: 'source' }) },
     index: { upsert: async () => ({ id: 'firewalls' }) },

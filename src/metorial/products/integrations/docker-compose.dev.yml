@@ -174,7 +174,7 @@ services:
       - subspace-network
 
   voyager:
-    image: ghcr.io/metorial/voyager:latest
+    image: ghcr.io/metorial/search:latest
     container_name: subspace-voyager
     restart: unless-stopped
     ports:

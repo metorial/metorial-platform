@@ -77,7 +77,7 @@
     "@lowerdeck/tokens": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial-platform-systems/function-bay-client": "workspace:*",
-    "@metorial-platform-systems/nebula-client": "workspace:*",
+    "@mtsrc/secret-store-client-internal": "workspace:*",
     "@metorial/mcp-server": "^1.0.0-rc.11",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@prisma/adapter-pg": "^7.10.1",

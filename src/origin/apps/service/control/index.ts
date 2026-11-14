@@ -34,7 +34,7 @@ export default project({
     dependency('@metorial/object-storage')
       .noStart()
       .env('api', 'OBJECT_STORAGE_URL', 'http://{{HOSTNAME}}:{{PORT}}'),
-    dependency('@metorial/nebula').env(
+    dependency('@mtsrc/secret-store-service').env(
       'api',
       'NEBULA_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-nebula'

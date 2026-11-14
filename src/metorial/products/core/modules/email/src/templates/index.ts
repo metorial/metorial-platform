@@ -9,4 +9,4 @@ export {
   Wrapper,
   type IEmail,
   type ITemplate
-} from '@metorial-platform-systems/relay-client';
+} from '@mtsrc/email-client-internal';

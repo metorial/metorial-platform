@@ -47,7 +47,7 @@ export default project({
       'SIGNAL_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-signal'
     ),
-    dependency('@metorial/nebula').env(
+    dependency('@mtsrc/secret-store-service').env(
       'api',
       'NEBULA_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-nebula'

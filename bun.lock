@@ -177,7 +177,7 @@
         "@metorial-io/pages": "^1.0.0",
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
-        "@metorial-platform-systems/relay-client": "workspace:*",
+        "@mtsrc/email-client-internal": "workspace:*",
         "@metorial/branding": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
@@ -3105,7 +3105,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@mtsrc/search-client-internal": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
       },
@@ -3226,7 +3226,7 @@
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/relay-client": "workspace:*",
+        "@mtsrc/email-client-internal": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/settings": "workspace:*",
@@ -3478,7 +3478,7 @@
       "dependencies": {
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@mtsrc/search-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
       },
@@ -3497,7 +3497,7 @@
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/nebula-client": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
         "@metorial/context": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
@@ -3813,6 +3813,7 @@
         "react": "19.3.0",
       },
       "devDependencies": {
+        "@mtsrc/email-client-internal": "workspace:*",
         "@metorial-subspace/tsconfig": "^1.0.0",
         "@metorial/e2e": "1.0.0",
         "@types/react": "19.3.0",
@@ -4294,7 +4295,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@mtsrc/search-client-internal": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
@@ -5045,7 +5046,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@mtsrc/search-client-internal": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
       },
@@ -5493,8 +5494,8 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/nebula/clients/nebula": {
-      "name": "@metorial-platform-systems/nebula-client",
+    "src/platform/clients/secret-store": {
+      "name": "@mtsrc/secret-store-client-internal",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -5519,14 +5520,14 @@
         "@types/bun": "^1.4.3",
       },
       "devDependencies": {
-        "@metorial/nebula": "workspace:*",
+        "@mtsrc/secret-store-service": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
       },
     },
-    "src/nebula/service": {
-      "name": "@metorial/nebula",
+    "src/platform/services/secret-store/service": {
+      "name": "@mtsrc/secret-store-service",
       "dependencies": {
         "@aws-sdk/client-kms": "^3.1158.0",
         "@aws-sdk/credential-providers": "^3.1158.0",
@@ -5676,7 +5677,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/nebula-client": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
         "@metorial/code-bucket-service-generated": "^1.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
@@ -6474,8 +6475,8 @@
         "typescript": "^5.9.3",
       },
     },
-    "src/relay/clients/relay": {
-      "name": "@metorial-platform-systems/relay-client",
+    "src/platform/clients/email": {
+      "name": "@mtsrc/email-client-internal",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/rpc-client": "workspace:2.0.0",
@@ -6483,7 +6484,7 @@
         "react": "19.3.0",
       },
       "devDependencies": {
-        "@metorial/relay": "workspace:*",
+        "@mtsrc/email-service": "workspace:*",
         "@types/node": "^25.9.9",
         "@types/react": "19.3.0",
         "dts-bundle-generator": "^9.5.1",
@@ -6493,8 +6494,8 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/relay/service": {
-      "name": "@metorial/relay",
+    "src/platform/services/email/service": {
+      "name": "@mtsrc/email-service",
       "dependencies": {
         "@aws-sdk/client-cloudwatch-logs": "^3.1158.0",
         "@aws-sdk/client-iam": "^3.1158.0",
@@ -6679,7 +6680,7 @@
         "@lowerdeck/tokens": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/function-bay-client": "workspace:*",
-        "@metorial-platform-systems/nebula-client": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/mcp-server": "^1.0.0-rc.11",
         "@metorial/settings": "workspace:*",
@@ -6855,7 +6856,7 @@
         "@metorial-io/ui-product": "^1.0.0",
         "@metorial-platform-systems/ares-client": "workspace:*",
         "@metorial-platform-systems/function-bay-client": "workspace:*",
-        "@metorial-platform-systems/nebula-client": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
         "@metorial-platform-systems/signal-client": "workspace:*",
         "@metorial-services/slates-registry-client": "workspace:*",
         "@metorial-services/slates-registry-internal-client": "^1.0.0",
@@ -7055,98 +7056,99 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/synthesis/clients/synthesis": {
-      "name": "@metorial-platform-systems/synthesis-client",
+    "src/products/agents/clients/ai-gateway": {
+      "name": "@mtsrc/ai-gateway-client-internal",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/hono": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/redis": "workspace:2.0.0",
         "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/telemetry": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0"
       },
       "devDependencies": {
-        "@metorial/synthesis": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
-      },
+        "@mtsrc/ai-gateway-api-internal": "workspace:*"
+      }
     },
-    "src/synthesis/service": {
-      "name": "@metorial/synthesis",
+
+    "src/products/agents/services/ai-gateway/db": {
+      "name": "@mtsrc/ai-gateway-db",
+      "version": "1.0.0",
       "dependencies": {
-        "@ai-sdk/mcp": "^2.0.86",
-        "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/hono": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/redis": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@prisma/adapter-pg": "^7.10.1",
+        "@prisma/client": "^7.10.1",
+        "@prisma/extension-read-replicas": "^0.5.0",
+        "p-queue": "^10.0.0",
+        "prisma": "^7.10.1",
+        "prisma-json-types-generator": "^5.2.0",
+        "dotenv": "^18.0.9"
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3"
+      }
+    },
+    "src/products/agents/services/ai-gateway/apis/internal": {
+      "name": "@mtsrc/ai-gateway-api-internal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0"
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4"
+      }
+    },
+    "src/products/agents/services/ai-gateway/service": {
+      "name": "@mtsrc/ai-gateway-service",
+      "version": "1.0.0",
+      "dependencies": {
+        "@mtsrc/ai-gateway-api-internal": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
-        "@prisma/adapter-pg": "^7.10.1",
-        "@prisma/client": "^7.10.1",
-        "@prisma/extension-read-replicas": "^0.5.0",
-        "@sentry/bun": "^11.9.0",
-        "@sentry/cli": "^3.8.2",
-        "ai": "^7.0.155",
-        "hono": "4.13.13",
-        "just-bash": "^3.6.0",
-        "p-queue": "^10.0.0",
-        "prisma": "^7.10.1",
-        "prisma-json-types-generator": "^5.2.0",
-        "zod": "^4.6.7",
+        "@sentry/bun": "^11.9.0"
       },
       "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
         "@vercel/ncc": "^0.45.0",
         "vitest": "^5.0.4",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
+        "typescript": "5.9.3"
+      }
     },
+
     "src/tooling/warp-cache": {
       "name": "@metorial/warp-cache",
     },
-    "src/voyager/clients/voyager": {
-      "name": "@metorial-platform-systems/voyager-client",
+    "src/platform/clients/search": {
+      "name": "@mtsrc/search-client-internal",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/rpc-client": "workspace:2.0.0",
       },
       "devDependencies": {
-        "@metorial/voyager": "workspace:*",
+        "@mtsrc/search-service": "workspace:*",
         "@types/node": "^25.9.9",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
       },
     },
-    "src/voyager/service": {
-      "name": "@metorial/voyager",
+    "src/platform/services/search/service": {
+      "name": "@mtsrc/search-service",
       "dependencies": {
         "@aws-sdk/client-cloudwatch-logs": "^3.1158.0",
         "@aws-sdk/client-iam": "^3.1158.0",
@@ -8181,7 +8183,7 @@
 
     "@metorial-platform-systems/function-bay-client": ["@metorial-platform-systems/function-bay-client@workspace:src/products/runtime/clients/functions"],
 
-    "@metorial-platform-systems/nebula-client": ["@metorial-platform-systems/nebula-client@workspace:src/nebula/clients/nebula"],
+    "@mtsrc/secret-store-client-internal": ["@mtsrc/secret-store-client-internal@workspace:src/platform/clients/secret-store"],
 
     "@metorial-platform-systems/network-logs-client": ["@metorial-platform-systems/network-logs-client@workspace:src/products/runtime/clients/networking"],
 
@@ -8189,7 +8191,7 @@
 
     "@metorial-platform-systems/origin-client": ["@metorial-platform-systems/origin-client@workspace:src/origin/clients/origin"],
 
-    "@metorial-platform-systems/relay-client": ["@metorial-platform-systems/relay-client@workspace:src/relay/clients/relay"],
+    "@mtsrc/email-client-internal": ["@mtsrc/email-client-internal@workspace:src/platform/clients/email"],
 
     "@metorial-platform-systems/shuttle-client": ["@metorial-platform-systems/shuttle-client@workspace:src/shuttle/clients/shuttle"],
 
@@ -8197,9 +8199,9 @@
 
     "@metorial-platform-systems/slates-client": ["@metorial-platform-systems/slates-client@workspace:src/slates/clients/slates"],
 
-    "@metorial-platform-systems/synthesis-client": ["@metorial-platform-systems/synthesis-client@workspace:src/synthesis/clients/synthesis"],
+    "@mtsrc/ai-gateway-client-internal": ["@mtsrc/ai-gateway-client-internal@workspace:src/products/agents/clients/ai-gateway"],
 
-    "@metorial-platform-systems/voyager-client": ["@metorial-platform-systems/voyager-client@workspace:src/voyager/clients/voyager"],
+    "@mtsrc/search-client-internal": ["@mtsrc/search-client-internal@workspace:src/platform/clients/search"],
 
     "@metorial-services/registry-client": ["@metorial-services/registry-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/rpc-server": "^1.0.6", "@lowerdeck/validation": "^1.0.4" } }, "sha512-6A3tb7rtxex7GlygF6W832p8zoW5I1tkEzEpGzlhjA7wWIwPKVIlYF2XxKhua3z2+kXRKUW6WKjKwc+P81TIdw=="],
 
@@ -8519,7 +8521,7 @@
 
     "@metorial/multi-region": ["@metorial/multi-region@workspace:src/metorial/multi-region"],
 
-    "@metorial/nebula": ["@metorial/nebula@workspace:src/nebula/service"],
+    "@mtsrc/secret-store-service": ["@mtsrc/secret-store-service@workspace:src/platform/services/secret-store/service"],
 
     "@metorial/object-storage": ["@metorial/object-storage@workspace:src/object-storage"],
 
@@ -8543,7 +8545,7 @@
 
     "@metorial/redis": ["@metorial/redis@workspace:src/metorial/packages/redis"],
 
-    "@metorial/relay": ["@metorial/relay@workspace:src/relay/service"],
+    "@mtsrc/email-service": ["@mtsrc/email-service@workspace:src/platform/services/email/service"],
 
     "@metorial/rest": ["@metorial/rest@workspace:src/metorial/packages/rest"],
 
@@ -8589,7 +8591,11 @@
 
     "@metorial/subspace-dev": ["@metorial/subspace-dev@workspace:src/metorial/products/integrations/apps/dev"],
 
-    "@metorial/synthesis": ["@metorial/synthesis@workspace:src/synthesis/service"],
+    "@mtsrc/ai-gateway-db": ["@mtsrc/ai-gateway-db@workspace:src/products/agents/services/ai-gateway/db"],
+
+    "@mtsrc/ai-gateway-api-internal": ["@mtsrc/ai-gateway-api-internal@workspace:src/products/agents/services/ai-gateway/apis/internal"],
+
+    "@mtsrc/ai-gateway-service": ["@mtsrc/ai-gateway-service@workspace:src/products/agents/services/ai-gateway/service"],
 
     "@metorial/system-email": ["@metorial/system-email@workspace:src/metorial/packages/system-email"],
 
@@ -8621,7 +8627,7 @@
 
     "@metorial/util-websocket": ["@metorial/util-websocket@3.0.0", "", { "dependencies": { "mitt": "^3.0.1", "ws": "^8.18.2" } }, "sha512-02OgthqhSauROBaLVbDVnLGpHSoNBhIfPMbbm7QHfslIdxl0ExR1MPh52Duyejq2acIOqxmih+N1ACvQ4rH/ig=="],
 
-    "@metorial/voyager": ["@metorial/voyager@workspace:src/voyager/service"],
+    "@mtsrc/search-service": ["@mtsrc/search-service@workspace:src/platform/services/search/service"],
 
     "@metorial/warp-cache": ["@metorial/warp-cache@workspace:src/tooling/warp-cache"],
 
@@ -12465,9 +12471,9 @@
 
     "@metorial-platform-systems/origin-client/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
-    "@metorial-platform-systems/relay-client/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/email-client-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
-    "@metorial-platform-systems/voyager-client/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/search-client-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/ares/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -12477,19 +12483,19 @@
 
     "@metorial/mcp-proxy/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
 
-    "@metorial/nebula/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/secret-store-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/origin/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
-    "@metorial/relay/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/email-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/shuttle/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/signal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
-    "@metorial/synthesis/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/ai-gateway-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
-    "@metorial/voyager/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+    "@mtsrc/search-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@octokit/request/content-type": ["content-type@3.1.1", "", {}, "sha512-GW4qUsfFo59d0HbUibDlWv5wPz+vAAcaTWbKIuKCf0JkC7wWkSyf8f13IpXn5JkeMlB2P8iTSSIjwXljorg2vA=="],
 
@@ -13521,9 +13527,9 @@
 
     "@metorial-platform-systems/origin-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial-platform-systems/relay-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/email-client-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial-platform-systems/voyager-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/search-client-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/ares/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -13541,19 +13547,19 @@
 
     "@metorial/mcp-proxy/vitest/why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
 
-    "@metorial/nebula/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/secret-store-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/origin/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial/relay/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/email-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/shuttle/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/signal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial/synthesis/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/ai-gateway-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
-    "@metorial/voyager/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+    "@mtsrc/search-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@opentelemetry/exporter-metrics-otlp-grpc/@opentelemetry/core/@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 

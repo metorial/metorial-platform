@@ -76,8 +76,8 @@ export default project({
     tests: ['../../products/*/modules/*', '../../apis/*'],
     services: [
       '@metorial/shuttle',
-      '@metorial/voyager',
-      '@metorial/relay',
+      '@mtsrc/search-service',
+      '@mtsrc/email-service',
       '@metorial-subspace/app-worker'
     ],
     healthTimeout: 300,

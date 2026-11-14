@@ -25,7 +25,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@mtsrc/secret-store-service --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
 
   build-and-test-ts:
     needs: changes

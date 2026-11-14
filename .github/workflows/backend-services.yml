@@ -33,7 +33,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@mtsrc/secret-store-service --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@mtsrc/email-service
 
   migrations:
     name: Check Prisma migrations
@@ -71,21 +71,21 @@ jobs:
           - name: forge
             image: ghcr.io/metorial/forge
             dockerfile: ./src/products/runtime/services/build/service/Dockerfile
-          - name: nebula
-            image: ghcr.io/metorial/nebula
-            dockerfile: ./src/nebula/service/Dockerfile
+          - name: secret-store
+            image: ghcr.io/metorial/secret-store
+            dockerfile: ./src/platform/services/secret-store/service/Dockerfile
           - name: function-bay
             image: ghcr.io/metorial/function-bay
             dockerfile: ./src/products/runtime/services/functions/service/Dockerfile
           - name: shuttle
             image: ghcr.io/metorial/shuttle
             dockerfile: ./src/shuttle/service/Dockerfile
-          - name: relay
-            image: ghcr.io/metorial/relay
-            dockerfile: ./src/relay/service/Dockerfile
-          - name: voyager
-            image: ghcr.io/metorial/voyager
-            dockerfile: ./src/voyager/service/Dockerfile
+          - name: email
+            image: ghcr.io/metorial/email
+            dockerfile: ./src/platform/services/email/service/Dockerfile
+          - name: search
+            image: ghcr.io/metorial/search
+            dockerfile: ./src/platform/services/search/service/Dockerfile
           - name: slates-hub
             image: ghcr.io/metorial/slates-hub
             dockerfile: ./src/slates/apps/hub/Dockerfile
@@ -113,7 +113,7 @@ jobs:
             dockerfile: ./src/object-storage/Dockerfile
           - name: synthesis
             image: ghcr.io/metorial/synthesis
-            dockerfile: ./src/synthesis/service/Dockerfile
+            dockerfile: ./src/products/agents/services/ai-gateway/service/Dockerfile
           - name: subspace-worker
             image: ghcr.io/metorial/subspace-worker
             dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
