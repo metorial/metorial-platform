@@ -14,7 +14,7 @@ import {
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
-  name: '@metorial/synthesis',
+  name: '@mtsrc/ai-gateway-service',
   stacks: {
     cloud: stackMember(),
     'on-prem': stackMember({ mode: 'oss' })
@@ -34,7 +34,7 @@ export default project({
     }),
     databases: {
       main: postgres({
-        package: '@metorial/synthesis',
+        package: '@mtsrc/ai-gateway-db',
         name: 'synthesis',
         env: 'SYNTHESIS_DATABASE_URL'
       })
@@ -50,13 +50,14 @@ export default project({
         ecr: 'metorial-enterprise-saas/mte-synthesis',
         canonical: 'ghcr.io/metorial/synthesis',
         build: bunService({
+          include: ['@mtsrc/ai-gateway-db'],
           ports: [52160],
           health: [
             { port: 52160, path: '/ping' },
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('synthesis', '@metorial/synthesis', { prefix: 'SYNTHESIS' })
+            ownMigration('synthesis', '@mtsrc/ai-gateway-db', { prefix: 'SYNTHESIS' })
           ]
         })
       })

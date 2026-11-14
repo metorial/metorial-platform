@@ -13,7 +13,7 @@ let toErrorResponse = (error: unknown) => {
   });
 };
 
-export let synthesisHttpApi = createHono()
+export let aiGatewayHttpApi = createHono()
   .use(async (c, next) => {
     c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');

@@ -1,11 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "Default",
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "compilerOptions": {
-    "rootDir": "../..",
     "outDir": "dist",
     "composite": false,
     "declaration": true,
@@ -16,11 +13,7 @@
     "isolatedModules": true,
     "moduleResolution": "bundler",
     "module": "esnext",
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -30,8 +23,5 @@
     "downlevelIteration": true,
     "resolveJsonModule": true
   },
-  "exclude": [
-    "dist",
-    "node_modules"
-  ]
+  "exclude": ["dist", "node_modules"]
 }

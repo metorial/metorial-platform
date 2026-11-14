@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 FROM base AS pruner
 COPY . .
-RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@metorial/synthesis
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=@mtsrc/ai-gateway-service --filter=@mtsrc/ai-gateway-db
 
 FROM scratch AS pruned
 COPY --from=pruner /app/out/ /
@@ -23,7 +23,8 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@metorial/synthesis
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate --filter=@mtsrc/ai-gateway-service --filter=@mtsrc/ai-gateway-db
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh server:build --filter=@mtsrc/ai-gateway-service
 
 FROM base AS control-runtime
 WORKDIR /runtime
@@ -49,9 +50,9 @@ COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
 FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=10001:10001 /app/src/synthesis/service/dist ./dist
-COPY --from=builder --link --chown=10001:10001 /app/src/synthesis/service/prisma/schema/ ./prisma/synthesis/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/synthesis/service/prisma/migrations/ ./prisma/synthesis/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/service/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/db/prisma/schema/ ./prisma/synthesis/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/db/prisma/migrations/ ./prisma/synthesis/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
