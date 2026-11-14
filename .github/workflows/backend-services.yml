@@ -70,13 +70,13 @@ jobs:
         service:
           - name: forge
             image: ghcr.io/metorial/forge
-            dockerfile: ./src/forge/service/Dockerfile
+            dockerfile: ./src/products/runtime/services/build/service/Dockerfile
           - name: nebula
             image: ghcr.io/metorial/nebula
             dockerfile: ./src/nebula/service/Dockerfile
           - name: function-bay
             image: ghcr.io/metorial/function-bay
-            dockerfile: ./src/function-bay/service/Dockerfile
+            dockerfile: ./src/products/runtime/services/functions/service/Dockerfile
           - name: shuttle
             image: ghcr.io/metorial/shuttle
             dockerfile: ./src/shuttle/service/Dockerfile
@@ -101,10 +101,10 @@ jobs:
             dockerfile: ./src/ares/service/Dockerfile
           - name: deflector
             image: ghcr.io/metorial/deflector
-            dockerfile: ./src/function-bay/deflector/Dockerfile
+            dockerfile: ./src/products/runtime/services/networking/legacy/deflector/Dockerfile
           - name: function-bay-observer
             image: ghcr.io/metorial/function-bay-observer
-            dockerfile: ./src/function-bay/observer/Dockerfile
+            dockerfile: ./src/products/runtime/services/networking/legacy/observer/Dockerfile
           - name: origin
             image: ghcr.io/metorial/mte-origin
             dockerfile: ./src/origin/apps/service/Dockerfile
