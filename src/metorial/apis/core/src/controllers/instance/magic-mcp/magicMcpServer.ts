@@ -356,7 +356,7 @@ export let magicMcpServerController = Controller.create(
           v.object({
             ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
               description:
-                "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
+                "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'usable' for consumers, and otherwise to 'shared' when ownership is enforced for the project and 'all' when it isn't."
             }),
             status: v.optional(
               v.union([
