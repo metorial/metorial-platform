@@ -1,0 +1,93 @@
+enum IngestDeviceMode {
+  bound
+  ephemeral
+}
+
+model IngestToken {
+  oid BigInt @id
+  id  String @unique
+
+  prefix     String @unique
+  secretHash String
+
+  name String
+
+  /// [ContentPolicy]
+  contentPolicy Json
+
+  /// [IngestTokenLimits]
+  limits Json
+
+  allowedClients  String[]
+  allowedChannels String[]
+
+  userRef    String
+  deviceRef  String?
+  deviceMode IngestDeviceMode @default(bound)
+  agentRef   String?
+
+  /// [IngestTags]
+  tags Json @default("[]")
+
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  userEntityOid BigInt
+  userEntity    Entity @relation("IngestTokenUser", fields: [userEntityOid], references: [oid])
+
+  deviceEntityOid BigInt?
+  deviceEntity    Entity? @relation("IngestTokenDevice", fields: [deviceEntityOid], references: [oid])
+
+  agentEntityOid BigInt?
+  agentEntity    Entity? @relation("IngestTokenAgent", fields: [agentEntityOid], references: [oid])
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+}
+
+model IngestSource {
+  oid BigInt @id
+  id  String @unique
+
+  prefix     String @unique
+  secretHash String
+
+  name   String
+  family String
+
+  /// [ContentPolicy]
+  contentPolicy Json
+
+  /// [IngestTokenLimits]
+  limits Json
+
+  allowedChannels String[]
+
+  newUserLimitPerDay Int @default(50)
+
+  /// [IngestTags]
+  tags Json @default("[]")
+
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+}

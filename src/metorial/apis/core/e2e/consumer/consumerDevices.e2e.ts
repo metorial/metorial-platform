@@ -323,6 +323,35 @@ describe('api-core consumer: devices', () => {
     expectError(await laptop.client.post('/consumer/devices/sign-out'), 401);
   });
 
+  it('reports telemetry as unavailable when this server collects none', async () => {
+    let portal = await createPortal(org);
+    let desktop = await signInDesktop(org, portal.id);
+    let neighbour = await signInDesktop(org, portal.id);
+    let device = expectOk(
+      await desktop.client.post('/consumer/devices/check-in', checkInBody())
+    );
+
+    let unavailable = expectError(
+      await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`),
+      404,
+      'not_found'
+    );
+    expect(unavailable.entity).toBe('consumer.device.telemetry_token');
+
+    let foreign = expectError(
+      await neighbour.client.post(`/consumer/devices/${device.id}/telemetry-token`),
+      404,
+      'not_found'
+    );
+    expect(foreign.entity).toBe('consumer.device');
+
+    expect(
+      await db.agentTelemetryIngestToken.count({
+        where: { consumerDevice: { id: device.id } }
+      })
+    ).toBe(0);
+  });
+
   it('lets admins list, read and revoke devices of their own instance', async () => {
     let portal = await createPortal(org);
     let desktop = await signInDesktop(org, portal.id);

@@ -1,0 +1,14 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../generated"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm]
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}

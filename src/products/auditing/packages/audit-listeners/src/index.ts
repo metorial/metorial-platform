@@ -1,5 +1,6 @@
 export * from './access';
 export * from './actor';
+export * from './agentTelemetry';
 export * from './apiKey';
 export * from './auditLogRetention';
 export * from './auditLogStream';

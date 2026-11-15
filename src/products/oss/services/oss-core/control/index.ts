@@ -49,6 +49,8 @@ export default project({
       platformEnv(),
       pickEnv(
         'GENESIS_INTERNAL_URL',
+        'AGENT_TRACKING_URL',
+        'AGENT_TRACKING_INGEST_PUBLIC_URL',
         'INTEGRATIONS_API_URL',
         'INTEGRATIONS_UI_URL',
         'OUTPOST_KEY_ENCRYPTION_SECRET',
@@ -94,6 +96,8 @@ export default project({
       AWS_REGION: 'us-east-1',
       AWS_ACCOUNT_ID: '000000000000',
       RELAY_URL: 'http://localhost:52110/metorial-relay',
+      AGENT_TRACKING_URL: '',
+      AGENT_TRACKING_INGEST_PUBLIC_URL: '',
       METORIAL_ENABLED_FLAGS: '*',
       SKILL_SYNC_RECONCILER_CRONS_ENABLED: 'false'
     },

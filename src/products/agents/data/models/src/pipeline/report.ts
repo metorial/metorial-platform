@@ -1,6 +1,7 @@
 import { groupBy } from '../lib/util';
 import type { Catalog, NameTarget, TokenRates } from '../types';
 import type { BuildResult } from './build';
+import type { DeployGate, GateCheck } from './gate';
 
 let listLimit = 25;
 let unresolvedVendorLimit = 20;
@@ -51,7 +52,46 @@ let countsTable = (catalog: Catalog) => [
   `| pointers | ${catalog.pointers.length} | ${catalog.pointers.length} |`
 ];
 
-export let renderReport = (result: BuildResult) => {
+let gateValue = (check: GateCheck, value: number | null) => {
+  if (value === null) return 'n/a';
+  if (check.unit === 'presence') return value ? 'present' : 'missing';
+  if (check.unit === 'share') return `${(value * 100).toFixed(1)}%`;
+  return `${value}`;
+};
+
+let gateThreshold = (check: GateCheck) => {
+  if (check.unit === 'presence') return 'required';
+  return `at most ${gateValue(check, check.threshold)}`;
+};
+
+let gateResult = (check: GateCheck) => {
+  if (check.passed) return 'pass';
+  return check.overridden ? 'fail (overridden by allow-unsafe)' : 'fail';
+};
+
+let gateSection = (gate: DeployGate) => {
+  let verdict = gate.passed
+    ? 'All checks passed; the catalog may deploy.'
+    : gate.deploy
+      ? '**Checks failed, but `allow-unsafe` is set; the catalog may deploy.**'
+      : '**Checks failed; the catalog will not deploy.** Re-run with `allow-unsafe` once the changes are confirmed.';
+
+  return [
+    '## Deploy gate',
+    '',
+    verdict,
+    '',
+    '| Check | Value | Detail | Threshold | Result |',
+    '| --- | ---: | --- | --- | --- |',
+    ...gate.checks.map(
+      check =>
+        `| ${check.label} | ${gateValue(check, check.value)} | ${check.detail} | ${gateThreshold(check)} | ${gateResult(check)} |`
+    ),
+    ''
+  ];
+};
+
+export let renderReport = (result: BuildResult, gate?: DeployGate) => {
   let { catalog, diff, validation } = result;
   let liveOfferings = live(catalog.offerings);
   let resolvedCount = liveOfferings.length - result.resolutionCounts.unresolved;
@@ -67,6 +107,7 @@ export let renderReport = (result: BuildResult) => {
     '',
     `Generated ${catalog.generatedAt} from models.dev \`${result.modelsDevSha}\`.`,
     '',
+    ...(gate ? gateSection(gate) : []),
     '## Sources',
     '',
     '| Source | Status | Error |',
@@ -124,6 +165,14 @@ export let renderReport = (result: BuildResult) => {
       ...bullets(
         diff.priceChanges.map(
           change => `${change.offeringId}: ${rates(change.before)} → ${rates(change.after)}`
+        )
+      ),
+      '',
+      '### New price outliers (text input, USD per 1M tokens)',
+      ...bullets(
+        result.newPriceOutliers.map(
+          outlier =>
+            `${outlier.offeringId}: ${outlier.input} vs ${outlier.modelId} median ${outlier.median}`
         )
       ),
       '',

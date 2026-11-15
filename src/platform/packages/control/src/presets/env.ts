@@ -104,6 +104,8 @@ let sharedEnv = {
   FUNCTION_BAY_DEFAULT_MEMORY_MB: '512',
   FUNCTION_BAY_TENANT_IDENTIFIER: 'dev-tenant',
   GENESIS_INTERNAL_URL: inherit(),
+  AGENT_TRACKING_URL: services.agentTracking.url('/metorial-agent-tracking'),
+  AGENT_TRACKING_INGEST_PUBLIC_URL: services.agentTrackingIngest.url(),
   HYPERPLANE_ENDPOINT: services.hyperplane.url(),
   INTEGRATIONS_API_URL: services.integrationsApi.url(),
   INTEGRATIONS_UI_URL: services.integrationsUi.url(),

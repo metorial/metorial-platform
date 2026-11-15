@@ -111,6 +111,8 @@ impl ZipJobError {
             BackendError::InvalidPath(_) => ZipErrorCode::InvalidSpec,
             BackendError::Serialization(_)
             | BackendError::Configuration(_)
+            | BackendError::InvalidRequest(_)
+            | BackendError::Unsupported(_)
             | BackendError::Internal(_) => ZipErrorCode::Internal,
             BackendError::Io(_)
             | BackendError::Provider(_)

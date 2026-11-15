@@ -91,12 +91,19 @@ export let createCachedFunction = <I, O>(opts: {
       if (opts.getTags) {
         let tags = opts.getTags(result, i);
         let tagKeys = getTagKeys(tags);
-        Promise.all(
-          tagKeys.map(async tagKey => {
-            await redis.sAdd(tagKey, hash);
-            await redis.expire(tagKey, ttl.current);
-          })
-        ).catch(console.error);
+
+        // Awaited so a clearByTag issued right after this call resolves already sees the entry.
+        try {
+          await Promise.all(
+            tagKeys.map(async tagKey => {
+              await redis.sAdd(tagKey, hash);
+              await redis.expire(tagKey, ttl.current);
+            })
+          );
+        } catch (e) {
+          console.error('Error adding tag:', e);
+          Sentry.captureException(e);
+        }
       }
 
       cache.set(hash, result);

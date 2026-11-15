@@ -23,6 +23,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
+import { recordAgentTelemetryIngestTokenCreated } from './agentTelemetry';
 import {
   recordConsumerGroupUpdated,
   recordConsumerIdentityUpdated,
@@ -394,6 +395,50 @@ describe('workforce audit listeners', () => {
       expect(JSON.stringify(event.payload)).not.toContain('super-secret');
       expect(event.payload.groupIds).toStrictEqual(['mmg_1']);
       expect(['create', 'rotate']).toContain(action);
+    }
+  });
+
+  it('records an agent telemetry ingest token as created, then rotated, by id only', async () => {
+    let ingestToken = {
+      oid: 7n,
+      id: 'atit_1',
+      status: 'active',
+      deviceMode: 'bound',
+      groundstationIngestTokenId: 'git_1',
+      name: "Ada's Mac",
+      secret: 'super-secret',
+      consumer: { id: 'con_1' },
+      consumerDevice: { id: 'codv_1' }
+    };
+
+    await recordAgentTelemetryIngestTokenCreated({
+      ingestToken,
+      replacedIngestTokenIds: [],
+      auditScope
+    } as any);
+    await recordAgentTelemetryIngestTokenCreated({
+      ingestToken: { ...ingestToken, id: 'atit_2' },
+      replacedIngestTokenIds: ['atit_1'],
+      auditScope
+    } as any);
+
+    expect(recordEvent.mock.calls.map(([, resource, action]) => [resource, action])).toEqual([
+      ['agent_telemetry_ingest_token', 'create'],
+      ['agent_telemetry_ingest_token', 'rotate']
+    ]);
+    expect(recordEvent.mock.calls[0]![3].payload).toStrictEqual({
+      id: 'atit_1',
+      groundstationIngestTokenId: 'git_1',
+      name: "Ada's Mac",
+      status: 'active',
+      deviceMode: 'bound',
+      consumerId: 'con_1',
+      consumerDeviceId: 'codv_1',
+      replacedIngestTokenIds: []
+    });
+    expect(recordEvent.mock.calls[1]![3].payload.replacedIngestTokenIds).toEqual(['atit_1']);
+    for (let [, , , event] of recordEvent.mock.calls) {
+      expect(JSON.stringify(event.payload)).not.toContain('super-secret');
     }
   });
 

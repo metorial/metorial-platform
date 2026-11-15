@@ -84,6 +84,7 @@ import {
   v1ConsumerActivitySessionConnectionPresenter,
   v1ConsumerAndProfilePresenter,
   v1ConsumerDevicePresenter,
+  v1ConsumerDeviceTelemetryTokenPresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
   v1ConsumerOAuthAuthorizationPresenter,
@@ -359,6 +360,7 @@ import {
   consumerActivityAgentType,
   consumerActivitySessionConnectionType,
   consumerAndProfileType,
+  consumerDeviceTelemetryTokenType,
   consumerDeviceType,
   consumerGroupType,
   consumerInviteType,
@@ -1449,6 +1451,15 @@ export let consumerDevicePresenter = declarePresenter(consumerDeviceType, {
   mt_2026_01_01_magnetar: v1ConsumerDevicePresenter,
   mt_2026_04_01_consumer: v1ConsumerDevicePresenter
 });
+
+export let consumerDeviceTelemetryTokenPresenter = declarePresenter(
+  consumerDeviceTelemetryTokenType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerDeviceTelemetryTokenPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerDeviceTelemetryTokenPresenter,
+    mt_2026_04_01_consumer: v1ConsumerDeviceTelemetryTokenPresenter
+  }
+);
 
 export let consumerOAuthAuthorizationPresenter = declarePresenter(
   consumerOAuthAuthorizationType,

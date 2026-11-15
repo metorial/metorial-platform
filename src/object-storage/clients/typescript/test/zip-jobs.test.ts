@@ -222,6 +222,7 @@ class Server {
           '[server]',
           'host = "127.0.0.1"',
           `port = ${this.port}`,
+          'health_port = 0',
           'request_timeout_secs = 30',
           '[backend]',
           ...(this.backend ?? [

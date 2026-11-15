@@ -4,6 +4,7 @@ import { groupBy } from '../lib/util';
 import { sourceSnapshotPath } from '../sources/fetch';
 import type { Catalog, SourceKind } from '../types';
 import type { BuildResult } from './build';
+import type { DeployGate } from './gate';
 import { renderReport } from './report';
 
 let generatedEntries = [
@@ -120,7 +121,7 @@ let writeEntityFiles = async (dir: string, catalog: Catalog) => {
   await Promise.all(writes);
 };
 
-export let emitCatalog = async (dir: string, result: BuildResult) => {
+export let emitCatalog = async (dir: string, result: BuildResult, gate?: DeployGate) => {
   let { catalog } = result;
 
   await mkdir(dir, { recursive: true });
@@ -157,5 +158,5 @@ export let emitCatalog = async (dir: string, result: BuildResult) => {
     await copyFile(source, file);
   }
 
-  await writeFile(path.join(dir, 'report.md'), renderReport(result));
+  await writeFile(path.join(dir, 'report.md'), renderReport(result, gate));
 };

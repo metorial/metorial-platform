@@ -190,6 +190,10 @@
       "dependsOn": ["^build", "@mtsrc/mcp-runtime-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
+    "@metorial-platform-systems/agent-tracking-client#build": {
+      "dependsOn": ["^build", "@mtsrc/agent-tracking-db#prisma:generate"],
+      "outputs": ["dist/**"]
+    },
     "@mtsrc/webhook-sender-client-internal#build": {
       "dependsOn": ["^build", "@mtsrc/webhook-sender-service#prisma:generate"],
       "outputs": ["dist/**"]

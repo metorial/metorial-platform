@@ -46,6 +46,7 @@ model Consumer {
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
   storeParticipants          StoreParticipant[]
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
 
   @@unique([email, organizationOid])
 }

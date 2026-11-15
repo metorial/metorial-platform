@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createCachedFunction, createLocallyCachedFunction } from './index';
 
-let { redisStore, redisSets } = vi.hoisted(() => ({
+let { redisStore, redisSets, redisLatency } = vi.hoisted(() => ({
   redisStore: new Map<string, string>(),
-  redisSets: new Map<string, Set<string>>()
+  redisSets: new Map<string, Set<string>>(),
+  redisLatency: { sAddMs: 0 }
 }));
 
 vi.mock('@lowerdeck/redis', () => ({
@@ -16,6 +17,8 @@ vi.mock('@lowerdeck/redis', () => ({
         redisSets.delete(key);
       },
       sAdd: async (key: string, member: string) => {
+        if (redisLatency.sAddMs) await new Promise(r => setTimeout(r, redisLatency.sAddMs));
+
         if (!redisSets.has(key)) redisSets.set(key, new Set());
         redisSets.get(key)!.add(member);
       },
@@ -72,6 +75,33 @@ describe('createCachedFunction', () => {
     expect(provider).toHaveBeenCalledTimes(2);
   });
 
+  it('has registered its tags by the time the call resolves', async () => {
+    let name = 'tags-registered';
+    let provider = vi.fn(async (key: string) => `value:${key}:${provider.mock.calls.length}`);
+    let cached = createCachedFunction({
+      name,
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      getTags: () => ['owner'],
+      provider,
+      ttlSeconds: 60
+    });
+
+    redisLatency.sAddMs = 20;
+
+    try {
+      await cached('key');
+    } finally {
+      redisLatency.sAddMs = 0;
+    }
+
+    expect(tagMembers(name, 'owner')).toHaveLength(1);
+
+    await cached.clearByTagAndWait('owner');
+
+    expect(await cached('key')).toBe('value:key:2');
+  });
+
   it('removes a value that fails revalidation from its old tags', async () => {
     let provider = vi.fn(async () => `owner:${provider.mock.calls.length}`);
     let options = {
@@ -85,11 +115,9 @@ describe('createCachedFunction', () => {
     };
 
     await createCachedFunction(options)('key');
-    await new Promise(resolve => setTimeout(resolve, 0));
 
     let refreshed = createCachedFunction(options);
     expect(await refreshed('key')).toBe('owner:2');
-    await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(tagMembers('revalidate-tags', 'owner:1')).toEqual([]);
     expect(tagMembers('revalidate-tags', 'owner:2')).toHaveLength(1);
@@ -120,7 +148,6 @@ describe('createCachedFunction', () => {
 
     await first.cached('key');
     await second.cached('key');
-    await new Promise(resolve => setTimeout(resolve, 0));
 
     await first.cached.clearByTagAndWait('shared');
     await second.cached.clearByTagAndWait('shared');
@@ -141,7 +168,6 @@ describe('createCachedFunction', () => {
     });
 
     await cached('first');
-    await new Promise(resolve => setTimeout(resolve, 0));
 
     let tagKey = `cache:0:${name}:tag:tag`;
     let members = redisSets.get(tagKey)!;
@@ -219,7 +245,6 @@ describe('createLocallyCachedFunction', () => {
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       await expect(cached('key')).rejects.toBe(expectedError);
-      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(unhandledRejections).toEqual([]);
 

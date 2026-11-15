@@ -37,6 +37,7 @@ export const startLiveServer = async (name: string) => {
       '[server]',
       'host = "127.0.0.1"',
       `port = ${port}`,
+      'health_port = 0',
       '[backend]',
       'type = "local"',
       `root_path = "${join(root, 'data')}"`,

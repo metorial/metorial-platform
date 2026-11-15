@@ -1,0 +1,186 @@
+enum EntityCardinality {
+  single
+  multi
+}
+
+model EntityKind {
+  oid BigInt @id
+  id  String @unique
+
+  key  String
+  name String
+
+  cardinality EntityCardinality @default(single)
+
+  /// [EntityKindAttributes]
+  attributes Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  @@unique([organizationOid, key])
+}
+
+enum EntityStatus {
+  managed
+  discovered
+  merged
+  archived
+}
+
+model Entity {
+  oid BigInt @id
+  id  String @unique
+
+  kind   String
+  status EntityStatus
+
+  source String?
+  ref    String?
+  slug   String?
+
+  name String?
+
+  /// [EntityAttributes]
+  attributes Json @default("{}")
+
+  needsReview Boolean @default(false)
+
+  mergedIntoOid BigInt?
+
+  firstSeenAt DateTime?
+  lastSeenAt  DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  scopeProjectOid BigInt?
+  scopeProject    Project? @relation(fields: [scopeProjectOid], references: [oid])
+
+  scopeInstanceOid BigInt?
+  scopeInstance    Instance? @relation(fields: [scopeInstanceOid], references: [oid])
+
+  identifiers           EntityIdentifier[]
+  outgoingLinks         EntityLink[]         @relation("EntityLinkFrom")
+  incomingLinks         EntityLink[]         @relation("EntityLinkTo")
+  userTokens            IngestToken[]        @relation("IngestTokenUser")
+  deviceTokens          IngestToken[]        @relation("IngestTokenDevice")
+  agentTokens           IngestToken[]        @relation("IngestTokenAgent")
+  pendingMemberships    PendingMembership[]
+  attributionRules      AttributionRule[]
+  classifierLabels      ClassifierLabel[]
+  discoveredSuggestions MergeSuggestion[]    @relation("MergeSuggestionDiscovered")
+  managedSuggestions    MergeSuggestion[]    @relation("MergeSuggestionManaged")
+  billingDeclarations   BillingDeclaration[]
+
+  @@unique([organizationOid, kind, source, ref])
+  @@unique([organizationOid, kind, slug])
+  @@index([organizationOid, kind, status, lastSeenAt])
+  @@index([mergedIntoOid])
+}
+
+model EntityIdentifier {
+  oid BigInt @id
+  id  String @unique
+
+  kind  String
+  type  String
+  value String
+
+  createdAt DateTime @default(now())
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  entityOid BigInt
+  entity    Entity @relation(fields: [entityOid], references: [oid])
+
+  @@unique([organizationOid, kind, type, value])
+  @@index([entityOid])
+}
+
+model EntityLink {
+  oid BigInt @id
+  id  String @unique
+
+  type   String
+  origin String
+
+  weight Float?
+
+  validFrom DateTime
+  validTo   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  fromOid BigInt
+  from    Entity @relation("EntityLinkFrom", fields: [fromOid], references: [oid])
+
+  toOid BigInt
+  to    Entity @relation("EntityLinkTo", fields: [toOid], references: [oid])
+
+  @@index([organizationOid, type])
+  @@index([fromOid, type, validFrom])
+  @@index([toOid, type, validFrom])
+}
+
+model PendingMembership {
+  oid BigInt @id
+  id  String @unique
+
+  email  String
+  type   String
+  weight Float?
+
+  validFrom DateTime
+  createdAt DateTime @default(now())
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  targetEntityOid BigInt
+  targetEntity    Entity @relation(fields: [targetEntityOid], references: [oid])
+
+  @@unique([organizationOid, email, targetEntityOid, type])
+}
+
+enum MergeSuggestionStatus {
+  open
+  accepted
+  dismissed
+}
+
+model MergeSuggestion {
+  oid BigInt @id
+  id  String @unique
+
+  score   Float
+  reasons String[]
+
+  status MergeSuggestionStatus @default(open)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  discoveredEntityOid BigInt
+  discoveredEntity    Entity @relation("MergeSuggestionDiscovered", fields: [discoveredEntityOid], references: [oid])
+
+  managedEntityOid BigInt
+  managedEntity    Entity @relation("MergeSuggestionManaged", fields: [managedEntityOid], references: [oid])
+
+  @@unique([discoveredEntityOid, managedEntityOid])
+  @@index([organizationOid, status])
+}

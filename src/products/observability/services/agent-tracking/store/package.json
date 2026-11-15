@@ -1,0 +1,29 @@
+{
+  "name": "@mtsrc/agent-tracking-store",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*",
+    "@mtsrc/agent-tracking-cost": "workspace:*",
+    "@mtsrc/agent-tracking-model-resolver": "workspace:*",
+    "@mtsrc/agent-tracking-spec": "workspace:*",
+    "mongoose": "^9.11.4"
+  },
+  "devDependencies": {
+    "@mtsrc/agent-tracking-crypto": "workspace:*",
+    "@mtsrc/agent-tracking-testing": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

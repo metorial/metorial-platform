@@ -1,8 +1,10 @@
 pub mod azure;
 pub mod backend;
 pub mod digest;
+pub mod durable;
 pub mod error;
 pub mod gcs;
+pub mod gcs_xml;
 pub mod local;
 pub mod multipart;
 pub mod s3;
@@ -14,6 +16,10 @@ pub use backend::{
     ObjectMetadata, ObjectPage, ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
 pub use digest::{digest_stream, ContentDigester, ContentDigests};
+pub use durable::{
+    DurablePart, DurablePartRef, DurableUpload, DURABLE_MAX_PARTS, DURABLE_MAX_PART_SIZE,
+    DURABLE_MIN_PART_SIZE,
+};
 pub use error::{BackendError, BackendResult};
 pub use multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, UploadedObject};
 pub use upload::{ChannelByteStream, ChunkedUpload, SINGLE_REQUEST_THRESHOLD};

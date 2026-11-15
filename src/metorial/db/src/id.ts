@@ -242,6 +242,7 @@ export let ID = createIdGenerator({
   consumerDeviceClientExcludedMagicMcpServer: idType.sorted('codcm'),
   consumerDeviceClientExcludedSkill: idType.sorted('codcs'),
   mcpClientType: idType.sorted('mcct'),
+  agentTelemetryIngestToken: idType.sorted('atit'),
   skillTemplate: idType.sorted('skt'),
   skill: idType.sorted('skl_'),
   skillConfiguration: idType.sorted('skc_'),

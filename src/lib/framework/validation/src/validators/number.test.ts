@@ -1,7 +1,16 @@
 import { describe, expect, test } from 'vitest';
+import { integer } from '../modifiers/integer';
 import { number } from './number';
 
 describe('number', () => {
+  test('should apply modifiers to a number parsed from a string', () => {
+    expect(number({ modifiers: [integer()] }).validate('2')).toEqual({
+      success: true,
+      value: 2
+    });
+    expect(number({ modifiers: [integer()] }).validate('2.5').success).toBe(false);
+  });
+
   test('should return success for a valid number', () => {
     let result = number({}).validate(42);
     expect(result).toEqual({ success: true, value: 42 });
