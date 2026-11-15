@@ -30,7 +30,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
@@ -59,6 +58,10 @@
     "@lowerdeck/tokens": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial/util-websocket": "^3.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@mtsrc/mcp-runtime-api-internal": "workspace:*",
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-module-connection-runtime": "workspace:*",
     "@types/bun": "^1.4.3"
   },
   "devDependencies": {

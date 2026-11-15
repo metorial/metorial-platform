@@ -1,0 +1,33 @@
+{
+  "name": "@mtsrc/mcp-runtime-api-internal",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.1",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@mtsrc/mcp-runtime-module-change-notifications": "workspace:*",
+    "@mtsrc/mcp-runtime-module-connections": "workspace:*",
+    "@mtsrc/mcp-runtime-module-deployments": "workspace:*",
+    "@mtsrc/mcp-runtime-module-discovery": "workspace:*",
+    "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+    "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+    "@mtsrc/mcp-runtime-module-servers": "workspace:*",
+    "@mtsrc/mcp-runtime-module-tenants": "workspace:*",
+    "@mtsrc/mcp-runtime-presenters": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

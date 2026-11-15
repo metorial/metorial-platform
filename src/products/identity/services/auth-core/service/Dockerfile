@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 FROM base AS pruner
 COPY . .
-RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build frontend:build --filter=@mtsrc/auth-core-service
+RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build frontend:build --filter=@mtsrc/auth-core-service --filter=@mtsrc/auth-core-db --filter=@mtsrc/auth-core-frontend-auth --filter=@mtsrc/auth-core-frontend-admin
 
 FROM scratch AS pruned
 COPY --from=pruner /app/out/ /
@@ -23,7 +23,9 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build frontend:build --filter=@mtsrc/auth-core-service
+COPY src/products/identity/services/auth-core/frontends/public ./src/products/identity/services/auth-core/frontends/public
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate --filter=@mtsrc/auth-core-service --filter=@mtsrc/auth-core-db --filter=@mtsrc/auth-core-frontend-auth --filter=@mtsrc/auth-core-frontend-admin
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh server:build frontend:build --filter=@mtsrc/auth-core-service
 
 FROM base AS control-runtime
 WORKDIR /runtime
@@ -50,10 +52,11 @@ FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
 COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/dist ./dist
-COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/frontend/auth/dist ./frontend/auth/dist
-COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/frontend/admin/dist ./frontend/admin/dist
-COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/prisma/schema/ ./prisma/ares/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/service/prisma/migrations/ ./prisma/ares/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/frontends/auth/dist ./frontend/auth/dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/frontends/admin/dist ./frontend/admin/dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/frontends/public ./frontend/public
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/db/prisma/schema/ ./prisma/ares/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/identity/services/auth-core/db/prisma/migrations/ ./prisma/ares/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [

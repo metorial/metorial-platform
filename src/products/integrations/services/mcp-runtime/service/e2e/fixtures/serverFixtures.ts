@@ -1,11 +1,7 @@
 import { randomBytes } from 'crypto';
-import type {
-  PrismaClient,
-  Server,
-  Tenant
-} from '../../prisma/generated/client';
-import { ServerType } from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+import type { PrismaClient, Server, Tenant } from '@mtsrc/mcp-runtime-db';
+import { ServerType } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { TenantFixtures } from './tenantFixtures';
 

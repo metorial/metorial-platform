@@ -1,1 +1,1 @@
-import '../../../services/mcp-runtime/service/src/db';
+import '../../../services/mcp-runtime/db/src/db';

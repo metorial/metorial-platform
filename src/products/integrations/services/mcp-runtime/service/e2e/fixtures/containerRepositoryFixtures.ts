@@ -4,9 +4,9 @@ import type {
   ContainerRepository,
   ContainerRegistry,
   Tenant
-} from '../../prisma/generated/client';
-import { ContainerRepositoryType } from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+} from '@mtsrc/mcp-runtime-db';
+import { ContainerRepositoryType } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { TenantFixtures } from './tenantFixtures';
 import { ContainerRegistryFixtures } from './containerRegistryFixtures';

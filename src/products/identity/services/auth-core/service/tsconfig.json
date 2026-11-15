@@ -22,9 +22,6 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "files": [],
-  "references": [
-    { "path": "./tsconfig.backend.json" },
-    { "path": "./frontend/auth/tsconfig.app.json" }
-  ],
+  "references": [{ "path": "./tsconfig.backend.json" }],
   "exclude": ["control"]
 }

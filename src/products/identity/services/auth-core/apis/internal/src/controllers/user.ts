@@ -1,0 +1,163 @@
+import { Paginator } from '@lowerdeck/pagination';
+import { v } from '@lowerdeck/validation';
+import { adminService } from '@mtsrc/auth-core-module-admin';
+import { userService } from '@mtsrc/auth-core-module-user';
+import {
+  userPresenter as authUserPresenter,
+  userEmailPresenter,
+  userIdentityPresenter
+} from '@mtsrc/auth-core-api-auth/src/presenters';
+import { internalApp } from '../_app';
+
+export let userController = internalApp.controller({
+  list: internalApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          appId: v.string(),
+          search: v.optional(v.string())
+        })
+      )
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.getApp({ appId: input.appId });
+      let paginator = await adminService.listUsers({ app, search: input.search });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, authUserPresenter);
+    }),
+
+  get: internalApp
+    .handler()
+    .input(
+      v.object({
+        id: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await adminService.getUser({ userId: input.id });
+      return await authUserPresenter(user);
+    }),
+
+  getSyncSnapshot: internalApp
+    .handler()
+    .input(v.object({ userId: v.string() }))
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      return await userService.getSyncSnapshot({ user });
+    }),
+
+  createWithPassword: internalApp
+    .handler()
+    .input(
+      v.object({
+        appSlug: v.string(),
+        email: v.string({ modifiers: [v.email()] }),
+        firstName: v.string({ modifiers: [v.maxLength(100)] }),
+        lastName: v.string({ modifiers: [v.maxLength(100)] }),
+        password: v.string({ modifiers: [v.maxLength(256)] }),
+        replacePassword: v.optional(v.boolean()),
+        context: v.object({ ip: v.string(), ua: v.optional(v.nullable(v.string())) })
+      })
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.getAppBySlug({ slug: input.appSlug });
+      let { user, created } = await userService.createUserWithPassword({
+        app,
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        password: input.password,
+        replacePassword: input.replacePassword ?? false,
+        context: { ip: input.context.ip, ua: input.context.ua ?? '' }
+      });
+
+      return {
+        created,
+        user: await authUserPresenter({
+          ...user,
+          userEmails: await userService.listUserEmails({ user })
+        })
+      };
+    }),
+
+  applyProjection: internalApp
+    .handler()
+    .input(v.typedAny<any>('ares_user_projection'))
+    .do(async ({ input }) => {
+      let app = await adminService.getApp({ appId: input.appId });
+      let user = await userService.applyProjection({ app, input });
+      return await authUserPresenter({
+        ...user,
+        userEmails: await userService.listUserEmails({ user })
+      });
+    }),
+
+  listIdentities: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let identities = await userService.listUserProfile({ user });
+      return identities.map(identity => userIdentityPresenter({ ...identity, user }));
+    }),
+
+  listEmails: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let emails = await userService.listUserEmails({ user });
+      return emails.map(email => userEmailPresenter({ ...email, user }));
+    }),
+
+  update: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string(),
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        name: v.optional(v.string()),
+        image: v.optional(v.any())
+      })
+    )
+    .do(async ({ input }) => {
+      let { userId, ...fields } = input;
+      let user = await userService.getUser({ userId });
+      let updated = await userService.updateUser({
+        user,
+        input: fields,
+        context: { ip: '0.0.0.0', ua: 'internal' }
+      });
+      return authUserPresenter({ ...updated, userEmails: user.userEmails });
+    }),
+
+  setEmails: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string(),
+        emails: v.array(
+          v.object({
+            email: v.string(),
+            isPrimary: v.boolean(),
+            isVerified: v.boolean()
+          })
+        )
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let emails = await userService.setEmails({ user, emails: input.emails });
+      return emails.map(email => userEmailPresenter({ ...email, user }));
+    })
+});

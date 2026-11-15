@@ -1,11 +1,11 @@
 import { getSentry } from '@lowerdeck/sentry';
 import { RedisClient } from 'bun';
-import { authApi } from './apis/auth';
-import { internalApi } from './apis/internal';
-import { ssoApi } from './apis/sso';
-import { db } from './db';
-import { withSecurityHeaders } from './lib/securityHeaders';
-import { aresPorts } from './ports';
+import { authApi } from '@mtsrc/auth-core-api-auth';
+import { internalApi } from '@mtsrc/auth-core-api-internal';
+import { ssoApi } from '@mtsrc/auth-core-api-sso';
+import { db } from '@mtsrc/auth-core-db';
+import { withSecurityHeaders } from '@mtsrc/auth-core-http';
+import { aresPorts } from '@mtsrc/auth-core-runtime';
 
 let Sentry = getSentry();
 

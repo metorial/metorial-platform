@@ -1,0 +1,29 @@
+{
+  "name": "@mtsrc/mcp-runtime-module-connections",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-env": "workspace:*",
+    "@mtsrc/mcp-runtime-storage": "workspace:*",
+    "date-fns": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

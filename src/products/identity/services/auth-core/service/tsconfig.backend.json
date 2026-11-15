@@ -25,11 +25,6 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["src/**/*", "prisma/**/*", "e2e/**/*"],
-  "exclude": [
-    "node_modules",
-    "tests/e2e",
-    "tests/helpers",
-    "frontend"
-  ]
+  "include": ["src/**/*", "e2e/**/*"],
+  "exclude": ["node_modules", "tests/e2e", "tests/helpers"]
 }

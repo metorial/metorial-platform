@@ -63,7 +63,7 @@ export default project({
     ),
     databases: {
       main: postgres({
-        package: '@mtsrc/mcp-runtime-service',
+        package: '@mtsrc/mcp-runtime-db',
         name: 'shuttle',
         env: 'DATABASE_URL'
       })
@@ -87,13 +87,14 @@ export default project({
         ecr: 'metorial-enterprise-saas/mte-mcp-runtime',
         canonical: 'ghcr.io/metorial/mcp-runtime',
         build: bunService({
+          include: ['@mtsrc/mcp-runtime-db'],
           ports: [52080, 52081],
           health: [
             { port: 52080, path: '/ping' },
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('shuttle', '@mtsrc/mcp-runtime-service', { prefix: 'SHUTTLE' })
+            ownMigration('shuttle', '@mtsrc/mcp-runtime-db', { prefix: 'SHUTTLE' })
           ]
         })
       })
