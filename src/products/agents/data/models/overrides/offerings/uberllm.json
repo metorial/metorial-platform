@@ -48,6 +48,13 @@
     "by": "agent",
     "at": "2026-11-14"
   },
+  "z-ai/glm-5.1": {
+    "decision": "link",
+    "model": "zhipu/glm-5.1",
+    "reason": "The offering is exactly Z.AI/Zhipu's GLM-5.1: the name and 200K context match zhipu/glm-5.1, and search results confirm GLM-5.1 is the open-weight Z.AI flagship. UberLLM's 0.07/0.22 rate is its own discount pricing for the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-15"
+  },
   "z-ai/glm-5.3": {
     "decision": "link",
     "model": "zhipu/glm-5.3",
