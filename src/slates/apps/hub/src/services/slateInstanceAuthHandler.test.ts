@@ -1,12 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => {
-  class LockAcquisitionError extends Error {}
+  class LockAcquisitionError extends Error {
+    constructor(
+      message: string,
+      public isContention = true
+    ) {
+      super(message);
+    }
+  }
+
   return {
     LockAcquisitionError,
     eventCreateMany: vi.fn(async () => ({})),
     eventFindFirst: vi.fn(async (): Promise<unknown> => null),
-    delay: vi.fn(async () => {}),
+    delay: vi.fn(async (_ms: number) => {}),
     currentMethods: vi.fn(),
     usingLock: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
     findFirst: vi.fn(),
@@ -152,6 +160,11 @@ let call = () =>
 let lockBusy = () =>
   mocks.usingLock.mockRejectedValueOnce(new mocks.LockAcquisitionError('busy'));
 
+let useTimedDelays = () => {
+  vi.useFakeTimers();
+  mocks.delay.mockImplementation(ms => new Promise(resolve => setTimeout(resolve, ms)));
+};
+
 let lockReleaseFails = () =>
   mocks.usingLock.mockImplementationOnce(async (_key: string, fn: () => Promise<unknown>) => {
     await fn();
@@ -168,6 +181,8 @@ let refreshFails = () =>
 describe('getSlateInstanceAuth refresh coordination', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.delay.mockImplementation(async () => {});
+    mocks.eventFindFirst.mockResolvedValue(null);
     mocks.usingLock.mockImplementation(async (_key: string, fn: () => Promise<unknown>) =>
       fn()
     );
@@ -187,6 +202,10 @@ describe('getSlateInstanceAuth refresh coordination', () => {
       invocation: { id: 'shiv_1', oid: 70n },
       data: { output: newOutput }
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('refreshes under the identity lock and syncs siblings', async () => {
@@ -258,16 +277,104 @@ describe('getSlateInstanceAuth refresh coordination', () => {
     { label: '2s ahead', expiresAt: () => new Date(Date.now() + 2_000), returns: false },
     { label: 'already passed', expiresAt: () => past(), returns: false }
   ])('when the lock is busy and the token expires $label', async ({ expiresAt, returns }) => {
+    useTimedDelays();
     lockBusy();
     mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: expiresAt() }));
 
     if (returns) {
       expect((await call()).output).toEqual(oldSecret().output);
     } else {
-      await expect(call()).rejects.toThrow(/already in progress/);
+      let assertion = expect(call()).rejects.toThrow(/already in progress/);
+      await vi.advanceTimersByTimeAsync(60_000);
+      await assertion;
     }
+
     expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
     expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('uses tokens persisted after the acquisition timeout while another worker holds the lock', async () => {
+    useTimedDelays();
+    mocks.usingLock.mockImplementationOnce(async () => {
+      await mocks.delay(20_000);
+      throw new mocks.LockAcquisitionError('busy');
+    });
+    setTimeout(() => {
+      mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: future() }));
+      mocks.decrypt.mockResolvedValue({ input: {}, output: newOutput });
+    }, 25_000);
+
+    let resultPromise = call();
+    await vi.advanceTimersByTimeAsync(25_000);
+    let result = await resultPromise;
+
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.usingLock).toHaveBeenCalledTimes(1);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.updateSecret).not.toHaveBeenCalled();
+  });
+
+  it('includes lock acquisition in the bounded refresh wait', async () => {
+    useTimedDelays();
+    mocks.usingLock.mockImplementationOnce(async () => {
+      await mocks.delay(20_000);
+      throw new mocks.LockAcquisitionError('busy');
+    });
+
+    let startedAt = Date.now();
+    let assertion = expect(call()).rejects.toThrow(/already in progress/);
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+
+    expect(Date.now() - startedAt).toBe(60_000);
+    expect(mocks.usingLock).toHaveBeenCalledTimes(1);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a permanent failure recorded by the worker holding the lock', async () => {
+    useTimedDelays();
+    lockBusy();
+    mocks.findFirstOrThrow
+      .mockResolvedValueOnce(config())
+      .mockResolvedValue(
+        config({ errorCode: 'invalid_grant', errorMessage: 'Refresh token revoked' })
+      );
+
+    let assertion = expect(call()).rejects.toThrow(/Refresh token revoked/);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.decrypt).not.toHaveBeenCalled();
+  });
+
+  it('keeps waiting while the worker holding the lock retries a transient failure', async () => {
+    useTimedDelays();
+    lockBusy();
+    mocks.eventFindFirst.mockResolvedValue({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date()
+    });
+    setTimeout(() => {
+      mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: future() }));
+      mocks.decrypt.mockResolvedValue({ input: {}, output: newOutput });
+    }, 10_000);
+
+    let resultPromise = call();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect((await resultPromise).output).toEqual(newOutput);
+
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('preserves Redis acquisition failures instead of reporting refresh contention', async () => {
+    let error = new mocks.LockAcquisitionError('redis unavailable', false);
+    mocks.usingLock.mockRejectedValueOnce(error);
+
+    await expect(call()).rejects.toBe(error);
+
+    expect(mocks.delay).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -364,6 +471,26 @@ describe('getSlateInstanceAuth refresh coordination', () => {
     expect(result.output).toEqual(oldSecret().output);
     expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
     expect(mocks.delay).not.toHaveBeenCalled();
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a token that expires during a transient refresh failure', async () => {
+    vi.useFakeTimers();
+    let stillValid = config({ tokenExpiresAt: new Date(Date.now() + 20_000) });
+    mocks.findFirst.mockResolvedValue(stillValid);
+    mocks.findFirstOrThrow.mockResolvedValue(stillValid);
+    mocks.refreshOAuthToken.mockImplementationOnce(async () => {
+      vi.advanceTimersByTime(20_000);
+      return {
+        status: 'error',
+        invocation: { id: 'shiv_2', oid: 71n },
+        error: { code: 'server_error', message: 'server_error' }
+      };
+    });
+
+    await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
     expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 
