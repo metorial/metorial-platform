@@ -1,6 +1,6 @@
 import { uniqueId } from '@lowerdeck/testing-tools';
 import { expect } from 'vitest';
-import { db } from '../src/db';
+import { db } from '@mtsrc/auth-core-db';
 import { ares, anonymousAuth, authWithCookies } from './client';
 
 export let DEVICE_COOKIE = 'metorial_ares_device_token';

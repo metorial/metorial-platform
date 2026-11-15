@@ -55,19 +55,7 @@ export default project({
       TWO_FACTOR_ENCRYPTION_KEY: 'dev-two-factor-key-change-in-production',
       TURNSTILE_SITE_KEY: inherit(),
       TURNSTILE_SECRET_KEY: inherit()
-    }),
-    databases: {
-      main: postgres({
-        package: '@mtsrc/auth-core-service',
-        name: 'ares',
-        env: 'DATABASE_URL'
-      }),
-      sso: postgres({
-        package: '@mtsrc/auth-core-service',
-        name: 'ares-sso',
-        env: 'SSO_DATABASE_URL'
-      })
-    }
+    })
   }),
   e2e: e2e({ start: ['e2e:start'], image: 'auth-core', tests: ['.'] }),
   ci: {
@@ -79,14 +67,32 @@ export default project({
         ecr: 'metorial-enterprise-saas/mte-auth-core',
         canonical: 'ghcr.io/metorial/auth-core',
         build: bunService({
+          include: [
+            '@mtsrc/auth-core-db',
+            '@mtsrc/auth-core-frontend-auth',
+            '@mtsrc/auth-core-frontend-admin'
+          ],
           tasks: ['prisma:generate', 'server:build', 'frontend:build'],
           ports: [52120, 52121, 52122, 52123, 12121],
           health: [
             { port: 52120, path: '/ping' },
             { port: 12121, path: '/' }
           ],
-          assets: [{ from: 'frontend/auth/dist' }, { from: 'frontend/admin/dist' }],
-          migrations: [ownMigration('ares', '@mtsrc/auth-core-service')]
+          assets: [
+            {
+              from: '/src/products/identity/services/auth-core/frontends/auth/dist',
+              to: 'frontend/auth/dist'
+            },
+            {
+              from: '/src/products/identity/services/auth-core/frontends/admin/dist',
+              to: 'frontend/admin/dist'
+            },
+            {
+              from: '/src/products/identity/services/auth-core/frontends/public',
+              to: 'frontend/public'
+            }
+          ],
+          migrations: [ownMigration('ares', '@mtsrc/auth-core-db')]
         })
       })
     ],

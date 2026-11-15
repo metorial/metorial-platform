@@ -1,0 +1,23 @@
+{
+  "name": "@mtsrc/auth-core-module-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@mtsrc/auth-core-db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3"
+  }
+}

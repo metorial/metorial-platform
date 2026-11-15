@@ -1,6 +1,6 @@
-import { adminApi } from './apis/admin';
-import { withSecurityHeaders } from './lib/securityHeaders';
-import { aresPorts } from './ports';
+import { adminApi } from '@mtsrc/auth-core-api-admin';
+import { withSecurityHeaders } from '@mtsrc/auth-core-http';
+import { aresPorts } from '@mtsrc/auth-core-runtime';
 
 let adminServer = Bun.serve({
   fetch: withSecurityHeaders(adminApi),
