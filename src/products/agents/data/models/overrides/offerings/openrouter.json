@@ -465,6 +465,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3.5-9b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.5-9b",
+    "reason": "OpenRouter's Qwen3.5 9B offering is the Qwen/Qwen3.5-9B instruct checkpoint (HF image-text-to-text, Apache 2.0, 262K context, Feb 2026), distinct from the separately-indexed alibaba/qwen3.5-9b-base repo. The 0.019 input price is OpenRouter's aggregator discount on a small dense model, not a different model.",
+    "by": "agent",
+    "at": "2026-11-15"
+  },
   "recursive/flint-v1.0:free": {
     "decision": "link",
     "model": "recursive/flint",
