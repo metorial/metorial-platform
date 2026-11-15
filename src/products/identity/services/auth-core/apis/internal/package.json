@@ -4,6 +4,7 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
+    "test": "bunx vitest run --passWithNoTests --configLoader runner",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -26,8 +27,10 @@
     "@mtsrc/auth-core-module-user": "workspace:*"
   },
   "devDependencies": {
+    "@mtsrc/auth-core-test-utils": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

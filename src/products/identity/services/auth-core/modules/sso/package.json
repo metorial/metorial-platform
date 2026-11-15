@@ -35,7 +35,6 @@
     "date-fns": "^4.4.0"
   },
   "devDependencies": {
-    "@mtsrc/auth-core-api-internal": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "typescript": "5.9.3",

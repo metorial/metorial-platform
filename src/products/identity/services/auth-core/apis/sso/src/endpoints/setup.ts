@@ -2,7 +2,7 @@ import { createHono, useValidatedBody, useValidatedQuery } from '@lowerdeck/hono
 import { v } from '@lowerdeck/validation';
 import { env } from '../env';
 import { ssoSetupService } from '@mtsrc/auth-core-module-sso';
-import { errorHtml } from '../pages/error';
+import { errorHtml } from '@mtsrc/auth-core-http';
 import { setupConfigureHtml } from '../pages/setup-configure';
 import { setupSelectHtml } from '../pages/setup-select';
 import { templates } from '../templates';

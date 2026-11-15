@@ -12,7 +12,7 @@ import {
   getDelegationResponseMode,
   getIdpInitiatedConsumerLoginRedirect
 } from '@mtsrc/auth-core-sso-protocol';
-import { tickets } from '@mtsrc/auth-core-http';
+import { errorHtml, ssoDomainNotAllowedHtml, tickets } from '@mtsrc/auth-core-http';
 import { validateRedirectUrl } from '@mtsrc/auth-core-security';
 import { authService } from '@mtsrc/auth-core-module-authentication';
 import { deviceService } from '@mtsrc/auth-core-module-session';
@@ -27,8 +27,6 @@ import {
 } from '@mtsrc/auth-core-module-account';
 import { ssoIdentityService } from '@mtsrc/auth-core-module-sso';
 import { ssoLoginService } from '@mtsrc/auth-core-module-sso';
-import { ssoDomainNotAllowedHtml } from '@mtsrc/auth-core-api-sso/src/pages/domain-not-allowed';
-import { errorHtml } from '@mtsrc/auth-core-api-sso/src/pages/error';
 import { resolveClient } from '../lib/resolveApp';
 import {
   baseCookieOpts,

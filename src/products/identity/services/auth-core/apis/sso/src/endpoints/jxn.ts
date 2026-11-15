@@ -24,8 +24,7 @@ import {
   parseDeviceToken,
   SESSION_ID_COOKIE_NAME
 } from '@mtsrc/auth-core-api-auth/src/middleware/device';
-import { ssoDomainNotAllowedHtml } from '../pages/domain-not-allowed';
-import { errorHtml } from '../pages/error';
+import { errorHtml, ssoDomainNotAllowedHtml } from '@mtsrc/auth-core-http';
 
 let Sentry = getSentry();
 

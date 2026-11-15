@@ -15,8 +15,7 @@ import {
 } from '@mtsrc/auth-core-module-account';
 import { ssoIdentityService } from '@mtsrc/auth-core-module-sso';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
-import { ssoDomainNotAllowedHtml } from '../pages/domain-not-allowed';
-import { errorHtml } from '../pages/error';
+import { errorHtml, ssoDomainNotAllowedHtml } from '@mtsrc/auth-core-http';
 
 function generateCodeVerifier(): string {
   return randomBytes(32).toString('base64url');
