@@ -117,6 +117,9 @@ jobs:
           - name: subspace-worker
             image: ghcr.io/metorial/subspace-worker
             dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
+          - name: agent-tracking
+            image: ghcr.io/metorial/agent-tracking
+            dockerfile: ./src/products/observability/services/agent-tracking/service/Dockerfile
           - name: app-api
             image: ghcr.io/metorial/app-api
             dockerfile: ./src/products/oss/services/oss-core/Dockerfile
