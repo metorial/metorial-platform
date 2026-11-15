@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtures } from './fixtures';
 import { db as testDb } from '@mtsrc/mcp-runtime-db';
 import { getId } from '@mtsrc/mcp-runtime-db';
-import { deployContainerServerStartQueue } from '@mtsrc/mcp-runtime-module-deployments';
-import { serverVersionCreatedQueue } from '@mtsrc/mcp-runtime-module-deployments';
+import type * as Deployments from '@mtsrc/mcp-runtime-module-deployments';
 
-vi.mock('@lowerdeck/queue', () => ({
+vi.mock('@lowerdeck/queue', async importOriginal => ({
+  ...(await importOriginal<typeof import('@lowerdeck/queue')>()),
   createQueue: vi.fn(() => ({
     add: vi.fn(),
     addManyWithOps: vi.fn(),
@@ -19,13 +19,8 @@ vi.mock('@lowerdeck/queue', () => ({
   }
 }));
 
-vi.mock('@mtsrc/mcp-runtime-module-deployments', () => ({
-  deployContainerServerStartQueue: { add: vi.fn() }
-}));
-
-vi.mock('@mtsrc/mcp-runtime-module-deployments', () => ({
-  serverVersionCreatedQueue: { add: vi.fn() }
-}));
+let deployContainerServerStartQueue: typeof Deployments.deployContainerServerStartQueue;
+let serverVersionCreatedQueue: typeof Deployments.serverVersionCreatedQueue;
 
 let propagateRepoVersionToServerQueueProcessor: (data: {
   repositoryVersionId: string;
@@ -48,6 +43,8 @@ describe('shuttle tag serverVersion queue', () => {
 
     vi.resetModules();
     let module = await import('@mtsrc/mcp-runtime-module-deployments');
+    deployContainerServerStartQueue = module.deployContainerServerStartQueue;
+    serverVersionCreatedQueue = module.serverVersionCreatedQueue;
     propagateRepoVersionToServerQueueProcessor =
       module.propagateRepoVersionToServerQueueProcessor as unknown as typeof propagateRepoVersionToServerQueueProcessor;
     propagateRepoVersionToServersQueueProcessor =
