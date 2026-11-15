@@ -275,9 +275,9 @@
         "$TURBO_ROOT$/src/lib/rpc/go/**/*.go",
         "$TURBO_ROOT$/src/lib/rpc/go/**/go.mod",
         "$TURBO_ROOT$/src/lib/rpc/go/**/go.sum",
-        "$TURBO_ROOT$/src/object-storage/clients/go/**/*.go",
-        "$TURBO_ROOT$/src/object-storage/clients/go/**/go.mod",
-        "$TURBO_ROOT$/src/object-storage/clients/go/**/go.sum"
+        "$TURBO_ROOT$/src/platform/services/object-storage/clients/go/**/*.go",
+        "$TURBO_ROOT$/src/platform/services/object-storage/clients/go/**/go.mod",
+        "$TURBO_ROOT$/src/platform/services/object-storage/clients/go/**/go.sum"
       ],
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]

@@ -52,7 +52,7 @@ services:
     image: ghcr.io/metorial/mte-object-store:dev
     build:
       context: ../../../..
-      dockerfile: src/object-storage/Dockerfile
+      dockerfile: src/platform/services/object-storage/Dockerfile
     ports:
       - '55010:52010'
     volumes:

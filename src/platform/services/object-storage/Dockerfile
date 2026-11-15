@@ -10,9 +10,9 @@ WORKDIR /app
 
 FROM chef AS planner
 
-COPY src/object-storage/Cargo.toml src/object-storage/Cargo.lock ./
-COPY src/object-storage/object-store ./object-store
-COPY src/object-storage/object-store-backends ./object-store-backends
+COPY src/platform/services/object-storage/Cargo.toml src/platform/services/object-storage/Cargo.lock ./
+COPY src/platform/services/object-storage/object-store ./object-store
+COPY src/platform/services/object-storage/object-store-backends ./object-store-backends
 
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -23,9 +23,9 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git \
     cargo chef cook --release --recipe-path recipe.json
 
-COPY src/object-storage/Cargo.toml src/object-storage/Cargo.lock ./
-COPY src/object-storage/object-store ./object-store
-COPY src/object-storage/object-store-backends ./object-store-backends
+COPY src/platform/services/object-storage/Cargo.toml src/platform/services/object-storage/Cargo.lock ./
+COPY src/platform/services/object-storage/object-store ./object-store
+COPY src/platform/services/object-storage/object-store-backends ./object-store-backends
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git \
     cargo build --release --bin object-store-service

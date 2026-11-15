@@ -3322,11 +3322,11 @@
         "typescript": "^5",
       },
     },
-    "src/object-storage": {
+    "src/platform/services/object-storage": {
       "name": "@metorial/object-storage",
       "version": "1.0.0",
     },
-    "src/object-storage/clients/typescript": {
+    "src/platform/services/object-storage/clients/typescript": {
       "name": "object-storage-client",
       "version": "0.4.0",
       "devDependencies": {
@@ -10528,7 +10528,7 @@
 
     "@metorial/multi-region": ["@metorial/multi-region@workspace:src/platform/multi-region"],
 
-    "@metorial/object-storage": ["@metorial/object-storage@workspace:src/object-storage"],
+    "@metorial/object-storage": ["@metorial/object-storage@workspace:src/platform/services/object-storage"],
 
     "@metorial/open-switcher": ["@metorial/open-switcher@workspace:src/metorial-frontend/packages/open-switcher"],
 
@@ -13338,7 +13338,7 @@
 
     "object-keys": ["object-keys@1.1.1", "", {}, "sha512-NuAESUOUMrlIXOfHKzD6bpPu3tYt3xvjNdRIQ+FeT0lNb4K8WR70CaDxhuNguS2XG+GjkyMwOzsN5ZktImfhLA=="],
 
-    "object-storage-client": ["object-storage-client@workspace:src/object-storage/clients/typescript"],
+    "object-storage-client": ["object-storage-client@workspace:src/platform/services/object-storage/clients/typescript"],
 
     "object.assign": ["object.assign@4.1.7", "", { "dependencies": { "call-bind": "^1.0.8", "call-bound": "^1.0.3", "define-properties": "^1.2.1", "es-object-atoms": "^1.0.0", "has-symbols": "^1.1.0", "object-keys": "^1.1.1" } }, "sha512-nK28WOo+QIjBkDduTINE4JkF/UJJKyf2EJxvJKfblDpyg0Q+pkOHNTL0Qwy6NP6FhE/EnzV73BxxqcJaXY9anw=="],
 

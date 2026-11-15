@@ -113,7 +113,7 @@ jobs:
         if: steps.affected.outputs.count != '0'
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src/object-storage
+          workspaces: src/platform/services/object-storage
           save-if: ${{ github.ref == 'refs/heads/dev' }}
 
       - name: Format, check, lint and test

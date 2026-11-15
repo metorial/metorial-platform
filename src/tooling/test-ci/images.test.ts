@@ -60,7 +60,7 @@ describe('image-only E2E Compose', () => {
     let config: any = fixture();
     config.services['object-storage'] = {
       image: 'ghcr.io/metorial/mte-object-store:dev',
-      build: { dockerfile: 'src/object-storage/Dockerfile' },
+      build: { dockerfile: 'src/platform/services/object-storage/Dockerfile' },
       profiles: ['infra'],
       volumes: ['object-store-data:/app/data']
     };

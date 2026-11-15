@@ -185,6 +185,10 @@ internal clients at `products/integrations/clients/{slates-registry,slates-regis
 Its package names, image names, API paths, settings, and database identifiers remain unchanged.
 The Slates Hub remains under `slates/apps/hub/` during migration.
 
+Object storage lives at `platform/services/object-storage/`. Its Cargo workspace and nested
+Go, Rust, and TypeScript SDKs retain their existing layout. Package names, the Go module identity,
+images, and runtime configuration remain unchanged.
+
 Existing services may retain legacy package names until explicitly migrated. A package rename
 does not require renaming its database, environment variables, protocol paths, or published
 container images in the same change.
