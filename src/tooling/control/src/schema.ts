@@ -314,7 +314,8 @@ export let workspaceMetadataSchema = v.object({
       etcd_client: port,
       etcd_peer: port,
       mail: v.optional(port),
-      mail_ui: v.optional(port)
+      mail_ui: v.optional(port),
+      db_explorer: v.optional(port)
     })
   ),
   endpoint_ports: v.optional(v.record(v.record(port)))

@@ -195,6 +195,15 @@ source checkouts use `metorial-root.localhost`; branch workspaces use their
 branch-derived `metorial-<branch>.localhost` hostname. Host listeners use persisted
 private bind ports behind the shared hostname proxy.
 
+Every workspace or stack that uses Postgres also runs **DB Explorer** (Drizzle
+Gateway), with preconfigured connections to its own Postgres databases. Open it
+from the dev UI, press `d` in the TUI, or run `control open 'DB Explorer'`
+(add `--stack <name>` for a stack). Its URL is
+`http://<workspace hostname>:4983` and opens without a passcode.
+Choose a database connection to explore it.
+Gateway settings persist in a separate volume for each workspace or stack.
+Native development exposes it at `http://localhost:<CONTROL_PORT_DB_EXPLORER>`.
+
 With the workspace running and its Mailpit link reachable, use
 `control email list` to find message IDs and `control email open <id>` to read a
 message in the terminal. HTML bodies are converted to Markdown with Turndown.

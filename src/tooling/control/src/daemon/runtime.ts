@@ -712,6 +712,13 @@ export let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): Lin
       url: `http://${data.hostname}:${proxy.mailPort}`
     });
 
+  if (proxy.usesPostgres(selected))
+    links.push({
+      label: 'DB Explorer',
+      group: 'tool',
+      url: `http://${data.hostname}:${proxy.dbExplorerPort}`
+    });
+
   return links;
 };
 

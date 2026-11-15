@@ -266,6 +266,7 @@ export let start = async (
     infrastructure.writeCompose(generated, requirements, {
       project_name: `control_dev_${hash}`,
       network: 'control-services',
+      postgres_databases: infrastructure.postgresDatabases(manifests),
       ports,
       restart: true
     });

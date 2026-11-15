@@ -1,7 +1,7 @@
 import { escapeCompose } from '../e2e';
 import { sortedEntries } from '../files';
 import * as infrastructure from '../infrastructure';
-import { mailProxyAlias } from '../proxy';
+import { dbExplorerProxyAlias, mailProxyAlias } from '../proxy';
 import type { StackPlan, StackUnit } from './plan';
 
 export let runnerPort = 47474;
@@ -38,6 +38,8 @@ export let renderStackCompose = (plan: StackPlan, options: ComposeOptions) => {
     {
       network: 'stack',
       mail_proxy_alias: mailProxyAlias(plan.data),
+      db_explorer_proxy_alias: dbExplorerProxyAlias(plan.data),
+      postgres_databases: plan.postgres.map(db => db.database),
       restart: true
     }
   );

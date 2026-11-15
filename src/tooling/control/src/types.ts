@@ -166,6 +166,7 @@ export interface ServicePorts {
   etcd_peer: number;
   mail?: number;
   mail_ui?: number;
+  db_explorer?: number;
 }
 
 export interface WorkspaceMetadata {

@@ -235,6 +235,9 @@ export let run = async (
     let unregister = await proxy.register(project, data, selected);
     if (proxy.publicPorts(selected, project).has(proxy.mailPort))
       commands.say(`Mail inbox: http://${data.hostname}:${proxy.mailPort}`);
+    if (proxy.usesPostgres(selected))
+      commands.say(`DB Explorer: http://${data.hostname}:${proxy.dbExplorerPort}`);
+
     let interactive = !!(process.stdin.isTTY && process.stdout.isTTY);
     let args = [
       'run',

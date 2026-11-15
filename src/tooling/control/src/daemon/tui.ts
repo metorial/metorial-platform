@@ -175,7 +175,7 @@ export let runTui = async (initial: string, units: string[] = []) => {
     footer.content = styled([
       dim(
         notice ||
-          ' ↑↓ select  r restart  R restart all  s stop  S start  p db push  g generate  m migrate  o dashboard  u ui  w workspace  f follow  wheel/PgUp/PgDn scroll  drag+c copy  q quit'
+          ' ↑↓ select  r restart  R restart all  s stop  S start  p db push  g generate  m migrate  o dashboard  d DB Explorer  u ui  w workspace  f follow  wheel/PgUp/PgDn scroll  drag+c copy  q quit'
       )
     ]);
     renderer.requestRender();
@@ -321,6 +321,10 @@ export let runTui = async (initial: string, units: string[] = []) => {
       else if (key.name === 'o') {
         let link = info?.links.find(item => item.group === 'app');
         if (link) openUrl(link.url);
+      } else if (key.name === 'd') {
+        let link = info?.links.find(item => item.label === 'DB Explorer');
+        if (link) openUrl(link.url);
+        else flash('DB Explorer is available when the workspace uses Postgres');
       } else if (key.name === 'u') openUrl(uiUrl());
       else if (key.name === 'w') {
         let ids = [...workspaces.keys()];

@@ -3,10 +3,11 @@ import { join } from 'node:path';
 import { createServer } from 'node:net';
 import * as docker from '../src/docker';
 import * as dev from '../src/dev';
+import { discover } from '../src/manifest';
 import * as commands from '../src/process';
 import * as ports from '../src/ports';
 import { LogStore, replayLines } from '../src/daemon/logs';
-import { WorkspaceRuntime } from '../src/daemon/runtime';
+import { linksFor, WorkspaceRuntime } from '../src/daemon/runtime';
 import { delay } from '../src/process';
 import { writeMetadata } from '../src/workspace';
 import {
@@ -25,6 +26,20 @@ let until = async (check: () => boolean, label: string, timeout = 8000) => {
     await delay(50);
   }
 };
+
+test('DB Explorer links follow the workspace hostname and require Postgres', () => {
+  let project = checkout('oss');
+  let data = workspaceData(project.root);
+  packageFixture(project.root, 'api', 'api', "name='api'\n[[resources]]\ntype='postgres'");
+  let selected = discover(project.root);
+
+  expect(linksFor(data, selected)).toContainEqual({
+    label: 'DB Explorer',
+    group: 'tool',
+    url: `http://${data.hostname}:4983`
+  });
+  expect(linksFor(data, [])).toEqual([]);
+});
 
 describe('LogStore', () => {
   test('splits lines, keeps partial lines and filters by unit', () => {

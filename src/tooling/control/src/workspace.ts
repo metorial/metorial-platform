@@ -155,7 +155,7 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
     if (data) reserve(reserved, data);
   }
 
-  let values = await allocatePortValues(reserved, 8);
+  let values = await allocatePortValues(reserved, 9);
 
   return {
     postgres: values[0]!,
@@ -165,7 +165,8 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
     etcd_client: values[4]!,
     etcd_peer: values[5]!,
     mail: values[6]!,
-    mail_ui: values[7]!
+    mail_ui: values[7]!,
+    db_explorer: values[8]!
   };
 };
 
@@ -176,8 +177,12 @@ let ensureServicePorts = async (
   let ports = data.service_ports;
   if (!ports) return allocateServicePorts(project);
 
-  let mailPorts: ('mail' | 'mail_ui')[] = ['mail', 'mail_ui'];
-  let missing = mailPorts.filter(key => ports[key] === undefined);
+  let optionalPorts: ('mail' | 'mail_ui' | 'db_explorer')[] = [
+    'mail',
+    'mail_ui',
+    'db_explorer'
+  ];
+  let missing = optionalPorts.filter(key => ports[key] === undefined);
   if (!missing.length) return ports;
 
   let reserved = new Set(standardPorts);
