@@ -286,5 +286,6 @@ export type CallbackEventRecorder = (d: {
   providerTriggerKey: string;
   mappedType?: string;
   mappedId?: string;
+  attributes?: Record<string, string[]>;
   occurredAt: Date;
 }) => Promise<{ oid: bigint } | null>;

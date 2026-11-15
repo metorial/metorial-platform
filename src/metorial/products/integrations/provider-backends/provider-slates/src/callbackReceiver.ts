@@ -13,6 +13,7 @@ export interface SlatesCallbackEventReceiveParam {
   webhookEventId?: string;
   mappedType?: string;
   mappedId?: string;
+  attributes?: Record<string, string[]>;
   occurredAt: Date;
 }
 
@@ -56,6 +57,7 @@ export let receiveSlatesCallbackEvent = async (
     providerTriggerKey: input.triggerKey,
     mappedType: input.mappedType,
     mappedId: input.mappedId,
+    attributes: input.attributes,
     occurredAt: input.occurredAt
   });
 

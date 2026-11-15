@@ -83,7 +83,7 @@ export let CallbackSettingsPage = () => {
         <>
           <Box
             title="Trigger Selections"
-            description="Some triggers only deliver events for what you choose, such as a folder or a spreadsheet. Saving re-registers the affected triggers."
+            description="Some triggers can be narrowed to what you choose, such as specific folders. Saving re-registers the affected triggers."
           >
             <TriggerSelectionsForm
               triggerGroups={callback.data.triggerGroups}

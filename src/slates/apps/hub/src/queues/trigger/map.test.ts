@@ -168,6 +168,57 @@ describe('mapped event delivery enqueue', () => {
   });
 });
 
+describe('mapped event attributes', () => {
+  let mapWith = (data: Record<string, unknown>) => {
+    invocation.mapTriggerEvent.mockResolvedValue({
+      status: 'success',
+      invocation: { oid: 60n },
+      data: { output: { mapped: true }, type: 'changed', id: 'item', ...data }
+    });
+
+    return map();
+  };
+
+  it('stores the attributes the integration returned with the mapped event', async () => {
+    await mapWith({ attributes: { fileId: ['file_1'], mimeType: ['text/plain'] } });
+
+    expect(events.resolveMapped).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventOid: 12n,
+        attributes: { fileId: ['file_1'], mimeType: ['text/plain'] }
+      })
+    );
+  });
+
+  it('stores no attributes when the integration returned none', async () => {
+    await map();
+
+    expect(events.resolveMapped).toHaveBeenCalledWith(
+      expect.objectContaining({ eventOid: 12n, attributes: null })
+    );
+  });
+
+  it('drops malformed attributes without failing the event', async () => {
+    await mapWith({
+      attributes: { 'bad key': ['x'], fileId: [42, '', 'file_1', 'file_1'], empty: [] }
+    });
+
+    expect(events.resolveMapped).toHaveBeenCalledWith(
+      expect.objectContaining({ attributes: { fileId: ['file_1'] } })
+    );
+    expect(processQueue.add).toHaveBeenCalledWith({ eventId: 'event' }, { id: 'event' });
+  });
+
+  it('stores no attributes when the integration returned something other than an object', async () => {
+    await mapWith({ attributes: ['fileId', 'file_1'] });
+
+    expect(events.resolveMapped).toHaveBeenCalledWith(
+      expect.objectContaining({ attributes: null })
+    );
+    expect(processQueue.add).toHaveBeenCalledWith({ eventId: 'event' }, { id: 'event' });
+  });
+});
+
 describe('failed raw event payload offload', () => {
   let failedRawEvent = {
     id: 'raw',

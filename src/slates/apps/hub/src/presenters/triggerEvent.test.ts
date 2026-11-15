@@ -26,6 +26,7 @@ let event = (payload: Record<string, any> | null, payloadStorageKey: string | nu
     },
     mappedType: null,
     mappedId: null,
+    attributes: { fileId: ['file_1'] },
     payload,
     payloadStorageKey,
     webhookEvent: null,
@@ -45,6 +46,7 @@ describe('trigger event presentation', () => {
     let presented = await triggerEventListPresenter(event({ value: 'inline' }, null));
 
     expect(presented).not.toHaveProperty('payload');
+    expect(presented.attributes).toEqual({ fileId: ['file_1'] });
     expect(loadOffloadedTriggerEventPayload).not.toHaveBeenCalled();
   });
 

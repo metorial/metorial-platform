@@ -95,3 +95,53 @@ describe('eventLogService callback payload hydration', () => {
     expect(chatEventService.getManyChatEventPayloads).not.toHaveBeenCalled();
   });
 });
+
+describe('eventLogService attribute filters', () => {
+  let listWhere = async (attributeFilters?: string[]) => {
+    let paginator = await eventLogService.listEvents({ organization, attributeFilters });
+    await paginator.run({ limit: 10 });
+
+    return db.systemEvent.findMany.mock.calls[0]![0].where;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.systemEvent.findMany.mockResolvedValue([]);
+  });
+
+  it('does not filter by attributes when none are given', async () => {
+    expect((await listWhere()).AND).toBeUndefined();
+  });
+
+  it('matches any of the values given for the same key', async () => {
+    let where = await listWhere(['mimeType:application/pdf', 'mimeType:text/plain']);
+
+    expect(where.AND).toEqual([
+      { attributes: { hasSome: ['mimeType:application/pdf', 'mimeType:text/plain'] } }
+    ]);
+  });
+
+  it('requires every key to match', async () => {
+    let where = await listWhere(['fileId:f1', 'mimeType:text/plain', 'fileId:f2']);
+
+    expect(where.AND).toEqual([
+      { attributes: { hasSome: ['fileId:f1', 'fileId:f2'] } },
+      { attributes: { hasSome: ['mimeType:text/plain'] } }
+    ]);
+  });
+
+  it('keeps colons inside the value', async () => {
+    let where = await listWhere(['range:A1:B2']);
+
+    expect(where.AND).toEqual([{ attributes: { hasSome: ['range:A1:B2'] } }]);
+  });
+
+  it('rejects a malformed attribute filter with a bad request', async () => {
+    await expect(
+      eventLogService.listEvents({ organization, attributeFilters: ['fileId'] })
+    ).rejects.toMatchObject({
+      data: expect.objectContaining({ status: 400, code: 'bad_request' })
+    });
+    expect(db.systemEvent.findMany).not.toHaveBeenCalled();
+  });
+});

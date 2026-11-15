@@ -63,11 +63,12 @@ let adapterTrigger = (globalOid: bigint) => ({
 
 let nonAdapterTrigger = { currentInstance: { oid: BigInt(78), adapter: null } };
 
-let recordEvent = () =>
+let recordEvent = (attributes?: Record<string, string[]>) =>
   callbackEventInternalService.recordEvent({
     callbackInstance,
     source: 'webhook' as any,
     providerTriggerKey: 'chat.message.received',
+    attributes,
     occurredAt: new Date('2026-02-01T10:00:00Z')
   });
 
@@ -175,5 +176,29 @@ describe('callbackEventInternalService.recordEvent', () => {
         }
       })
     );
+  });
+
+  it('stores the attributes the provider sent with the event', async () => {
+    db.callback.findUniqueOrThrow.mockResolvedValue(userCallback);
+    db.providerTriggerGlobal.findUnique.mockResolvedValue(nonAdapterTrigger);
+
+    await recordEvent({ fileId: ['f1'], mimeType: ['text/plain', 'image/png'] });
+
+    expect(db.callbackEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          attributes: { fileId: ['f1'], mimeType: ['text/plain', 'image/png'] }
+        })
+      })
+    );
+  });
+
+  it('leaves the attributes unset when the provider sent none', async () => {
+    db.callback.findUniqueOrThrow.mockResolvedValue(userCallback);
+    db.providerTriggerGlobal.findUnique.mockResolvedValue(nonAdapterTrigger);
+
+    await recordEvent();
+
+    expect(db.callbackEvent.create.mock.calls[0]![0].data.attributes).toBeUndefined();
   });
 });

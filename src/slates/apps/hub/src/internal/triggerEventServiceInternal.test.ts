@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '../../prisma/generated/client';
 
 let mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
@@ -159,7 +160,8 @@ describe('triggerEventServiceInternal.resolveMapped replay safety', () => {
       attempt: 1,
       payload: {},
       mappedType: 'changed',
-      mappedId: 'item'
+      mappedId: 'item',
+      attributes: null
     };
     await expect(triggerEventServiceInternal.resolveMapped(data)).resolves.toMatchObject({
       accepted: true
@@ -195,8 +197,47 @@ describe('triggerEventServiceInternal.resolveMapped replay safety', () => {
         attempt: 1,
         payload: {},
         mappedType: 'changed',
-        mappedId: 'item'
+        mappedId: 'item',
+        attributes: null
       })
     ).rejects.toThrow('transaction failed');
+  });
+
+  it('stores the mapped attributes on the event', async () => {
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.rawUpdate.mockResolvedValue({ pendingTriggerMapCount: 0 });
+
+    await triggerEventServiceInternal.resolveMapped({
+      eventOid: 1n,
+      rawEventOid: 2n,
+      attempt: 1,
+      payload: {},
+      mappedType: 'changed',
+      mappedId: 'item',
+      attributes: { fileId: ['file_1'] }
+    });
+
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ attributes: { fileId: ['file_1'] } })
+      })
+    );
+  });
+
+  it('stores a database null when the event has no attributes', async () => {
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.rawUpdate.mockResolvedValue({ pendingTriggerMapCount: 0 });
+
+    await triggerEventServiceInternal.resolveMapped({
+      eventOid: 1n,
+      rawEventOid: 2n,
+      attempt: 1,
+      payload: {},
+      mappedType: 'changed',
+      mappedId: 'item',
+      attributes: null
+    });
+
+    expect(mocks.updateMany.mock.lastCall![0].data.attributes).toBe(Prisma.DbNull);
   });
 });

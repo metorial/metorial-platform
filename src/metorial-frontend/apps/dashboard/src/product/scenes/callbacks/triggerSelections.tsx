@@ -128,7 +128,7 @@ export let CallbackTriggerGroupsBox = ({
   return (
     <Box
       title="Triggers"
-      description="Triggers that only deliver events for what you select."
+      description="Triggers that can be narrowed to what you select."
       rightActions={
         <Link to={settingsPath}>
           <Button size="2" as="span" variant="outline">

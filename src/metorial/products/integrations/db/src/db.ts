@@ -365,6 +365,8 @@ declare global {
       status: 'active' | 'selection_required';
     }[];
 
+    type CallbackEventAttributes = globalThis.Record<string, string[]>;
+
     type WebhookRegistrationSetup = {
       document: string;
       schema?: globalThis.Record<string, any> | null;

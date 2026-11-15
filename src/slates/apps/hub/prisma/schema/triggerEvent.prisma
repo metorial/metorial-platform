@@ -32,6 +32,9 @@ model TriggerEvent {
   mappedType String?
   mappedId   String?
 
+  /// [TriggerEventAttributes]
+  attributes Json?
+
   errorCode    String?
   errorMessage String?
 

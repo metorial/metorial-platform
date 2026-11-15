@@ -3,6 +3,7 @@ import { db } from '@metorial-subspace/db';
 import { db as metorialDb } from '@metorial/db';
 import { eventTrackerService } from '@metorial/module-event-tracker';
 import { env } from '../env';
+import { flattenEventAttributes } from '../lib/eventAttributes';
 import { getCallbackEventDelegate } from '../lib/eventDelegation';
 
 export let callbackEventProcessQueue = createQueue<{ callbackEventId: string }>({
@@ -53,7 +54,8 @@ export let callbackEventProcessQueueProcessor = callbackEventProcessQueue.proces
       callbackId: callbackEvent.callback.id,
       callbackTriggerKey:
         callbackEvent.providerTrigger?.key ?? callbackEvent.providerTriggerKey,
-      providerId: callbackEvent.callback.provider.id
+      providerId: callbackEvent.callback.provider.id,
+      attributes: flattenEventAttributes(callbackEvent.attributes)
     });
   }
 );
