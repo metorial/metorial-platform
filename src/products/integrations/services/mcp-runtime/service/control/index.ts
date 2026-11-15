@@ -8,6 +8,7 @@ import {
   endpoint,
   mergeEnv,
   objectStorage,
+  postgres,
   project,
   redis,
   stackMember
@@ -59,7 +60,14 @@ export default project({
         NEBULA_CONSUMER_TOKEN: 'local-dev-nebula-shuttle-registration-secret',
         SHUTTLE_DELEGATE_SECRETS_TO_NEBULA: 'true'
       }
-    )
+    ),
+    databases: {
+      main: postgres({
+        package: '@mtsrc/mcp-runtime-db',
+        name: 'shuttle',
+        env: 'DATABASE_URL'
+      })
+    }
   }),
   e2e: e2e({
     start: ['e2e:start'],

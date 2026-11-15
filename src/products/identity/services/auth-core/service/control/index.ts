@@ -55,7 +55,19 @@ export default project({
       TWO_FACTOR_ENCRYPTION_KEY: 'dev-two-factor-key-change-in-production',
       TURNSTILE_SITE_KEY: inherit(),
       TURNSTILE_SECRET_KEY: inherit()
-    })
+    }),
+    databases: {
+      main: postgres({
+        package: '@mtsrc/auth-core-db',
+        name: 'ares',
+        env: 'DATABASE_URL'
+      }),
+      sso: postgres({
+        package: '@mtsrc/auth-core-db',
+        name: 'ares-sso',
+        env: 'SSO_DATABASE_URL'
+      })
+    }
   }),
   e2e: e2e({ start: ['e2e:start'], image: 'auth-core', tests: ['.'] }),
   ci: {
