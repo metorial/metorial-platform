@@ -31,7 +31,7 @@ import (
 const (
 	knativeNamespace   = "knative-serving"
 	maxFunctionTimeout = 900
-	probeTimeout       = 5 * time.Minute
+	probeTimeout       = 2 * time.Minute
 	iptablesSafeCap    = 1000
 	probeJobName       = "runtime-preflight-netpol"
 	probeSettleSeconds = 5
@@ -300,7 +300,8 @@ func (r *Runner) networkPolicy(ctx context.Context, add addFunc) {
 			ActiveDeadlineSeconds:   ptr.To(int64(probeTimeout.Seconds())),
 			TTLSecondsAfterFinished: ptr.To(int32(300)),
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{kube.LabelComponent: kube.ComponentPreflight}},
+				// Ambient mesh redirects outbound TCP to a ztunnel listener inside the pod, so a connect would always succeed.
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{kube.LabelComponent: kube.ComponentPreflight, "istio.io/dataplane-mode": "none"}},
 				Spec: corev1.PodSpec{
 					RestartPolicy:                corev1.RestartPolicyNever,
 					ServiceAccountName:           r.Config.BuildRuntimeSA,
