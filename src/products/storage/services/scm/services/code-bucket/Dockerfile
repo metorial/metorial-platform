@@ -2,7 +2,7 @@
 # Docker context is the OSS monorepo root (./oss).
 
 # Stage 1: Build VSCode workspace
-FROM oven/bun:1.2-alpine AS workspace-builder
+FROM oven/bun:1.4.2-alpine AS workspace-builder
 
 WORKDIR /workspace
 

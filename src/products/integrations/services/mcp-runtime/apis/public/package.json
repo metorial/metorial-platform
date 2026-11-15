@@ -13,7 +13,7 @@
     "@mtsrc/mcp-runtime-db": "workspace:*",
     "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
     "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
-    "hono": "4.13.13",
+    "hono": "4.13.16",
     "zod": "^4.6.7"
   },
   "devDependencies": {
