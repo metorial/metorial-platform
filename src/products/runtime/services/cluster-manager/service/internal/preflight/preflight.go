@@ -31,7 +31,7 @@ import (
 const (
 	knativeNamespace   = "knative-serving"
 	maxFunctionTimeout = 900
-	probeTimeout       = 2 * time.Minute
+	probeTimeout       = 5 * time.Minute
 	iptablesSafeCap    = 1000
 	probeJobName       = "runtime-preflight-netpol"
 	probeSettleSeconds = 5
