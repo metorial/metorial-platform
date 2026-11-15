@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["@mtsrc/auth-core-service#prisma:generate"]
+      "dependsOn": ["@mtsrc/auth-core-db#prisma:generate"]
     }
   }
 }

@@ -1,7 +1,7 @@
 import { rpc } from '@metorial/e2e/api';
 import { e2eEndpoint } from '@metorial/e2e/env';
-import type { AuthClient } from '../src/apis/auth/controllers';
-import type { InternalClient } from '../src/apis/internal';
+import type { AuthClient } from '@mtsrc/auth-core-api-auth/src/controllers';
+import type { InternalClient } from '@mtsrc/auth-core-api-internal';
 
 export let ares = rpc<InternalClient>(
   `${e2eEndpoint('@mtsrc/auth-core-service', 'internal')}/metorial-ares-internal/api`

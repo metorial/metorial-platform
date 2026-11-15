@@ -12,4 +12,4 @@ RUN bunx turbo run --ui=stream build --filter='./src/lib/**'
 WORKDIR /app/src/products/identity/services/auth-core/service
 
 # Run in dev mode with hot reloading
-CMD ["sh", "-c", "bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]
+CMD ["sh", "-c", "(cd ../db && bun prisma generate --config ./prisma.config.ts && bun prisma db push --config ./prisma.config.ts --accept-data-loss) && bun --watch src/server.ts"]

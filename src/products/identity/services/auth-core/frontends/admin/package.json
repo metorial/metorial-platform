@@ -1,0 +1,30 @@
+{
+  "name": "@mtsrc/auth-core-frontend-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "app:dev": "vite",
+    "app:build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@metorial-io/data-hooks": "^1.0.1",
+    "@metorial-io/layout": "^1.0.1",
+    "@metorial-io/pages": "^1.0.0",
+    "@metorial-io/ui": "^1.0.0",
+    "@metorial-io/ui-product": "^1.0.0",
+    "@remixicon/react": "^4.9.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "^7.18.5",
+    "styled-components": "^6.6.0"
+  },
+  "devDependencies": {
+    "@mtsrc/auth-core-api-admin": "workspace:*",
+    "@vitejs/plugin-react": "5.2.0",
+    "vite": "7.3.7"
+  }
+}

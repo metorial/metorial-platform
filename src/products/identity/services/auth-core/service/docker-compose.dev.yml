@@ -100,12 +100,14 @@ services:
       EMAIL_SES_REGION: ${EMAIL_SES_REGION:-}
     volumes:
       - ./src:/app/src/products/identity/services/auth-core/service/src:ro
-      - ./frontend:/app/src/products/identity/services/auth-core/service/frontend:ro
       - ./package.json:/app/src/products/identity/services/auth-core/service/package.json:ro
       - ./tsconfig.json:/app/src/products/identity/services/auth-core/service/tsconfig.json:ro
       - ./tsconfig.backend.json:/app/src/products/identity/services/auth-core/service/tsconfig.backend.json:ro
-      - ./prisma:/app/src/products/identity/services/auth-core/service/prisma:ro
-      - ./prisma.config.ts:/app/src/products/identity/services/auth-core/service/prisma.config.ts:ro
+      - ../db:/app/src/products/identity/services/auth-core/db:ro
+      - ../packages:/app/src/products/identity/services/auth-core/packages:ro
+      - ../modules:/app/src/products/identity/services/auth-core/modules:ro
+      - ../apis:/app/src/products/identity/services/auth-core/apis:ro
+      - ../frontends:/app/src/products/identity/services/auth-core/frontends:ro
     depends_on:
       postgres:
         condition: service_healthy

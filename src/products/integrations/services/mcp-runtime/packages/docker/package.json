@@ -1,0 +1,23 @@
+{
+  "name": "@mtsrc/mcp-runtime-docker",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
+    "axios": "^1.21.0",
+    "vitest": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

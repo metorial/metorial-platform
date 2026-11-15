@@ -3,8 +3,8 @@ import type {
   PrismaClient,
   ContainerRepositoryVersion,
   ContainerRepository
-} from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+} from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ContainerRepositoryFixtures } from './containerRepositoryFixtures';
 
@@ -15,8 +15,7 @@ export const ContainerRepositoryVersionFixtures = (db: PrismaClient) => {
     overrides?: Partial<ContainerRepositoryVersion>;
   }): Promise<ContainerRepositoryVersion> => {
     const { oid, id } = getId('repositoryVersion');
-    const digest =
-      data.overrides?.digest ?? `sha256:${randomBytes(32).toString('hex')}`;
+    const digest = data.overrides?.digest ?? `sha256:${randomBytes(32).toString('hex')}`;
 
     const factory = defineFactory<ContainerRepositoryVersion>(
       {

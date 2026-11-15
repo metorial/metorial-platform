@@ -1,6 +1,6 @@
 import { uniqueId } from '@lowerdeck/testing-tools';
 import { describe, expect, it } from 'vitest';
-import { db } from '../src/db';
+import { db } from '@mtsrc/auth-core-db';
 import { ares } from './client';
 import { createApp, expectRpcStatus } from './fixtures';
 

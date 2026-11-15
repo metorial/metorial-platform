@@ -60,7 +60,8 @@
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@mtsrc/mcp-runtime-service"
+      "--filter=@mtsrc/mcp-runtime-service",
+      "--filter=@mtsrc/mcp-runtime-db"
     ],
     "buildArguments": {},
     "extraInputs": []
@@ -126,7 +127,10 @@
       "prisma:generate",
       "server:build",
       "frontend:build",
-      "--filter=@mtsrc/auth-core-service"
+      "--filter=@mtsrc/auth-core-service",
+      "--filter=@mtsrc/auth-core-db",
+      "--filter=@mtsrc/auth-core-frontend-auth",
+      "--filter=@mtsrc/auth-core-frontend-admin"
     ],
     "buildArguments": {},
     "extraInputs": []
@@ -187,7 +191,7 @@
     "extraInputs": []
   },
   "slates-registry": {
-    "dockerfile": "src/slates/apps/registry/Dockerfile",
+    "dockerfile": "src/products/integrations/services/slates-registry/Dockerfile",
     "image": "ghcr.io/metorial/slates-registry",
     "platform": "linux/amd64",
     "workspace": ".",

@@ -58,12 +58,12 @@ export default project({
     }),
     databases: {
       main: postgres({
-        package: '@mtsrc/auth-core-service',
+        package: '@mtsrc/auth-core-db',
         name: 'ares',
         env: 'DATABASE_URL'
       }),
       sso: postgres({
-        package: '@mtsrc/auth-core-service',
+        package: '@mtsrc/auth-core-db',
         name: 'ares-sso',
         env: 'SSO_DATABASE_URL'
       })
@@ -79,14 +79,33 @@ export default project({
         ecr: 'metorial-enterprise-saas/mte-auth-core',
         canonical: 'ghcr.io/metorial/auth-core',
         build: bunService({
+          include: [
+            '@mtsrc/auth-core-db',
+            '@mtsrc/auth-core-frontend-auth',
+            '@mtsrc/auth-core-frontend-admin'
+          ],
           tasks: ['prisma:generate', 'server:build', 'frontend:build'],
+          sources: ['src/products/identity/services/auth-core/frontends/public'],
           ports: [52120, 52121, 52122, 52123, 12121],
           health: [
             { port: 52120, path: '/ping' },
             { port: 12121, path: '/' }
           ],
-          assets: [{ from: 'frontend/auth/dist' }, { from: 'frontend/admin/dist' }],
-          migrations: [ownMigration('ares', '@mtsrc/auth-core-service')]
+          assets: [
+            {
+              from: '/src/products/identity/services/auth-core/frontends/auth/dist',
+              to: 'frontend/auth/dist'
+            },
+            {
+              from: '/src/products/identity/services/auth-core/frontends/admin/dist',
+              to: 'frontend/admin/dist'
+            },
+            {
+              from: '/src/products/identity/services/auth-core/frontends/public',
+              to: 'frontend/public'
+            }
+          ],
+          migrations: [ownMigration('ares', '@mtsrc/auth-core-db')]
         })
       })
     ],

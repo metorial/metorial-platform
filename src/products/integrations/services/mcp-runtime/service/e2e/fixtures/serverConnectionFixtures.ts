@@ -3,9 +3,9 @@ import type {
   ServerConnection,
   ServerConfig,
   ServerVersion
-} from '../../prisma/generated/client';
-import { ServerConnectionStatus } from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+} from '@mtsrc/mcp-runtime-db';
+import { ServerConnectionStatus } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ConnectionLogsBucketFixtures } from './connectionLogsBucketFixtures';
 import { ServerConfigFixtures } from './serverConfigFixtures';

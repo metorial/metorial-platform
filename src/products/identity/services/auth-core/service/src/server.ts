@@ -13,7 +13,7 @@ async function main() {
 
   if (checkEdition('cloud')) {
     await import('./adminServer');
-    let { ensureAdminApp } = await import('./lib/adminApp');
+    let { ensureAdminApp } = await import('@mtsrc/auth-core-module-admin');
     await ensureAdminApp();
   }
 }

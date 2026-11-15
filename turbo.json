@@ -167,7 +167,7 @@
       "outputs": ["dist/**"]
     },
     "@mtsrc/auth-core-client-internal#build": {
-      "dependsOn": ["^build", "@mtsrc/auth-core-service#prisma:generate"],
+      "dependsOn": ["^build", "@mtsrc/auth-core-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@mtsrc/build-client-internal#build": {
@@ -187,7 +187,7 @@
       "outputs": ["dist/**"]
     },
     "@mtsrc/mcp-runtime-client-internal#build": {
-      "dependsOn": ["^build", "@mtsrc/mcp-runtime-service#prisma:generate"],
+      "dependsOn": ["^build", "@mtsrc/mcp-runtime-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/agent-tracking-client#build": {

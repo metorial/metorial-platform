@@ -1,0 +1,25 @@
+{
+  "name": "@mtsrc/mcp-runtime-function-bay",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@metorial/mcp-server": "^1.0.0-rc.11",
+    "@mtsrc/functions-client-internal": "workspace:*",
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-env": "workspace:*",
+    "vitest": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

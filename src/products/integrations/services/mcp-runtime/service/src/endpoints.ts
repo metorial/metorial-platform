@@ -2,11 +2,11 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { rpcMux } from '@lowerdeck/rpc-server';
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
-import { connectionApp, websocket } from './apis/connection';
-import { ShuttleRPC } from './apis/controllers';
-import { publicApp } from './apis/public';
-import { db } from './db';
-import { env } from './env';
+import { connectionApp, websocket } from '@mtsrc/mcp-runtime-api-connection';
+import { ShuttleRPC } from '@mtsrc/mcp-runtime-api-internal';
+import { publicApp } from '@mtsrc/mcp-runtime-api-public';
+import { db } from '@mtsrc/mcp-runtime-db';
+import { env } from '@mtsrc/mcp-runtime-env';
 
 let shuttleApi = apiMux(
   [{ endpoint: rpcMux({ path: '/metorial-shuttle' }, [ShuttleRPC]) }],

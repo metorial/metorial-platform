@@ -2,13 +2,10 @@
 #   docker build -f src/products/runtime/services/cluster-manager/images/build-ubuntu/Dockerfile -t runtime-build-ubuntu .
 # The function-bay CLI and @function-bay/nodejs are bundled from this checkout.
 
-ARG NODE_IMAGE=node:24-bookworm-slim
-ARG BUN_IMAGE=oven/bun:1.4.2
+FROM node:24-bookworm-slim AS node
+FROM oven/bun:1.4.2 AS bun
 
-FROM ${NODE_IMAGE} AS node
-FROM ${BUN_IMAGE} AS bun
-
-FROM ${BUN_IMAGE} AS tooling
+FROM oven/bun:1.4.2 AS tooling
 WORKDIR /app
 
 FROM tooling AS pruner

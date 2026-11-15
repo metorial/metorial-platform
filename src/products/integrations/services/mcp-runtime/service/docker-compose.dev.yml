@@ -166,8 +166,12 @@ services:
       - ./src:/app/src/products/integrations/services/mcp-runtime/service/src:ro
       - ./package.json:/app/src/products/integrations/services/mcp-runtime/service/package.json:ro
       - ./tsconfig.json:/app/src/products/integrations/services/mcp-runtime/service/tsconfig.json:ro
-      - ./prisma:/app/src/products/integrations/services/mcp-runtime/service/prisma
-      - ./prisma.config.ts:/app/src/products/integrations/services/mcp-runtime/service/prisma.config.ts:ro
+      - ../db/src:/app/src/products/integrations/services/mcp-runtime/db/src:ro
+      - ../db/prisma:/app/src/products/integrations/services/mcp-runtime/db/prisma
+      - ../db/prisma.config.ts:/app/src/products/integrations/services/mcp-runtime/db/prisma.config.ts:ro
+      - ../apis:/app/src/products/integrations/services/mcp-runtime/apis:ro
+      - ../modules:/app/src/products/integrations/services/mcp-runtime/modules:ro
+      - ../packages:/app/src/products/integrations/services/mcp-runtime/packages:ro
       - ../sdk:/app/src/products/integrations/services/mcp-runtime/sdk
       - /app/node_modules
     depends_on:

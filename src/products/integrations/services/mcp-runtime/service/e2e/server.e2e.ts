@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { db as testDb } from '../src/db';
+import { db as testDb } from '@mtsrc/mcp-runtime-db';
 import { shuttleClient } from './client';
 import { fixtures } from './fixtures';
 
