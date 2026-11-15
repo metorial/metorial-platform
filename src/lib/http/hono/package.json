@@ -28,7 +28,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "hono": "^4.13.13",
+    "hono": "^4.13.16",
     "@lowerdeck/forwarded-for": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0"

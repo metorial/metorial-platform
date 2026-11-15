@@ -40,7 +40,7 @@
     "@metorial/module-resource-actor": "^1.0.0",
     "@metorial/module-store": "^1.0.0",
     "@metorial/queue": "^1.0.0",
-    "hono": "4.13.13",
+    "hono": "4.13.16",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.33"
   },

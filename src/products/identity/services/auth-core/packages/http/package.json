@@ -18,7 +18,7 @@
     "@mtsrc/auth-core-db": "workspace:*",
     "@mtsrc/auth-core-test-utils": "workspace:*",
     "date-fns": "^4.4.0",
-    "hono": "^4.9.0"
+    "hono": "^4.13.16"
   },
   "devDependencies": {
     "@mtsrc/auth-core-sso-protocol": "workspace:*",
