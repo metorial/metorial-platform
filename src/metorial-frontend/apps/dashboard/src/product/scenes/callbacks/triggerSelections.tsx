@@ -1,28 +1,48 @@
 import { CodeEditor } from '@metorial/code-editor';
 import type { DashboardInstanceCallbacksGetOutput } from '@metorial/dashboard-sdk';
+import type { CallbackRegistration } from '@metorial/state';
 import {
   Badge,
   Button,
   Callout,
   Checkbox,
   Error,
+  Flex,
   Input,
   Spacer,
+  Spinner,
   Text,
   TextArrayInput,
   theme
 } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { CallbackSyncErrorCallout } from './shared';
+import {
+  SelectionOptionsField,
+  SelectionOptionsListField,
+  type SelectionOptionsLookup
+} from './triggerSelectionOptions';
+import {
+  type FieldSchema,
+  fieldKind,
+  fieldLabel,
+  hasSelectionOptions,
+  listDescription,
+  orderedFields,
+  parseGroupValues,
+  singular,
+  toFormValue
+} from './triggerSelectionSchema';
 
 export type CallbackTriggerGroup =
   DashboardInstanceCallbacksGetOutput['triggerGroups'][number];
 
 type Selections = Record<string, Record<string, any>>;
-type FieldSchema = Record<string, any>;
-type FieldKind = 'text' | 'number' | 'boolean' | 'list' | 'json';
+type FormValues = Record<string, Record<string, any>>;
+type LoadedSelections = { selectionsKey: string; schemaKeys: Record<string, string> };
 
 let Row = styled('div')`
   display: flex;
@@ -44,45 +64,15 @@ let Group = styled('div')`
   }
 `;
 
+let Notice = styled('div')`
+  margin-top: 12px;
+`;
+
 let TriggerGroupStatusBadge = ({ status }: { status: CallbackTriggerGroup['status'] }) => (
   <Badge color={status === 'active' ? 'blue' : 'orange'}>
     {status === 'active' ? 'Active' : 'Needs Selection'}
   </Badge>
 );
-
-let humanize = (key: string) => {
-  let words = key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .split(/[\s_]+/)
-    .map(word => (/^ids?$/i.test(word) ? word.toUpperCase().replace('IDS', 'IDs') : word));
-  let label = words.join(' ');
-  return label.charAt(0).toUpperCase() + label.slice(1);
-};
-
-let singular = (label: string) => label.replace(/IDs$/, 'ID').replace(/([^s])s$/, '$1');
-
-let listDescription = (field: string, schema: FieldSchema) => {
-  let item = singular(humanize(field));
-  let hint = `Enter one ${item.charAt(0).toLowerCase()}${item.slice(1)} per box. Use Add, or press Enter, for another.`;
-  return schema.description ? `${hint} ${schema.description}` : hint;
-};
-
-let fieldKind = (schema: FieldSchema): FieldKind => {
-  if (schema.type === 'string') return 'text';
-  if (schema.type === 'integer' || schema.type === 'number') return 'number';
-  if (schema.type === 'boolean') return 'boolean';
-  if (schema.type === 'array' && schema.items?.type === 'string') return 'list';
-  return 'json';
-};
-
-let orderedFields = (schema: FieldSchema) => {
-  let required: string[] = schema.required ?? [];
-  let rank = (field: string) =>
-    required.includes(field) ? required.indexOf(field) : required.length;
-  return Object.entries<FieldSchema>(schema.properties ?? {}).sort(
-    ([a], [b]) => rank(a) - rank(b)
-  );
-};
 
 // Selections the form has no fields for are saved back as stored, unless removed.
 export let unusedSelections = (
@@ -167,35 +157,95 @@ export let CallbackTriggerGroupsBox = ({
   );
 };
 
-let toFormValue = (kind: FieldKind, value: unknown) => {
-  if (kind === 'list') return Array.isArray(value) ? value.map(String) : [];
-  if (kind === 'boolean') return typeof value === 'boolean' ? value : undefined;
-  if (value === undefined || value === null) return '';
-  return kind === 'json' ? JSON.stringify(value, null, 2) : String(value);
+let groupFormValues = (
+  group: Pick<CallbackTriggerGroup, 'key' | 'selectionSchema'>,
+  selections: Selections | null
+) =>
+  Object.fromEntries(
+    Object.entries<FieldSchema>(group.selectionSchema.properties ?? {}).map(
+      ([field, schema]) => [
+        field,
+        toFormValue(fieldKind(schema), selections?.[group.key]?.[field])
+      ]
+    )
+  );
+
+let describeLoad = (
+  triggerGroups: Pick<CallbackTriggerGroup, 'key' | 'selectionSchema'>[],
+  selections: Selections | null,
+  previous: LoadedSelections | null
+): LoadedSelections => {
+  let selectionsKey = JSON.stringify(selections);
+  let schemaKeys: Record<string, string> =
+    previous?.selectionsKey === selectionsKey ? { ...previous.schemaKeys } : {};
+
+  for (let group of triggerGroups) {
+    schemaKeys[group.key] = JSON.stringify(group.selectionSchema);
+  }
+
+  return { selectionsKey, schemaKeys };
 };
 
-let fromFormValue = (kind: FieldKind, value: any): { value?: unknown; error?: string } => {
-  if (kind === 'list') {
-    let items = ((value ?? []) as string[]).map(item => item.trim()).filter(Boolean);
-    return { value: items.length ? items : undefined };
-  }
-  if (kind === 'boolean') return { value };
+// Background refreshes can change the trigger groups while someone is editing, so edits are kept
+// until the stored selections change or the group's schema does.
+export let formValuesAfterLoad = ({
+  triggerGroups,
+  selections,
+  current,
+  previous
+}: {
+  triggerGroups: Pick<CallbackTriggerGroup, 'key' | 'selectionSchema'>[];
+  selections: Selections | null;
+  current: FormValues;
+  previous: LoadedSelections | null;
+}) => {
+  let keepEdits = !!previous && previous.selectionsKey === JSON.stringify(selections);
+  let values: FormValues = keepEdits ? { ...current } : {};
 
-  let text = String(value ?? '').trim();
-  if (!text) return {};
+  for (let group of triggerGroups) {
+    let unchanged =
+      keepEdits &&
+      !!values[group.key] &&
+      previous?.schemaKeys[group.key] === JSON.stringify(group.selectionSchema);
+    if (!unchanged) values[group.key] = groupFormValues(group, selections);
+  }
 
-  if (kind === 'number') {
-    let number = Number(text);
-    return Number.isFinite(number) ? { value: number } : { error: 'Enter a number' };
+  return values;
+};
+
+let RegistrationNotice = ({ registration }: { registration: CallbackRegistration }) => {
+  if (registration.failure) {
+    return (
+      <Notice>
+        <CallbackSyncErrorCallout sync={registration.failure} />
+      </Notice>
+    );
   }
-  if (kind === 'json') {
-    try {
-      return { value: JSON.parse(text) };
-    } catch {
-      return { error: 'Enter valid JSON' };
-    }
+
+  if (registration.isRegistering) {
+    return (
+      <Notice>
+        <Flex align="center" gap={8}>
+          <Spinner size={12} />
+          <Text size="2" color="gray600">
+            Registering with the provider. Trigger status updates here when it finishes.
+          </Text>
+        </Flex>
+      </Notice>
+    );
   }
-  return { value: text };
+
+  if (registration.hasTimedOut) {
+    return (
+      <Notice>
+        <Text size="2" color="gray600">
+          Registration is taking longer than usual. Reload the page later to see the result.
+        </Text>
+      </Notice>
+    );
+  }
+
+  return null;
 };
 
 let SelectionField = ({
@@ -204,6 +254,7 @@ let SelectionField = ({
   required,
   value,
   error,
+  lookup,
   onChange
 }: {
   field: string;
@@ -211,17 +262,47 @@ let SelectionField = ({
   required: boolean;
   value: any;
   error?: string;
+  lookup?: SelectionOptionsLookup;
   onChange: (value: any) => void;
 }) => {
   let kind = fieldKind(schema);
-  let label = `${humanize(field)}${required ? '' : ' (optional)'}`;
+  let label = `${fieldLabel(field, schema)}${required ? '' : ' (optional)'}`;
+
+  if (lookup && hasSelectionOptions(schema) && kind === 'list') {
+    return (
+      <SelectionOptionsListField
+        field={field}
+        label={label}
+        description={schema.description}
+        value={value ?? []}
+        error={error}
+        lookup={lookup}
+        onChange={onChange}
+      />
+    );
+  }
+
+  if (lookup && hasSelectionOptions(schema) && (kind === 'text' || kind === 'number')) {
+    return (
+      <SelectionOptionsField
+        field={field}
+        label={label}
+        description={schema.description}
+        value={value ?? ''}
+        error={error}
+        lookup={lookup}
+        numeric={kind === 'number'}
+        onChange={onChange}
+      />
+    );
+  }
 
   if (kind === 'list') {
     return (
       <TextArrayInput
         label={label}
         description={listDescription(field, schema)}
-        placeholder={singular(humanize(field))}
+        placeholder={singular(fieldLabel(field, schema))}
         value={value ?? []}
         onChange={onChange}
         error={error}
@@ -273,19 +354,24 @@ let SelectionField = ({
 export let TriggerSelectionsForm = ({
   triggerGroups,
   selections,
+  lookup,
+  registration,
   loading,
   success,
   onSave
 }: {
   triggerGroups: CallbackTriggerGroup[];
   selections: Selections | null;
+  lookup?: { instanceId: string; callbackId: string };
+  registration: CallbackRegistration;
   loading?: boolean;
   success?: boolean;
   onSave: (selections: Selections | null) => Promise<unknown>;
 }) => {
-  let [values, setValues] = useState<Record<string, Record<string, any>>>({});
+  let [values, setValues] = useState<FormValues>({});
   let [errors, setErrors] = useState<Record<string, string>>({});
   let [removed, setRemoved] = useState<string[]>([]);
+  let loaded = useRef<LoadedSelections | null>(null);
 
   let resetKey = JSON.stringify([
     triggerGroups.map(group => [group.key, group.selectionSchema]),
@@ -293,32 +379,15 @@ export let TriggerSelectionsForm = ({
   ]);
 
   useEffect(() => {
-    setValues(
-      Object.fromEntries(
-        triggerGroups.map(group => [
-          group.key,
-          Object.fromEntries(
-            Object.entries<FieldSchema>(group.selectionSchema.properties ?? {}).map(
-              ([field, schema]) => [
-                field,
-                toFormValue(fieldKind(schema), selections?.[group.key]?.[field])
-              ]
-            )
-          )
-        ])
-      )
-    );
-    setRemoved([]);
-  }, [resetKey]);
+    let previous = loaded.current;
+    let next = describeLoad(triggerGroups, selections, previous);
+    loaded.current = next;
 
-  if (!triggerGroups.length) {
-    return (
-      <Text size="2" color="gray600">
-        Triggers that need a selection appear here once the callback is registered for a
-        connection.
-      </Text>
+    setValues(current =>
+      formValuesAfterLoad({ triggerGroups, selections, current, previous })
     );
-  }
+    if (previous?.selectionsKey !== next.selectionsKey) setRemoved([]);
+  }, [resetKey]);
 
   let setField = (group: string, field: string, value: any) =>
     setValues(current => ({ ...current, [group]: { ...current[group], [field]: value } }));
@@ -332,12 +401,13 @@ export let TriggerSelectionsForm = ({
     for (let group of triggerGroups) {
       let properties: Record<string, FieldSchema> = group.selectionSchema.properties ?? {};
       let required: string[] = group.selectionSchema.required ?? [];
-      let selection: Record<string, any> = {};
+      let { selection, errors: fieldErrors } = parseGroupValues(
+        group.selectionSchema,
+        values[group.key]
+      );
 
-      for (let [field, schema] of Object.entries(properties)) {
-        let result = fromFormValue(fieldKind(schema), values[group.key]?.[field]);
-        if (result.error) nextErrors[`${group.key}.${field}`] = result.error;
-        else if (result.value !== undefined) selection[field] = result.value;
+      for (let [field, error] of Object.entries(fieldErrors)) {
+        nextErrors[`${group.key}.${field}`] = error;
       }
 
       if (!Object.keys(selection).length) continue;
@@ -348,7 +418,8 @@ export let TriggerSelectionsForm = ({
         if (schema && fieldKind(schema) === 'boolean') {
           selection[field] = schema.default ?? false;
         } else {
-          nextErrors[`${group.key}.${field}`] = `${humanize(field)} is required`;
+          nextErrors[`${group.key}.${field}`] =
+            `${fieldLabel(field, schema ?? {})} is required`;
         }
       }
       next[group.key] = selection;
@@ -359,6 +430,13 @@ export let TriggerSelectionsForm = ({
 
     await onSave(Object.keys(next).length ? next : null);
   };
+
+  let groupLookup = (group: CallbackTriggerGroup) =>
+    lookup && {
+      ...lookup,
+      triggerGroupKey: group.key,
+      selection: parseGroupValues(group.selectionSchema, values[group.key]).selection
+    };
 
   let unused = Object.keys(unusedSelections(triggerGroups, selections));
   let toggleRemoved = (key: string) =>
@@ -392,6 +470,7 @@ export let TriggerSelectionsForm = ({
                 required={(group.selectionSchema.required ?? []).includes(field)}
                 value={values[group.key]?.[field]}
                 error={errors[`${group.key}.${field}`]}
+                lookup={groupLookup(group)}
                 onChange={value => setField(group.key, field, value)}
               />
             </div>
@@ -433,6 +512,8 @@ export let TriggerSelectionsForm = ({
           ))}
         </Group>
       ) : null}
+
+      <RegistrationNotice registration={registration} />
 
       <Spacer size={8} />
 

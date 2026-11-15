@@ -6,12 +6,9 @@ import {
   db,
   getId,
   type IntegrationInstanceProvider,
-  type ProviderVariant,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { getBackend } from '@metorial-subspace/provider';
-import type { IProviderCallbacks } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import {
   callbackInclude,
@@ -31,6 +28,7 @@ import {
   listManagedCallbackOwners,
   userCallbackOwner
 } from '../lib/callbackOwnership';
+import { callbacksNotSupported, getCallbacksBackend } from '../lib/callbacksBackend';
 import { toSyncError } from '../lib/syncError';
 import { parseTriggerGroupSelections } from '../lib/triggerGroupSelections';
 import { enqueueCallbackPush } from '../queues/push/callback';
@@ -52,13 +50,6 @@ type CallbackCreateInput = {
   name?: string;
   description?: string | null;
   triggerGroupSelections?: PrismaJson.TriggerGroupSelections | null;
-};
-
-let getCallbacksBackend = async (
-  providerVariant: ProviderVariant
-): Promise<IProviderCallbacks | null> => {
-  let backend = await getBackend({ entity: providerVariant });
-  return backend.callbacks ?? null;
 };
 
 let callbackLock = createLock({
@@ -322,10 +313,7 @@ class callbackInternalServiceImpl {
 
     let callbacks = await getCallbacksBackend(providerVariant);
     if (!callbacks) {
-      return await this.markCallbackSyncFailed(d.callback, {
-        code: 'callbacks_not_supported',
-        message: 'This provider does not support callbacks.'
-      });
+      return await this.markCallbackSyncFailed(d.callback, callbacksNotSupported);
     }
 
     try {
@@ -731,10 +719,10 @@ class callbackInternalServiceImpl {
 
     let callbacks = await getCallbacksBackend(providerVariant);
     if (!callbacks) {
-      return await this.markCallbackInstancePushFailed(d.callbackInstance, {
-        code: 'callbacks_not_supported',
-        message: 'This provider does not support callbacks.'
-      });
+      return await this.markCallbackInstancePushFailed(
+        d.callbackInstance,
+        callbacksNotSupported
+      );
     }
 
     let created;

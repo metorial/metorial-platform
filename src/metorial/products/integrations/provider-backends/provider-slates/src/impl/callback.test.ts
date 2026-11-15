@@ -6,13 +6,14 @@ let { db, slates, getTenantForSlates } = vi.hoisted(() => ({
     slateCallbackInstance: { findUnique: vi.fn(), create: vi.fn() },
     slateCallback: { findUniqueOrThrow: vi.fn() },
     slateInstance: { findUniqueOrThrow: vi.fn() },
-    slateAuthConfig: { findUniqueOrThrow: vi.fn() },
+    slateAuthConfig: { findUniqueOrThrow: vi.fn(), findMany: vi.fn() },
     slateWebhookRegistration: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     slate: { findUniqueOrThrow: vi.fn() },
-    slateOAuthCredentials: { findUniqueOrThrow: vi.fn(), findMany: vi.fn() }
+    slateOAuthCredentials: { findUniqueOrThrow: vi.fn(), findMany: vi.fn() },
+    providerVariant: { findMany: vi.fn() }
   },
   slates: {
-    callbackInstance: { create: vi.fn(), get: vi.fn() },
+    callbackInstance: { create: vi.fn(), get: vi.fn(), listSelectionOptions: vi.fn() },
     slateWebhookRegistration: {
       delete: vi.fn(),
       create: vi.fn(),
@@ -392,5 +393,236 @@ describe('delivery setups serving OAuth credentials', () => {
     expect(
       slates.slateWebhookRegistration.getDeliveryConfigsServingOAuthCredentials
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe('trigger selection options', () => {
+  let drive = { oid: 50n, id: 'pro_drive', name: 'Google Drive' };
+  let driveCustom = { oid: 51n, id: 'pro_drive_custom', name: 'Drive (custom)' };
+
+  let hubOptions = {
+    options: [{ value: 'sheet-1', label: 'Customer Orders' }],
+    nextPageToken: null
+  };
+
+  let linkedMarker = { slate: '@google/drive', optionList: 'spreadsheets' };
+
+  let selectableTriggerGroups = (properties: Record<string, any>) => [
+    {
+      key: 'new_rows',
+      name: 'New rows',
+      description: null,
+      status: 'active',
+      selectionSchema: { type: 'object', properties }
+    }
+  ];
+
+  let listLinkableAuthConfigVersions = vi.fn();
+
+  let list = (
+    d: {
+      groups?: ReturnType<typeof selectableTriggerGroups> | null;
+      field?: string;
+      pageToken?: { source: 'own' | 'linked'; value: unknown };
+    } = {}
+  ) =>
+    new ProviderCallbacks({} as any).listTriggerSelectionOptions({
+      tenant: { oid: 1n },
+      callbackInstance: {
+        oid: 4n,
+        selectableTriggerGroups:
+          d.groups === undefined
+            ? selectableTriggerGroups({
+                spreadsheetId: { type: 'string', 'x-slates-options-linked': linkedMarker }
+              })
+            : d.groups
+      },
+      listLinkableAuthConfigVersions,
+      input: {
+        triggerGroupKey: 'new_rows',
+        field: d.field ?? 'spreadsheetId',
+        pageToken: d.pageToken
+      }
+    } as any);
+
+  let hubResult = (source: 'own' | 'linked', linked: { connected: boolean } | null = null) => {
+    slates.callbackInstance.listSelectionOptions.mockResolvedValue({
+      ...hubOptions,
+      source,
+      linked
+    });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getTenantForSlates.mockResolvedValue({ id: 'tenant-1' });
+    db.slateCallbackInstance.findUnique.mockResolvedValue({
+      id: 'callback-instance-1',
+      slateCallback: { id: 'callback-1', slate: { registryUrl: 'https://registry.test' } }
+    });
+    db.providerVariant.findMany.mockResolvedValue([{ provider: drive }]);
+    db.slateAuthConfig.findMany.mockResolvedValue([]);
+    listLinkableAuthConfigVersions.mockResolvedValue([]);
+  });
+
+  it('rejects a callback instance that is not registered with the hub', async () => {
+    db.slateCallbackInstance.findUnique.mockResolvedValue(null);
+
+    await expect(list()).rejects.toMatchObject({
+      data: { code: 'callback_instance_not_synced' }
+    });
+    expect(slates.callbackInstance.listSelectionOptions).not.toHaveBeenCalled();
+  });
+
+  it('looks up active providers this tenant can see that are backed by the linked slate', async () => {
+    hubResult('own', { connected: false });
+
+    await list();
+
+    expect(db.providerVariant.findMany).toHaveBeenCalledWith({
+      where: {
+        slate: {
+          registryUrl: 'https://registry.test',
+          identifierInRegistry: { in: ['google/drive', '@google/drive'] }
+        },
+        provider: {
+          status: 'active',
+          isDisabled: false,
+          OR: [{ access: 'public' }, { access: 'tenant', ownerTenantOid: 1n }]
+        }
+      },
+      include: { provider: true },
+      orderBy: { isDefault: 'desc' }
+    });
+  });
+
+  it('asks for linkable connections of the linked providers only', async () => {
+    db.providerVariant.findMany.mockResolvedValue([
+      { provider: drive },
+      { provider: driveCustom }
+    ]);
+    listLinkableAuthConfigVersions.mockResolvedValue([
+      { slateAuthConfigOid: 11n },
+      { slateAuthConfigOid: null },
+      { slateAuthConfigOid: 12n }
+    ]);
+    db.slateAuthConfig.findMany.mockResolvedValue([{ id: 'auth-1' }, { id: 'auth-2' }]);
+    hubResult('linked', { connected: true });
+
+    await list({ pageToken: { source: 'linked', value: { offset: 50 } } });
+
+    expect(listLinkableAuthConfigVersions).toHaveBeenCalledWith({
+      providers: [drive, driveCustom]
+    });
+    expect(db.slateAuthConfig.findMany).toHaveBeenCalledWith({
+      where: { oid: { in: [11n, 12n] }, tenantOid: 1n },
+      select: { id: true }
+    });
+    expect(slates.callbackInstance.listSelectionOptions).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      callbackId: 'callback-1',
+      callbackInstanceId: 'callback-instance-1',
+      triggerGroupKey: 'new_rows',
+      field: 'spreadsheetId',
+      query: undefined,
+      pageToken: { offset: 50 },
+      pageTokenSource: 'linked',
+      selection: undefined,
+      linkedAuthConfigIds: ['auth-1', 'auth-2']
+    });
+  });
+
+  it.each<[string, Parameters<typeof list>[0]]>([
+    ['the field has no linked list', { field: 'other' }],
+    ['the callback instance has no stored trigger groups', { groups: null }],
+    [
+      'the linked marker is incomplete',
+      {
+        groups: selectableTriggerGroups({
+          spreadsheetId: { 'x-slates-options-linked': { slate: '@google/drive' } }
+        })
+      }
+    ],
+    [
+      'the field name is inherited',
+      {
+        field: 'constructor',
+        groups: selectableTriggerGroups({})
+      }
+    ]
+  ])('offers the hub no linked connection when %s', async (_, d) => {
+    hubResult('own');
+
+    await expect(list(d)).resolves.toEqual({
+      ...hubOptions,
+      source: 'own',
+      linkedProvider: null
+    });
+
+    expect(db.providerVariant.findMany).not.toHaveBeenCalled();
+    expect(listLinkableAuthConfigVersions).not.toHaveBeenCalled();
+    expect(slates.callbackInstance.listSelectionOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ linkedAuthConfigIds: [] })
+    );
+  });
+
+  it('offers the hub no linked connection when no visible provider is backed by the linked slate', async () => {
+    db.providerVariant.findMany.mockResolvedValue([]);
+    hubResult('own', { connected: false });
+
+    await expect(list()).resolves.toEqual({
+      ...hubOptions,
+      source: 'own',
+      linkedProvider: null
+    });
+    expect(listLinkableAuthConfigVersions).not.toHaveBeenCalled();
+    expect(slates.callbackInstance.listSelectionOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ linkedAuthConfigIds: [] })
+    );
+  });
+
+  it('skips the Slates lookup when no linkable connection has a Slates connection', async () => {
+    listLinkableAuthConfigVersions.mockResolvedValue([{ slateAuthConfigOid: null }]);
+    hubResult('own', { connected: false });
+
+    await list();
+
+    expect(db.slateAuthConfig.findMany).not.toHaveBeenCalled();
+    expect(slates.callbackInstance.listSelectionOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ linkedAuthConfigIds: [] })
+    );
+  });
+
+  it.each<[string, 'own' | 'linked', boolean]>([
+    ['options of the linked connection', 'linked', true],
+    ['own options while the linked provider is not connected', 'own', false]
+  ])('names the linked provider for %s', async (_, source, connected) => {
+    hubResult(source, { connected });
+
+    await expect(list()).resolves.toEqual({
+      ...hubOptions,
+      source,
+      linkedProvider: { provider: drive, connected }
+    });
+  });
+
+  it('names no linked provider when the hub does not know the linked slate', async () => {
+    hubResult('own', null);
+
+    await expect(list()).resolves.toEqual({
+      ...hubOptions,
+      source: 'own',
+      linkedProvider: null
+    });
+  });
+
+  it('passes the own page token with its source', async () => {
+    hubResult('own');
+
+    await list({ field: 'other', pageToken: { source: 'own', value: 'page-2' } });
+
+    expect(slates.callbackInstance.listSelectionOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ pageToken: 'page-2', pageTokenSource: 'own' })
+    );
   });
 });

@@ -1,20 +1,27 @@
-import type { Prisma } from '../../../prisma/generated/client';
+import type {
+  Slate,
+  SlateAuthConfig,
+  SlateAuthMethod,
+  SlateInstance,
+  SlateInstanceConfig,
+  SlateVersion,
+  Tenant
+} from '../../../prisma/generated/client';
 import { getActiveSlateVersion } from '../../lib/slateVersion';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { resolveTriggerAuth } from './_triggerAuth';
 
-type TriggerStackRegistration = Prisma.TriggerRegistrationGetPayload<{
-  include: {
-    tenant: true;
-    slate: true;
-    instance: true;
-    instanceConfig: true;
-    authConfig: { include: { authMethod: true } };
-  };
-}>;
+type TriggerStackRegistration = {
+  tenant: Tenant;
+  slate: Slate;
+  instance: SlateInstance | null;
+  instanceConfig: SlateInstanceConfig | null;
+  authConfig: (SlateAuthConfig & { authMethod: SlateAuthMethod }) | null;
+};
 
 type TriggerStackOptions = {
   registration: TriggerStackRegistration;
+  slateVersion?: SlateVersion;
   sessionId: string;
   note: string;
   minExpirationBuffer?: number;
@@ -22,10 +29,12 @@ type TriggerStackOptions = {
 
 export let prepareTriggerInstanceStack = async (d: TriggerStackOptions) => {
   let registration = d.registration;
-  let version = await getActiveSlateVersion({
-    slate: registration.slate,
-    instance: registration.instance
-  });
+  let version =
+    d.slateVersion ??
+    (await getActiveSlateVersion({
+      slate: registration.slate,
+      instance: registration.instance
+    }));
   let auth = await resolveTriggerAuth({
     tenant: registration.tenant,
     slateInstance: registration.instance,
@@ -42,7 +51,7 @@ export let prepareTriggerInstanceStack = async (d: TriggerStackOptions) => {
         slateVersion: version,
         tenant: registration.tenant,
         session: { id: d.sessionId, state: {} },
-        config: registration.instanceConfig.value ?? {},
+        config: registration.instanceConfig?.value ?? {},
         auth
       })
   };

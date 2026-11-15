@@ -3,6 +3,7 @@ import { DetailsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCallbackById,
+  useCallbackRegistration,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
@@ -19,6 +20,7 @@ export let CallbackLayout = () => {
   let project = useCurrentProject();
   let { callbackId } = useParams();
   let callback = useCallbackById(instance.data?.id, callbackId);
+  useCallbackRegistration(instance.data?.id, callbackId);
 
   let callbackPath = (...subPages: string[]) =>
     Paths.instance.callback(

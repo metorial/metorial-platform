@@ -470,6 +470,38 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async listTriggerSelectionOptions(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    field: string;
+    query?: string;
+    pageToken?: any;
+    selection?: Record<string, any>;
+  }) {
+    return await d.stack.invoke('slates/trigger_group.selection.options_list', {
+      triggerGroupId: d.triggerGroupId,
+      field: d.field,
+      query: d.query ?? null,
+      pageToken: d.pageToken ?? null,
+      selection: d.selection
+    });
+  }
+
+  async listOptionListOptions(d: {
+    stack: SlateInvocationStack;
+    optionListId: string;
+    query?: string;
+    pageToken?: any;
+    params?: Record<string, any>;
+  }) {
+    return await d.stack.invoke('slates/option_list.options_list', {
+      optionListId: d.optionListId,
+      query: d.query ?? null,
+      pageToken: d.pageToken ?? null,
+      params: d.params
+    });
+  }
+
   async registerWebhook(d: {
     stack: SlateInvocationStack;
     triggerGroupId: string;

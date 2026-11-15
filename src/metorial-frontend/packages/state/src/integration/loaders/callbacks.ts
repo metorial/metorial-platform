@@ -2,12 +2,15 @@ import type {
   DashboardInstanceCallbacksCreateBody,
   DashboardInstanceCallbacksListOutput,
   DashboardInstanceCallbacksListQuery,
+  DashboardInstanceCallbacksListTriggerSelectionOptionsBody,
   DashboardInstanceCallbacksUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+import { sameTriggerGroupSelections } from '../lib/callbackRegistrationState';
+import { recordCallbackSelectionsChange } from '../lib/callbackSelectionChanges';
 
 export type CallbackPreview = DashboardInstanceCallbacksListOutput['items'][number];
 export type CallbackSyncStatus = CallbackPreview['sync']['status'];
@@ -62,10 +65,24 @@ export let callbackLoader = createLoader({
   fetch: (i: { instanceId: string; callbackId: string }) =>
     withAuth(sdk => sdk.callbacks.get(i.instanceId, i.callbackId)),
   mutators: {
-    update: (
+    update: async (
       body: DashboardInstanceCallbacksUpdateBody,
-      { input: { instanceId, callbackId } }
-    ) => withAuth(sdk => sdk.callbacks.update(instanceId, callbackId, body)),
+      { input: { instanceId, callbackId }, output: previous }
+    ) => {
+      let callback = await withAuth(sdk => sdk.callbacks.update(instanceId, callbackId, body));
+
+      if (
+        body.triggerGroupSelections !== undefined &&
+        !sameTriggerGroupSelections(
+          previous?.triggerGroupSelections,
+          callback.triggerGroupSelections
+        )
+      ) {
+        recordCallbackSelectionsChange(instanceId, callbackId, callback.updatedAt);
+      }
+
+      return callback;
+    },
     delete: (_: {}, { input: { instanceId, callbackId } }) =>
       withAuth(sdk => sdk.callbacks.delete(instanceId, callbackId))
   }
@@ -83,6 +100,31 @@ export let useCallbackById = (
     useDeleteMutator: data.useMutator('delete')
   };
 };
+
+export let callbackTriggerSelectionOptionsLoader = createLoader({
+  name: 'callbackTriggerSelectionOptions',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+      callbackId: string;
+    } & DashboardInstanceCallbacksListTriggerSelectionOptionsBody
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, callbackId, ...body } = i;
+      return sdk.callbacks.listTriggerSelectionOptions(instanceId, callbackId, body);
+    }),
+  mutators: {}
+});
+
+export let useCallbackTriggerSelectionOptions = (
+  instanceId: string | null | undefined,
+  callbackId: string | null | undefined,
+  body: DashboardInstanceCallbacksListTriggerSelectionOptionsBody | null
+) =>
+  callbackTriggerSelectionOptionsLoader.use(
+    instanceId && callbackId && body ? { instanceId, callbackId, ...body } : null
+  );
 
 export let useCreateCallback = callbacksLoader.createExternalMutator(
   (i: { instanceId: string } & DashboardInstanceCallbacksCreateBody) =>
