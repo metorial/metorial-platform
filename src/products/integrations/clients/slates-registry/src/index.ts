@@ -1,5 +1,5 @@
 import { hc } from 'hono/client';
-import type { registryApp } from '../../../apps/registry/src/apis/public';
+import type { registryApp } from '../../../services/slates-registry/src/apis/public';
 
 export type RegistryAppType = typeof registryApp;
 

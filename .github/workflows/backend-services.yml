@@ -91,7 +91,7 @@ jobs:
             dockerfile: ./src/slates/apps/hub/Dockerfile
           - name: slates-registry
             image: ghcr.io/metorial/slates-registry
-            dockerfile: ./src/slates/apps/registry/Dockerfile
+            dockerfile: ./src/products/integrations/services/slates-registry/Dockerfile
           - name: webhook-sender
             image: ghcr.io/metorial/webhook-sender
             dockerfile: ./src/platform/services/webhook-sender/service/Dockerfile

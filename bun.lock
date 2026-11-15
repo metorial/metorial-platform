@@ -8267,7 +8267,7 @@
         "typescript": "^5",
       },
     },
-    "src/slates/apps/registry": {
+    "src/products/integrations/services/slates-registry": {
       "name": "@metorial/slates-registry",
       "dependencies": {
         "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
@@ -8347,7 +8347,7 @@
         "typescript": "^5",
       },
     },
-    "src/slates/clients/registry": {
+    "src/products/integrations/clients/slates-registry": {
       "name": "@metorial-services/slates-registry-client",
       "version": "1.0.1",
       "dependencies": {
@@ -8361,7 +8361,7 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/slates/clients/registry-internal": {
+    "src/products/integrations/clients/slates-registry-internal": {
       "name": "@metorial-services/slates-registry-internal-client",
       "version": "1.0.0",
       "dependencies": {
@@ -9403,9 +9403,9 @@
 
     "@metorial-services/scout-client": ["@metorial-services/scout-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.2" } }, "sha512-iZUt3ot1libD7mDh/9K5O/oYmuZGWxaxEIuTypzz0UQY0Ra4BFWwtfB88VwQCew58Fz6S2wf6iDsFLsq+/2s7w=="],
 
-    "@metorial-services/slates-registry-client": ["@metorial-services/slates-registry-client@workspace:src/slates/clients/registry"],
+    "@metorial-services/slates-registry-client": ["@metorial-services/slates-registry-client@workspace:src/products/integrations/clients/slates-registry"],
 
-    "@metorial-services/slates-registry-internal-client": ["@metorial-services/slates-registry-internal-client@workspace:src/slates/clients/registry-internal"],
+    "@metorial-services/slates-registry-internal-client": ["@metorial-services/slates-registry-internal-client@workspace:src/products/integrations/clients/slates-registry-internal"],
 
     "@metorial-subspace/adapter": ["@metorial-subspace/adapter@workspace:src/metorial/products/integrations/adapters/core"],
 
@@ -9777,7 +9777,7 @@
 
     "@metorial/slates": ["@metorial/slates@workspace:src/slates/apps/hub"],
 
-    "@metorial/slates-registry": ["@metorial/slates-registry@workspace:src/slates/apps/registry"],
+    "@metorial/slates-registry": ["@metorial/slates-registry@workspace:src/products/integrations/services/slates-registry"],
 
     "@metorial/split-pane": ["@metorial/split-pane@workspace:src/metorial-frontend/packages/split-pane"],
 

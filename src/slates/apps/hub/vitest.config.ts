@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
   return withAliases(config, {
     '@metorial-services/slates-registry-client': resolve(
       configDirectory,
-      '../../clients/registry/src/index.ts'
+      '../../../products/integrations/clients/slates-registry/src/index.ts'
     )
   });
 });

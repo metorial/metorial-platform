@@ -73,6 +73,7 @@ export default project({
             '@mtsrc/auth-core-frontend-admin'
           ],
           tasks: ['prisma:generate', 'server:build', 'frontend:build'],
+          sources: ['src/products/identity/services/auth-core/frontends/public'],
           ports: [52120, 52121, 52122, 52123, 12121],
           health: [
             { port: 52120, path: '/ping' },

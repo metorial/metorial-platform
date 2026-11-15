@@ -191,7 +191,7 @@
     "extraInputs": []
   },
   "slates-registry": {
-    "dockerfile": "src/slates/apps/registry/Dockerfile",
+    "dockerfile": "src/products/integrations/services/slates-registry/Dockerfile",
     "image": "ghcr.io/metorial/slates-registry",
     "platform": "linux/amd64",
     "workspace": ".",

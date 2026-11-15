@@ -24,7 +24,7 @@ services:
   object-storage:
     image: ghcr.io/metorial/mte-object-store:dev
     build:
-      context: ../../../..
+      context: ../../../../..
       dockerfile: src/object-storage/Dockerfile
     ports:
       - '65010:52010'
@@ -49,8 +49,8 @@ services:
 
   slates-registry:
     build:
-      context: ../../../../
-      dockerfile: ./src/slates/apps/registry/dev.Dockerfile
+      context: ../../../../..
+      dockerfile: ./src/products/integrations/services/slates-registry/dev.Dockerfile
     container_name: slates-registry-service
     restart: unless-stopped
     ports:
@@ -67,13 +67,12 @@ services:
       ARES_AUTH_URL: ${ARES_AUTH_URL}
       ARES_CLIENT_ID: ${ARES_CLIENT_ID}
     volumes:
-      - ./src:/app/src/slates/apps/registry/src:ro
-      - ./admin:/app/src/slates/apps/registry/admin:ro
-      - ./package.json:/app/src/slates/apps/registry/package.json:ro
-      - ./tsconfig.json:/app/src/slates/apps/registry/tsconfig.json:ro
-      - ./prisma:/app/src/slates/apps/registry/prisma
-      - ./prisma.config.ts:/app/src/slates/apps/registry/prisma.config.ts:ro
-      - ../../packages:/app/src/slates/packages:ro
+      - ./src:/app/src/products/integrations/services/slates-registry/src:ro
+      - ./admin:/app/src/products/integrations/services/slates-registry/admin:ro
+      - ./package.json:/app/src/products/integrations/services/slates-registry/package.json:ro
+      - ./tsconfig.json:/app/src/products/integrations/services/slates-registry/tsconfig.json:ro
+      - ./prisma:/app/src/products/integrations/services/slates-registry/prisma
+      - ./prisma.config.ts:/app/src/products/integrations/services/slates-registry/prisma.config.ts:ro
       - /app/node_modules
     depends_on:
       - postgres

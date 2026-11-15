@@ -23,6 +23,7 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
+COPY src/products/identity/services/auth-core/frontends/public ./src/products/identity/services/auth-core/frontends/public
 RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate --filter=@mtsrc/auth-core-service --filter=@mtsrc/auth-core-db --filter=@mtsrc/auth-core-frontend-auth --filter=@mtsrc/auth-core-frontend-admin
 RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh server:build frontend:build --filter=@mtsrc/auth-core-service
 

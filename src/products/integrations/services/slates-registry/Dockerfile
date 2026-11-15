@@ -49,9 +49,9 @@ COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
 FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=10001:10001 /app/src/slates/apps/registry/dist ./dist
-COPY --from=builder --link --chown=10001:10001 /app/src/slates/apps/registry/prisma/schema.prisma ./prisma/slates-registry/schema.prisma
-COPY --from=builder --link --chown=10001:10001 /app/src/slates/apps/registry/prisma/migrations/ ./prisma/slates-registry/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/integrations/services/slates-registry/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/products/integrations/services/slates-registry/prisma/schema.prisma ./prisma/slates-registry/schema.prisma
+COPY --from=builder --link --chown=10001:10001 /app/src/products/integrations/services/slates-registry/prisma/migrations/ ./prisma/slates-registry/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [

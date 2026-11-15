@@ -23,7 +23,8 @@ ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
 ENV TURBO_TEAM=${TURBO_TEAM}
 COPY --from=pruned /full/ ./
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@mtsrc/mcp-runtime-service --filter=@mtsrc/mcp-runtime-db
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh prisma:generate --filter=@mtsrc/mcp-runtime-service --filter=@mtsrc/mcp-runtime-db
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh ./src/tooling/warp-cache/run-turbo.sh server:build --filter=@mtsrc/mcp-runtime-service
 
 FROM base AS control-runtime
 WORKDIR /runtime
