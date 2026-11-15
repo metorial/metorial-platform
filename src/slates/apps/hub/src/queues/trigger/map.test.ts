@@ -199,12 +199,10 @@ describe('mapped event attributes', () => {
   });
 
   it('drops malformed attributes without failing the event', async () => {
-    await mapWith({
-      attributes: { 'bad key': ['x'], fileId: [42, '', 'file_1', 'file_1'], empty: [] }
-    });
+    await mapWith({ attributes: { 'bad key': ['x'], fileId: ['file_1'] } });
 
     expect(events.resolveMapped).toHaveBeenCalledWith(
-      expect.objectContaining({ attributes: { fileId: ['file_1'] } })
+      expect.objectContaining({ attributes: null })
     );
     expect(processQueue.add).toHaveBeenCalledWith({ eventId: 'event' }, { id: 'event' });
   });

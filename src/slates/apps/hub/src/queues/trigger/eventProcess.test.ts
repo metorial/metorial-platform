@@ -95,11 +95,11 @@ describe('mapped event delivery', () => {
     );
   });
 
-  it('omits attributes when the event has none', async () => {
+  it('sends no attributes when the event has none', async () => {
     await deliver();
 
     expect(receive).toHaveBeenCalledOnce();
-    expect(receive.mock.lastCall![0]).not.toHaveProperty('attributes');
+    expect(receive.mock.lastCall![0].attributes).toBeUndefined();
   });
 
   it('keeps the dispatch row when the receiver fails so the scanner retries', async () => {

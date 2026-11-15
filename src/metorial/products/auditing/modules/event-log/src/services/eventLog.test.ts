@@ -130,6 +130,15 @@ describe('eventLogService attribute filters', () => {
     ]);
   });
 
+  it('filters by keys that name built-in object members', async () => {
+    let where = await listWhere(['toString:x', 'constructor:y']);
+
+    expect(where.AND).toEqual([
+      { attributes: { hasSome: ['toString:x'] } },
+      { attributes: { hasSome: ['constructor:y'] } }
+    ]);
+  });
+
   it('keeps colons inside the value', async () => {
     let where = await listWhere(['range:A1:B2']);
 

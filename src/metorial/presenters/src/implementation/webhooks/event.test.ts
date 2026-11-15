@@ -71,6 +71,25 @@ describe('system event attributes presentation', () => {
     expect(single.attributes).toEqual(expected);
   });
 
+  it('presents keys that name built-in object members', async () => {
+    let keys = ['constructor', 'toString', 'valueOf', 'hasOwnProperty'];
+    let withAttributes = {
+      ...event,
+      attributes: keys.flatMap(key => [`${key}:a`, `${key}:b`])
+    };
+    let expected = Object.fromEntries(keys.map(key => [key, ['a', 'b']]));
+
+    let listItem = await v1SystemEventListPresenter
+      .present({ event: withAttributes, organization }, context)
+      .run();
+    let single = await v1SystemEventPresenter
+      .present({ event: withAttributes, organization }, context)
+      .run();
+
+    expect(listItem.attributes).toEqual(expected);
+    expect(single.attributes).toEqual(expected);
+  });
+
   it('presents an empty record for events without attributes', async () => {
     let listItem = await v1SystemEventListPresenter
       .present({ event, organization }, context)

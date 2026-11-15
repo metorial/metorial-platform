@@ -1,5 +1,4 @@
 export * from './lib/callbackIncludes';
-export * from './lib/eventAttributes';
 export * from './lib/eventDelegation';
 export * from './lib/triggerGroupSelections';
 export * from './lib/webhookRegistrationIncludes';

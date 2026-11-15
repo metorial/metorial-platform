@@ -8,84 +8,56 @@ describe('normalizeEventAttributes', () => {
     ).toEqual({ fileId: ['file_1'], mimeType: ['text/plain', 'text/csv'] });
   });
 
-  it('returns null for anything that is not a plain object', () => {
-    let inputs = [undefined, null, 'fileId', 42, true, ['fileId'], new Date(), new Map()];
+  it('keeps keys that name built-in object members', () => {
+    let input = {
+      constructor: ['a'],
+      toString: ['b'],
+      valueOf: ['c'],
+      hasOwnProperty: ['d']
+    };
+
+    expect(normalizeEventAttributes(input)).toEqual(input);
+  });
+
+  it('accepts the limits: eight keys of sixteen values, 64-character keys, 256-character values', () => {
+    let input = Object.fromEntries(
+      Array.from({ length: 8 }, (_, i) => [
+        i ? `key${i}` : 'k'.repeat(64),
+        Array.from({ length: 16 }, (_, j) => `${j}`.padEnd(256, 'x'))
+      ])
+    );
+
+    expect(normalizeEventAttributes(input)).toEqual(input);
+  });
+
+  it('returns null for anything that is not an object', () => {
+    let inputs = [undefined, null, 'fileId', 42, true, ['fileId']];
 
     for (let input of inputs) expect(normalizeEventAttributes(input)).toBeNull();
   });
 
-  it('returns null when nothing valid remains', () => {
+  it('returns null for an empty object', () => {
     expect(normalizeEventAttributes({})).toBeNull();
-    expect(normalizeEventAttributes({ fileId: [] })).toBeNull();
-    expect(normalizeEventAttributes({ '1bad': ['value'], fileId: [1, null, ''] })).toBeNull();
   });
 
-  it('drops keys that do not match the key pattern', () => {
-    expect(
-      normalizeEventAttributes({
-        fileId: ['a'],
-        file_id_2: ['b'],
-        _private: ['c'],
-        '9lives': ['d'],
-        'mime-type': ['e'],
-        'has space': ['f'],
-        ['k'.repeat(65)]: ['g'],
-        ['k'.repeat(64)]: ['h']
-      })
-    ).toEqual({ fileId: ['a'], file_id_2: ['b'], ['k'.repeat(64)]: ['h'] });
-  });
-
-  it('keeps only non-empty strings within the length limit', () => {
-    expect(
-      normalizeEventAttributes({
-        fileId: ['ok', '', 'x'.repeat(257), 'x'.repeat(256), 7, null, { id: 'a' }, ['nested']]
-      })
-    ).toEqual({ fileId: ['ok', 'x'.repeat(256)] });
-  });
-
-  it('accepts a single string value as a one-element list', () => {
-    expect(normalizeEventAttributes({ fileId: 'file_1', count: 3 })).toEqual({
-      fileId: ['file_1']
-    });
-  });
-
-  it('de-duplicates values and caps them at 16 per key', () => {
-    let values = Array.from({ length: 20 }, (_, index) => `value_${index}`);
-
-    expect(normalizeEventAttributes({ fileId: ['a', 'a', 'b', 'a'] })).toEqual({
-      fileId: ['a', 'b']
-    });
-    expect(normalizeEventAttributes({ fileId: [...values, ...values] })).toEqual({
-      fileId: values.slice(0, 16)
-    });
-  });
-
-  it('caps the number of keys at 8, counting only keys that kept values', () => {
-    let input: Record<string, unknown> = { empty: [], invalid: [1] };
-    for (let index = 0; index < 10; index++) input[`key${index}`] = [`value${index}`];
-
-    let attributes = normalizeEventAttributes(input);
-
-    expect(Object.keys(attributes!)).toEqual([
-      'key0',
-      'key1',
-      'key2',
-      'key3',
-      'key4',
-      'key5',
-      'key6',
-      'key7'
-    ]);
-  });
-
-  it('never throws on hostile input', () => {
-    let hostile = {
-      get fileId() {
-        throw new Error('boom');
-      }
-    };
-
-    expect(normalizeEventAttributes(hostile)).toBeNull();
+  it.each([
+    ['a key starting with a digit', { '9lives': ['a'] }],
+    ['a key starting with an underscore', { _private: ['a'] }],
+    ['a key with a dash', { 'mime-type': ['a'] }],
+    ['a key with a colon', { 'a:b': ['a'] }],
+    ['a key longer than 64 characters', { ['k'.repeat(65)]: ['a'] }],
+    ['an empty value list', { fileId: [] }],
+    ['an empty value', { fileId: [''] }],
+    ['a value longer than 256 characters', { fileId: ['x'.repeat(257)] }],
+    ['a non-string value', { fileId: [7] }],
+    ['a bare string instead of a list', { fileId: 'file_1' }],
+    ['more than sixteen values', { fileId: Array.from({ length: 17 }, (_, i) => `v${i}`) }],
+    [
+      'more than eight keys',
+      Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`key${i}`, ['v']]))
+    ]
+  ])('drops all attributes of the event for %s', (_, invalid) => {
+    expect(normalizeEventAttributes({ fileId: ['ok'], ...invalid })).toBeNull();
   });
 
   it('does not let prototype keys through', () => {

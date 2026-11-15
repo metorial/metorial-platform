@@ -8,6 +8,8 @@ let keyPattern = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 export type EventAttributes = Record<string, string[]>;
 
+type EventAttribute = { key: string; value: string };
+
 let attributeValuesValidator = v.record(
   v.array(
     v.string({
@@ -35,7 +37,7 @@ export let eventAttributesValidator: ValidationType<EventAttributes> = {
     let result = attributeValuesValidator.validate(value);
     if (!result.success) return result;
 
-    let keys = Object.keys(result.value);
+    let keys = Object.keys(value as EventAttributes);
     if (keys.length > maxKeys) {
       return v.error([
         {
@@ -72,38 +74,50 @@ export let flattenEventAttributes = (attributes: EventAttributes | null | undefi
 ];
 
 // Keys never contain a colon, so the first one separates the key from a value that may.
-export let unflattenEventAttributes = (flat: string[]) => {
-  let attributes: EventAttributes = {};
+let splitEventAttribute = (entry: string): EventAttribute | null => {
+  let separator = entry.indexOf(':');
+  if (separator < 0) return null;
 
-  for (let entry of flat) {
-    let separator = entry.indexOf(':');
-    if (separator < 1) continue;
-
-    let key = entry.slice(0, separator);
-    (attributes[key] ??= []).push(entry.slice(separator + 1));
-  }
-
-  return attributes;
+  return { key: entry.slice(0, separator), value: entry.slice(separator + 1) };
 };
 
-export let parseEventAttributeFilter = (entries: string[]) => {
-  let filter: EventAttributes = {};
+let groupEventAttributes = (attributes: EventAttribute[]): EventAttributes => {
+  let grouped = new Map<string, string[]>();
 
-  for (let entry of entries) {
-    let separator = entry.indexOf(':');
-    let key = separator < 0 ? entry : entry.slice(0, separator);
-    let value = separator < 0 ? '' : entry.slice(separator + 1);
-
-    if (separator < 0 || !keyPattern.test(key) || !value || value.length > maxValueLength) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Invalid attribute filter "${entry}": expected "key:value", where the key starts with a letter and contains only letters, digits and underscores, and the value is 1 to ${maxValueLength} characters`
-        })
-      );
-    }
-
-    (filter[key] ??= []).push(value);
+  for (let { key, value } of attributes) {
+    let values = grouped.get(key);
+    if (values) values.push(value);
+    else grouped.set(key, [value]);
   }
 
-  return filter;
+  return Object.fromEntries(grouped);
 };
+
+export let unflattenEventAttributes = (flat: string[]) =>
+  groupEventAttributes(
+    flat
+      .map(splitEventAttribute)
+      .filter((attribute): attribute is EventAttribute => !!attribute?.key)
+  );
+
+export let parseEventAttributeFilter = (entries: string[]) =>
+  groupEventAttributes(
+    entries.map(entry => {
+      let attribute = splitEventAttribute(entry);
+
+      if (
+        !attribute ||
+        !keyPattern.test(attribute.key) ||
+        !attribute.value ||
+        attribute.value.length > maxValueLength
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Invalid attribute filter "${entry}": expected "key:value", where the key starts with a letter and contains only letters, digits and underscores, and the value is 1 to ${maxValueLength} characters`
+          })
+        );
+      }
+
+      return attribute;
+    })
+  );

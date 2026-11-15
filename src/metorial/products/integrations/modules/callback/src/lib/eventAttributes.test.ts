@@ -6,6 +6,8 @@ import {
   unflattenEventAttributes
 } from './eventAttributes';
 
+let builtInMemberKeys = ['constructor', 'toString', 'valueOf', 'hasOwnProperty'];
+
 let errorsOf = (value: unknown) => {
   let result = eventAttributesValidator.validate(value);
   return result.success ? [] : result.errors;
@@ -66,6 +68,21 @@ describe('eventAttributesValidator', () => {
     expect(errorsOf({ fileId: values })[0]?.message).toMatch(/at most 16 values/);
   });
 
+  it('accepts keys that name built-in object members', () => {
+    let attributes = Object.fromEntries(builtInMemberKeys.map(key => [key, ['v']]));
+
+    expect(eventAttributesValidator.validate(attributes)).toEqual({
+      success: true,
+      value: attributes
+    });
+  });
+
+  it('rejects a __proto__ key', () => {
+    let attributes = JSON.parse('{"__proto__": ["v"], "fileId": ["f1"]}');
+
+    expect(errorsOf(attributes)[0]?.message).toMatch(/Invalid attribute key "__proto__"/);
+  });
+
   it('rejects non-objects', () => {
     expect(errorsOf(['fileId:1'])).not.toEqual([]);
     expect(errorsOf(null)).not.toEqual([]);
@@ -108,6 +125,20 @@ describe('unflattenEventAttributes', () => {
   it('returns an empty object for no entries', () => {
     expect(unflattenEventAttributes([])).toEqual({});
   });
+
+  it('skips entries without a key', () => {
+    expect(unflattenEventAttributes(['fileId', ':f1', 'mimeType:text/plain'])).toEqual({
+      mimeType: ['text/plain']
+    });
+  });
+
+  it('groups keys that name built-in object members', () => {
+    let flat = builtInMemberKeys.flatMap(key => [`${key}:a`, `${key}:b`]);
+
+    expect(unflattenEventAttributes(flat)).toEqual(
+      Object.fromEntries(builtInMemberKeys.map(key => [key, ['a', 'b']]))
+    );
+  });
 });
 
 describe('parseEventAttributeFilter', () => {
@@ -126,6 +157,14 @@ describe('parseEventAttributeFilter', () => {
 
   it('returns an empty filter for no entries', () => {
     expect(parseEventAttributeFilter([])).toEqual({});
+  });
+
+  it('accepts keys that name built-in object members', () => {
+    let entries = builtInMemberKeys.flatMap(key => [`${key}:x`, `${key}:y`]);
+
+    expect(parseEventAttributeFilter(entries)).toEqual(
+      Object.fromEntries(builtInMemberKeys.map(key => [key, ['x', 'y']]))
+    );
   });
 
   it.each(['fileId', 'fileId:', ':f1', '1abc:f1', 'file-id:f1', `fileId:${'x'.repeat(257)}`])(
