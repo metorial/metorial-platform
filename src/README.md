@@ -166,7 +166,8 @@ image repositories use `build` and `functions`.
 
 MCP Runtime, formerly Shuttle, belongs to Integrations at
 `products/integrations/services/mcp-runtime/`; its internal client lives at
-`products/integrations/clients/mcp-runtime/`. Packages use `@mtsrc/mcp-runtime-service` and
+`products/integrations/clients/mcp-runtime/`. It is split into `db/`, `packages/`, `apis/`,
+`modules/`, and `service/` packages named `@mtsrc/mcp-runtime-<name>`; the client is
 `@mtsrc/mcp-runtime-client-internal`; images use `mcp-runtime` (`mte-mcp-runtime` for SaaS).
 The public `@metorial/mcp`, `@metorial/mcp-server`, and `@metorial/mcp-transport-memory`
 packages retain their names under the service's `sdk/packages/` directory. The legacy RPC paths,
@@ -251,7 +252,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Agents                          | Modules and shared packages live alongside the model catalog and AI Gateway under `products/agents/`.                                                                                                                                                                                                       |
 | Auditing, skills, and workforce | Modules and shared packages live under their product directories.                                                                                                                                                                                                                                           |
 | Storage                         | Storage modules and SCM live under `products/storage/`. SCM, formerly Origin, uses `@mtsrc/scm-*` packages. Code Bucket and the editor live with the service. The SCM and Code Bucket clients live in `products/storage/clients/`.                                                                          |
-| Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core/service` (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
+| Identity                        | Auth Core, formerly Ares, lives at `products/identity/services/auth-core`, split into `db`, `packages`, `modules`, `apis`, `frontends` and the `service` entry point (`@mtsrc/auth-core-service`). Its client is at `products/identity/clients/auth-core` (`@mtsrc/auth-core-client-internal`). The five identity modules are in `products/identity/modules` and run in the Metorial monolith. |
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Shared platform code | The remaining Core modules live at `platform/modules/`; shared Metorial packages at `platform/packages/`; the cell registry at `platform/multi-region/`. Package names and runtime behavior remain unchanged. |
 | Platform services               | `secret-store`, `email`, `search`, and `webhook-sender` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |

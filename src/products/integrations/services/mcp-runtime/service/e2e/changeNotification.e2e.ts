@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { db as testDb } from '../src/db';
-import { ChangeNotificationType } from '../prisma/generated/client';
+import { db as testDb } from '@mtsrc/mcp-runtime-db';
+import { ChangeNotificationType } from '@mtsrc/mcp-runtime-db';
 import { shuttleClient } from './client';
 import { fixtures } from './fixtures';
 
@@ -62,8 +62,7 @@ describe('changeNotification:get E2E', () => {
   const f = fixtures(testDb);
 
   it('returns a single change notification by ID', async () => {
-    const { tenant, server, serverVersion: version } =
-      await f.tenant.withServerAndVersion();
+    const { tenant, server, serverVersion: version } = await f.tenant.withServerAndVersion();
     const notification = await f.changeNotification.serverVersionCreated({
       serverOid: server.oid,
       serverVersionOid: version.oid

@@ -1,8 +1,5 @@
-import type {
-  PrismaClient,
-  ConnectionLogsStorageBucket
-} from '../../prisma/generated/client';
-import { snowflake } from '../../src/id';
+import type { PrismaClient, ConnectionLogsStorageBucket } from '@mtsrc/mcp-runtime-db';
+import { snowflake } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 
 export const ConnectionLogsBucketFixtures = (db: PrismaClient) => {

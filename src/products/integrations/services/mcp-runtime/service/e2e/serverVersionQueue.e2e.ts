@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtures } from './fixtures';
-import { db as testDb } from '../src/db';
-import { getId } from '../src/id';
-import { deployContainerServerStartQueue } from '../src/queues/container/startDeployment';
-import { serverVersionCreatedQueue } from '../src/queues/lifecycle/serverVersion';
+import { db as testDb } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
+import { deployContainerServerStartQueue } from '@mtsrc/mcp-runtime-module-deployments';
+import { serverVersionCreatedQueue } from '@mtsrc/mcp-runtime-module-deployments';
 
 vi.mock('@lowerdeck/queue', () => ({
   createQueue: vi.fn(() => ({
@@ -19,22 +19,20 @@ vi.mock('@lowerdeck/queue', () => ({
   }
 }));
 
-vi.mock('../src/queues/container/startDeployment', () => ({
+vi.mock('@mtsrc/mcp-runtime-module-deployments', () => ({
   deployContainerServerStartQueue: { add: vi.fn() }
 }));
 
-vi.mock('../src/queues/lifecycle/serverVersion', () => ({
+vi.mock('@mtsrc/mcp-runtime-module-deployments', () => ({
   serverVersionCreatedQueue: { add: vi.fn() }
 }));
 
-let propagateRepoVersionToServerQueueProcessor: (
-  data: {
-    repositoryVersionId: string;
-    repositoryTagId: string;
-    serverId: string;
-    serverDeploymentId?: string;
-  }
-) => Promise<void>;
+let propagateRepoVersionToServerQueueProcessor: (data: {
+  repositoryVersionId: string;
+  repositoryTagId: string;
+  serverId: string;
+  serverDeploymentId?: string;
+}) => Promise<void>;
 
 let propagateRepoVersionToServersQueueProcessor: (data: {
   repositoryTagId: string;
@@ -49,7 +47,7 @@ describe('shuttle tag serverVersion queue', () => {
     vi.clearAllMocks();
 
     vi.resetModules();
-    let module = await import('../src/queues/tag/serverVersion');
+    let module = await import('@mtsrc/mcp-runtime-module-deployments');
     propagateRepoVersionToServerQueueProcessor =
       module.propagateRepoVersionToServerQueueProcessor as unknown as typeof propagateRepoVersionToServerQueueProcessor;
     propagateRepoVersionToServersQueueProcessor =
@@ -92,7 +90,9 @@ describe('shuttle tag serverVersion queue', () => {
     });
 
     let versions = await testDb.serverVersion.findMany({ where: { serverOid: server.oid } });
-    let deployments = await testDb.serverDeployment.findMany({ where: { serverOid: server.oid } });
+    let deployments = await testDb.serverDeployment.findMany({
+      where: { serverOid: server.oid }
+    });
 
     expect(versions).toHaveLength(0);
     expect(deployments).toHaveLength(0);
@@ -135,7 +135,9 @@ describe('shuttle tag serverVersion queue', () => {
     });
 
     let versions = await testDb.serverVersion.findMany({ where: { serverOid: server.oid } });
-    let deployments = await testDb.serverDeployment.findMany({ where: { serverOid: server.oid } });
+    let deployments = await testDb.serverDeployment.findMany({
+      where: { serverOid: server.oid }
+    });
 
     expect(versions).toHaveLength(1);
     expect(deployments).toHaveLength(1);

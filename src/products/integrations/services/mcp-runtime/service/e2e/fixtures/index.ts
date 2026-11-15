@@ -1,4 +1,4 @@
-import type { PrismaClient } from '../../prisma/generated/client';
+import type { PrismaClient } from '@mtsrc/mcp-runtime-db';
 import { TenantFixtures } from './tenantFixtures';
 import { SecretFixtures } from './secretFixtures';
 import { ContainerRegistryFixtures } from './containerRegistryFixtures';

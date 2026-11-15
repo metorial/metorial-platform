@@ -1,0 +1,36 @@
+{
+  "name": "@mtsrc/mcp-runtime-module-oauth",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@mtsrc/mcp-runtime-data-utils": "workspace:*",
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-env": "workspace:*",
+    "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+    "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+    "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+    "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
+    "date-fns": "^4.4.0",
+    "vitest": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

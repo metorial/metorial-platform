@@ -1,11 +1,6 @@
-import type {
-  PrismaClient,
-  ServerDeployment,
-  Server,
-  Tenant
-} from '../../prisma/generated/client';
-import { ServerDeploymentStatus } from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+import type { PrismaClient, ServerDeployment, Server, Tenant } from '@mtsrc/mcp-runtime-db';
+import { ServerDeploymentStatus } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ServerFixtures } from './serverFixtures';
 import { TenantFixtures } from './tenantFixtures';

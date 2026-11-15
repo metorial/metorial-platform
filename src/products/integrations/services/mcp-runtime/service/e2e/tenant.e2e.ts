@@ -2,7 +2,7 @@ import { uniqueId } from '@lowerdeck/testing-tools';
 import { describe, expect, it } from 'vitest';
 import { shuttleClient } from './client';
 import { fixtures } from './fixtures';
-import { db } from '../src/db';
+import { db } from '@mtsrc/mcp-runtime-db';
 
 describe('shuttle tenant', () => {
   let f = fixtures(db);

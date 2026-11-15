@@ -1,0 +1,510 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { delay } from '@lowerdeck/delay';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { Hash } from '@lowerdeck/hash';
+import axios from 'axios';
+import { customAlphabet } from 'nanoid';
+import type { RemoteOAuthConfig, RemoteOAuthConnection, Tenant } from '@mtsrc/mcp-runtime-db';
+import { oauthCallbackUrl } from '@mtsrc/mcp-runtime-env';
+import { db } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
+import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
+import { assertUrlAllowedByEgressPolicy } from '@mtsrc/mcp-runtime-network';
+import { oauthDebug } from './oauthDebug';
+import {
+  buildClientBrandingMetadata,
+  buildClientRegistrationMetadata
+} from './clientRegistrationMetadata';
+import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
+import { getOAuthRegistrationErrorDetails } from './oauthRegistrationError';
+import {
+  formatOAuthRequestError,
+  getOAuthRequestErrorDetails,
+  type OAuthRequestErrorDetails
+} from './oauthRequestError';
+import { withBrandingFallback } from './registrationBrandingFallback';
+import { isTransientRegistrationError } from './registrationRetry';
+import {
+  applyClientAuthentication,
+  resolveTokenEndpointAuthMethod,
+  type TokenEndpointAuthMethod
+} from './tokenEndpointAuth';
+import {
+  type OAuthConfiguration,
+  type RegistrationResponse,
+  registrationResponseValidator,
+  type TokenResponse,
+  type UserProfile
+} from './types';
+
+axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
+
+let getProviderErrorDescription = (error: any): string | null => {
+  let description = error?.response?.data?.error_description;
+  return typeof description === 'string' ? description.slice(0, 300) : null;
+};
+
+let id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 21);
+
+export class OAuthUtils {
+  static generateState(): string {
+    return id(32);
+  }
+
+  static generateCodeVerifier(): string {
+    return id(128);
+  }
+
+  static async generateCodeChallenge(verifier: string): Promise<string> {
+    let encoder = new TextEncoder();
+    let data = encoder.encode(verifier);
+    let digest = await crypto.subtle.digest('SHA-256', data);
+    return this.base64UrlEncode(new Uint8Array(digest));
+  }
+
+  private static base64UrlEncode(buffer: Uint8Array): string {
+    let base64 = btoa(String.fromCharCode(...buffer));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  static buildAuthorizationUrl({
+    clientId,
+    redirectUri,
+    scopes,
+    state,
+    codeChallenge,
+    config
+  }: {
+    clientId: string;
+    redirectUri: string;
+    scopes: string[];
+    state?: string;
+    codeChallenge?: string;
+    config: OAuthConfiguration;
+  }): string {
+    let url = new URL(normalizeAuthorizationUrl(config.authorization_endpoint));
+
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('client_id', clientId);
+    url.searchParams.set('redirect_uri', redirectUri);
+
+    if (scopes.length > 0) {
+      url.searchParams.set('scope', scopes.join(' '));
+    }
+
+    if (state) {
+      url.searchParams.set('state', state);
+    }
+
+    if (codeChallenge) {
+      url.searchParams.set('code_challenge', codeChallenge);
+      url.searchParams.set('code_challenge_method', 'S256');
+    }
+
+    if (config.resource) {
+      url.searchParams.set('resource', config.resource);
+    }
+
+    return url.toString();
+  }
+
+  static async exchangeCodeForTokens({
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    code,
+    redirectUri,
+    codeVerifier,
+    config,
+    tokenEndpointAuthMethod,
+    egressPolicy
+  }: {
+    tokenEndpoint: string;
+    clientId: string;
+    clientSecret?: string;
+    code: string;
+    redirectUri: string;
+    codeVerifier?: string;
+    config: OAuthConfiguration;
+    tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  }): Promise<TokenResponse> {
+    let body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri
+    });
+
+    if (codeVerifier) {
+      body.set('code_verifier', codeVerifier);
+    }
+
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+      'User-Agent': 'Metorial (https://metorial.com)'
+    };
+
+    let authMethod = resolveTokenEndpointAuthMethod({
+      config,
+      clientSecret,
+      registeredMethod: tokenEndpointAuthMethod
+    });
+    applyClientAuthentication({ method: authMethod, clientId, clientSecret, headers, body });
+
+    try {
+      await assertUrlAllowedByEgressPolicy({ url: tokenEndpoint, egressPolicy });
+
+      let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
+        headers,
+        maxRedirects: 5,
+        timeout: 5000,
+        ...getAxiosSsrfFilter(tokenEndpoint)
+      });
+
+      // @ts-ignore
+      if (response.data.ok === false)
+        // @ts-ignore
+        throw new Error(response.data.message ?? 'Unknown oauth error (provider ok=false)');
+
+      return response.data;
+    } catch (error: any) {
+      let details = getOAuthRequestErrorDetails(error);
+
+      oauthDebug('token exchange failed', {
+        tokenEndpoint,
+        clientId,
+        authMethod,
+        registeredAuthMethod: tokenEndpointAuthMethod ?? null,
+        providerSupportedAuthMethods: config.token_endpoint_auth_methods_supported ?? null,
+        hasClientSecret: !!clientSecret,
+        redirectUri,
+        usedPkce: !!codeVerifier,
+        resource: config.resource ?? null,
+        status: details.status,
+        oauthCode: details.oauthCode,
+        providerErrorDescription: getProviderErrorDescription(error),
+        errorMessage: error?.message
+      });
+
+      throw new ServiceError(
+        badRequestError({
+          code: 'oauth_token_exchange_failed',
+          message: formatOAuthRequestError('OAuth token exchange failed', details)
+        })
+      );
+    }
+  }
+
+  static async refreshAccessToken({
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    refreshToken,
+    config,
+    tokenEndpointAuthMethod
+  }: {
+    tokenEndpoint: string;
+    clientId: string;
+    clientSecret?: string;
+    refreshToken: string;
+    config: OAuthConfiguration;
+    tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
+  }): Promise<
+    | { ok: true; response: TokenResponse }
+    | { ok: false; error: OAuthRequestErrorDetails; message: string }
+  > {
+    let body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken
+    });
+
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+      'User-Agent': 'Metorial (https://metorial.com)'
+    };
+
+    let authMethod = resolveTokenEndpointAuthMethod({
+      config,
+      clientSecret,
+      registeredMethod: tokenEndpointAuthMethod
+    });
+    applyClientAuthentication({ method: authMethod, clientId, clientSecret, headers, body });
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
+          headers,
+          maxRedirects: 5,
+          timeout: 5000,
+          ...getAxiosSsrfFilter(tokenEndpoint)
+        });
+        return {
+          ok: true,
+          response: response.data
+        };
+      } catch (error) {
+        let details = getOAuthRequestErrorDetails(error);
+        if (details.isTransient && attempt == 0) {
+          await delay(details.retryAfterMs ?? 500);
+          continue;
+        }
+
+        return {
+          ok: false,
+          error: details,
+          message: formatOAuthRequestError('OAuth token refresh failed', details)
+        };
+      }
+    }
+
+    throw new Error('OAuth token refresh retry loop completed unexpectedly');
+  }
+
+  static async getUserProfile({
+    userInfoEndpoint,
+    accessToken,
+    egressPolicy
+  }: {
+    userInfoEndpoint: string;
+    accessToken: string;
+    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  }): Promise<UserProfile | null> {
+    try {
+      await assertUrlAllowedByEgressPolicy({ url: userInfoEndpoint, egressPolicy });
+
+      let response = await axios.get(userInfoEndpoint, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+          'User-Agent': 'Metorial (https://metorial.com)'
+        },
+        maxRedirects: 5,
+        timeout: 5000,
+        ...getAxiosSsrfFilter(userInfoEndpoint)
+      });
+
+      let data = response.data;
+      data.sub = data.sub ?? data.id ?? data.user_id;
+
+      if (!data.sub) return null;
+
+      return {
+        raw: data,
+        sub: String(data.sub),
+        name: typeof data.name === 'string' ? data.name : undefined,
+        email: typeof data.email === 'string' ? data.email : undefined
+      };
+    } catch (error: any) {
+      let details = getOAuthRequestErrorDetails(error);
+      throw new ServiceError(
+        badRequestError({
+          code: 'oauth_userinfo_failed',
+          message: formatOAuthRequestError('OAuth user profile lookup failed', details)
+        })
+      );
+    }
+  }
+
+  static getProviderName(config: OAuthConfiguration): string {
+    if (config.issuer) {
+      try {
+        let url = new URL(config.issuer);
+        return url.hostname.split('.').slice(-2).join('.');
+      } catch (e) {
+        return config.issuer.replace(/https?:\/\//, '').replace(/\/$/, '');
+      }
+    }
+
+    if (config.authorization_endpoint) {
+      try {
+        let url = new URL(config.authorization_endpoint);
+        return url.hostname.split('.').slice(-2).join('.');
+      } catch (e) {
+        return 'OAuth Provider';
+      }
+    }
+
+    return 'OAuth Provider';
+  }
+
+  static getProviderUrl(config: OAuthConfiguration): string {
+    if (config.issuer) {
+      try {
+        let url = new URL(config.issuer);
+        let host = url.hostname.split('.').slice(-2).join('.');
+        return `https://${host}`;
+      } catch (e) {
+        return config.issuer;
+      }
+    }
+
+    if (config.authorization_endpoint) {
+      try {
+        let url = new URL(config.authorization_endpoint);
+        let host = url.hostname.split('.').slice(-2).join('.');
+        return `https://${host}`;
+      } catch (e) {
+        return config.authorization_endpoint;
+      }
+    }
+
+    return 'https://unknown-provider.metorial.com';
+  }
+
+  static async getConfigHash(config: OAuthConfiguration, scopes: string[]) {
+    return await Hash.sha256(canonicalize(config) + canonicalize(scopes.sort()));
+  }
+
+  static supportsAuthRegistration(config: OAuthConfiguration) {
+    return !!config.registration_endpoint;
+  }
+
+  static async registerClient({
+    tenant,
+    config,
+    owner
+  }: {
+    tenant: Tenant;
+    config: OAuthConfiguration;
+    owner?: {
+      connection?: RemoteOAuthConnection;
+      config?: RemoteOAuthConfig;
+    };
+  }) {
+    if (!config.registration_endpoint) return null;
+
+    try {
+      let clientName = `${tenant.name} (via Metorial)`;
+
+      let registrationEndpoint = config.registration_endpoint;
+
+      let postRegistration = (withBranding: boolean) =>
+        axios.post<RegistrationResponse>(
+          registrationEndpoint,
+          {
+            client_name: clientName,
+            redirect_uris: [oauthCallbackUrl],
+            ...buildClientRegistrationMetadata(config),
+            ...(withBranding ? buildClientBrandingMetadata() : {})
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'User-Agent': 'Metorial (https://metorial.com)'
+            },
+            maxRedirects: 5,
+            timeout: 5000,
+            ...getAxiosSsrfFilter(registrationEndpoint)
+          }
+        );
+
+      let response = await withBrandingFallback(postRegistration, error => {
+        let details = getOAuthRegistrationErrorDetails(error);
+
+        oauthDebug('client registration with branding failed, retrying without', {
+          registrationEndpoint,
+          status: details.status,
+          oauthCode: details.oauthCode,
+          message: details.message
+        });
+      });
+
+      let data = response.data;
+
+      let val = registrationResponseValidator.validate(data);
+      if (!val.success) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Invalid registration response from ${config.registration_endpoint}`,
+            details: val.errors
+          })
+        );
+      }
+
+      let regData = {
+        ...data,
+        client_id: data.client_id,
+        client_secret: data.client_secret || undefined,
+        client_id_issued_at: data.client_id_issued_at
+          ? new Date(data.client_id_issued_at * 1000)
+          : undefined,
+        client_secret_expires_at: data.client_secret_expires_at
+          ? new Date(data.client_secret_expires_at * 1000)
+          : undefined,
+        registration_access_token: data.registration_access_token || undefined,
+        registration_client_uri: data.registration_client_uri
+          ? new URL(data.registration_client_uri, config.registration_endpoint).toString()
+          : undefined
+      };
+
+      let reg = await db.remoteOAuthAutoRegistration.create({
+        data: {
+          ...getId('remoteOAuthAutoRegistration'),
+          data: regData,
+          clientId: regData.client_id,
+          clientSecret: regData.client_secret,
+          registrationClientUri: regData.registration_client_uri,
+          registrationAccessToken: regData.registration_access_token,
+          clientSecretExpiresAt: regData.client_secret_expires_at,
+          autoRegistrationName: clientName
+        }
+      });
+
+      return {
+        ok: true as const,
+        registration: reg
+      };
+    } catch (error: any) {
+      let details = getOAuthRegistrationErrorDetails(error);
+
+      let err = await db.remoteOAuthRegistrationError.create({
+        data: {
+          ...getId('remoteOAuthRegistrationError'),
+          endpoint: config.registration_endpoint,
+          configOid: owner?.config?.oid || null,
+          connectionOid: owner?.connection?.oid || null,
+
+          payload: {
+            error: {
+              status: details.status,
+              oauthCode: details.oauthCode,
+              message: details.message,
+              description: details.description,
+              response: details.response,
+              responseTruncated: details.responseTruncated,
+              contentType: details.contentType,
+              retryAfterMs: details.retryAfterMs
+            }
+          }
+        }
+      });
+
+      // if (captureErrors) {
+      //   Sentry.captureException(error, {
+      //     extra: {
+      //       registrationEndpoint: config.registration_endpoint,
+      //       tenantId: tenant.id,
+      //       status: details.status
+      //     }
+      //   });
+      // }
+
+      return {
+        ok: false as const,
+        error: err,
+        status: details.status,
+        oauthCode: details.oauthCode,
+        message: details.message ?? details.summary,
+        description: details.description,
+        responseText: details.responseText,
+        responseTruncated: details.responseTruncated,
+        contentType: details.contentType,
+        retryAfterMs: details.retryAfterMs,
+        isTransient: isTransientRegistrationError({ status: details.status })
+      };
+    }
+  }
+}

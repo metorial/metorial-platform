@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 
 RUN sh ./src/products/integrations/services/mcp-runtime/scripts/prepare-docker-build.sh
 
-RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@mtsrc/mcp-runtime-service
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@mtsrc/mcp-runtime-service --filter=@mtsrc/mcp-runtime-db
 
 # Run in dev mode with hot reloading. Reinstall if the mounted node_modules
 # volume is empty so local SDK workspace packages resolve during tests.
-CMD ["sh", "-c", "cd /app && if [ ! -f /app/node_modules/@metorial/mcp-server/package.json ]; then bun install --linker=hoisted; fi && cd /app/src/products/integrations/services/mcp-runtime/service && bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]
+CMD ["sh", "-c", "cd /app && if [ ! -f /app/node_modules/@metorial/mcp-server/package.json ]; then bun install --linker=hoisted; fi && cd /app/src/products/integrations/services/mcp-runtime/db && bun run db:generate && bun run db:push:dev && cd ../service && bun --watch src/server.ts"]

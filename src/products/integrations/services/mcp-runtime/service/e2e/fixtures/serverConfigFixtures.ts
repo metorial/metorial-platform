@@ -4,8 +4,8 @@ import type {
   Server,
   Secret,
   Tenant
-} from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+} from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ServerFixtures } from './serverFixtures';
 import { SecretFixtures } from './secretFixtures';

@@ -1,11 +1,6 @@
 import { randomBytes } from 'crypto';
-import type {
-  PrismaClient,
-  Tenant,
-  Server,
-  ServerVersion
-} from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+import type { PrismaClient, Tenant, Server, ServerVersion } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ServerFixtures } from './serverFixtures';
 import { ServerVersionFixtures } from './serverVersionFixtures';
@@ -13,8 +8,7 @@ import { ServerVersionFixtures } from './serverVersionFixtures';
 export const TenantFixtures = (db: PrismaClient) => {
   const defaultTenant = async (overrides: Partial<Tenant> = {}): Promise<Tenant> => {
     const { oid, id } = getId('tenant');
-    const identifier =
-      overrides.identifier ?? `test-tenant-${randomBytes(4).toString('hex')}`;
+    const identifier = overrides.identifier ?? `test-tenant-${randomBytes(4).toString('hex')}`;
 
     const factory = defineFactory<Tenant>(
       {

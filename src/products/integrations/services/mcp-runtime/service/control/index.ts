@@ -8,7 +8,6 @@ import {
   endpoint,
   mergeEnv,
   objectStorage,
-  postgres,
   project,
   redis,
   stackMember
@@ -60,14 +59,7 @@ export default project({
         NEBULA_CONSUMER_TOKEN: 'local-dev-nebula-shuttle-registration-secret',
         SHUTTLE_DELEGATE_SECRETS_TO_NEBULA: 'true'
       }
-    ),
-    databases: {
-      main: postgres({
-        package: '@mtsrc/mcp-runtime-service',
-        name: 'shuttle',
-        env: 'DATABASE_URL'
-      })
-    }
+    )
   }),
   e2e: e2e({
     start: ['e2e:start'],
@@ -87,13 +79,14 @@ export default project({
         ecr: 'metorial-enterprise-saas/mte-mcp-runtime',
         canonical: 'ghcr.io/metorial/mcp-runtime',
         build: bunService({
+          include: ['@mtsrc/mcp-runtime-db'],
           ports: [52080, 52081],
           health: [
             { port: 52080, path: '/ping' },
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('shuttle', '@mtsrc/mcp-runtime-service', { prefix: 'SHUTTLE' })
+            ownMigration('shuttle', '@mtsrc/mcp-runtime-db', { prefix: 'SHUTTLE' })
           ]
         })
       })

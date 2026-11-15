@@ -3,9 +3,9 @@ import type {
   ServerDiscovery,
   ServerConfig,
   ServerVersion
-} from '../../prisma/generated/client';
-import { ServerDiscoveryStatus } from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+} from '@mtsrc/mcp-runtime-db';
+import { ServerDiscoveryStatus } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ServerConfigFixtures } from './serverConfigFixtures';
 import { ServerVersionFixtures } from './serverVersionFixtures';

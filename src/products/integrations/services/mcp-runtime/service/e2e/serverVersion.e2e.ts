@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { db as testDb } from '../src/db';
+import { db as testDb } from '@mtsrc/mcp-runtime-db';
 import { shuttleClient } from './client';
 import { fixtures } from './fixtures';
 
@@ -12,8 +12,7 @@ describe('serverVersion:list E2E', () => {
       server: serverA,
       serverVersion: versionA1
     } = await f.tenant.withServerAndVersion();
-    const { tenant: tenantB, serverVersion: versionB } =
-      await f.tenant.withServerAndVersion();
+    const { tenant: tenantB, serverVersion: versionB } = await f.tenant.withServerAndVersion();
     const versionA2 = await f.serverVersion.default({
       serverOid: serverA.oid,
       tenantOid: tenantA.oid
@@ -58,8 +57,7 @@ describe('serverVersion:get E2E', () => {
   const f = fixtures(testDb);
 
   it('returns a single server version by ID', async () => {
-    const { tenant, server, serverVersion: version } =
-      await f.tenant.withServerAndVersion();
+    const { tenant, server, serverVersion: version } = await f.tenant.withServerAndVersion();
 
     const result = await shuttleClient.serverVersion.get({
       tenantId: tenant.id,
@@ -79,8 +77,7 @@ describe('serverVersion:get E2E', () => {
   });
 
   it('rejects when server version belongs to another tenant', async () => {
-    const { tenant: tenantA, serverVersion: versionA } =
-      await f.tenant.withServerAndVersion();
+    const { tenant: tenantA, serverVersion: versionA } = await f.tenant.withServerAndVersion();
     const { tenant: tenantB } = await f.tenant.withServerAndVersion();
 
     await expect(

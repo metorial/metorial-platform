@@ -52,6 +52,8 @@
     "src/products/*/services/*/services/*",
     "src/products/*/services/*/db",
     "src/products/*/services/*/apis/*",
+    "src/products/*/services/*/modules/*",
+    "src/products/*/services/*/frontends/*",
     "src/products/*/services/*/spec",
     "src/products/*/services/*/dev",
     "src/products/*/services/*/packages/*",

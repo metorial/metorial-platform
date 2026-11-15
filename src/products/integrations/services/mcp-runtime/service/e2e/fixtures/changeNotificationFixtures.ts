@@ -3,9 +3,9 @@ import type {
   ChangeNotification,
   Server,
   ServerVersion
-} from '../../prisma/generated/client';
-import { ChangeNotificationType } from '../../prisma/generated/client';
-import { getId } from '../../src/id';
+} from '@mtsrc/mcp-runtime-db';
+import { ChangeNotificationType } from '@mtsrc/mcp-runtime-db';
+import { getId } from '@mtsrc/mcp-runtime-db';
 import { defineFactory } from '@lowerdeck/testing-tools';
 import { ServerFixtures } from './serverFixtures';
 import { ServerVersionFixtures } from './serverVersionFixtures';
