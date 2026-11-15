@@ -21,7 +21,7 @@ import { serverConnectionService } from '@mtsrc/mcp-runtime-module-connections';
 
 let Sentry = getSentry();
 
-let checkInnerError = (e: any): PrismaJson.ServerDiscoveryWarning | undefined => {
+let checkInnerError = (e: any): McpRuntimePrismaJson.ServerDiscoveryWarning | undefined => {
   if (typeof e.name == 'string' && e.name == '$ZodError') {
     return {
       code: 'invalid_response',
@@ -43,15 +43,15 @@ let checkInnerError = (e: any): PrismaJson.ServerDiscoveryWarning | undefined =>
 };
 
 let passWarning = (
-  warnings: PrismaJson.ServerDiscoveryWarning[],
-  warning: PrismaJson.ServerDiscoveryWarning | undefined
+  warnings: McpRuntimePrismaJson.ServerDiscoveryWarning[],
+  warning: McpRuntimePrismaJson.ServerDiscoveryWarning | undefined
 ) => {
   if (!warning) return;
   warnings.push(warning);
 };
 
 let doWithCheck = async <T>(
-  warnings: PrismaJson.ServerDiscoveryWarning[],
+  warnings: McpRuntimePrismaJson.ServerDiscoveryWarning[],
   fn: () => Promise<T>
 ) => {
   try {
@@ -65,7 +65,7 @@ let doWithCheck = async <T>(
 };
 
 let doWithRequiredCheck = async <T>(
-  warnings: PrismaJson.ServerDiscoveryWarning[],
+  warnings: McpRuntimePrismaJson.ServerDiscoveryWarning[],
   fn: () => Promise<T>
 ) => {
   try {
@@ -118,8 +118,8 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
 
   let state: {
     client: EmbeddedConnection | undefined;
-    specValue: PrismaJson.ServerSpecificationValue | undefined;
-    warnings: PrismaJson.ServerDiscoveryWarning[];
+    specValue: McpRuntimePrismaJson.ServerSpecificationValue | undefined;
+    warnings: McpRuntimePrismaJson.ServerDiscoveryWarning[];
     step: string;
   } = {
     client: undefined,
@@ -220,7 +220,7 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
   } catch (e) {
     console.error('Error during server discovery:', e);
 
-    let error: PrismaJson.ServerDiscoveryError = null;
+    let error: McpRuntimePrismaJson.ServerDiscoveryError = null;
     let sendToSentry = true;
 
     if (e instanceof McpError) {

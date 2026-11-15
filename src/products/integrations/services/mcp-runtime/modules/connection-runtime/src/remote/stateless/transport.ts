@@ -13,7 +13,7 @@ export interface StatelessPostOptions {
   request: JSONRPCRequest;
   headers: Record<string, string>;
   signal: AbortSignal;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
   onMessage: (message: JSONRPCMessage) => unknown;
 }
 

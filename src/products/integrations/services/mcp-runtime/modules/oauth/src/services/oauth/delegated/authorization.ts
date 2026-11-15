@@ -51,7 +51,8 @@ class delegatedOauthAuthorizationServiceImpl {
         enclaveId: d.serverInstanceConfiguration?.enclaveId,
         egressPolicy:
           (d.serverInstanceConfiguration
-            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
+            ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null) ??
+          undefined
       },
       client =>
         client.getOauthAuthorizationUrl({
@@ -139,7 +140,7 @@ class delegatedOauthAuthorizationServiceImpl {
       config: DelegatedOAuthConfig;
     };
 
-    authConfig: PrismaJson.DelegatedOAuthConnectionAuthConfig;
+    authConfig: McpRuntimePrismaJson.DelegatedOAuthConnectionAuthConfig;
     serverInstanceConfiguration?: ServerInstanceConfiguration | null;
   }) {
     if (d.connection.status != 'active') {
@@ -317,7 +318,8 @@ class delegatedOauthAuthorizationServiceImpl {
         enclaveId: setup.serverOAuthSetup.serverInstanceConfiguration?.enclaveId,
         egressPolicy:
           (setup.serverOAuthSetup.serverInstanceConfiguration
-            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
+            ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null) ??
+          undefined
       },
       client =>
         client.handleOauthCallback({

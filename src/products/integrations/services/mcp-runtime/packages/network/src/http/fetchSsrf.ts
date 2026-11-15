@@ -7,7 +7,7 @@ let unsafeSsrfBypass = process.env.SHUTTLE_UNSAFE_SSRF_BYPASS === 'true';
 
 type SafeFetchOptions = RequestInit & {
   maxRedirects?: number;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
 };
 
 export let safeFetch = async (input: string, options: SafeFetchOptions = {}) => {

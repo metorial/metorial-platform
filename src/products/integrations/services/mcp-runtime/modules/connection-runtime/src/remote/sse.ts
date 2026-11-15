@@ -113,7 +113,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       response = await safeFetch(this.#endpointUrl, {
         method: 'POST',
         egressPolicy: this.connection.serverInstanceConfiguration
-          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+          ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
         headers: {
           ...(await this.getHeaders()),
           'Content-Type': 'application/json'
@@ -184,7 +184,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
       await fetchEventSource(url.toString(), {
         method: 'GET',
         egressPolicy: this.connection.serverInstanceConfiguration
-          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+          ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
         headers: await this.getHeaders(),
 
         signal: this.#abortController.signal,

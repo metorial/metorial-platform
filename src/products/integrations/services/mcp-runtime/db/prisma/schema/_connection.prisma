@@ -14,5 +14,6 @@ datasource db {
 }
 
 generator json {
-  provider = "prisma-json-types-generator"
+  provider  = "prisma-json-types-generator"
+  namespace = "McpRuntimePrismaJson"
 }

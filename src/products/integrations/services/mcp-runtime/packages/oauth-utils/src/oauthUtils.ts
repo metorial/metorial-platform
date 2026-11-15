@@ -127,7 +127,7 @@ export class OAuthUtils {
     codeVerifier?: string;
     config: OAuthConfiguration;
     tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
-    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+    egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
   }): Promise<TokenResponse> {
     let body = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -269,7 +269,7 @@ export class OAuthUtils {
   }: {
     userInfoEndpoint: string;
     accessToken: string;
-    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+    egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
   }): Promise<UserProfile | null> {
     try {
       await assertUrlAllowedByEgressPolicy({ url: userInfoEndpoint, egressPolicy });

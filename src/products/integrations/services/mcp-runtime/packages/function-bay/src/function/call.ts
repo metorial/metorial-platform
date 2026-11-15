@@ -21,7 +21,7 @@ export let callFunction = async <T>(
   server: FunctionServer,
   options: {
     enclaveId?: string | null;
-    egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+    egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
   },
   handler: (tools: ReturnType<typeof clientAdapter>) => Promise<T>
 ) => {

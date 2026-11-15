@@ -30,7 +30,10 @@ let getPortForUrl = (url: URL) => {
   return null;
 };
 
-let isPortAllowed = (entry: PrismaJson.CompiledNetworkAllowEntry, port: number | null) => {
+let isPortAllowed = (
+  entry: McpRuntimePrismaJson.CompiledNetworkAllowEntry,
+  port: number | null
+) => {
   if (port === null) return false;
 
   let portRange = entry.portRange ?? fullPortRange;
@@ -53,7 +56,7 @@ let isAddressAllowed = (address: string, cidr: string) => {
 };
 
 export let egressPolicyToRuntimeNetworkRules = (
-  egressPolicy: PrismaJson.CompiledEgressNetworkAllowList
+  egressPolicy: McpRuntimePrismaJson.CompiledEgressNetworkAllowList
 ): RuntimeNetworkRule[] =>
   egressPolicy.entries.map(entry => ({
     action: 'allow',
@@ -67,7 +70,7 @@ export let egressPolicyToRuntimeNetworkRules = (
 
 export let assertUrlAllowedByEgressPolicy = async (d: {
   url: string;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
 }) => {
   if (!d.egressPolicy) return;
 

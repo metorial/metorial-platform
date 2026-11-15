@@ -10,7 +10,7 @@ export let EventStreamContentType = 'text/event-stream';
 
 export interface FetchEventSourceInit extends RequestInit {
   headers?: Record<string, string>;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
   onopen?: (response: Response) => Promise<void>;
   onmessage?: (ev: EventSourceMessage) => void;
   onclose?: () => void;

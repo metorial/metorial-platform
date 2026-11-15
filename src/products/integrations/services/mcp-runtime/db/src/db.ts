@@ -39,7 +39,7 @@ if (replicaClient) {
 export let db = baseClient;
 
 declare global {
-  namespace PrismaJson {
+  namespace McpRuntimePrismaJson {
     type ServerConnectionClient = InitializeRequest['params']['clientInfo'];
     type ServerConnectionCapabilities = InitializeRequest['params']['capabilities'];
 
@@ -148,7 +148,7 @@ declare global {
   }
 }
 
-export let outputTypeMapper = new Map<number, PrismaJson.OutputType>([
+export let outputTypeMapper = new Map<number, McpRuntimePrismaJson.OutputType>([
   [0, 'stdout'],
   [1, 'stderr'],
   [2, 'debug.info'],
@@ -156,6 +156,6 @@ export let outputTypeMapper = new Map<number, PrismaJson.OutputType>([
   [4, 'debug.error']
 ]);
 
-export let outputTypeReverseMapper = new Map<PrismaJson.OutputType, number>(
+export let outputTypeReverseMapper = new Map<McpRuntimePrismaJson.OutputType, number>(
   Array.from(outputTypeMapper.entries()).map(([k, v]) => [v, k])
 );

@@ -4,13 +4,13 @@ import { connectionLogsBucketRecord, storage } from '../storage';
 export interface OffloadedConnectionLogs {
   v: 1;
   connectionId: string;
-  logs: PrismaJson.ServerConnectionLogLines;
+  logs: McpRuntimePrismaJson.ServerConnectionLogLines;
 }
 
 export let offload = {
   offloadConnectionLogs: async (
     connection: ServerConnection,
-    logs: PrismaJson.ServerConnectionLogLines
+    logs: McpRuntimePrismaJson.ServerConnectionLogLines
   ) => {
     let offloaded: OffloadedConnectionLogs = {
       v: 1,

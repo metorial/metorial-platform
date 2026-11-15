@@ -293,7 +293,7 @@ class remoteOauthAuthorizationServiceImpl {
 
     let connection = attempt.connection;
     let egressPolicy = attempt.serverOAuthSetup.serverInstanceConfiguration
-      ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
+      ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
     let redirectUri = getRemoteOAuthRedirectUri({
       connection,
       serverOAuthSetup: attempt.serverOAuthSetup

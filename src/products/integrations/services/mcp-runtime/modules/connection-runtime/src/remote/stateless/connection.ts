@@ -48,7 +48,7 @@ export class StatelessRemoteConnection implements McpConnectionBackendAdapter {
     this.#bridge = new StatelessMcpBridge({
       url: version.remoteUrl,
       egressPolicy: connection.serverInstanceConfiguration
-        ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
+        ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
       getHeaders: () => this.#authManager.getHeaders(),
       emit: message => this.messenger.sendToListeners(message),
       log: (type, message) => this.logger.log(type, message),

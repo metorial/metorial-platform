@@ -132,7 +132,7 @@ export class FunctionConnection implements McpConnectionBackendAdapter {
         {
           enclaveId: this.connection.serverInstanceConfiguration?.enclaveId,
           egressPolicy: this.connection.serverInstanceConfiguration
-            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null
+            ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null
         },
         client =>
           client.handleMcpMessages({

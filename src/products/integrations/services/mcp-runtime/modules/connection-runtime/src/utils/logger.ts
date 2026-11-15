@@ -2,12 +2,12 @@ import type { ServerConnection, Tenant } from '@mtsrc/mcp-runtime-db';
 import { db, outputTypeReverseMapper } from '@mtsrc/mcp-runtime-db';
 import { snowflake } from '@mtsrc/mcp-runtime-db';
 
-let isErrorOutputType = (type: PrismaJson.OutputType) =>
+let isErrorOutputType = (type: McpRuntimePrismaJson.OutputType) =>
   type === 'debug.error' || type === 'debug.warning';
 
 export class ConnectionLogger {
   #buffer: {
-    type: PrismaJson.OutputType;
+    type: McpRuntimePrismaJson.OutputType;
     lines: string[];
     timestamp: number;
   }[] = [];
@@ -18,7 +18,11 @@ export class ConnectionLogger {
     private readonly tenant: Tenant
   ) {}
 
-  log(type: PrismaJson.OutputType, lines: string[] | string, ts?: number | string | Date) {
+  log(
+    type: McpRuntimePrismaJson.OutputType,
+    lines: string[] | string,
+    ts?: number | string | Date
+  ) {
     let lastInBuffer = this.#buffer[this.#buffer.length - 1];
     if (
       lastInBuffer &&
@@ -59,7 +63,7 @@ export class ConnectionLogger {
           b.timestamp,
           outputTypeReverseMapper.get(b.type) ?? 0,
           b.lines
-        ]) as PrismaJson.ServerConnectionLogLines,
+        ]) as McpRuntimePrismaJson.ServerConnectionLogLines,
         serverConnectionOid: this.connection.oid
       }
     });

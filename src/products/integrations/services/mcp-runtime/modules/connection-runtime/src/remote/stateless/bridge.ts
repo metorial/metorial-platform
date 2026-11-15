@@ -67,7 +67,7 @@ type ExchangeOutcome =
 
 export interface StatelessMcpBridgeOptions {
   url: string;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
   getHeaders: () => Promise<Record<string, string>>;
   emit: (message: ConnectionMessage) => Promise<void>;
   log: (type: 'debug.info' | 'debug.warning' | 'debug.error', message: string) => void;

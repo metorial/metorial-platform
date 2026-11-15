@@ -165,7 +165,7 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
     });
 
     let egressPolicy = this.connection.serverInstanceConfiguration
-      ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null;
+      ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
     mcpTraceLog('init:config-loaded', {
       hasRegistryAuth: !!auth,
       rulesCount: egressPolicy?.entries.length ?? 0
@@ -433,7 +433,7 @@ export class HolopodConnection implements McpConnectionBackendAdapter {
   }
 
   private async handleOutput(
-    type: PrismaJson.OutputType,
+    type: McpRuntimePrismaJson.OutputType,
     data: string,
     timestamp: string | number | Date
   ) {

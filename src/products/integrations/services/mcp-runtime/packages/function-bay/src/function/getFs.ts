@@ -15,7 +15,7 @@ let commonEntrypoints = commonDirs.flatMap(dir =>
   commonNames.flatMap(name => extension.map(ext => dir + name + ext))
 );
 
-type FunctionFile = PrismaJson.UpcomingFunctionServerPayload['files'][number];
+type FunctionFile = McpRuntimePrismaJson.UpcomingFunctionServerPayload['files'][number];
 
 let decodeFileContent = (file: FunctionFile) =>
   file.encoding === 'base64'
@@ -25,7 +25,9 @@ let decodeFileContent = (file: FunctionFile) =>
 let encodeFileContent = (file: FunctionFile, content: string) =>
   file.encoding === 'base64' ? Buffer.from(content, 'utf-8').toString('base64') : content;
 
-export let getFunctionFs = (d: { payload: PrismaJson.UpcomingFunctionServerPayload }) => {
+export let getFunctionFs = (d: {
+  payload: McpRuntimePrismaJson.UpcomingFunctionServerPayload;
+}) => {
   let files = d.payload.files;
   let functionEntrypoint: string | undefined;
   let packageJson = files.find(

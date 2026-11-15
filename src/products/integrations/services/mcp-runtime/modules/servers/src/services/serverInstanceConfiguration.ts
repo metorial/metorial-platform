@@ -9,7 +9,7 @@ class serverInstanceConfigurationServiceImpl {
     tenant: Tenant;
     serverInstanceConfigurationId?: string;
     enclaveId: string;
-    egressPolicy: PrismaJson.CompiledEgressNetworkAllowList;
+    egressPolicy: McpRuntimePrismaJson.CompiledEgressNetworkAllowList;
   }) {
     let existing = d.serverInstanceConfigurationId
       ? await db.serverInstanceConfiguration.findFirst({

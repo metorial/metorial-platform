@@ -7,8 +7,8 @@ let getFile = (
 ) => res.files.find(file => file.filename === filename);
 
 let payload = (
-  files: PrismaJson.UpcomingFunctionServerPayload['files']
-): PrismaJson.UpcomingFunctionServerPayload => ({
+  files: McpRuntimePrismaJson.UpcomingFunctionServerPayload['files']
+): McpRuntimePrismaJson.UpcomingFunctionServerPayload => ({
   runtime: { identifier: 'nodejs', version: '24.x' },
   env: {},
   files
