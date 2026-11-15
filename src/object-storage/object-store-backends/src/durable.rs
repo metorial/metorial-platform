@@ -52,7 +52,9 @@ pub fn validate_part_number(number: u32) -> BackendResult<()> {
 
 pub fn validate_part_size(size: u64) -> BackendResult<()> {
     if size == 0 {
-        return Err(BackendError::InvalidRequest("a part cannot be empty".to_string()));
+        return Err(BackendError::InvalidRequest(
+            "a part cannot be empty".to_string(),
+        ));
     }
     if size > DURABLE_MAX_PART_SIZE {
         return Err(BackendError::TooLarge(format!(
@@ -120,7 +122,9 @@ pub fn validate_upload_id(upload_id: &str) -> BackendResult<()> {
             .all(|byte| byte.is_ascii_alphanumeric() || b"-_.~=+/".contains(&byte));
 
     if !valid {
-        return Err(BackendError::InvalidRequest("invalid upload id".to_string()));
+        return Err(BackendError::InvalidRequest(
+            "invalid upload id".to_string(),
+        ));
     }
     Ok(())
 }

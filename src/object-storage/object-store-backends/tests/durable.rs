@@ -55,7 +55,9 @@ async fn run_durable_suite(backend: Arc<dyn Backend>, prefix: &str) {
     let upload_id = backend.start_durable_multipart(&key, &opts).await.unwrap();
     let listed = backend.list_durable_multiparts(prefix).await.unwrap();
     assert!(
-        listed.iter().any(|upload| upload.upload_id == upload_id && upload.key == key),
+        listed
+            .iter()
+            .any(|upload| upload.upload_id == upload_id && upload.key == key),
         "{listed:?}"
     );
 
@@ -90,17 +92,27 @@ async fn run_durable_suite(backend: Arc<dyn Backend>, prefix: &str) {
         .await
         .unwrap();
     assert_eq!(metadata.size, DURABLE_MIN_PART_SIZE + 1000);
-    assert_eq!(metadata.custom_metadata.get("rows").map(String::as_str), Some("42"));
+    assert_eq!(
+        metadata.custom_metadata.get("rows").map(String::as_str),
+        Some("42")
+    );
 
     let data = read(&*backend, &key).await;
     assert_eq!(data.len() as u64, DURABLE_MIN_PART_SIZE + 1000);
-    assert!(data[..DURABLE_MIN_PART_SIZE as usize].iter().all(|b| *b == 3));
-    assert!(data[DURABLE_MIN_PART_SIZE as usize..].iter().all(|b| *b == 2));
+    assert!(data[..DURABLE_MIN_PART_SIZE as usize]
+        .iter()
+        .all(|b| *b == 3));
+    assert!(data[DURABLE_MIN_PART_SIZE as usize..]
+        .iter()
+        .all(|b| *b == 2));
 
     eprintln!("step: complete again");
     // S3 answers a repeated completion with the finished object for a while; the others no
     // longer know the upload. Both tell the caller the upload is done.
-    match backend.complete_durable_multipart(&key, &upload_id, &parts).await {
+    match backend
+        .complete_durable_multipart(&key, &upload_id, &parts)
+        .await
+    {
         Ok(again) => assert_eq!(again.size, metadata.size),
         Err(BackendError::NotFound(_)) => {}
         Err(other) => panic!("{other:?}"),
@@ -116,8 +128,14 @@ async fn run_durable_suite(backend: Arc<dyn Backend>, prefix: &str) {
         .upload_durable_part(&other, &aborted, 1, part(1, 10))
         .await
         .unwrap();
-    backend.abort_durable_multipart(&other, &aborted).await.unwrap();
-    backend.abort_durable_multipart(&other, &aborted).await.unwrap();
+    backend
+        .abort_durable_multipart(&other, &aborted)
+        .await
+        .unwrap();
+    backend
+        .abort_durable_multipart(&other, &aborted)
+        .await
+        .unwrap();
     assert!(!backend
         .list_durable_multiparts(prefix)
         .await
@@ -162,7 +180,10 @@ async fn s3_durable_uploads() {
 #[tokio::test]
 async fn azure_durable_uploads() {
     let Some(connection_string) = env("OBJECT_STORE_TEST_AZURE_CONNECTION_STRING") else {
-        skip("azure_durable_uploads", "OBJECT_STORE_TEST_AZURE_CONNECTION_STRING");
+        skip(
+            "azure_durable_uploads",
+            "OBJECT_STORE_TEST_AZURE_CONNECTION_STRING",
+        );
         return;
     };
     let container =

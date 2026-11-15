@@ -18,8 +18,10 @@ struct Harness {
 
 async fn harness() -> Harness {
     let dir = TempDir::new().unwrap();
-    let backend: Arc<dyn Backend> =
-        Arc::new(LocalBackend::new(dir.path().to_path_buf(), "physical".to_string()));
+    let backend: Arc<dyn Backend> = Arc::new(LocalBackend::new(
+        dir.path().to_path_buf(),
+        "physical".to_string(),
+    ));
     backend.init().await.unwrap();
 
     let metadata = Arc::new(MetadataStore::new(backend.clone()).await.unwrap());
@@ -61,7 +63,13 @@ async fn start(app: &Router, key: &str) -> String {
     json_of(&body)["upload_id"].as_str().unwrap().to_string()
 }
 
-async fn upload(app: &Router, key: &str, upload_id: &str, part: u32, data: Vec<u8>) -> (StatusCode, Value) {
+async fn upload(
+    app: &Router,
+    key: &str,
+    upload_id: &str,
+    part: u32,
+    data: Vec<u8>,
+) -> (StatusCode, Value) {
     let (status, body) = send(
         app,
         Request::builder()
@@ -116,7 +124,14 @@ async fn uploads_parts_in_separate_requests_and_completes() {
     assert_eq!(listed["uploads"][0]["key"], "exports/a.csv.gz");
     assert_eq!(listed["uploads"][0]["upload_id"], upload_id.as_str());
 
-    let (status, first) = upload(app, "exports/a.csv.gz", &upload_id, 1, vec![1; DURABLE_MIN_PART_SIZE as usize]).await;
+    let (status, first) = upload(
+        app,
+        "exports/a.csv.gz",
+        &upload_id,
+        1,
+        vec![1; DURABLE_MIN_PART_SIZE as usize],
+    )
+    .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(first["part"], 1);
     assert_eq!(first["size"], DURABLE_MIN_PART_SIZE);
@@ -175,7 +190,13 @@ async fn rejects_invalid_part_lists_and_numbers() {
     let (_, small) = upload(app, "a", &upload_id, 1, vec![1; 10]).await;
     let (_, last) = upload(app, "a", &upload_id, 2, vec![2; 10]).await;
 
-    let (status, _) = complete(app, "a", &upload_id, json!([{ "part": 2, "etag": last["etag"] }])).await;
+    let (status, _) = complete(
+        app,
+        "a",
+        &upload_id,
+        json!([{ "part": 2, "etag": last["etag"] }]),
+    )
+    .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     let (status, _) = complete(
         app,
@@ -185,7 +206,13 @@ async fn rejects_invalid_part_lists_and_numbers() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
-    let (status, _) = complete(app, "a", &upload_id, json!([{ "part": 1, "etag": "wrong" }])).await;
+    let (status, _) = complete(
+        app,
+        "a",
+        &upload_id,
+        json!([{ "part": 1, "etag": "wrong" }]),
+    )
+    .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }
 
@@ -200,7 +227,10 @@ async fn aborts_uploads_and_ignores_unknown_ones() {
             app,
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/buckets/bucket/uploads/exports/b?upload_id={}", upload_id))
+                .uri(format!(
+                    "/buckets/bucket/uploads/exports/b?upload_id={}",
+                    upload_id
+                ))
                 .body(Body::empty())
                 .unwrap(),
         )

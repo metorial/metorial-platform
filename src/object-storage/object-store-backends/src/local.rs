@@ -521,9 +521,10 @@ fn parse_part_file_name(name: &str) -> Option<(u32, &str)> {
 async fn read_manifest(dir: &Path, upload_id: &str) -> BackendResult<DurableManifest> {
     match fs::read(dir.join(DURABLE_MANIFEST)).await {
         Ok(bytes) => Ok(serde_json::from_slice(&bytes)?),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(BackendError::NotFound(
-            format!("upload {} is no longer in progress", upload_id),
-        )),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(BackendError::NotFound(format!(
+            "upload {} is no longer in progress",
+            upload_id
+        ))),
         Err(e) => Err(e.into()),
     }
 }
@@ -1819,7 +1820,12 @@ mod tests {
 
             let first = backend(temp_dir.path())
                 .await
-                .upload_durable_part("exports/a.gz", &upload_id, 1, part(1, DURABLE_MIN_PART_SIZE))
+                .upload_durable_part(
+                    "exports/a.gz",
+                    &upload_id,
+                    1,
+                    part(1, DURABLE_MIN_PART_SIZE),
+                )
                 .await
                 .unwrap();
             let second = backend(temp_dir.path())
@@ -1841,13 +1847,24 @@ mod tests {
 
             assert_eq!(metadata.size, DURABLE_MIN_PART_SIZE + 10);
             assert_eq!(metadata.content_type.as_deref(), Some("application/gzip"));
-            assert_eq!(metadata.custom_metadata.get("rows").map(String::as_str), Some("3"));
+            assert_eq!(
+                metadata.custom_metadata.get("rows").map(String::as_str),
+                Some("3")
+            );
 
             let data = read(&resumed, "exports/a.gz").await;
             assert_eq!(data.len() as u64, DURABLE_MIN_PART_SIZE + 10);
-            assert!(data[..DURABLE_MIN_PART_SIZE as usize].iter().all(|b| *b == 1));
-            assert!(data[DURABLE_MIN_PART_SIZE as usize..].iter().all(|b| *b == 2));
-            assert!(resumed.list_durable_multiparts("").await.unwrap().is_empty());
+            assert!(data[..DURABLE_MIN_PART_SIZE as usize]
+                .iter()
+                .all(|b| *b == 1));
+            assert!(data[DURABLE_MIN_PART_SIZE as usize..]
+                .iter()
+                .all(|b| *b == 2));
+            assert!(resumed
+                .list_durable_multiparts("")
+                .await
+                .unwrap()
+                .is_empty());
         }
 
         #[tokio::test]
@@ -1873,7 +1890,10 @@ mod tests {
                 .complete_durable_multipart("a", &upload_id, &[reference(&stale)])
                 .await
                 .unwrap_err();
-            assert!(matches!(error, BackendError::InvalidRequest(_)), "{error:?}");
+            assert!(
+                matches!(error, BackendError::InvalidRequest(_)),
+                "{error:?}"
+            );
 
             backend
                 .complete_durable_multipart("a", &upload_id, &[reference(&fresh)])
@@ -1925,10 +1945,17 @@ mod tests {
                 .unwrap();
 
             let error = backend
-                .complete_durable_multipart("a", &upload_id, &[reference(&first), reference(&second)])
+                .complete_durable_multipart(
+                    "a",
+                    &upload_id,
+                    &[reference(&first), reference(&second)],
+                )
                 .await
                 .unwrap_err();
-            assert!(matches!(error, BackendError::InvalidRequest(_)), "{error:?}");
+            assert!(
+                matches!(error, BackendError::InvalidRequest(_)),
+                "{error:?}"
+            );
             assert!(!backend.object_exists("a").await.unwrap());
         }
 
@@ -1950,16 +1977,29 @@ mod tests {
             assert_eq!(listed[0].upload_id, a);
             assert_eq!(listed[0].key, "exports/a");
 
-            backend.abort_durable_multipart("exports/a", &a).await.unwrap();
-            backend.abort_durable_multipart("exports/a", &a).await.unwrap();
-            assert!(backend.list_durable_multiparts("exports/").await.unwrap().is_empty());
+            backend
+                .abort_durable_multipart("exports/a", &a)
+                .await
+                .unwrap();
+            backend
+                .abort_durable_multipart("exports/a", &a)
+                .await
+                .unwrap();
+            assert!(backend
+                .list_durable_multiparts("exports/")
+                .await
+                .unwrap()
+                .is_empty());
 
             let error = backend
                 .upload_durable_part("exports/a", &a, 1, part(1, 1))
                 .await
                 .unwrap_err();
             assert!(matches!(error, BackendError::NotFound(_)), "{error:?}");
-            assert_eq!(backend.list_durable_multiparts("").await.unwrap()[0].upload_id, b);
+            assert_eq!(
+                backend.list_durable_multiparts("").await.unwrap()[0].upload_id,
+                b
+            );
         }
 
         #[tokio::test]
@@ -1982,7 +2022,10 @@ mod tests {
                     .unwrap_err(),
             ] {
                 assert!(
-                    matches!(error, BackendError::NotFound(_) | BackendError::InvalidRequest(_)),
+                    matches!(
+                        error,
+                        BackendError::NotFound(_) | BackendError::InvalidRequest(_)
+                    ),
                     "{error:?}"
                 );
             }
@@ -2001,8 +2044,15 @@ mod tests {
                 .await
                 .unwrap();
 
-            let manifest = backend.layout.durable_path(&old).unwrap().join(DURABLE_MANIFEST);
-            age(&manifest, STALE_DURABLE_UPLOAD_AGE + Duration::from_secs(60));
+            let manifest = backend
+                .layout
+                .durable_path(&old)
+                .unwrap()
+                .join(DURABLE_MANIFEST);
+            age(
+                &manifest,
+                STALE_DURABLE_UPLOAD_AGE + Duration::from_secs(60),
+            );
             backend.remove_stale_uploads().await.unwrap();
 
             let left: Vec<_> = backend

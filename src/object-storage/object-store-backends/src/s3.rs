@@ -1080,9 +1080,10 @@ impl Backend for S3Backend {
             create = create.metadata(k.clone(), v.clone());
         }
 
-        let created = create.send().await.map_err(|e| {
-            s3_error(format!("Failed to start upload of '{}': {}", key, e), &e)
-        })?;
+        let created = create
+            .send()
+            .await
+            .map_err(|e| s3_error(format!("Failed to start upload of '{}': {}", key, e), &e))?;
 
         created.upload_id().map(str::to_string).ok_or_else(|| {
             BackendError::Provider(format!("S3 returned no upload id for '{}'", key))
@@ -1122,7 +1123,10 @@ impl Backend for S3Backend {
             })?;
 
         let etag = output.e_tag().map(normalize_etag).ok_or_else(|| {
-            BackendError::Provider(format!("S3 returned no etag for part {} of '{}'", number, key))
+            BackendError::Provider(format!(
+                "S3 returned no etag for part {} of '{}'",
+                number, key
+            ))
         })?;
 
         Ok(DurablePart { number, size, etag })

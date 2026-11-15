@@ -27,8 +27,8 @@ use crate::durable::{
     validate_part_list, validate_part_number, validate_part_size, validate_upload_id, DurablePart,
     DurablePartRef, DurableUpload,
 };
-use crate::gcs_xml::GcsXmlApi;
 use crate::error::{is_transient_status, BackendError, BackendResult};
+use crate::gcs_xml::GcsXmlApi;
 use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, KIB, TIB};
 use crate::uploader::Uploader;
 

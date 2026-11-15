@@ -63,7 +63,12 @@ impl GcsXmlApi {
         }
     }
 
-    async fn send(&self, action: &str, key: &str, builder: RequestBuilder) -> BackendResult<Response> {
+    async fn send(
+        &self,
+        action: &str,
+        key: &str,
+        builder: RequestBuilder,
+    ) -> BackendResult<Response> {
         builder.send().await.map_err(|e| {
             let message = format!("Failed to {} '{}': {}", action, key, e);
             if e.is_timeout() || e.is_connect() || e.is_request() {
@@ -112,7 +117,10 @@ impl GcsXmlApi {
         let builder = self
             .request(Method::PUT, &self.object_url(key))
             .await?
-            .query(&[("partNumber", number.to_string()), ("uploadId", upload_id.to_string())])
+            .query(&[
+                ("partNumber", number.to_string()),
+                ("uploadId", upload_id.to_string()),
+            ])
             .header(reqwest::header::CONTENT_LENGTH, size)
             .body(data);
 
@@ -126,7 +134,10 @@ impl GcsXmlApi {
         checked_body(&action, key, response).await?;
 
         let etag = etag.ok_or_else(|| {
-            BackendError::Provider(format!("GCS returned no etag for part {} of '{}'", number, key))
+            BackendError::Provider(format!(
+                "GCS returned no etag for part {} of '{}'",
+                number, key
+            ))
         })?;
         Ok(DurablePart { number, size, etag })
     }
@@ -149,7 +160,13 @@ impl GcsXmlApi {
 
         // Like S3, a completion can fail after a 200 status line, with the error in the body.
         if let Some(code) = tag_text(&body, "Code") {
-            return Err(error_for(StatusCode::INTERNAL_SERVER_ERROR, &code, "complete upload of", key, &body));
+            return Err(error_for(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &code,
+                "complete upload of",
+                key,
+                &body,
+            ));
         }
         Ok(())
     }
@@ -196,7 +213,10 @@ impl GcsXmlApi {
 async fn checked_body(action: &str, key: &str, response: Response) -> BackendResult<String> {
     let status = response.status();
     let body = response.text().await.map_err(|e| {
-        BackendError::Retryable(format!("Failed to read the response to {} '{}': {}", action, key, e))
+        BackendError::Retryable(format!(
+            "Failed to read the response to {} '{}': {}",
+            action, key, e
+        ))
     })?;
 
     if status.is_success() {
@@ -234,7 +254,10 @@ pub(crate) fn encode_segment(segment: &str) -> String {
 }
 
 pub(crate) fn encode_object_name(key: &str) -> String {
-    key.split('/').map(encode_segment).collect::<Vec<_>>().join("/")
+    key.split('/')
+        .map(encode_segment)
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 pub(crate) fn complete_body(parts: &[DurablePartRef]) -> String {
@@ -271,7 +294,10 @@ fn unescape_xml(value: &str) -> String {
 /// The text of the first `<tag>` element. The responses this module reads are flat and
 /// machine-generated, so a full XML parser would buy nothing.
 pub(crate) fn tag_text(xml: &str, tag: &str) -> Option<String> {
-    elements(xml, tag).into_iter().next().map(|text| unescape_xml(text.trim()))
+    elements(xml, tag)
+        .into_iter()
+        .next()
+        .map(|text| unescape_xml(text.trim()))
 }
 
 fn elements<'a>(xml: &'a str, tag: &str) -> Vec<&'a str> {
@@ -312,7 +338,10 @@ pub(crate) fn parse_upload_listing(xml: &str) -> UploadListing {
         .collect();
 
     let truncated = tag_text(xml, "IsTruncated").is_some_and(|value| value == "true");
-    let next = match (tag_text(xml, "NextKeyMarker"), tag_text(xml, "NextUploadIdMarker")) {
+    let next = match (
+        tag_text(xml, "NextKeyMarker"),
+        tag_text(xml, "NextUploadIdMarker"),
+    ) {
         (Some(key), Some(upload_id)) if !key.is_empty() => Some((key, upload_id)),
         _ => None,
     };
@@ -330,7 +359,10 @@ mod tests {
 
     #[test]
     fn encodes_object_names_keeping_separators() {
-        assert_eq!(encode_object_name("exports/a b/c+d.gz"), "exports/a%20b/c%2Bd.gz");
+        assert_eq!(
+            encode_object_name("exports/a b/c+d.gz"),
+            "exports/a%20b/c%2Bd.gz"
+        );
         assert_eq!(encode_object_name("ü"), "%C3%BC");
     }
 
@@ -394,7 +426,13 @@ mod tests {
     fn maps_provider_errors() {
         let gone = error_for(StatusCode::NOT_FOUND, "NoSuchUpload", "complete", "a", "");
         assert!(matches!(gone, BackendError::NotFound(_)));
-        let small = error_for(StatusCode::BAD_REQUEST, "EntityTooSmall", "complete", "a", "");
+        let small = error_for(
+            StatusCode::BAD_REQUEST,
+            "EntityTooSmall",
+            "complete",
+            "a",
+            "",
+        );
         assert!(matches!(small, BackendError::InvalidRequest(_)));
         let busy = error_for(StatusCode::SERVICE_UNAVAILABLE, "", "complete", "a", "");
         assert!(matches!(busy, BackendError::Retryable(_)));

@@ -111,7 +111,10 @@ pub fn create_app_router(
         .route("/buckets/:bucket/uploads/*key", post(start_upload))
         .route("/buckets/:bucket/uploads/*key", delete(abort_upload))
         .route("/buckets/:bucket/uploads", get(list_uploads))
-        .route("/buckets/:bucket/upload-complete/*key", post(complete_upload))
+        .route(
+            "/buckets/:bucket/upload-complete/*key",
+            post(complete_upload),
+        )
         .layer(TimeoutLayer::new(options.request_timeout));
 
     // A wildcard, so ids with a slash reach the handler and are rejected as invalid instead of

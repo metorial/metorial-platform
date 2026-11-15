@@ -2,8 +2,8 @@ use bytes::Bytes;
 use object_store_backends::error::BackendError;
 use object_store_backends::{
     digest_stream, Backend, ByteRange, ByteStream, ContentDigests, DurablePart, DurablePartRef,
-    DurableUpload, ObjectData, ObjectMetadata,
-    ObjectPage, ObjectRangeData, PublicUrlPurpose, PutOptions, SignedUrl, UploadedObject, Uploader,
+    DurableUpload, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData, PublicUrlPurpose,
+    PutOptions, SignedUrl, UploadedObject, Uploader,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
