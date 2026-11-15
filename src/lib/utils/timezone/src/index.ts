@@ -1,4 +1,5 @@
 import { data } from './data';
+import { legacyTimezoneAliases } from './legacyAliases';
 
 export interface Timezone {
   label: string;
@@ -16,7 +17,11 @@ let tzCodeMap = new Map<string, Timezone>(data.map(tz => [tz.tzCode, tz]));
 export let getTimezone = (tzCode: string | number): Timezone | undefined => {
   if (typeof tzCode === 'number') return data[tzCode];
 
-  return tzCodeMap.get(tzCode.toLowerCase());
+  let normalized = tzCode.toLowerCase();
+
+  return (
+    tzCodeMap.get(normalized) ?? tzCodeMap.get(legacyTimezoneAliases.get(normalized) ?? '')
+  );
 };
 
 export let defaultTimezone = data[0];
