@@ -15,7 +15,7 @@ export let CustomProviderImage = ({
 }) => {
   let instance = useCurrentInstance();
   let listing = useProviderListing(instance.data?.id, providerId);
-  let imageUrl = listing.data?.imageUrl;
+  let imageUrl = listing.data?.imageUrl ?? `https://avatar-cdn.metorial.com/${providerId}`;
 
   if (!imageUrl && (!providerId || !listing.isLoading)) {
     return <ProviderImage alt={name} size={size} radius={radius} />;

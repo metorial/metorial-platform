@@ -1,34 +1,10 @@
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import {
-  EventDestinationPreview,
-  useCreateEventDestination,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useEventDestinations
-} from '@metorial/state';
-import {
-  Table as DashboardTable,
-  getEnumListFilterValue,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import {
-  Badge,
-  Button,
-  Callout,
-  Copy,
-  Dialog,
-  Input,
-  RenderDate,
-  showModal,
-  Spacer,
-  Text
-} from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { col, createDataList, f, lifecycleStatus } from '@metorial/data-list';
+import { useCreateEventDestination, useEventDestinations } from '@metorial/state';
+import { Button, Callout, Copy, Dialog, Input, showModal, Spacer, Text } from '@metorial/ui';
 import { useState } from 'react';
-import { getStatusColor } from './shared';
+import { useInstanceContext } from '../../lib/dataList';
 
 export let showCreateEventDestinationModal = (p: {
   organizationId: string;
@@ -164,128 +140,44 @@ export let showCreateEventDestinationModal = (p: {
     );
   });
 
-type EventDestinationsTableProps = {
-  organizationId: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let useEventDestinationsTableState: TableStateProvider<
-  EventDestinationsTableProps,
-  EventDestinationPreview,
-  TableStateProviderResult<EventDestinationPreview>
-> = (props, opts) => {
-  let destinations = useEventDestinations(props.organizationId, {
-    status: getEnumListFilterValue(opts.filter.status, ['active', 'archived'])
-  });
-
-  return {
-    isLoading: destinations.isLoading,
-    error: destinations.error,
-    hasMoreAfter: destinations.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: destinations.data?.pagination.hasMoreBefore ?? false,
-    items: destinations.data?.items ?? [],
-    loadNext: destinations.next,
-    loadPrevious: destinations.previous
-  };
-};
-
-let eventDestinationsTable = new DashboardTable<
-  EventDestinationsTableProps,
-  EventDestinationPreview
->('event-destinations')
-  .state(useEventDestinationsTableState)
+export let EventDestinationsList = createDataList<{ organizationId: string }>(
+  'event-destinations'
+)
+  .context(useInstanceContext)
+  .filters(() => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] })
+  }))
+  .paginated(({ props, filters }) =>
+    useEventDestinations(props.organizationId, { status: filters.status })
+  )
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Webhook',
-      render: destination => (
-        <Text size="2" weight="strong">
-          {destination.name}
-        </Text>
-      )
-    },
-    {
+    col.name({ header: 'Webhook', description: false }),
+    col.text({
       id: 'endpoint',
-      isDefault: true,
       header: 'Endpoint',
-      render: destination => (
-        <Text size="2">{destination.webhook?.url ?? 'Endpoint unavailable'}</Text>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: destination => (
-        <Badge color={getStatusColor(destination.status)}>{destination.status}</Badge>
-      )
-    },
-    {
-      id: 'listeners',
-      isDefault: true,
+      get: row => row.webhook?.url,
+      fallback: 'Endpoint unavailable'
+    }),
+    col.status(lifecycleStatus, { isDefault: false }),
+    col.count('listeners', row => row.listeners.length, 'listener', {
       header: 'Listeners',
-      render: destination =>
-        destination.listeners.length ? (
-          <Text size="2">
-            {destination.listeners.length}{' '}
-            {destination.listeners.length === 1 ? 'listener' : 'listeners'}
-          </Text>
-        ) : (
-          <Text size="2" color="gray600">
-            No listeners
-          </Text>
-        )
-    },
-    {
-      id: 'createdAt',
-      isDefault: false,
-      header: 'Created',
-      render: destination => <RenderDate date={destination.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Destination ID',
-      render: destination => <ID id={destination.id} />
-    }
+      zero: 'No listeners'
+    }),
+    col.createdAt({ isDefault: false }),
+    col.id({ header: 'Destination ID' })
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    }
-  ])
-  .link((destination, props) =>
-    Paths.instance.eventDestination(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      destination.id
-    )
+  .link((row, _props, ctx) =>
+    Paths.instance.eventDestination(ctx.organization, ctx.project, ctx.instance, row.id)
   )
   .build();
 
-export let EventDestinationsTable = ({ organizationId }: { organizationId: string }) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-
-  return eventDestinationsTable({
-    organizationId,
-    instance,
-    organization,
-    project,
-    emptyState:
-      'No webhooks yet. Create a webhook to start delivering events to your HTTPS endpoint.'
-  });
-};
+export let EventDestinationsTable = ({ organizationId }: { organizationId: string }) => (
+  <EventDestinationsList
+    organizationId={organizationId}
+    emptyState={{
+      initial:
+        'No webhooks yet. Create a webhook to start delivering events to your HTTPS endpoint.',
+      filtered: 'No webhooks match your filters.'
+    }}
+  />
+);

@@ -1,0 +1,12 @@
+{
+  "name": "@metorial/egress-differential",
+  "private": true,
+  "description": "Runs historical Lambda proxy wrappers against the deflector and the egress gateway and compares verdicts and observations. Not a workspace package; run.sh installs it inside the harness image.",
+  "dependencies": {
+    "@grpc/grpc-js": "1.14.6",
+    "global-agent": "^4.1.3",
+    "http-proxy-agent": "^9.1.0",
+    "https-proxy-agent": "^9.1.0",
+    "undici": "8.12.3"
+  }
+}

@@ -28,6 +28,7 @@ import {
   resolveSessionMessageOids,
   resolveSessionOids,
   resolveSpecNotificationOids,
+  VISIBLE_INSTANCE_WHERE,
   type DateFilter,
   type Scope
 } from './_shared';
@@ -43,6 +44,7 @@ export let monitorAlertInclude = {
     include: {
       run: true,
       instances: {
+        where: VISIBLE_INSTANCE_WHERE,
         include: { filter: true }
       }
     }
@@ -280,7 +282,12 @@ class alertServiceImpl {
               protoGuardFilterOids
                 ? {
                     protoGuardAlert: {
-                      instances: { some: { filterOid: { in: protoGuardFilterOids } } }
+                      instances: {
+                        some: {
+                          ...VISIBLE_INSTANCE_WHERE,
+                          filterOid: { in: protoGuardFilterOids }
+                        }
+                      }
                     }
                   }
                 : undefined!,

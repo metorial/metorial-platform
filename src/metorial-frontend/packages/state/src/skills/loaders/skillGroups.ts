@@ -94,6 +94,15 @@ export let useSkillGroups = (
   );
 };
 
+export let useSkillGroupsPage = (
+  instanceId: string | null | undefined,
+  query: Omit<DashboardInstanceSkillsGroupsListQuery, 'after' | 'before' | 'cursor'> | null,
+  after: string | undefined
+) =>
+  skillGroupsLoader.use(
+    instanceId && query !== null ? { instanceId, ...query, ...(after ? { after } : {}) } : null
+  );
+
 export let skillGroupLoader = createLoader({
   name: 'skillGroup',
   parents: [skillGroupsLoader],
@@ -158,6 +167,32 @@ export let useCreateSkillGroupItem = () =>
         skillGroupId: string;
       }
     ) => withAuth(sdk => sdk.skillGroups.items.create(i.instanceId, i.skillGroupId, i)),
+    {
+      onSuccess: () => {
+        skillGroupItemsLoader.refetchAll();
+        skillGroupLoader.refetchAll();
+        skillGroupsLoader.refetchAll();
+      }
+    }
+  );
+
+export let useAddSkillToSkillGroupIfMissing = () =>
+  useMutation(
+    async (
+      i: DashboardInstanceSkillsGroupsItemsCreateBody & {
+        instanceId: string;
+        skillGroupId: string;
+      }
+    ) => {
+      try {
+        return await withAuth(sdk =>
+          sdk.skillGroups.items.create(i.instanceId, i.skillGroupId, i)
+        );
+      } catch (err: any) {
+        if ((err?.code ?? err?.data?.code) == 'skill_group_item_exists') return null;
+        throw err;
+      }
+    },
     {
       onSuccess: () => {
         skillGroupItemsLoader.refetchAll();

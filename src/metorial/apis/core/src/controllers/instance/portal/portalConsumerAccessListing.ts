@@ -77,6 +77,12 @@ export let portalConsumerAccessListingController = Controller.create(
                   ])
                 )
               ])
+            ),
+            has_access: v.optional(
+              v.boolean({
+                description:
+                  'Only return listings that have at least one consumer access grant (true) or none (false).'
+              })
             )
           })
         )
@@ -94,6 +100,7 @@ export let portalConsumerAccessListingController = Controller.create(
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
           types: normalizeArrayParam(ctx.query.type),
+          hasAccess: ctx.query.has_access,
           search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
@@ -130,6 +137,12 @@ export let portalConsumerAccessListingController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           readme: v.optional(v.nullable(v.string())),
+          is_discoverable: v.optional(
+            v.boolean({
+              description:
+                'Whether every consumer on the portal can find this listing in the catalog and request access. When false, only consumers who already have access through one of their groups see it. Defaults to true.'
+            })
+          ),
           access: v.union([
             v.object({
               type: v.literal('provider_template'),
@@ -168,6 +181,7 @@ export let portalConsumerAccessListingController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             readme: ctx.body.readme,
+            isDiscoverable: ctx.body.is_discoverable,
             access:
               access.type == 'provider_template'
                 ? {
@@ -219,7 +233,13 @@ export let portalConsumerAccessListingController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
-          readme: v.optional(v.nullable(v.string()))
+          readme: v.optional(v.nullable(v.string())),
+          is_discoverable: v.optional(
+            v.boolean({
+              description:
+                'Whether every consumer on the portal can find this listing in the catalog and request access. When false, only consumers who already have access through one of their groups see it.'
+            })
+          )
         })
       )
       .output(consumerAccessListingPresenter)
@@ -230,7 +250,8 @@ export let portalConsumerAccessListingController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            readme: ctx.body.readme
+            readme: ctx.body.readme,
+            isDiscoverable: ctx.body.is_discoverable
           }
         });
 

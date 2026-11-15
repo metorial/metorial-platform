@@ -1,53 +1,48 @@
-import {
+import type {
   DashboardInstanceCustomProvidersGetOutput,
   DashboardInstanceCustomProvidersVersionsListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useCustomProviderVersions } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { useCustomProviderVersions } from '@metorial/state';
+import { useInstanceContext } from '../../lib/dataList';
 import { CustomProviderVersionStatus } from './version';
 
-export let CustomProviderVersionsTable = (
-  filter: DashboardInstanceCustomProvidersVersionsListQuery & {
-    customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
-  }
-) => {
-  let instance = useCurrentInstance();
-  let versions = useCustomProviderVersions(instance.data?.id, filter.customProvider?.id, {
-    ...filter,
-    order: 'desc'
-  });
+export type CustomProviderVersionsFilters = Omit<
+  DashboardInstanceCustomProvidersVersionsListQuery,
+  'customProviderId' | 'after' | 'before' | 'cursor'
+>;
 
-  return renderWithPagination(versions)(versions => (
-    <>
-      <Table
-        headers={['Version', 'Status', 'Created']}
-        data={versions.data.items.map(version => ({
-          data: [
-            <Text size="2" weight="strong">
-              {version.index}
-            </Text>,
-            <CustomProviderVersionStatus version={version} />,
-            <RenderDate date={version.createdAt} />
-          ],
-          href: Paths.instance.customProvider(
-            instance.data?.organization,
-            instance.data?.project,
-            instance.data,
-            filter.customProvider?.id,
-            'versions',
-            { version_id: version.id }
-          )
-        }))}
-      />
-
-      {versions.data.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No versions found for this provider.
-        </Text>
-      )}
-    </>
-  ));
-};
+export let CustomProviderVersionsTable = createDataList<{
+  customProvider: DashboardInstanceCustomProvidersGetOutput | undefined | null;
+  filters?: CustomProviderVersionsFilters;
+}>('custom-provider-versions')
+  .context(useInstanceContext)
+  .paginated(({ props, ctx, limit }) =>
+    useCustomProviderVersions(
+      ctx.instanceId,
+      props.customProvider?.id,
+      withDefaults({ order: 'desc' as const, ...props.filters }, { limit })
+    )
+  )
+  .columns([
+    col.text({ id: 'version', header: 'Version', weight: 'strong', get: row => row.index }),
+    col.custom({
+      id: 'status',
+      header: 'Status',
+      render: row => <CustomProviderVersionStatus version={row} />
+    }),
+    col.createdAt(),
+    col.id()
+  ])
+  .link((row, props, ctx) =>
+    Paths.instance.customProvider(
+      ctx.organization,
+      ctx.project,
+      ctx.instance,
+      props.customProvider?.id,
+      'versions',
+      { version_id: row.id }
+    )
+  )
+  .build();

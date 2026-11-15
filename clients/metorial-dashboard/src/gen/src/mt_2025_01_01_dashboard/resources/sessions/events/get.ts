@@ -185,6 +185,7 @@ export type SessionsEventsGetOutput = {
         connectionId: string | null;
         groupId: string | null;
         similarErrorCount: number;
+        issueId: string | null;
         createdAt: Date;
       } | null;
       input: Record<string, any> | null;
@@ -239,6 +240,7 @@ export type SessionsEventsGetOutput = {
       connectionId: string | null;
       groupId: string | null;
       similarErrorCount: number;
+      issueId: string | null;
       createdAt: Date;
     } | null;
     createdAt: Date;
@@ -255,6 +257,7 @@ export type SessionsEventsGetOutput = {
     connectionId: string | null;
     groupId: string | null;
     similarErrorCount: number;
+    issueId: string | null;
     createdAt: Date;
   } | null;
   warning: {
@@ -431,6 +434,7 @@ export let mapSessionsEventsGetOutput =
                         'connection_id',
                         'group_id',
                         'similar_error_count',
+                        'issue_id',
                         'created_at'
                       ]
                     ]
@@ -488,6 +492,7 @@ export let mapSessionsEventsGetOutput =
                   'connection_id',
                   'group_id',
                   'similar_error_count',
+                  'issue_id',
                   'created_at'
                 ]
               ]
@@ -507,6 +512,7 @@ export let mapSessionsEventsGetOutput =
             'connection_id',
             'group_id',
             'similar_error_count',
+            'issue_id',
             'created_at'
           ]
         ]

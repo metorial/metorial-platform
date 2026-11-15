@@ -1,5 +1,4 @@
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
 import {
   type SkillAgent,
   useCreateSkillAgent,
@@ -21,6 +20,7 @@ import {
 import { Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useEffect } from 'react';
+import { SkillPanelPage } from '../components/skillPanelPage';
 import styled from 'styled-components';
 import { forceFileTreeRefetch, useCurrentStoreHash } from './skillStoreFileViewer';
 
@@ -160,11 +160,13 @@ export let showSkillAgentFormModal = (p: {
 let getSkillAgentTableRow = (p: {
   agent: SkillAgent;
   isDeleting: boolean;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   onEdit?: (agent: SkillAgent) => void;
   onDelete?: (agent: SkillAgent) => void;
 }) => {
-  let documentPath = p.getDocumentPath(p.agent.documentId);
+  let documentPath = p.agent.storeItemId
+    ? p.getDocumentPath(p.agent.documentId, p.agent.storeItemId)
+    : undefined;
 
   let row = [
     <AgentName>
@@ -228,7 +230,7 @@ let getSkillAgentTableRow = (p: {
 export let SkillAgentsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   readOnly?: boolean;
 }) => {
   let skillAgents = useSkillAgents(p.instanceId, p.skillId, { order: 'asc' });
@@ -276,12 +278,10 @@ export let SkillAgentsScene = (p: {
   };
 
   return (
-    <>
-      <PageHeader
-        size="6"
-        title="Skill Agents"
-        description="Create and manage sub-agents attached to this skill."
-        actions={
+    <SkillPanelPage
+      title="Skill Agents"
+      description="Create and manage sub-agents attached to this skill."
+      actions={
           !p.readOnly ? (
             <Button
               size="2"
@@ -294,7 +294,7 @@ export let SkillAgentsScene = (p: {
             </Button>
           ) : null
         }
-      />
+    >
       {renderWithPagination(skillAgents)(skillAgents => (
         <>
           {skillAgents.data.items.length === 0 ? (
@@ -325,6 +325,6 @@ export let SkillAgentsScene = (p: {
           <deleteSkillAgent.RenderError />
         </>
       ))}
-    </>
+    </SkillPanelPage>
   );
 };

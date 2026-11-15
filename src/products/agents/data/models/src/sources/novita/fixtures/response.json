@@ -1,0 +1,45 @@
+{
+  "data": [
+    {
+      "id": "test/chat",
+      "pricing": {
+        "prompt": {
+          "price_per_m_decimal": "0.3"
+        },
+        "completion": {
+          "price_per_m_decimal": "1.2"
+        },
+        "input_cache_read": {
+          "price_per_m_decimal": "0.06"
+        }
+      },
+      "is_tiered_billing": true,
+      "tiered_billing_configs": [
+        {
+          "min_tokens": 1,
+          "max_tokens": 100,
+          "pricing": {
+            "prompt": {
+              "price_per_m_decimal": "0.3"
+            },
+            "completion": {
+              "price_per_m_decimal": "1.2"
+            }
+          }
+        },
+        {
+          "min_tokens": 100,
+          "max_tokens": 1000,
+          "pricing": {
+            "prompt": {
+              "price_per_m_decimal": "0.6"
+            },
+            "completion": {
+              "price_per_m_decimal": "2.4"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

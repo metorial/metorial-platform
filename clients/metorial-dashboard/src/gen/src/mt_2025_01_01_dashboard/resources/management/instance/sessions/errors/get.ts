@@ -12,6 +12,7 @@ export type ManagementInstanceSessionsErrorsGetOutput = {
   connectionId: string | null;
   groupId: string | null;
   similarErrorCount: number;
+  issueId: string | null;
   createdAt: Date;
 };
 
@@ -23,6 +24,7 @@ export let mapManagementInstanceSessionsErrorsGetOutput =
       'connection_id',
       'group_id',
       'similar_error_count',
+      'issue_id',
       'created_at'
     ],
     1

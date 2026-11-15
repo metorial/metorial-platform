@@ -8,7 +8,7 @@ import {
   useCurrentProject,
   useSkillMarketplace
 } from '@metorial/state';
-import { Badge, RenderDate, toast } from '@metorial/ui';
+import { RenderDate, toast } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiStore2Line } from '@remixicon/react';
 import { Outlet, useParams } from 'react-router-dom';
@@ -83,10 +83,6 @@ export let SkillMarketplaceLayout = () => {
       icon={<RiStore2Line />}
       breadcrumbs={[
         {
-          label: 'Skill Marketplaces',
-          to: Paths.instance.skillMarketplaces(organization.data, project.data, instance.data)
-        },
-        {
           label: marketplace.data?.name,
           to: Paths.instance.skillMarketplace(...marketplacePathParams)
         }
@@ -114,10 +110,6 @@ export let SkillMarketplaceLayout = () => {
         marketplace.data
           ? [
               { label: 'ID', value: <ID id={marketplace.data.id} /> },
-              {
-                label: 'Status',
-                value: <Badge color="gray">{marketplace.data.status}</Badge>
-              },
               { label: 'Identifier', value: marketplace.data.slug },
               { label: 'Created', value: <RenderDate date={marketplace.data.createdAt} /> }
             ]

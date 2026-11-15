@@ -1,112 +1,41 @@
-import {
-  DashboardInstanceIntegrationEnclavesListOutput,
-  DashboardInstanceIntegrationEnclavesListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceIntegrationEnclavesListOutput } from '@metorial/dashboard-sdk';
+import { col, createDataList } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useIntegrationEnclaves
-} from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
+import { useIntegrationEnclaves } from '@metorial/state';
+import { useInstanceContext } from '../../../lib/dataList';
 
 type Enclave = DashboardInstanceIntegrationEnclavesListOutput['items'][number];
 
-type EnclavesTableProps = DashboardInstanceIntegrationEnclavesListQuery & {
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let enclavesTableState: TableStateProvider<
-  EnclavesTableProps,
-  Enclave,
-  TableStateProviderResult<Enclave>
-> = props => {
-  let enclaves = useIntegrationEnclaves(props.instance.data?.id, {
-    order: props.order ?? 'desc'
-  });
-
-  return {
-    isLoading: enclaves.isLoading,
-    error: enclaves.error,
-    hasMoreAfter: enclaves.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: enclaves.data?.pagination.hasMoreBefore ?? false,
-    items: enclaves.data?.items ?? [],
-    loadNext: enclaves.next,
-    loadPrevious: enclaves.previous
-  };
-};
-
-let enclavesTable = new DashboardTable<EnclavesTableProps, Enclave>('network-enclaves')
-  .state(enclavesTableState)
+let EnclavesTable = createDataList('network-enclaves')
+  .context(useInstanceContext)
+  .paginated(({ ctx }) => useIntegrationEnclaves(ctx.instanceId, { order: 'desc' }))
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: enclave => (
-        <div>
-          <Text size="2" weight="strong">
-            {enclave.name}
-          </Text>
-          {enclave.description && (
-            <Text size="1" color="gray600">
-              {enclave.description}
-            </Text>
-          )}
-        </div>
-      )
-    },
-    {
+    col.name<Enclave>(),
+    col.text<Enclave>({
       id: 'environment',
-      isDefault: true,
       header: 'Environment',
-      render: enclave => <Text size="2">{enclave.enclaveEnvironment.name}</Text>
-    },
-    {
-      id: 'network',
-      isDefault: true,
+      get: enclave => enclave.enclaveEnvironment.name
+    }),
+    col.refId<Enclave>('network', enclave => enclave.internetGatewayId, {
       header: 'Network',
-      render: enclave => <ID id={enclave.internetGatewayId} />
-    },
-    {
+      isDefault: true
+    }),
+    col.date<Enclave>('lastUsedAt', {
       id: 'lastUsedAt',
-      isDefault: true,
       header: 'Last Used',
-      render: enclave => (enclave.lastUsedAt ? <RenderDate date={enclave.lastUsedAt} /> : '-')
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: enclave => <RenderDate date={enclave.createdAt} />
-    }
+      isDefault: true
+    }),
+    col.createdAt<Enclave>()
   ])
-  .link((enclave, props) =>
+  .link((enclave, _props, ctx) =>
     Paths.instance.providerDeployment(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
+      ctx.organization,
+      ctx.project,
+      ctx.instance,
       enclave.providerDeploymentId,
       'network'
     )
   )
   .build();
 
-export let NetworkEnclavesPage = () => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-
-  return enclavesTable({
-    organization,
-    project,
-    instance,
-    emptyState: 'No enclaves found.'
-  });
-};
+export let NetworkEnclavesPage = () => <EnclavesTable emptyState="No enclaves found." />;

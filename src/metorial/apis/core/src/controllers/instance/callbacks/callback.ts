@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { callbackService } from '@metorial-subspace/module-callback';
+import {
+  callbackService,
+  triggerGroupSelectionsSchema
+} from '@metorial-subspace/module-callback';
 import {
   integrationProviderService,
   integrationService
@@ -117,7 +120,8 @@ export let callbackController = Controller.create(
                 examples: ['Repository events for the production workspace']
               })
             )
-          )
+          ),
+          trigger_group_selections: v.optional(triggerGroupSelectionsSchema)
         })
       )
       .output(callbackPresenter)
@@ -138,7 +142,8 @@ export let callbackController = Controller.create(
           integrationProvider,
           input: {
             name: ctx.body.name,
-            description: ctx.body.description
+            description: ctx.body.description,
+            triggerGroupSelections: ctx.body.trigger_group_selections
           }
         });
 
@@ -159,7 +164,7 @@ export let callbackController = Controller.create(
       .patch(instancePath('callbacks/:callbackId', 'callbacks.update'), {
         name: 'Update callback',
         description:
-          'Updates the name, description or metadata of a callback. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.'
+          'Updates the name, description, metadata or trigger group selections of a callback. Changing the selections re-registers the affected triggers. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .use(hasFlags(['callbacks-enabled']))
@@ -187,18 +192,21 @@ export let callbackController = Controller.create(
                 examples: [{ environment: 'staging', owner: 'qa-team' }]
               })
             )
-          )
+          ),
+          trigger_group_selections: v.optional(v.nullable(triggerGroupSelectionsSchema))
         })
       )
       .output(callbackPresenter)
       .do(async ctx => {
         let callback = await callbackService.updateCallback({
           instance: ctx.instance,
+          auditScope: ctx.auditScope,
           callback: ctx.callback,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            triggerGroupSelections: ctx.body.trigger_group_selections
           }
         });
 

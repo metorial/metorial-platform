@@ -11,28 +11,31 @@ import {
   RiBriefcase4Line,
   RiChat3Line,
   RiChatVoiceAiLine,
-  RiFileCopyLine,
-  RiFolderLine,
   RiGlobalLine,
   RiGroupLine,
   RiHardDrive3Line,
   RiHome6Line,
   RiInstanceLine,
   RiLineChartLine,
+  RiColorFilterAiLine,
   RiListCheck2,
   RiPlugLine,
   RiRssLine,
   RiShieldKeyholeLine,
   RiFlowChart,
-  RiSparkling2Line,
   RiStackLine,
+  RiFolderLine,
   RiStore2Line,
   RiCompassDiscoverLine,
   RiUploadCloud2Line,
+  RiUser3Line,
   RiWebhookLine
 } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { isOwnedSkillsView } from '../scenes/skills/overview/skillViews';
+import { useSkillsSidebarGroups } from '../scenes/skills/navigation/sidebarGroups';
+import { useSkillMarketplacesNav } from '../scenes/skills/navigation/useSkillMarketplacesNav';
 
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
@@ -68,6 +71,10 @@ export let ProjectPageLayout = () => {
   let sandboxEnabled = !!dashboardFlags.data?.flags['sandbox-enabled'];
   let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
   let publicMcpEnabled = !!dashboardFlags.data?.flags['public-mcp-servers-enabled'];
+
+  let skillsSidebarGroups = useSkillsSidebarGroups({ enabled: skillsEnabled });
+  let skillMarketplaces = useSkillMarketplacesNav({ enabled: skillsEnabled });
+  let defaultSkillMarketplace = skillMarketplaces[0];
 
   return (
     <AppLayout
@@ -127,8 +134,8 @@ export let ProjectPageLayout = () => {
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Tool Errors',
-                  to: Paths.instance.providerErrors(...params),
+                  label: 'Issues',
+                  to: Paths.instance.providerIssues(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]
@@ -209,27 +216,25 @@ export let ProjectPageLayout = () => {
                 collapsible: true,
                 items: [
                   {
-                    icon: <RiSparkling2Line />,
-                    label: 'Skills',
+                    icon: <RiColorFilterAiLine />,
+                    label: 'All Skills',
                     to: Paths.instance.skills(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
+                      isActive:
+                        (checkPath(i, { exact: true }) && !isOwnedSkillsView()) ||
+                        i.pathname.includes('/skill-template/')
                     })
                   },
                   {
-                    icon: <RiStore2Line />,
-                    label: 'Marketplaces',
-                    to: Paths.instance.skillMarketplaces(...params),
+                    icon: <RiUser3Line />,
+                    label: 'Your Skills',
+                    to: Paths.instance.ownedSkills(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
-                    })
-                  },
-                  {
-                    icon: <RiFileCopyLine />,
-                    label: 'Templates',
-                    to: Paths.instance.skillTemplates(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
+                      isActive:
+                        checkPath(
+                          { ...i, to: Paths.instance.skills(...params) },
+                          { exact: true }
+                        ) && isOwnedSkillsView()
                     })
                   },
                   {
@@ -237,13 +242,44 @@ export let ProjectPageLayout = () => {
                     label: 'Groups',
                     to: Paths.instance.skillGroups(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
+                      isActive: i.pathname.endsWith('/skills/groups')
                     })
+                  },
+                  {
+                    icon: <RiStore2Line />,
+                    label: 'Marketplaces',
+                    to: defaultSkillMarketplace
+                      ? Paths.instance.skillMarketplace(...params, defaultSkillMarketplace.id)
+                      : Paths.instance.skillMarketplaces(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive:
+                        i.pathname.includes('/skill-marketplace/') ||
+                        i.pathname.endsWith('/skills/marketplaces')
+                    }),
+                    children:
+                      skillMarketplaces.length > 1
+                        ? skillMarketplaces.map(marketplace => {
+                            let to = Paths.instance.skillMarketplace(
+                              ...params,
+                              marketplace.id
+                            );
+
+                            return {
+                              label: marketplace.name,
+                              to,
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i)
+                              })
+                            };
+                          })
+                        : undefined
                   }
                 ]
               }
             ]
           : []),
+
+        ...skillsSidebarGroups,
 
         ...(sandboxEnabled
           ? [

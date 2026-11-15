@@ -7,6 +7,7 @@ export type ManagementInstancePortalsListingsListOutput = {
     name: string;
     description: string | null;
     readme: string | null;
+    isDiscoverable: boolean;
     access:
       | {
           type: 'provider_template';
@@ -98,6 +99,7 @@ export let mapManagementInstancePortalsListingsListOutput =
       [
         1,
         [
+          'is_discoverable',
           [
             'access',
             0,
@@ -164,6 +166,7 @@ export type ManagementInstancePortalsListingsListQuery = {
         | 'skill_marketplace'
       )[]
     | undefined;
+  hasAccess?: boolean | undefined;
 };
 
 export let mapManagementInstancePortalsListingsListQuery =
@@ -181,7 +184,8 @@ export let mapManagementInstancePortalsListingsListQuery =
             'skill_id',
             'skill_template_id',
             'skill_group_id',
-            'skill_marketplace_id'
+            'skill_marketplace_id',
+            'has_access'
           ]
         ]
       ]

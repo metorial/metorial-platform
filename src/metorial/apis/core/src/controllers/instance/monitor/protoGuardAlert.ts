@@ -42,6 +42,7 @@ export let protoGuardAlertController = Controller.create(
             session_message_id: v.optional(stringOrArray()),
             session_connection_id: v.optional(stringOrArray()),
             provider_run_id: v.optional(stringOrArray()),
+            issue_id: v.optional(stringOrArray()),
             created_at: dateFilterValidator('ProtoGuard alert creation time')
           })
         )
@@ -56,6 +57,7 @@ export let protoGuardAlertController = Controller.create(
           sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
           sessionConnectionIds: normalizeArrayParam(ctx.query.session_connection_id),
           providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
+          issueIds: normalizeArrayParam(ctx.query.issue_id),
           createdAt: ctx.query.created_at
         });
 

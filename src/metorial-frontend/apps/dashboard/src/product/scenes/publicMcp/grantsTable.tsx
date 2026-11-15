@@ -1,15 +1,19 @@
 import type { DashboardInstancePublicMcpServersGrantsListOutput } from '@metorial/dashboard-sdk';
-import { usePublicMcpServerGrants, useRevokePublicMcpServerGrant } from '@metorial/state';
 import {
-  getConstrainedEnumListFilterValue,
-  Table as DashboardTable,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import { confirm, RenderDate, Text, toast } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+  col,
+  createDataList,
+  defineAction,
+  defineStatus,
+  EmptyValue,
+  f,
+  StatusBadge,
+  withDefaults
+} from '@metorial/data-list';
+import { usePublicMcpServerGrants, useRevokePublicMcpServerGrant } from '@metorial/state';
+import { RenderDate, Text, toast } from '@metorial/ui';
 import { RiCloseCircleLine } from '@remixicon/react';
-import { getRevokedReasonLabel, PublicMcpGrantStatusBadge } from './shared';
+import { useInstanceContext } from '../../lib/dataList';
+import { getRevokedReasonLabel } from './shared';
 
 type PublicMcpGrantRow = DashboardInstancePublicMcpServersGrantsListOutput['items'][number];
 
@@ -18,156 +22,85 @@ type PublicMcpGrantsTableProps = {
   publicMcpServerId: string;
 };
 
-let usePublicMcpGrantsTableState: TableStateProvider<
-  PublicMcpGrantsTableProps,
-  PublicMcpGrantRow,
-  TableStateProviderResult<PublicMcpGrantRow>
-> = (props, opts) => {
-  let grants = usePublicMcpServerGrants(props.instanceId, props.publicMcpServerId, {
-    order: 'desc',
-    status: getConstrainedEnumListFilterValue(
-      opts.filter.status,
-      ['pending_exchange', 'active', 'revoked', 'expired'],
-      undefined
+let grantStatus = defineStatus({
+  active: { label: 'Active', color: 'green' },
+  pending_exchange: { label: 'Pending', color: 'orange' },
+  revoked: { label: 'Revoked', color: 'red' },
+  expired: { label: 'Expired', color: 'gray' }
+});
+
+let PublicMcpGrantsList = createDataList<PublicMcpGrantsTableProps>('public-mcp-server-grants')
+  .context(useInstanceContext)
+  .filters(() => ({ status: f.status(grantStatus) }))
+  .paginated(({ props, filters, limit }) =>
+    usePublicMcpServerGrants(
+      props.instanceId,
+      props.publicMcpServerId,
+      withDefaults({ order: 'desc' as const }, { ...filters, limit })
     )
-  });
-
-  return {
-    isLoading: grants.isLoading,
-    error: grants.error,
-    hasMoreAfter: grants.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: grants.data?.pagination.hasMoreBefore ?? false,
-    items: grants.data?.items ?? [],
-    loadNext: grants.next,
-    loadPrevious: grants.previous
-  };
-};
-
-let publicMcpGrantsTable = new DashboardTable<PublicMcpGrantsTableProps, PublicMcpGrantRow>(
-  'public-mcp-server-grants'
-)
-  .state(usePublicMcpGrantsTableState)
-  .hookState((_, input) => {
-    let revokeGrant = useRevokePublicMcpServerGrant();
-
-    return {
-      revokeGrant: async (grant: PublicMcpGrantRow) => {
-        let [res] = await revokeGrant.mutate({
-          instanceId: input.instanceId,
-          publicMcpServerId: input.publicMcpServerId,
-          publicMcpServerGrantId: grant.id
-        });
-
-        if (res) toast.success('Access revoked');
-      }
-    };
-  })
+  )
   .columns([
-    {
+    col.custom({
       id: 'status',
-      isDefault: true,
       header: 'Status',
-      render: grant => (
+      render: row => (
         <div>
-          <PublicMcpGrantStatusBadge status={grant.status} />
-          {getRevokedReasonLabel(grant.revokedReason) && (
+          <StatusBadge status={row.status} descriptor={grantStatus} />
+          {getRevokedReasonLabel(row.revokedReason) && (
             <Text size="1" color="gray600">
-              {getRevokedReasonLabel(grant.revokedReason)}
+              {getRevokedReasonLabel(row.revokedReason)}
             </Text>
           )}
         </div>
       )
-    },
-    {
+    }),
+    col.name({
       id: 'client',
-      isDefault: true,
       header: 'Client',
-      render: grant => (
-        <div>
-          <Text size="2" weight="strong">
-            {grant.client.name}
-          </Text>
-          {grant.client.clientUri && (
-            <Text size="1" color="gray600">
-              {grant.client.clientUri}
-            </Text>
-          )}
-        </div>
-      )
-    },
-    {
+      get: row => row.client.name,
+      description: row => row.client.clientUri
+    }),
+    col.custom({
       id: 'lastUsedAt',
-      isDefault: true,
       header: 'Last Used',
-      render: grant =>
-        grant.lastUsedAt ? (
-          <RenderDate date={grant.lastUsedAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            Never
-          </Text>
-        )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Connected',
-      render: grant => <RenderDate date={grant.createdAt} />
-    },
-    {
-      id: 'expiresAt',
-      isDefault: false,
-      header: 'Expires',
-      render: grant => <RenderDate date={grant.expiresAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Grant ID',
-      render: grant => <ID id={grant.id} />
-    }
+      render: row =>
+        row.lastUsedAt ? <RenderDate date={row.lastUsedAt} /> : <EmptyValue>Never</EmptyValue>
+    }),
+    col.createdAt({ header: 'Connected' }),
+    col.date('expiresAt', { header: 'Expires' }),
+    col.id({ header: 'Grant ID' })
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'pending_exchange', label: 'Pending' },
-        { id: 'revoked', label: 'Revoked' },
-        { id: 'expired', label: 'Expired' }
-      ]
-    }
-  ])
-  .actions({
-    revoke: async (rows, state) => {
-      let grant = rows[0];
-      if (!grant) return;
-
-      confirm({
-        title: 'Revoke Access',
-        description: `${grant.client.name} loses access immediately. The user has to sign in again to reconnect.`,
-        confirmText: 'Revoke',
-        onConfirm: () => state.revokeGrant(grant)
-      });
-    }
-  })
-  .rowActions([
-    {
+  .itemActions([
+    defineAction<PublicMcpGrantRow, PublicMcpGrantsTableProps>({
       id: 'revoke',
       label: 'Revoke Access',
       icon: <RiCloseCircleLine />,
-      disabled: grant => grant.status !== 'active' && grant.status !== 'pending_exchange',
-      action: 'revoke'
-    }
+      destructive: true,
+      disabled: row => row.status !== 'active' && row.status !== 'pending_exchange',
+      confirm: {
+        title: 'Revoke Access',
+        confirmText: 'Revoke',
+        description: rows =>
+          `${rows[0]?.client.name} loses access immediately. The user has to sign in again to reconnect.`
+      },
+      useRun: ({ props }) => {
+        let revokeGrant = useRevokePublicMcpServerGrant();
+
+        return async row => {
+          let [res, error] = await revokeGrant.mutate({
+            instanceId: props.instanceId,
+            publicMcpServerId: props.publicMcpServerId,
+            publicMcpServerGrantId: row.id
+          });
+
+          if (error) throw error;
+          if (res) toast.success('Access revoked');
+        };
+      }
+    })
   ])
   .build();
 
-export let PublicMcpGrantsTable = (props: PublicMcpGrantsTableProps) =>
-  publicMcpGrantsTable({
-    ...props,
-    emptyState: 'No one has connected to this server yet.'
-  });
+export let PublicMcpGrantsTable = (props: PublicMcpGrantsTableProps) => (
+  <PublicMcpGrantsList emptyState="No one has connected to this server yet." {...props} />
+);

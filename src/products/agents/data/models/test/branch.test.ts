@@ -98,6 +98,44 @@ describe('override branch', () => {
     expect(lines.some(line => line.includes('pushed'))).toBe(false);
   });
 
+  it('saves provider implementation and tests without committing unrelated staged changes', async () => {
+    let work = clone(remote);
+    let directory = 'pkg/src/sources/cerebras';
+    let branch = await openOverrideBranch({
+      root: work,
+      name: branchName,
+      overridesDir: path.join(work, overridesPath),
+      allowedSourceDirectories: [directory],
+      log: () => {}
+    });
+    let files = [
+      `${directory}/index.ts`,
+      `${directory}/index.test.ts`,
+      `${directory}/fixtures/new.json`
+    ];
+    for (let file of files) write(work, file, 'repair\n');
+    write(work, 'pkg/other.txt', 'unrelated\n');
+    git(work, 'add', 'pkg/other.txt');
+
+    await branch!.save('pricing repair', files);
+
+    expect(
+      git(remote, 'diff-tree', '--no-commit-id', '--name-only', '-r', branchName)
+        .split('\n')
+        .sort()
+    ).toEqual(files.sort());
+    expect(git(work, 'diff', '--cached', '--name-only')).toBe('pkg/other.txt');
+    expect(git(remote, 'show', `${branchName}:pkg/other.txt`)).toBe('x');
+    for (let file of [
+      'pkg/src/sources/xai/index.ts',
+      `${directory}/../xai/index.ts`,
+      `${directory}-other/index.ts`
+    ])
+      await expect(branch!.save('invalid', [file])).rejects.toThrow(
+        'outside the repair allowlist'
+      );
+  });
+
   it('resumes a branch from an earlier run and builds on it', async () => {
     let first = clone(remote);
     let firstBranch = await open(first);

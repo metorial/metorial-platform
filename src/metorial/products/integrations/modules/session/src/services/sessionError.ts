@@ -41,7 +41,8 @@ let include = {
   session: true,
   group: true,
   providerRun: true,
-  connection: true
+  connection: true,
+  issue: true
 };
 export let sessionErrorInclude = include;
 
@@ -59,6 +60,7 @@ export type ListSessionErrorsParams = {
   providerIds?: string[];
   sessionMessageIds?: string[];
   sessionErrorGroupIds?: string[];
+  issueIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
 
@@ -139,6 +141,7 @@ class sessionErrorServiceImpl {
                 connections ? { connectionOid: connections.in } : undefined!,
                 providerRuns ? { providerRunOid: providerRuns.in } : undefined!,
                 groups ? { groupOid: groups.in } : undefined!,
+                d.issueIds ? { issue: { id: { in: d.issueIds } } } : undefined!,
                 messages ? { sessionMessages: { some: { oid: messages.in } } } : undefined!,
                 providers ? { providerRun: { providerOid: providers.in } } : undefined!,
 

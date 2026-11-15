@@ -65,6 +65,13 @@ class providerInternalServiceImpl {
     ).flat();
   }
 
+  async findSlateProvider(d: { slate: Slate }) {
+    return db.provider.findUnique({
+      where: { identifier: `provider::slates::${d.slate.oid}::provider` },
+      include: { defaultVariant: true }
+    });
+  }
+
   async upsertProvider(d: {
     publisher: Publisher;
 

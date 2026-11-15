@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { requestSecurityReview } from '@metorial-subspace/module-security-review-request';
 import { providerAuthConfigArchivedQueue } from '../../../../auth/src/queues/lifecycle/providerAuthConfig';
 import { env } from '../../env';
 import { reconcileProviderDeploymentMonitorSingleQueue } from '../reconcile/providerDeploymentMonitor';
@@ -26,7 +27,7 @@ export let providerDeploymentCreatedQueueProcessor = providerDeploymentCreatedQu
       providerDeploymentId: data.providerDeploymentId
     });
 
-    await db.providerUse.upsert({
+    let use = await db.providerUse.upsert({
       where: {
         tenantOid_solutionOid_environmentOid_providerOid: {
           tenantOid: providerDeployment.tenantOid,
@@ -54,6 +55,15 @@ export let providerDeploymentCreatedQueueProcessor = providerDeploymentCreatedQu
         lastUseAt: new Date()
       }
     });
+
+    if (use.sessions + use.deployments == 1) {
+      let provider = await db.provider.findUnique({
+        where: { oid: providerDeployment.providerOid },
+        select: { id: true }
+      });
+
+      if (provider) await requestSecurityReview({ subject: 'provider', id: provider.id });
+    }
   }
 );
 

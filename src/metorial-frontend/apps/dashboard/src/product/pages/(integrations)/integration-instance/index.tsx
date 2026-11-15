@@ -1,4 +1,4 @@
-import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -9,13 +9,12 @@ import {
   useIntegration,
   useIntegrationInstance,
   useIntegrationInstanceProviders,
-  useMagicMcpServers,
   useProjectAuthConfigConfiguration,
   type IntegrationInstance,
   type IntegrationProvider
 } from '@metorial/state';
-import { Badge, Button, Callout, Input, Panel, showModal, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Button, Callout, Input, Panel, showModal, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
@@ -23,16 +22,7 @@ import { IntegrationAdminSetupCallouts } from '../../../scenes/integrations/admi
 import { showIntegrationInstanceProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationInstanceProvidersManager } from '../../../scenes/integrations/providersManager';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
-
-let getProviderManagementMode = (mode: string) => {
-  if (mode === 'inherited_from_provider_template') {
-    return { label: 'Workforce Setup', color: 'purple' as const };
-  }
-  if (mode === 'inherited_from_integration') {
-    return { label: 'Integration Instance', color: 'blue' as const };
-  }
-  return { label: 'Server Owned', color: 'gray' as const };
-};
+import { MagicMcpServersTable } from '../../../scenes/magicMcp/serversGrid';
 
 let CreateLinkedMagicMcpServerModal = (p: {
   instanceId: string;
@@ -122,15 +112,7 @@ let LinkedMagicMcpServersBox = (p: {
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let instance = useCurrentInstance();
   let authConfig = useProjectAuthConfigConfiguration(organization.data?.id, project.data?.id);
-  let servers = useMagicMcpServers(p.instanceId, {
-    ownership: 'all',
-    integrationInstanceId: p.integrationInstance.id,
-    owner: ['organization', 'consumer'],
-    status: ['active'],
-    limit: 100
-  });
   let isBlockedByOAuthPolicy =
     authConfig.data?.onlyAllowOauthAuthMethods && !p.integrationInstance.isOauthCompatible;
   let canCreate =
@@ -145,7 +127,7 @@ let LinkedMagicMcpServersBox = (p: {
         integrationInstance={p.integrationInstance}
         close={close}
         dialogProps={dialogProps}
-        onCreate={() => servers.refetch()}
+        onCreate={() => {}}
       />
     ));
   };
@@ -167,41 +149,14 @@ let LinkedMagicMcpServersBox = (p: {
         </Callout>
       )}
 
-      {renderWithPagination(servers)(servers => (
-        <>
-          <Table
-            headers={['Name', 'Type']}
-            data={servers.data.items.map(server => {
-              let providerManagementMode = getProviderManagementMode(
-                server.providerManagementMode
-              );
-
-              return {
-                data: [
-                  <Text size="2" weight="strong">
-                    {server.name ?? 'Magic MCP Server'}
-                  </Text>,
-                  <Badge color={providerManagementMode.color}>
-                    {providerManagementMode.label}
-                  </Badge>
-                ],
-                href: Paths.instance.magicMcp.server(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  server.id
-                )
-              };
-            })}
-          />
-
-          {servers.data.items.length === 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No Magic MCP servers use this integration instance yet.
-            </Text>
-          )}
-        </>
-      ))}
+      <MagicMcpServersTable
+        integrationInstanceId={p.integrationInstance.id}
+        owner={['organization', 'consumer']}
+        status={['active']}
+        listVariant="embedded"
+        hideToolbar
+        emptyState="No Magic MCP servers use this integration instance yet."
+      />
     </Box>
   );
 };

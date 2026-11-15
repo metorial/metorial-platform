@@ -21,7 +21,10 @@ import {
   type ReconcileIntegrationProvider,
   reconcileIntegrationProviderInclude
 } from '../lib/callbackIncludes';
-import { selectCallbackInstanceGenerations } from '../lib/callbackInstanceGeneration';
+import {
+  sameTriggerGroupSelections,
+  selectCallbackInstanceGenerations
+} from '../lib/callbackInstanceGeneration';
 import {
   type CallbackOwner,
   isOwnedBy,
@@ -29,6 +32,7 @@ import {
   userCallbackOwner
 } from '../lib/callbackOwnership';
 import { toSyncError } from '../lib/syncError';
+import { parseTriggerGroupSelections } from '../lib/triggerGroupSelections';
 import { enqueueCallbackPush } from '../queues/push/callback';
 import { enqueueCallbackInstancePush } from '../queues/push/callbackInstance';
 import {
@@ -43,6 +47,12 @@ import {
 import { indexCallbackQueue } from '../queues/search/callback';
 
 type SyncError = { code: string; message: string };
+
+type CallbackCreateInput = {
+  name?: string;
+  description?: string | null;
+  triggerGroupSelections?: PrismaJson.TriggerGroupSelections | null;
+};
 
 let getCallbacksBackend = async (
   providerVariant: ProviderVariant
@@ -97,18 +107,23 @@ class callbackInternalServiceImpl {
 
   async reconcileCallbackForIntegrationProvider(d: {
     integrationProviderId: string;
-    input?: { name?: string; description?: string | null };
+    input?: CallbackCreateInput;
     beforeReconcile?: () => Promise<void>;
   }) {
+    let triggerGroupSelections = parseTriggerGroupSelections(d.input?.triggerGroupSelections);
+
     return await callbackLock.usingLock(d.integrationProviderId, async () => {
       await d.beforeReconcile?.();
-      return this.reconcileCallbackForIntegrationProviderLocked(d);
+      return this.reconcileCallbackForIntegrationProviderLocked({
+        ...d,
+        input: { ...d.input, triggerGroupSelections }
+      });
     });
   }
 
   private async reconcileCallbackForIntegrationProviderLocked(d: {
     integrationProviderId: string;
-    input?: { name?: string; description?: string | null };
+    input?: CallbackCreateInput;
   }) {
     let integrationProvider = await db.integrationProvider.findUnique({
       where: { id: d.integrationProviderId },
@@ -196,7 +211,7 @@ class callbackInternalServiceImpl {
   private async createCallback(d: {
     integrationProvider: ReconcileIntegrationProvider;
     owner: CallbackOwner;
-    input?: { name?: string; description?: string | null };
+    input?: CallbackCreateInput;
   }) {
     let { provider } = d.integrationProvider;
 
@@ -210,6 +225,10 @@ class callbackInternalServiceImpl {
         ...getId('callback'),
         status: 'active',
         syncStatus: 'pending',
+
+        triggerGroupSelections: isManaged
+          ? undefined
+          : (d.input?.triggerGroupSelections ?? undefined),
 
         ownership: d.owner.ownership,
         managedAdapterGlobalOid: d.owner.managedAdapterGlobalOid,
@@ -523,7 +542,8 @@ class callbackInternalServiceImpl {
         active: activeForCallback,
         callbackOid: callback.oid,
         providerConfigVersionOid: configVersion!.oid,
-        providerAuthConfigVersionOid: authConfigVersion?.oid ?? null
+        providerAuthConfigVersionOid: authConfigVersion?.oid ?? null,
+        triggerGroupSelections: callback.triggerGroupSelections
       });
 
       let primary = generations.primary;
@@ -540,6 +560,19 @@ class callbackInternalServiceImpl {
           });
         }
         continue;
+      }
+
+      // The serving generation stays until its replacement is primary; it may be the only live one.
+      let serving = generations.obsolete.find(
+        callbackInstance => callbackInstance.generationStatus === 'primary'
+      );
+      for (let callbackInstance of generations.obsolete) {
+        if (callbackInstance === serving) continue;
+        if (callbackInstance.generationStatus === 'replaced' && !serving) continue;
+        await this.archiveCallbackInstance({
+          callbackInstance,
+          tenant: integrationInstanceProvider.tenant
+        });
       }
 
       let provisioning = generations.provisioning;
@@ -559,7 +592,7 @@ class callbackInternalServiceImpl {
   }
 
   private async createCallbackInstanceRecord(d: {
-    callback: Pick<Callback, 'oid'>;
+    callback: Pick<Callback, 'oid' | 'triggerGroupSelections'>;
     integrationInstanceProvider: Pick<
       IntegrationInstanceProvider,
       | 'oid'
@@ -580,6 +613,7 @@ class callbackInternalServiceImpl {
         status: 'active',
         syncStatus: 'pending',
         generationStatus: 'provisioning',
+        triggerGroupSelections: d.callback.triggerGroupSelections ?? undefined,
 
         callbackOid: d.callback.oid,
 
@@ -661,7 +695,11 @@ class callbackInternalServiceImpl {
       !d.integrationInstanceProvider.integrationInstance.isParentDeleted &&
       currentConfigVersion?.oid === d.callbackInstance.providerConfigVersionOid &&
       (currentAuthConfigVersion?.oid ?? null) ===
-        d.callbackInstance.providerAuthConfigVersionOid;
+        d.callbackInstance.providerAuthConfigVersionOid &&
+      sameTriggerGroupSelections(
+        d.callback.triggerGroupSelections,
+        d.callbackInstance.triggerGroupSelections
+      );
 
     if (!isDesired) {
       await db.callbackInstance.update({
@@ -680,7 +718,7 @@ class callbackInternalServiceImpl {
         })
       : null;
     if (!configVersion) {
-      return await this.markCallbackInstanceSyncFailed(d.callbackInstance, {
+      return await this.markCallbackInstancePushFailed(d.callbackInstance, {
         code: 'provider_config_missing',
         message:
           'This integration instance provider has no materialized provider config to attach a callback to.'
@@ -693,14 +731,15 @@ class callbackInternalServiceImpl {
 
     let callbacks = await getCallbacksBackend(providerVariant);
     if (!callbacks) {
-      return await this.markCallbackInstanceSyncFailed(d.callbackInstance, {
+      return await this.markCallbackInstancePushFailed(d.callbackInstance, {
         code: 'callbacks_not_supported',
         message: 'This provider does not support callbacks.'
       });
     }
 
+    let created;
     try {
-      await callbacks.createCallbackInstance({
+      created = await callbacks.createCallbackInstance({
         tenant: d.tenant,
         callback: d.callback,
         callbackInstance: d.callbackInstance,
@@ -712,7 +751,7 @@ class callbackInternalServiceImpl {
           : null
       });
     } catch (error) {
-      return await this.markCallbackInstanceSyncFailed(d.callbackInstance, toSyncError(error));
+      return await this.markCallbackInstancePushFailed(d.callbackInstance, toSyncError(error));
     }
 
     let synced = await db.callbackInstance.update({
@@ -721,10 +760,14 @@ class callbackInternalServiceImpl {
         syncStatus: 'synced',
         lastSyncErrorCode: null,
         lastSyncErrorMessage: null,
-        lastSyncedAt: new Date()
+        lastSyncedAt: new Date(),
+        ...(created.selectableTriggerGroups
+          ? { selectableTriggerGroups: created.selectableTriggerGroups }
+          : {})
       }
     });
 
+    let currentCallback = await db.callback.findUnique({ where: { oid: synced.callbackOid } });
     let current = await db.integrationInstanceProvider.findUnique({
       where: { oid: d.callbackInstance.integrationInstanceProviderOid },
       include: reconcileIntegrationInstanceProviderInclude
@@ -742,7 +785,12 @@ class callbackInternalServiceImpl {
       current.integrationInstance.status === 'active' &&
       !current.integrationInstance.isParentDeleted &&
       currentConfigVersion?.oid === synced.providerConfigVersionOid &&
-      (currentAuthConfigVersion?.oid ?? null) === synced.providerAuthConfigVersionOid;
+      (currentAuthConfigVersion?.oid ?? null) === synced.providerAuthConfigVersionOid &&
+      !!currentCallback &&
+      sameTriggerGroupSelections(
+        currentCallback.triggerGroupSelections,
+        synced.triggerGroupSelections
+      );
 
     if (!isCurrent) {
       await db.callbackInstance.update({
@@ -772,6 +820,29 @@ class callbackInternalServiceImpl {
       integrationInstanceProviderId: d.integrationInstanceProvider.id
     });
     return synced;
+  }
+
+  // Only the serving generation is listed, so it carries the failure of its replacement.
+  private async markCallbackInstancePushFailed(
+    callbackInstance: CallbackInstance,
+    error: SyncError
+  ) {
+    await db.callbackInstance.updateMany({
+      where: {
+        integrationInstanceProviderOid: callbackInstance.integrationInstanceProviderOid,
+        callbackOid: callbackInstance.callbackOid,
+        status: 'active',
+        generationStatus: 'primary',
+        oid: { not: callbackInstance.oid }
+      },
+      data: {
+        syncStatus: 'failed',
+        lastSyncErrorCode: error.code,
+        lastSyncErrorMessage: error.message
+      }
+    });
+
+    return await this.markCallbackInstanceSyncFailed(callbackInstance, error);
   }
 
   private async markCallbackInstanceSyncFailed(

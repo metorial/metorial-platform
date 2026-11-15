@@ -41,7 +41,8 @@ export let callbackInstanceController = app.controller({
         tenantId: v.string(),
         callbackId: v.string(),
         slateInstanceId: v.string(),
-        authConfigId: v.optional(v.string())
+        authConfigId: v.optional(v.string()),
+        triggerGroupSelections: v.optional(v.record(v.record(v.any())))
       })
     )
     .do(async ctx => {
@@ -50,11 +51,16 @@ export let callbackInstanceController = app.controller({
         callback: ctx.callback,
         input: {
           slateInstanceId: ctx.input.slateInstanceId,
-          authConfigId: ctx.input.authConfigId
+          authConfigId: ctx.input.authConfigId,
+          triggerGroupSelections: ctx.input.triggerGroupSelections
         }
       });
 
-      return callbackInstancePresenter(instance);
+      return {
+        ...callbackInstancePresenter(instance),
+        selectableTriggerGroups: instance.selectableTriggerGroups,
+        ignoredSelectionKeys: instance.ignoredSelectionKeys
+      };
     }),
 
   get: callbackInstanceApp
@@ -66,7 +72,12 @@ export let callbackInstanceController = app.controller({
         callbackInstanceId: v.string()
       })
     )
-    .do(async ctx => callbackInstancePresenter(ctx.callbackInstance)),
+    .do(async ctx => ({
+      ...callbackInstancePresenter(ctx.callbackInstance),
+      selectableTriggerGroups: await callbackInstanceService.listSelectableTriggerGroups({
+        callbackInstance: ctx.callbackInstance
+      })
+    })),
 
   getMany: tenantApp
     .handler()

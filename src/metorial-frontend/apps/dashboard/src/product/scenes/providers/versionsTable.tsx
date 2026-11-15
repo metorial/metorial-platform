@@ -1,39 +1,29 @@
-import { renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList, EmptyValue } from '@metorial/data-list';
 import { useProviderVersions } from '@metorial/state';
-import { RenderDate, Text, theme } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { Badge } from '@metorial/ui';
 
-export let ProviderVersionsTable = ({
-  instanceId,
-  providerId
-}: {
-  instanceId: string;
-  providerId: string;
-}) => {
-  let versions = useProviderVersions(instanceId, providerId);
+let ProviderVersionsList = createDataList<{ instanceId: string; providerId: string }>(
+  'provider-versions'
+)
+  .paginated(({ props }) => useProviderVersions(props.instanceId, props.providerId))
+  .columns([
+    col.text({
+      id: 'version',
+      header: 'Version',
+      weight: 'strong',
+      get: row => row.version,
+      fallback: 'No version'
+    }),
+    col.custom({
+      id: 'status',
+      header: 'Status',
+      render: row => (row.isCurrent ? <Badge color="blue">Current</Badge> : <EmptyValue />)
+    }),
+    col.createdAt(),
+    col.id()
+  ])
+  .build();
 
-  return renderWithPagination(versions)(versions => (
-    <>
-      <Table
-        headers={['Version', 'Status', 'Created']}
-        data={versions.data.items.map(version => ({
-          data: [
-            <Text size="2" weight="strong">
-              {version.version ?? (
-                <span style={{ color: theme.colors.gray600 }}>No version</span>
-              )}
-            </Text>,
-            <Text size="2">{version.isCurrent ? 'current' : '—'}</Text>,
-            <RenderDate date={version.createdAt} />
-          ]
-        }))}
-      />
-
-      {versions.data.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No versions found.
-        </Text>
-      )}
-    </>
-  ));
-};
+export let ProviderVersionsTable = (p: { instanceId: string; providerId: string }) => (
+  <ProviderVersionsList {...p} listVariant="embedded" emptyState="No versions found." />
+);

@@ -2,337 +2,80 @@ import {
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput,
   DashboardInstanceProviderDeploymentsConfigVaultsListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useDeleteProviderConfigVault,
-  useProviderConfigVaults,
-  useProviders
-} from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useMemo, useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue
-} from '@metorial/table';
+  col,
+  createDataList,
+  deleteAction,
+  f,
+  lifecycleStatus,
+  withDefaults
+} from '@metorial/data-list';
+import { useDeleteProviderConfigVault, useProviderConfigVaults } from '@metorial/state';
+import { useInstanceContext, withProviderNames } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 
 type ProviderConfigVault =
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number];
-
-type ProviderConfigVaultRow = ProviderConfigVault & {
-  providerName?: string | null;
-};
 
 export type ProviderConfigVaultFilters = Omit<
   DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
   'limit' | 'after' | 'before' | 'cursor'
 >;
 
-type ProviderConfigVaultsOverviewTableProps = {
-  instanceId: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
+export let ProviderConfigVaultsOverviewTable = createDataList<{
+  instanceId?: string;
   filters?: ProviderConfigVaultFilters;
-};
+}>('provider-config-vaults-overview')
+  .context(useInstanceContext)
+  .filters((props, ctx) => {
+    let instanceId = props.instanceId ?? ctx.instanceId;
 
-let getProviderConfigVaultStatusColor = (status: ProviderConfigVault['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
-let getStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceProviderDeploymentsConfigVaultsListQuery['status'] =>
-  getEnumListFilterValue(value, ['active', 'archived']);
-
-export let useProviderConfigVaultFilters = (instanceId: string | null | undefined) =>
-  useMemo<TableFilter<ProviderConfigVaultRow>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'active', label: 'Active' },
-          { id: 'archived', label: 'Archived' }
-        ]
-      },
-      entityFilters.provider(instanceId),
-      entityFilters.providerDeployment(instanceId),
-      entityFilters.providerConfig(instanceId),
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      },
-      {
-        id: 'updatedAt',
-        fields: ['updatedAt'],
-        label: 'Updated',
-        description: 'Filter by updated date',
-        type: 'date'
-      }
-    ],
-    [instanceId]
-  );
-
-let providerConfigVaultsOverviewState: TableStateProvider<
-  ProviderConfigVaultsOverviewTableProps,
-  ProviderConfigVaultRow,
-  TableStateProviderResult<ProviderConfigVaultRow>
-> = (
-  props: ProviderConfigVaultsOverviewTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let vaults = useProviderConfigVaults(props.instanceId, {
-    order: 'desc',
-    ...props.filters,
-    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
-    providerDeploymentId:
-      getListFilterValue(opts.filter.providerDeploymentId) ??
-      props.filters?.providerDeploymentId,
-    providerConfigId:
-      getListFilterValue(opts.filter.providerConfigId) ?? props.filters?.providerConfigId,
-    search: opts.search ?? props.filters?.search,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
-  });
-
-  let providerIds = [
-    ...new Set((vaults.data?.items ?? []).map(item => item.providerId).filter(Boolean))
-  ];
-  let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(
-    props.instanceId,
-    shouldLoadProviders ? { id: providerIds } : null
-  );
-
-  let providerNameMap = new Map<string, string>();
-  for (let provider of providers.data?.items ?? []) {
-    if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
-  }
-
-  return {
-    isLoading: vaults.isLoading || (shouldLoadProviders && providers.isLoading),
-    error: vaults.error ?? (shouldLoadProviders ? providers.error : null),
-    hasMoreAfter: vaults.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: vaults.data?.pagination.hasMoreBefore ?? false,
-    items: (vaults.data?.items ?? []).map(item => ({
-      ...item,
-      providerName: providerNameMap.get(item.providerId) ?? null
-    })),
-    loadNext: vaults.next,
-    loadPrevious: vaults.previous
-  };
-};
-
-let useProviderConfigVaultsOverviewHookState = (
-  _: ReturnType<typeof providerConfigVaultsOverviewState>,
-  props: ProviderConfigVaultsOverviewTableProps
-) => {
-  let deleteVault = useDeleteProviderConfigVault();
-  let [loadingIds, setLoadingIds] = useState<string[]>([]);
-
-  return {
-    deleteVault,
-    instanceId: props.instanceId,
-    loadingIds,
-    setLoadingIds
-  };
-};
-
-let deleteProviderConfigVaultImmediately = async (
-  vault: ProviderConfigVaultRow,
-  state: ReturnType<typeof useProviderConfigVaultsOverviewHookState>
-) => {
-  state.setLoadingIds((current: string[]) => [...new Set([...current, vault.id])]);
-
-  try {
-    await state.deleteVault.mutate({
-      instanceId: state.instanceId,
-      providerConfigVaultId: vault.id
-    });
-  } finally {
-    state.setLoadingIds((current: string[]) => current.filter(id => id != vault.id));
-  }
-};
-
-let providerConfigVaultsOverviewTable = new DashboardTable<
-  ProviderConfigVaultsOverviewTableProps,
-  ProviderConfigVaultRow
->('provider-config-vaults-overview')
-  .state(providerConfigVaultsOverviewState)
-  .hookState(useProviderConfigVaultsOverviewHookState)
-  .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: row => (
-        <div>
-          <Text size="2" weight="strong">
-            {row.name}
-          </Text>
-          {row.description && (
-            <Text size="1" color="gray600">
-              {row.description}
-            </Text>
-          )}
-        </div>
-      )
-    },
-    {
-      id: 'provider',
-      isDefault: true,
-      header: 'Provider',
-      render: row => <Text size="2">{row.providerName ?? row.providerId ?? '—'}</Text>
-    },
-    {
-      id: 'deployment',
-      isDefault: true,
-      header: 'Deployment',
-      render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: row => (
-        <Badge color={getProviderConfigVaultStatusColor(row.status)}>{row.status}</Badge>
-      )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: row => <RenderDate date={row.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: row => <ID id={row.id} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: row => <RenderDate date={row.updatedAt} />
-    },
-    {
-      id: 'providerId',
-      isDefault: false,
-      header: 'Provider ID',
-      render: row => <ID id={row.providerId} />
-    },
-    {
-      id: 'deploymentId',
-      isDefault: false,
-      header: 'Deployment ID',
-      render: row =>
-        row.deployment?.id ? (
-          <ID id={row.deployment.id} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    }
-  ])
-  .search('Search config vaults...')
-  .actions({
-    deleteImmediate: async (vaults, state) => {
-      let vault = vaults[0];
-      if (!vault) return;
-
-      await deleteProviderConfigVaultImmediately(vault, state);
-    },
-    delete: async (vaults, state) => {
-      let vault = vaults[0];
-      if (!vault) return;
-
-      confirm({
-        title: 'Delete config vault',
-        description: `Are you sure you want to delete ${vault.name ?? 'this config vault'}?`,
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await deleteProviderConfigVaultImmediately(vault, state);
-        }
-      });
-    }
+    return {
+      status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+      providerId: f.entity(entityFilters.provider(instanceId)),
+      providerDeploymentId: f.entity(entityFilters.providerDeployment(instanceId)),
+      providerConfigId: f.entity(entityFilters.providerConfig(instanceId)),
+      createdAt: f.createdAt(),
+      updatedAt: f.updatedAt()
+    };
   })
-  .rowActions([
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      disabled: row => row.status !== 'active',
-      action: 'delete'
-    }
+  .search('Search config vaults…')
+  .paginated(({ props, ctx, filters, search }) =>
+    useProviderConfigVaults(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(props.filters, {
+        order: 'desc' as const,
+        ...filters,
+        search: search ?? props.filters?.search
+      })
+    )
+  )
+  .enrich(withProviderNames(row => row.providerId))
+  .columns([
+    col.name(),
+    col.text({
+      id: 'provider',
+      header: 'Provider',
+      get: row => row.providerName ?? row.providerId
+    }),
+    col.text({ id: 'deployment', header: 'Deployment', get: row => row.deployment?.name }),
+    col.status(lifecycleStatus),
+    col.createdAt(),
+    col.id({ isDefault: true }),
+    col.updatedAt(),
+    col.refId('providerId', row => row.providerId, { header: 'Provider ID' }),
+    col.refId('deploymentId', row => row.deployment?.id, { header: 'Deployment ID' })
   ])
-  .bulkActions([
-    {
-      id: 'delete-selected',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
+  .itemActions([
+    deleteAction<ProviderConfigVault>({
+      noun: 'Config Vault',
+      name: row => row.name,
       disabled: row => row.status !== 'active',
-      action: 'deleteImmediate',
-      bulkExecution: {
-        mode: 'per-row',
-        batchSize: 10
-      }
-    }
+      useMutate: () => useDeleteProviderConfigVault(),
+      input: (row, { props, ctx }) => ({
+        instanceId: props.instanceId ?? ctx.instanceId,
+        providerConfigVaultId: row.id
+      })
+    })
   ])
   .build();
-
-export let ProviderConfigVaultsOverviewTable = ({
-  instanceId,
-  filters,
-  emptyState,
-  headerActions
-}: {
-  instanceId: string;
-  filters?: ProviderConfigVaultFilters;
-  emptyState?: (() => ReactNode) | string;
-  headerActions?: () => ReactNode;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useProviderConfigVaultFilters(instanceId);
-
-  return renderWithLoader({ organization, project, instance })(() =>
-    providerConfigVaultsOverviewTable({
-      instanceId,
-      organization,
-      project,
-      instance,
-      filters,
-      tableFilters,
-      emptyState,
-      headerActions
-    })
-  );
-};

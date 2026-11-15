@@ -76,6 +76,7 @@ export type ManagementInstanceDocumentsVersionsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -168,7 +169,8 @@ export let mapManagementInstanceDocumentsVersionsListOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]

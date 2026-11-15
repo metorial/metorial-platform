@@ -32,6 +32,12 @@ model CallbackInstance {
   lastSyncErrorMessage String?
   lastSyncedAt         DateTime?
 
+  /// [TriggerGroupSelections]
+  triggerGroupSelections Json?
+
+  /// [SelectableTriggerGroups]
+  selectableTriggerGroups Json?
+
   callbackOid BigInt
   callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
 

@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-logs-postgres
+  namespace: metorial-runtime-dev
+  labels:
+    app: network-logs-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-logs-postgres
+  template:
+    metadata:
+      labels:
+        app: network-logs-postgres
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              value: network_logs
+            - name: POSTGRES_PASSWORD
+              value: network_logs
+            - name: POSTGRES_DB
+              value: network_logs
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "network_logs"]
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-logs-postgres
+  namespace: metorial-runtime-dev
+spec:
+  selector:
+    app: network-logs-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metorial-network-logs
+  namespace: metorial-runtime-dev
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metorial-network-logs-auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: metorial-network-logs
+    namespace: metorial-runtime-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-network-logs
+  namespace: metorial-runtime-dev
+  labels:
+    app: runtime-network-logs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runtime-network-logs
+  template:
+    metadata:
+      labels:
+        app: runtime-network-logs
+    spec:
+      serviceAccountName: metorial-network-logs
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: network-logs
+          image: dev.local/runtime-network-logs:dev
+          imagePullPolicy: Never
+          env:
+            - name: DATABASE_HOST
+              value: network-logs-postgres.metorial-runtime-dev.svc.cluster.local
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: network_logs
+            - name: DATABASE_USERNAME
+              value: network_logs
+            - name: DATABASE_PASSWORD
+              value: network_logs
+            - name: DATABASE_SSLMODE
+              value: disable
+            - name: NETWORK_LOGS_AUTH
+              value: kubeauth
+            - name: OBSERVER_INGEST_ADDR
+              value: "off"
+            - name: OBSERVER_QUERY_ADDR
+              value: "off"
+          ports:
+            - name: rpc
+              containerPort: 52250
+          readinessProbe:
+            tcpSocket:
+              port: rpc
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: runtime-network-logs
+  namespace: metorial-runtime-dev
+spec:
+  selector:
+    app: runtime-network-logs
+  ports:
+    - name: rpc
+      port: 52250
+      targetPort: rpc

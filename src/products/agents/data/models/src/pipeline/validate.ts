@@ -22,7 +22,13 @@ let pricesOf = (pricing: Pricing | null) => {
   if (!pricing) return [];
 
   let values: number[] = [];
-  for (let rates of [pricing.text, pricing.image, pricing.audio, pricing.video]) {
+  for (let rates of [
+    pricing.text,
+    pricing.image,
+    pricing.audio,
+    pricing.video,
+    ...(pricing.conditions ?? []).map(condition => condition.rates)
+  ]) {
     if (!rates) continue;
     values.push(
       ...[rates.input, rates.output, rates.cacheRead, rates.reasoning].filter(

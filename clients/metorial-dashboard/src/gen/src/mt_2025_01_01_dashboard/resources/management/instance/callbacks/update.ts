@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceCallbacksUpdateOutput = {
   object: 'callback';
@@ -21,8 +18,18 @@ export type ManagementInstanceCallbacksUpdateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  triggerGroupSelections: Record<string, Record<string, any>> | null;
+  triggerGroups: {
+    object: 'callback.trigger_group';
+    key: string;
+    name: string;
+    description: string | null;
+    selectionSchema: Record<string, any>;
+    status: 'active' | 'selection_required';
+  }[];
   createdAt: Date;
   updatedAt: Date;
+  authCredentialsId: string | null;
   authCredentialsIsManaged: boolean;
   sync: {
     object: 'callback.sync';
@@ -42,8 +49,11 @@ export let mapManagementInstanceCallbacksUpdateOutput =
       'integration_id',
       'integration_provider_id',
       ['provider', 0, 8],
+      'trigger_group_selections',
+      ['trigger_groups', 1, [2, [1, ['selection_schema']]]],
       'created_at',
       'updated_at',
+      'auth_credentials_id',
       'auth_credentials_is_managed',
       ['sync', 0, [1, ['synced_at']]]
     ],
@@ -54,7 +64,11 @@ export type ManagementInstanceCallbacksUpdateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
   metadata?: Record<string, any> | null | undefined;
+  triggerGroupSelections?:
+    Record<string, Record<string, any>> | null | undefined;
 };
 
 export let mapManagementInstanceCallbacksUpdateBody =
-  /* @__PURE__ */ createMapper<ManagementInstanceCallbacksUpdateBody>(0);
+  /* @__PURE__ */ mapObject<ManagementInstanceCallbacksUpdateBody>([
+    'trigger_group_selections'
+  ]);

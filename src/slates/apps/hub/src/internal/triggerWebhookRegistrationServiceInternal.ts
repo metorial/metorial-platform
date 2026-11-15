@@ -27,12 +27,15 @@ class triggerWebhookRegistrationServiceInternalImpl {
     owner?: 'tenant' | 'global';
     status: SlateWebhookRegistrationStatus;
     urlKey: string;
+    oauthClientId?: string | null;
     name: string;
     description?: string;
     metadata?: Record<string, any>;
     webhookRegistrationPayload: any;
     webhookRegistrationIdentifier?: string;
     triggerRegistrationId?: string;
+    expiresAt?: Date | null;
+    renewAfter?: Date | null;
     authRouting: SlateWebhookRegistrationAuthRouting;
     authMethods?: { oid: bigint }[];
     oauthCredentials?: { oid: bigint }[];
@@ -53,6 +56,7 @@ class triggerWebhookRegistrationServiceInternalImpl {
         owner: d.owner ?? 'tenant',
         status: d.status,
         urlKey: d.urlKey,
+        oauthClientId: d.oauthClientId,
 
         name: d.name,
         description: d.description,
@@ -63,6 +67,8 @@ class triggerWebhookRegistrationServiceInternalImpl {
         triggerGroupOid: d.triggerGroup.oid,
         secretOid: secret.oid,
         registrationIdentifier: d.webhookRegistrationIdentifier,
+        expiresAt: d.expiresAt,
+        renewAfter: d.renewAfter,
 
         authRouting: d.authRouting,
         authMethods: d.authMethods?.length

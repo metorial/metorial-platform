@@ -13,6 +13,7 @@ export type DashboardInstanceSessionsErrorsListOutput = {
     connectionId: string | null;
     groupId: string | null;
     similarErrorCount: number;
+    issueId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -30,6 +31,7 @@ export let mapDashboardInstanceSessionsErrorsListOutput =
           'connection_id',
           'group_id',
           'similar_error_count',
+          'issue_id',
           'created_at'
         ]
       ]
@@ -60,6 +62,7 @@ export type DashboardInstanceSessionsErrorsListQuery = {
   sessionConnectionId?: string | string[] | undefined;
   sessionErrorGroupId?: string | string[] | undefined;
   providerRunId?: string | string[] | undefined;
+  issueId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   sessionMessageId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -81,6 +84,7 @@ export let mapDashboardInstanceSessionsErrorsListQuery =
             'session_connection_id',
             'session_error_group_id',
             'provider_run_id',
+            'issue_id',
             'provider_id',
             'session_message_id',
             ['created_at', 1, 5],

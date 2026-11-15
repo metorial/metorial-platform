@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
+  useMetorialAssistantEnabled,
   metorialAssistantSlug,
   useAssistant,
   useCreateConversation,
@@ -387,7 +388,7 @@ let AssistantBrandIcon = () => {
   );
 };
 
-export let AssistantStartScene = (p: {
+let AssistantStartSceneInner = (p: {
   assistantSlug?: string;
   showBrandIcon?: boolean;
   showHeader?: boolean;
@@ -473,4 +474,11 @@ export let AssistantStartScene = (p: {
       </Hero>
     </CenterLayout>
   ));
+};
+
+export let AssistantStartScene = (p: Parameters<typeof AssistantStartSceneInner>[0]) => {
+  let enabled = useMetorialAssistantEnabled();
+  if (!enabled) return null;
+
+  return <AssistantStartSceneInner {...p} />;
 };

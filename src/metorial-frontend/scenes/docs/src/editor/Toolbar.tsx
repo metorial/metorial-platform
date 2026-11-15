@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react';
 import { useEditorState } from '@tiptap/react';
+import { useRef } from 'react';
 import { Tooltip } from '@metorial/ui';
 import styled from 'styled-components';
 import {
@@ -100,7 +101,7 @@ interface ToolbarProps {
   onRequestLinkEdit?: () => void;
 }
 
-export function Toolbar({ editor, disabled, onRequestLinkEdit }: ToolbarProps) {
+export function Toolbar({ editor: liveEditor, disabled, onRequestLinkEdit }: ToolbarProps) {
   // Subscribe to editor transactions so the active/disabled states track
   // the current selection. We extract just the booleans we render off of
   // so that re-renders are scoped to actual state changes (the default
@@ -109,8 +110,8 @@ export function Toolbar({ editor, disabled, onRequestLinkEdit }: ToolbarProps) {
   // one final "transaction" while tearing the editor down, which can
   // run this selector after `commandManager` / `state` have already been
   // nulled out — accessing `isActive` / `can` on that snapshot throws.
-  let state = useEditorState({
-    editor,
+  let liveState = useEditorState({
+    editor: liveEditor,
     selector: ({ editor: e }) => {
       if (!e || e.isDestroyed) return null;
       return {
@@ -127,15 +128,22 @@ export function Toolbar({ editor, disabled, onRequestLinkEdit }: ToolbarProps) {
     }
   });
 
-  let visible = !!editor && !editor.isDestroyed && !!state;
+  let live = !!liveEditor && !liveEditor.isDestroyed && !!liveState;
+  let heldRef = useRef<{ editor: Editor; state: NonNullable<typeof liveState> } | null>(null);
+  if (live && liveEditor && liveState) heldRef.current = { editor: liveEditor, state: liveState };
+
+  let current = heldRef.current;
+  let visible = !!current;
+  let editor = current?.editor;
+  let state = current?.state;
 
   return (
     <Bar
-      $disabled={disabled}
+      $disabled={disabled || !live}
       $visible={visible}
-      aria-hidden={disabled || !visible || undefined}
+      aria-hidden={disabled || !live || undefined}
     >
-      {visible && editor && state && (
+      {editor && state && (
         <>
           <Group>
             <Tooltip content="Undo (Ctrl+Z)" side="bottom">

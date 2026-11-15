@@ -4,6 +4,7 @@ export * from './config';
 export * from './customProvider';
 export * from './identity';
 export * from './integrations';
+export * from './issues';
 export * from './magicMcp';
 export * from './provider';
 export * from './publicMcp';

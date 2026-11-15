@@ -12,6 +12,10 @@ export type ManagementInstanceSkillsAccessGetOutput = {
       consumerGroupId: string | null;
       name: string | null;
     };
+    source: {
+      type: 'direct' | 'skill_group';
+      skillGroup: { id: string; name: string } | null;
+    };
   }[];
 };
 
@@ -23,7 +27,13 @@ export let mapManagementInstanceSkillsAccessGetOutput =
       0,
       [
         2,
-        [1, [['subject', 0, [1, ['consumer_profile_id', 'consumer_group_id']]]]]
+        [
+          1,
+          [
+            ['subject', 0, [1, ['consumer_profile_id', 'consumer_group_id']]],
+            ['source', 0, [1, ['skill_group']]]
+          ]
+        ]
       ]
     ]
   ]);

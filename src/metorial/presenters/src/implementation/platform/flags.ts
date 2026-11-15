@@ -8,7 +8,10 @@ export let v1FlagsPresenter = Presenter.create(flagsType)
     object: 'flags',
 
     flags: Object.entries(flags)
-      .filter((entry): entry is [string, FlagValue] => typeof entry[1] != 'number')
+      .filter(
+        (entry): entry is [string, FlagValue] =>
+          typeof entry[1] == 'boolean' || typeof entry[1] == 'object'
+      )
       .map(([slug, value]) => ({
         slug,
         value: isFlagEnabled(value)

@@ -3,8 +3,6 @@ import { showScmRepositoryPicker } from '@metorial/scene-scm';
 import {
   allSkillMarketplacePluginsLoader,
   skillMarketplaceLoader,
-  type SkillMarketplaceRepository,
-  type SkillPluginRepository,
   useCreateSkillMarketplaceRepository,
   useCreateSkillPluginRepository,
   useCurrentOrganization,
@@ -12,7 +10,9 @@ import {
   useDeleteSkillMarketplaceRepository,
   useDeleteSkillPluginRepository,
   useSkillMarketplaceRepositories,
-  useSkillPluginRepositories
+  useSkillPluginRepositories,
+  type SkillMarketplaceRepository,
+  type SkillPluginRepository
 } from '@metorial/state';
 import { Badge, Button, Menu, RenderDate, Text, confirm, theme } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
@@ -170,7 +170,6 @@ export let SkillPluginRepositoriesSettingsBox = (p: {
       excludedRepositoryIdentifiers: linkedRepositoryIdentifiers,
       allowCreate: true,
       title: 'Link repository',
-      description: `Select or create a Git repository, then link it to this skill plugin. ${pluginManagedScopeNotice}`,
       onManageSourceControl: manageSourceControl,
       onSelect: async repo => {
         let [created] = await createRepository.mutate({
@@ -260,7 +259,6 @@ export let useSkillMarketplaceRepositoriesManager = (p: {
       excludedRepositoryIdentifiers: linkedRepositoryIdentifiers,
       allowCreate: true,
       title: 'Link repository',
-      description: `Select or create a Git repository, then link it to this skill marketplace. ${marketplaceManagedScopeNotice}`,
       onManageSourceControl: manageSourceControl,
       onClose: () => {
         repositories.refetch();

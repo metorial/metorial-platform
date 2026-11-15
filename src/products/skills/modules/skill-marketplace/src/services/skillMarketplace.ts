@@ -1,0 +1,536 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
+import type {
+  EntityImage,
+  Instance,
+  Prisma,
+  Project,
+  SkillMarketplaceRepositoryAccessMode,
+  SkillMarketplaceStatus
+} from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
+import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveSkillConfigurations,
+  resolveSkillMarketplaces
+} from '@metorial/list-utils';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
+import { consumerAccessService } from '@metorial/module-consumer-access';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { internalImageService } from '@metorial/skills-images';
+import { createSkillDestination } from '@metorial/skills-scm-utils';
+import { buildSearchFilter } from '@metorial/module-search';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
+import { forceSkillDestinationSync } from '../lib/destinationSync';
+import {
+  getSkillMarketplaceAccessWhere,
+  type SkillMarketplaceAccessInput
+} from '../lib/skillMarketplaceAccess';
+import { getSkillMarketplaceUpdateFlags } from '../lib/skillMarketplaceUpdate';
+import { getNewSkillDestinationStorageMode } from '../lib/storageMode';
+import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
+import { getSkillPluginFabricContext, skillPluginInclude } from './skillPlugin';
+
+export let skillMarketplaceInclude = {
+  destination: {
+    include: {
+      syncs: {
+        where: {
+          status: {
+            in: ['pending', 'processing', 'waiting_for_review']
+          }
+        }
+      }
+    }
+  },
+  skillConfiguration: {
+    select: {
+      id: true
+    }
+  },
+  plugins: {
+    where: {
+      status: 'active',
+      skillPlugin: {
+        status: 'active',
+        isManaged: false
+      }
+    },
+    orderBy: {
+      createdAt: 'asc'
+    },
+    include: {
+      skillConfiguration: {
+        select: {
+          id: true
+        }
+      },
+      skillPlugin: {
+        include: skillPluginInclude
+      }
+    }
+  }
+} satisfies Prisma.SkillMarketplaceInclude;
+
+export type SkillMarketplaceRecord = Prisma.SkillMarketplaceGetPayload<{
+  include: typeof skillMarketplaceInclude;
+}>;
+
+export type SkillMarketplaceStatusFilter = SkillMarketplaceStatus;
+
+type SkillMarketplaceInput = {
+  imageFileId?: string | null;
+  image?: EntityImage | null;
+  providerOverrides?: Prisma.InputJsonValue | null;
+  name?: string;
+  description?: string | null;
+  skillConfigurationId?: string | null;
+  repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+  forceMergeOrPush?: boolean;
+  mergeBeforeChecksPass?: boolean;
+};
+
+class SkillMarketplaceServiceImpl {
+  private assertName(name: string) {
+    if (name.trim()) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message: 'Skill marketplace name cannot be empty'
+      })
+    );
+  }
+
+  private hasUpdate(input: SkillMarketplaceInput) {
+    return (
+      input.imageFileId !== undefined ||
+      input.image !== undefined ||
+      input.providerOverrides !== undefined ||
+      input.name !== undefined ||
+      input.description !== undefined ||
+      input.skillConfigurationId !== undefined
+    );
+  }
+
+  private async getSkillMarketplaceRecord(
+    d: {
+      project: Project;
+      instance: Instance;
+      skillMarketplaceId: string;
+    } & SkillMarketplaceAccessInput
+  ) {
+    let accessWhere = await getSkillMarketplaceAccessWhere(d);
+    return await withTransaction(
+      async db => {
+        let skillMarketplace = await db.skillMarketplace.findFirst({
+          where: {
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
+            id: d.skillMarketplaceId,
+            status: accessWhere ? 'active' : undefined,
+            AND: accessWhere ? [accessWhere] : undefined
+          },
+          include: skillMarketplaceInclude
+        });
+
+        if (!skillMarketplace) {
+          throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
+        }
+
+        return skillMarketplace;
+      },
+      { ifExists: true }
+    );
+  }
+
+  async listSkillMarketplaces(
+    d: {
+      project: Project;
+      instance: Instance;
+      ids?: string[];
+      skillConfigurationIds?: string[];
+      skillGroupIds?: string[];
+      statuses?: SkillMarketplaceStatusFilter[];
+      search?: string;
+      createdAt?: DateFilter;
+      updatedAt?: DateFilter;
+    } & SkillMarketplaceAccessInput
+  ) {
+    let accessWhere = await getSkillMarketplaceAccessWhere(d);
+    let skillMarketplaces = await resolveSkillMarketplaces(d, d.ids);
+    let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
+    let statuses: SkillMarketplaceStatus[] =
+      d.statuses?.length && !d.accessTags ? d.statuses : ['active'];
+    d.search = d.search?.trim();
+    if (!d.search?.length) d.search = undefined;
+
+    let search = await buildSearchFilter<Prisma.SkillMarketplaceWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
+          tenantId: getProjectTenantIdentifier(d.project),
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.skillMarketplace.id,
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
+    let filters: Prisma.SkillMarketplaceWhereInput[] = [
+      skillMarketplaces ? { oid: skillMarketplaces.in } : undefined,
+      skillConfigurations ? { skillConfigurationOid: skillConfigurations.in } : undefined,
+      d.skillGroupIds
+        ? {
+            plugins: {
+              some: {
+                status: 'active',
+                skillPlugin: {
+                  status: 'active',
+                  skillGroupPlugin: {
+                    skillGroup: { id: { in: d.skillGroupIds }, instanceOid: d.instance.oid }
+                  }
+                }
+              }
+            }
+          }
+        : undefined,
+      { status: { in: statuses } },
+      search,
+      d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined,
+      d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined,
+      accessWhere
+    ].filter((filter): filter is Prisma.SkillMarketplaceWhereInput => filter !== undefined);
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.skillMarketplace.findMany({
+            ...opts,
+            where: {
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
+              AND: filters
+            },
+            include: skillMarketplaceInclude
+          })
+      )
+    );
+  }
+
+  async getSkillMarketplaceById(
+    d: {
+      project: Project;
+      instance: Instance;
+      skillMarketplaceId: string;
+    } & SkillMarketplaceAccessInput
+  ) {
+    return await this.getSkillMarketplaceRecord(d);
+  }
+
+  async createSkillMarketplace(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    input: {
+      name: string;
+      description?: string | null;
+      slug?: string;
+      providerOverrides?: Prisma.InputJsonValue | null;
+      imageFileId?: string | null;
+      skillConfigurationId?: string | null;
+      repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+      forceMergeOrPush?: boolean;
+      mergeBeforeChecksPass?: boolean;
+    };
+  }) {
+    this.assertName(d.input.name);
+
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                project: d.project,
+                instance: d.instance,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
+
+    let { organization } = await getSkillPluginFabricContext({
+      organizationOid: d.instance.organizationOid,
+      instance: d.instance
+    });
+    await Fabric.fire('skill.marketplace.created:before', {
+      organization,
+      instance: d.instance
+    });
+
+    let storageMode = await getNewSkillDestinationStorageMode({ instance: d.instance });
+
+    return await withTransaction(async db => {
+      let destination = await createSkillDestination({ project: d.project, storageMode });
+      let skillMarketplace = await db.skillMarketplace.create({
+        data: {
+          id: await ID.generateId('skillMarketplace'),
+          status: 'active',
+          providerOverrides: d.input.providerOverrides as any,
+          name: d.input.name,
+          description: d.input.description,
+          repositoryAccessMode: d.input.repositoryAccessMode,
+          forceMergeOrPush: d.input.forceMergeOrPush,
+          mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
+          organizationOid: d.instance.organizationOid,
+          skillConfigurationOid,
+          destinationOid: destination.oid
+        },
+        include: skillMarketplaceInclude
+      });
+
+      if (d.input.imageFileId !== undefined) {
+        let image = await internalImageService.resolveImageEntityImage({
+          project: d.project,
+          instance: d.instance,
+          entity: { id: skillMarketplace.id, type: 'skill_marketplace' },
+          imageFileId: d.input.imageFileId,
+          clearedImage: { type: 'default' }
+        });
+
+        skillMarketplace = await db.skillMarketplace.update({
+          where: {
+            id: skillMarketplace.id
+          },
+          data: {
+            image
+          },
+          include: skillMarketplaceInclude
+        });
+      }
+
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: skillMarketplace.id,
+        event: 'created'
+      });
+
+      await Fabric.fire('skill.marketplace.created:after', {
+        organization,
+        instance: d.instance,
+        skillMarketplace
+      });
+      await Fabric.fire('skill.marketplace.audit.created:after', {
+        auditScope: d.auditScope,
+        skillMarketplace
+      });
+
+      return skillMarketplace;
+    });
+  }
+
+  async updateSkillMarketplace(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    skillMarketplace: SkillMarketplaceRecord;
+    input: SkillMarketplaceInput;
+  }) {
+    let updateFlags = getSkillMarketplaceUpdateFlags(d.input);
+    if (!updateFlags.hasUpdate) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'At least one skill marketplace field must be updated'
+        })
+      );
+    }
+
+    if (d.input.name !== undefined) this.assertName(d.input.name);
+
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                project: d.project,
+                instance: d.instance,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
+    let nextImage = d.input.image;
+    if (d.input.imageFileId !== undefined) {
+      nextImage = await internalImageService.resolveImageEntityImage({
+        project: d.project,
+        instance: d.instance,
+        entity: { id: d.skillMarketplace.id, type: 'skill_marketplace' },
+        imageFileId: d.input.imageFileId,
+        clearedImage: { type: 'default' }
+      });
+    }
+
+    await withTransaction(async db => {
+      await db.skillMarketplace.update({
+        where: {
+          id: d.skillMarketplace.id
+        },
+        data: {
+          image: nextImage as any,
+          providerOverrides: d.input.providerOverrides as any,
+          name: d.input.name,
+          description: d.input.description,
+          repositoryAccessMode: d.input.repositoryAccessMode,
+          forceMergeOrPush: d.input.forceMergeOrPush,
+          mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
+          skillConfigurationOid
+        }
+      });
+
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: d.skillMarketplace.id,
+        event: 'updated'
+      });
+    });
+
+    if (
+      d.input.imageFileId !== undefined &&
+      d.skillMarketplace.image &&
+      canonicalize(d.skillMarketplace.image) !== canonicalize(nextImage)
+    ) {
+      await internalImageService.cleanupImageEntityImage({
+        image: d.skillMarketplace.image as EntityImage
+      });
+    }
+
+    let updated = await this.getSkillMarketplaceRecord({
+      project: d.project,
+      instance: d.instance,
+      skillMarketplaceId: d.skillMarketplace.id
+    });
+    await Fabric.fire('skill.marketplace.audit.updated:after', {
+      auditScope: d.auditScope,
+      skillMarketplace: updated,
+      previousSkillMarketplace: d.skillMarketplace
+    });
+
+    return updated;
+  }
+
+  async archiveSkillMarketplace(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    skillMarketplace: SkillMarketplaceRecord;
+  }) {
+    await withTransaction(async db => {
+      await db.skillMarketplacePlugin.updateMany({
+        where: {
+          skillMarketplaceOid: d.skillMarketplace.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skillMarketplaceRepository.deleteMany({
+        where: {
+          skillMarketplaceOid: d.skillMarketplace.oid
+        }
+      });
+
+      await db.skillMarketplace.update({
+        where: {
+          id: d.skillMarketplace.id
+        },
+        data: {
+          status: 'archived'
+        }
+      });
+
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: d.skillMarketplace.id,
+        event: 'archived'
+      });
+    });
+
+    let memberships = await db.skillMarketplacePlugin.findMany({
+      where: {
+        skillMarketplaceOid: d.skillMarketplace.oid
+      },
+      select: {
+        skillPlugin: {
+          select: {
+            oid: true,
+            organizationOid: true
+          }
+        }
+      }
+    });
+
+    for (let membership of memberships) {
+      await consumerAccessService.reconcileSkillPluginConsumerAccess({
+        skillPlugin: membership.skillPlugin,
+        unlinkFromSkillMarketplaceOid: d.skillMarketplace.oid
+      });
+    }
+
+    if (d.skillMarketplace.status === 'active') {
+      let { organization } = await getSkillPluginFabricContext({
+        organizationOid: d.instance.organizationOid,
+        instance: d.instance
+      });
+      await Fabric.fire('skill.marketplace.archived:after', {
+        organization,
+        instance: d.instance,
+        skillMarketplace: d.skillMarketplace
+      });
+    }
+
+    await Fabric.fire('skill.marketplace.audit.archived:after', {
+      auditScope: d.auditScope,
+      skillMarketplace: d.skillMarketplace
+    });
+
+    return await this.getSkillMarketplaceRecord({
+      project: d.project,
+      instance: d.instance,
+      skillMarketplaceId: d.skillMarketplace.id
+    });
+  }
+
+  async forceSkillMarketplaceSync(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+  }) {
+    await forceSkillDestinationSync({
+      destination: d.skillMarketplace.destination!,
+      incrementForceSyncCounterFor: d.skillMarketplace,
+      trigger: 'manual'
+    });
+
+    return await this.getSkillMarketplaceRecord({
+      project: d.project,
+      instance: d.instance,
+      skillMarketplaceId: d.skillMarketplace.id
+    });
+  }
+}
+
+export let skillMarketplaceService = Service.create(
+  'cargoSkillMarketplaceService',
+  () => new SkillMarketplaceServiceImpl()
+).build();

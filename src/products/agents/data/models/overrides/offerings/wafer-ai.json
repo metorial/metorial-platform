@@ -1,0 +1,23 @@
+{
+  "GLM-5.2": {
+    "decision": "link",
+    "model": "zhipu/glm-5.2",
+    "reason": "GLM-5.2 is Z.ai's June 2026 flagship; offering name matches exactly; Wafer's price is its own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "GLM-5.3": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "Exact match: GLM-5.3, Z.ai flagship released Aug 14 2026; price is the vendor's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "Qwen3.8-27B": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Offering is exactly Qwen3.8 27B; Wafer's cheap-input/expensive-output pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

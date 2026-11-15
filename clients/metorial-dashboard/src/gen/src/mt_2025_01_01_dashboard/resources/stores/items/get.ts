@@ -83,6 +83,7 @@ export type StoresItemsGetOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -167,6 +168,7 @@ export type StoresItemsGetOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -262,7 +264,8 @@ export let mapStoresItemsGetOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]
@@ -359,7 +362,8 @@ export let mapStoresItemsGetOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]

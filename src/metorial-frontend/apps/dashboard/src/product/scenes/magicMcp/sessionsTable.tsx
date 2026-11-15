@@ -1,143 +1,48 @@
-import {
-  DashboardInstanceMagicMcpSessionsListOutput,
-  DashboardInstanceMagicMcpSessionsListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceMagicMcpSessionsListQuery } from '@metorial/dashboard-sdk';
+import { col, createDataList, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useMagicMcpSessions
-} from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
+import { useMagicMcpSessions } from '@metorial/state';
+import type { ComponentProps } from 'react';
+import { useInstanceContext } from '../../lib/dataList';
 
-type MagicMcpSession = DashboardInstanceMagicMcpSessionsListOutput['items'][number];
-
-type MagicMcpSessionsTableProps = DashboardInstanceMagicMcpSessionsListQuery & {
-  instance: ReturnType<typeof useCurrentInstance>;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-};
-
-let magicMcpSessionsState: TableStateProvider<
-  MagicMcpSessionsTableProps,
-  MagicMcpSession,
-  TableStateProviderResult<MagicMcpSession>
-> = props => {
-  let sessions = useMagicMcpSessions(props.instance.data?.id, {
-    order: props.order ?? 'desc',
-    magicMcpServerId: props.magicMcpServerId
-  });
-
-  return {
-    isLoading: sessions.isLoading,
-    error: sessions.error,
-    hasMoreAfter: sessions.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: sessions.data?.pagination.hasMoreBefore ?? false,
-    items: sessions.data?.items ?? [],
-    loadNext: sessions.next,
-    loadPrevious: sessions.previous
-  };
-};
-
-let magicMcpSessionsTable = new DashboardTable<MagicMcpSessionsTableProps, MagicMcpSession>(
+let MagicMcpSessionsList = createDataList<DashboardInstanceMagicMcpSessionsListQuery>(
   'magic-mcp-sessions'
 )
-  .state(magicMcpSessionsState)
-  .columns([
-    {
-      id: 'server',
-      isDefault: true,
-      header: 'Server',
-      render: session => {
-        let magicMcpServer = session.magicMcpServer;
-
-        return (
-          <div>
-            <Text size="2" weight="strong">
-              {magicMcpServer?.name ?? 'Unnamed Server'}
-            </Text>
-            {magicMcpServer?.description && (
-              <Text size="1" color="gray600">
-                {magicMcpServer.description}
-              </Text>
-            )}
-          </div>
-        );
-      }
-    },
-
-    {
-      id: 'endpoint',
-      isDefault: true,
-      header: 'Endpoint',
-      render: session => (
-        <Text size="2">
-          {session.magicMcpServer?.endpoints[0]?.alias ?? 'No endpoint alias'}
-        </Text>
+  .context(useInstanceContext)
+  .paginated(({ props, ctx, limit }) =>
+    useMagicMcpSessions(
+      ctx.instanceId,
+      withDefaults(
+        { order: props.order ?? 'desc', magicMcpServerId: props.magicMcpServerId },
+        { limit }
       )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: session => <RenderDate date={session.createdAt} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: true,
-      header: 'Updated',
-      render: session => <RenderDate date={session.updatedAt} />
-    },
-    {
-      id: 'sessionId',
-      isDefault: false,
-      header: 'Session ID',
-      render: session => <ID id={session.sessionId} />
-    },
-    {
-      id: 'serverId',
-      isDefault: false,
-      header: 'Server ID',
-      render: session =>
-        session.magicMcpServer ? (
-          <ID id={session.magicMcpServer.id} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Magic MCP Session ID',
-      render: session => <ID id={session.id} />
-    }
-  ])
-  .link((session, props) =>
-    Paths.instance.magicMcp.connection(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      session.id
     )
+  )
+  .columns([
+    col.name({
+      id: 'server',
+      header: 'Server',
+      get: row => row.magicMcpServer?.name,
+      description: row => row.magicMcpServer?.description,
+      fallback: 'Unnamed Server'
+    }),
+    col.text({
+      id: 'endpoint',
+      header: 'Endpoint',
+      get: row => row.magicMcpServer?.endpoints[0]?.alias,
+      fallback: 'No endpoint alias'
+    }),
+    col.createdAt(),
+    col.updatedAt({ isDefault: true }),
+    col.refId('sessionId', row => row.sessionId, { header: 'Session ID' }),
+    col.refId('serverId', row => row.magicMcpServer?.id, { header: 'Server ID' }),
+    col.id({ header: 'Magic MCP Session ID' })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.magicMcp.connection(ctx.organization, ctx.project, ctx.instance, row.id)
   )
   .build();
 
-export let MagicMcpSessionsTable = (filter: DashboardInstanceMagicMcpSessionsListQuery) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-
-  return magicMcpSessionsTable({
-    ...filter,
-    instance,
-    organization,
-    project,
-    emptyState: 'No Magic MCP sessions found.'
-  });
-};
+export let MagicMcpSessionsTable = (props: ComponentProps<typeof MagicMcpSessionsList>) => (
+  <MagicMcpSessionsList emptyState="No Magic MCP sessions found." {...props} />
+);

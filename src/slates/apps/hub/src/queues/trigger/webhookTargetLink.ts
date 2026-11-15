@@ -39,7 +39,7 @@ export let triggerWebhookTargetLinkQueueProcessor = triggerWebhookTargetLinkQueu
 
     let target = data.target;
     let normalizedTargetIdentifier =
-      target.targetOwnership === 'single_user'
+      target.targetOwnership === 'single_user' || instance.selection != null
         ? `${instance.id}:${target.webhookTargetIdentifier}`
         : target.webhookTargetIdentifier;
 
@@ -129,6 +129,7 @@ export let triggerWebhookTargetLinkQueueProcessor = triggerWebhookTargetLinkQueu
         update.webhookRegistrationOid = null;
         update.registeredByTriggerRegistrationOid = null;
         update.unregistrationStarted = false;
+        if (webhookTarget.status === 'deleted') update.renewalOperationId = null;
       } else if (webhookTarget.status === 'deleting' && !webhookTarget.unregistrationStarted) {
         update.status = webhookTarget.webhookRegistrationOid ? 'active' : 'creating';
       }

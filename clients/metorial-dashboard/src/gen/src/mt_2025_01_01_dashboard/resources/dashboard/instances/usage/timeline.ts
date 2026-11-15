@@ -14,6 +14,7 @@ export type DashboardInstancesUsageTimelineOutput = {
     | 'session_error'
     | 'auth_event'
     | 'auth_error'
+    | 'protoguard_warning'
     | 'consumer'
   )[];
   groupBy:
@@ -49,6 +50,7 @@ export type DashboardInstancesUsageTimelineOutput = {
       | 'session_error'
       | 'auth_event'
       | 'auth_error'
+      | 'protoguard_warning'
       | 'consumer'
       | null;
     group: string | null;
@@ -141,6 +143,7 @@ export type DashboardInstancesUsageTimelineQuery = {
     | 'session_error'
     | 'auth_event'
     | 'auth_error'
+    | 'protoguard_warning'
     | 'consumer'
     | (
         | 'tool_call'
@@ -151,6 +154,7 @@ export type DashboardInstancesUsageTimelineQuery = {
         | 'session_error'
         | 'auth_event'
         | 'auth_error'
+        | 'protoguard_warning'
         | 'consumer'
       )[];
   from: Date;

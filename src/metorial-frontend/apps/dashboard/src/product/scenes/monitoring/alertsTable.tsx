@@ -1,29 +1,14 @@
+import { DashboardInstanceMonitorAlertsListOutput } from '@metorial/dashboard-sdk';
+import { col, createDataList, defineStatus, f, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useMonitorAlerts,
-  useProviders,
-  useProviderSpecification
-} from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue,
-  type TableFilter
-} from '@metorial/table';
-import { useMemo } from 'react';
+import { useMonitorAlerts, useProviderSpecification } from '@metorial/state';
+import { Text } from '@metorial/ui';
+import { useInstanceContext, withProviderNames } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
-import { MonitorAlertStatusBadge, MonitorOwnerBadge, MonitorTargetBadge } from './badges';
+import { MonitorOwnerBadge } from './badges';
+import { monitorTarget } from './monitorsTable';
 
-type DashboardInstanceMonitorAlertsListQuery = any;
-type MonitorAlert = any;
-type AlertRow = MonitorAlert & { providerName?: string | null };
+type MonitorAlert = DashboardInstanceMonitorAlertsListOutput['items'][number];
 type CapabilityItem = { key: string; [key: string]: any };
 
 type AlertsTableProps = {
@@ -31,18 +16,16 @@ type AlertsTableProps = {
   protoGuardFilterId?: string;
 };
 
-type AlertsTableStateProps = AlertsTableProps & {
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+let alertStatus = defineStatus({
+  pending: { label: 'Pending', color: 'orange' },
+  resolved: { label: 'Resolved', color: 'green' },
+  ignored: { label: 'Ignored', color: 'gray' }
+});
 
-let getStatusFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['pending', 'resolved', 'ignored']);
-
-let getTargetFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['protoguard_filter', 'schema_change']);
-
-let getSourceFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['protoguard', 'specification_change']);
+let alertSource = defineStatus({
+  protoguard: { label: 'Protoguard', color: 'gray' },
+  specification_change: { label: 'Schema Change', color: 'gray' }
+});
 
 let getAlertSourceLabel = (alert: MonitorAlert) => {
   if (alert.protoGuardAlertId) return 'Protoguard';
@@ -168,246 +151,100 @@ let AlertSummary = ({
   return alert.monitor.name;
 };
 
-let alertsTableState: TableStateProvider<
-  AlertsTableStateProps,
-  AlertRow,
-  TableStateProviderResult<AlertRow>
-> = (props, opts) => {
-  let alerts = useMonitorAlerts(props.instance.data?.id, {
-    order: 'desc' as const,
-    monitorId: props.monitorId ?? getListFilterValue(opts.filter.monitorId),
-    status: getStatusFilterValue(opts.filter.status),
-    target: getTargetFilterValue(opts.filter.target),
-    source: getSourceFilterValue(opts.filter.source),
-    providerId: getListFilterValue(opts.filter.providerId),
-    protoGuardAlertId: getListFilterValue(opts.filter.protoGuardAlertId),
-    protoGuardRunId: getListFilterValue(opts.filter.protoGuardRunId),
-    protoGuardFilterId:
-      props.protoGuardFilterId ?? getListFilterValue(opts.filter.protoGuardFilterId),
-    specificationChangeNotificationId: getListFilterValue(
-      opts.filter.specificationChangeNotificationId
-    ),
-    sessionId: getListFilterValue(opts.filter.sessionId),
-    sessionMessageId: getListFilterValue(opts.filter.sessionMessageId),
-    sessionConnectionId: getListFilterValue(opts.filter.sessionConnectionId),
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt),
-    resolvedAt: getDateRangeFilterValue(opts.filter.resolvedAt)
-  } satisfies DashboardInstanceMonitorAlertsListQuery);
-
-  let providerIds = [
-    ...new Set(
-      (alerts.data?.items ?? []).map(alert => alert.monitor.providerId!).filter(Boolean)
+let AlertsList = createDataList<AlertsTableProps>('monitor-alerts')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    status: f.status(alertStatus, { description: 'Filter by alert status' }),
+    source: f.status(alertSource, {
+      id: 'source',
+      label: 'Source',
+      description: 'Filter by alert source'
+    }),
+    target: f.status(monitorTarget, {
+      id: 'target',
+      label: 'Target',
+      description: 'Filter by monitor target'
+    }),
+    providerId: f.entity(entityFilters.provider(ctx.instanceId)),
+    sessionId: f.entity(entityFilters.session(ctx.instanceId)),
+    createdAt: f.createdAt({ description: 'Filter by created date' }),
+    resolvedAt: f.date('resolvedAt', 'Resolved', { description: 'Filter by resolved date' })
+  }))
+  .paginated(({ props, ctx, filters }) =>
+    useMonitorAlerts(
+      ctx.instanceId,
+      withDefaults(undefined, {
+        order: 'desc' as const,
+        monitorId: props.monitorId,
+        protoGuardFilterId: props.protoGuardFilterId,
+        ...filters
+      })
     )
-  ];
-  let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(
-    props.instance.data?.id,
-    shouldLoadProviders && providerIds ? { id: providerIds } : null
-  );
-
-  let providerNameMap = new Map<string, string>();
-  for (let provider of providers.data?.items ?? []) {
-    if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
-  }
-
-  return {
-    isLoading: alerts.isLoading || (shouldLoadProviders && providers.isLoading),
-    error: alerts.error ?? (shouldLoadProviders ? providers.error : null),
-    hasMoreAfter: alerts.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: alerts.data?.pagination.hasMoreBefore ?? false,
-    items: (alerts.data?.items ?? []).map(alert => ({
-      ...alert,
-      providerName: alert.monitor.providerId
-        ? (providerNameMap.get(alert.monitor.providerId) ?? null)
-        : null
-    })),
-    loadNext: alerts.next,
-    loadPrevious: alerts.previous
-  };
-};
-
-let useAlertsFilters = (instanceId: string | undefined) =>
-  useMemo<TableFilter<AlertRow>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by alert status',
-        type: 'select',
-        options: [
-          { id: 'pending', label: 'Pending' },
-          { id: 'resolved', label: 'Resolved' },
-          { id: 'ignored', label: 'Ignored' }
-        ]
-      },
-      {
-        id: 'source',
-        fields: ['source'],
-        label: 'Source',
-        description: 'Filter by alert source',
-        type: 'select',
-        options: [
-          { id: 'protoguard', label: 'Protoguard' },
-          { id: 'specification_change', label: 'Schema Change' }
-        ]
-      },
-      {
-        id: 'target',
-        fields: ['target'],
-        label: 'Target',
-        description: 'Filter by monitor target',
-        type: 'select',
-        options: [
-          { id: 'protoguard_filter', label: 'Protoguard Filter' },
-          { id: 'schema_change', label: 'Schema Change' }
-        ]
-      },
-      entityFilters.provider(instanceId),
-      entityFilters.session(instanceId),
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      },
-      {
-        id: 'resolvedAt',
-        fields: ['resolvedAt'],
-        label: 'Resolved',
-        description: 'Filter by resolved date',
-        type: 'date'
-      }
-    ],
-    [instanceId]
-  );
-
-let createAlertsTable = () =>
-  new DashboardTable<AlertsTableStateProps, AlertRow>('monitor-alerts')
-    .state(alertsTableState)
-    .columns([
-      {
-        id: 'status',
-        isDefault: true,
-        header: 'Status',
-        render: alert => <MonitorAlertStatusBadge status={alert.status} />
-      },
-      {
-        id: 'source',
-        isDefault: true,
-        header: 'Source',
-        render: alert => (
-          <Text size="2" weight="strong">
-            {getAlertSourceLabel(alert)}
-          </Text>
-        )
-      },
-      {
-        id: 'target',
-        isDefault: false,
-        header: 'Target',
-        render: alert => <MonitorTargetBadge target={alert.monitor.target} />
-      },
-      {
-        id: 'owner',
-        isDefault: false,
-        header: 'Owner',
-        render: alert => <MonitorOwnerBadge owner={alert.monitor.owner} />
-      },
-      {
-        id: 'subject',
-        isDefault: true,
-        header: 'What happened',
-        render: (alert, input) => (
-          <Text size="2" weight="strong">
-            <AlertSummary alert={alert} instanceId={input.instance.data?.id} />
-          </Text>
-        )
-      },
-      {
-        id: 'resolvedAt',
-        isDefault: false,
-        header: 'Resolved',
-        render: alert =>
-          alert.resolvedAt ? (
-            <RenderDate date={alert.resolvedAt} />
-          ) : (
-            <Text size="2" color="gray600">
-              Not resolved
-            </Text>
-          )
-      },
-      {
-        id: 'id',
-        isDefault: false,
-        header: 'Alert ID',
-        render: alert => <ID id={alert.id} />
-      },
-      {
-        id: 'monitorId',
-        isDefault: false,
-        header: 'Monitor ID',
-        render: alert => <ID id={alert.monitor.id} />
-      },
-      {
-        id: 'protoGuardAlertId',
-        isDefault: false,
-        header: 'Protoguard Alert ID',
-        render: alert => alert.protoGuardAlertId && <ID id={alert.protoGuardAlertId} />
-      },
-      {
-        id: 'protoGuardRunId',
-        isDefault: false,
-        header: 'Protoguard Run ID',
-        render: alert => alert.protoGuardRunId && <ID id={alert.protoGuardRunId} />
-      },
-      {
-        id: 'specificationChangeNotificationId',
-        isDefault: false,
-        header: 'Schema Change ID',
-        render: alert =>
-          alert.specificationChangeNotification && (
-            <ID id={alert.specificationChangeNotification.id} />
-          )
-      },
-      {
-        id: 'providerId',
-        isDefault: true,
-        header: 'Provider',
-        render: alert => (
-          <Text size="2">{alert.providerName ?? alert.monitor.providerId ?? '—'}</Text>
-        )
-      },
-      {
-        id: 'createdAt',
-        isDefault: true,
-        header: 'Created',
-        render: alert => <RenderDate date={alert.createdAt} />
-      }
-    ])
-    .link((alert, props) =>
-      Paths.organization.instance.alert(
-        props.instance.data?.organization,
-        props.instance.data?.project,
-        props.instance.data,
-        alert.id
+  )
+  .enrich(withProviderNames((alert: MonitorAlert) => alert.monitor.providerId))
+  .columns([
+    col.status(alertStatus),
+    col.custom({
+      id: 'source',
+      header: 'Source',
+      render: alert => (
+        <Text size="2" weight="strong">
+          {getAlertSourceLabel(alert)}
+        </Text>
       )
+    }),
+    col.status(monitorTarget, {
+      id: 'target',
+      header: 'Target',
+      isDefault: false,
+      get: (alert: MonitorAlert) => alert.monitor.target
+    }),
+    col.custom({
+      id: 'owner',
+      header: 'Owner',
+      isDefault: false,
+      render: alert => <MonitorOwnerBadge owner={alert.monitor.owner} />
+    }),
+    col.custom({
+      id: 'subject',
+      header: 'What happened',
+      render: (alert, _props, ctx) => (
+        <Text size="2" weight="strong">
+          <AlertSummary alert={alert} instanceId={ctx.instanceId} />
+        </Text>
+      )
+    }),
+    col.date('resolvedAt', { header: 'Resolved', fallback: 'Not resolved' }),
+    col.id({ header: 'Alert ID' }),
+    col.refId('monitorId', alert => alert.monitor.id, { header: 'Monitor ID' }),
+    col.refId('protoGuardAlertId', alert => alert.protoGuardAlertId, {
+      header: 'Protoguard Alert ID'
+    }),
+    col.refId('protoGuardRunId', alert => alert.protoGuardRunId, {
+      header: 'Protoguard Run ID'
+    }),
+    col.refId(
+      'specificationChangeNotificationId',
+      alert => alert.specificationChangeNotification?.id,
+      { header: 'Schema Change ID' }
+    ),
+    col.text({
+      id: 'providerId',
+      header: 'Provider',
+      get: alert => alert.providerName ?? alert.monitor.providerId
+    }),
+    col.createdAt()
+  ])
+  .link((alert, _props, ctx) =>
+    Paths.organization.instance.alert(
+      ctx.instance?.organization,
+      ctx.instance?.project,
+      ctx.instance,
+      alert.id
     )
-    .build();
+  )
+  .build();
 
-let alertsTable = createAlertsTable();
-let monitorScopedAlertsTable = createAlertsTable();
-
-export let AlertsTable = (props?: AlertsTableProps) => {
-  let instance = useCurrentInstance();
-  let TableComponent = props?.monitorId ? monitorScopedAlertsTable : alertsTable;
-  let tableFilters = useAlertsFilters(instance.data?.id);
-
-  return TableComponent({
-    ...props,
-    instance,
-    tableFilters,
-    emptyState: 'No monitor alerts found.'
-  });
-};
+export let AlertsTable = (props?: AlertsTableProps) => (
+  <AlertsList {...props} emptyState="No monitor alerts found." />
+);

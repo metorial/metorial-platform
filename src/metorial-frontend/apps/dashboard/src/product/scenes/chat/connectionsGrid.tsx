@@ -1,104 +1,106 @@
-import { renderWithPagination } from '@metorial/data-hooks';
 import { EmptyState } from '@metorial/empty-state';
+import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useChatConnections,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject
-} from '@metorial/state';
+import { useChatConnections } from '@metorial/state';
 import { Text } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInstanceContext } from '../../lib/dataList';
 import { showCreateChatConnectionFlow } from './connectionPanelFlow';
 import { ChatProviderAvatar, useChatProviderListings } from './shared';
 
-export let ChatConnectionsGrid = (p: { instanceId: string; search?: string }) => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
+let ChatConnectionsList = createDataList<{ instanceId: string }>('chat-connections')
+  .context(useInstanceContext)
+  .filters(() => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search chat connections…')
+  .paginated(({ props, filters, search, limit }) =>
+    useChatConnections(
+      props.instanceId,
+      withDefaults(
+        { order: 'desc' as const, status: ['active' as const], limit },
+        { ...filters, search }
+      )
+    )
+  )
+  .enrich((items, { props }) => {
+    let providerIds = useMemo(
+      () => items.flatMap(row => row.providers.map(provider => provider.provider.id)),
+      [items]
+    );
+    let listings = useChatProviderListings(props.instanceId, providerIds);
+    let enriched = useMemo(
+      () => items.map(row => ({ ...row, providerLookup: listings.lookup })),
+      [items, listings.lookup]
+    );
+
+    return { items: enriched, isLoading: listings.isLoading, error: listings.error };
+  })
+  .columns([
+    col.name(),
+    col.text({
+      id: 'provider',
+      header: 'Provider',
+      get: row => {
+        let provider = row.providers[0]?.provider;
+        return provider
+          ? (row.providerLookup.get(provider.id)?.name ?? provider.name)
+          : undefined;
+      }
+    }),
+    col.text({ id: 'slug', header: 'Slug', isDefault: false, get: row => row.slug }),
+    col.status(lifecycleStatus, { isDefault: false }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ isDefault: true })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.chatConnection(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .item(row => ({
+    title: row.name,
+    description: row.description,
+    icon: (
+      <ChatProviderAvatar
+        provider={row.providers[0]?.provider}
+        listings={row.providerLookup}
+      />
+    ),
+    footer: row.slug ? <Text size="1">{row.slug}</Text> : undefined,
+    height: 200
+  }))
+  .layouts(['grid', 'table'], { default: 'grid', gridWidth: '300px' })
+  .build();
+
+export let ChatConnectionsGrid = (p: { instanceId: string }) => {
   let navigate = useNavigate();
-  let chatConnections = useChatConnections(p.instanceId, {
-    order: 'desc',
-    status: ['active'],
-    search: p.search
-  });
-  let providerIds = useMemo(
-    () =>
-      (chatConnections.data?.items ?? []).flatMap(chatConnection =>
-        chatConnection.providers.map(provider => provider.provider.id)
-      ),
-    [chatConnections.data?.items]
-  );
-  let providerListings = useChatProviderListings(p.instanceId, providerIds);
+  let { organization, project, instance } = useInstanceContext();
 
   let createConnection = () =>
     showCreateChatConnectionFlow({
       onCreate: chatConnection =>
         navigate(
-          Paths.instance.chatConnection(
-            organization.data,
-            project.data,
-            instance.data,
-            chatConnection.id
-          )
+          Paths.instance.chatConnection(organization, project, instance, chatConnection.id)
         )
     });
 
-  return renderWithPagination(chatConnections)(chatConnections => (
-    <>
-      {chatConnections.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
-          {chatConnections.data.items.map(chatConnection => {
-            let provider = chatConnection.providers[0];
-
-            return (
-              <ItemGrid.Item
-                key={chatConnection.id}
-                href={Paths.instance.chatConnection(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  chatConnection.id
-                )}
-                entity={{ id: chatConnection.id }}
-                title={chatConnection.name}
-                description={chatConnection.description}
-                variant="v2"
-                height={200}
-                icon={
-                  <ChatProviderAvatar
-                    provider={provider?.provider}
-                    listings={providerListings.lookup}
-                  />
-                }
-                bottom={
-                  chatConnection.slug ? <Text size="1">{chatConnection.slug}</Text> : undefined
-                }
-              />
-            );
-          })}
-        </ItemGrid.Root>
-      )}
-
-      {chatConnections.data.items.length === 0 && p.search && (
-        <Text size="2" color="gray600">
-          No chat connections found.
-        </Text>
-      )}
-
-      {chatConnections.data.items.length === 0 && !p.search && (
-        <EmptyState
-          extra="Chat"
-          title="Connect your first chat provider"
-          description="Connect Metorial to chat providers like Slack, then connect agents to send and receive messages."
-          action={{
-            label: 'Create Chat Connection',
-            onClick: createConnection
-          }}
-        />
-      )}
-    </>
-  ));
+  return (
+    <ChatConnectionsList
+      instanceId={p.instanceId}
+      emptyState={{
+        initial: () => (
+          <EmptyState
+            extra="Chat"
+            title="Connect your first chat provider"
+            description="Connect Metorial to chat providers like Slack, then connect agents to send and receive messages."
+            action={{ label: 'Create Chat Connection', onClick: createConnection }}
+          />
+        ),
+        search: 'No chat connections found.'
+      }}
+    />
+  );
 };

@@ -24,12 +24,15 @@ export let devOnlyApp = authedApp.use(async () => {
 export let devWebhookTriggerApp = devOnlyApp.use(async ctx => {
   let webhookRegistrationId = ctx.body.webhookRegistrationId;
   if (!webhookRegistrationId) {
-    throw new ServiceError(badRequestError({ message: 'Webhook Registration ID is required' }));
+    throw new ServiceError(
+      badRequestError({ message: 'Webhook Registration ID is required' })
+    );
   }
 
-  let webhookRegistration = await slateWebhookRegistrationService.getWebhookRegistrationForAdmin(
-    { id: webhookRegistrationId }
-  );
+  let webhookRegistration =
+    await slateWebhookRegistrationService.getWebhookRegistrationForAdmin({
+      id: webhookRegistrationId
+    });
 
   return { webhookRegistration };
 });
@@ -41,7 +44,7 @@ export let devWebhookTriggerController = devOnlyApp.controller({
       Paginator.validate(
         v.object({
           search: v.optional(v.string()),
-          types: v.optional(v.array(v.enumOf(['automated', 'manual']))),
+          types: v.optional(v.array(v.enumOf(['automated', 'manual', 'delivery_config']))),
           owners: v.optional(v.array(v.enumOf(['tenant', 'global'])))
         })
       )

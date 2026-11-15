@@ -1,6 +1,7 @@
 import { dynamicComponent } from '@metorial/dynamic-component';
 import type { SkillAgentsScene as _SkillAgentsScene } from './skillAgents';
 import type {
+  showSkillGroupSkillPicker as _showSkillGroupSkillPicker,
   SkillGroupsForSkillScene as _SkillGroupsForSkillScene,
   SkillGroupSkillsScene as _SkillGroupSkillsScene
 } from './skillGroups';
@@ -10,10 +11,12 @@ export {
   useSkillImportActions,
   validateSkillImportFile
 } from './skillImport';
+export type { SkillIntegrationOption } from './skillLinkProviders';
 import type {
   SkillLinkProvidersScene as _SkillLinkProvidersScene,
   SkillTemplateLinkProvidersScene as _SkillTemplateLinkProvidersScene
 } from './skillLinkProviders';
+import type { SkillGroupMarketplacesScene as _SkillGroupMarketplacesScene } from './skillGroupMarketplaces';
 import type { SkillMarketplacePluginsScene as _SkillMarketplacePluginsScene } from './skillMarketplacePlugins';
 import type {
   SkillMarketplaceSettingsScene as _SkillMarketplaceSettingsScene,
@@ -26,7 +29,6 @@ export {
   SkillMarketplaceRepositoriesSettingsContentScene,
   useSkillMarketplaceRepositoriesManager
 } from './skillRepositories';
-import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
 import type {
   SkillMergeRequestScene as _SkillMergeRequestScene,
   SkillMergeRequestsScene as _SkillMergeRequestsScene
@@ -34,7 +36,7 @@ import type {
 export { showCreateSkillMergeRequestModal } from './skillMergeRequests';
 import type { SkillPluginSkillsScene as _SkillPluginSkillsScene } from './skillPluginSkills';
 import type {
-  SkillGroupSettingsScene as _SkillGroupSettingsScene,
+  SkillGroupSettingsForm as _SkillGroupSettingsForm,
   SkillSettingsScene as _SkillSettingsScene,
   SkillTemplateSettingsScene as _SkillTemplateSettingsScene
 } from './skillSettings';
@@ -42,11 +44,20 @@ import type {
   SkillStoreFileViewerScene as _SkillStoreFileViewerScene,
   StoreFileViewerScene as _StoreFileViewerScene
 } from './skillStoreFileViewer';
-import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
 import type { SkillWorkspaceLayout as _SkillWorkspaceLayout } from './skillWorkspaceLayout';
 import type { SkillTextFileEditorScene as _SkillTextFileEditorScene } from './skillTextFileEditor';
+import type { SkillItemScene as _SkillItemScene } from './skillItem';
+import type { SkillSecurityScene as _SkillSecurityScene } from './securityReview/skillSecurityScene';
 
-export type { SkillWorkspaceLayoutProps, SkillWorkspaceRoutes } from './skillWorkspaceLayout';
+export * from './securityReview';
+
+export type {
+  SkillWorkspaceFork,
+  SkillWorkspaceImageInput,
+  SkillWorkspaceLayoutProps,
+  SkillWorkspaceRoutes,
+  SkillWorkspaceSecurity
+} from './skillWorkspaceLayout';
 
 export let SkillLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillLinkProvidersScene>
@@ -64,6 +75,10 @@ export let SkillGroupsForSkillScene = dynamicComponent<
   Parameters<typeof _SkillGroupsForSkillScene>
 >(() => import('./skillGroups').then(m => m.SkillGroupsForSkillScene));
 
+export let SkillGroupMarketplacesScene = dynamicComponent<
+  Parameters<typeof _SkillGroupMarketplacesScene>
+>(() => import('./skillGroupMarketplaces').then(m => m.SkillGroupMarketplacesScene));
+
 export let SkillMarketplacePluginsScene = dynamicComponent<
   Parameters<typeof _SkillMarketplacePluginsScene>
 >(() => import('./skillMarketplacePlugins').then(m => m.SkillMarketplacePluginsScene));
@@ -71,14 +86,6 @@ export let SkillMarketplacePluginsScene = dynamicComponent<
 export let SkillPluginSkillsScene = dynamicComponent<
   Parameters<typeof _SkillPluginSkillsScene>
 >(() => import('./skillPluginSkills').then(m => m.SkillPluginSkillsScene));
-
-export let SkillParticipantsScene = dynamicComponent<
-  Parameters<typeof _SkillParticipantsScene>
->(() => import('./skillParticipants').then(m => m.SkillParticipantsScene));
-
-export let SkillVersionsScene = dynamicComponent<Parameters<typeof _SkillVersionsScene>>(() =>
-  import('./skillVersions').then(m => m.SkillVersionsScene)
-);
 
 export let SkillMergeRequestsScene = dynamicComponent<
   Parameters<typeof _SkillMergeRequestsScene>
@@ -100,9 +107,13 @@ export let SkillTemplateSettingsScene = dynamicComponent<
   Parameters<typeof _SkillTemplateSettingsScene>
 >(() => import('./skillSettings').then(m => m.SkillTemplateSettingsScene));
 
-export let SkillGroupSettingsScene = dynamicComponent<
-  Parameters<typeof _SkillGroupSettingsScene>
->(() => import('./skillSettings').then(m => m.SkillGroupSettingsScene));
+export let SkillGroupSettingsForm = dynamicComponent<
+  Parameters<typeof _SkillGroupSettingsForm>
+>(() => import('./skillSettings').then(m => m.SkillGroupSettingsForm));
+
+export let showSkillGroupSkillPicker = async (
+  ...args: Parameters<typeof _showSkillGroupSkillPicker>
+) => (await import('./skillGroups')).showSkillGroupSkillPicker(...args);
 
 export let SkillMarketplaceSettingsScene = dynamicComponent<
   Parameters<typeof _SkillMarketplaceSettingsScene>
@@ -127,3 +138,11 @@ export let SkillWorkspaceLayout = dynamicComponent<Parameters<typeof _SkillWorks
 export let SkillTextFileEditorScene = dynamicComponent<
   Parameters<typeof _SkillTextFileEditorScene>
 >(() => import('./skillTextFileEditor').then(m => m.SkillTextFileEditorScene));
+
+export let SkillItemScene = dynamicComponent<Parameters<typeof _SkillItemScene>>(() =>
+  import('./skillItem').then(m => m.SkillItemScene)
+);
+
+export let SkillSecurityScene = dynamicComponent<Parameters<typeof _SkillSecurityScene>>(() =>
+  import('./securityReview/skillSecurityScene').then(m => m.SkillSecurityScene)
+);

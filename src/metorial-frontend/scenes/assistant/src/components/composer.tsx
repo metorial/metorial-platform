@@ -130,6 +130,7 @@ export let AssistantComposer = (p: {
   suggestions?: AssistantSuggestion[];
   onSelectSuggestion?: (suggestion: AssistantSuggestion) => void;
   submitLabel?: string;
+  minRows?: number;
 }) => {
   let inputRef = useRef<HTMLTextAreaElement | null>(null);
   let modelItems = useMemo(
@@ -155,7 +156,7 @@ export let AssistantComposer = (p: {
           ref={inputRef}
           value={p.value}
           disabled={p.disabled}
-          minRows={1}
+          minRows={p.minRows ?? 1}
           placeholder={p.placeholder ?? 'How can I help you?'}
           onChange={event => p.onChange(event.currentTarget.value)}
           onKeyDown={event => {

@@ -1,10 +1,9 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
-import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
+import { createTriggerInstanceStack } from './_stack';
 import { triggerWebhookTargetLinkQueue } from './webhookTargetLink';
 import { triggerWebhookTargetPruneQueue } from './webhookTargetSweep';
 
@@ -40,43 +39,26 @@ export let triggerWebhookTargetSearchQueueProcessor = triggerWebhookTargetSearch
       where: { id: data.triggerRegistrationInstanceId },
       include
     });
-    if (!instance || instance.triggerRegistration.status !== 'active') return;
+    if (
+      !instance ||
+      instance.triggerRegistration.status !== 'active' ||
+      instance.triggerRegistration.tenant.disableCallbacks
+    )
+      return;
     let invocation = instance.triggerGroup.spec.invocation;
     if (invocation.type !== 'webhook' || invocation.registration.mode !== 'auto') return;
 
-    let registration = instance.triggerRegistration;
-    let version = await getActiveSlateVersion({
-      slate: registration.slate,
-      instance: registration.instance
-    });
-
-    let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
-    if (registration.authConfig) {
-      let decrypted = await secretService.DANGEROUSLY_decryptSecret({
-        secretOid: registration.authConfig.secretOid,
-        purpose: 'slate_authentication_configuration',
-        tenant: registration.tenant,
-        note: `trigger-webhook-search:${instance.id}`
-      });
-      auth = {
-        authenticationMethodId: registration.authConfig.authMethod.key,
-        data: decrypted.output ?? decrypted.input ?? {}
-      };
-    }
-
-    let stack = await slateInvocationService.createInvocationWithState({
-      participants: [],
-      slateVersion: version,
-      tenant: registration.tenant,
-      session: { id: instance.id, state: {} },
-      config: registration.instanceConfig.value ?? {},
-      auth
+    let stack = await createTriggerInstanceStack({
+      registration: instance.triggerRegistration,
+      sessionId: instance.id,
+      note: `trigger-webhook-search:${instance.id}`
     });
 
     let result = await slateInvocationService.listWebhookTargets({
       stack,
       triggerGroupId: instance.triggerGroup.key,
-      pageToken: data.pageToken ?? null
+      pageToken: data.pageToken ?? null,
+      selection: instance.selection ?? undefined
     });
 
     if (result.status === 'error') {

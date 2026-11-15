@@ -12,6 +12,10 @@ let mocks = vi.hoisted(() => ({
   deploymentCreatedQueueAdd: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-security-review-request', () => ({
+  requestSecurityReview: vi.fn()
+}));
+
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   getId: (name: string) => ({ oid: 1n, id: `${name}_test` }),

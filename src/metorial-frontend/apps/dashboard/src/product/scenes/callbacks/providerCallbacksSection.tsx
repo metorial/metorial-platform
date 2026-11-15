@@ -110,8 +110,8 @@ export let IntegrationProviderCallbacksSection = ({
           <Callout color="blue" size="1">
             <span>
               This provider needs a webhook receiver. Metorial gives you a receive URL to
-              register in the provider's own dashboard — set one up under Callbacks → Webhook
-              Receivers.
+              register in the provider's own dashboard — set one up on the callback's page,
+              under Inbound Event Setup.
             </span>
           </Callout>
         ) : null}

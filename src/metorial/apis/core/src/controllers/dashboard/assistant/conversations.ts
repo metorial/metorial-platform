@@ -6,7 +6,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { assistantConversationPresenter } from '@metorial/presenters';
-import { assistantConversationGroup, getAssistantScope } from './context';
+import { assistantConversationGroup, getAssistantAccess, getAssistantScope } from './context';
 
 export let assistantConversationHandlers = {
   listConversations: instanceGroup
@@ -76,6 +76,7 @@ export let assistantConversationHandlers = {
       let assistantConversation =
         await productAssistantConversationService.createAssistantConversation({
           ...getAssistantScope(ctx),
+          access: await getAssistantAccess(ctx),
           input: {
             assistantId: ctx.body.assistant_id,
             title: ctx.body.title,

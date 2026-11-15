@@ -40,3 +40,48 @@ export let v1DocumentPresenter = Presenter.create(documentType)
     })
   )
   .build();
+
+export let dashboardDocumentPresenter = Presenter.create(documentType)
+  .presenter(async ({ document }, opts) => {
+    let inner = await v1DocumentPresenter.present({ document }, opts).run();
+    let annotations = document.hasDraft
+      ? (document.resolvedAnnotations ?? null)
+      : (document.content.annotations ?? null);
+
+    return {
+      ...inner,
+      annotations,
+      annotation_actors: await Promise.all(
+        (document.annotationActors ?? []).map(async actor => ({
+          id: actor.id,
+          ...(await presentDocumentParticipantActor(actor, opts))
+        }))
+      )
+    };
+  })
+  .schema(
+    v.object({
+      ...v1DocumentPresenter.schema.properties,
+      annotations: v.nullable(
+        v.any({
+          name: 'annotations',
+          description:
+            'Per-block editor attribution and comment anchors for the document body, bound to `content` by a content hash. Consumed by the document editor.'
+        })
+      ),
+      annotation_actors: v.array(
+        v.object({
+          id: v.string({
+            name: 'id',
+            description: 'The resource actor id referenced from `annotations`'
+          }),
+          ...documentParticipantActorSchema.properties
+        }),
+        {
+          name: 'annotation_actors',
+          description: 'The actors referenced as editors in `annotations`'
+        }
+      )
+    }) as any
+  )
+  .build();

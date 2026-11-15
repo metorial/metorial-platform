@@ -10,6 +10,7 @@ import {
   enqueueProviderSpecSearchIndex,
   indexProviderListingQueue
 } from '@metorial-subspace/module-provider-internal';
+import { requestSecurityReview } from '@metorial-subspace/module-security-review-request';
 
 export let linkNewShuttleVersionToCustomProvider = async ({
   customProviderVersion,
@@ -55,6 +56,9 @@ export let linkNewShuttleVersionToCustomProvider = async ({
     });
 
     await addAfterTransactionHook(() => reindexTenantProviderSearch(provider));
+    await addAfterTransactionHook(() =>
+      requestSecurityReview({ subject: 'customProviderVersion', id: customProviderVersion.id })
+    );
   });
 
 let reindexTenantProviderSearch = async (provider: Provider) => {

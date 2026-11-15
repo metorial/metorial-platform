@@ -163,6 +163,8 @@ let makeProject = (overrides: Record<string, unknown> = {}) =>
     name: 'Project',
     onlyAllowTrustedProviders: false,
     hidePublicRemoteProviders: false,
+    assistantEnabled: true,
+    aiAnalysisEnabled: false,
     organizationOid: 1n,
     resourceTenantOid: 100n,
     instances: [],
@@ -201,6 +203,34 @@ describe('Subspace scope provisioning', () => {
       expect(mocks.tenantUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
           input: expect.objectContaining({ hidePublicRemoteProviders: value })
+        })
+      );
+    }
+  );
+
+  it.each(['aiAnalysisEnabled', 'assistantEnabled'] as const)(
+    'seeds %s from the project only when its tenant is first linked',
+    async field => {
+      await subspaceScopeService.ensureForProjectUncached(makeProject({ [field]: false }));
+
+      expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ [field]: false })
+        })
+      );
+
+      mocks.tenantFind.mockResolvedValue({ identifier: 'mte-pro-2' });
+      await subspaceScopeService.ensureForProjectUncached(
+        makeProject({
+          [field]: true,
+          internalTenantIdentifier: 'mte-pro-2',
+          subspaceTenantId: 'ktn_canonical'
+        })
+      );
+
+      expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ [field]: undefined })
         })
       );
     }

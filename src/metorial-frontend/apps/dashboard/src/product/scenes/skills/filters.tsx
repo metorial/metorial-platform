@@ -1,14 +1,11 @@
 import type {
-  DashboardInstanceSkillsGroupsListQuery,
-  DashboardInstanceSkillsTemplatesListQuery,
-  DashboardInstanceSkillsMarketplacesListQuery,
   DashboardInstanceSkillsPluginsListQuery,
-  DashboardInstanceSkillsListQuery
+  DashboardInstanceSkillsTemplatesListQuery
 } from '@metorial/dashboard-sdk';
 import { useCurrentInstance } from '@metorial/state';
-import { SearchFiltersToolbar } from '@metorial/ui-product';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
 import {
+  FilterToolbar,
   TableFilter,
   TableFilterState,
   getFilterPayload,
@@ -70,46 +67,6 @@ let useBaseSkillFilterPayload = (p: { search: string; filterState: TableFilterSt
   };
 };
 
-export let useSkillFilters = (p: { search: string; filterState: TableFilterState[] }) => {
-  let instanceId = useInstanceId();
-  let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
-    useBaseSkillFilterPayload(p);
-  let providerId = getListFilterValue(filterPayload.providerId);
-  let integrationId = getListFilterValue(filterPayload.integrationId);
-  let skillGroupId = getListFilterValue(filterPayload.skillGroupId);
-
-  let filters: TableFilter<any>[] = useMemo(
-    () => [
-      statusFilter,
-      entityFilters.provider(instanceId),
-      entityFilters.integration(instanceId),
-      entityFilters.skillGroup(instanceId),
-      createdAtFilter,
-      updatedAtFilter
-    ],
-    [instanceId]
-  );
-
-  let skillsFilter = useMemo(
-    (): DashboardInstanceSkillsListQuery => ({
-      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
-      ...(status ? { status } : {}),
-      ...(providerId ? { providerId } : {}),
-      ...(integrationId ? { integrationId } : {}),
-      ...(skillGroupId ? { skillGroupId } : {}),
-      ...(createdAt ? { createdAt } : {}),
-      ...(updatedAt ? { updatedAt } : {})
-    }),
-    [createdAt, integrationId, providerId, searchDebounced, skillGroupId, status, updatedAt]
-  );
-
-  return {
-    filters,
-    searchDebounced,
-    skillsFilter
-  };
-};
-
 export let useSkillTemplateFilters = (p: {
   search: string;
   filterState: TableFilterState[];
@@ -160,64 +117,6 @@ export let useSkillTemplateFilters = (p: {
     filters,
     searchDebounced,
     skillTemplatesFilter
-  };
-};
-
-export let useSkillGroupFilters = (p: { search: string; filterState: TableFilterState[] }) => {
-  let instanceId = useInstanceId();
-  let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
-    useBaseSkillFilterPayload(p);
-  let skillId = getListFilterValue(filterPayload.skillId);
-
-  let filters: TableFilter<any>[] = useMemo(
-    () => [statusFilter, entityFilters.skill(instanceId), createdAtFilter, updatedAtFilter],
-    [instanceId]
-  );
-
-  let skillGroupsFilter = useMemo(
-    (): DashboardInstanceSkillsGroupsListQuery => ({
-      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
-      ...(status ? { status } : {}),
-      ...(skillId ? { skillId } : {}),
-      ...(createdAt ? { createdAt } : {}),
-      ...(updatedAt ? { updatedAt } : {})
-    }),
-    [createdAt, searchDebounced, skillId, status, updatedAt]
-  );
-
-  return {
-    filters,
-    searchDebounced,
-    skillGroupsFilter
-  };
-};
-
-export let useSkillMarketplaceFilters = (p: {
-  search: string;
-  filterState: TableFilterState[];
-}) => {
-  let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
-    useBaseSkillFilterPayload(p);
-
-  let filters: TableFilter<any>[] = useMemo(
-    () => [statusFilter, createdAtFilter, updatedAtFilter],
-    []
-  );
-
-  let skillMarketplacesFilter = useMemo(
-    (): DashboardInstanceSkillsMarketplacesListQuery => ({
-      ...(searchDebounced.trim() ? { search: searchDebounced.trim() } : {}),
-      ...(status ? { status } : {}),
-      ...(createdAt ? { createdAt } : {}),
-      ...(updatedAt ? { updatedAt } : {})
-    }),
-    [createdAt, searchDebounced, status, updatedAt]
-  );
-
-  return {
-    filters,
-    searchDebounced,
-    skillMarketplacesFilter
   };
 };
 
@@ -273,10 +172,11 @@ export let SkillResourceFilters = (p: {
   filters: TableFilter<any>[];
   placeholder: string;
 }) => (
-  <SearchFiltersToolbar
-    {...p}
-    defaultFilterId={
-      p.filters.some(filter => filter.id == 'status') ? 'status' : p.filters[0]?.id
-    }
+  <FilterToolbar
+    searchState={p.searchState}
+    filterState={p.filterState}
+    filters={p.filters}
+    placeholder={p.placeholder}
+    style={{ marginBottom: 15 }}
   />
 );

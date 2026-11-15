@@ -58,4 +58,43 @@ describe('callback event presentation', () => {
 
     expect(presented.details?.payload).toEqual({ action: 'opened' });
   });
+
+  it('redacts credential headers of the inbound webhook request', async () => {
+    let presented = await v1CallbackEventPresenter
+      .present(
+        {
+          callbackEvent,
+          details: {
+            status: 'succeeded',
+            payload: null,
+            attemptCount: 1,
+            error: null,
+            webhook: {
+              id: 'whe_1',
+              status: 'succeeded',
+              attemptCount: 1,
+              request: {
+                method: 'POST',
+                url: 'https://hub.example/receive',
+                headers: {
+                  Authorization: 'Bearer shared-push-token',
+                  'x-goog-channel-token': 'channel-secret',
+                  'content-type': 'application/json'
+                },
+                body: null
+              },
+              receivedAt: new Date('2026-01-01T00:00:00Z')
+            }
+          }
+        } as any,
+        context
+      )
+      .run();
+
+    expect(presented.details?.webhook?.request?.headers).toEqual({
+      Authorization: '[REDACTED]',
+      'x-goog-channel-token': '[REDACTED]',
+      'content-type': 'application/json'
+    });
+  });
 });

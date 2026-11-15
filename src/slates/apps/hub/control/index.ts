@@ -37,17 +37,12 @@ export default project({
     dependency('@metorial/object-storage')
       .noStart()
       .env('api', 'OBJECT_STORAGE_URL', 'http://{{HOSTNAME}}:{{PORT}}'),
-    dependency('@metorial/function-bay').env(
+    dependency('@mtsrc/functions-service').env(
       'api',
       'FUNCTION_BAY_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-function-bay'
     ),
-    dependency('@metorial/signal').env(
-      'api',
-      'SIGNAL_API_URL',
-      'http://{{HOSTNAME}}:{{PORT}}/metorial-signal'
-    ),
-    dependency('@metorial/nebula').env(
+    dependency('@mtsrc/secret-store-service').env(
       'api',
       'NEBULA_API_URL',
       'http://{{HOSTNAME}}:{{PORT}}/metorial-nebula'
@@ -73,7 +68,6 @@ export default project({
       {
         METORIAL_API_URL: services.coreApi.url(),
         FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: '60',
-        SIGNAL_SENDER_IDENTIFIER: 'dev-slates-hub',
         INVOCATIONS_BUCKET_NAME: 'dev-invocations',
         SLATES_HUB_INSTANCE_IDENTIFIER: 'dev-slates-hub',
         SUPPORTS_PREBUILT_SLATES: 'true',

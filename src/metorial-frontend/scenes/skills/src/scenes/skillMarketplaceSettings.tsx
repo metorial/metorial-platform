@@ -210,22 +210,25 @@ export let SkillMarketplaceSettingsScene = (p: {
     <PageStack>
       {marketplace.data?.syncStatus !== 'synced' && (
         <>
-          <Callout color="blue">
+          <Callout
+            color="blue"
+            action={
+              marketplace.data?.syncStatus === 'pending' && (
+                <Button
+                  size="2"
+                  loading={syncMarketplace.isLoading}
+                  onClick={() => syncMarketplace.mutate({})}
+                >
+                  Sync Now
+                </Button>
+              )
+            }
+          >
             <span>
               <strong>Upcoming changes:</strong> Plugins, skills, or configurations linked to
               this marketplace have changed. Metorial is processing these changes and updating
               the marketplace. This can take a few minutes.
             </span>
-            {marketplace.data?.syncStatus === 'pending' && (
-              <Button
-                size="2"
-                loading={syncMarketplace.isLoading}
-                onClick={() => syncMarketplace.mutate({})}
-                style={{ marginLeft: 16 }}
-              >
-                Sync Now
-              </Button>
-            )}
           </Callout>
         </>
       )}

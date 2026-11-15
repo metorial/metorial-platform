@@ -1,18 +1,71 @@
 import { DashboardInstanceSessionsGetOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useProviders,
   useSession
 } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { useInstanceContext, withProviderNames } from '../../../lib/dataList';
 import { ProviderSessionContent } from './_content';
+
+type SessionDeployment = {
+  id: string;
+  providerId: string;
+  deploymentId?: string;
+  deploymentName?: string | null;
+  createdAt: Date | string;
+};
+
+let SessionProvidersList = createDataList<{ session: DashboardInstanceSessionsGetOutput }>(
+  'provider-session-providers',
+  { customizable: false }
+)
+  .context(useInstanceContext)
+  .items(({ props }) => ({
+    items: useMemo<SessionDeployment[]>(
+      () =>
+        (props.session.providers ?? []).map(dep => ({
+          id: dep.deployment?.id ?? dep.providerId,
+          providerId: dep.providerId,
+          deploymentId: dep.deployment?.id,
+          deploymentName: dep.deployment?.name,
+          createdAt: props.session.createdAt
+        })),
+      [props.session]
+    )
+  }))
+  .enrich(withProviderNames((row: SessionDeployment) => row.providerId))
+  .columns([
+    col.text({
+      id: 'deployment',
+      header: 'Deployment',
+      weight: 'strong',
+      fallback: 'Unnamed',
+      get: row => row.deploymentName
+    }),
+    col.text({
+      id: 'provider',
+      header: 'Provider',
+      get: row => row.providerName ?? row.providerId
+    }),
+    col.createdAt()
+  ])
+  .link((row, _props, ctx) =>
+    row.deploymentId
+      ? Paths.instance.providerDeployment(
+          ctx.organization,
+          ctx.project,
+          ctx.instance,
+          row.deploymentId
+        )
+      : undefined
+  )
+  .build();
 
 export let ProviderSessionProvidersPage = () => {
   let instance = useCurrentInstance();
@@ -33,67 +86,19 @@ export let ProviderSessionProvidersPage = () => {
 };
 
 export let ProviderSessionProviders = ({
-  organization,
-  project,
-  instance,
   session
 }: {
-  organization: ReturnType<typeof useCurrentOrganization>['data'];
-  project: ReturnType<typeof useCurrentProject>['data'];
-  instance: ReturnType<typeof useCurrentInstance>['data'];
+  organization?: ReturnType<typeof useCurrentOrganization>['data'];
+  project?: ReturnType<typeof useCurrentProject>['data'];
+  instance?: ReturnType<typeof useCurrentInstance>['data'];
   session: DashboardInstanceSessionsGetOutput;
-}) => {
-  let providerIds = useMemo(
-    () =>
-      Array.from(
-        new Set((session.providers ?? []).map(dep => dep.providerId).filter(Boolean))
-      ),
-    [session.providers]
-  );
-  let providers = useProviders(instance?.id, { id: providerIds });
-
-  return (
-    <ProviderSessionContent>
-      {renderWithLoader({ providers })(({ providers }) => {
-        let deployments = session.providers ?? [];
-        let providerNameMap = new Map<string, string>();
-        for (let provider of providers.data?.items ?? []) {
-          if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
-        }
-
-        return (
-          <>
-            <Table
-              headers={['Deployment', 'Provider', 'Created']}
-              data={deployments.map(dep => ({
-                data: [
-                  <Text size="2" weight="strong">
-                    {dep.deployment?.name ?? 'Unnamed'}
-                  </Text>,
-                  <Text size="2">
-                    {providerNameMap.get(dep.providerId) ?? dep.providerId}
-                  </Text>,
-                  <RenderDate date={session.createdAt} />
-                ],
-                href: dep.deployment?.id
-                  ? Paths.instance.providerDeployment(
-                      organization,
-                      project,
-                      instance,
-                      dep.deployment.id
-                    )
-                  : undefined
-              }))}
-            />
-
-            {deployments.length === 0 && (
-              <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-                No provider deployments in this session.
-              </Text>
-            )}
-          </>
-        );
-      })}
-    </ProviderSessionContent>
-  );
-};
+}) => (
+  <ProviderSessionContent>
+    <SessionProvidersList
+      session={session}
+      listVariant="embedded"
+      hideToolbar
+      emptyState="No provider deployments in this session."
+    />
+  </ProviderSessionContent>
+);

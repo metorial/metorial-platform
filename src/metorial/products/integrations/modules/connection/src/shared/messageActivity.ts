@@ -1,14 +1,5 @@
 import { withTransaction } from '@metorial-subspace/db';
 
-let PROTOGUARD_SKIPPED_METHODS = new Set([
-  'initialize',
-  'ping',
-  'tools/list',
-  'prompts/list',
-  'resources/list',
-  'resources/templates/list'
-]);
-
 type MessageActivityTarget = {
   sessionOid: bigint;
   connectionOid: bigint | null;
@@ -72,17 +63,3 @@ export let recordMessageActivity = async (
 
     return countCreation;
   });
-
-export let shouldEvaluateProtoGuard = (message: {
-  retentionLevel: string;
-  methodOrToolKey: string | null;
-  toolCall: unknown;
-}) => {
-  if (message.retentionLevel !== 'full') return false;
-  if (message.toolCall || !message.methodOrToolKey) return true;
-
-  return (
-    !PROTOGUARD_SKIPPED_METHODS.has(message.methodOrToolKey) &&
-    !message.methodOrToolKey.startsWith('notifications/')
-  );
-};

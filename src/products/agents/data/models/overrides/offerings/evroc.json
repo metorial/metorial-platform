@@ -6,6 +6,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Qwen/Qwen3-Embedding-8B": {
+    "decision": "link",
+    "model": "alibaba/qwen3-embedding-8b",
+    "reason": "Hugging Face card and multiple listings confirm this is Qwen's Qwen3-Embedding-8B (built on Qwen3-8B-Base). The 0.115 input price is evroc's own cloud markup, not a different model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "Qwen/Qwen3-Reranker-4B": {
     "decision": "defer",
     "until": "2026-12-12",

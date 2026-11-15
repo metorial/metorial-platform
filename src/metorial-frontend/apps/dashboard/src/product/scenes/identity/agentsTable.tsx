@@ -2,21 +2,9 @@ import {
   DashboardInstanceAgentsListOutput,
   DashboardInstanceAgentsListQuery
 } from '@metorial/dashboard-sdk';
-import {
-  useAgents,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject
-} from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableStateProvider,
-  TableStateProviderResult,
-  getEnumListFilterValue
-} from '@metorial/table';
+import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
+import { useAgents } from '@metorial/state';
+import { useInstanceContext } from '../../lib/dataList';
 import { useIdentityPaths } from '../../lib/identityPaths';
 
 type Agent = DashboardInstanceAgentsListOutput['items'][number];
@@ -26,180 +14,48 @@ type AgentFilters = Omit<
   'limit' | 'after' | 'before' | 'cursor'
 >;
 
-type AgentsTableProps = {
+let agentTypes = [
+  { id: 'mcp_client', label: 'MCP Client' },
+  { id: 'custom', label: 'Custom' },
+  { id: 'tool_call', label: 'Tool Call' }
+] as const;
+
+let getAgentTypeLabel = (type: Agent['type']) =>
+  agentTypes.find(option => option.id === type)?.label ?? 'Custom';
+
+let AgentsList = createDataList<{
   instanceId: string;
   filters?: AgentFilters;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-  identityPaths: ReturnType<typeof useIdentityPaths>;
-};
-
-let getAgentStatusColor = (status: Agent['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
-let getAgentTypeLabel = (type: Agent['type']) => {
-  if (type === 'mcp_client') return 'MCP Client';
-  if (type === 'tool_call') return 'Tool Call';
-  return 'Custom';
-};
-
-let useAgentsTableState: TableStateProvider<
-  AgentsTableProps,
-  Agent,
-  TableStateProviderResult<Agent>
-> = (
-  props: AgentsTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let agents = useAgents(props.instanceId, {
-    order: 'desc',
-    ...props.filters,
-    status:
-      getEnumListFilterValue(opts.filter.status, ['active', 'archived', 'deleted']) ??
-      props.filters?.status,
-    type:
-      getEnumListFilterValue(opts.filter.type, ['mcp_client', 'custom', 'tool_call']) ??
-      props.filters?.type,
-    search: opts.search ?? props.filters?.search
-  });
-
-  return {
-    isLoading: agents.isLoading,
-    error: agents.error,
-    hasMoreAfter: agents.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: agents.data?.pagination.hasMoreBefore ?? false,
-    items: agents.data?.items ?? [],
-    loadNext: agents.next,
-    loadPrevious: agents.previous
-  };
-};
-
-let agentsTable = new DashboardTable<AgentsTableProps, Agent>('agents')
-  .state(useAgentsTableState)
-  .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: agent => (
-        <div>
-          <Text size="2" weight="strong">
-            {agent.name}
-          </Text>
-          {agent.description ? (
-            <Text size="1" color="gray600">
-              {agent.description}
-            </Text>
-          ) : null}
-        </div>
-      )
-    },
-    {
-      id: 'type',
-      isDefault: true,
-      header: 'Type',
-      render: agent => <Text size="2">{getAgentTypeLabel(agent.type)}</Text>
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: agent => <Badge color={getAgentStatusColor(agent.status)}>{agent.status}</Badge>
-    },
-    {
-      id: 'actorId',
-      isDefault: true,
-      header: 'Actor ID',
-      render: agent => <ID id={agent.actorId} />
-    },
-    {
-      id: 'slug',
-      isDefault: false,
-      header: 'Slug',
-      render: agent => <Text size="2">{agent.slug}</Text>
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: agent => <RenderDate date={agent.createdAt} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: agent => <RenderDate date={agent.updatedAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Agent ID',
-      render: agent => <ID id={agent.id} />
-    }
-  ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by agent type',
-      type: 'select',
-      options: [
-        { id: 'mcp_client', label: 'MCP Client' },
-        { id: 'custom', label: 'Custom' },
-        { id: 'tool_call', label: 'Tool Call' }
-      ]
-    }
-  ])
-  .search('Search agents...')
-  .link((agent, props) =>
-    props.identityPaths.agent(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      agent.id
+}>('agents')
+  .context(() => ({ ...useInstanceContext(), identityPaths: useIdentityPaths() }))
+  .filters(() => ({
+    status: f.status(lifecycleStatus),
+    type: f.select('type', 'Type', agentTypes, { description: 'Filter by agent type' }),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search agents…')
+  .paginated(({ props, filters, search }) =>
+    useAgents(
+      props.instanceId,
+      withDefaults(props.filters, { order: 'desc' as const, ...filters, search })
     )
+  )
+  .columns([
+    col.name(),
+    col.text({ id: 'type', header: 'Type', get: row => getAgentTypeLabel(row.type) }),
+    col.status(lifecycleStatus),
+    col.refId('actorId', row => row.actorId, { header: 'Actor ID', isDefault: true }),
+    col.text({ id: 'slug', header: 'Slug', isDefault: false, get: row => row.slug }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ header: 'Agent ID' })
+  ])
+  .link((row, _props, ctx) =>
+    ctx.identityPaths.agent(ctx.organization, ctx.project, ctx.instance, row.id)
   )
   .build();
 
-export let AgentsTable = ({
-  instanceId,
-  filters
-}: {
-  instanceId: string;
-  filters?: AgentFilters;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let identityPaths = useIdentityPaths();
-
-  return agentsTable({
-    instanceId,
-    filters,
-    instance,
-    organization,
-    project,
-    identityPaths,
-    emptyState: 'No agents found.'
-  });
-};
+export let AgentsTable = (p: Parameters<typeof AgentsList>[0]) => (
+  <AgentsList emptyState="No agents found." {...p} />
+);

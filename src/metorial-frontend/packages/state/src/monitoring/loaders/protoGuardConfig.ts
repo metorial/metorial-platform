@@ -2,6 +2,8 @@ import {
   DashboardInstanceProtoGuardConfigGetOutput,
   DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdBody,
   DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput,
+  DashboardInstanceProtoGuardConfigUpdateBody,
+  DashboardInstanceProtoGuardConfigUpdateOutput,
   DashboardInstanceProtoGuardConfigUpdateFilterBody,
   DashboardInstanceProtoGuardConfigUpdateFilterOutput
 } from '@metorial/dashboard-sdk';
@@ -14,6 +16,12 @@ export let protoGuardConfigLoader = createLoader({
   fetch: (i: { instanceId: string }): Promise<DashboardInstanceProtoGuardConfigGetOutput> =>
     withAuth(sdk => (sdk as any).protoGuardConfig.get(i.instanceId)),
   mutators: {
+    update: (
+      body: DashboardInstanceProtoGuardConfigUpdateBody,
+      { input: { instanceId } }
+    ): Promise<DashboardInstanceProtoGuardConfigUpdateOutput> =>
+      withAuth(sdk => (sdk as any).protoGuardConfig.update(instanceId, body)),
+
     updateFilter: (
       input: { filterId: string } & DashboardInstanceProtoGuardConfigUpdateFilterBody,
       { input: { instanceId } }
@@ -38,6 +46,7 @@ export let useProtoGuardConfig = (instanceId: string | null | undefined) => {
 
   return {
     ...data,
+    updateMutator: data.useMutator('update'),
     updateFilterMutator: data.useMutator('updateFilter'),
     setAlertFilterCountThresholdMutator: data.useMutator('setAlertFilterCountThreshold')
   };

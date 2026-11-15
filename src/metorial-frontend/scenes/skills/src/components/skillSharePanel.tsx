@@ -1,6 +1,6 @@
 import {
+  useAllPortalConsumerAccess,
   useCreatePortalConsumerAccess,
-  useOrganizationMembers,
   usePortalConsumerAccess,
   usePortalConsumerGroups,
   usePortalConsumerProfiles,
@@ -16,14 +16,20 @@ import {
   Avatar,
   Button,
   Input,
+  Menu,
   Popover,
   Select,
-  Spacer,
-  Tabs,
+  Switch,
   Text,
   theme
 } from '@metorial/ui';
-import { RiArrowLeftSLine, RiCheckLine } from '@remixicon/react';
+import {
+  RiArrowDownSLine,
+  RiArrowLeftSLine,
+  RiCheckLine,
+  RiGroupLine,
+  RiLayoutTopLine
+} from '@remixicon/react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 
@@ -42,26 +48,103 @@ export type SkillSharePanelContext = {
   skills: SkillSharePanelSkill[];
 };
 
-type AccountCandidate =
+type ShareCandidate =
   | {
       type: 'consumer';
       id: string;
       name: string;
-      email: string;
+      description: string;
       imageUrl?: string | null;
+      isOrganizationMember: boolean;
     }
   | {
-      type: 'member';
+      type: 'group';
       id: string;
-      actorId: string;
       name: string;
-      email: string | null;
+      description: string;
       imageUrl?: string | null;
     };
 
 let PanelStack = styled.div`
   display: flex;
   flex-direction: column;
+`;
+
+let PanelHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 0 16px;
+`;
+
+let PanelTitle = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+`;
+
+let PortalChip = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 999px;
+  background: ${theme.colors.background};
+  color: ${theme.colors.gray800};
+  font-size: 12px;
+  cursor: pointer;
+  flex: 0 0 auto;
+
+  &:hover {
+    background: ${theme.colors.gray200};
+  }
+`;
+
+let IconAvatar = styled.div<{ $size: number }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: ${p => p.$size}px;
+  height: ${p => p.$size}px;
+  border-radius: 9px;
+  background: ${theme.colors.gray200};
+  color: ${theme.colors.gray800};
+  flex: 0 0 auto;
+`;
+
+let SelfPortalFooter = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid ${theme.colors.gray300};
+`;
+
+let SelfPortalText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+`;
+
+let SelfPortalTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${theme.colors.foreground};
+`;
+
+let AccessSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  border-top: 1px solid ${theme.colors.gray300};
 `;
 
 let InviteRow = styled.div`
@@ -74,8 +157,7 @@ let ContentPanel = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 500px;
-  padding: 10px 20px 20px 20px;
+  padding: 12px 16px;
 `;
 
 let RowList = styled.div`
@@ -83,15 +165,15 @@ let RowList = styled.div`
   flex-direction: column;
   max-height: 350px;
   overflow: auto;
-  gap: 3px;
+  gap: 2px;
 `;
 
 let AccessRow = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 56px;
-  padding: 6px 0;
+  min-height: 48px;
+  padding: 0;
 `;
 
 let CandidateRow = styled.button<{ $selected?: boolean }>`
@@ -99,8 +181,8 @@ let CandidateRow = styled.button<{ $selected?: boolean }>`
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 56px;
-  padding: 6px 15px 6px 8px;
+  min-height: 48px;
+  padding: 4px 8px;
   border: 0;
   border-radius: 8px;
   background: ${p => (p.$selected ? theme.colors.blue200 : 'transparent')};
@@ -157,14 +239,19 @@ let Pill = styled.span`
   font-weight: 600;
 `;
 
+let GroupPill = styled(Pill)`
+  background: ${theme.colors.gray200};
+  color: ${theme.colors.gray800};
+`;
+
 let AccessSelectWrap = styled.div`
-  width: 132px;
+  width: 180px;
   flex: 0 0 auto;
 `;
 
 let InvitePermissionFooter = styled.div`
   position: sticky;
-  bottom: -20px;
+  bottom: -12px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -182,15 +269,41 @@ let InvitePermissionLabel = styled.div`
 `;
 
 let EmptyState = styled.div`
-  padding: 5px 15px 12px 15px;
+  padding: 4px 0 8px 0;
 `;
+
+type InvitePermission = 'read' | 'write' | 'manage' | 'owner';
+
+type AccountPermission = 'none' | Exclude<InvitePermission, 'manage'>;
 
 let inviteAccessItems = [
   { id: 'read', label: 'Can view' },
-  { id: 'write', label: 'Full access' }
+  { id: 'write', label: 'Can edit' }
 ];
 
-let accountAccessItems = [{ id: 'none', label: 'No access' }, ...inviteAccessItems];
+let ownerAccessItem = { id: 'owner', label: 'Owner' };
+
+let manageAccessItem = { id: 'manage', label: 'Can edit and share' };
+
+let accountAccessItems = [{ id: 'none', label: 'Remove' }, ...inviteAccessItems];
+
+type GroupPermission = 'read' | 'write' | 'manage';
+
+let groupLevelItems = [...inviteAccessItems, manageAccessItem];
+
+let groupAccessItems = [{ id: 'none', label: 'Remove' }, ...groupLevelItems];
+
+let isGroupPermission = (value: string): value is GroupPermission =>
+  value == 'read' || value == 'write' || value == 'manage';
+
+let groupPermissionOf = (permission: InvitePermission): GroupPermission =>
+  permission == 'owner' ? 'manage' : permission;
+
+let isInvitePermission = (value: string): value is InvitePermission =>
+  isGroupPermission(value) || value == 'owner';
+
+let isAccountPermission = (value: string): value is AccountPermission =>
+  value == 'none' || value == 'read' || value == 'write' || value == 'owner';
 
 let getSkillLabel = (skill: SkillSharePanelSkill) => skill.name || skill.id;
 
@@ -206,25 +319,20 @@ let getPortalItems = (
 let getSkillItems = (skills: SkillSharePanelSkill[]) =>
   skills.map(skill => ({ id: skill.id, label: getSkillLabel(skill) }));
 
-let getParticipantPermission = (roles: string[]): 'read' | 'write' =>
-  roles.some(role => role == 'creator' || role == 'editor') ? 'write' : 'read';
+let isParticipantOwner = (roles: string[]) => roles.includes('owner');
 
-let canParticipantWrite = (roles: string[]) =>
-  roles.some(role => role == 'creator' || role == 'editor');
+let getParticipantPermission = (roles: string[]): InvitePermission =>
+  isParticipantOwner(roles)
+    ? 'owner'
+    : roles.some(role => role == 'creator' || role == 'editor')
+      ? 'write'
+      : 'read';
 
 let hasParticipantAccess = (roles: string[]) =>
-  roles.some(role => role == 'editor' || role == 'viewer');
+  roles.some(role => role == 'owner' || role == 'editor' || role == 'viewer');
 
-let hasEditedSkill = (roles: string[]) =>
-  roles.some(role => role == 'creator' || role == 'editor' || role == 'forker');
-
-let isListedParticipant = (participant: {
-  roles: string[];
-  hasOrganizationMemberAccess: boolean;
-}) =>
-  participant.hasOrganizationMemberAccess
-    ? hasEditedSkill(participant.roles)
-    : hasParticipantAccess(participant.roles);
+let isListedParticipant = (participant: { roles: string[] }) =>
+  hasParticipantAccess(participant.roles);
 
 let filterBySearch = (value: string, search: string) =>
   value.toLowerCase().includes(search.trim().toLowerCase());
@@ -242,10 +350,8 @@ export let SkillSharePanelContent = (p: {
   let [selectedPortalId, setSelectedPortalId] = useState(p.context?.portalId ?? '');
   let [search, setSearch] = useState('');
   let [isSearching, setIsSearching] = useState(false);
-  let [selectedAccountKeys, setSelectedAccountKeys] = useState<Set<string>>(new Set());
-  let [permission, setPermission] = useState<'read' | 'write'>('read');
-  let [activeTab, setActiveTab] = useState<'accounts' | 'portal-groups'>('accounts');
-  let [sharingGroupId, setSharingGroupId] = useState<string | null>(null);
+  let [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  let [permission, setPermission] = useState<InvitePermission>('read');
   let [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
 
   let mode = p.context?.mode ?? 'dashboard';
@@ -255,28 +361,52 @@ export let SkillSharePanelContent = (p: {
     order: 'asc'
   });
   let activePortalId = mode == 'portal' ? (p.context?.portalId ?? '') : selectedPortalId;
-  let showPortalSelect = mode == 'dashboard' && (portals.data?.items?.length ?? 0) > 1;
+  let portalItems = portals.data?.items ?? [];
+  let activePortal = portalItems.find(portal => portal.id == activePortalId);
+  let showPortalChip = mode == 'dashboard' && portalItems.length > 1;
   let participants = useSkillParticipants(p.instanceId, selectedSkillId, {
     limit: 100,
     order: 'asc'
   });
+  let currentUser = useUser();
+  let currentUserEmail = currentUser.data?.email ?? null;
+  let ownProfiles = usePortalConsumerProfiles(
+    mode == 'dashboard' ? p.instanceId : null,
+    activePortalId,
+    currentUserEmail ? { limit: 10, search: currentUserEmail } : null
+  );
+  let ownProfile =
+    mode == 'dashboard'
+      ? (ownProfiles.data?.items ?? []).find(
+          profile => !!profile.userId && profile.userId == currentUser.data?.id
+        )
+      : undefined;
   let accessibleParticipants = useMemo(
-    () => (participants.data?.items ?? []).filter(isListedParticipant),
-    [participants.data?.items]
+    () =>
+      (participants.data?.items ?? [])
+        .filter(isListedParticipant)
+        .filter(
+          participant => !ownProfile || participant.actor.consumer?.id != ownProfile.consumerId
+        )
+        .sort(
+          (a, b) => Number(isParticipantOwner(b.roles)) - Number(isParticipantOwner(a.roles))
+        ),
+    [participants.data?.items, ownProfile?.consumerId]
   );
   let consumerProfiles = usePortalConsumerProfiles(p.instanceId, activePortalId, {
     limit: 100,
     order: 'asc',
     search: search.trim() || undefined
   });
-  let organizationMembers = useOrganizationMembers(
-    mode == 'dashboard' ? p.context?.organizationId : null
+  let consumerGroups = usePortalConsumerGroups(
+    canManagePortalGroups ? p.instanceId : null,
+    activePortalId,
+    {
+      limit: 100,
+      order: 'asc',
+      search: search.trim() || undefined
+    }
   );
-  let consumerGroups = usePortalConsumerGroups(p.instanceId, activePortalId, {
-    limit: 100,
-    order: 'asc',
-    search: search.trim() || undefined
-  });
   let portalAccess = usePortalConsumerAccess(p.instanceId, activePortalId, {
     limit: 100,
     order: 'asc',
@@ -285,8 +415,7 @@ export let SkillSharePanelContent = (p: {
   let shareSkill = useShareSkill();
   let createPortalAccess = useCreatePortalConsumerAccess();
   let deletePortalAccess = portalAccess.deleteMutator();
-  let currentUser = useUser();
-
+  let updatePortalAccess = portalAccess.updateMutator();
   useEffect(() => {
     if (skills.some(skill => skill.id == selectedSkillId)) return;
     setSelectedSkillId(skills[0]?.id ?? '');
@@ -306,23 +435,15 @@ export let SkillSharePanelContent = (p: {
   }, [mode, portals.data?.items, selectedPortalId]);
 
   useEffect(() => {
-    setSelectedAccountKeys(new Set());
+    setSelectedKeys(new Set());
     setSearch('');
     setIsSearching(false);
-    setSharingGroupId(null);
     setRemovingGroupId(null);
   }, [activePortalId, selectedSkillId]);
-
-  useEffect(() => {
-    if (canManagePortalGroups) return;
-    setActiveTab('accounts');
-  }, [canManagePortalGroups]);
 
   let selectedSkill = skills.find(skill => skill.id == selectedSkillId);
   let hasShareTarget =
     !!p.instanceId && !!selectedSkillId && (mode == 'dashboard' ? !!activePortalId : true);
-  let selectedAccountCount = selectedAccountKeys.size;
-  let currentUserEmail = currentUser.data?.email ?? null;
   let currentConsumerParticipant = useMemo(() => {
     if (mode != 'portal' || !p.context?.currentConsumerId) return null;
     return (
@@ -336,30 +457,41 @@ export let SkillSharePanelContent = (p: {
     mode == 'portal' ? p.instanceId : null,
     portalSkill.data?.storeId
   );
+  let isCurrentConsumerOwner =
+    !!currentConsumerParticipant && isParticipantOwner(currentConsumerParticipant.roles);
   let canManageAccess =
     mode == 'dashboard' ||
     !!portalStorePermissions.data?.canManageAccess ||
-    (!!currentConsumerParticipant && canParticipantWrite(currentConsumerParticipant.roles));
+    isCurrentConsumerOwner;
+  let canAssignOwners = mode == 'dashboard' || isCurrentConsumerOwner;
 
   let skillAccess = useSkillAccess(p.instanceId, selectedSkillId, canManageAccess);
+  let inheritedSkillGroupIds = useMemo(
+    () => [
+      ...new Set(
+        (skillAccess.data?.grants ?? [])
+          .map(grant => grant.source.skillGroup?.id)
+          .filter((id): id is string => !!id)
+      )
+    ],
+    [skillAccess.data?.grants]
+  );
+  let inheritedPortalAccess = useAllPortalConsumerAccess(
+    canManagePortalGroups ? p.instanceId : null,
+    activePortalId,
+    inheritedSkillGroupIds.length ? { skillGroupId: inheritedSkillGroupIds } : null
+  );
   let grantedPermissionByProfileId = useMemo(() => {
     let map = new Map<string, 'read' | 'write'>();
     for (let grant of skillAccess.data?.grants ?? []) {
       let profileId = grant.subject.consumerProfileId;
+      if (grant.source.type != 'direct') continue;
       if (grant.subject.type != 'consumer_profile' || !profileId) continue;
       if (grant.level == 'read' && map.has(profileId)) continue;
       map.set(profileId, grant.level == 'read' ? 'read' : 'write');
     }
     return map;
   }, [skillAccess.data?.grants]);
-
-  let memberByActorId = useMemo(() => {
-    let map = new Map<string, NonNullable<typeof organizationMembers.data>['items'][number]>();
-    for (let member of organizationMembers.data?.items ?? []) {
-      map.set(member.actorId, member);
-    }
-    return map;
-  }, [organizationMembers.data?.items]);
 
   let profileByConsumerId = useMemo(() => {
     let map = new Map<string, NonNullable<typeof consumerProfiles.data>['items'][number]>();
@@ -369,70 +501,89 @@ export let SkillSharePanelContent = (p: {
     return map;
   }, [consumerProfiles.data?.items]);
 
-  let participantAccountKeys = useMemo(() => {
-    let set = new Set<string>();
-    for (let participant of accessibleParticipants) {
-      let consumerProfile = participant.actor.consumer?.id
-        ? profileByConsumerId.get(participant.actor.consumer.id)
-        : null;
-      if (consumerProfile) set.add(`consumer:${consumerProfile.id}`);
-      let actorId = participant.actor.organizationActor?.id;
-      let member = actorId ? memberByActorId.get(actorId) : null;
-      if (member) set.add(`member:${member.id}`);
-    }
-    return set;
-  }, [accessibleParticipants, memberByActorId, profileByConsumerId]);
+  let everyoneGroup = canManagePortalGroups
+    ? (consumerGroups.data?.items ?? []).find(group => group.isDefault)
+    : undefined;
+  let allGroupAccesses = portalAccess.data?.items ?? [];
+  let everyoneAccess = everyoneGroup
+    ? allGroupAccesses.find(access => access.consumerGroup.id == everyoneGroup.id)
+    : undefined;
+  let groupAccesses = allGroupAccesses.filter(access => !access.consumerGroup.isDefault);
+  let inheritedGroupAccesses = inheritedSkillGroupIds.length
+    ? (inheritedPortalAccess.data ?? []).filter(access => access.access.type == 'skill_group')
+    : [];
 
-  let accountCandidates = useMemo<AccountCandidate[]>(() => {
-    let candidates: AccountCandidate[] = [];
+  let listedConsumerIds = useMemo(
+    () =>
+      new Set(
+        accessibleParticipants
+          .flatMap(participant => [participant.actor.consumer?.id, participant.consumerId])
+          .filter((id): id is string => !!id)
+      ),
+    [accessibleParticipants]
+  );
+
+  let candidates = useMemo<ShareCandidate[]>(() => {
+    let result: ShareCandidate[] = [];
 
     for (let profile of consumerProfiles.data?.items ?? []) {
+      if (mode == 'dashboard' && !!profile.userId && profile.userId == currentUser.data?.id) {
+        continue;
+      }
       if (profile.consumerId == p.context?.currentConsumerId) continue;
-      let key = `consumer:${profile.id}`;
-      if (participantAccountKeys.has(key)) continue;
-      candidates.push({
+      if (listedConsumerIds.has(profile.consumerId)) continue;
+      result.push({
         type: 'consumer',
         id: profile.id,
         name: profile.name || profile.email,
-        email: profile.email,
-        imageUrl: profile.imageUrl
+        description: profile.email,
+        imageUrl: profile.imageUrl,
+        isOrganizationMember: !!profile.organizationMember
       });
     }
 
-    if (mode == 'dashboard') {
-      for (let member of organizationMembers.data?.items ?? []) {
-        if (currentUserEmail && member.actor.email == currentUserEmail) continue;
-        let key = `member:${member.id}`;
-        if (participantAccountKeys.has(key)) continue;
-        candidates.push({
-          type: 'member',
-          id: member.id,
-          actorId: member.actorId,
-          name: member.actor.name,
-          email: member.actor.email,
-          imageUrl: member.actor.imageUrl
-        });
-      }
+    for (let group of consumerGroups.data?.items ?? []) {
+      if (group.isDefault) continue;
+      if (groupAccesses.some(access => access.consumerGroup.id == group.id)) continue;
+      result.push({
+        type: 'group',
+        id: group.id,
+        name: group.name,
+        description: group.description || 'Access Group',
+        imageUrl: `https://avatar.metorial-cdn.com/${group.id}`
+      });
     }
 
-    if (!search.trim()) return candidates;
+    if (!search.trim()) return result;
 
-    return candidates.filter(candidate =>
-      filterBySearch(`${candidate.name} ${candidate.email ?? ''}`, search)
+    return result.filter(candidate =>
+      filterBySearch(`${candidate.name} ${candidate.description}`, search)
     );
   }, [
+    consumerGroups.data?.items,
     consumerProfiles.data?.items,
-    currentUserEmail,
+    currentUser.data?.id,
+    groupAccesses,
+    listedConsumerIds,
     mode,
-    organizationMembers.data?.items,
     p.context?.currentConsumerId,
-    participantAccountKeys,
     search
   ]);
 
-  let toggleAccount = (candidate: AccountCandidate) => {
+  let selectedCandidates = candidates.filter(candidate =>
+    selectedKeys.has(`${candidate.type}:${candidate.id}`)
+  );
+  let selectedHasConsumer = selectedCandidates.some(candidate => candidate.type == 'consumer');
+  let selectedHasGroup = selectedCandidates.some(candidate => candidate.type == 'group');
+  let invitePermissionItems = [
+    ...inviteAccessItems,
+    ...(canManagePortalGroups && !selectedHasConsumer ? [manageAccessItem] : []),
+    ...(canAssignOwners && (!selectedHasGroup || selectedHasConsumer) ? [ownerAccessItem] : [])
+  ];
+
+  let toggleCandidate = (candidate: ShareCandidate) => {
     let key = `${candidate.type}:${candidate.id}`;
-    setSelectedAccountKeys(current => {
+    setSelectedKeys(current => {
       let next = new Set(current);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -443,58 +594,133 @@ export let SkillSharePanelContent = (p: {
   let stopInviteSearch = () => {
     setSearch('');
     setIsSearching(false);
-    setSelectedAccountKeys(new Set());
+    setSelectedKeys(new Set());
   };
 
   useEffect(() => {
+    if (
+      (permission == 'owner' &&
+        (!canAssignOwners || (selectedHasGroup && !selectedHasConsumer))) ||
+      (permission == 'manage' && (!canManagePortalGroups || selectedHasConsumer))
+    ) {
+      setPermission('read');
+    }
+  }, [
+    canAssignOwners,
+    canManagePortalGroups,
+    permission,
+    selectedHasConsumer,
+    selectedHasGroup
+  ]);
+
+  useEffect(() => {
     if (canManageAccess) return;
-    setSearch('');
-    setIsSearching(false);
-    setSelectedAccountKeys(new Set());
+    stopInviteSearch();
   }, [canManageAccess]);
 
-  let shareWithAccounts = async () => {
-    if (!p.instanceId || !selectedSkillId || selectedAccountKeys.size == 0) return;
+  let refetchAccess = async () => {
+    await Promise.all([participants.refetch(), skillAccess.refetch(), portalAccess.refetch()]);
+    await p.onShared?.();
+  };
+
+  let addGroupAccess = async (consumerGroupId: string, level: GroupPermission) => {
+    if (!p.instanceId || !selectedSkillId) return false;
+
+    let [created] = await createPortalAccess.mutate({
+      instanceId: p.instanceId,
+      portalId: activePortalId,
+      consumerGroupId,
+      name: selectedSkill ? getSkillLabel(selectedSkill) : undefined,
+      access: {
+        type: 'skill',
+        skillId: selectedSkillId,
+        permission: level
+      }
+    });
+
+    return !!created;
+  };
+
+  let updateGroupAccess = async (consumerAccessId: string, level: GroupPermission) => {
+    let [updated] = await updatePortalAccess.mutate({ consumerAccessId, permission: level });
+    if (!updated) return;
+
+    await refetchAccess();
+  };
+
+  let setEveryoneAccess = async (value: string) => {
+    if (!everyoneGroup) return;
+
+    if (value == 'none') {
+      if (everyoneAccess) await removeGroupAccess(everyoneAccess.id);
+      return;
+    }
+
+    if (!isGroupPermission(value)) return;
+
+    if (everyoneAccess) {
+      await updateGroupAccess(everyoneAccess.id, value);
+      return;
+    }
+
+    if (!(await addGroupAccess(everyoneGroup.id, value))) return;
+    await refetchAccess();
+  };
+
+  let shareWithSelected = async () => {
+    if (!p.instanceId || !selectedSkillId || selectedKeys.size == 0) return;
 
     let consumerProfileIds: string[] = [];
-    let organizationMemberIds: string[] = [];
+    let organizationMemberProfileIds: string[] = [];
+    let consumerGroupIds: string[] = [];
 
-    for (let key of selectedAccountKeys) {
-      let [type, id] = key.split(':');
-      if (type == 'consumer' && id) {
-        let profile = consumerProfiles.data?.items?.find(profile => profile.id == id);
-        if (profile?.consumerId != p.context?.currentConsumerId) consumerProfileIds.push(id);
-      }
-      if (type == 'member' && id && mode == 'dashboard') {
-        let member = organizationMembers.data?.items?.find(member => member.id == id);
-        if (!currentUserEmail || member?.actor.email != currentUserEmail) {
-          organizationMemberIds.push(id);
-        }
+    for (let candidate of candidates) {
+      if (!selectedKeys.has(`${candidate.type}:${candidate.id}`)) continue;
+
+      if (candidate.type == 'group') {
+        if (canManagePortalGroups) consumerGroupIds.push(candidate.id);
+      } else if (candidate.isOrganizationMember) {
+        organizationMemberProfileIds.push(candidate.id);
+      } else {
+        consumerProfileIds.push(candidate.id);
       }
     }
 
-    if (!consumerProfileIds.length && !organizationMemberIds.length) return;
+    if (
+      permission == 'manage' &&
+      (consumerProfileIds.length || organizationMemberProfileIds.length)
+    ) {
+      return;
+    }
 
-    let [shared] = await shareSkill.mutate({
-      instanceId: p.instanceId,
-      skillId: selectedSkillId,
-      consumerProfileIds,
-      organizationMemberIds,
-      permission
-    });
+    for (let [profileIds, profilePermission] of [
+      [consumerProfileIds, permission == 'manage' ? null : permission],
+      [organizationMemberProfileIds, 'read']
+    ] as const) {
+      if (!profileIds.length || !profilePermission) continue;
 
-    if (!shared) return;
+      let [shared] = await shareSkill.mutate({
+        instanceId: p.instanceId,
+        skillId: selectedSkillId,
+        consumerProfileIds: [...profileIds],
+        organizationMemberIds: [],
+        permission: profilePermission
+      });
 
-    setSelectedAccountKeys(new Set());
-    setSearch('');
-    setIsSearching(false);
-    await Promise.all([participants.refetch(), skillAccess.refetch()]);
-    await p.onShared?.();
+      if (!shared) return;
+    }
+
+    for (let consumerGroupId of consumerGroupIds) {
+      if (!(await addGroupAccess(consumerGroupId, groupPermissionOf(permission)))) return;
+    }
+
+    stopInviteSearch();
+    await refetchAccess();
   };
 
   let updateAccountAccess = async (
     participant: NonNullable<typeof participants.data>['items'][number],
-    nextPermission: 'none' | 'read' | 'write'
+    nextPermission: AccountPermission
   ) => {
     if (!p.instanceId || !selectedSkillId) return;
 
@@ -504,8 +730,7 @@ export let SkillSharePanelContent = (p: {
     let isCurrentConsumer =
       !!participant.actor.consumer?.id &&
       participant.actor.consumer.id == p.context?.currentConsumerId;
-    if (!consumerProfileId || isCurrentConsumer || participant.hasOrganizationMemberAccess)
-      return;
+    if (!consumerProfileId || isCurrentConsumer) return;
     if (mode != 'dashboard' && participant.actor.organizationActor?.id) return;
 
     let [shared] = await shareSkill.mutate({
@@ -517,33 +742,7 @@ export let SkillSharePanelContent = (p: {
     });
 
     if (!shared) return;
-    await Promise.all([participants.refetch(), skillAccess.refetch()]);
-    await p.onShared?.();
-  };
-
-  let shareWithGroup = async (consumerGroupId: string) => {
-    if (!p.instanceId || !selectedSkillId || !activePortalId) return;
-
-    setSharingGroupId(consumerGroupId);
-    try {
-      let [created] = await createPortalAccess.mutate({
-        instanceId: p.instanceId,
-        portalId: activePortalId,
-        consumerGroupId,
-        name: selectedSkill ? getSkillLabel(selectedSkill) : undefined,
-        access: {
-          type: 'skill',
-          skillId: selectedSkillId
-        }
-      });
-
-      if (!created) return;
-
-      await portalAccess.refetch();
-      await p.onShared?.();
-    } finally {
-      setSharingGroupId(null);
-    }
+    await refetchAccess();
   };
 
   let removeGroupAccess = async (consumerAccessId: string) => {
@@ -553,11 +752,35 @@ export let SkillSharePanelContent = (p: {
     try {
       let [deleted] = await deletePortalAccess.mutate({ consumerAccessId });
       if (!deleted) return;
-      await portalAccess.refetch();
-      await p.onShared?.();
+      await refetchAccess();
     } finally {
       setRemovingGroupId(null);
     }
+  };
+
+  let ownGroupAccess = ownProfile
+    ? groupAccesses.find(access =>
+        (ownProfile.groups ?? []).some(
+          assignment => assignment.group.id == access.consumerGroup.id
+        )
+      )
+    : undefined;
+  let ownGrantedDirectly = !!ownProfile && grantedPermissionByProfileId.has(ownProfile.id);
+  let portalName = activePortal?.name ?? 'portal';
+
+  let toggleOwnPortalAccess = async (visible: boolean) => {
+    if (!p.instanceId || !selectedSkillId || !ownProfile) return;
+
+    let [shared] = await shareSkill.mutate({
+      instanceId: p.instanceId,
+      skillId: selectedSkillId,
+      consumerProfileIds: [ownProfile.id],
+      organizationMemberIds: [],
+      permission: visible ? 'read' : 'none'
+    });
+
+    if (!shared) return;
+    await refetchAccess();
   };
 
   if (!p.context || skills.length == 0) {
@@ -570,55 +793,40 @@ export let SkillSharePanelContent = (p: {
     );
   }
 
+  let selectedCount = selectedKeys.size;
+  let selectedHasViewOnly = selectedCandidates.some(
+    candidate => candidate.type == 'consumer' && candidate.isOrganizationMember
+  );
+  let isSharing = shareSkill.isLoading || createPortalAccess.isLoading;
+
   return (
     <PanelStack>
-      {skills.length > 1 && (
-        <div style={{ padding: 10 }}>
-          <Select
-            label="Skill"
-            size="2"
-            value={selectedSkillId}
-            items={getSkillItems(skills)}
-            onChange={setSelectedSkillId}
-          />
-        </div>
-      )}
+      <PanelHeader>
+        <PanelTitle>
+          <Text size="2" weight="strong">
+            Share Skill
+          </Text>
+        </PanelTitle>
 
-      {showPortalSelect && (
-        <div style={{ padding: 10 }}>
-          <Select
-            label="Portal"
-            size="2"
-            value={selectedPortalId}
-            placeholder="Select a portal"
-            items={getPortalItems(portals.data?.items)}
-            onChange={setSelectedPortalId}
-          />
-        </div>
-      )}
-
-      {canManagePortalGroups ? (
-        <div>
-          <Tabs
-            current={activeTab}
-            tabs={[
-              { id: 'accounts', label: 'Accounts' },
-              { id: 'portal-groups', label: 'Portal Groups' }
-            ]}
-            action={id => {
-              if (id == 'accounts' || id == 'portal-groups') {
-                setActiveTab(id);
-                setSearch('');
-                setIsSearching(false);
-              }
-            }}
-            margin={{ bottom: 8, top: 8 }}
-            padding={{ left: 20, right: 20 }}
-          />
-        </div>
-      ) : (
-        <Spacer height={8} />
-      )}
+        {showPortalChip && (
+          <Menu
+            title="Share within portal"
+            label="Change portal"
+            items={portalItems.map(portal => ({
+              id: portal.id,
+              label: portal.name,
+              icon: portal.id == activePortalId ? <RiCheckLine size={14} /> : <span />
+            }))}
+            onItemClick={setSelectedPortalId}
+          >
+            <PortalChip type="button">
+              <RiLayoutTopLine size={14} />
+              <span>{activePortal?.name ?? 'Select a portal'}</span>
+              <RiArrowDownSLine size={14} />
+            </PortalChip>
+          </Menu>
+        )}
+      </PanelHeader>
 
       {!hasShareTarget ? (
         <EmptyState>
@@ -628,260 +836,336 @@ export let SkillSharePanelContent = (p: {
         </EmptyState>
       ) : (
         <>
-          {activeTab == 'accounts' && (
-            <ContentPanel>
-              {canManageAccess ? (
-                <InviteRow>
-                  {isSearching && (
-                    <Button
-                      size="2"
-                      variant="soft"
-                      iconRight={<RiArrowLeftSLine size={16} />}
-                      onClick={stopInviteSearch}
-                    />
-                  )}
-                  <Input
-                    label="Invite accounts"
-                    hideLabel
-                    size="2"
-                    style={{ flex: 1 }}
-                    placeholder="Email or group, separated by commas"
-                    value={search}
-                    onFocus={() => setIsSearching(true)}
-                    onInput={value => {
-                      setSearch(value);
-                      setIsSearching(true);
-                    }}
-                  />
+          <ContentPanel>
+            {canManageAccess ? (
+              <InviteRow>
+                {isSearching && (
                   <Button
                     size="2"
-                    loading={shareSkill.isLoading}
-                    disabled={isSearching && selectedAccountCount == 0}
-                    onClick={() => {
-                      if (!isSearching) {
-                        setIsSearching(true);
-                        return;
-                      }
-                      shareWithAccounts();
-                    }}
-                  >
-                    Invite
-                  </Button>
-                </InviteRow>
-              ) : null}
+                    variant="soft"
+                    iconRight={<RiArrowLeftSLine size={16} />}
+                    onClick={stopInviteSearch}
+                  />
+                )}
+                <Input
+                  label="Add people or access groups"
+                  hideLabel
+                  size="2"
+                  style={{ flex: 1 }}
+                  placeholder={
+                    canManagePortalGroups ? 'Add people or access groups' : 'Add people'
+                  }
+                  value={search}
+                  onFocus={() => setIsSearching(true)}
+                  onInput={value => {
+                    setSearch(value);
+                    setIsSearching(true);
+                  }}
+                />
+              </InviteRow>
+            ) : null}
 
-              {isSearching ? (
-                <>
-                  <RowList>
-                    {accountCandidates.map(candidate => {
-                      let key = `${candidate.type}:${candidate.id}`;
-                      let selected = selectedAccountKeys.has(key);
-                      return (
-                        <CandidateRow
-                          key={key}
-                          type="button"
-                          $selected={selected}
-                          onClick={() => toggleAccount(candidate)}
-                        >
-                          <Avatar
-                            entity={{
-                              name: candidate.name,
-                              imageUrl: candidate.imageUrl ?? undefined
-                            }}
-                            size={36}
-                          />
-                          <PersonInfo>
-                            <PersonName>
-                              <Truncate>{candidate.name}</Truncate>
-                              {candidate.type == 'member' && <Pill>Member</Pill>}
-                            </PersonName>
-                            <Muted>{candidate.email}</Muted>
-                          </PersonInfo>
-                          {/* <Text size="1" color={selected ? 'blue800' : 'gray600'}>
-                            {selected ? 'Selected' : 'Select'}
-                          </Text> */}
-
-                          <div>{selected ? <RiCheckLine size={16} /> : null}</div>
-                        </CandidateRow>
-                      );
-                    })}
-                    {!consumerProfiles.isLoading &&
-                      !organizationMembers.isLoading &&
-                      accountCandidates.length == 0 && (
-                        <EmptyState>
-                          <Text size="2" color="gray600">
-                            No invite candidates found.
-                          </Text>
-                        </EmptyState>
-                      )}
-                  </RowList>
-                  <InvitePermissionFooter>
-                    <InvitePermissionLabel>
-                      Invite people to work on this skill
-                    </InvitePermissionLabel>
-                    <AccessSelectWrap>
-                      <Select
-                        label="Permission"
-                        hideLabel
-                        size="2"
-                        value={permission}
-                        items={inviteAccessItems}
-                        onChange={value => {
-                          if (value == 'read' || value == 'write') setPermission(value);
-                        }}
-                      />
-                    </AccessSelectWrap>
-                  </InvitePermissionFooter>
-                </>
-              ) : (
-                <>
-                  <RowList>
-                    {accessibleParticipants.map(participant => {
-                      let isCreator = participant.roles.includes('creator');
-                      let consumerProfileId = participant.actor.consumer?.id
-                        ? profileByConsumerId.get(participant.actor.consumer.id)?.id
-                        : null;
-                      let isOrganizationMember = !!participant.actor.organizationActor?.id;
-                      let isCurrentConsumer =
-                        !!participant.actor.consumer?.id &&
-                        participant.actor.consumer.id == p.context?.currentConsumerId;
-                      let hasOrganizationMemberAccess =
-                        participant.hasOrganizationMemberAccess;
-                      let participantPermission = hasOrganizationMemberAccess
-                        ? 'write'
-                        : consumerProfileId && skillAccess.data
-                          ? (grantedPermissionByProfileId.get(consumerProfileId) ?? 'none')
-                          : getParticipantPermission(participant.roles);
-                      let isConsumerOwner = isCreator && !isOrganizationMember;
-                      return (
-                        <AccessRow key={participant.id}>
-                          <Avatar
-                            entity={{
-                              name: participant.actor.name,
-                              imageUrl: participant.actor.imageUrl ?? undefined
-                            }}
-                            size={40}
-                          />
-                          <PersonInfo>
-                            <PersonName>
-                              <Truncate>{participant.actor.name}</Truncate>
-                              {isCreator && <Pill>Owner</Pill>}
-                            </PersonName>
-                            <Muted>{participant.actor.email}</Muted>
-                            {hasOrganizationMemberAccess && (
-                              <Muted>Full access through organization membership</Muted>
-                            )}
-                          </PersonInfo>
-                          <AccessSelectWrap>
-                            <Select
-                              label="Access"
-                              hideLabel
-                              size="2"
-                              disabled={
-                                hasOrganizationMemberAccess ||
-                                !canManageAccess ||
-                                !consumerProfileId ||
-                                isConsumerOwner ||
-                                isCurrentConsumer ||
-                                (mode == 'portal' && isOrganizationMember)
-                              }
-                              value={participantPermission}
-                              items={accountAccessItems}
-                              onChange={value => {
-                                if (value == 'none' || value == 'read' || value == 'write') {
-                                  updateAccountAccess(participant, value);
-                                }
-                              }}
-                            />
-                          </AccessSelectWrap>
-                        </AccessRow>
-                      );
-                    })}
-                    {!participants.isLoading && accessibleParticipants.length == 0 && (
+            {isSearching ? (
+              <>
+                <RowList>
+                  {candidates.map(candidate => {
+                    let key = `${candidate.type}:${candidate.id}`;
+                    let selected = selectedKeys.has(key);
+                    return (
+                      <CandidateRow
+                        key={key}
+                        type="button"
+                        $selected={selected}
+                        onClick={() => toggleCandidate(candidate)}
+                      >
+                        <Avatar
+                          entity={{
+                            name: candidate.name,
+                            imageUrl: candidate.imageUrl ?? undefined
+                          }}
+                          size={36}
+                        />
+                        <PersonInfo>
+                          <PersonName>
+                            <Truncate>{candidate.name}</Truncate>
+                            {candidate.type == 'group' && <GroupPill>Access Group</GroupPill>}
+                          </PersonName>
+                          <Muted>{candidate.description}</Muted>
+                        </PersonInfo>
+                        <div>{selected ? <RiCheckLine size={16} /> : null}</div>
+                      </CandidateRow>
+                    );
+                  })}
+                  {!consumerProfiles.isLoading &&
+                    !consumerGroups.isLoading &&
+                    candidates.length == 0 && (
                       <EmptyState>
                         <Text size="2" color="gray600">
-                          No accounts have access yet.
+                          No one left to add.
                         </Text>
                       </EmptyState>
                     )}
-                  </RowList>
-                </>
-              )}
-            </ContentPanel>
+                </RowList>
+
+                <InvitePermissionFooter>
+                  <InvitePermissionLabel>
+                    {selectedCount
+                      ? `${selectedCount} selected`
+                      : 'Pick people or access groups'}
+                    {selectedHasViewOnly && permission != 'read'
+                      ? ' · organization members already can edit and share'
+                      : ''}
+                    {selectedHasGroup && permission == 'owner'
+                      ? ' · groups can edit and share but not own'
+                      : ''}
+                  </InvitePermissionLabel>
+                  <AccessSelectWrap>
+                    <Select
+                      label="Access for new people"
+                      hideLabel
+                      size="2"
+                      value={permission}
+                      items={invitePermissionItems}
+                      onChange={value => {
+                        if (isInvitePermission(value)) setPermission(value);
+                      }}
+                    />
+                  </AccessSelectWrap>
+                  <Button
+                    size="2"
+                    loading={isSharing}
+                    disabled={selectedCount == 0}
+                    onClick={shareWithSelected}
+                  >
+                    Add
+                  </Button>
+                </InvitePermissionFooter>
+              </>
+            ) : (
+              <>
+                <RowList>
+                  {accessibleParticipants.map(participant => {
+                    let isOwner = isParticipantOwner(participant.roles);
+                    let consumerProfileId = participant.actor.consumer?.id
+                      ? profileByConsumerId.get(participant.actor.consumer.id)?.id
+                      : null;
+                    let isOrganizationMember = !!participant.actor.organizationActor?.id;
+                    let isCurrentConsumer =
+                      !!participant.actor.consumer?.id &&
+                      participant.actor.consumer.id == p.context?.currentConsumerId;
+                    let hasOrganizationMemberAccess = participant.hasOrganizationMemberAccess;
+                    let grantedPermission = consumerProfileId
+                      ? grantedPermissionByProfileId.get(consumerProfileId)
+                      : undefined;
+                    let participantPermission = isOwner
+                      ? 'owner'
+                      : hasOrganizationMemberAccess
+                        ? 'manage'
+                        : consumerProfileId && skillAccess.data
+                          ? (grantedPermission ?? 'none')
+                          : getParticipantPermission(participant.roles);
+                    let participantAccessItems = isOwner
+                      ? [...accountAccessItems, ownerAccessItem]
+                      : hasOrganizationMemberAccess
+                        ? [manageAccessItem]
+                        : canAssignOwners && !isOrganizationMember
+                          ? [...accountAccessItems, ownerAccessItem]
+                          : accountAccessItems;
+                    return (
+                      <AccessRow key={participant.id}>
+                        <Avatar
+                          entity={{
+                            name: participant.actor.name,
+                            imageUrl: participant.actor.imageUrl ?? undefined
+                          }}
+                          size={36}
+                        />
+                        <PersonInfo>
+                          <PersonName>
+                            <Truncate>{participant.actor.name}</Truncate>
+                          </PersonName>
+                          <Muted>{participant.actor.email}</Muted>
+                        </PersonInfo>
+                        <AccessSelectWrap>
+                          <Select
+                            label="Access"
+                            hideLabel
+                            size="2"
+                            disabled={
+                              hasOrganizationMemberAccess ||
+                              !canManageAccess ||
+                              !consumerProfileId ||
+                              (isOwner && mode != 'dashboard') ||
+                              isCurrentConsumer ||
+                              (mode == 'portal' && isOrganizationMember)
+                            }
+                            value={participantPermission}
+                            items={participantAccessItems}
+                            onChange={value => {
+                              if (isAccountPermission(value)) {
+                                updateAccountAccess(participant, value);
+                              }
+                            }}
+                          />
+                        </AccessSelectWrap>
+                      </AccessRow>
+                    );
+                  })}
+
+                  {canManagePortalGroups &&
+                    groupAccesses.map(access => (
+                      <AccessRow key={access.id}>
+                        <Avatar
+                          entity={{
+                            name: access.consumerGroup.name,
+                            imageUrl: `https://avatar.metorial-cdn.com/${access.consumerGroup.id}`
+                          }}
+                          size={36}
+                        />
+                        <PersonInfo>
+                          <PersonName>
+                            <Truncate>{access.consumerGroup.name}</Truncate>
+                            <GroupPill>Access Group</GroupPill>
+                          </PersonName>
+                          <Muted>{access.consumerGroup.description || 'Access Group'}</Muted>
+                        </PersonInfo>
+                        <AccessSelectWrap>
+                          <Select
+                            label="Access"
+                            hideLabel
+                            size="2"
+                            value={access.accessLevel ?? 'read'}
+                            disabled={
+                              removingGroupId == access.id || updatePortalAccess.isLoading
+                            }
+                            items={groupAccessItems}
+                            onChange={value => {
+                              if (value == 'none') removeGroupAccess(access.id);
+                              else if (isGroupPermission(value)) {
+                                updateGroupAccess(access.id, value);
+                              }
+                            }}
+                          />
+                        </AccessSelectWrap>
+                      </AccessRow>
+                    ))}
+
+                  {canManagePortalGroups &&
+                    inheritedGroupAccesses.map(access => (
+                      <AccessRow key={access.id}>
+                        <Avatar
+                          entity={{
+                            name: access.consumerGroup.name,
+                            imageUrl: `https://avatar.metorial-cdn.com/${access.consumerGroup.id}`
+                          }}
+                          size={36}
+                        />
+                        <PersonInfo>
+                          <PersonName>
+                            <Truncate>{access.consumerGroup.name}</Truncate>
+                            <GroupPill>Access Group</GroupPill>
+                          </PersonName>
+                          <Muted>
+                            Through{' '}
+                            {access.access.type == 'skill_group'
+                              ? access.access.skillGroup.name
+                              : access.name}
+                          </Muted>
+                        </PersonInfo>
+                        <AccessSelectWrap>
+                          <Select
+                            label="Inherited access"
+                            hideLabel
+                            size="2"
+                            disabled
+                            value={access.accessLevel ?? 'read'}
+                            items={groupLevelItems}
+                          />
+                        </AccessSelectWrap>
+                      </AccessRow>
+                    ))}
+
+                  {!participants.isLoading &&
+                    accessibleParticipants.length == 0 &&
+                    groupAccesses.length == 0 &&
+                    inheritedGroupAccesses.length == 0 && (
+                      <EmptyState>
+                        <Text size="2" color="gray600">
+                          Nobody has been added yet.
+                        </Text>
+                      </EmptyState>
+                    )}
+                </RowList>
+              </>
+            )}
+          </ContentPanel>
+
+          {mode == 'dashboard' && !isSearching && everyoneGroup && (
+            <AccessSection>
+              <AccessRow>
+                <IconAvatar $size={36}>
+                  <RiGroupLine size={18} />
+                </IconAvatar>
+                <PersonInfo>
+                  <PersonName>
+                    <Truncate>Everyone at {portalName}</Truncate>
+                  </PersonName>
+                  <Muted>Anyone with a portal account</Muted>
+                </PersonInfo>
+                <AccessSelectWrap>
+                  <Select
+                    label="Access for everyone"
+                    hideLabel
+                    size="2"
+                    value={everyoneAccess ? (everyoneAccess.accessLevel ?? 'read') : 'none'}
+                    disabled={
+                      createPortalAccess.isLoading ||
+                      updatePortalAccess.isLoading ||
+                      (!!everyoneAccess && removingGroupId == everyoneAccess.id)
+                    }
+                    items={[...groupLevelItems, { id: 'none', label: 'No access' }]}
+                    onChange={setEveryoneAccess}
+                  />
+                </AccessSelectWrap>
+              </AccessRow>
+            </AccessSection>
           )}
 
-          {activeTab == 'portal-groups' && canManagePortalGroups && (
-            <ContentPanel>
-              <Input
-                label="Search portal groups"
+          {mode == 'dashboard' && !isSearching && (
+            <SelfPortalFooter>
+              <SelfPortalText>
+                <SelfPortalTitle>
+                  {!ownProfile
+                    ? `You haven't opened ${portalName} yet`
+                    : ownGrantedDirectly
+                      ? `In your portal`
+                      : ownGroupAccess
+                        ? `In your portal`
+                        : `Not in your portal`}
+                </SelfPortalTitle>
+                <Muted style={{ whiteSpace: 'normal' }}>
+                  {!ownProfile
+                    ? 'Open it once to be able to add skills to it. You can always open this skill here in the dashboard.'
+                    : ownGrantedDirectly
+                      ? 'You can see the skill in the portal.'
+                      : 'You can see the skill here, but not in the portal.'}
+                </Muted>
+              </SelfPortalText>
+              <Switch
                 hideLabel
-                size="2"
-                placeholder="Search portal groups..."
-                value={search}
-                onInput={setSearch}
+                label="Show in my portal"
+                checked={ownGrantedDirectly || !!ownGroupAccess}
+                disabled={!ownProfile || !!ownGroupAccess || shareSkill.isLoading}
+                onCheckedChange={toggleOwnPortalAccess}
               />
-              <RowList>
-                {(consumerGroups.data?.items ?? []).map(group => {
-                  let existingAccess = (portalAccess.data?.items ?? []).find(
-                    access => access.consumerGroup.id == group.id
-                  );
-                  return (
-                    <AccessRow key={group.id}>
-                      <Avatar
-                        entity={{
-                          name: group.name,
-                          imageUrl: `https://avatar.metorial-cdn.com/${group.id}`
-                        }}
-                        size={40}
-                      />
-                      <PersonInfo>
-                        <PersonName>
-                          <Truncate>{group.name}</Truncate>
-                          {group.isDefault && <Pill>Default</Pill>}
-                        </PersonName>
-                        <Muted>{group.description || 'Portal group'}</Muted>
-                      </PersonInfo>
-                      <AccessSelectWrap>
-                        <Select
-                          label="Access"
-                          hideLabel
-                          size="2"
-                          value={existingAccess ? 'read' : 'none'}
-                          items={[
-                            { id: 'none', label: 'No access' },
-                            { id: 'read', label: 'Can view' }
-                          ]}
-                          disabled={
-                            sharingGroupId == group.id ||
-                            (!!existingAccess && removingGroupId == existingAccess.id)
-                          }
-                          onChange={value => {
-                            if (value == 'read' && !existingAccess) shareWithGroup(group.id);
-                            if (value == 'none' && existingAccess) {
-                              removeGroupAccess(existingAccess.id);
-                            }
-                          }}
-                        />
-                      </AccessSelectWrap>
-                    </AccessRow>
-                  );
-                })}
-                {!consumerGroups.isLoading &&
-                  (consumerGroups.data?.items ?? []).length == 0 && (
-                    <EmptyState>
-                      <Text size="2" color="gray600">
-                        No portal groups found.
-                      </Text>
-                    </EmptyState>
-                  )}
-              </RowList>
-            </ContentPanel>
+            </SelfPortalFooter>
           )}
 
           <div>
             <shareSkill.RenderError />
             <createPortalAccess.RenderError />
             <deletePortalAccess.RenderError />
+            <updatePortalAccess.RenderError />
           </div>
         </>
       )}

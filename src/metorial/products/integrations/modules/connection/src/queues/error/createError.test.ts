@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  recordSessionError: vi.fn(),
   handler: null as unknown as (data: { errorId: string }) => Promise<void>,
   db: {
     sessionError: { findFirst: vi.fn(), updateMany: vi.fn() },
@@ -26,6 +27,10 @@ vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   getId: () => ({ id: 'generated', oid: 100n }),
   snowflake: { nextId: () => 101n }
+}));
+
+vi.mock('@metorial-subspace/module-provider-issue', () => ({
+  providerIssueRecorderService: { recordSessionError: mocks.recordSessionError }
 }));
 
 vi.mock('@metorial/db', () => import('../../../../../../../db/src/lib/unique'));
@@ -74,6 +79,9 @@ describe('createError', () => {
 
       await mocks.handler({ errorId: 'ser_1' });
 
+      expect(mocks.recordSessionError).toHaveBeenCalledExactlyOnceWith({
+        sessionErrorId: 'ser_1'
+      });
       expect(mocks.db.sessionErrorGroup.upsert).toHaveBeenCalledTimes(exists ? 0 : 1);
       expect(mocks.db.sessionErrorGroupOccurrencePeriod.update).not.toHaveBeenCalled();
       expect(mocks.db.sessionError.updateMany).toHaveBeenCalledWith({

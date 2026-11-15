@@ -1,0 +1,56 @@
+enum DocumentCommentThreadStatus {
+  open
+  resolved
+}
+
+enum DocumentCommentThreadAnchorStatus {
+  attached
+  detached
+}
+
+model DocumentCommentThread {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status       DocumentCommentThreadStatus       @default(open)
+  anchorStatus DocumentCommentThreadAnchorStatus @default(attached)
+  quote        String
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  createdByResourceActorOid BigInt
+  createdByResourceActor    ResourceActor @relation("DocumentCommentThreadCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: Cascade)
+
+  resolvedByResourceActorOid BigInt?
+  resolvedByResourceActor    ResourceActor? @relation("DocumentCommentThreadResolver", fields: [resolvedByResourceActorOid], references: [oid], onDelete: SetNull)
+
+  resolvedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  comments DocumentComment[]
+
+  @@index([documentOid, createdAt])
+}
+
+model DocumentComment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  body String
+
+  threadOid BigInt
+  thread    DocumentCommentThread @relation(fields: [threadOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([threadOid, createdAt])
+}

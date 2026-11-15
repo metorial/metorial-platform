@@ -365,13 +365,57 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async authenticateWebhookDelivery(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body: { encoding: 'base64'; content: string } | null;
+    deliveryConfig: unknown;
+  }) {
+    let { stack, ...params } = d;
+    return await stack.invoke('slates/trigger_group.webhook.delivery_authenticate', params);
+  }
+
+  async expandWebhook(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    payload: Record<string, any> | null;
+    state?: any;
+    selection?: Record<string, any>;
+    deliveryId: string;
+    webhookRegistrationPayload: any;
+  }) {
+    let { stack, ...params } = d;
+    return await stack.invoke('slates/trigger_group.webhook.expand', params);
+  }
+
+  async renewWebhook(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    webhookRegistrationIdentifier: string;
+    webhookRegistrationPayload: any;
+    webhookUrl: string;
+    webhookTargetIdentifier: string;
+    webhookTargetPayload: any;
+    operationId: string;
+    selection?: Record<string, any>;
+    deliveryConfig?: unknown;
+  }) {
+    let { stack, ...params } = d;
+    return await stack.invoke('slates/trigger_group.webhook.renew', params);
+  }
+
   async pollTriggerGroup(d: {
     stack: SlateInvocationStack;
     triggerGroupId: string;
     state: any;
+    selection?: Record<string, any>;
   }) {
     return await d.stack.invoke('slates/trigger_group.polling.poll', {
       triggerGroupId: d.triggerGroupId,
+      selection: d.selection,
       state: d.state
     });
   }
@@ -417,10 +461,12 @@ class slateInvocationServiceImpl {
     stack: SlateInvocationStack;
     triggerGroupId: string;
     pageToken?: any;
+    selection?: Record<string, any>;
   }) {
     return await d.stack.invoke('slates/trigger_group.webhook.targets_list', {
       triggerGroupId: d.triggerGroupId,
-      pageToken: d.pageToken ?? null
+      pageToken: d.pageToken ?? null,
+      selection: d.selection
     });
   }
 
@@ -430,12 +476,18 @@ class slateInvocationServiceImpl {
     webhookTargetIdentifier: string;
     webhookTargetPayload: any;
     webhookUrl: string;
+    operationId?: string;
+    selection?: Record<string, any>;
+    deliveryConfig?: unknown;
   }) {
     return await d.stack.invoke('slates/trigger_group.webhook.register', {
       triggerGroupId: d.triggerGroupId,
       webhookTargetIdentifier: d.webhookTargetIdentifier,
       webhookTargetPayload: d.webhookTargetPayload,
-      webhookUrl: d.webhookUrl
+      webhookUrl: d.webhookUrl,
+      selection: d.selection,
+      operationId: d.operationId,
+      deliveryConfig: d.deliveryConfig
     });
   }
 

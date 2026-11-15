@@ -392,7 +392,7 @@ export let DetailsLayout = ({
     <DetailsLayoutContext.Provider
       value={{ entity, icon, avatar, breadcrumbs, tabs, actions, attributes }}
     >
-      <Header ref={headerRef} $showBorder={showHeaderBorder}>
+      <Header ref={headerRef} $showBorder={showHeaderBorder} data-details-layout-header>
         <EntityHeader>
           <EntityIdentity
             $expanded={isExpanded}

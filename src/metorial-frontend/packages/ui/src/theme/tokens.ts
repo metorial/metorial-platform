@@ -4,30 +4,31 @@ let toDashCase = (str: string) => {
   return str.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`).replaceAll('_', '-');
 };
 
+type ThemeTokenMeta = {
+  id: string;
+  name: string;
+  varName: string;
+  defaultValue?: string;
+};
+
+// Tokens must stay primitive strings: boxing them into String objects makes
+// styled-components warn whenever an interpolation function returns one.
+let tokenMeta = new Map<string, ThemeTokenMeta>();
+
 export let createThemeToken =
   (defaultValue?: string) =>
   (name: string): ThemeTokenValue => {
     let id = toDashCase(name);
     let value = `var(--${id}${defaultValue ? `, ${defaultValue}` : ''})`;
 
-    return Object.assign(value, {
-      id,
-      name,
-      value,
-      defaultValue,
-      varName: `--${id}`
-    });
+    tokenMeta.set(value, { id, name, varName: `--${id}`, defaultValue });
+
+    return value;
   };
 
 export type ThemeTokenFactory = (name: string) => ThemeTokenValue;
 
-export type ThemeTokenValue = string & {
-  id: string;
-  name: string;
-  value: string;
-  varName: string;
-  defaultValue?: string;
-};
+export type ThemeTokenValue = string;
 
 export type ThemeTokens = {
   [key: string]: ThemeTokenFactory | ThemeTokens;
@@ -72,9 +73,10 @@ export let createTheme = <Tokens extends ThemeTokens>(tokens: Tokens) => {
 
   let setBodyStyles = (theme: InferThemeTokenValues<ThemeTokens>) => {
     for (let value of Object.values(theme) as any) {
-      if ('value' in value) {
-        if (value.defaultValue) {
-          document.body.style.setProperty(value.varName, value.defaultValue);
+      if (typeof value === 'string') {
+        let meta = tokenMeta.get(value);
+        if (meta?.defaultValue) {
+          document.body.style.setProperty(meta.varName, meta.defaultValue);
         }
       } else if (typeof value === 'object') {
         setBodyStyles(value);
@@ -92,10 +94,8 @@ export let createTheme = <Tokens extends ThemeTokens>(tokens: Tokens) => {
         for (let key in theme) {
           let value = theme[key];
 
-          if (typeof value == 'string' || value.value) {
-            let cssKey = values[key]?.varName;
-
-            if (value.value) value = value.value;
+          if (typeof value == 'string') {
+            let cssKey = tokenMeta.get(values[key])?.varName;
 
             if (value && cssKey) {
               // @ts-ignore

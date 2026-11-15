@@ -93,21 +93,70 @@ vi.mock('@metorial/ui', () => ({
   useCopy: () => ({ copy: vi.fn(), copied: false })
 }));
 
-vi.mock('@metorial/table', () => ({
-  Table: class {
-    state() {
-      return this;
-    }
-    columns() {
-      return this;
-    }
-    search() {
-      return this;
-    }
-    build() {
-      return () => null;
-    }
-  }
+vi.mock('@metorial/data-list', () => {
+  let createDataList = () => {
+    let source: any;
+    let link: any;
+    let builder: any = new Proxy(
+      {},
+      {
+        get: (_target, name: string) => {
+          if (name == 'paginated') {
+            return (fn: any) => {
+              source = fn;
+              return builder;
+            };
+          }
+
+          if (name == 'link') {
+            return (fn: any) => {
+              link = fn;
+              return builder;
+            };
+          }
+
+          if (name == 'build') {
+            return () => (props: any) => {
+              let ctx = {
+                organization: { slug: 'org' },
+                project: { slug: 'project' },
+                instance: { slug: 'sandbox' }
+              };
+              let result = source({ props, ctx, limit: props.listLimit });
+
+              if (result.isLoading) return <span>Loading</span>;
+              if (result.error) return <span>Resource Error</span>;
+
+              let items = (result.data?.items ?? []).slice(0, props.listLimit);
+              if (items.length == 0) return <span>{props.emptyState}</span>;
+
+              return (
+                <ul data-variant={props.listVariant}>
+                  {items.map((item: any) => (
+                    <li key={item.id}>
+                      <a href={link(item, props, ctx)}>{item.name}</a>
+                    </li>
+                  ))}
+                </ul>
+              );
+            };
+          }
+
+          return () => builder;
+        }
+      }
+    );
+
+    return builder;
+  };
+
+  return { createDataList, col: new Proxy({}, { get: () => () => ({}) }) };
+});
+
+vi.mock('../../scenes/apiKeys', () => ({
+  ApiKeysTable: ({ items }: any) => (
+    <span>{items.length == 0 ? 'No API keys found.' : `${items.length} keys`}</span>
+  )
 }));
 
 vi.mock('@metorial/ui-product', () => ({
@@ -117,26 +166,6 @@ vi.mock('@metorial/ui-product', () => ({
       {rightActions}
       {children}
     </section>
-  ),
-  Table: ({ headers, data }: any) => (
-    <table>
-      <thead>
-        <tr>
-          {headers.map((header: string, i: number) => (
-            <th key={i}>{header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row: any, i: number) => (
-          <tr key={i}>
-            {(Array.isArray(row) ? row : row.data).map((cell: any, j: number) => (
-              <td key={j}>{row.href ? <a href={row.href}>{cell}</a> : cell}</td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
   )
 }));
 
@@ -181,7 +210,7 @@ describe('Developer Home', () => {
     expect(state.reveal).not.toHaveBeenCalled();
   });
 
-  it('shows at most five rows with shared secret previews, no statuses, and no pagination', () => {
+  it('renders preview lists limited to five rows with product links and no pagination', () => {
     let records = Array.from({ length: 8 }, (_, i) => ({
       id: `id_${i}`,
       name: `Record ${i}`,
@@ -191,26 +220,13 @@ describe('Developer Home', () => {
     state.deployments = records;
     state.configs = records;
     state.authConfigs = records;
-    state.keys = records.map(item => ({
-      ...item,
-      type: 'instance_access_token_secret',
-      secretRedacted: 'metorial_...redacted',
-      secretRedactedLong: 'metorial_...redacted-long',
-      revealInfo: item.id === 'id_0' ? { forever: true } : null,
-      expiresAt: null,
-      lastUsedAt: null
-    }));
+    state.keys = records;
     let html = render();
 
-    expect(html.match(/<tbody><tr>/g)).toHaveLength(4);
-    expect(html.match(/<tr>/g)).toHaveLength(24);
+    expect(html.match(/data-variant="preview"/g)).toHaveLength(3);
+    expect(html.match(/<li>/g)).toHaveLength(15);
     expect(html).not.toContain('Record 5');
-    expect(html).toContain('<th>Secret</th>');
-    expect(html).toContain('metorial_...redacted');
-    expect(html).toContain('Reveal Secret');
-    expect(html).toContain('metorial_...redacted-long');
-    expect(html).not.toContain('<th>Status</th>');
-    expect(state.revealHook).toHaveBeenCalledTimes(5);
+    expect(html).toContain('8 keys');
     expect(html).not.toContain('Previous');
     expect(html).not.toContain('Next');
     expect(html).toContain('href="/i/sandbox/configurations/id_0"');

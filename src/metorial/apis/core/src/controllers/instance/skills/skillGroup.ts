@@ -163,7 +163,24 @@ export let skillGroupController = Controller.create(
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
           skill_ids: v.optional(v.array(v.string())),
-          allow_consumer_skill_assignment: v.optional(v.boolean())
+          allow_consumer_skill_assignment: v.optional(v.boolean()),
+          image_file_id: v.optional(v.nullable(v.string())),
+          image_icon: v.optional(
+            v.nullable(
+              v.object({
+                icon: v.string({
+                  description: 'Library icon id, e.g. rocket-2-line'
+                }),
+                color: v.string({
+                  description: 'Tile color: gray, blue, green, yellow, orange, red or purple'
+                })
+              })
+            ),
+            {
+              description:
+                'Use a library icon with a tile color as the skill group image. Pass null to reset to the default image. Cannot be combined with image_file_id.'
+            }
+          )
         })
       )
       .output(skillGroupPresenter)
@@ -179,7 +196,9 @@ export let skillGroupController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata as any,
             skillIds: ctx.body.skill_ids,
-            allowConsumerSkillAssignment: ctx.body.allow_consumer_skill_assignment
+            allowConsumerSkillAssignment: ctx.body.allow_consumer_skill_assignment,
+            imageFileId: ctx.body.image_file_id,
+            imageIcon: ctx.body.image_icon
           }
         });
         let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);

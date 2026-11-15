@@ -1,17 +1,60 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import { DetailsTableLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
+  IntegrationPreview,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
   useDashboardFlags,
   useIntegration
 } from '@metorial/state';
-import { Badge, Callout, Flex, Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
+import { Badge, Callout } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
+import { useInstanceContext } from '../../../lib/dataList';
 import { CallbackSyncBadge } from '../../../scenes/callbacks/shared';
+
+type ProviderCallbackRow = NonNullable<IntegrationPreview['providers']>[number] & {
+  id: string;
+};
+
+let ProviderCallbacksList = createDataList<{ providers: ProviderCallbackRow[] }>(
+  'integration-callbacks',
+  { customizable: false }
+)
+  .context(useInstanceContext)
+  .items(({ props }) => ({ items: props.providers }))
+  .columns([
+    col.text({
+      id: 'provider',
+      header: 'Provider',
+      weight: 'strong',
+      get: row => row.callbacks.callback?.name ?? row.provider.name
+    }),
+    col.custom({
+      id: 'sync',
+      header: 'Delivery',
+      render: row =>
+        row.callbacks.callback ? (
+          <CallbackSyncBadge sync={row.callbacks.callback.sync} />
+        ) : (
+          <Badge color="orange">Registering</Badge>
+        )
+    }),
+    col.refId('callbackId', row => row.callbacks.callback?.id, { header: 'Callback ID' })
+  ])
+  .link((row, _props, ctx) =>
+    row.callbacks.callback
+      ? Paths.instance.callback(
+          ctx.organization,
+          ctx.project,
+          ctx.instance,
+          row.callbacks.callback.id
+        )
+      : undefined
+  )
+  .build();
 
 export let IntegrationCallbacksPage = () => {
   let instance = useCurrentInstance();
@@ -27,42 +70,6 @@ export let IntegrationCallbacksPage = () => {
         provider => provider.callbacks.status === 'enabled'
       );
 
-      let rows = providers.map(provider => {
-        let callback = provider.callbacks.callback;
-
-        return {
-          href: callback
-            ? Paths.instance.callback(
-                organization.data,
-                project.data,
-                instance.data,
-                callback.id
-              )
-            : undefined,
-          data: [
-            <Flex direction="column" gap={2} key="provider">
-              <Text size="2" weight="strong">
-                {callback?.name ?? provider.provider.name}
-              </Text>
-            </Flex>,
-            callback ? (
-              <CallbackSyncBadge key="sync" sync={callback.sync} />
-            ) : (
-              <Badge key="sync" color="orange">
-                Registering
-              </Badge>
-            ),
-            callback ? (
-              <ID key="id" id={callback.id} />
-            ) : (
-              <Text size="2" color="gray600" key="id">
-                -
-              </Text>
-            )
-          ]
-        };
-      });
-
       return (
         <DetailsTableLayout
           title="Callbacks"
@@ -76,9 +83,13 @@ export let IntegrationCallbacksPage = () => {
               </span>
             </Callout>
           ) : (
-            <>
-              <Table headers={['Provider', 'Delivery', 'Callback ID']} data={rows} />
-            </>
+            <ProviderCallbacksList
+              listVariant="embedded"
+              providers={providers.map(provider => ({
+                ...provider,
+                id: provider.provider.id
+              }))}
+            />
           )}
         </DetailsTableLayout>
       );

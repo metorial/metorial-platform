@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
+  updateMany: vi.fn(),
+  rawUpdate: vi.fn(),
+  dispatchUpsert: vi.fn(),
+  transaction: vi.fn(),
   create: vi.fn(),
   findUniqueOrThrow: vi.fn(),
   getId: vi.fn()
@@ -9,8 +13,10 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('../db', () => ({
   db: {
+    $transaction: mocks.transaction,
     triggerEvent: {
       upsert: mocks.upsert,
+      updateMany: mocks.updateMany,
       create: mocks.create,
       findUniqueOrThrow: mocks.findUniqueOrThrow
     }
@@ -129,5 +135,68 @@ describe('triggerEventServiceInternal.upsertPending', () => {
     await expect(triggerEventServiceInternal.upsertPending(input)).rejects.toBe(error);
 
     expect(mocks.upsert).toHaveBeenCalledOnce();
+  });
+});
+
+describe('triggerEventServiceInternal.resolveMapped replay safety', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.transaction.mockImplementation(async fn =>
+      fn({
+        triggerEvent: { updateMany: mocks.updateMany },
+        triggerRawEvent: { update: mocks.rawUpdate },
+        triggerEventDispatch: { upsert: mocks.dispatchUpsert }
+      })
+    );
+  });
+
+  it('commits the mapped event and pending count exactly once', async () => {
+    mocks.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+    mocks.rawUpdate.mockResolvedValue({ pendingTriggerMapCount: 0 });
+    let data = {
+      eventOid: 1n,
+      rawEventOid: 2n,
+      attempt: 1,
+      payload: {},
+      mappedType: 'changed',
+      mappedId: 'item'
+    };
+    await expect(triggerEventServiceInternal.resolveMapped(data)).resolves.toMatchObject({
+      accepted: true
+    });
+    await expect(triggerEventServiceInternal.resolveMapped(data)).resolves.toEqual({
+      accepted: false,
+      rawEvent: null
+    });
+    expect(mocks.rawUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.dispatchUpsert).toHaveBeenCalledTimes(1);
+    expect(mocks.dispatchUpsert).toHaveBeenCalledWith({
+      where: { eventOid: 1n },
+      create: { eventOid: 1n, nextAttemptAt: expect.any(Date) },
+      update: {}
+    });
+    expect(
+      mocks.dispatchUpsert.mock.lastCall![0].create.nextAttemptAt.getTime()
+    ).toBeGreaterThan(Date.now());
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { oid: 1n, status: { in: ['pending', 'mapping_failed'] } }
+      })
+    );
+  });
+
+  it('propagates failed count writes so the transaction rolls back mapping', async () => {
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.rawUpdate.mockRejectedValue(new Error('transaction failed'));
+    await expect(
+      triggerEventServiceInternal.resolveMapped({
+        eventOid: 1n,
+        rawEventOid: 2n,
+        attempt: 1,
+        payload: {},
+        mappedType: 'changed',
+        mappedId: 'item'
+      })
+    ).rejects.toThrow('transaction failed');
   });
 });

@@ -1,103 +1,85 @@
-import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import type {
+  DashboardInstanceProviderListingsListOutput,
+  DashboardInstanceProviderListingsListQuery
+} from '@metorial/dashboard-sdk';
+import { createDataList, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useProviderListings } from '@metorial/state';
+import { useProviderListings } from '@metorial/state';
 import { Avatar, Badge, Text } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
 import { RiCheckLine } from '@remixicon/react';
-import styled from 'styled-components';
+import { useInstanceContext } from '../../lib/dataList';
+import { providerListingFilterDefs } from './filters';
 
-type ProvidersGridMode = 'default' | 'home';
+export type ProviderListing = DashboardInstanceProviderListingsListOutput['items'][number];
 
-type ProvidersGridProps = DashboardInstanceProviderListingsListQuery & {
-  mode?: ProvidersGridMode;
-};
+export type ProviderListingsFilters = Omit<
+  DashboardInstanceProviderListingsListQuery,
+  'after' | 'before' | 'cursor'
+>;
 
-export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps) => {
-  let instance = useCurrentInstance();
-  let providers = useProviderListings(instance.data?.id, filter);
-  let isHome = mode === 'home';
+export let providerListingBadges = (listing: ProviderListing) => (
+  <>
+    {listing.attributes.isVerified && (
+      <Badge size="1" color="blue" icon={<RiCheckLine />}>
+        Verified
+      </Badge>
+    )}
 
-  return renderWithPagination(providers)(providers => (
-    <>
-      {providers.data.items.length > 0 && (
-        <ItemGrid.Root
-          columns={isHome ? 3 : undefined}
-          responsive={isHome}
-          width={isHome ? '220px' : '300px'}
-        >
-          {providers.data.items.map(listing => {
-            let providerSlug = listing.provider?.slug;
-            if (!providerSlug) return null;
+    {listing.attributes.isOfficial && (
+      <Badge size="1" color="gray">
+        Official
+      </Badge>
+    )}
+  </>
+);
 
-            let description = listing.description
-              ? listing.description.slice(0, 100) +
-                (listing.description.length > 100 ? '...' : '')
-              : '';
+let truncate = (value: string | null | undefined, length: number) =>
+  value ? value.slice(0, length) + (value.length > length ? '...' : '') : '';
 
-            let href = Paths.instance.provider(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              providerSlug
-            );
-
-            return (
-              <ItemGrid.Item
-                key={listing.id}
-                href={href}
-                entity={{ id: listing.id, hasUsage: true }}
-                title={listing.name}
-                description={isHome ? undefined : description}
-                variant="v2"
-                height={isHome ? 118 : 250}
-                mode={isHome ? 'compactHorizontal' : 'default'}
-                showCopyId={!isHome}
-                icon={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar
-                      entity={{
-                        name: listing.name,
-                        photoUrl: listing.imageUrl
-                      }}
-                      size={isHome ? 24 : 30}
-                      radius={isHome ? 6 : 5}
-                      imageFit="contain"
-                    />
-
-                    {!isHome && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        {listing.attributes.isVerified && (
-                          <Badge size="1" color="blue" icon={<RiCheckLine />}>
-                            Verified
-                          </Badge>
-                        )}
-
-                        {listing.attributes.isOfficial && (
-                          <Badge size="2" color="gray">
-                            Official
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                }
-                bottom={
-                  listing.provider?.slug ? (
-                    <Text size="2">{listing.provider.slug}</Text>
-                  ) : undefined
-                }
-              />
-            );
-          })}
-        </ItemGrid.Root>
-      )}
-
-      {providers.data.items.length == 0 && (
-        <Text size="2" color="gray600">
-          No providers found
-        </Text>
-      )}
-    </>
-  ));
-};
+export let ProvidersGrid = createDataList<{ filters?: ProviderListingsFilters }>('providers')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => providerListingFilterDefs(ctx.instanceId))
+  .search('Search providers…')
+  .paginated(({ props, ctx, filters, search, limit }) =>
+    useProviderListings(
+      ctx.instanceId,
+      withDefaults(
+        { limit: 21, ...props.filters },
+        {
+          providerCategoryId: filters.providerCategoryId,
+          isVerified: filters.isVerified ? true : undefined,
+          search: search ?? props.filters?.search,
+          limit
+        }
+      )
+    )
+  )
+  .link((row, _props, ctx) =>
+    row.provider?.slug
+      ? Paths.instance.provider(ctx.organization, ctx.project, ctx.instance, row.provider.slug)
+      : null
+  )
+  .item(row => ({
+    title: row.name,
+    description: truncate(row.description, 100),
+    listDescription: false,
+    icon: (
+      <Avatar
+        entity={{ name: row.name, photoUrl: row.imageUrl }}
+        size={30}
+        radius={5}
+        imageFit="contain"
+      />
+    ),
+    badges: providerListingBadges(row),
+    meta: row.provider?.slug,
+    footer: row.provider?.slug ? (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Text size="2">{row.provider.slug}</Text>
+        {providerListingBadges(row)}
+      </div>
+    ) : undefined,
+    height: 250
+  }))
+  .layouts(['list', 'grid'], { default: 'grid' })
+  .build();

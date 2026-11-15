@@ -50,8 +50,8 @@ model CallbackEvent {
 
   occurredAt DateTime
   readAt     DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
 
   slateTriggerEvent SlateTriggerEvent?
   chatEvents        ChatEvent[]

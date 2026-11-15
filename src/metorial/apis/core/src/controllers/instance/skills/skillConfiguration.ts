@@ -15,7 +15,13 @@ let skillWriteScopes = ['instance.skill:write'] as const;
 let skillConfigurationInput = {
   allow_scripts: v.optional(v.boolean()),
   allowed_file_extensions: v.optional(v.nullable(v.array(v.string()))),
-  allow_non_standard_directories: v.optional(v.boolean())
+  allow_non_standard_directories: v.optional(v.boolean()),
+  security_review_policy: v.optional(
+    v.enumOf(['off', 'warn', 'block'], {
+      description:
+        'How security reviews affect distribution: `warn` flags failing skills, `block` withholds them from syncs and exports. The strictest policy of all applicable configurations wins.'
+    })
+  )
 };
 
 type SkillConfigurationContext = Parameters<typeof getInstanceCargoAccess>[0] & {
@@ -23,7 +29,8 @@ type SkillConfigurationContext = Parameters<typeof getInstanceCargoAccess>[0] & 
   organization: Organization;
 };
 
-let getSkillConfigurationInput = (ctx: SkillConfigurationContext) => getInstanceCargoAccess(ctx);
+let getSkillConfigurationInput = (ctx: SkillConfigurationContext) =>
+  getInstanceCargoAccess(ctx);
 
 export let skillConfigurationGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))
@@ -61,7 +68,8 @@ export let skillConfigurationController = Controller.create(
           input: {
             allowScripts: ctx.body.allow_scripts,
             allowedFileExtensions: ctx.body.allowed_file_extensions,
-            allowNonStandardDirectories: ctx.body.allow_non_standard_directories
+            allowNonStandardDirectories: ctx.body.allow_non_standard_directories,
+            securityReviewPolicy: ctx.body.security_review_policy
           }
         });
 
@@ -129,7 +137,8 @@ export let skillConfigurationController = Controller.create(
           input: {
             allowScripts: ctx.body.allow_scripts,
             allowedFileExtensions: ctx.body.allowed_file_extensions,
-            allowNonStandardDirectories: ctx.body.allow_non_standard_directories
+            allowNonStandardDirectories: ctx.body.allow_non_standard_directories,
+            securityReviewPolicy: ctx.body.security_review_policy
           }
         });
 

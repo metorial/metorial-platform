@@ -4,11 +4,10 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
 import { triggerRoutingMatcherServiceInternal } from '../../internal/triggerRoutingMatcherServiceInternal';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
-import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { TRIGGER_POLL_MIN_INTERVAL_SECONDS } from './_config';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
+import { createTriggerInstanceStack } from './_stack';
 import { triggerWebhookTargetSearchQueue } from './webhookTargetSearch';
 
 export let triggerRegistrationInstanceSetupQueue = createQueue<{
@@ -38,12 +37,7 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
         gateway: true
       }
     });
-    if (
-      !instance ||
-      instance.schedule ||
-      instance.gateway ||
-      instance.triggerRegistration.status !== 'active'
-    )
+    if (!instance || instance.gateway || instance.triggerRegistration.status !== 'active')
       return;
 
     let invocation = instance.triggerGroup.spec.invocation;
@@ -64,6 +58,7 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
     }
 
     if (invocation.type === 'polling') {
+      if (instance.schedule) return;
       let intervalSeconds = Math.max(
         invocation.intervalSeconds,
         TRIGGER_POLL_MIN_INTERVAL_SECONDS
@@ -81,6 +76,26 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
       });
 
       return;
+    }
+
+    if (
+      invocation.supportsExpansion &&
+      invocation.reconcileIntervalSeconds &&
+      !instance.schedule
+    ) {
+      await db.triggerRegistrationSchedule.upsert({
+        where: { triggerRegistrationInstanceOid: instance.oid },
+        create: {
+          ...getId('triggerRegistrationSchedule'),
+          triggerRegistrationInstanceOid: instance.oid,
+          intervalSeconds: Math.max(
+            invocation.reconcileIntervalSeconds,
+            TRIGGER_POLL_MIN_INTERVAL_SECONDS
+          ),
+          nextRunAt: new Date()
+        },
+        update: {}
+      });
     }
 
     if (invocation.registration.mode === 'auto') {
@@ -112,31 +127,10 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
         // The secret only holds raw input until processAuthQueue finishes; retry later.
         if (authConfig?.isProcessing) throw new QueueRetryError();
 
-        let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
-        if (authConfig) {
-          let decrypted = await secretService.DANGEROUSLY_decryptSecret({
-            secretOid: authConfig.secretOid,
-            purpose: 'slate_authentication_configuration',
-            tenant: registration.tenant,
-            note: `trigger-routing-matchers:${instance.id}`
-          });
-          auth = {
-            authenticationMethodId: authConfig.authMethod.key,
-            data: decrypted.output ?? decrypted.input ?? {}
-          };
-        }
-
-        let version = await getActiveSlateVersion({
-          slate: registration.slate,
-          instance: registration.instance
-        });
-        let stack = await slateInvocationService.createInvocationWithState({
-          participants: [],
-          slateVersion: version,
-          tenant: registration.tenant,
-          session: { id: instance.id, state: {} },
-          config: registration.instanceConfig.value ?? {},
-          auth
+        let stack = await createTriggerInstanceStack({
+          registration,
+          sessionId: instance.id,
+          note: `trigger-routing-matchers:${instance.id}`
         });
 
         let matchersResult = await slateInvocationService.getRoutingMatchers({

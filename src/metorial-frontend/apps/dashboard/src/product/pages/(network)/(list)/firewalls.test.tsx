@@ -25,40 +25,58 @@ vi.mock('@metorial/state', () => ({
     };
   }
 }));
-vi.mock('@metorial/table', () => ({
-  Table: class {
-    provider: any;
-    state(provider: any) {
-      this.provider = provider;
-      return this;
-    }
-    search(placeholder: string) {
-      state.placeholder = placeholder;
-      return this;
-    }
-    columns() {
-      return this;
-    }
-    link() {
-      return this;
-    }
-    build() {
-      return (props: any) => (
-        <div>
-          {this.provider(props, { search: state.search }).items.map((item: any) => (
-            <span key={item.id}>{item.name}</span>
-          ))}
-        </div>
-      );
-    }
-  }
+vi.mock('@metorial/data-list', () => {
+  let createDataList = () => {
+    let source: any;
+    let builder: any = {
+      context: () => builder,
+      search: (placeholder: string) => {
+        state.placeholder = placeholder;
+        return builder;
+      },
+      paginated: (fn: any) => {
+        source = fn;
+        return builder;
+      },
+      columns: () => builder,
+      link: () => builder,
+      build: () => (props: any) => {
+        let result = source({
+          props,
+          ctx: { instanceId: 'instance' },
+          search: state.search || undefined
+        });
+        return (
+          <div>
+            {(result.data?.items ?? []).map((item: any) => (
+              <span key={item.id}>{item.name}</span>
+            ))}
+          </div>
+        );
+      }
+    };
+    return builder;
+  };
+
+  let column = () => ({});
+  let col = { name: column, status: column, count: column, updatedAt: column, id: column };
+
+  return { createDataList, col, lifecycleStatus: {} };
+});
+vi.mock('../../../lib/dataList', () => ({
+  useInstanceContext: () => ({ instanceId: 'instance' })
 }));
 vi.mock('@metorial/data-hooks', () => ({ useForm: vi.fn() }));
 vi.mock('@metorial/frontend-config', () => ({ Paths: {} }));
-vi.mock('@metorial/ui', () => ({}));
+vi.mock('@metorial/ui', () => ({
+  Button: () => null,
+  Dialog: {},
+  Input: () => null,
+  Spacer: () => null,
+  showModal: vi.fn()
+}));
 vi.mock('@metorial/ui-product', () => ({}));
 vi.mock('react-router-dom', () => ({ useNavigate: vi.fn() }));
-vi.mock('../_common', () => ({ statusBadge: vi.fn() }));
 vi.mock('../_gate', () => ({ useNetworkManagementAccess: () => ({ canWrite: false }) }));
 
 it('enables table search, forwards the query and clears it', async () => {

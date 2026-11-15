@@ -1,0 +1,21 @@
+{
+  "name": "@metorial/metrics",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "scripts": {
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
+  },
+  "dependencies": {
+    "@lowerdeck/queue": "workspace:2.0.0"
+  }
+}

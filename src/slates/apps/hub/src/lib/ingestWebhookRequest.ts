@@ -20,6 +20,16 @@ export let payloadTooLargeError = createError({
   message: `The webhook payload exceeds the ${MAX_WEBHOOK_BODY_BYTES} byte limit.`
 });
 
+export let acceptWebhookRequest = async (d: {
+  registration: Pick<SlateWebhookRegistration, 'oid'>;
+  request: PrismaJson.SlateWebhookEventRequest;
+}) => {
+  let event = await slateWebhookEventServiceInternal.createPendingEvent(d);
+  await processWebhookEventQueue.add({ webhookEventId: event.id });
+
+  return event;
+};
+
 export let ingestWebhookRequest = async (d: {
   registration: Pick<SlateWebhookRegistration, 'oid' | 'status'>;
   request: PrismaJson.SlateWebhookEventRequest;

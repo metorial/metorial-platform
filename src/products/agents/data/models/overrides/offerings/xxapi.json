@@ -1,0 +1,44 @@
+{
+  "gpt-5.6-luna": {
+    "decision": "link",
+    "model": "openai/gpt-5.6-luna",
+    "reason": "Exact match: GPT-5.6 Luna (Jul 9 2026, 1.05M context); xxapi's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-5.6-sol": {
+    "decision": "link",
+    "model": "openai/gpt-5.6-sol",
+    "reason": "Exact match: GPT-5.6 Sol; xxapi's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-5.6-terra": {
+    "decision": "link",
+    "model": "openai/gpt-5.6-terra",
+    "reason": "Exact match: GPT-5.6 Terra; xxapi's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-6-astra": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "Exact match: GPT-6 Astra; xxapi's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-6-sol": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "Exact match: GPT-6 Sol (Sep 22 2026); xxapi's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-6.1-sol": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "Exact match: GPT-6.1 Sol; xxapi's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

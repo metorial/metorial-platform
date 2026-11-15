@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  protoGuardService: { scheduleMessageScan: vi.fn() },
   db: {
     sessionMessage: {
       findFirstOrThrow: vi.fn(),
@@ -24,6 +25,9 @@ let mocks = vi.hoisted(() => ({
   replaceToolCallAttachmentsInOutput: vi.fn((output: unknown) => output)
 }));
 
+vi.mock('@metorial-subspace/module-protoguard', () => ({
+  protoGuardService: mocks.protoGuardService
+}));
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   dbPrimary: {
@@ -127,6 +131,7 @@ describe('completeMessage', () => {
 
     expect(message).toBe(completedMessage);
     expect(mocks.createError).not.toHaveBeenCalled();
+    expect(mocks.protoGuardService.scheduleMessageScan).not.toHaveBeenCalled();
     expect(mocks.db.sessionMessage.update).not.toHaveBeenCalled();
     expect(mocks.db.sessionEvent.updateMany).not.toHaveBeenCalled();
     expect(mocks.db.sessionEvent.createMany).not.toHaveBeenCalled();
@@ -307,6 +312,7 @@ describe('completeMessage', () => {
 
     expect(message).toBe(completedMessage);
     expect(mocks.createError).not.toHaveBeenCalled();
+    expect(mocks.protoGuardService.scheduleMessageScan).not.toHaveBeenCalled();
     expect(mocks.db.sessionMessage.update).not.toHaveBeenCalled();
     expect(mocks.db.sessionEvent.updateMany).not.toHaveBeenCalled();
     expect(mocks.db.sessionEvent.createMany).not.toHaveBeenCalled();

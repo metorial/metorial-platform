@@ -1,72 +1,35 @@
 import type { DashboardOrganizationsEventsListQuery } from '@metorial/dashboard-sdk';
+import {
+  col,
+  createDataList,
+  defineStatus,
+  f,
+  withDefaults,
+  type TableFilterEntityOptions
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import {
-  EventPreview,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useEventTypes,
   useEvents,
   useProviderTriggers,
   useProvidersByIds
 } from '@metorial/state';
-import {
-  Table as DashboardTable,
-  TableFilter,
-  TableFilterEntityOptions,
-  TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue
-} from '@metorial/table';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import { useMemo, type ComponentProps } from 'react';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 import { CHAT_EVENT_CATALOG, sentenceCase } from './listenerEditor';
 
-type EventsTableProps = {
-  organizationId: string;
-  filters?: Omit<
-    DashboardOrganizationsEventsListQuery,
-    'limit' | 'after' | 'before' | 'cursor'
-  >;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+export type EventsFilters = Omit<
+  DashboardOrganizationsEventsListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
 
-let useEventsTableState: TableStateProvider<
-  EventsTableProps,
-  EventPreview,
-  TableStateProviderResult<EventPreview>
-> = (props, opts) => {
-  let events = useEvents(props.organizationId, {
-    order: 'desc',
-    instanceId: props.instance.data?.id,
-    ...props.filters,
-    source:
-      getEnumListFilterValue(opts.filter.source, ['resource', 'callback', 'chat', 'ping']) ??
-      props.filters?.source,
-    eventType: getListFilterValue(opts.filter.eventType) ?? props.filters?.eventType,
-    callbackId: getListFilterValue(opts.filter.callbackId) ?? props.filters?.callbackId,
-    chatConnectionId:
-      getListFilterValue(opts.filter.chatConnectionId) ?? props.filters?.chatConnectionId,
-    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt
-  });
-
-  return {
-    isLoading: events.isLoading,
-    error: events.error,
-    hasMoreAfter: events.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: events.data?.pagination.hasMoreBefore ?? false,
-    items: events.data?.items ?? [],
-    loadNext: events.next,
-    loadPrevious: events.previous
-  };
-};
+let eventSource = defineStatus({
+  callback: { label: 'Callback', color: 'blue' },
+  resource: { label: 'Resource', color: 'gray' },
+  chat: { label: 'Chat', color: 'gray' },
+  ping: { label: 'Ping', color: 'gray' }
+});
 
 let useEventNameFilterOptions = (
   organizationId: string | null | undefined,
@@ -116,36 +79,29 @@ let useEventNameFilterOptions = (
 
   let isLoading = eventTypes.isLoading || providerTriggers.isLoading;
 
-  return (): TableFilterEntityOptions => ({
+  return {
     items,
     isLoading,
     empty: 'No matching events found.'
-  });
+  } satisfies TableFilterEntityOptions;
 };
 
-let useEventLogFilters = (
-  organizationId: string | null | undefined,
-  instanceId: string | null | undefined
-): TableFilter<EventPreview>[] => {
-  let eventNameOptions = useEventNameFilterOptions(organizationId, instanceId);
+let EventsList = createDataList<{
+  organizationId: string;
+  filters?: EventsFilters;
+}>('events')
+  .context(useInstanceContext)
+  .filters((props, ctx) => {
+    let instanceId = ctx.instanceId;
 
-  return useMemo<TableFilter<EventPreview>[]>(
-    () => [
-      {
+    return {
+      source: f.status(eventSource, {
         id: 'source',
-        fields: ['source'],
         label: 'Source',
         description: 'Filter by source',
-        type: 'select',
-        pinned: true,
-        options: [
-          { id: 'callback', label: 'Callback' },
-          { id: 'resource', label: 'Resource' },
-          { id: 'chat', label: 'Chat' },
-          { id: 'ping', label: 'Ping' }
-        ]
-      },
-      {
+        pinned: true
+      }),
+      eventType: f.entity({
         id: 'eventType',
         fields: ['eventType'],
         label: 'Event',
@@ -153,142 +109,54 @@ let useEventLogFilters = (
         type: 'entity',
         pinned: true,
         remoteSearch: false,
-        searchPlaceholder: 'Search events...',
-        useOptions: eventNameOptions
-      },
-      entityFilters.callback(instanceId, { pinned: true }),
-      entityFilters.chatConnection(instanceId, { pinned: true }),
-      entityFilters.provider(instanceId, { pinned: true }),
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date',
-        pinned: true
-      }
-    ],
-    [instanceId, eventNameOptions]
-  );
-};
-
-let eventsTable = new DashboardTable<EventsTableProps, EventPreview>('events')
-  .state(useEventsTableState)
-  .columns([
-    {
-      id: 'eventType',
-      isDefault: true,
-      header: 'Event',
-      render: event => (
-        <Text size="2" weight="strong">
-          {event.eventType}
-        </Text>
-      )
-    },
-    {
-      id: 'source',
-      isDefault: true,
-      header: 'Source',
-      render: event => (
-        <Badge color={event.source === 'callback' ? 'blue' : 'gray'}>{event.source}</Badge>
-      )
-    },
-    {
-      id: 'callbackId',
-      isDefault: false,
-      header: 'Callback',
-      render: event =>
-        event.callbackId ? (
-          <ID id={event.callbackId} copy={false} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'chatConnectionId',
-      isDefault: false,
-      header: 'Chat Connection',
-      render: event =>
-        event.chatConnectionId ? (
-          <ID id={event.chatConnectionId} copy={false} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'providerId',
-      isDefault: false,
-      header: 'Provider',
-      render: event =>
-        event.providerId ? (
-          <ID id={event.providerId} copy={false} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'instanceId',
-      isDefault: false,
-      header: 'Instance',
-      render: event =>
-        event.instanceId ? (
-          <ID id={event.instanceId} copy={false} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Recorded',
-      render: event => <RenderDate date={event.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'Event ID',
-      render: event => <ID id={event.id} />
-    }
-  ])
-  .link((event, props) =>
-    Paths.instance.event(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      event.id
+        searchPlaceholder: 'Search events…',
+        useOptions: () => useEventNameFilterOptions(props.organizationId, instanceId)
+      }),
+      callbackId: f.entity(entityFilters.callback(instanceId, { pinned: true })),
+      chatConnectionId: f.entity(entityFilters.chatConnection(instanceId, { pinned: true })),
+      providerId: f.entity(entityFilters.provider(instanceId, { pinned: true })),
+      createdAt: f.createdAt({ pinned: true })
+    };
+  })
+  .paginated(({ props, ctx, filters }) =>
+    useEvents(
+      props.organizationId,
+      withDefaults(props.filters, {
+        order: 'desc' as const,
+        instanceId: props.filters?.instanceId ?? ctx.instanceId,
+        ...filters
+      })
     )
+  )
+  .columns([
+    col.text({
+      id: 'eventType',
+      header: 'Event',
+      weight: 'strong',
+      get: row => row.eventType
+    }),
+    col.status(eventSource, { id: 'source', header: 'Source', get: row => row.source }),
+    col.refId('callbackId', row => row.callbackId, { header: 'Callback', copy: false }),
+    col.refId('chatConnectionId', row => row.chatConnectionId, {
+      header: 'Chat Connection',
+      copy: false
+    }),
+    col.refId('providerId', row => row.providerId, { header: 'Provider', copy: false }),
+    col.refId('instanceId', row => row.instanceId, { header: 'Instance', copy: false }),
+    col.createdAt({ header: 'Recorded' }),
+    col.id({ header: 'Event ID', isDefault: true })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.event(ctx.organization, ctx.project, ctx.instance, row.id)
   )
   .build();
 
-export let EventsTable = ({
-  organizationId,
-  filters,
-  emptyState
-}: {
-  organizationId: string;
-  filters?: EventsTableProps['filters'];
-  emptyState?: string;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useEventLogFilters(organizationId, instance.data?.id);
-
-  return eventsTable({
-    organizationId,
-    filters,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState: emptyState ?? 'No events recorded yet.'
-  });
-};
+export let EventsTable = (props: ComponentProps<typeof EventsList>) => (
+  <EventsList
+    emptyState={{
+      initial: 'No events recorded yet.',
+      filtered: 'No events match your filters.'
+    }}
+    {...props}
+  />
+);

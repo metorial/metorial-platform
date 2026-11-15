@@ -1,236 +1,87 @@
-import {
-  DashboardInstanceMonitorsListOutput,
-  DashboardInstanceMonitorsListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceMonitorsListOutput } from '@metorial/dashboard-sdk';
+import { col, createDataList, defineStatus, f, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import { useCurrentInstance, useMonitors } from '@metorial/state';
-import { RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue,
-  type TableFilter
-} from '@metorial/table';
-import { useMemo } from 'react';
+import { useMonitors } from '@metorial/state';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
-import { MonitorStatusBadge, MonitorTargetBadge } from './badges';
 
 type Monitor = DashboardInstanceMonitorsListOutput['items'][number];
 
-type MonitorsTableStateProps = {
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+export let monitorTarget = defineStatus({
+  protoguard_filter: { label: 'Protoguard Filter', color: 'purple' },
+  schema_change: { label: 'Schema Change', color: 'blue' }
+});
 
-let getTargetFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['protoguard_filter', 'schema_change']);
+let monitorStatus = defineStatus({
+  active: { label: 'Active', color: 'green' },
+  inactive: { label: 'Inactive', color: 'gray' }
+});
 
-let getStatusFilterValue = (value: FilterPayload | undefined) =>
-  getEnumListFilterValue(value, ['active', 'inactive']);
-
-let monitorsTableState: TableStateProvider<
-  MonitorsTableStateProps,
-  Monitor,
-  TableStateProviderResult<Monitor>
-> = (props, opts) => {
-  let monitors = useMonitors(props.instance.data?.id, {
-    order: 'desc',
-    search: opts.search,
-    target: getTargetFilterValue(opts.filter.target),
-    status: getStatusFilterValue(opts.filter.status),
-    providerId: getListFilterValue(opts.filter.providerId),
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt),
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt),
-    firstAlertAt: getDateRangeFilterValue(opts.filter.firstAlertAt),
-    lastAlertAt: getDateRangeFilterValue(opts.filter.lastAlertAt)
-  } satisfies DashboardInstanceMonitorsListQuery);
-
-  return {
-    isLoading: monitors.isLoading,
-    error: monitors.error,
-    hasMoreAfter: monitors.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: monitors.data?.pagination.hasMoreBefore ?? false,
-    items: monitors.data?.items ?? [],
-    loadNext: monitors.next,
-    loadPrevious: monitors.previous
-  };
-};
-
-let useMonitorsFilters = (instanceId: string | undefined) =>
-  useMemo<TableFilter<Monitor>[]>(
-    () => [
-      {
-        id: 'target',
-        fields: ['target'],
-        label: 'Target',
-        description: 'Filter by monitor target',
-        type: 'select',
-        options: [
-          { id: 'protoguard_filter', label: 'Protoguard Filter' },
-          { id: 'schema_change', label: 'Schema Change' }
-        ]
-      },
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by monitor status',
-        type: 'select',
-        options: [
-          { id: 'active', label: 'Active' },
-          { id: 'inactive', label: 'Inactive' }
-        ]
-      },
-      entityFilters.provider(instanceId),
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      },
-      {
-        id: 'updatedAt',
-        fields: ['updatedAt'],
-        label: 'Updated',
-        description: 'Filter by updated date',
-        type: 'date'
-      },
-      {
-        id: 'firstAlertAt',
-        fields: ['firstAlertAt'],
-        label: 'First Alert',
-        description: 'Filter by first alert date',
-        type: 'date'
-      },
-      {
-        id: 'lastAlertAt',
-        fields: ['lastAlertAt'],
-        label: 'Last Alert',
-        description: 'Filter by last alert date',
-        type: 'date'
-      }
-    ],
-    [instanceId]
-  );
-
-let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monitors')
-  .state(monitorsTableState)
-  .columns([
-    {
+let MonitorsList = createDataList('monitors')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    target: f.status(monitorTarget, {
       id: 'target',
-      isDefault: true,
+      label: 'Target',
+      description: 'Filter by monitor target'
+    }),
+    status: f.status(monitorStatus, { description: 'Filter by monitor status' }),
+    providerId: f.entity(entityFilters.provider(ctx.instanceId)),
+    createdAt: f.createdAt({ description: 'Filter by created date' }),
+    updatedAt: f.updatedAt({ description: 'Filter by updated date' }),
+    firstAlertAt: f.date('firstAlertAt', 'First Alert', {
+      description: 'Filter by first alert date'
+    }),
+    lastAlertAt: f.date('lastAlertAt', 'Last Alert', {
+      description: 'Filter by last alert date'
+    })
+  }))
+  .search('Search monitors…')
+  .paginated(({ ctx, filters, search }) =>
+    useMonitors(
+      ctx.instanceId,
+      withDefaults(undefined, { order: 'desc' as const, ...filters, search })
+    )
+  )
+  .columns([
+    col.status(monitorTarget, {
+      id: 'target',
       header: 'Target',
-      render: monitor => <MonitorTargetBadge target={monitor.target} />
-    },
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: monitor => <Text size="2">{monitor.name}</Text>
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: monitor => <MonitorStatusBadge status={monitor.status} />
-    },
-    {
-      id: 'association',
-      isDefault: false,
-      header: 'Association',
-      render: monitor => {
-        let id = monitor.providerId ?? monitor.protoGuardFilterId;
-        if (!id) {
-          return (
-            <Text size="2" color="gray600">
-              None
-            </Text>
-          );
-        }
-
-        return <ID id={id} />;
+      get: (monitor: Monitor) => monitor.target
+    }),
+    col.name({ description: false }),
+    col.status(monitorStatus, { isDefault: false }),
+    col.refId(
+      'association',
+      (monitor: Monitor) => monitor.providerId ?? monitor.protoGuardFilterId,
+      {
+        header: 'Association'
       }
-    },
-    {
-      id: 'firstAlertAt',
-      isDefault: true,
+    ),
+    col.date('firstAlertAt', {
       header: 'First Alert',
-      render: monitor =>
-        monitor.firstAlertAt ? (
-          <RenderDate date={monitor.firstAlertAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            No alerts
-          </Text>
-        )
-    },
-    {
-      id: 'lastAlertAt',
       isDefault: true,
-      header: 'Last Alert',
-      render: monitor =>
-        monitor.lastAlertAt ? (
-          <RenderDate date={monitor.lastAlertAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            No alerts
-          </Text>
-        )
-    },
-    {
-      id: 'createdAt',
-      isDefault: false,
-      header: 'Created',
-      render: monitor => <RenderDate date={monitor.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Monitor ID',
-      render: monitor => <ID id={monitor.id} />
-    },
-    {
-      id: 'providerId',
-      isDefault: false,
-      header: 'Provider ID',
-      render: monitor => monitor.providerId && <ID id={monitor.providerId} />
-    },
-    {
-      id: 'protoGuardFilterId',
-      isDefault: false,
-      header: 'Protoguard Filter ID',
-      render: monitor => monitor.protoGuardFilterId && <ID id={monitor.protoGuardFilterId} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: monitor => <RenderDate date={monitor.updatedAt} />
-    }
+      fallback: 'No alerts'
+    }),
+    col.date('lastAlertAt', { header: 'Last Alert', isDefault: true, fallback: 'No alerts' }),
+    col.createdAt(),
+    col.id({ header: 'Monitor ID' }),
+    col.refId('providerId', (monitor: Monitor) => monitor.providerId, {
+      header: 'Provider ID'
+    }),
+    col.refId('protoGuardFilterId', (monitor: Monitor) => monitor.protoGuardFilterId, {
+      header: 'Protoguard Filter ID'
+    }),
+    col.updatedAt()
   ])
-  .search('Search monitors')
-  .link((monitor, props) =>
+  .link((monitor, _props, ctx) =>
     Paths.organization.instance.monitor(
-      props.instance.data?.organization,
-      props.instance.data?.project,
-      props.instance.data,
+      ctx.instance?.organization,
+      ctx.instance?.project,
+      ctx.instance,
       monitor.id
     )
   )
   .build();
 
-export let MonitorsTable = () => {
-  let instance = useCurrentInstance();
-  let tableFilters = useMonitorsFilters(instance.data?.id);
-
-  return monitorsTable({
-    instance,
-    tableFilters,
-    emptyState: 'No monitors found.'
-  });
-};
+export let MonitorsTable = () => <MonitorsList emptyState="No monitors found." />;

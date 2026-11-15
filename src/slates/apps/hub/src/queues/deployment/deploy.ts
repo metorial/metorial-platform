@@ -228,7 +228,10 @@ let deploySlateVersionMonitorQueue = createQueue<{
 }>({
   name: 'shub/slv/dep/mon',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: { concurrency: 5 }
+  workerOpts: {
+    concurrency: 5,
+    limiter: { max: 50, duration: 1000 }
+  }
 });
 
 export let deploySlateVersionMonitorQueueProcessor = deploySlateVersionMonitorQueue.process(

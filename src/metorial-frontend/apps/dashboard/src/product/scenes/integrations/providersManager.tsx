@@ -1,4 +1,5 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList, defineAction } from '@metorial/data-list';
+import { renderWithLoader } from '@metorial/data-hooks';
 import {
   IntegrationInstance,
   IntegrationInstanceProvider,
@@ -9,11 +10,10 @@ import {
   useIntegrationInstanceProviders,
   useIntegrationProviders
 } from '@metorial/state';
-import { Table as DashboardTable } from '@metorial/table';
-import { Badge, Button, Flex, Menu, Spacer, Text, confirm } from '@metorial/ui';
-import { ID, ProviderImage, Table } from '@metorial/ui-product';
-import { RiMore2Line, RiSettings3Line } from '@remixicon/react';
-import { Fragment, useMemo, useState } from 'react';
+import { Badge, Flex, Spacer, Text } from '@metorial/ui';
+import { ProviderImage } from '@metorial/ui-product';
+import { RiDeleteBinLine, RiLinkM, RiSettings3Line } from '@remixicon/react';
+import { Fragment, useMemo } from 'react';
 import { CallbackSyncBadge, CallbackSyncErrorCallout } from '../callbacks/shared';
 import { showAdminSetupLinkModal, supportsAdminSetup } from './adminSetupLinkModal';
 import {
@@ -27,7 +27,7 @@ import {
   showIntegrationProviderPanelFlow
 } from './providerPanelFlow';
 
-let getConfigLabel = (config?: any | null) => config?.name ?? config?.id ?? 'None';
+let getConfigLabel = (config?: any | null) => config?.name ?? config?.id;
 
 let getAuthLabel = (
   integrationProvider: IntegrationProvider,
@@ -36,146 +36,153 @@ let getAuthLabel = (
   instanceProvider?.authConfig?.name ??
   instanceProvider?.authConfig?.id ??
   integrationProvider.authMethod?.name ??
-  integrationProvider.authCredentials?.id ??
-  'None';
+  integrationProvider.authCredentials?.id;
+
+type IntegrationProvidersTableProps = {
+  instanceId: string;
+  integration: IntegrationPreview;
+  listingLookup: ProviderListingLookup;
+  onComplete?: () => void;
+};
+
+let openIntegrationProviderPanel = (
+  provider: IntegrationProvider,
+  props: IntegrationProvidersTableProps
+) =>
+  showIntegrationProviderPanelFlow({
+    integration: props.integration,
+    integrationProvider: provider,
+    onComplete: props.onComplete ?? (() => {})
+  });
+
+let IntegrationProvidersTable = createDataList<IntegrationProvidersTableProps>(
+  'integration-providers',
+  { customizable: false }
+)
+  .paginated(({ props }) =>
+    useIntegrationProviders(props.instanceId, {
+      integrationId: props.integration.id,
+      order: 'desc'
+    })
+  )
+  .columns([
+    col.custom({
+      id: 'provider',
+      header: 'Provider',
+      render: (provider, props) => {
+        let listing = props.listingLookup[provider.provider.id];
+        let providerName = listing?.name ?? getProviderLabel(provider);
+
+        return (
+          <Flex gap={10} align="center">
+            <ProviderImage
+              imageUrl={listing?.imageUrl}
+              alt={providerName}
+              size={24}
+              radius={6}
+            />
+            <Text size="2" weight="strong">
+              {providerName}
+            </Text>
+          </Flex>
+        );
+      }
+    }),
+    col.custom({
+      id: 'callbacks',
+      header: 'Callbacks',
+      render: provider =>
+        provider.callbacks.status !== 'enabled' ? (
+          <Text size="2" color="gray600">
+            Off
+          </Text>
+        ) : !provider.callbacks.callback ? (
+          <Badge color="orange">Registering</Badge>
+        ) : (
+          <CallbackSyncBadge sync={provider.callbacks.callback.sync} />
+        )
+    })
+  ])
+  .clickable(openIntegrationProviderPanel)
+  .itemActions([
+    defineAction({
+      id: 'configure',
+      label: 'Configure',
+      icon: <RiSettings3Line />,
+      useRun:
+        ({ props }) =>
+        async provider => {
+          openIntegrationProviderPanel(provider, props);
+        }
+    }),
+    defineAction({
+      id: 'admin_setup_link',
+      label: 'Create Admin Setup Link',
+      icon: <RiLinkM />,
+      hidden: provider => !supportsAdminSetup(provider),
+      useRun:
+        ({ props }) =>
+        async provider => {
+          showAdminSetupLinkModal({
+            instanceId: props.instanceId,
+            integrationProvider: provider,
+            providerName:
+              props.listingLookup[provider.provider.id]?.name ?? getProviderLabel(provider)
+          });
+        }
+    }),
+    defineAction({
+      id: 'remove',
+      label: 'Remove',
+      icon: <RiDeleteBinLine />,
+      destructive: true,
+      confirm: {
+        title: 'Remove Provider',
+        confirmText: 'Remove',
+        description: rows =>
+          `Remove the ${getProviderLabel(rows[0]!)} provider from this integration?`
+      },
+      useRun: ({ props }) => {
+        let deleteProvider = useDeleteIntegrationProvider();
+
+        return async provider => {
+          let [result, error] = await deleteProvider.mutate({
+            instanceId: props.instanceId,
+            integrationProviderId: provider.id
+          });
+          if (!result || error) throw error ?? new Error('Failed to remove provider');
+
+          props.onComplete?.();
+        };
+      }
+    })
+  ])
+  .build();
 
 export let IntegrationProvidersManager = (p: {
   instanceId: string;
   integration: IntegrationPreview;
   onComplete?: () => void;
 }) => {
-  let providers = useIntegrationProviders(p.instanceId, {
-    integrationId: p.integration.id,
-    order: 'desc'
-  });
-  let deleteProvider = useDeleteIntegrationProvider();
-
   let { listings, lookup } = useIntegrationProviderListingLookup(
     p.instanceId,
     p.integration.providers
   );
-
-  let removeProvider = (provider: IntegrationProvider) => {
-    confirm({
-      title: `Remove ${getProviderLabel(provider)}?`,
-      description: `Remove the ${getProviderLabel(provider)} provider from this integration?`,
-      confirmText: 'Remove',
-      onConfirm: async () => {
-        let [result, error] = await deleteProvider.mutate({
-          instanceId: p.instanceId,
-          integrationProviderId: provider.id
-        });
-        if (!result || error) return;
-
-        await providers.refetch();
-        p.onComplete?.();
-      }
-    });
-  };
 
   return renderWithLoader({
     ...(p.integration.providers.length > 0 ? { listings } : {})
   })(() => (
     <IntegrationProvidersTable
       instanceId={p.instanceId}
-      providers={providers}
       integration={p.integration}
       listingLookup={lookup}
       onComplete={p.onComplete}
-      removeProvider={removeProvider}
+      hideToolbar
+      listVariant="embedded"
+      emptyState="No providers are attached to this integration yet."
     />
   ));
 };
-
-let IntegrationProvidersTable = (p: {
-  instanceId: string;
-  providers: ReturnType<typeof useIntegrationProviders>;
-  integration: IntegrationPreview;
-  listingLookup: ProviderListingLookup;
-  onComplete?: () => void;
-  removeProvider: (provider: IntegrationProvider) => void;
-}) =>
-  renderWithPagination(p.providers, { hidePaginationWhenUnavailable: true })(providers => (
-    <>
-      <Table
-        headers={['Provider', 'Callbacks', '']}
-        data={providers.data.items.map(provider => {
-          let listing = p.listingLookup[provider.provider.id];
-          let providerName = listing?.name ?? getProviderLabel(provider);
-          let openConfigure = () =>
-            showIntegrationProviderPanelFlow({
-              integration: p.integration,
-              integrationProvider: provider,
-              onComplete: p.onComplete ?? (() => {})
-            });
-
-          return {
-            onClick: openConfigure,
-            data: [
-              <Flex gap={10} style={{ alignItems: 'center' }}>
-                <ProviderImage
-                  imageUrl={listing?.imageUrl}
-                  alt={providerName}
-                  size={24}
-                  radius={6}
-                />
-                <Text size="2" weight="strong">
-                  {providerName}
-                </Text>
-              </Flex>,
-              provider.callbacks.status !== 'enabled' ? (
-                <Text size="2" color="gray600">
-                  Off
-                </Text>
-              ) : !provider.callbacks.callback ? (
-                <Badge color="orange">Registering</Badge>
-              ) : (
-                <CallbackSyncBadge sync={provider.callbacks.callback.sync} />
-              ),
-              <Flex style={{ width: '100%' }} justify="end" onClick={e => e.stopPropagation()}>
-                <Menu
-                  items={[
-                    { id: 'configure', label: 'Configure' },
-                    ...(supportsAdminSetup(provider)
-                      ? [{ id: 'admin_setup_link', label: 'Create Admin Setup Link' }]
-                      : []),
-                    { id: 'remove', label: 'Remove' }
-                  ]}
-                  onItemClick={id => {
-                    if (id === 'configure') openConfigure();
-                    if (id === 'remove') p.removeProvider(provider);
-                    if (id === 'admin_setup_link') {
-                      showAdminSetupLinkModal({
-                        instanceId: p.instanceId,
-                        integrationProvider: provider,
-                        providerName
-                      });
-                    }
-                  }}
-                >
-                  <Button
-                    size="1"
-                    variant="outline"
-                    iconRight={<RiMore2Line />}
-                    onClick={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  />
-                </Menu>
-              </Flex>
-            ]
-          };
-        })}
-      />
-
-      {providers.data.items.length === 0 ? (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No providers are attached to this integration yet.
-        </Text>
-      ) : null}
-    </>
-  ));
 
 type InstanceProviderRow = {
   id: string;
@@ -216,162 +223,110 @@ let isInstanceProviderConfigureDisabled = (row: InstanceProviderRow) => {
 
 let openIntegrationInstanceProviderPanel = (
   row: InstanceProviderRow,
-  state: ReturnType<typeof useIntegrationInstanceProvidersTableHookState>
+  props: IntegrationInstanceProvidersManagerProps
 ) => {
   if (isInstanceProviderConfigureDisabled(row)) return;
 
   showIntegrationInstanceProviderPanelFlow({
-    integration: state.integration,
-    integrationInstance: state.integrationInstance,
-    integrationProvider: row.integrationProvider,
-    instanceProvider: row.instanceProvider,
-    onComplete: state.onComplete ?? (() => {})
-  });
-};
-
-let useIntegrationInstanceProvidersTableState = (
-  props: IntegrationInstanceProvidersManagerProps
-) => {
-  let providers = useIntegrationInstanceProviders(props.instanceId, {
-    integrationInstanceId: props.integrationInstance.id,
-    status: ['active', 'archived']
-  });
-
-  let integrationProviders = props.integration.providers;
-  let providerItems = providers.data?.items;
-
-  let items = useMemo<InstanceProviderRow[]>(() => {
-    let instanceProviderByIntegrationProviderId = new Map(
-      (providerItems ?? []).map(
-        (provider: IntegrationInstanceProvider) =>
-          [provider.integrationProvider.id, provider] as const
-      )
-    );
-
-    return integrationProviders.map(integrationProvider => ({
-      id: integrationProvider.id,
-      integrationProvider: integrationProvider as IntegrationProvider,
-      instanceProvider: instanceProviderByIntegrationProviderId.get(integrationProvider.id),
-      integrationInstanceStatus: props.integrationInstance.status
-    }));
-  }, [integrationProviders, providerItems, props.integrationInstance.status]);
-
-  return {
-    isLoading: providers.isLoading,
-    error: providers.error,
-    hasMoreAfter: false,
-    hasMoreBefore: false,
-    items,
-    loadNext: () => {},
-    loadPrevious: () => {}
-  };
-};
-
-let useIntegrationInstanceProvidersTableHookState = (
-  _: ReturnType<typeof useIntegrationInstanceProvidersTableState>,
-  props: IntegrationInstanceProvidersManagerProps
-) => {
-  let [loadingIds, setLoadingIds] = useState<string[]>([]);
-
-  return {
-    instanceId: props.instanceId,
     integration: props.integration,
     integrationInstance: props.integrationInstance,
-    onComplete: props.onComplete,
-    loadingIds,
-    setLoadingIds
-  };
+    integrationProvider: row.integrationProvider,
+    instanceProvider: row.instanceProvider,
+    onComplete: props.onComplete ?? (() => {})
+  });
 };
 
-let integrationInstanceProvidersTable = new DashboardTable<
-  IntegrationInstanceProvidersManagerProps,
-  InstanceProviderRow
->('integration-instance-providers', { hasPagination: false, customizable: false })
-  .state(useIntegrationInstanceProvidersTableState)
-  .hookState(useIntegrationInstanceProvidersTableHookState)
-  .columns([
-    {
-      id: 'provider',
-      isDefault: true,
-      header: 'Provider',
-      render: (row: InstanceProviderRow, props: IntegrationInstanceProvidersManagerProps) => {
-        let listing = props.listingLookup[row.integrationProvider.provider.id];
-        let providerName = listing?.name ?? getProviderLabel(row.integrationProvider);
-
-        return (
-          <Flex gap={10} align="center">
-            {isInstanceProviderPending(row) ? (
-              <Badge size="2" color="orange">
-                Pending
-              </Badge>
-            ) : null}
-            <ProviderImage
-              imageUrl={listing?.imageUrl}
-              alt={providerName}
-              size={24}
-              radius={6}
-            />
-            <Text size="2" weight="strong">
-              {providerName}
-            </Text>
-          </Flex>
-        );
-      }
-    },
-    {
-      id: 'config',
-      isDefault: true,
-      header: 'Config',
-      render: (row: InstanceProviderRow) => (
-        <Text size="2">
-          {getConfigLabel(row.instanceProvider?.config ?? row.integrationProvider.config)}
-        </Text>
-      )
-    },
-    {
-      id: 'auth',
-      isDefault: true,
-      header: 'Auth',
-      render: (row: InstanceProviderRow) => (
-        <Text size="2">{getAuthLabel(row.integrationProvider, row.instanceProvider)}</Text>
-      )
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Provider ID',
-      render: (row: InstanceProviderRow) => <ID id={row.integrationProvider.id} />
-    }
-  ] as any)
-  .clickable(((row: InstanceProviderRow, props: IntegrationInstanceProvidersManagerProps) => {
-    if (isInstanceProviderConfigureDisabled(row)) return;
-
-    showIntegrationInstanceProviderPanelFlow({
-      integration: props.integration,
-      integrationInstance: props.integrationInstance,
-      integrationProvider: row.integrationProvider,
-      instanceProvider: row.instanceProvider,
-      onComplete: props.onComplete ?? (() => {})
-    });
-  }) as any)
-  .actions({
-    configure: async (rows, state) => {
-      let row = rows[0];
-      if (!row) return;
-
-      openIntegrationInstanceProviderPanel(row, state);
-    }
+let IntegrationInstanceProvidersList =
+  createDataList<IntegrationInstanceProvidersManagerProps>('integration-instance-providers', {
+    customizable: false
   })
-  .rowActions([
-    {
-      id: 'configure',
-      label: 'Configure',
-      icon: <RiSettings3Line />,
-      action: 'configure',
-      disabled: isInstanceProviderConfigureDisabled
-    }
-  ])
-  .build();
+    .items(({ props }) => {
+      let providers = useIntegrationInstanceProviders(props.instanceId, {
+        integrationInstanceId: props.integrationInstance.id,
+        status: ['active', 'archived']
+      });
+
+      let integrationProviders = props.integration.providers;
+      let providerItems = providers.data?.items;
+
+      let items = useMemo<InstanceProviderRow[]>(() => {
+        let instanceProviderByIntegrationProviderId = new Map(
+          (providerItems ?? []).map(
+            (provider: IntegrationInstanceProvider) =>
+              [provider.integrationProvider.id, provider] as const
+          )
+        );
+
+        return integrationProviders.map(integrationProvider => ({
+          id: integrationProvider.id,
+          integrationProvider: integrationProvider as IntegrationProvider,
+          instanceProvider: instanceProviderByIntegrationProviderId.get(
+            integrationProvider.id
+          ),
+          integrationInstanceStatus: props.integrationInstance.status
+        }));
+      }, [integrationProviders, providerItems, props.integrationInstance.status]);
+
+      return { items, isLoading: providers.isLoading, error: providers.error };
+    })
+    .columns([
+      col.custom({
+        id: 'provider',
+        header: 'Provider',
+        render: (row, props) => {
+          let listing = props.listingLookup[row.integrationProvider.provider.id];
+          let providerName = listing?.name ?? getProviderLabel(row.integrationProvider);
+
+          return (
+            <Flex gap={10} align="center">
+              {isInstanceProviderPending(row) ? (
+                <Badge size="2" color="orange">
+                  Pending
+                </Badge>
+              ) : null}
+              <ProviderImage
+                imageUrl={listing?.imageUrl}
+                alt={providerName}
+                size={24}
+                radius={6}
+              />
+              <Text size="2" weight="strong">
+                {providerName}
+              </Text>
+            </Flex>
+          );
+        }
+      }),
+      col.text({
+        id: 'config',
+        header: 'Config',
+        get: row =>
+          getConfigLabel(row.instanceProvider?.config ?? row.integrationProvider.config),
+        fallback: 'None'
+      }),
+      col.text({
+        id: 'auth',
+        header: 'Auth',
+        get: row => getAuthLabel(row.integrationProvider, row.instanceProvider),
+        fallback: 'None'
+      }),
+      col.id({ header: 'Provider ID' })
+    ])
+    .clickable(openIntegrationInstanceProviderPanel)
+    .itemActions([
+      defineAction({
+        id: 'configure',
+        label: 'Configure',
+        icon: <RiSettings3Line />,
+        disabled: isInstanceProviderConfigureDisabled,
+        useRun:
+          ({ props }) =>
+          async row => {
+            openIntegrationInstanceProviderPanel(row, props);
+          }
+      })
+    ])
+    .build();
 
 export let IntegrationInstanceProvidersManager = (p: {
   instanceId: string;
@@ -423,14 +378,16 @@ export let IntegrationInstanceProvidersManager = (p: {
           </Fragment>
         ))}
         {failedCallbacks.length > 0 ? <Spacer height={15} /> : null}
-        {integrationInstanceProvidersTable({
-          instanceId: p.instanceId,
-          integration: p.integration,
-          integrationInstance: p.integrationInstance,
-          onComplete: p.onComplete,
-          listingLookup: lookup,
-          emptyState: 'This integration does not have any providers yet.'
-        })}
+        <IntegrationInstanceProvidersList
+          instanceId={p.instanceId}
+          integration={p.integration}
+          integrationInstance={p.integrationInstance}
+          onComplete={p.onComplete}
+          listingLookup={lookup}
+          hideToolbar
+          listVariant="embedded"
+          emptyState="This integration does not have any providers yet."
+        />
       </>
     );
   };

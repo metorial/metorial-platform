@@ -142,6 +142,7 @@ export let skillGroupItemController = Controller.create(
           instance: ctx.instance,
           skillGroupId: ctx.skillGroup.id,
           skillId: ctx.body.skill_id,
+          action: 'add',
           consumerProfile: ctx.consumerProfile,
           accessTags: ctx.accessTags,
           authorization: (await getInstanceCargoAccess(ctx)).authorization
@@ -184,6 +185,7 @@ export let skillGroupItemController = Controller.create(
           instance: ctx.instance,
           skillGroupId: ctx.skillGroup.id,
           skillId: ctx.skillGroupItem.skill.id,
+          action: 'remove',
           consumerProfile: ctx.consumerProfile,
           accessTags: ctx.accessTags,
           authorization: (await getInstanceCargoAccess(ctx)).authorization

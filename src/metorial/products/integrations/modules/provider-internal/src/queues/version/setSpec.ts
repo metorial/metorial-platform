@@ -4,6 +4,7 @@ import {
   getId,
   type ProviderVersionSpecificationDiscoveryStatus
 } from '@metorial-subspace/db';
+import { requestSecurityReview } from '@metorial-subspace/module-security-review-request';
 import { schemaChangeNotificationAlertIngestQueue } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import { env } from '../../env';
 import { markDiscoveryFinished } from '../../lib/discoverySignal';
@@ -83,6 +84,56 @@ export let providerVersionSetSpecificationQueueProcessor =
       ]);
     }
 
+    let recordSpecChange = async (d: {
+      fromVersionOid: bigint;
+      fromSpecificationOid: bigint;
+      toSpecificationOid: bigint;
+    }) => {
+      try {
+        let change = await db.providerVersionSpecificationChange.create({
+          data: {
+            ...getId('providerVersionSpecificationChange'),
+
+            toSpecificationOid: d.toSpecificationOid,
+            fromSpecificationOid: d.fromSpecificationOid,
+
+            toVersionOid: version.oid,
+            fromVersionOid: d.fromVersionOid
+          }
+        });
+        let notification = await db.providerSpecificationChangeNotification.create({
+          data: {
+            ...getId('providerSpecificationChangeNotification'),
+
+            target: 'version',
+            versionOid: version.oid,
+            versionSpecificationChangeOid: change.oid
+          }
+        });
+
+        await schemaChangeNotificationAlertIngestQueue.add({
+          notificationId: notification.id
+        });
+        await requestSecurityReview({ subject: 'specChange', id: change.id });
+      } catch (e) {
+        // Maybe a duplicate
+      }
+    };
+
+    // A spec that changes without a version bump is recorded as a change from the version
+    // to itself, so downstream consumers (security reviews, alerts) still see it.
+    if (
+      version.specificationOid &&
+      previousSpecificationOid &&
+      previousSpecificationOid !== version.specificationOid
+    ) {
+      await recordSpecChange({
+        fromVersionOid: version.oid,
+        fromSpecificationOid: previousSpecificationOid,
+        toSpecificationOid: version.specificationOid
+      });
+    }
+
     if (version.specificationOid && version.previousVersionOid) {
       let previousVersion = await db.providerVersion.findFirstOrThrow({
         where: { oid: version.previousVersionOid }
@@ -92,34 +143,11 @@ export let providerVersionSetSpecificationQueueProcessor =
         version.specificationOid !== previousVersion.specificationOid &&
         previousVersion.specificationOid
       ) {
-        try {
-          let change = await db.providerVersionSpecificationChange.create({
-            data: {
-              ...getId('providerVersionSpecificationChange'),
-
-              toSpecificationOid: version.specificationOid,
-              fromSpecificationOid: previousVersion.specificationOid,
-
-              toVersionOid: version.oid,
-              fromVersionOid: previousVersion.oid
-            }
-          });
-          let notification = await db.providerSpecificationChangeNotification.create({
-            data: {
-              ...getId('providerSpecificationChangeNotification'),
-
-              target: 'version',
-              versionOid: version.oid,
-              versionSpecificationChangeOid: change.oid
-            }
-          });
-
-          await schemaChangeNotificationAlertIngestQueue.add({
-            notificationId: notification.id
-          });
-        } catch (e) {
-          // Maybe a duplicate
-        }
+        await recordSpecChange({
+          fromVersionOid: previousVersion.oid,
+          fromSpecificationOid: previousVersion.specificationOid,
+          toSpecificationOid: version.specificationOid
+        });
       }
     }
   });

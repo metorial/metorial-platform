@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Avatar } from '../components/Avatar';
 import { Popover, usePopoverAnchor } from '../components/Popover';
+import type { AttributionPerson } from './AttributionPopover';
 import type { SharedPerson } from './HeaderActions';
 import { IconChevronDown, IconCode, IconHistory, IconText } from './icons';
 
@@ -19,11 +20,10 @@ interface TitleStatusBarProps {
   updatedAt: Date;
   wordCount: number;
   charCount: number;
-  frontMatterOpen?: boolean;
-  hasFrontMatter?: boolean;
-  frontMatterError?: string | null;
-  onToggleFrontMatter?: () => void;
+  skillMetadataOpen?: boolean;
+  onToggleSkillMetadata?: () => void;
   onOpenPageInfo?: () => void;
+  attributionCounts?: { person: AttributionPerson; blocks: number }[];
 }
 
 let TRIGGER_SELECTOR = '[data-title-status-editors-trigger]';
@@ -90,7 +90,7 @@ let Text = styled.span`
   white-space: nowrap;
 `;
 
-let FrontMatterBtn = styled.button<{ $active?: boolean }>`
+let MetadataBtn = styled.button<{ $active?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -141,8 +141,6 @@ let PopoverTitle = styled.div`
   font-size: 11px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.textSubtle};
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 `;
 
 let EditorRow = styled.div`
@@ -150,6 +148,19 @@ let EditorRow = styled.div`
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
+`;
+
+let PopoverDivider = styled.div`
+  height: 1px;
+  margin: 6px 0;
+  background: ${({ theme }) => theme.color.border};
+`;
+
+let BlockCount = styled.span`
+  margin-left: auto;
+  font-size: 12px;
+  color: ${({ theme }) => theme.color.textMuted};
+  font-variant-numeric: tabular-nums;
 `;
 
 let EditorInfo = styled.div`
@@ -210,11 +221,10 @@ export function TitleStatusBar({
   updatedAt,
   wordCount,
   charCount,
-  frontMatterOpen = false,
-  hasFrontMatter = false,
-  frontMatterError = null,
-  onToggleFrontMatter,
-  onOpenPageInfo
+  skillMetadataOpen = false,
+  onToggleSkillMetadata,
+  onOpenPageInfo,
+  attributionCounts
 }: TitleStatusBarProps) {
   let { triggerRef, open, anchor, closeMenu, toggle } = usePopoverAnchor('left');
   let tokenCount = Math.max(0, Math.round(charCount / 4));
@@ -288,26 +298,22 @@ export function TitleStatusBar({
           </StatusItemBtn>
         </Tooltip>
 
-        <FrontMatterBtn
-          type="button"
-          $active={frontMatterOpen}
-          onClick={() => onToggleFrontMatter?.()}
-          title={
-            frontMatterError
-              ? `Invalid front matter: ${frontMatterError}`
-              : frontMatterOpen
-                ? 'Collapse front matter'
-                : 'Expand front matter'
-          }
-        >
-          <IconWrap>
-            <IconCode />
-          </IconWrap>
-          <Text>{hasFrontMatter ? 'Front matter' : 'Add front matter'}</Text>
-          <span className="chevron">
-            <IconChevronDown />
-          </span>
-        </FrontMatterBtn>
+        {onToggleSkillMetadata && (
+          <MetadataBtn
+            type="button"
+            $active={skillMetadataOpen}
+            onClick={onToggleSkillMetadata}
+            title={skillMetadataOpen ? 'Collapse client details' : 'Expand client details'}
+          >
+            <IconWrap>
+              <IconCode />
+            </IconWrap>
+            <Text>Client details</Text>
+            <span className="chevron">
+              <IconChevronDown />
+            </span>
+          </MetadataBtn>
+        )}
       </Bar>
 
       <Popover
@@ -334,6 +340,29 @@ export function TitleStatusBar({
               </EditorInfo>
             </EditorRow>
           ))}
+          {/* {!!attributionCounts?.length && (
+            <>
+              <PopoverDivider />
+              <PopoverTitle>Blocks by primary editor</PopoverTitle>
+              {attributionCounts.map(({ person, blocks }) => (
+                <EditorRow key={person.id}>
+                  <Avatar
+                    name={person.name}
+                    imageUrl={person.imageUrl}
+                    email={person.email}
+                    size={22}
+                    noTooltip
+                  />
+                  <EditorInfo>
+                    <span className="name">{person.name}</span>
+                  </EditorInfo>
+                  <BlockCount>
+                    {blocks.toLocaleString()} {blocks === 1 ? 'block' : 'blocks'}
+                  </BlockCount>
+                </EditorRow>
+              ))}
+            </>
+          )} */}
         </PopoverList>
       </Popover>
     </>

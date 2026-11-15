@@ -23,7 +23,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
     consumerSession: undefined,
     consumerProfile: undefined,
     accessTags: undefined,
-    portal: undefined
+    portal: undefined,
+    consumerProfileFromHeader: false
   };
 
   if (ctx.auth.type == 'fine_grained' && ctx.auth.restrictions.type == 'instance') {
@@ -127,6 +128,7 @@ export let instanceGroup = apiGroup.use(async ctx => {
       consumerSurface: consumerProfile.surface,
       portal: consumerProfile.surface.portal,
       consumerProfile: consumerProfile,
+      consumerProfileFromHeader: true,
       resourceActor: consumerAccess.resourceActor,
       auditScope: consumerAccess.auditScope,
       member: undefined,

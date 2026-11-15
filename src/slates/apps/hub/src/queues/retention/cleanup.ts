@@ -284,6 +284,26 @@ let slatesRetentionRunner = createRetentionRunner<SlatesRetentionTenant>({
         }
       }),
 
+    triggerWebhookExpansions: d =>
+      retentionPhaseBatch({
+        findMany: () =>
+          db.triggerWebhookExpansion.findMany({
+            where: {
+              triggerRegistrationInstance: {
+                triggerRegistration: { tenantOid: d.tenantOid }
+              },
+              completedAt: { lt: d.triggerAndWebhookCutoffDate }
+            },
+            orderBy: { completedAt: 'asc' },
+            take: RETENTION_BATCH_SIZE,
+            select: { id: true }
+          }),
+        deleteMany: records =>
+          db.triggerWebhookExpansion.deleteMany({
+            where: { id: { in: records.map(record => record.id) } }
+          })
+      }),
+
     slateWebhookEvents: d =>
       retentionPhaseBatch({
         findMany: () =>

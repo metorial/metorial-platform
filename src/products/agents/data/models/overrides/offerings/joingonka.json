@@ -1,0 +1,23 @@
+{
+  "MiniMaxAI/MiniMax-M2.7": {
+    "decision": "link",
+    "model": "minimax/minimax-m2.7",
+    "reason": "Name and HF repo MiniMaxAI/MiniMax-M2.7 match exactly; JoinGonka's deep-discount pricing explains the far-below-median price.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "deepseek-ai/DeepSeek-V4-Flash-0731": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4-flash-0731",
+    "reason": "Exact HF repo deepseek-ai/DeepSeek-V4-Flash-0731 (created 2026-07-31); price is the reseller's discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "zai-org/GLM-5.3-Flash": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "Exact HF repo zai-org/GLM-5.3-Flash (created 2026-08-25); price is the reseller's discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

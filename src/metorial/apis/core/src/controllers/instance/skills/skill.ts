@@ -95,12 +95,26 @@ export let skillController = Controller.create(
             skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            owned_by_me: v.optional(
+              v.boolean({
+                description:
+                  'Only return skills the caller created or owns, including ones created through their other member or consumer identities'
+              })
+            ),
             created_at: dateFilterValidator('skill creation time'),
             updated_at: dateFilterValidator('skill last update time')
           })
         )
       )
       .do(async ctx => {
+        if (ctx.query.owned_by_me && !ctx.resourceActor) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'owned_by_me requires a member or consumer actor'
+            })
+          );
+        }
+
         let access = await getInstanceCargoAccess(ctx);
         let paginator = await skillService.listSkills({
           project: access.project,
@@ -112,6 +126,7 @@ export let skillController = Controller.create(
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          ownedByActor: ctx.query.owned_by_me ? ctx.resourceActor : undefined,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at,
           accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
@@ -287,7 +302,23 @@ export let skillController = Controller.create(
           compatibility: v.optional(v.nullable(skillCompatibilityValidator)),
           client_metadata: v.optional(v.nullable(v.record(v.any()))),
           metadata: v.optional(v.nullable(v.record(v.any()))),
-          image_file_id: v.optional(v.nullable(v.string()))
+          image_file_id: v.optional(v.nullable(v.string())),
+          image_icon: v.optional(
+            v.nullable(
+              v.object({
+                icon: v.string({
+                  description: 'Library icon id, e.g. rocket-2-line'
+                }),
+                color: v.string({
+                  description: 'Tile color: gray, blue, green, yellow, orange, red or purple'
+                })
+              })
+            ),
+            {
+              description:
+                'Use a library icon with a tile color as the skill image. Pass null to reset to the default image. Cannot be combined with image_file_id.'
+            }
+          )
         })
       )
       .output(skillPresenter)
@@ -302,7 +333,8 @@ export let skillController = Controller.create(
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata,
-          imageFileId: ctx.body.image_file_id
+          imageFileId: ctx.body.image_file_id,
+          imageIcon: ctx.body.image_icon
         };
 
         let updated = await skillService.updateSkill({
@@ -484,7 +516,10 @@ export let skillController = Controller.create(
         v.object({
           consumer_profile_ids: v.optional(v.array(v.string())),
           organization_member_ids: v.optional(v.array(v.string())),
-          permission: v.enumOf(['none', 'read', 'write'])
+          permission: v.enumOf(['none', 'read', 'write', 'owner'], {
+            description:
+              'Access to grant. Owners can always edit the skill and can add other owners; only admins can remove or downgrade an owner. Owners must be consumers.'
+          })
         })
       )
       .output(skillPresenter)

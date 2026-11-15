@@ -1,5 +1,6 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generateCustomId } from '@lowerdeck/id';
+import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
@@ -16,6 +17,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { triggerWebhookRegistrationServiceInternal } from '../internal';
 import { getActiveSlateVersion } from '../lib/slateVersion';
+import { getTriggerDeliveryConfigSpec } from '../lib/triggerDeliveryConfig';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
 import { getWebhookUrl } from '../lib/webhookUrl';
 import { triggerWebhookRegistrationRematchQueue } from '../queues/trigger/webhookRegistrationRematch';
@@ -38,6 +40,13 @@ let adminInclude = {
   triggerWebhookTarget: true
 };
 
+let deliveryConfigLock = createLock({
+  name: 'shub/whk/delivery-config/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
+let deliveryConfigLockOptions = { acquisitionTimeoutMs: 30_000 };
+
 let getRegion = () => {
   let region =
     env.service.METORIAL_REGION ??
@@ -52,17 +61,32 @@ export let generateWebhookRegistrationUrlKey = (
   owner: SlateWebhookRegistrationOwner = 'tenant'
 ) => `${generateCustomId(owner === 'global' ? 'whk_global_' : 'whk_', 35)}_${getRegion()}`;
 
-let getManualWebhookRegistrationSpec = (triggerGroup: SlateTriggerGroup) => {
-  let invocation = triggerGroup.spec.invocation;
-  if (invocation.type !== 'webhook' || invocation.registration.mode !== 'manual') return null;
-  return invocation.registration;
+type ManualWebhookRegistrationSpec = {
+  userConfigSchema: Record<string, any>;
+  fullConfigSchema: Record<string, any>;
 };
+
+// What a person fills in: a manual webhook, or the delivery config of an automatic group.
+let getManualWebhookRegistrationSpec = (
+  triggerGroup: SlateTriggerGroup
+): ManualWebhookRegistrationSpec | null => {
+  let invocation = triggerGroup.spec.invocation;
+  if (invocation.type !== 'webhook') return null;
+  if (invocation.registration.mode === 'manual') return invocation.registration;
+
+  return getTriggerDeliveryConfigSpec(triggerGroup);
+};
+
+type DeletableWebhookRegistration = Pick<
+  SlateWebhookRegistration,
+  'oid' | 'id' | 'type' | 'tenantOid'
+>;
 
 class slateWebhookRegistrationServiceImpl {
   async getWebhookRegistrationById(d: {
     tenant: Tenant;
     id: string;
-    type?: SlateWebhookRegistrationType;
+    types?: SlateWebhookRegistrationType[];
   }) {
     let registration = await db.slateWebhookRegistration.findFirst({
       where: {
@@ -70,7 +94,7 @@ class slateWebhookRegistrationServiceImpl {
         owner: 'tenant',
         id: d.id,
         status: { not: 'deleted' },
-        type: d.type
+        type: d.types ? { in: d.types } : undefined
       },
       include
     });
@@ -87,7 +111,10 @@ class slateWebhookRegistrationServiceImpl {
     return registration;
   }
 
-  async listWebhookRegistrations(d: { tenant: Tenant; type?: SlateWebhookRegistrationType }) {
+  async listWebhookRegistrations(d: {
+    tenant: Tenant;
+    types?: SlateWebhookRegistrationType[];
+  }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -97,7 +124,7 @@ class slateWebhookRegistrationServiceImpl {
               tenantOid: d.tenant.oid,
               owner: 'tenant',
               status: { not: 'deleted' },
-              type: d.type
+              type: d.types ? { in: d.types } : undefined
             },
             include
           })
@@ -108,7 +135,7 @@ class slateWebhookRegistrationServiceImpl {
   async getManyWebhookRegistrationsByIds(d: {
     tenant: Tenant;
     ids: string[];
-    type?: SlateWebhookRegistrationType;
+    types?: SlateWebhookRegistrationType[];
   }) {
     return db.slateWebhookRegistration.findMany({
       where: {
@@ -116,7 +143,29 @@ class slateWebhookRegistrationServiceImpl {
         owner: 'tenant',
         id: { in: d.ids },
         status: { not: 'deleted' },
-        type: d.type
+        type: d.types ? { in: d.types } : undefined
+      },
+      include
+    });
+  }
+
+  async getDeliveryConfigsServingOAuthCredentials(d: {
+    tenant: Tenant;
+    oauthCredentialsIds: string[];
+  }) {
+    let credentials = await db.slateOAuthCredentials.findMany({
+      where: { tenantOid: d.tenant.oid, id: { in: d.oauthCredentialsIds } },
+      select: { slateOid: true, clientId: true }
+    });
+    if (!credentials.length) return [];
+
+    return db.slateWebhookRegistration.findMany({
+      where: {
+        tenantOid: d.tenant.oid,
+        owner: 'tenant',
+        type: 'delivery_config',
+        status: { in: ['active', 'awaiting_setup'] },
+        OR: credentials.map(c => ({ slateOid: c.slateOid, oauthClientId: c.clientId }))
       },
       include
     });
@@ -132,10 +181,17 @@ class slateWebhookRegistrationServiceImpl {
       authRouting?: SlateWebhookRegistrationAuthRouting;
       authMethodIds?: string[];
       slateOAuthCredentialsIds?: string[];
+      deliveryConfigOAuthCredentialsId?: string;
     };
   }) {
     let { slate, triggerGroup } = await this.resolveManualWebhookTriggerGroup({
       slateId: d.input.slateId
+    });
+    let oauthClientId = await this.resolveDeliveryConfigOAuthClientId({
+      tenant: d.tenant,
+      slate,
+      triggerGroup,
+      oauthCredentialsId: d.input.deliveryConfigOAuthCredentialsId
     });
 
     let authRouting = d.input.authRouting ?? 'any';
@@ -157,43 +213,49 @@ class slateWebhookRegistrationServiceImpl {
       allowCredentials: true
     });
 
-    let urlKey = generateWebhookRegistrationUrlKey('tenant');
+    return this.usingDeliveryConfigSlot(
+      { owner: 'tenant', tenant: d.tenant, slate, triggerGroup, oauthClientId },
+      async () => {
+        let urlKey = generateWebhookRegistrationUrlKey('tenant');
 
-    let { partialWebhookRegistrationPayload, webhookSetupDocument } =
-      await this.startWebhookSetup({
-        tenant: d.tenant,
-        slate,
-        triggerGroup,
-        urlKey
-      });
+        let { partialWebhookRegistrationPayload, webhookSetupDocument } =
+          await this.startWebhookSetup({
+            tenant: d.tenant,
+            slate,
+            triggerGroup,
+            urlKey
+          });
 
-    let registrationSpec = getManualWebhookRegistrationSpec(triggerGroup);
+        let registrationSpec = getManualWebhookRegistrationSpec(triggerGroup);
 
-    let registration =
-      await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
-        tenant: d.tenant,
-        slate,
-        triggerGroup,
-        type: 'manual',
-        owner: 'tenant',
-        status: 'awaiting_setup',
-        urlKey,
+        let registration =
+          await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+            tenant: d.tenant,
+            slate,
+            triggerGroup,
+            type: oauthClientId ? 'delivery_config' : 'manual',
+            owner: 'tenant',
+            status: 'awaiting_setup',
+            urlKey,
+            oauthClientId,
 
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata,
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata,
 
-        webhookRegistrationPayload: partialWebhookRegistrationPayload,
-        authRouting,
-        authMethods,
-        oauthCredentials
-      });
+            webhookRegistrationPayload: partialWebhookRegistrationPayload,
+            authRouting,
+            authMethods,
+            oauthCredentials
+          });
 
-    return {
-      registration,
-      webhookSetupDocument,
-      userConfigSchema: registrationSpec?.userConfigSchema ?? null
-    };
+        return {
+          registration,
+          webhookSetupDocument,
+          userConfigSchema: registrationSpec?.userConfigSchema ?? null
+        };
+      }
+    );
   }
 
   async finishManualWebhookSetup(d: {
@@ -235,6 +297,7 @@ class slateWebhookRegistrationServiceImpl {
 
     // When a TriggerRegistrationInstance was created before a suitable webhook existed, it will have
     // errored - we now patch it up by re-matching it to the newly created webhook registration.
+    // For a delivery config, registrations that failed for lack of one are tried again.
     await triggerWebhookRegistrationRematchQueue.add({
       webhookRegistrationId: registration.id
     });
@@ -249,12 +312,17 @@ class slateWebhookRegistrationServiceImpl {
       description?: string;
       metadata?: Record<string, any>;
       userConfig: Record<string, any>;
+      oauthClientId?: string;
       authRouting?: SlateWebhookRegistrationAuthRouting;
       authMethodIds?: string[];
     };
   }) {
     let { slate, triggerGroup } = await this.resolveManualWebhookTriggerGroup({
       slateId: d.input.slateId
+    });
+    let oauthClientId = this.resolveGlobalDeliveryConfigOAuthClientId({
+      triggerGroup,
+      oauthClientId: d.input.oauthClientId
     });
 
     let authRouting = d.input.authRouting ?? 'any';
@@ -269,42 +337,47 @@ class slateWebhookRegistrationServiceImpl {
       allowCredentials: false
     });
 
-    let urlKey = generateWebhookRegistrationUrlKey('global');
+    let registration = await this.usingDeliveryConfigSlot(
+      { owner: 'global', tenant: globalTenant, slate, triggerGroup, oauthClientId },
+      async () => {
+        let urlKey = generateWebhookRegistrationUrlKey('global');
 
-    let { partialWebhookRegistrationPayload } = await this.startWebhookSetup({
-      tenant: globalTenant,
-      slate,
-      triggerGroup,
-      urlKey
-    });
+        let { partialWebhookRegistrationPayload } = await this.startWebhookSetup({
+          tenant: globalTenant,
+          slate,
+          triggerGroup,
+          urlKey
+        });
 
-    let webhookRegistrationPayload = await this.callManualFinishRpc({
-      tenant: globalTenant,
-      slate,
-      triggerGroup,
-      urlKey,
-      partialWebhookRegistrationPayload,
-      userConfig: d.input.userConfig
-    });
+        let webhookRegistrationPayload = await this.callManualFinishRpc({
+          tenant: globalTenant,
+          slate,
+          triggerGroup,
+          urlKey,
+          partialWebhookRegistrationPayload,
+          userConfig: d.input.userConfig
+        });
 
-    let registration =
-      await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
-        tenant: globalTenant,
-        slate,
-        triggerGroup,
-        type: 'manual',
-        owner: 'global',
-        status: 'active',
-        urlKey,
+        return triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+          tenant: globalTenant,
+          slate,
+          triggerGroup,
+          type: oauthClientId ? 'delivery_config' : 'manual',
+          owner: 'global',
+          status: 'active',
+          urlKey,
+          oauthClientId,
 
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata,
 
-        webhookRegistrationPayload,
-        authRouting,
-        authMethods
-      });
+          webhookRegistrationPayload,
+          authRouting,
+          authMethods
+        });
+      }
+    );
 
     // A global registration is a candidate for every tenant's instances, so instances that
     // previously errored with no matching webhook registration may now be able to match it.
@@ -364,11 +437,12 @@ class slateWebhookRegistrationServiceImpl {
     });
   }
 
-  async deleteGlobalWebhookRegistration(d: { registration: { oid: bigint } }) {
+  async deleteGlobalWebhookRegistration(d: { registration: DeletableWebhookRegistration }) {
     await db.slateWebhookRegistration.update({
       where: { oid: d.registration.oid },
       data: { status: 'deleted' }
     });
+    await this.releaseDeliveryConfig(d.registration);
   }
 
   async updateWebhookRegistration(d: {
@@ -397,7 +471,7 @@ class slateWebhookRegistrationServiceImpl {
 
   async deleteWebhookRegistration(d: {
     tenant: Tenant;
-    registration: { oid: bigint; tenantOid: bigint | null };
+    registration: DeletableWebhookRegistration;
   }) {
     if (d.registration.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('webhook_registration'));
@@ -407,6 +481,16 @@ class slateWebhookRegistrationServiceImpl {
       where: { oid: d.registration.oid },
       data: { status: 'deleted' }
     });
+    await this.releaseDeliveryConfig(d.registration);
+  }
+
+  // Registrations on a removed config would look healthy yet receive nothing, so re-register
+  // them; the second pass catches ones mid-registration.
+  private async releaseDeliveryConfig(registration: DeletableWebhookRegistration) {
+    if (registration.type !== 'delivery_config') return;
+    let job = { webhookRegistrationId: registration.id };
+    await triggerWebhookRegistrationRematchQueue.add(job);
+    await triggerWebhookRegistrationRematchQueue.add(job, { delay: 5 * 60 * 1000 });
   }
 
   async getWebhookRegistrationForAdmin(d: { id: string }) {
@@ -551,6 +635,119 @@ class slateWebhookRegistrationServiceImpl {
     }
   }
 
+  private async resolveDeliveryConfigOAuthClientId(d: {
+    tenant: Tenant;
+    slate: Slate;
+    triggerGroup: SlateTriggerGroup;
+    oauthCredentialsId: string | undefined;
+  }) {
+    if (!getTriggerDeliveryConfigSpec(d.triggerGroup)) {
+      if (d.oauthCredentialsId) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'delivery_config_oauth_credentials_not_applicable',
+            message:
+              'This webhook setup is not a delivery setup, so it takes no OAuth credentials.'
+          })
+        );
+      }
+      return null;
+    }
+
+    if (!d.oauthCredentialsId) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'delivery_config_oauth_credentials_required',
+          message: 'Select the OAuth credentials this delivery setup is for.'
+        })
+      );
+    }
+
+    let [credentials] = await this.resolveOAuthCredentials({
+      tenant: d.tenant,
+      slate: d.slate,
+      credentialIds: [d.oauthCredentialsId]
+    });
+    return credentials!.clientId;
+  }
+
+  private resolveGlobalDeliveryConfigOAuthClientId(d: {
+    triggerGroup: SlateTriggerGroup;
+    oauthClientId: string | undefined;
+  }) {
+    let oauthClientId = d.oauthClientId?.trim() || null;
+
+    if (!getTriggerDeliveryConfigSpec(d.triggerGroup)) {
+      if (oauthClientId) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'delivery_config_oauth_client_id_not_applicable',
+            message: 'This webhook is not a delivery setup, so it takes no OAuth client ID.'
+          })
+        );
+      }
+      return null;
+    }
+
+    if (!oauthClientId) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'delivery_config_oauth_client_id_required',
+          message: 'Enter the OAuth client ID this delivery setup is for.'
+        })
+      );
+    }
+
+    return oauthClientId;
+  }
+
+  // Live configs are matched by trigger group key, which no database constraint can cover.
+  private async usingDeliveryConfigSlot<T>(
+    d: {
+      owner: SlateWebhookRegistrationOwner;
+      tenant: Tenant;
+      slate: Slate;
+      triggerGroup: SlateTriggerGroup;
+      oauthClientId: string | null;
+    },
+    fn: () => Promise<T>
+  ) {
+    let oauthClientId = d.oauthClientId;
+    if (!oauthClientId) return fn();
+
+    let tenantOid = d.owner === 'tenant' ? d.tenant.oid : null;
+
+    return deliveryConfigLock.usingLock(
+      `${d.slate.oid}:${d.triggerGroup.key}:${tenantOid ?? 'global'}:${oauthClientId}`,
+      async () => {
+        let existing = await db.slateWebhookRegistration.findFirst({
+          where: {
+            type: 'delivery_config',
+            status: { in: ['active', 'awaiting_setup'] },
+            owner: d.owner,
+            tenantOid,
+            slateOid: d.slate.oid,
+            oauthClientId,
+            triggerGroup: { key: d.triggerGroup.key }
+          },
+          select: { id: true }
+        });
+        if (existing) {
+          throw new ServiceError(
+            conflictError({
+              code: 'delivery_config_already_exists',
+              message:
+                'A delivery setup for this integration and OAuth app already exists. Remove it before creating another.'
+            })
+          );
+        }
+
+        return fn();
+      },
+      deliveryConfigLockOptions
+    );
+  }
+
   private async resolveManualWebhookTriggerGroup(d: { slateId: string }) {
     let slate = await slateService.getSlateById({ id: d.slateId });
     let version = await getActiveSlateVersion({ slate });
@@ -634,9 +831,17 @@ class slateWebhookRegistrationServiceImpl {
       );
     }
 
+    // A pasted value often carries whitespace that a schema pattern would reject.
+    let trimmed = Object.fromEntries(
+      Object.entries(d.userConfig).map(([key, value]) => [
+        key,
+        typeof value === 'string' ? value.trim() : value
+      ])
+    );
+
     let userConfig = validateJsonSchema({
       schema: registrationSpec.userConfigSchema,
-      data: d.userConfig,
+      data: trimmed,
       entity: 'webhook_registration.user_config',
       message: 'Invalid webhook setup configuration.'
     });

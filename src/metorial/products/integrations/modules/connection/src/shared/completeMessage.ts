@@ -14,6 +14,7 @@ import {
   type SessionParticipant,
   withTransaction
 } from '@metorial-subspace/db';
+import { protoGuardService } from '@metorial-subspace/module-protoguard';
 import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { finalizeMessageQueue } from '../queues/message/finalizeMessage';
 import { createError, messageFailureReasonToErrorType } from './createError';
@@ -148,6 +149,13 @@ export let completeMessage = async (
   });
 
   if (!didTransition) return message;
+
+  protoGuardService.scheduleMessageScan({
+    message,
+    methodOrToolKey: message.toolCall?.toolKey ?? message.methodOrToolKey,
+    tool: message.toolCall ? { key: message.toolCall.toolKey } : null,
+    output: data.output
+  });
 
   let error: SessionError | undefined;
   if (data.status === 'failed') {

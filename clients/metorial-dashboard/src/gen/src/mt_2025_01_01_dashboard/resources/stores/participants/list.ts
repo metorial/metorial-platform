@@ -6,7 +6,7 @@ export type StoresParticipantsListOutput = {
     id: string;
     storeId: string;
     permissions: ('content_read' | 'content_write')[];
-    roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+    roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
     actor: {
       type: 'organization_actor' | 'consumer' | 'resource_actor';
       name: string;
@@ -74,6 +74,7 @@ export type StoresParticipantsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -82,7 +83,9 @@ export type StoresParticipantsListOutput = {
     surfaces:
       | {
           id: string;
-          roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+          roles: (
+            'creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker'
+          )[];
           actor: {
             type: 'organization_actor' | 'consumer' | 'resource_actor';
             name: string;
@@ -150,6 +153,7 @@ export type StoresParticipantsListOutput = {
                           updatedAt: Date;
                         };
                         assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                        ssoGroupIds: string[];
                       }[]
                     | null;
                 })
@@ -240,7 +244,8 @@ export let mapStoresParticipantsListOutput =
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]
@@ -341,7 +346,8 @@ export let mapStoresParticipantsListOutput =
                                                 ]
                                               ]
                                             ],
-                                            'assigned_via'
+                                            'assigned_via',
+                                            'sso_group_ids'
                                           ]
                                         ]
                                       ]

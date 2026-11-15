@@ -36,6 +36,7 @@ model SlateWebhookEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  expansionInbox   TriggerWebhookExpansion[]
   invocations      SlateWebhookEventInvocation[]
   triggerRawEvents TriggerRawEvent[]
   triggerEvents    TriggerEvent[]

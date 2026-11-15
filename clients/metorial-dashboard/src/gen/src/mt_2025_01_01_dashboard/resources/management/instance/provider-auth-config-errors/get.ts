@@ -15,6 +15,7 @@ export type ManagementInstanceProviderAuthConfigErrorsGetOutput = {
   providerInvocationId: string | null;
   groupId: string | null;
   similarErrorCount: number;
+  issueId: string | null;
   createdAt: Date;
 };
 
@@ -29,6 +30,7 @@ export let mapManagementInstanceProviderAuthConfigErrorsGetOutput =
       'provider_invocation_id',
       'group_id',
       'similar_error_count',
+      'issue_id',
       'created_at'
     ],
     1

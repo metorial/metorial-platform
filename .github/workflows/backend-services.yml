@@ -33,7 +33,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+          tasks: test --filter=./src/platform/packages/* --filter=./src/platform/modules/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=@metorial/slates --filter=@mtsrc/email-service
 
   migrations:
     name: Check Prisma migrations
@@ -54,7 +54,7 @@ jobs:
             git fetch --no-tags origin "+refs/heads/$BASE_BRANCH:refs/remotes/origin/$BASE_BRANCH"
             base="--base origin/$BASE_BRANCH"
           fi
-          bun src/control/src/main.ts db check $base
+          bun src/tooling/control/src/main.ts db check $base
 
   build:
     name: 'Build ${{ matrix.service.name }}'
@@ -68,61 +68,58 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - name: forge
-            image: ghcr.io/metorial/forge
-            dockerfile: ./src/forge/service/Dockerfile
-          - name: nebula
-            image: ghcr.io/metorial/nebula
-            dockerfile: ./src/nebula/service/Dockerfile
-          - name: function-bay
-            image: ghcr.io/metorial/function-bay
-            dockerfile: ./src/function-bay/service/Dockerfile
-          - name: shuttle
-            image: ghcr.io/metorial/shuttle
-            dockerfile: ./src/shuttle/service/Dockerfile
-          - name: relay
-            image: ghcr.io/metorial/relay
-            dockerfile: ./src/relay/service/Dockerfile
-          - name: voyager
-            image: ghcr.io/metorial/voyager
-            dockerfile: ./src/voyager/service/Dockerfile
+          - name: build
+            image: ghcr.io/metorial/build
+            dockerfile: ./src/products/runtime/services/build/service/Dockerfile
+          - name: secret-store
+            image: ghcr.io/metorial/secret-store
+            dockerfile: ./src/platform/services/secret-store/service/Dockerfile
+          - name: functions
+            image: ghcr.io/metorial/functions
+            dockerfile: ./src/products/runtime/services/functions/service/Dockerfile
+          - name: mcp-runtime
+            image: ghcr.io/metorial/mcp-runtime
+            dockerfile: ./src/products/integrations/services/mcp-runtime/service/Dockerfile
+          - name: email
+            image: ghcr.io/metorial/email
+            dockerfile: ./src/platform/services/email/service/Dockerfile
+          - name: search
+            image: ghcr.io/metorial/search
+            dockerfile: ./src/platform/services/search/service/Dockerfile
           - name: slates-hub
             image: ghcr.io/metorial/slates-hub
             dockerfile: ./src/slates/apps/hub/Dockerfile
           - name: slates-registry
             image: ghcr.io/metorial/slates-registry
             dockerfile: ./src/slates/apps/registry/Dockerfile
-          - name: signal
-            image: ghcr.io/metorial/signal
-            dockerfile: ./src/signal/service/Dockerfile
+          - name: webhook-sender
+            image: ghcr.io/metorial/webhook-sender
+            dockerfile: ./src/platform/services/webhook-sender/service/Dockerfile
 
-          - name: ares
-            image: ghcr.io/metorial/ares
-            dockerfile: ./src/ares/service/Dockerfile
+          - name: auth-core
+            image: ghcr.io/metorial/auth-core
+            dockerfile: ./src/products/identity/services/auth-core/service/Dockerfile
           - name: deflector
             image: ghcr.io/metorial/deflector
-            dockerfile: ./src/function-bay/deflector/Dockerfile
-          - name: function-bay-observer
-            image: ghcr.io/metorial/function-bay-observer
-            dockerfile: ./src/function-bay/observer/Dockerfile
-          - name: origin
-            image: ghcr.io/metorial/mte-origin
-            dockerfile: ./src/origin/apps/service/Dockerfile
+            dockerfile: ./src/products/runtime/services/networking/legacy/deflector/Dockerfile
+          - name: scm
+            image: ghcr.io/metorial/mte-scm
+            dockerfile: ./src/products/storage/services/scm/services/api/Dockerfile
           - name: code-bucket
             image: ghcr.io/metorial/mte-code-bucket
-            dockerfile: ./src/origin/apps/code-bucket/Dockerfile
+            dockerfile: ./src/products/storage/services/scm/services/code-bucket/Dockerfile
           - name: object-store
             image: ghcr.io/metorial/mte-object-store
             dockerfile: ./src/object-storage/Dockerfile
-          - name: synthesis
-            image: ghcr.io/metorial/synthesis
-            dockerfile: ./src/synthesis/service/Dockerfile
+          - name: ai-gateway
+            image: ghcr.io/metorial/ai-gateway
+            dockerfile: ./src/products/agents/services/ai-gateway/service/Dockerfile
           - name: subspace-worker
             image: ghcr.io/metorial/subspace-worker
             dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
           - name: app-api
             image: ghcr.io/metorial/app-api
-            dockerfile: ./src/metorial/services/api/Dockerfile
+            dockerfile: ./src/products/oss/services/oss-core/Dockerfile
 
     steps:
       - name: Checkout repository

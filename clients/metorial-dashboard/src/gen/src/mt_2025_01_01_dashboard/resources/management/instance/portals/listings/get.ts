@@ -6,6 +6,7 @@ export type ManagementInstancePortalsListingsGetOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type ManagementInstancePortalsListingsGetOutput = {
 export let mapManagementInstancePortalsListingsGetOutput =
   /* @__PURE__ */ mapObject<ManagementInstancePortalsListingsGetOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,

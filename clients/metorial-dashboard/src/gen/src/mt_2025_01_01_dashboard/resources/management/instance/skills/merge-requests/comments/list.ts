@@ -72,6 +72,7 @@ export type ManagementInstanceSkillsMergeRequestsCommentsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -161,7 +162,8 @@ export let mapManagementInstanceSkillsMergeRequestsCommentsListOutput =
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]

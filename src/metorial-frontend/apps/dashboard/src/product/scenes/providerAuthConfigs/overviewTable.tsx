@@ -2,386 +2,134 @@ import {
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput,
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
+import {
+  col,
+  createDataList,
+  deleteAction,
+  f,
+  lifecycleStatus,
+  withDefaults
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useDeleteProviderAuthConfig,
-  useProviderAuthConfigs,
-  useProviders
-} from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useMemo, useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue
-} from '@metorial/table';
+import { useDeleteProviderAuthConfig, useProviderAuthConfigs } from '@metorial/state';
+import { Badge, Text } from '@metorial/ui';
 import { entityFilters } from '../entityFilters';
+import { useInstanceContext, withProviderNames } from '../../lib/dataList';
 
 type AuthConfigItem =
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
-
-type AuthConfigRow = AuthConfigItem & {
-  providerName?: string | null;
-};
 
 export type AuthConfigFilters = Omit<
   DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
   'limit' | 'after' | 'before' | 'cursor'
 >;
 
-type ProviderAuthConfigsTableProps = {
-  instanceId: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-  filters?: AuthConfigFilters;
-};
-
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
   if (type === 'oauth_manual') return 'OAuth (Manual)';
   if (type === 'manual') return 'Manual';
-  return '—';
+  return undefined;
 };
 
 let formatSource = (source: AuthConfigItem['source'] | null | undefined) => {
   if (source === 'manual') return 'Manual';
   if (source === 'setup_session') return 'Setup Session';
   if (source === 'system') return 'System';
-  return '—';
+  return undefined;
 };
 
-let getStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceProviderDeploymentsAuthConfigsListQuery['status'] => {
-  return getEnumListFilterValue(value, ['active', 'archived']);
-};
+export let ProviderAuthConfigsOverviewTable = createDataList<{
+  instanceId?: string;
+  filters?: AuthConfigFilters;
+}>('provider-auth-configs-overview')
+  .context(useInstanceContext)
+  .filters((props, ctx) => {
+    let instanceId = props.instanceId ?? ctx.instanceId;
+    let providerId =
+      typeof props.filters?.providerId == 'string' ? props.filters.providerId : undefined;
 
-export let useProviderAuthConfigFilters = (
-  instanceId: string | null | undefined,
-  providerId?: string
-) =>
-  useMemo<TableFilter<AuthConfigRow>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'active', label: 'Active' },
-          { id: 'archived', label: 'Archived' }
-        ]
-      },
-      entityFilters.provider(instanceId),
-      entityFilters.providerDeployment(instanceId),
-      entityFilters.providerAuthCredentials(instanceId),
-      entityFilters.providerAuthMethod(instanceId, { providerId }),
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      },
-      {
-        id: 'updatedAt',
-        fields: ['updatedAt'],
-        label: 'Updated',
-        description: 'Filter by updated date',
-        type: 'date'
-      }
-    ],
-    [instanceId, providerId]
-  );
-
-export let getProviderAuthConfigFilterQuery = (
-  filter: Record<string, FilterPayload>,
-  filters?: AuthConfigFilters
-) => ({
-  status: getStatusFilterValue(filter.status) ?? filters?.status,
-  providerId: getListFilterValue(filter.providerId) ?? filters?.providerId,
-  providerDeploymentId:
-    getListFilterValue(filter.providerDeploymentId) ?? filters?.providerDeploymentId,
-  providerAuthCredentialsId:
-    getListFilterValue(filter.providerAuthCredentialsId) ?? filters?.providerAuthCredentialsId,
-  providerAuthMethodId:
-    getListFilterValue(filter.providerAuthMethodId) ?? filters?.providerAuthMethodId,
-  createdAt: getDateRangeFilterValue(filter.createdAt) ?? filters?.createdAt,
-  updatedAt: getDateRangeFilterValue(filter.updatedAt) ?? filters?.updatedAt
-});
-
-let getAuthConfigStatusColor = (status: AuthConfigItem['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
-let providerAuthConfigsTableState: TableStateProvider<
-  ProviderAuthConfigsTableProps,
-  AuthConfigRow,
-  TableStateProviderResult<AuthConfigRow>
-> = (
-  props: ProviderAuthConfigsTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let authConfigs = useProviderAuthConfigs(props.instanceId, {
-    ownership: 'all',
-    order: 'desc',
-    ...props.filters,
-    ...getProviderAuthConfigFilterQuery(opts.filter, props.filters),
-    search: opts.search ?? props.filters?.search
-  });
-
-  let providerIds = [
-    ...new Set((authConfigs.data?.items ?? []).map(item => item.providerId).filter(Boolean))
-  ];
-  let shouldLoadProviders = providerIds.length > 0;
-  let providers = useProviders(
-    props.instanceId,
-    shouldLoadProviders ? { id: providerIds } : null
-  );
-
-  let providerNameMap = new Map<string, string>();
-  for (let provider of providers.data?.items ?? []) {
-    if (provider.id && provider.name) providerNameMap.set(provider.id, provider.name);
-  }
-
-  return {
-    isLoading: authConfigs.isLoading || (shouldLoadProviders && providers.isLoading),
-    error: authConfigs.error ?? (shouldLoadProviders ? providers.error : null),
-    hasMoreAfter: authConfigs.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: authConfigs.data?.pagination.hasMoreBefore ?? false,
-    items: (authConfigs.data?.items ?? []).map(item => ({
-      ...item,
-      providerName: providerNameMap.get(item.providerId) ?? null
-    })),
-    loadNext: authConfigs.next,
-    loadPrevious: authConfigs.previous
-  };
-};
-
-let useProviderAuthConfigsTableHookState = (
-  _: ReturnType<typeof providerAuthConfigsTableState>,
-  props: ProviderAuthConfigsTableProps
-) => {
-  let deleteAuthConfig = useDeleteProviderAuthConfig();
-  let [loadingIds, setLoadingIds] = useState<string[]>([]);
-
-  return {
-    deleteAuthConfig,
-    instanceId: props.instanceId,
-    loadingIds,
-    setLoadingIds
-  };
-};
-
-let deleteProviderAuthConfigImmediately = async (
-  authConfig: AuthConfigRow,
-  state: ReturnType<typeof useProviderAuthConfigsTableHookState>
-) => {
-  state.setLoadingIds((current: string[]) => [...new Set([...current, authConfig.id])]);
-
-  try {
-    await state.deleteAuthConfig.mutate({
-      instanceId: state.instanceId,
-      providerAuthConfigId: authConfig.id
-    });
-  } finally {
-    state.setLoadingIds((current: string[]) => current.filter(id => id != authConfig.id));
-  }
-};
-
-let providerAuthConfigsFilterTable = new DashboardTable<
-  ProviderAuthConfigsTableProps,
-  AuthConfigRow
->('provider-auth-configs-overview')
-  .state(providerAuthConfigsTableState)
-  .hookState(useProviderAuthConfigsTableHookState)
-  .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: row => (
-        <Text size="2" weight="strong">
-          {row.name || '—'}
-        </Text>
-      )
-    },
-    {
-      id: 'provider',
-      isDefault: true,
-      header: 'Provider',
-      render: row => <Text size="2">{row.providerName ?? row.providerId}</Text>
-    },
-    {
-      id: 'deployment',
-      isDefault: true,
-      header: 'Deployment',
-      render: row => <Text size="2">{row.deployment?.name ?? '—'}</Text>
-    },
-    {
-      id: 'authMethod',
-      isDefault: true,
-      header: 'Auth Method',
-      render: row => <Text size="2">{row.authMethod?.name ?? row.authMethod?.key ?? '—'}</Text>
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: row => <RenderDate date={row.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: row => <ID id={row.id} />
-    },
-    {
-      id: 'type',
-      isDefault: false,
-      header: 'Type',
-      render: row => <Text size="2">{formatType(row.type)}</Text>
-    },
-    {
-      id: 'source',
-      isDefault: false,
-      header: 'Source',
-      render: row => <Text size="2">{formatSource(row.source)}</Text>
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: row => <Badge color={getAuthConfigStatusColor(row.status)}>{row.status}</Badge>
-    },
-    {
-      id: 'default',
-      isDefault: false,
-      header: 'Default',
-      render: row =>
-        row.isDefault ? <Badge color="blue">Default</Badge> : <Text size="2">No</Text>
-    },
-    {
-      id: 'credentials',
-      isDefault: false,
-      header: 'Credentials',
-      render: row =>
-        row.credentials?.id ? (
-          <ID id={row.credentials.id} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: row => <RenderDate date={row.updatedAt} />
-    }
-  ])
-  .search('Search auth configs...')
-  .link((row, props) =>
-    Paths.instance.providerAuthConfig(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      row.id
+    return {
+      status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+      providerId: f.entity(entityFilters.provider(instanceId)),
+      providerDeploymentId: f.entity(entityFilters.providerDeployment(instanceId)),
+      providerAuthCredentialsId: f.entity(entityFilters.providerAuthCredentials(instanceId)),
+      providerAuthMethodId: f.entity(
+        entityFilters.providerAuthMethod(instanceId, { providerId })
+      ),
+      createdAt: f.createdAt(),
+      updatedAt: f.updatedAt()
+    };
+  })
+  .search('Search auth configs…')
+  .paginated(({ props, ctx, filters, search }) =>
+    useProviderAuthConfigs(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(props.filters, {
+        ownership: 'all' as const,
+        order: 'desc' as const,
+        ...filters,
+        search: search ?? props.filters?.search
+      })
     )
   )
-  .actions({
-    deleteImmediate: async (authConfigs, state) => {
-      let authConfig = authConfigs[0];
-      if (!authConfig) return;
-
-      await deleteProviderAuthConfigImmediately(authConfig, state);
-    },
-    delete: async (authConfigs, state) => {
-      let authConfig = authConfigs[0];
-      if (!authConfig) return;
-
-      confirm({
-        title: 'Delete auth config',
-        description: `Are you sure you want to delete ${authConfig.name ?? 'this auth config'}?`,
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await deleteProviderAuthConfigImmediately(authConfig, state);
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      disabled: row => row.status !== 'active',
-      action: 'delete'
-    }
+  .enrich(withProviderNames(row => row.providerId))
+  .columns([
+    col.name(),
+    col.text({
+      id: 'provider',
+      header: 'Provider',
+      get: row => row.providerName ?? row.providerId
+    }),
+    col.text({ id: 'deployment', header: 'Deployment', get: row => row.deployment?.name }),
+    col.text({
+      id: 'authMethod',
+      header: 'Auth Method',
+      get: row => row.authMethod?.name ?? row.authMethod?.key
+    }),
+    col.createdAt(),
+    col.id({ isDefault: true }),
+    col.text({
+      id: 'type',
+      header: 'Type',
+      isDefault: false,
+      get: row => formatType(row.type)
+    }),
+    col.text({
+      id: 'source',
+      header: 'Source',
+      isDefault: false,
+      get: row => formatSource(row.source)
+    }),
+    col.status(lifecycleStatus, { isDefault: false }),
+    col.custom({
+      id: 'default',
+      header: 'Default',
+      isDefault: false,
+      render: row =>
+        row.isDefault ? (
+          <Badge color="blue">Default</Badge>
+        ) : (
+          <Text size="2" color="gray600">
+            No
+          </Text>
+        )
+    }),
+    col.refId('credentials', row => row.credentials?.id, { header: 'Credentials' }),
+    col.updatedAt()
   ])
-  .bulkActions([
-    {
-      id: 'delete-selected',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
+  .link((row, _props, ctx) =>
+    Paths.instance.providerAuthConfig(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .itemActions([
+    deleteAction({
+      noun: 'Auth Config',
+      name: row => row.name,
       disabled: row => row.status !== 'active',
-      action: 'deleteImmediate',
-      bulkExecution: {
-        mode: 'per-row',
-        batchSize: 10
-      }
-    }
+      useMutate: () => useDeleteProviderAuthConfig(),
+      input: (row, { props, ctx }) => ({
+        instanceId: props.instanceId ?? ctx.instanceId,
+        providerAuthConfigId: row.id
+      })
+    })
   ])
   .build();
-
-export let ProviderAuthConfigsOverviewTable = ({
-  instanceId,
-  filters,
-  emptyState,
-  headerActions
-}: {
-  instanceId: string;
-  filters?: AuthConfigFilters;
-  emptyState?: (() => ReactNode) | string;
-  headerActions?: () => ReactNode;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useProviderAuthConfigFilters(
-    instanceId,
-    typeof filters?.providerId == 'string' ? filters.providerId : undefined
-  );
-
-  return renderWithLoader({ organization, project, instance })(() =>
-    providerAuthConfigsFilterTable({
-      instanceId,
-      organization,
-      project,
-      instance,
-      filters,
-      tableFilters,
-      emptyState,
-      headerActions
-    })
-  );
-};

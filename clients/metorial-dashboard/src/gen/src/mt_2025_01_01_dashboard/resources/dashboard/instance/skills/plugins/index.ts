@@ -1,5 +1,6 @@
 export * from './archive';
 export * from './create';
+export * from './detach-skill-group';
 export * from './get';
 export * from './list';
 export * from './repositories';

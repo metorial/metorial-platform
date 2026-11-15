@@ -148,7 +148,7 @@ export class MetorialManagementInstancePortalsAccessEndpoint {
 
   /**
    * @name Update portal access
-   * @description Updates the shared listing fields for a portal access rule.
+   * @description Updates the shared listing fields of a portal access rule, and the access level of skill and skill group rules.
    *
    * @param `instanceId` - string
    * @param `portalId` - string

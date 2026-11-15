@@ -2,181 +2,84 @@ import {
   DashboardInstanceAgentsInstancesListOutput,
   DashboardInstanceAgentsInstancesListQuery
 } from '@metorial/dashboard-sdk';
+import { col, createDataList, EmptyValue, f, withDefaults } from '@metorial/data-list';
 import { useAgentInstances } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableStateProvider,
-  TableStateProviderResult,
-  getEnumListFilterValue,
-  getStringFilterValue
-} from '@metorial/table';
 
 type AgentInstance = DashboardInstanceAgentsInstancesListOutput['items'][number];
 
-type AgentInstancesTableProps = {
+type AgentInstanceFilters = Omit<
+  DashboardInstanceAgentsInstancesListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
+
+let agentInstanceTypes = [
+  { id: 'mcp_client', label: 'MCP Client' },
+  { id: 'tool_call', label: 'Tool Call' }
+] as const;
+
+let getAgentInstanceTypeLabel = (type: AgentInstance['type']) =>
+  agentInstanceTypes.find(option => option.id === type)?.label ?? 'Tool Call';
+
+let AgentInstancesList = createDataList<{
   instanceId: string;
   agentId: string;
-  filters?: Omit<
-    DashboardInstanceAgentsInstancesListQuery,
-    'limit' | 'after' | 'before' | 'cursor'
-  >;
-};
-
-let getAgentInstanceTypeLabel = (type: AgentInstance['type']) => {
-  if (type === 'mcp_client') return 'MCP Client';
-  return 'Tool Call';
-};
-
-let useAgentInstancesTableState: TableStateProvider<
-  AgentInstancesTableProps,
-  AgentInstance,
-  TableStateProviderResult<AgentInstance>
-> = (
-  props: AgentInstancesTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let agentInstances = useAgentInstances(props.instanceId, props.agentId, {
-    order: 'desc',
-    ...props.filters,
-    type:
-      getEnumListFilterValue(opts.filter.type, ['mcp_client', 'tool_call']) ??
-      props.filters?.type,
-    agentClientId:
-      getStringFilterValue(opts.filter.agentClientId) ?? props.filters?.agentClientId
-  });
-
-  return {
-    isLoading: agentInstances.isLoading,
-    error: agentInstances.error,
-    hasMoreAfter: agentInstances.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: agentInstances.data?.pagination.hasMoreBefore ?? false,
-    items: agentInstances.data?.items ?? [],
-    loadNext: agentInstances.next,
-    loadPrevious: agentInstances.previous
-  };
-};
-
-let agentInstancesTable = new DashboardTable<AgentInstancesTableProps, AgentInstance>(
-  'agent-instances'
-)
-  .state(useAgentInstancesTableState)
+  filters?: AgentInstanceFilters;
+}>('agent-instances')
+  .filters(() => ({
+    type: f.select('type', 'Type', agentInstanceTypes, {
+      description: 'Filter by instance type'
+    }),
+    agentClientId: f.string('agentClientId', 'Client ID', {
+      description: 'Filter by linked client ID'
+    }),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .paginated(({ props, filters }) =>
+    useAgentInstances(
+      props.instanceId,
+      props.agentId,
+      withDefaults(props.filters, { order: 'desc' as const, ...filters })
+    )
+  )
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: item => (
-        <div>
-          <Text size="2" weight="strong">
-            {item.name}
-          </Text>
-          {item.description ? (
-            <Text size="1" color="gray600">
-              {item.description}
-            </Text>
-          ) : null}
-        </div>
-      )
-    },
-    {
-      id: 'type',
-      isDefault: true,
-      header: 'Type',
-      render: item => <Text size="2">{getAgentInstanceTypeLabel(item.type)}</Text>
-    },
-    {
+    col.name(),
+    col.text({ id: 'type', header: 'Type', get: row => getAgentInstanceTypeLabel(row.type) }),
+    col.custom({
       id: 'client',
-      isDefault: true,
       header: 'Linked Client',
-      render: item =>
-        item.agentClient ? (
+      render: row =>
+        row.agentClient ? (
           <div>
             <Text size="2" weight="strong">
-              {item.agentClient.name}
+              {row.agentClient.name}
             </Text>
             <Text size="1" color="gray600">
-              {item.agentClient.id}
+              {row.agentClient.id}
             </Text>
           </div>
         ) : (
-          <Text size="2" color="gray600">
-            No linked client
-          </Text>
+          <EmptyValue>No linked client</EmptyValue>
         )
-    },
-    {
-      id: 'version',
-      isDefault: false,
-      header: 'Version',
-      render: item => <Text size="2">{item.version ?? '-'}</Text>
-    },
-    {
+    }),
+    col.text({ id: 'version', header: 'Version', isDefault: false, get: row => row.version }),
+    col.custom({
       id: 'lastConnectedAt',
-      isDefault: true,
       header: 'Last Connected',
-      render: item =>
-        item.lastConnectedAt ? (
-          <RenderDate date={item.lastConnectedAt} />
+      render: row =>
+        row.lastConnectedAt ? (
+          <RenderDate date={row.lastConnectedAt} />
         ) : (
-          <Text size="2" color="gray600">
-            Never
-          </Text>
+          <EmptyValue>Never</EmptyValue>
         )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: item => <RenderDate date={item.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Instance ID',
-      render: item => <ID id={item.id} />
-    }
-  ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by instance type',
-      type: 'select',
-      options: [
-        { id: 'mcp_client', label: 'MCP Client' },
-        { id: 'tool_call', label: 'Tool Call' }
-      ]
-    },
-    {
-      id: 'agentClientId',
-      fields: ['agentClientId'],
-      label: 'Client ID',
-      description: 'Filter by linked client ID',
-      type: 'string'
-    }
+    }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ header: 'Instance ID' })
   ])
   .build();
 
-export let AgentInstancesTable = ({
-  instanceId,
-  agentId,
-  filters
-}: {
-  instanceId: string;
-  agentId: string;
-  filters?: AgentInstancesTableProps['filters'];
-}) => {
-  return agentInstancesTable({
-    instanceId,
-    agentId,
-    filters,
-    emptyState: 'No agent instances found.'
-  });
-};
+export let AgentInstancesTable = (p: Parameters<typeof AgentInstancesList>[0]) => (
+  <AgentInstancesList emptyState="No agent instances found." {...p} />
+);

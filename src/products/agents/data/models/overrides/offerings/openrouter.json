@@ -146,6 +146,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inclusionai/ling-3.2-flash:free": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "inclusionAI's Ling 3.2 Flash, the 560B/25B-active native multimodal MoE launched ~2026-11-05 (Hugging Face inclusionAI/Ling-3.2-flash, 1M context); the free tier is a promo serving of that model. The index has only Ling 3.0/3.1 Flash, no 3.2 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "kt/midm-k-3.0-pro": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -257,6 +264,13 @@
     "reason": "OpenRouter lists Moonshot's Kimi K3.1 Pro (moonshotai/Kimi-K3.1-Pro on Hugging Face, post-trained successor to K3, released 2026-10-23), matching moonshot/kimi-k3.1-pro; its 0.2375/8.4085 rate is a discount off the model's median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "moonshotai/kimi-k3.1-pro:batch": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3.1-pro",
+    "reason": "OpenRouter's batch tier of Kimi K3.1 Pro: same 2026-10-23 checkpoint (moonshotai/Kimi-K3.1-Pro on Hugging Face, 1M context) matching moonshot/kimi-k3.1-pro; the 0.346 input price is the batch-tier discount, not a different model.",
+    "by": "agent",
+    "at": "2026-11-15"
   },
   "nex-agi/nex-n2.5-mini": {
     "decision": "defer",
@@ -562,6 +576,13 @@
     "reason": "OpenRouter's listing: GLM-5.3-Prime is the high-speed variant of GLM-5.3 inheriting its full capabilities via inference acceleration (canonicalSlug 20260921); a fast serving of the checkpoint is still zhipu/glm-5.3 at the 2.8/8.8 speed tier.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3:batch": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "The :batch suffix is OpenRouter's batch pricing for the same GLM-5.3 checkpoint (Hugging Face zai-org/GLM-5.3, 1M context, matches zhipu/glm-5.3's 2026-08-14 release); batch rates (0.257/0.791) are discounted vs the 1.4 median.",
+    "by": "agent",
+    "at": "2026-11-15"
   },
   "~deepseek/deepseek-flash-latest": {
     "decision": "router",

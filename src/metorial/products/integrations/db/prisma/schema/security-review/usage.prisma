@@ -1,0 +1,57 @@
+model ProviderToolUsageHourly {
+  hour    DateTime
+  toolKey String
+
+  calls  Int
+  errors Int
+
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@id([instanceOid, providerOid, hour, toolKey])
+  @@index([tenantOid, hour])
+  @@index([instanceOid, providerOid, hour])
+}
+
+model ProviderProtoGuardHourly {
+  hour      DateTime
+  toolKey   String
+  filterKey String
+  direction String
+
+  issueType ProtoGuardIssueType
+  severity  ProtoGuardSeverity
+
+  matches    Int
+  alerts     Int
+  suppressed Int
+
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@id([instanceOid, providerOid, hour, toolKey, filterKey, direction])
+  @@index([tenantOid, hour])
+  @@index([instanceOid, providerOid, hour])
+}

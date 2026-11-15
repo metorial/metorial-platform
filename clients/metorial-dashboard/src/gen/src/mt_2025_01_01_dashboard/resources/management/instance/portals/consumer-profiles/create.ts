@@ -26,6 +26,7 @@ export type ManagementInstancePortalsConsumerProfilesCreateOutput = ({
           updatedAt: Date;
         };
         assignedVia: 'default' | 'manual' | 'sso' | 'user';
+        ssoGroupIds: string[];
       }[]
     | null;
 }) & {
@@ -87,7 +88,8 @@ export let mapManagementInstancePortalsConsumerProfilesCreateOutput =
                         0,
                         [1, ['is_default', 'created_at', 'updated_at']]
                       ],
-                      'assigned_via'
+                      'assigned_via',
+                      'sso_group_ids'
                     ]
                   ]
                 ]

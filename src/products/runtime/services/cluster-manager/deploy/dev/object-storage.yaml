@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: object-storage
+  namespace: metorial-runtime-dev
+  labels:
+    app: object-storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: object-storage
+  template:
+    metadata:
+      labels:
+        app: object-storage
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: object-storage
+          image: metorial-onprem-ci/object-storage:fixed
+          imagePullPolicy: Never
+          env:
+            - name: OBJECT_STORE__SERVER__HOST
+              value: 0.0.0.0
+            - name: OBJECT_STORE__SERVER__PORT
+              value: "8080"
+            - name: OBJECT_STORE__BACKEND__TYPE
+              value: local
+            - name: OBJECT_STORE__BACKEND__ROOT_PATH
+              value: /app/data
+            - name: OBJECT_STORE__BACKEND__PHYSICAL_BUCKET
+              value: object-store-data
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: http
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: object-storage
+  namespace: metorial-runtime-dev
+spec:
+  selector:
+    app: object-storage
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

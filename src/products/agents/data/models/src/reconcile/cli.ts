@@ -1,4 +1,4 @@
-import { appendFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { defaultOverridesDir, readOverrideFiles, writeOverrideFiles } from '../overrides';
@@ -19,6 +19,9 @@ import {
   type WebSearch
 } from './webSearch';
 import { dirtyPaths, repoRoot, restoreOutside, scrubSecrets } from './workspace';
+import { proposedDecisions } from './proposals';
+import { repairPricingSources, validateSourceRepair, type SourceRepair } from './sourceRepair';
+import { PricingExtractionError, pricingSources } from '../sources/providers';
 
 let defaultWorkDir = '.reconcile';
 let defaultCacheDir = '.cache';
@@ -60,7 +63,7 @@ let { values } = parseArgs({
 if (!searchProviders.includes(values['search-provider'] as SearchProvider))
   throw new Error(`--search-provider must be one of ${searchProviders.join(', ')}`);
 
-let packageDir = path.resolve(import.meta.dirname, '..', '..');
+let packageDir = await realpath(path.resolve(import.meta.dirname, '..', '..'));
 let workDir = path.resolve(values.work!);
 let pinnedDir = path.join(workDir, 'pinned');
 let startedAt = Date.now();
@@ -71,6 +74,7 @@ let maxIterations = Number(values['max-iterations']);
 let budgetMs = Number(values['budget-minutes']) * 60_000;
 let deadlineAt = startedAt + Number(values['deadline-minutes']) * 60_000;
 let systemPromptFile = path.join(import.meta.dirname, 'prompt.md');
+let sourcePromptFile = path.join(import.meta.dirname, 'sourcePrompt.md');
 let log = createLogger(startedAt);
 
 let credentials: AgentCredentials | null =
@@ -135,6 +139,8 @@ log(
 
 await rm(workDir, { recursive: true, force: true });
 await mkdir(workDir, { recursive: true });
+workDir = await realpath(workDir);
+pinnedDir = path.join(workDir, 'pinned');
 
 let root = await repoRoot(packageDir);
 let overridesPrefix = `${path.relative(root, defaultOverridesDir)}/`;
@@ -146,6 +152,9 @@ let overrideBranch = values.branch
       root,
       name: values.branch,
       overridesDir: defaultOverridesDir,
+      allowedSourceDirectories: pricingSources.map(source =>
+        path.relative(root, path.dirname(path.join(packageDir, source.file)))
+      ),
       log,
       redact: text => secrets.reduce((value, secret) => value.split(secret).join('***'), text)
     })
@@ -160,14 +169,94 @@ let previousDir = values.previous ? path.resolve(values.previous) : null;
 let staleSources = (result: BuildResult) =>
   result.catalog.sources.filter(source => source.status !== 'fresh').length;
 
+let sourceRepairs: SourceRepair[] = [];
+let fetchCatalog = async () => {
+  for (let round = 0; round <= maxFixRounds; round++) {
+    try {
+      return await buildCatalog({ modelsDevPath, previousDir, offline: false, now });
+    } catch (error) {
+      if (
+        !(error instanceof PricingExtractionError) ||
+        !credentials ||
+        round === maxFixRounds ||
+        deadlineAt - Date.now() < minFixMs
+      )
+        throw error;
+      log(
+        `pricing: ${error.failures.length} extractor(s) need repair: ${error.failures.map(failure => failure.source).join(', ')}`
+      );
+
+      let repaired = await repairPricingSources({
+        failures: error.failures,
+        packageDir,
+        run: async (failure, source, attempt) => {
+          if (deadlineAt - Date.now() < minFixMs)
+            throw new Error('Source repair deadline reached');
+          let evidenceFile = path.join(workDir, `source-${source.kind}-${round}.json`);
+          await writeFile(
+            evidenceFile,
+            JSON.stringify(
+              { ...failure, file: source.file, exportName: source.exportName },
+              null,
+              2
+            )
+          );
+          let run = await runAgent({
+            piBin: values.pi!,
+            model: values.model!,
+            thinking: values.thinking!,
+            cwd: packageDir,
+            workDir: path.join(workDir, `source-agent-${source.kind}-${round}`),
+            systemPromptFile: sourcePromptFile,
+            message: `Today is ${today}. Repair ${source.kind} in ${path.dirname(source.file)} only, preserving export ${source.exportName}. Evidence and host feedback: ${evidenceFile}. Edit implementation, tests and fixtures only in that folder. Run the test tool before ending the session.`,
+            writableDirectory: path.dirname(path.join(packageDir, source.file)),
+            continueSession: attempt > 0,
+            credentials: credentials!,
+            timeoutMs: Math.min(agentTimeoutMs, Math.max(deadlineAt - Date.now(), 0)),
+            logFile: path.join(workDir, `source-agent-${source.kind}-${round}.log`),
+            log,
+            label: `pricing ${source.kind}`
+          });
+          return run;
+        },
+        validate: (source, raw) =>
+          validateSourceRepair(
+            source,
+            packageDir,
+            raw,
+            now,
+            path.join(workDir, `verify-${source.kind}`)
+          )
+      });
+      sourceRepairs.push(...repaired);
+      await writeFile(
+        path.join(workDir, 'source-repairs.json'),
+        JSON.stringify(sourceRepairs)
+      );
+      await overrideBranch?.save(
+        'Model catalog: repair pricing extractors',
+        repaired.flatMap(repair =>
+          repair.files.map(file => path.relative(root, path.join(packageDir, file)))
+        )
+      );
+    }
+  }
+  throw new Error('Pricing source repair limit reached');
+};
+
 log('catalog: fetching every source');
-let result = await buildCatalog({ modelsDevPath, previousDir, offline: false, now });
+let result: BuildResult;
+try {
+  result = await fetchCatalog();
+} finally {
+  await scrubSecrets(workDir, secrets);
+}
 log(`catalog: sources: ${describeSources(result)}`);
 
 // Most source failures are transient; one retry is the deterministic fix before anything else.
 if (staleSources(result)) {
   log(`catalog: ${staleSources(result)} source(s) not fresh, fetching once more`);
-  let retry = await buildCatalog({ modelsDevPath, previousDir, offline: false, now });
+  let retry = await fetchCatalog();
   if (staleSources(retry) < staleSources(result)) {
     result = retry;
     log(`catalog: retry helped, sources: ${describeSources(result)}`);
@@ -259,6 +348,7 @@ for (let iteration = 1; iteration <= maxIterations; iteration++) {
   await writeFile(indexFile, modelIndex(result));
 
   let dirtyBefore = await dirtyPaths(root);
+  let answer = '';
   let agent = async (message: string, continueSession: boolean, label: string) => {
     let run = await runAgent({
       piBin: values.pi!,
@@ -277,6 +367,7 @@ for (let iteration = 1; iteration <= maxIterations; iteration++) {
     });
 
     agentStats = addStats(agentStats, run.stats);
+    answer = run.answer;
     return run.exitCode;
   };
 
@@ -312,7 +403,7 @@ for (let iteration = 1; iteration <= maxIterations; iteration++) {
     try {
       review = reviewDecisions({
         before,
-        after: await readOverrideFiles(),
+        after: proposedDecisions({ answer, before, batch }),
         batch,
         modelIds: new Set(result.catalog.models.map(model => model.id)),
         today,
@@ -438,7 +529,9 @@ for (let iteration = 1; iteration <= maxIterations; iteration++) {
 
 stopReason ??= 'iteration limit reached';
 
-let changed = JSON.stringify(initialFiles) !== JSON.stringify(await readOverrideFiles());
+let changed =
+  sourceRepairs.length > 0 ||
+  JSON.stringify(initialFiles) !== JSON.stringify(await readOverrideFiles());
 let summary = renderSummary({
   model: values.model!,
   iterations,
@@ -449,6 +542,7 @@ let summary = renderSummary({
   search: webSearch ? { provider: values['search-provider']!, ...webSearch.stats } : null
 });
 
+summary += `\n## Pricing source repairs\n\n${sourceRepairs.length ? sourceRepairs.map(repair => `- ${repair.source}: \`${repair.file}\``).join('\n') : 'No extractor changes.'}\n`;
 await writeFile(path.join(workDir, 'summary.md'), summary);
 await scrubSecrets(workDir, secrets);
 

@@ -221,12 +221,19 @@ let EmptyState = styled.div`
   text-align: center;
 `;
 
-export let ProviderAuthErrorGroupScene = ({ errorGroupId }: { errorGroupId: string }) => {
+export let ProviderAuthErrorGroupScene = ({
+  errorGroupId,
+  issueId
+}: {
+  errorGroupId?: string;
+  issueId?: string;
+}) => {
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
 
   let errors = useProviderAuthConfigErrors(instanceId, {
     providerAuthConfigErrorGroupId: errorGroupId,
+    issueId,
     limit: 100,
     order: 'desc'
   });
@@ -255,7 +262,7 @@ export let ProviderAuthErrorGroupScene = ({ errorGroupId }: { errorGroupId: stri
         (window as any).metorial_setRestrictHeight(false);
       } catch {}
     };
-  }, [errorGroupId]);
+  }, [errorGroupId, issueId]);
 
   let occurrenceCount = errorItems.length;
 

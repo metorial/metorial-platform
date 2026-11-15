@@ -68,7 +68,11 @@ model Project {
   allowConsumerSkillEditing              Boolean @default(true)
   allowOrganizationMemberFullSkillAccess Boolean @default(false)
 
-  reducedSubprocessors Boolean @default(false)
+  reducedSubprocessors   Boolean @default(false)
+  assistantEnabled       Boolean @default(true)
+  aiAnalysisEnabled      Boolean @default(false)
+  usageReviewsEnabled    Boolean @default(false)
+  skillReviewHoldPending Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)
   allowMemberAccessToConsumerOwnedResources Boolean @default(true)

@@ -32,6 +32,9 @@ model Callback {
   lastSyncErrorMessage String?
   lastSyncedAt         DateTime?
 
+  /// [TriggerGroupSelections]
+  triggerGroupSelections Json?
+
   name        String
   description String?
   metadata    Json?

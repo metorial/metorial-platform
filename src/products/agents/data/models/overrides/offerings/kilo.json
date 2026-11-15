@@ -104,6 +104,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inclusionai/ling-3.2-flash:free": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Ling 3.2 Flash is a real new inclusionAI model (560B multimodal, 1M context, free intro window before 19 Nov 2026); the index only has Ling 3.0/3.1 Flash, so no entry exists yet. ':free' is a free-tier serving of it.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "interfaze/interfaze-beta": {
     "decision": "exclude",
     "category": "other",

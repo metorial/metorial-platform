@@ -5,12 +5,19 @@ enum WebhookRegistrationStatus {
   deleted
 }
 
+enum WebhookRegistrationPurpose {
+  webhook_receiver
+  delivery_setup
+}
+
 model WebhookRegistration {
   oid BigInt @id
   id  String @unique
 
   status     WebhookRegistrationStatus
   archivedAt DateTime?
+
+  purpose WebhookRegistrationPurpose @default(webhook_receiver)
 
   name        String
   description String?
@@ -26,6 +33,9 @@ model WebhookRegistration {
 
   providerVariantOid BigInt
   providerVariant    ProviderVariant @relation(fields: [providerVariantOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -51,6 +61,7 @@ model WebhookRegistration {
   @@index([providerOid, status])
   @@index([status, archivedAt])
   @@index([providerVariantOid])
+  @@index([authCredentialsOid])
   @@index([projectOid])
   @@index([instanceOid])
   @@map("WebhookRegistrationV2")

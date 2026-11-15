@@ -10,5 +10,6 @@ export let slatesProviderQueues = combineQueueProcessors([syncQueues]);
 
 export * from './callbackReceiver';
 export * from './impl';
+export * from './services/adminSync';
 
 export let slatesClient = slates;

@@ -201,6 +201,53 @@ describe('api-core portal: listings, access rules and surface provider groups', 
       ).toEqual([]);
     });
 
+    it('exposes discoverability and filters listings by access', async () => {
+      let portal = await createPortal(org);
+      let grantedServer = await createMagicServer(org);
+      let listedServer = await createMagicServer(org);
+
+      let hidden = expectOk(
+        await api().post(listingsPath(portal.id), {
+          is_discoverable: false,
+          access: { type: 'magic_mcp_server', magic_mcp_server_id: grantedServer.id }
+        })
+      );
+      expect(hidden.is_discoverable).toBe(false);
+
+      let listed = await createListing(org, portal.id, listedServer.id);
+      expect(listed.is_discoverable).toBe(true);
+
+      let group = await createConsumerGroup(org, portal.id);
+      let access = await grantAccess(portal.id, group.id, grantedServer.id);
+      expect(access.listing).toMatchObject({ id: hidden.id, is_discoverable: false });
+
+      expect(
+        ids(await listAll(api(), listingsPath(portal.id), { query: { has_access: true } }))
+      ).toEqual([hidden.id]);
+      expect(
+        ids(await listAll(api(), listingsPath(portal.id), { query: { has_access: false } }))
+      ).toEqual([listed.id]);
+      expectError(
+        await api().get(listingsPath(portal.id), { query: { has_access: 'maybe' } }),
+        400,
+        'invalid_data'
+      );
+
+      let shown = expectOk(
+        await api().patch(listingsPath(portal.id, `/${hidden.id}`), { is_discoverable: true })
+      );
+      expect(shown.is_discoverable).toBe(true);
+      expect(
+        expectOk(await api().get(accessPath(portal.id, `/${access.id}`))).listing
+          .is_discoverable
+      ).toBe(true);
+      expectError(
+        await api().patch(listingsPath(portal.id, `/${hidden.id}`), { is_discoverable: 'no' }),
+        400,
+        'invalid_data'
+      );
+    });
+
     it('rejects invalid bodies, unknown targets and foreign targets', async () => {
       let portal = consumerPortal.portal;
       let foreignServer = await createMagicServer(otherOrg);

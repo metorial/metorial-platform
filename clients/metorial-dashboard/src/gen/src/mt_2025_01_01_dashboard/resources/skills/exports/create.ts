@@ -81,6 +81,7 @@ export type SkillsExportsCreateOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -164,6 +165,7 @@ export type SkillsExportsCreateOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -255,7 +257,8 @@ export let mapSkillsExportsCreateOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]
@@ -337,7 +340,8 @@ export let mapSkillsExportsCreateOutput =
                                     ['is_default', 'created_at', 'updated_at']
                                   ]
                                 ],
-                                'assigned_via'
+                                'assigned_via',
+                                'sso_group_ids'
                               ]
                             ]
                           ]

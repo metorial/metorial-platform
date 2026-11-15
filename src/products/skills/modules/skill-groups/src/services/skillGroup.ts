@@ -1,0 +1,402 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { EntityImage, Instance, Project, SkillGroup } from '@metorial/db';
+import { db, ID, type Prisma, withTransaction } from '@metorial/db';
+import { Fabric, type AuditSkillGroup } from '@metorial/fabric';
+import { type DateFilter, normalizeDateFilter } from '@metorial/list-utils';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  consumerSkillReadRoles,
+  skillStoreResourceAccess,
+  storeResourceAccessLevels,
+  type StoreResourceAccessLevel
+} from '@metorial/module-access';
+import { internalImageService } from '@metorial/skills-images';
+import { isSkillIcon } from '@metorial/skill-icons';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { buildSearchFilter } from '@metorial/module-search';
+import { skillGroupPluginService } from '@metorial/module-skill-marketplace';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
+import { enqueueSkillGroupLifecycle } from '../queues/lifecycle';
+
+let include = {
+  items: {
+    where: {
+      status: 'active' as const,
+      skill: {
+        status: 'active' as const
+      }
+    },
+    include: { skill: true },
+    orderBy: { createdAt: 'asc' as const }
+  }
+} satisfies Prisma.SkillGroupInclude;
+
+export type SkillGroupRecord = Prisma.SkillGroupGetPayload<{ include: typeof include }>;
+
+let toAuditSkillGroup = (group: SkillGroupRecord): AuditSkillGroup => ({
+  id: group.id,
+  name: group.name,
+  description: group.description,
+  status: group.status,
+  allowConsumerSkillAssignment: group.allowConsumerSkillAssignment,
+  skillIds: group.items.map(item => item.skill.id)
+});
+
+let assertSkillGroupName = (name: string) => {
+  if (!name.trim()) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Skill group name cannot be empty'
+      })
+    );
+  }
+};
+
+class SkillGroupServiceImpl {
+  async getSkillGroupAccessLevel(d: {
+    skillGroup: Pick<SkillGroup, 'oid'>;
+    accessTags: AnyAccessTagSelector;
+  }): Promise<StoreResourceAccessLevel | null> {
+    for (let level of [...storeResourceAccessLevels].reverse()) {
+      let accessTagFilter = await accessTagService.getAccessTagFilter({
+        tags: d.accessTags,
+        roles: skillStoreResourceAccess.policies[level].roles
+      });
+      if (!accessTagFilter) return null;
+
+      let group = await db.skillGroup.findFirst({
+        where: { oid: d.skillGroup.oid, status: 'active', accessTagEntities: accessTagFilter },
+        select: { oid: true }
+      });
+      if (group) return level;
+    }
+
+    return null;
+  }
+
+  async getHighestGrantedAccessLevel(d: {
+    skillGroup: Pick<SkillGroup, 'oid'>;
+  }): Promise<StoreResourceAccessLevel | null> {
+    let entities = await db.accessTagEntity.findMany({
+      where: { skillGroupOid: d.skillGroup.oid },
+      select: { accessTagPolicy: { select: { roles: true } } }
+    });
+    let roles = new Set(entities.flatMap(entity => entity.accessTagPolicy.roles));
+
+    return (
+      [...storeResourceAccessLevels]
+        .reverse()
+        .find(level =>
+          skillStoreResourceAccess.policies[level].roles.some(role => roles.has(role))
+        ) ?? null
+    );
+  }
+
+  async getSkillGroupById(d: {
+    project: Project;
+    instance: Instance;
+    skillGroupId: string;
+    allowDeleted?: boolean;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.accessTags,
+      roles: [...consumerSkillReadRoles]
+    });
+    let group = await db.skillGroup.findFirst({
+      where: {
+        id: d.skillGroupId,
+        instanceOid: d.instance.oid,
+        status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
+        accessTagEntities: accessTagFilter
+      },
+      include
+    });
+    if (!group) throw new ServiceError(notFoundError('skillGroup', d.skillGroupId));
+    return group;
+  }
+
+  async listSkillGroups(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    skillIds?: string[];
+    statuses?: Array<'active' | 'archived' | 'deleted'>;
+    search?: string;
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+    accessTags?: AnyAccessTagSelector;
+  }) {
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.accessTags,
+      roles: [...consumerSkillReadRoles]
+    });
+    let search = await buildSearchFilter<Prisma.SkillGroupWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
+          tenantId: getProjectTenantIdentifier(d.project),
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.skillGroup.id,
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
+
+    return Paginator.create(({ prisma }) =>
+      prisma(opts =>
+        db.skillGroup.findMany({
+          ...opts,
+          where: {
+            instanceOid: d.instance.oid,
+            id: d.ids?.length ? { in: d.ids } : undefined,
+            status: d.accessTags
+              ? 'active'
+              : d.statuses?.length
+                ? { in: d.statuses }
+                : undefined,
+            accessTagEntities: accessTagFilter,
+            items: d.skillIds?.length
+              ? {
+                  some: {
+                    status: 'active',
+                    skill: {
+                      id: { in: d.skillIds },
+                      status: 'active'
+                    }
+                  }
+                }
+              : undefined,
+            createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
+            updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined,
+            AND: search ? [search] : undefined
+          },
+          include
+        })
+      )
+    );
+  }
+
+  async createSkillGroup(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    input: {
+      name: string;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+      skillIds?: string[];
+      allowConsumerSkillAssignment?: boolean;
+    };
+  }) {
+    assertSkillGroupName(d.input.name);
+
+    let skills = await db.skill.findMany({
+      where: {
+        id: { in: d.input.skillIds ?? [] },
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
+        status: 'active'
+      }
+    });
+    return await withTransaction(async db => {
+      let group = await db.skillGroup.create({
+        data: {
+          id: await ID.generateId('skillGroup'),
+          name: d.input.name.trim(),
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment,
+          organizationOid: d.project.organizationOid,
+          instanceOid: d.instance.oid
+        }
+      });
+      if (skills.length) {
+        await db.skillGroupItem.createMany({
+          data: await Promise.all(
+            skills.map(async skill => ({
+              id: await ID.generateId('skillGroupItem'),
+              skillGroupOid: group.oid,
+              skillOid: skill.oid
+            }))
+          )
+        });
+      }
+      let result = await db.skillGroup.findUniqueOrThrow({
+        where: { id: group.id },
+        include
+      });
+      await Fabric.fire('skill.group.audit.created:after', {
+        auditScope: d.auditScope,
+        skillGroup: toAuditSkillGroup(result)
+      });
+      await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'created' });
+      return result;
+    });
+  }
+
+  async updateSkillGroup(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    skillGroupId: string;
+    input: {
+      name?: string;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+      skillIds?: string[];
+      allowConsumerSkillAssignment?: boolean;
+      imageFileId?: string | null;
+      imageIcon?: { icon: string; color: string } | null;
+    };
+  }) {
+    if (d.input.name !== undefined) assertSkillGroupName(d.input.name);
+
+    if (d.input.imageIcon !== undefined && d.input.imageFileId !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provide either an image file or an icon, not both'
+        })
+      );
+    }
+
+    if (d.input.imageIcon && !isSkillIcon(d.input.imageIcon)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Unknown skill icon or color'
+        })
+      );
+    }
+
+    let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
+
+    let nextImage: EntityImage | undefined;
+    if (d.input.imageIcon !== undefined) {
+      nextImage = d.input.imageIcon
+        ? { type: 'icon', icon: d.input.imageIcon.icon, color: d.input.imageIcon.color }
+        : { type: 'default' };
+    }
+
+    if (d.input.imageFileId !== undefined) {
+      nextImage = await internalImageService.resolveImageEntityImage({
+        project: d.project,
+        instance: d.instance,
+        entity: { id: group.id, type: 'skill_group' },
+        imageFileId: d.input.imageFileId,
+        clearedImage: { type: 'default' }
+      });
+    }
+    let skills = d.input.skillIds
+      ? await db.skill.findMany({
+          where: {
+            id: { in: d.input.skillIds },
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
+            status: 'active'
+          }
+        })
+      : null;
+    if (skills) {
+      await skillGroupPluginService.assertSkillGroupCanAddSkills({ skillGroup: group, skills });
+    }
+
+    let updated = await withTransaction(async db => {
+      await db.skillGroup.update({
+        where: { id: group.id },
+        data: {
+          name: d.input.name?.trim(),
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment,
+          image: nextImage as any
+        }
+      });
+      if (skills) {
+        await db.skillGroupItem.updateMany({
+          where: {
+            skillGroupOid: group.oid,
+            status: 'active',
+            skillOid: skills.length ? { notIn: skills.map(skill => skill.oid) } : undefined
+          },
+          data: { status: 'archived' }
+        });
+        for (let skill of skills) {
+          await db.skillGroupItem.upsert({
+            where: {
+              skillGroupOid_skillOid: {
+                skillGroupOid: group.oid,
+                skillOid: skill.oid
+              }
+            },
+            create: {
+              id: await ID.generateId('skillGroupItem'),
+              skillGroupOid: group.oid,
+              skillOid: skill.oid
+            },
+            update: { status: 'active' }
+          });
+        }
+      }
+      let result = await db.skillGroup.findUniqueOrThrow({
+        where: { id: group.id },
+        include
+      });
+      await Fabric.fire('skill.group.audit.updated:after', {
+        auditScope: d.auditScope,
+        skillGroup: toAuditSkillGroup(result),
+        previousSkillGroup: toAuditSkillGroup(group)
+      });
+      await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'updated' });
+      return result;
+    });
+
+    if (nextImage !== undefined) {
+      await internalImageService.cleanupImageEntityImage({
+        image:
+          group.image && canonicalize(group.image) !== canonicalize(nextImage)
+            ? (group.image as EntityImage)
+            : undefined
+      });
+    }
+
+    return updated;
+  }
+
+  async archiveSkillGroup(d: {
+    project: Project;
+    instance: Instance;
+    auditScope: AuditScope;
+    skillGroupId: string;
+  }) {
+    let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
+    return await withTransaction(async db => {
+      await db.skillGroupItem.updateMany({
+        where: { skillGroupOid: group.oid, status: 'active' },
+        data: { status: 'archived' }
+      });
+      let result = await db.skillGroup.update({
+        where: { id: group.id },
+        data: { status: 'archived' },
+        include
+      });
+      await Fabric.fire('skill.group.audit.archived:after', {
+        auditScope: d.auditScope,
+        skillGroup: toAuditSkillGroup({ ...result, items: group.items })
+      });
+      await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'archived' });
+      return result;
+    });
+  }
+}
+
+export let skillGroupService = Service.create(
+  'cargoSkillGroupService',
+  () => new SkillGroupServiceImpl()
+).build();

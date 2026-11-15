@@ -4,12 +4,7 @@ import { Fabric } from '@metorial/fabric';
 import { recordSessionMessageUsage } from '@metorial/module-usage';
 import { env } from '../../env';
 import { recordMessageAuditEvent } from '../../audit/recordMessage';
-import {
-  getCreationIncrements,
-  recordMessageActivity,
-  shouldEvaluateProtoGuard
-} from '../../shared/messageActivity';
-import { protoGuardMessageQueue } from './protoGuard';
+import { getCreationIncrements, recordMessageActivity } from '../../shared/messageActivity';
 
 export let finalizeMessageQueue = createQueue<{ messageId: string }>({
   name: 'sub/con/msg/fin',
@@ -41,10 +36,6 @@ let finalizeMessage = async (messageId: string, progress: { activityRecorded: bo
   if (!message) return;
 
   await recordMessageAuditEvent(message);
-
-  if (shouldEvaluateProtoGuard(message)) {
-    await protoGuardMessageQueue.add({ messageId: message.id }, { id: message.id });
-  }
 
   let creation = getCreationIncrements(message);
   let respondedTo = message.hasOutput || message.output !== null;

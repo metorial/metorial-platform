@@ -102,6 +102,9 @@ export let providerAuthConfigErrorController = Controller.create(
             provider_invocation_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider invocation ID(s)'
             }),
+            issue_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by provider issue ID(s)'
+            }),
             type: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth config error type(s)'
             }),
@@ -129,6 +132,7 @@ export let providerAuthConfigErrorController = Controller.create(
             ctx.query.provider_auth_config_error_group_id
           ),
           providerInvocationIds: normalizeArrayParam(ctx.query.provider_invocation_id),
+          issueIds: normalizeArrayParam(ctx.query.issue_id),
           types: normalizeArrayParam(ctx.query.type),
           createdAt: ctx.query.created_at,
           search: ctx.query.search

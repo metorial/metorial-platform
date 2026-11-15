@@ -1,5 +1,9 @@
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 
+// Shadow findings are internal rule-evaluation data and suppressed ones were dismissed by the
+// tenant; neither is part of what an alert shows.
+export let VISIBLE_INSTANCE_WHERE = { stage: 'active', isSuppressed: false } as const;
+
 export type Scope = {
   tenant: Tenant;
   environment: Environment;

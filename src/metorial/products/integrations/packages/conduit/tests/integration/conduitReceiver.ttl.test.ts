@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TopicContext } from '../../src/core/conduitReceiver';
 import { createConduit, createMemoryConduit } from '../../src/index';
 
@@ -6,11 +6,16 @@ describe('ConduitReceiver TTL Tests', () => {
   let conduit: ReturnType<typeof createConduit>;
 
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
     conduit = createConduit(createMemoryConduit('test-conduit'));
   });
 
   afterEach(async () => {
-    await conduit.close();
+    try {
+      await conduit.close();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should voluntarily close topic when TTL expires', async () => {
@@ -44,8 +49,7 @@ describe('ConduitReceiver TTL Tests', () => {
     expect(messageCount['test-topic']).toBe(1);
     expect(receiver.getOwnedTopicCount()).toBe(1);
 
-    // Wait for TTL to expire (200ms + 1000ms check interval + async close buffer)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await vi.advanceTimersByTimeAsync(1000);
 
     // Topic should be closed
     expect(closeCalls).toContain('test-topic');
@@ -88,11 +92,12 @@ describe('ConduitReceiver TTL Tests', () => {
     const sender = conduit.createSender();
 
     // Send messages every 150ms (before TTL expires)
+    await vi.advanceTimersByTimeAsync(700);
     await sender.send('test-topic', { value: 1 });
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await vi.advanceTimersByTimeAsync(150);
 
     await sender.send('test-topic', { value: 2 });
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await vi.advanceTimersByTimeAsync(150);
 
     await sender.send('test-topic', { value: 3 });
 
@@ -101,8 +106,7 @@ describe('ConduitReceiver TTL Tests', () => {
     expect(closeCalls).toHaveLength(0);
     expect(receiver.getOwnedTopicCount()).toBe(1);
 
-    // Wait for TTL to expire (200ms + 1000ms check interval + async close buffer)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await vi.advanceTimersByTimeAsync(1000);
 
     // Now it should be closed
     expect(closeCalls).toContain('test-topic');
@@ -143,16 +147,14 @@ describe('ConduitReceiver TTL Tests', () => {
 
     expect(receiver.getOwnedTopicCount()).toBe(2);
 
-    // Wait for short TTL to expire (200ms + 1000ms check interval + async close buffer)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await vi.advanceTimersByTimeAsync(1000);
 
     // Short TTL should be closed, long TTL should still be open
     expect(closeCalls).toContain('short-ttl');
     expect(closeCalls).not.toContain('long-ttl');
     expect(receiver.getOwnedTopicCount()).toBe(1);
 
-    // Wait for long TTL to expire (2000ms - 1500ms already waited + 1000ms check interval)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await vi.advanceTimersByTimeAsync(1000);
 
     // Both should be closed now
     expect(closeCalls).toContain('long-ttl');
@@ -186,8 +188,7 @@ describe('ConduitReceiver TTL Tests', () => {
 
     expect(receiver.getOwnedTopicCount()).toBe(1);
 
-    // Wait a bit
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await vi.advanceTimersByTimeAsync(100);
 
     // Should still be owned (logical TTL hasn't expired)
     expect(receiver.getOwnedTopicCount()).toBe(1);

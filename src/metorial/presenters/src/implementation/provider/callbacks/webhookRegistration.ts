@@ -9,6 +9,7 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
 
     id: webhookRegistration.id,
     status: webhookRegistration.status,
+    purpose: webhookRegistration.purpose,
 
     name: webhookRegistration.name,
     description: webhookRegistration.description,
@@ -29,6 +30,7 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
     },
 
     provider: v1ProviderPreview(webhookRegistration.provider),
+    auth_credentials_id: webhookRegistration.authCredentials?.id ?? null,
 
     created_at: webhookRegistration.createdAt,
     updated_at: webhookRegistration.updatedAt
@@ -49,6 +51,12 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
         name: 'status',
         description:
           'Webhook registration lifecycle status. A registration only receives events once it is active.'
+      }),
+
+      purpose: v.enumOf(['webhook_receiver', 'delivery_setup'], {
+        name: 'purpose',
+        description:
+          'What the registration is for. `webhook_receiver`: a URL the provider sends webhooks to. `delivery_setup`: the one-time delivery setup for the connections that use the OAuth app named by `auth_credentials_id`.'
       }),
 
       name: v.string({
@@ -129,6 +137,15 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
       ),
 
       provider: v1ProviderPreview.schema,
+
+      auth_credentials_id: v.nullable(
+        v.string({
+          name: 'auth_credentials_id',
+          description:
+            'OAuth credentials of your own OAuth app that this delivery setup is for. Null for a webhook receiver.',
+          examples: ['par_2bCdEfGhJkLmNpQr']
+        })
+      ),
 
       created_at: v.date({
         name: 'created_at',

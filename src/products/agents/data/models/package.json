@@ -17,11 +17,13 @@
     "restore-previous": "bun src/publish/previousCli.ts",
     "test": "vitest run --passWithNoTests",
     "test:real-data": "MODEL_CATALOG_REAL_DATA=1 vitest run test/realData.test.ts",
+    "test:pricing-live": "MODEL_CATALOG_PRICING_LIVE=1 vitest run test/pricingLive.test.ts",
     "lint": "prettier src/**/*.ts test/**/*.ts --check",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@lowerdeck/validation": "^2.0.0",
+    "node-html-parser": "^9.0.7",
     "smol-toml": "^1.4.2"
   },
   "devDependencies": {

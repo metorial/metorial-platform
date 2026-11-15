@@ -1,3 +1,4 @@
+export * from './aiAnalysisConfiguration';
 export * from './assistant';
 export * from './auditLogRetention';
 export * from './authConfigConfiguration';

@@ -8,7 +8,13 @@ let controlSuiteFixtures = {
     stackPackages: [],
     workspacePackages: [],
     services: [],
-    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*'],
+    tests: [
+      'src/metorial/products/*/modules/*',
+      'src/platform/modules/*',
+      'src/products/*/modules/*',
+      'src/products/*/apis/*',
+      'src/metorial/apis/*'
+    ],
     groups: 4
   },
   enterprise: {
@@ -23,28 +29,32 @@ let controlSuiteFixtures = {
 };
 
 test('unchanged and unrelated workspaces do not select tests', () => {
-  expect(affected([], ['src/forge/service'], false)).toBe(false);
+  expect(affected([], ['src/products/runtime/services/build/service'], false)).toBe(false);
   expect(
     affected(
-      ['docs/guide.md', 'src/nebula/service/src/index.ts'],
-      ['src/forge/service'],
+      ['docs/guide.md', 'src/platform/services/secret-store/service/src/index.ts'],
+      ['src/products/runtime/services/build/service'],
       false
     )
   ).toBe(false);
-  expect(affected(['src/forge/service-other/index.ts'], ['src/forge/service'], false)).toBe(
-    false
-  );
+  expect(
+    affected(
+      ['src/products/runtime/services/build/service-other/index.ts'],
+      ['src/products/runtime/services/build/service'],
+      false
+    )
+  ).toBe(false);
 });
 
 test('source, shared dependency, deleted files and imported configuration select tests', () => {
   let directories = [
-    'src/forge/service',
-    'src/lowerdeck/packages/rpc-client',
+    'src/products/runtime/services/build/service',
+    'src/lib/rpc/node/client',
     'src/shared/vitest.config.ts'
   ];
   for (let path of [
-    'src/forge/service/src/deleted.ts',
-    'src/lowerdeck/packages/rpc-client/src/index.ts',
+    'src/products/runtime/services/build/service/src/deleted.ts',
+    'src/lib/rpc/node/client/src/index.ts',
     'src/shared/vitest.config.ts'
   ]) {
     expect(affected([path], directories, false)).toBe(true);
@@ -53,18 +63,24 @@ test('source, shared dependency, deleted files and imported configuration select
 });
 
 test('E2E suites include every application container dependency', () => {
-  expect(controlSuites.find(suite => suite.name === 'shuttle')!.services).toContain(
-    '@metorial/forge'
+  expect(controlSuites.find(suite => suite.name === 'mcp-runtime')!.services).toContain(
+    '@mtsrc/build-service'
   );
-  expect(
-    controlSuites.find(suite => suite.name === 'function-bay')!.services
-  ).toContain('@metorial/forge');
+  expect(controlSuites.find(suite => suite.name === 'functions')!.services).toContain(
+    '@mtsrc/build-service'
+  );
 });
 
-test('Shuttle and Function Bay control suites include Forge as a stack dependency', () => {
-  for (let name of ['shuttle', 'function-bay']) {
+test('Slates does not start the unused webhook sender', () => {
+  let suite = controlSuites.find(suite => suite.name === 'slates-hub')!;
+
+  expect(suite.stackPackages).not.toContain('@mtsrc/webhook-sender-service');
+});
+
+test('MCP Runtime and Functions control suites include Build as a stack dependency', () => {
+  for (let name of ['mcp-runtime', 'functions']) {
     expect(controlSuites.find(suite => suite.name === name)).toMatchObject({
-      stackPackages: expect.arrayContaining(['@metorial/forge'])
+      stackPackages: expect.arrayContaining(['@mtsrc/build-service'])
     });
   }
 });
@@ -72,20 +88,22 @@ test('Shuttle and Function Bay control suites include Forge as a stack dependenc
 test('control suites select stack test packages and prune them for CI', async () => {
   let { controlTestPackages, controlTasks } = await import('./changes');
   let packages = new Map([
-    [
-      '@metorial/module-user',
-      { directory: 'src/metorial/products/core/modules/user', e2e: true }
-    ],
+    ['@metorial/module-user', { directory: 'src/products/identity/modules/user', e2e: true }],
     ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
+    [
+      '@metorial/api-outpost',
+      { directory: 'src/products/outpost/apis/outpost-api', e2e: true }
+    ],
     ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
-    ['@metorial/module-x', { directory: 'src/metorial/products/core/modules/x', e2e: false }]
+    ['@metorial/module-x', { directory: 'src/platform/modules/x', e2e: false }]
   ]);
   expect(controlTestPackages(controlSuiteFixtures.oss, packages)).toEqual([
     '@metorial/api-core',
+    '@metorial/api-outpost',
     '@metorial/module-user'
   ]);
   expect(controlTasks(controlSuiteFixtures.oss)).toBe(
-    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/metorial/apis/*'
+    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/platform/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/metorial/apis/*'
   );
   expect(controlTasks(controlSuiteFixtures.enterprise)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
@@ -102,7 +120,7 @@ test('control suites run as duration-balanced matrix groups with per-package sha
       (_, index) =>
         [
           `@metorial/module-m${index}`,
-          { directory: `src/metorial/products/core/modules/m${index}`, e2e: true }
+          { directory: `src/platform/modules/m${index}`, e2e: true }
         ] as const
     )
   ]);
@@ -146,27 +164,27 @@ test('control suites run as duration-balanced matrix groups with per-package sha
 test('unit selection follows Turbo input exclusions and external config globs', async () => {
   let { taskInputsChanged } = await import('./changes');
   let task = {
-    directory: 'src/forge/service',
+    directory: 'src/products/runtime/services/build/service',
     resolvedTaskDefinition: {
       inputs: [
         '$TURBO_DEFAULT$',
         '!README*',
         '!Dockerfile',
-        '../../../tsconfig*.json',
-        '../../../shared/vitest.config.ts'
+        '../../../../../../tsconfig*.json',
+        '../../../../../../shared/vitest.config.ts'
       ]
     }
   };
   for (let path of [
     'docs/guide.md',
-    'src/forge/service/README.md',
-    'src/forge/service/Dockerfile'
+    'src/products/runtime/services/build/service/README.md',
+    'src/products/runtime/services/build/service/Dockerfile'
   ]) {
     expect(taskInputsChanged([path], task)).toBe(false);
   }
   for (let path of [
-    'src/forge/service/src/new.ts',
-    'src/forge/service/src/deleted.ts',
+    'src/products/runtime/services/build/service/src/new.ts',
+    'src/products/runtime/services/build/service/src/deleted.ts',
     'tsconfig.test.json',
     'shared/vitest.config.ts'
   ]) {
@@ -179,11 +197,11 @@ test('documentation exclusions preserve README test fixtures', async () => {
   expect(
     testRelevantPaths(
       [
-        'src/forge/service/README.md',
-        'src/forge/service/fixtures/README.md',
+        'src/products/runtime/services/build/service/README.md',
+        'src/products/runtime/services/build/service/fixtures/README.md',
         'src/tooling/test-ci/README.md'
       ],
-      ['src/forge/service', 'src/tooling/test-ci']
+      ['src/products/runtime/services/build/service', 'src/tooling/test-ci']
     )
-  ).toEqual(['src/forge/service/fixtures/README.md']);
+  ).toEqual(['src/products/runtime/services/build/service/fixtures/README.md']);
 });

@@ -46,6 +46,9 @@ class tenantServiceImpl {
       collectErrors?: boolean;
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
+      assistantEnabled?: boolean;
+      aiAnalysisEnabled?: boolean;
+      usageReviewsEnabled?: boolean;
       allowApiAccessToConsumerOwnedResources?: boolean;
       allowMemberAccessToConsumerOwnedResources?: boolean;
       projectOid?: bigint;
@@ -64,6 +67,12 @@ class tenantServiceImpl {
       let existingTenant = await db.tenant.findUnique({
         where: { identifier: d.input.identifier }
       });
+
+      let reducedSubprocessors =
+        d.input.reducedSubprocessors ?? existingTenant?.reducedSubprocessors ?? false;
+      let aiAnalysisEnabled =
+        !reducedSubprocessors &&
+        (d.input.aiAnalysisEnabled ?? existingTenant?.aiAnalysisEnabled ?? false);
 
       let tenantUpdate = {
         name: d.input.name,
@@ -87,6 +96,9 @@ class tenantServiceImpl {
         collectErrors: d.input.collectErrors,
         disableCallbacks: d.input.disableCallbacks,
         reducedSubprocessors: d.input.reducedSubprocessors,
+        assistantEnabled: d.input.assistantEnabled,
+        aiAnalysisEnabled: reducedSubprocessors ? false : d.input.aiAnalysisEnabled,
+        usageReviewsEnabled: aiAnalysisEnabled ? d.input.usageReviewsEnabled : false,
         allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
         allowMemberAccessToConsumerOwnedResources:
           d.input.allowMemberAccessToConsumerOwnedResources
@@ -132,6 +144,10 @@ class tenantServiceImpl {
                 collectErrors: d.input.collectErrors ?? true,
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+                assistantEnabled: d.input.assistantEnabled ?? true,
+                aiAnalysisEnabled,
+                usageReviewsEnabled:
+                  aiAnalysisEnabled && (d.input.usageReviewsEnabled ?? false),
                 allowApiAccessToConsumerOwnedResources:
                   d.input.allowApiAccessToConsumerOwnedResources,
                 allowMemberAccessToConsumerOwnedResources:

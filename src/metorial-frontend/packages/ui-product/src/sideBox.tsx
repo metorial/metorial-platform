@@ -1,5 +1,5 @@
 import { Text, theme, Title } from '@metorial/ui';
-import React from 'react';
+import React, { createContext, useContext } from 'react';
 import { styled } from 'styled-components';
 
 let Wrapper = styled.div`
@@ -10,6 +10,22 @@ let Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
+`;
+
+let GroupWrapper = styled.div`
+  border: 1px solid ${theme.colors.gray400};
+  box-shadow: ${theme.shadows.small};
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+`;
+
+let GroupItem = styled.div`
+  padding: 20px;
+
+  & + & {
+    border-top: 1px solid ${theme.colors.gray400};
+  }
 `;
 
 let Header = styled.header`
@@ -37,6 +53,16 @@ let Main = styled.main`
   gap: 10px;
 `;
 
+let SideBoxGroupContext = createContext(false);
+
+export let SideBoxGroup = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <SideBoxGroupContext.Provider value={true}>
+      <GroupWrapper>{children}</GroupWrapper>
+    </SideBoxGroupContext.Provider>
+  );
+};
+
 export let SideBox = ({
   title,
   description,
@@ -46,8 +72,11 @@ export let SideBox = ({
   description?: React.ReactNode;
   children: React.ReactNode;
 }) => {
+  let isGrouped = useContext(SideBoxGroupContext);
+  let Container = isGrouped ? GroupItem : Wrapper;
+
   return (
-    <Wrapper>
+    <Container>
       <Header>
         <HeaderContent>
           <Title as="h2" size="3" weight="strong">
@@ -62,6 +91,6 @@ export let SideBox = ({
 
         <Main>{children}</Main>
       </Header>
-    </Wrapper>
+    </Container>
   );
 };

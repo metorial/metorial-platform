@@ -1,9 +1,14 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import type { SlateWebhookRegistrationType } from '../../../prisma/generated/client';
 import { slateWebhookRegistrationPresenter } from '../../presenters';
 import { slateWebhookRegistrationService } from '../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
+
+let setupTypes: SlateWebhookRegistrationType[] = ['manual', 'delivery_config'];
+
+let maxOAuthCredentialsIds = 100;
 
 export let slateWebhookRegistrationApp = tenantApp.use(async ctx => {
   let webhookRegistrationId = ctx.body.webhookRegistrationId;
@@ -12,7 +17,7 @@ export let slateWebhookRegistrationApp = tenantApp.use(async ctx => {
   let webhookRegistration = await slateWebhookRegistrationService.getWebhookRegistrationById({
     id: webhookRegistrationId,
     tenant: ctx.tenant,
-    type: 'manual'
+    types: setupTypes
   });
 
   return { webhookRegistration };
@@ -31,7 +36,7 @@ export let slateWebhookRegistrationController = app.controller({
     .do(async ctx => {
       let paginator = await slateWebhookRegistrationService.listWebhookRegistrations({
         tenant: ctx.tenant,
-        type: 'manual'
+        types: setupTypes
       });
 
       let list = await paginator.run(ctx.input);
@@ -54,7 +59,8 @@ export let slateWebhookRegistrationController = app.controller({
           v.enumOf(['any', 'restricted_method', 'restricted_credential'])
         ),
         authMethodIds: v.optional(v.array(v.string())),
-        slateOAuthCredentialsIds: v.optional(v.array(v.string()))
+        slateOAuthCredentialsIds: v.optional(v.array(v.string())),
+        deliveryConfigOAuthCredentialsId: v.optional(v.string())
       })
     )
     .do(async ctx => {
@@ -67,7 +73,8 @@ export let slateWebhookRegistrationController = app.controller({
           metadata: ctx.input.metadata,
           authRouting: ctx.input.authRouting,
           authMethodIds: ctx.input.authMethodIds,
-          slateOAuthCredentialsIds: ctx.input.slateOAuthCredentialsIds
+          slateOAuthCredentialsIds: ctx.input.slateOAuthCredentialsIds,
+          deliveryConfigOAuthCredentialsId: ctx.input.deliveryConfigOAuthCredentialsId
         }
       });
 
@@ -120,7 +127,27 @@ export let slateWebhookRegistrationController = app.controller({
         await slateWebhookRegistrationService.getManyWebhookRegistrationsByIds({
           tenant: ctx.tenant,
           ids: ctx.input.webhookRegistrationIds,
-          type: 'manual'
+          types: setupTypes
+        });
+
+      return registrations.map(slateWebhookRegistrationPresenter);
+    }),
+
+  getDeliveryConfigsServingOAuthCredentials: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateOAuthCredentialsIds: v.array(v.string(), {
+          modifiers: [v.maxLength(maxOAuthCredentialsIds)]
+        })
+      })
+    )
+    .do(async ctx => {
+      let registrations =
+        await slateWebhookRegistrationService.getDeliveryConfigsServingOAuthCredentials({
+          tenant: ctx.tenant,
+          oauthCredentialsIds: ctx.input.slateOAuthCredentialsIds
         });
 
       return registrations.map(slateWebhookRegistrationPresenter);

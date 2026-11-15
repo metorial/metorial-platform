@@ -1,6 +1,6 @@
 import { joinPaths } from '@lowerdeck/join-paths';
 import { ErrorPage, NotFound } from '@metorial/pages';
-import { ModalRoot, Toaster } from '@metorial/ui';
+import { ModalRoot, SnackbarViewport, Toaster } from '@metorial/ui';
 import React, { ReactNode, useEffect } from 'react';
 import {
   createBrowserRouter,
@@ -102,6 +102,7 @@ export let createFrontendRouter = ({
               : ({ children }: { children: React.ReactNode }) => children,
             null,
             React.createElement(Toaster, null),
+            React.createElement(SnackbarViewport, null),
             React.createElement(ModalRoot, null)
           )
         )

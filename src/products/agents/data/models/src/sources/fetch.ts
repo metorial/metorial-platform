@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { CatalogSource, SourceKind } from '../types';
+import { ExtractionError } from '../lib/extraction';
 
 let requestTimeoutMs = 30_000;
 let userAgent = 'metorial-model-catalog';
@@ -117,6 +118,7 @@ export let loadSource = async <T>(opts: LoadSourceOptions<T>): Promise<SourceRes
         issues: parsed.issues
       };
     } catch (err) {
+      if (err instanceof ExtractionError) throw err;
       fetchError = (err as Error).message;
     }
   }
@@ -139,6 +141,7 @@ export let loadSource = async <T>(opts: LoadSourceOptions<T>): Promise<SourceRes
       };
     }
   } catch (err) {
+    if (err instanceof ExtractionError) throw err;
     fetchError = `${fetchError}; fallback: ${(err as Error).message}`;
   }
 

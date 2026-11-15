@@ -1,0 +1,58 @@
+{
+  "devstral-2-123b": {
+    "decision": "link",
+    "model": "mistral/devstral-2512",
+    "reason": "Devstral 2 123B is Mistral's Dec 9 2025 coding model; mistral/devstral-2512 is the catalog entry for Devstral 2; low price is the vendor's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "gpt-4o-mini": {
+    "decision": "link",
+    "model": "openai/gpt-4o-mini",
+    "reason": "Exact match: GPT-4o mini; OpenCheap's $0.014 input is its own discount pricing",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "kimi-k3": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3",
+    "reason": "Exact match: Kimi K3, Moonshot's 2.8T flagship (Jul 16 2026); OpenCheap's price is its own discount",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "llama-3.3-70b": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Offering is exactly Llama-3.3-70B-Instruct (name and 128K context match the Meta HF release); OpenCheap's near-floor pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-235b-a22b-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "Exact name match with the Qwen3 235B-A22B Instruct 2507 checkpoint; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-coder-30b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-coder-30b-a3b-instruct",
+    "reason": "Exact name match with Qwen3-Coder 30B-A3B Instruct; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-coder-next": {
+    "decision": "link",
+    "model": "alibaba/qwen3-coder-next",
+    "reason": "Exact name match with Qwen3 Coder Next; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3-next-80b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-next-80b-a3b-instruct",
+    "reason": "Exact name match with Qwen3-Next 80B-A3B Instruct; OpenCheap's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

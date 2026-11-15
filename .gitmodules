@@ -11,5 +11,5 @@
 	path = clients/metorial-go
 	url = https://github.com/metorial/metorial-go
 [submodule "src/outpost"]
-	path = src/outpost
+	path = src/products/outpost/implementation
 	url = https://github.com/metorial/outpost.git

@@ -1,0 +1,16 @@
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Copy repository contents from the OSS root context
+COPY . .
+
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
+
+RUN sh ./src/products/integrations/services/mcp-runtime/scripts/prepare-docker-build.sh
+
+RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate server:build --filter=@mtsrc/mcp-runtime-service
+
+# Run in dev mode with hot reloading. Reinstall if the mounted node_modules
+# volume is empty so local SDK workspace packages resolve during tests.
+CMD ["sh", "-c", "cd /app && if [ ! -f /app/node_modules/@metorial/mcp-server/package.json ]; then bun install --linker=hoisted; fi && cd /app/src/products/integrations/services/mcp-runtime/service && bun prisma generate && bun prisma db push --accept-data-loss && bun --watch src/server.ts"]

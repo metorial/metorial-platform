@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { skillGroupService } from '@metorial/module-skill-groups';
 import { skillImportService } from '@metorial/module-skill-import';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
@@ -151,7 +152,17 @@ export let skillImportController = Controller.create(
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .use(requireConsumerTokenForPublishableKey())
-      .body('default', v.object({ source: sourceValidator }))
+      .body(
+        'default',
+        v.object({
+          source: sourceValidator,
+          skill_group_id: v.optional(
+            v.string({
+              description: 'The ID of a skill group that every imported skill is added to.'
+            })
+          )
+        })
+      )
       .output(skillImportPresenter)
       .do(async ctx => {
         let input = getCreateInput(ctx.body.source);
@@ -170,9 +181,18 @@ export let skillImportController = Controller.create(
           }
         }
         let access = await getAccess(ctx);
+        let skillGroup = ctx.body.skill_group_id
+          ? await skillGroupService.getSkillGroupById({
+              project: access.project,
+              instance: access.instance,
+              skillGroupId: ctx.body.skill_group_id,
+              accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
+            })
+          : undefined;
         let skillImport = await skillImportService.createSkillImport({
           ...access,
           actor: access.actor,
+          skillGroup,
           input
         });
 

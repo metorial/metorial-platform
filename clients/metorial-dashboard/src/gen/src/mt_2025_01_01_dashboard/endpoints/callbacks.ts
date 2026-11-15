@@ -134,7 +134,7 @@ export class MetorialCallbacksEndpoint {
 
   /**
    * @name Update callback
-   * @description Updates the name, description or metadata of a callback. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.
+   * @description Updates the name, description, metadata or trigger group selections of a callback. Changing the selections re-registers the affected triggers. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.
    *
    * @param `callbackId` - string
    * @param `body` - DashboardInstanceCallbacksUpdateBody

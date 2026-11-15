@@ -4,7 +4,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   object: 'skill.participant';
   id: string;
   skillId: string;
-  roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+  roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
   actor: {
     type: 'organization_actor' | 'consumer' | 'resource_actor';
     name: string;
@@ -72,6 +72,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -80,7 +81,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   surfaces:
     | {
         id: string;
-        roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+        roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
         actor: {
           type: 'organization_actor' | 'consumer' | 'resource_actor';
           name: string;
@@ -148,6 +149,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -160,7 +162,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   lastActiveAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-} & { hasOrganizationMemberAccess: boolean };
+} & { consumerId: string | null; hasOrganizationMemberAccess: boolean };
 
 export let mapDashboardInstanceSkillsParticipantsGetOutput =
   /* @__PURE__ */ createMapper<DashboardInstanceSkillsParticipantsGetOutput>(
@@ -191,21 +193,14 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                           [
                             'teams',
                             0,
-                            [
-                              2,
-                              [1, ['assignment_id', 'created_at', 'updated_at']]
-                            ]
+                            [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
                           ],
                           'created_at',
                           'updated_at'
                         ]
                       ]
                     ],
-                    [
-                      'consumer',
-                      0,
-                      [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
-                    ],
+                    ['consumer', 0, [1, ['image_url', 'user_id', 'created_at', 'updated_at']]],
                     [
                       'consumer_profile',
                       1,
@@ -233,16 +228,10 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                                         [
                                           'group',
                                           0,
-                                          [
-                                            1,
-                                            [
-                                              'is_default',
-                                              'created_at',
-                                              'updated_at'
-                                            ]
-                                          ]
+                                          [1, ['is_default', 'created_at', 'updated_at']]
                                         ],
-                                        'assigned_via'
+                                        'assigned_via',
+                                        'sso_group_ids'
                                       ]
                                     ]
                                   ]
@@ -282,17 +271,7 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                                   [
                                     'teams',
                                     0,
-                                    [
-                                      2,
-                                      [
-                                        1,
-                                        [
-                                          'assignment_id',
-                                          'created_at',
-                                          'updated_at'
-                                        ]
-                                      ]
-                                    ]
+                                    [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
                                   ],
                                   'created_at',
                                   'updated_at'
@@ -302,15 +281,7 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                             [
                               'consumer',
                               0,
-                              [
-                                1,
-                                [
-                                  'image_url',
-                                  'user_id',
-                                  'created_at',
-                                  'updated_at'
-                                ]
-                              ]
+                              [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
                             ],
                             [
                               'consumer_profile',
@@ -341,14 +312,11 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                                                   0,
                                                   [
                                                     1,
-                                                    [
-                                                      'is_default',
-                                                      'created_at',
-                                                      'updated_at'
-                                                    ]
+                                                    ['is_default', 'created_at', 'updated_at']
                                                   ]
                                                 ],
-                                                'assigned_via'
+                                                'assigned_via',
+                                                'sso_group_ids'
                                               ]
                                             ]
                                           ]
@@ -371,6 +339,7 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
               'last_active_at',
               'created_at',
               'updated_at',
+              'consumer_id',
               'has_organization_member_access'
             ]
           ]
