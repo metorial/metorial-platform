@@ -3322,18 +3322,6 @@
         "typescript": "^5",
       },
     },
-    "src/platform/services/object-storage": {
-      "name": "@metorial/object-storage",
-      "version": "1.0.0",
-    },
-    "src/platform/services/object-storage/clients/typescript": {
-      "name": "object-storage-client",
-      "version": "0.4.0",
-      "devDependencies": {
-        "@types/node": "^25.9.9",
-        "typescript": "5.9.3",
-      },
-    },
     "src/platform/clients/email": {
       "name": "@mtsrc/email-client-internal",
       "version": "1.0.0",
@@ -4199,6 +4187,18 @@
       },
       "peerDependencies": {
         "typescript": "^5",
+      },
+    },
+    "src/platform/services/object-storage": {
+      "name": "@metorial/object-storage",
+      "version": "1.0.0",
+    },
+    "src/platform/services/object-storage/clients/typescript": {
+      "name": "object-storage-client",
+      "version": "0.4.0",
+      "devDependencies": {
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
       },
     },
     "src/platform/services/search/service": {
