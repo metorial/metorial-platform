@@ -25,6 +25,7 @@ import type {
 } from 'bullmq';
 import { Queue, QueueEvents, Worker } from 'bullmq';
 import { getDatabaseConflictCode } from '../lib/databaseConflict';
+import { queueObserver } from '../lib/observer';
 import { QueueRetryError } from '../lib/queueRetryError';
 import type { IQueue } from '../types';
 
@@ -317,6 +318,22 @@ export let createBullMqQueue = <JobData>(
               parent: parentExecutionContext
             });
 
+            let startedAt = performance.now();
+            let observe = (outcome: 'completed' | 'failed') => {
+              try {
+                queueObserver.onJob?.({
+                  queue: opts.name,
+                  outcome,
+                  durationSeconds: (performance.now() - startedAt) / 1000,
+                  waitSeconds:
+                    job.processedOn && job.timestamp
+                      ? Math.max(0, (job.processedOn - job.timestamp) / 1000)
+                      : undefined,
+                  attempt: job.attemptsMade + 1
+                });
+              } catch {}
+            };
+
             return await provideExecutionContext(jobExecutionContext, async () => {
               try {
                 let payload: any;
@@ -341,7 +358,11 @@ export let createBullMqQueue = <JobData>(
                   },
                   async () => await cb(payload as any, job)
                 );
+
+                observe('completed');
               } catch (e: any) {
+                observe('failed');
+
                 let conflictCode = getDatabaseConflictCode(e);
                 let attemptLimit = job.opts?.attempts ?? opts.jobOpts?.attempts ?? 25;
 
@@ -371,6 +392,21 @@ export let createBullMqQueue = <JobData>(
               }
             });
           };
+
+          queueObserver.stats.set(opts.name, async () => {
+            let queue = useQueue();
+            let counts = await queue.getJobCounts('waiting', 'active', 'delayed', 'failed', 'prioritized');
+            let oldestWaitingAgeSeconds = 0;
+
+            if ((counts.waiting ?? 0) > 0) {
+              let [oldest] = await queue.getWaiting(0, 0);
+              if (oldest?.timestamp) {
+                oldestWaitingAgeSeconds = Math.max(0, (Date.now() - oldest.timestamp) / 1000);
+              }
+            }
+
+            return { counts, oldestWaitingAgeSeconds };
+          });
 
           let worker = new Worker<JobData>(
             opts.name,
@@ -415,7 +451,10 @@ export let createBullMqQueue = <JobData>(
           });
 
           return {
-            close: () => worker.close()
+            close: () => {
+              queueObserver.stats.delete(opts.name);
+              return worker.close();
+            }
           };
         }
       };

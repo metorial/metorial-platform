@@ -9,6 +9,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { getSentry } from '@lowerdeck/sentry';
 import { Context } from '@metorial/context';
+import { observeHttpRequest } from '@metorial/metrics';
 import { domainSettings, matchesDomain } from '@metorial/shared-settings';
 import { generateId } from '@metorial/id';
 import { PresenterContext } from '@metorial/presenter';
@@ -542,7 +543,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
 
     let apiServerTracer = opentelemetry.trace.getTracer('@metorial/rest/server', '1.0.0');
 
-    return {
+    let handlers = {
       fetch: async (req: Request, server: any): Promise<any> => {
         let requestId = generateId('req_');
 
@@ -755,6 +756,11 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
           )
         );
       }
+    };
+
+    return {
+      fetch: (req: Request, server: any): Promise<any> =>
+        observeHttpRequest(req, () => handlers.fetch(req, server))
     };
   }
 }

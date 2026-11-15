@@ -5,6 +5,7 @@ export * from './lib/createQueue';
 export * from './lib/databaseConflict';
 export * from './lib/deleteInChunks';
 export * from './lib/objectDeleteQueue';
+export * from './lib/observer';
 export * from './lib/pacedDelay';
 export * from './lib/queueRetryError';
 export * from './types';

@@ -2050,457 +2050,6 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/platform/multi-region": {
-      "name": "@metorial/multi-region",
-      "version": "1.0.0",
-      "dependencies": {
-        "@aws-sdk/rds-signer": "^3.1164.0",
-        "@lowerdeck/base62": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/shadow-id": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/cache": "^1.0.0",
-        "@metorial/context": "^1.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/id": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "@prisma/adapter-pg": "7.10.1",
-        "@prisma/client": "^7.10.1",
-        "@prisma/extension-read-replicas": "^0.5.0",
-        "@types/bun": "^1.4.3",
-        "@types/pg": "^8.23.1",
-        "pg": "^8.23.1",
-        "prisma": "^7.10.1",
-        "prisma-json-types-generator": "^6.0.0",
-        "stripe": "^23.1.0",
-        "typescript": "^5.9.3",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "@types/bun": "^1.4.3",
-        "typescript": "^5.9.3",
-      },
-    },
-    "src/platform/packages/api-keys": {
-      "name": "@metorial/api-keys",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/bearer": {
-      "name": "@metorial/bearer",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/branding": {
-      "name": "@metorial/branding",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/cache": {
-      "name": "@metorial/cache",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/cache": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/config": {
-      "name": "@metorial/config",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/context": {
-      "name": "@metorial/context",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial/db": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/control": {
-      "name": "@metorial/control",
-      "version": "1.0.0",
-      "devDependencies": {
-        "@types/bun": "^1.4.3",
-        "typescript": "5.9.3",
-      },
-    },
-    "src/platform/packages/cron": {
-      "name": "@metorial/cron",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@metorial/config": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/debug": {
-      "name": "@metorial/debug",
-      "version": "1.0.0",
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/e2e": {
-      "name": "@metorial/e2e",
-      "version": "1.0.0",
-      "bin": {
-        "metorial-e2e": "./src/bin.ts",
-      },
-      "dependencies": {
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@metorial-subspace/db": "^1.0.0",
-        "@metorial/audit-scope": "^1.0.0",
-        "@metorial/consumer-sdk": "1.0.0-internal",
-        "@metorial/dashboard-sdk": "1.0.0-internal",
-        "@metorial/db": "^1.0.0",
-        "vitest": "^5.0.4",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "@types/bun": "latest",
-        "typescript": "5.9.3",
-      },
-    },
-    "src/platform/packages/editions": {
-      "name": "@metorial/editions",
-      "version": "1.0.0",
-      "bin": {
-        "metorial-editions": "./src/tooling/cli.ts",
-      },
-      "dependencies": {
-        "@jridgewell/trace-mapping": "^0.3.31",
-        "esbuild": "^0.28.2",
-        "typescript": "5.9.3",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/event": {
-      "name": "@metorial/event",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/memo": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@metorial/redis": "^1.0.0",
-        "p-queue": "^10.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/fabric": {
-      "name": "@metorial/fabric",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/emitter": "workspace:2.0.0",
-        "@metorial-subspace/db": "^1.0.0",
-        "@metorial/audit-scope": "workspace:*",
-        "@metorial/context": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/id": {
-      "name": "@metorial/id",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/base62": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "nanoid": "^6.0.2",
-        "short-uuid": "^6.0.3",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/image-url": {
-      "name": "@metorial/image-url",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial/branding": "workspace:*",
-        "@metorial/skill-icons": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/list-utils": {
-      "name": "@metorial/list-utils",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial/db": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "@types/bun": "latest",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
-    "src/platform/packages/lock": {
-      "name": "@metorial/lock",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/lock": "workspace:2.0.0",
-        "@metorial/redis": "^1.0.0",
-        "@types/bun": "^1.4.3",
-        "superjson": "^2.2.6",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/logging": {
-      "name": "@metorial/logging",
-      "version": "1.0.0",
-      "dependencies": {
-        "@axiomhq/js": "^2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/presenter": {
-      "name": "@metorial/presenter",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/validation": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/queue": {
-      "name": "@metorial/queue",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@metorial/config": "^1.0.0",
-        "bullmq": "^6.7.1",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/redis": {
-      "name": "@metorial/redis",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/memo": "workspace:2.0.0",
-        "@lowerdeck/random-number": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/serialize": "workspace:2.0.0",
-        "@metorial/config": "^1.0.0",
-        "@metorial/id": "^1.0.0",
-        "bullmq": "^6.7.1",
-        "ioredis": "^6.0.0",
-        "mitt": "^3.0.1",
-        "nanoid": "^6.0.2",
-        "p-queue": "^10.0.0",
-        "redis": "^6.3.1",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/rest": {
-      "name": "@metorial/rest",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/cors": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "@opentelemetry/api": "^1.10.0",
-        "@types/qs": "^6.15.1",
-        "async-ratelimiter": "^1.6.11",
-        "qs": "^6.17.1",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/service-init": {
-      "name": "@metorial/service-init",
-      "version": "1.0.0",
-      "dependencies": {
-        "@aws-sdk/rds-signer": "^3.1164.0",
-        "@metorial/editions": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/settings": {
-      "name": "@metorial/settings",
-      "version": "1.0.0",
-      "bin": {
-        "metorial-settings": "./src/cli.ts",
-      },
-      "dependencies": {
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/editions": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/shared-settings": {
-      "name": "@metorial/shared-settings",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/settings": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/skill-icons": {
-      "name": "@metorial/skill-icons",
-      "version": "1.0.0",
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "@remixicon/react": "^4.9.0",
-        "react": "19.3.0",
-        "react-dom": "19.3.0",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/system-email": {
-      "name": "@metorial/system-email",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/email-domain-check": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/packages/tsconfig": {
-      "name": "@metorial/tsconfig",
-      "version": "1.0.0",
-      "dependencies": {
-        "@types/node": "^22.20.5",
-      },
-    },
-    "src/platform/packages/unified-id": {
-      "name": "@metorial/unified-id",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/base62": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
     "src/metorial/presenters": {
       "name": "@metorial/presenters",
       "version": "1.0.0",
@@ -2546,253 +2095,6 @@
         "@slates/adapter-chat": "1.0.0-rc.16",
       },
       "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/community": {
-      "name": "@metorial/module-community",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@types/fs-extra": "^11.0.4",
-        "fs-extra": "^11.4.1",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/email": {
-      "name": "@metorial/module-email",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "@mtsrc/email-client-internal": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/flags": {
-      "name": "@metorial/module-flags",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/id": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/markdown": {
-      "name": "@metorial/module-markdown",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/id": "^1.0.0",
-        "@metorial/image-url": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "date-fns": "^4.4.0",
-        "mongoose": "^9.12.0",
-        "rehype-parse": "^9.0.1",
-        "rehype-raw": "^7.0.0",
-        "rehype-remark": "^10.0.1",
-        "rehype-sanitize": "^6.0.0",
-        "rehype-stringify": "^10.0.1",
-        "remark-frontmatter": "^5.0.0",
-        "remark-gfm": "^4.0.1",
-        "remark-parse": "^11.0.0",
-        "remark-rehype": "^11.1.2",
-        "remark-stringify": "^11.0.0",
-        "unified": "^11.0.5",
-        "unist-util-visit": "^5.2.0",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/networking": {
-      "name": "@metorial/module-networking",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/ip-range": "workspace:2.0.0",
-        "@lowerdeck/lock": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@metorial-subspace/db": "^1.0.0",
-        "@metorial-subspace/list-utils": "^1.0.0",
-        "@metorial-subspace/module-tenant": "^1.0.0",
-        "@metorial/config": "^1.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/editions": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/lock": "^1.0.0",
-        "@metorial/module-search": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "ipaddr.js": "^2.5.0",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/rate-limit": {
-      "name": "@metorial/module-rate-limit",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@metorial/cache": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/search": {
-      "name": "@metorial/module-search",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/settings": "workspace:*",
-        "@mtsrc/search-client-internal": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/secrets": {
-      "name": "@metorial/module-secrets",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/context": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "@mtsrc/secret-store-client-internal": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/usage": {
-      "name": "@metorial/module-usage",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-subspace/db": "^1.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/editions": "workspace:*",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/id": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/redis": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "date-fns": "^4.4.0",
-        "mongoose": "^9.12.0",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/modules/web": {
-      "name": "@metorial/module-web",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/ssrf": "workspace:2.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-        "htmlparser2": "^8.0.2",
-        "image-size": "^2.1.0",
-        "tldts": "^7.4.19",
-      },
-      "devDependencies": {
-        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2869,10 +2171,10 @@
       "devDependencies": {
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@mtsrc/mcp-runtime-client-internal": "workspace:*",
         "@metorial-subspace/connection-utils": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
         "@metorial-subspace/provider": "^1.0.0",
+        "@mtsrc/mcp-runtime-client-internal": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@types/bun": "latest",
         "express": "^5.3.0",
@@ -3302,7 +2604,6 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@mtsrc/functions-client-internal": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-catalog": "^1.0.0",
@@ -3313,6 +2614,7 @@
         "@metorial/module-networking": "^1.0.0",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/functions-client-internal": "workspace:*",
         "ipaddr.js": "^2.5.0",
       },
       "devDependencies": {
@@ -3924,7 +3226,6 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@mtsrc/mcp-runtime-client-internal": "workspace:*",
         "@metorial-services/registry-client": "^1.0.0",
         "@metorial-subspace/connection-utils": "^1.0.0",
         "@metorial-subspace/db": "^1.0.0",
@@ -3937,6 +3238,7 @@
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/mcp-runtime-client-internal": "workspace:*",
         "p-queue": "^10.0.0",
         "zod": "^4.6.7",
       },
@@ -4096,6 +3398,752 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/platform/clients/webhook-sender": {
+      "name": "@mtsrc/webhook-sender-client-internal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/once": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@lowerdeck/telemetry": "workspace:2.0.0",
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@mtsrc/webhook-sender-service": "workspace:*",
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/community": {
+      "name": "@metorial/module-community",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@types/fs-extra": "^11.0.4",
+        "fs-extra": "^11.4.1",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/email": {
+      "name": "@metorial/module-email",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/email-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/flags": {
+      "name": "@metorial/module-flags",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/markdown": {
+      "name": "@metorial/module-markdown",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@metorial/image-url": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "date-fns": "^4.4.0",
+        "mongoose": "^9.12.0",
+        "rehype-parse": "^9.0.1",
+        "rehype-raw": "^7.0.0",
+        "rehype-remark": "^10.0.1",
+        "rehype-sanitize": "^6.0.0",
+        "rehype-stringify": "^10.0.1",
+        "remark-frontmatter": "^5.0.0",
+        "remark-gfm": "^4.0.1",
+        "remark-parse": "^11.0.0",
+        "remark-rehype": "^11.1.2",
+        "remark-stringify": "^11.0.0",
+        "unified": "^11.0.5",
+        "unist-util-visit": "^5.2.0",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/networking": {
+      "name": "@metorial/module-networking",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/ip-range": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/list-utils": "^1.0.0",
+        "@metorial-subspace/module-tenant": "^1.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/editions": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/lock": "^1.0.0",
+        "@metorial/module-search": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "ipaddr.js": "^2.5.0",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/rate-limit": {
+      "name": "@metorial/module-rate-limit",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/search": {
+      "name": "@metorial/module-search",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/search-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/secrets": {
+      "name": "@metorial/module-secrets",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/context": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/usage": {
+      "name": "@metorial/module-usage",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/redis": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "date-fns": "^4.4.0",
+        "mongoose": "^9.12.0",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/modules/web": {
+      "name": "@metorial/module-web",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/ssrf": "workspace:2.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "htmlparser2": "^8.0.2",
+        "image-size": "^2.1.0",
+        "tldts": "^7.4.19",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/multi-region": {
+      "name": "@metorial/multi-region",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aws-sdk/rds-signer": "^3.1164.0",
+        "@lowerdeck/base62": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/shadow-id": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/context": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "@prisma/adapter-pg": "7.10.1",
+        "@prisma/client": "^7.10.1",
+        "@prisma/extension-read-replicas": "^0.5.0",
+        "@types/bun": "^1.4.3",
+        "@types/pg": "^8.23.1",
+        "pg": "^8.23.1",
+        "prisma": "^7.10.1",
+        "prisma-json-types-generator": "^6.0.0",
+        "stripe": "^23.1.0",
+        "typescript": "^5.9.3",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "^1.4.3",
+        "typescript": "^5.9.3",
+      },
+    },
+    "src/platform/packages/api-keys": {
+      "name": "@metorial/api-keys",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/bearer": {
+      "name": "@metorial/bearer",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/branding": {
+      "name": "@metorial/branding",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/cache": {
+      "name": "@metorial/cache",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cache": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/config": {
+      "name": "@metorial/config",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/context": {
+      "name": "@metorial/context",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/control": {
+      "name": "@metorial/control",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "^1.4.3",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/platform/packages/cron": {
+      "name": "@metorial/cron",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/debug": {
+      "name": "@metorial/debug",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/e2e": {
+      "name": "@metorial/e2e",
+      "version": "1.0.0",
+      "bin": {
+        "metorial-e2e": "./src/bin.ts",
+      },
+      "dependencies": {
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial/audit-scope": "^1.0.0",
+        "@metorial/consumer-sdk": "1.0.0-internal",
+        "@metorial/dashboard-sdk": "1.0.0-internal",
+        "@metorial/db": "^1.0.0",
+        "vitest": "^5.0.4",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/platform/packages/editions": {
+      "name": "@metorial/editions",
+      "version": "1.0.0",
+      "bin": {
+        "metorial-editions": "./src/tooling/cli.ts",
+      },
+      "dependencies": {
+        "@jridgewell/trace-mapping": "^0.3.31",
+        "esbuild": "^0.28.2",
+        "typescript": "5.9.3",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/event": {
+      "name": "@metorial/event",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/memo": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@metorial/redis": "^1.0.0",
+        "p-queue": "^10.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/fabric": {
+      "name": "@metorial/fabric",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/emitter": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
+        "@metorial/context": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/id": {
+      "name": "@metorial/id",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/base62": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "nanoid": "^6.0.2",
+        "short-uuid": "^6.0.3",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/image-url": {
+      "name": "@metorial/image-url",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/branding": "workspace:*",
+        "@metorial/skill-icons": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/list-utils": {
+      "name": "@metorial/list-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/platform/packages/lock": {
+      "name": "@metorial/lock",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@metorial/redis": "^1.0.0",
+        "@types/bun": "^1.4.3",
+        "superjson": "^2.2.6",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/logging": {
+      "name": "@metorial/logging",
+      "version": "1.0.0",
+      "dependencies": {
+        "@axiomhq/js": "^2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/metrics": {
+      "name": "@metorial/metrics",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/queue": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/presenter": {
+      "name": "@metorial/presenter",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/queue": {
+      "name": "@metorial/queue",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@metorial/config": "^1.0.0",
+        "bullmq": "^6.7.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/redis": {
+      "name": "@metorial/redis",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/execution-context": "workspace:2.0.0",
+        "@lowerdeck/memo": "workspace:2.0.0",
+        "@lowerdeck/random-number": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/serialize": "workspace:2.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/id": "^1.0.0",
+        "bullmq": "^6.7.1",
+        "ioredis": "^6.0.0",
+        "mitt": "^3.0.1",
+        "nanoid": "^6.0.2",
+        "p-queue": "^10.0.0",
+        "redis": "^6.3.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/rest": {
+      "name": "@metorial/rest",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cors": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/execution-context": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/metrics": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@opentelemetry/api": "^1.10.0",
+        "@types/qs": "^6.15.1",
+        "async-ratelimiter": "^1.6.11",
+        "qs": "^6.17.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/service-init": {
+      "name": "@metorial/service-init",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aws-sdk/rds-signer": "^3.1164.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/metrics": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/settings": {
+      "name": "@metorial/settings",
+      "version": "1.0.0",
+      "bin": {
+        "metorial-settings": "./src/cli.ts",
+      },
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/shared-settings": {
+      "name": "@metorial/shared-settings",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/skill-icons": {
+      "name": "@metorial/skill-icons",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@remixicon/react": "^4.9.0",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/system-email": {
+      "name": "@metorial/system-email",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/email-domain-check": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/platform/packages/tsconfig": {
+      "name": "@metorial/tsconfig",
+      "version": "1.0.0",
+      "dependencies": {
+        "@types/node": "^22.20.5",
+      },
+    },
+    "src/platform/packages/unified-id": {
+      "name": "@metorial/unified-id",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/base62": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/platform/services/email/service": {
       "name": "@mtsrc/email-service",
       "dependencies": {
@@ -4122,11 +4170,11 @@
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@mtsrc/build-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
         "@metorial/system-email": "^1.0.0",
+        "@mtsrc/build-client-internal": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@sentry/bun": "^11.11.0",
@@ -4176,10 +4224,10 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@mtsrc/build-client-internal": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/build-client-internal": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -4249,6 +4297,61 @@
         "@sentry/cli": "^3.8.2",
         "date-fns": "^4.4.0",
         "prisma": "^7.10.1",
+      },
+      "devDependencies": {
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "@vercel/ncc": "^0.45.0",
+        "vitest": "5.0.4",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/platform/services/webhook-sender/service": {
+      "name": "@mtsrc/webhook-sender-service",
+      "dependencies": {
+        "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
+        "@aws-sdk/client-iam": "^3.1164.0",
+        "@aws-sdk/client-lambda": "^3.1164.0",
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/once": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@lowerdeck/telemetry": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@prisma/adapter-pg": "^7.10.1",
+        "@prisma/client": "^7.10.1",
+        "@prisma/extension-read-replicas": "^0.5.0",
+        "@sentry/bun": "^11.11.0",
+        "@sentry/cli": "^3.8.2",
+        "axios": "^1.21.0",
+        "date-fns": "^4.4.0",
+        "ipaddr.js": "^2.5.0",
+        "jszip": "^3.10.2",
+        "object-storage-client": "workspace:*",
+        "prisma": "^7.10.1",
+        "prisma-json-types-generator": "^6.0.0",
+        "yaml": "^2.9.1",
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
@@ -5075,6 +5178,7 @@
         "@metorial/editions": "workspace:*",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
+        "@metorial/metrics": "workspace:*",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-consumer-entities": "^1.0.0",
         "@metorial/module-consumer-oauth": "^1.0.0",
@@ -5120,6 +5224,178 @@
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
+      },
+    },
+    "src/products/integrations/clients/mcp-runtime": {
+      "name": "@mtsrc/mcp-runtime-client-internal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/execution-context": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/once": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@lowerdeck/telemetry": "workspace:2.0.0",
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@lowerdeck/tokens": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/util-websocket": "^3.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@types/bun": "^1.4.3",
+      },
+      "devDependencies": {
+        "@mtsrc/mcp-runtime-service": "workspace:*",
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/sdk": {
+      "name": "@metorial/root",
+      "dependencies": {
+        "npm-run-all": "^4.1.5",
+      },
+      "devDependencies": {
+        "prettier": "^3.9.10",
+        "turbo": "^2.11.10",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp": {
+      "name": "@metorial/mcp",
+      "version": "1.0.0-rc.2",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp-server": {
+      "name": "@metorial/mcp-server",
+      "version": "1.0.0-rc.12",
+      "dependencies": {
+        "@metorial/mcp": "^1.0.0-rc.2",
+        "@metorial/mcp-transport-memory": "^1.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp-transport-memory": {
+      "name": "@metorial/mcp-transport-memory",
+      "version": "1.0.0",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.32.1",
+      },
+      "devDependencies": {
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/service": {
+      "name": "@mtsrc/mcp-runtime-service",
+      "dependencies": {
+        "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
+        "@aws-sdk/client-iam": "^3.1164.0",
+        "@aws-sdk/client-lambda": "^3.1164.0",
+        "@bufbuild/protobuf": "^2.17.0",
+        "@hono/zod-validator": "^0.9.1",
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/execution-context": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/once": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/retention-runner": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@lowerdeck/ssrf": "workspace:2.0.0",
+        "@lowerdeck/telemetry": "workspace:2.0.0",
+        "@lowerdeck/tokens": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/mcp-server": "^1.0.0-rc.11",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/functions-client-internal": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
+        "@prisma/adapter-pg": "^7.10.1",
+        "@prisma/client": "^7.10.1",
+        "@prisma/extension-read-replicas": "^0.5.0",
+        "@sentry/bun": "^11.11.0",
+        "@sentry/cli": "^3.8.2",
+        "@toon-format/toon": "^4.4.0",
+        "@types/pg": "^8.23.1",
+        "axios": "^1.21.0",
+        "date-fns": "^4.4.0",
+        "drizzle-orm": "^0.45.4",
+        "hono": "4.13.13",
+        "ipaddr.js": "^2.5.0",
+        "jsonata": "^2.2.2",
+        "jszip": "^3.10.2",
+        "object-storage-client": "workspace:*",
+        "p-queue": "^10.0.0",
+        "pg": "^8.23.1",
+        "prisma": "^7.10.1",
+        "prisma-json-types-generator": "^6.0.0",
+        "ws": "^8.22.1",
+        "yaml": "^2.9.1",
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "@types/ws": "^8.18.2",
+        "@vercel/ncc": "^0.45.0",
+        "vitest": "5.0.4",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
       },
     },
     "src/products/oss/apis/oss-auth": {
@@ -5937,11 +6213,11 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/cluster-manager-client": "workspace:*",
-        "@mtsrc/build-client-internal": "workspace:*",
         "@metorial-platform-systems/network-logs-client": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/build-client-internal": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -6943,267 +7219,6 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/products/integrations/clients/mcp-runtime": {
-      "name": "@mtsrc/mcp-runtime-client-internal",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/encryption": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/hono": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/lock": "workspace:2.0.0",
-        "@lowerdeck/once": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/telemetry": "workspace:2.0.0",
-        "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@lowerdeck/tokens": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/util-websocket": "^3.0.0",
-        "@modelcontextprotocol/sdk": "^1.32.1",
-        "@types/bun": "^1.4.3",
-      },
-      "devDependencies": {
-        "@mtsrc/mcp-runtime-service": "workspace:*",
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/products/integrations/services/mcp-runtime/sdk": {
-      "name": "@metorial/root",
-      "dependencies": {
-        "npm-run-all": "^4.1.5",
-      },
-      "devDependencies": {
-        "prettier": "^3.9.10",
-        "turbo": "^2.11.10",
-        "typescript": "5.9.3",
-      },
-    },
-    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp": {
-      "name": "@metorial/mcp",
-      "version": "1.0.0-rc.2",
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.32.1",
-        "zod": "^4.6.7",
-      },
-      "devDependencies": {
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp-server": {
-      "name": "@metorial/mcp-server",
-      "version": "1.0.0-rc.12",
-      "dependencies": {
-        "@metorial/mcp": "^1.0.0-rc.2",
-        "@metorial/mcp-transport-memory": "^1.0.0",
-        "@modelcontextprotocol/sdk": "^1.32.1",
-        "zod": "^4.6.7",
-      },
-      "devDependencies": {
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/products/integrations/services/mcp-runtime/sdk/packages/mcp-transport-memory": {
-      "name": "@metorial/mcp-transport-memory",
-      "version": "1.0.0",
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.32.1",
-      },
-      "devDependencies": {
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/products/integrations/services/mcp-runtime/service": {
-      "name": "@mtsrc/mcp-runtime-service",
-      "dependencies": {
-        "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
-        "@aws-sdk/client-iam": "^3.1164.0",
-        "@aws-sdk/client-lambda": "^3.1164.0",
-        "@bufbuild/protobuf": "^2.17.0",
-        "@hono/zod-validator": "^0.9.1",
-        "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/encryption": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/hono": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/lock": "workspace:2.0.0",
-        "@lowerdeck/once": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/retention-runner": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/ssrf": "workspace:2.0.0",
-        "@lowerdeck/telemetry": "workspace:2.0.0",
-        "@lowerdeck/tokens": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@mtsrc/functions-client-internal": "workspace:*",
-        "@metorial/editions": "workspace:*",
-        "@metorial/mcp-server": "^1.0.0-rc.11",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.32.1",
-        "@mtsrc/secret-store-client-internal": "workspace:*",
-        "@prisma/adapter-pg": "^7.10.1",
-        "@prisma/client": "^7.10.1",
-        "@prisma/extension-read-replicas": "^0.5.0",
-        "@sentry/bun": "^11.11.0",
-        "@sentry/cli": "^3.8.2",
-        "@toon-format/toon": "^4.4.0",
-        "@types/pg": "^8.23.1",
-        "axios": "^1.21.0",
-        "date-fns": "^4.4.0",
-        "drizzle-orm": "^0.45.4",
-        "hono": "4.13.13",
-        "ipaddr.js": "^2.5.0",
-        "jsonata": "^2.2.2",
-        "jszip": "^3.10.2",
-        "object-storage-client": "workspace:*",
-        "p-queue": "^10.0.0",
-        "pg": "^8.23.1",
-        "prisma": "^7.10.1",
-        "prisma-json-types-generator": "^6.0.0",
-        "ws": "^8.22.1",
-        "yaml": "^2.9.1",
-        "zod": "^4.6.7",
-      },
-      "devDependencies": {
-        "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@metorial/e2e": "1.0.0",
-        "@types/bun": "latest",
-        "@types/node": "^25.9.9",
-        "@types/ws": "^8.18.2",
-        "@vercel/ncc": "^0.45.0",
-        "vitest": "5.0.4",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
-    "src/platform/clients/webhook-sender": {
-      "name": "@mtsrc/webhook-sender-client-internal",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/encryption": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/once": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/telemetry": "workspace:2.0.0",
-        "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@mtsrc/webhook-sender-service": "workspace:*",
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
-    "src/platform/services/webhook-sender/service": {
-      "name": "@mtsrc/webhook-sender-service",
-      "dependencies": {
-        "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
-        "@aws-sdk/client-iam": "^3.1164.0",
-        "@aws-sdk/client-lambda": "^3.1164.0",
-        "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/encryption": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/once": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/telemetry": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "@prisma/adapter-pg": "^7.10.1",
-        "@prisma/client": "^7.10.1",
-        "@prisma/extension-read-replicas": "^0.5.0",
-        "@sentry/bun": "^11.11.0",
-        "@sentry/cli": "^3.8.2",
-        "axios": "^1.21.0",
-        "date-fns": "^4.4.0",
-        "ipaddr.js": "^2.5.0",
-        "jszip": "^3.10.2",
-        "object-storage-client": "workspace:*",
-        "prisma": "^7.10.1",
-        "prisma-json-types-generator": "^6.0.0",
-        "yaml": "^2.9.1",
-      },
-      "devDependencies": {
-        "@lowerdeck/testing-tools": "workspace:2.0.0",
-        "@metorial/e2e": "1.0.0",
-        "@types/bun": "latest",
-        "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
-        "vitest": "5.0.4",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
     "src/slates/apps/hub": {
       "name": "@metorial/slates",
       "dependencies": {
@@ -7247,13 +7262,13 @@
         "@metorial-io/layout": "^1.0.1",
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
-        "@mtsrc/functions-client-internal": "workspace:*",
         "@metorial-services/slates-registry-client": "workspace:*",
         "@metorial-services/slates-registry-internal-client": "^1.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
         "@mtsrc/auth-core-client-internal": "workspace:*",
+        "@mtsrc/functions-client-internal": "workspace:*",
         "@mtsrc/secret-store-client-internal": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -8426,17 +8441,9 @@
 
     "@metorial-platform-systems/cluster-manager-spec": ["@metorial-platform-systems/cluster-manager-spec@workspace:src/products/runtime/services/cluster-manager/spec"],
 
-    "@mtsrc/build-client-internal": ["@mtsrc/build-client-internal@workspace:src/products/runtime/clients/build"],
-
-    "@mtsrc/functions-client-internal": ["@mtsrc/functions-client-internal@workspace:src/products/runtime/clients/functions"],
-
     "@metorial-platform-systems/network-logs-client": ["@metorial-platform-systems/network-logs-client@workspace:src/products/runtime/clients/networking"],
 
     "@metorial-platform-systems/network-logs-spec": ["@metorial-platform-systems/network-logs-spec@workspace:src/products/runtime/services/networking/spec"],
-
-    "@mtsrc/mcp-runtime-client-internal": ["@mtsrc/mcp-runtime-client-internal@workspace:src/products/integrations/clients/mcp-runtime"],
-
-    "@mtsrc/webhook-sender-client-internal": ["@mtsrc/webhook-sender-client-internal@workspace:src/platform/clients/webhook-sender"],
 
     "@metorial-platform-systems/slates-client": ["@metorial-platform-systems/slates-client@workspace:src/slates/clients/slates"],
 
@@ -8638,13 +8645,9 @@
 
     "@metorial/filter-bar": ["@metorial/filter-bar@workspace:src/metorial-frontend/packages/filter-bar"],
 
-    "@mtsrc/build-service": ["@mtsrc/build-service@workspace:src/products/runtime/services/build/service"],
-
     "@metorial/form-sections": ["@metorial/form-sections@workspace:src/metorial-frontend/packages/form-sections"],
 
     "@metorial/frontend-config": ["@metorial/frontend-config@workspace:src/metorial-frontend/packages/config"],
-
-    "@mtsrc/functions-service": ["@mtsrc/functions-service@workspace:src/products/runtime/services/functions/service"],
 
     "@metorial/generated": ["@metorial/generated@3.3.1", "", { "dependencies": { "@metorial/util-endpoint": "^3.0.0", "@metorial/util-resource-mapper": "^3.2.0", "jose": "^5.9.6" } }, "sha512-32FXw7YHwW3EOVZY2Mq/4J+Yqgiggy4lIiZ0Rjsm0vM01hNKMKvqsUgAcp4BimFOlUYFGKadIOoeC5F2jJd+fw=="],
 
@@ -8675,6 +8678,8 @@
     "@metorial/mcp-server": ["@metorial/mcp-server@workspace:src/products/integrations/services/mcp-runtime/sdk/packages/mcp-server"],
 
     "@metorial/mcp-transport-memory": ["@metorial/mcp-transport-memory@workspace:src/products/integrations/services/mcp-runtime/sdk/packages/mcp-transport-memory"],
+
+    "@metorial/metrics": ["@metorial/metrics@workspace:src/platform/packages/metrics"],
 
     "@metorial/metrics-page": ["@metorial/metrics-page@workspace:src/metorial-frontend/packages/metrics-page"],
 
@@ -8808,10 +8813,6 @@
 
     "@metorial/shared-settings": ["@metorial/shared-settings@workspace:src/platform/packages/shared-settings"],
 
-    "@mtsrc/mcp-runtime-service": ["@mtsrc/mcp-runtime-service@workspace:src/products/integrations/services/mcp-runtime/service"],
-
-    "@mtsrc/webhook-sender-service": ["@mtsrc/webhook-sender-service@workspace:src/platform/services/webhook-sender/service"],
-
     "@metorial/skill-icons": ["@metorial/skill-icons@workspace:src/platform/packages/skill-icons"],
 
     "@metorial/skills-common": ["@metorial/skills-common@workspace:src/products/skills/packages/common"],
@@ -8902,9 +8903,21 @@
 
     "@mtsrc/auth-core-service": ["@mtsrc/auth-core-service@workspace:src/products/identity/services/auth-core/service"],
 
+    "@mtsrc/build-client-internal": ["@mtsrc/build-client-internal@workspace:src/products/runtime/clients/build"],
+
+    "@mtsrc/build-service": ["@mtsrc/build-service@workspace:src/products/runtime/services/build/service"],
+
     "@mtsrc/email-client-internal": ["@mtsrc/email-client-internal@workspace:src/platform/clients/email"],
 
     "@mtsrc/email-service": ["@mtsrc/email-service@workspace:src/platform/services/email/service"],
+
+    "@mtsrc/functions-client-internal": ["@mtsrc/functions-client-internal@workspace:src/products/runtime/clients/functions"],
+
+    "@mtsrc/functions-service": ["@mtsrc/functions-service@workspace:src/products/runtime/services/functions/service"],
+
+    "@mtsrc/mcp-runtime-client-internal": ["@mtsrc/mcp-runtime-client-internal@workspace:src/products/integrations/clients/mcp-runtime"],
+
+    "@mtsrc/mcp-runtime-service": ["@mtsrc/mcp-runtime-service@workspace:src/products/integrations/services/mcp-runtime/service"],
 
     "@mtsrc/scm-client-internal": ["@mtsrc/scm-client-internal@workspace:src/products/storage/clients/scm"],
 
@@ -8923,6 +8936,10 @@
     "@mtsrc/secret-store-client-internal": ["@mtsrc/secret-store-client-internal@workspace:src/platform/clients/secret-store"],
 
     "@mtsrc/secret-store-service": ["@mtsrc/secret-store-service@workspace:src/platform/services/secret-store/service"],
+
+    "@mtsrc/webhook-sender-client-internal": ["@mtsrc/webhook-sender-client-internal@workspace:src/platform/clients/webhook-sender"],
+
+    "@mtsrc/webhook-sender-service": ["@mtsrc/webhook-sender-service@workspace:src/platform/services/webhook-sender/service"],
 
     "@napi-rs/canvas": ["@napi-rs/canvas@1.1.0", "", { "optionalDependencies": { "@napi-rs/canvas-android-arm64": "1.1.0", "@napi-rs/canvas-darwin-arm64": "1.1.0", "@napi-rs/canvas-darwin-x64": "1.1.0", "@napi-rs/canvas-linux-arm-gnueabihf": "1.1.0", "@napi-rs/canvas-linux-arm64-gnu": "1.1.0", "@napi-rs/canvas-linux-arm64-musl": "1.1.0", "@napi-rs/canvas-linux-riscv64-gnu": "1.1.0", "@napi-rs/canvas-linux-x64-gnu": "1.1.0", "@napi-rs/canvas-linux-x64-musl": "1.1.0", "@napi-rs/canvas-win32-arm64-msvc": "1.1.0", "@napi-rs/canvas-win32-x64-msvc": "1.1.0" } }, "sha512-k+ph/D8H9GS8ZZ48okvHrKeJynkqAA1kMUZRuzRWNlQUDHXngq7oRaWMZBdmSfd9ZhVy9bwNKei/7wMboI/uMg=="],
 
@@ -9496,7 +9513,7 @@
 
     "@smithy/signature-v4": ["@smithy/signature-v4@5.7.5", "", { "dependencies": { "@smithy/core": "^3.38.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-WPjdr5oWOk1LArpI4pavu+fSo+/evi0Re1olxGvqwuZopd4gYR1UGCi+Soyn/IjmafqbWs+ZC+3AKxJS3ZpwUg=="],
 
-    "@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
+    "@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@sqltools/formatter": ["@sqltools/formatter@1.2.5", "", {}, "sha512-Uy0+khmZqUrUGm5dmMqVlnvufZRSK0FbYzVgp0UMstm+F5+W2/jnEEQyc9vo1ZR/E5ZI/B1WjjoTqBqwJL6Krw=="],
 
@@ -12502,7 +12519,11 @@
 
     "@antfu/install-pkg/tinyexec": ["tinyexec@1.2.4", "", {}, "sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg=="],
 
+    "@aws-sdk/client-cloudwatch-logs/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
+
     "@aws-sdk/client-cloudwatch-logs/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
+
+    "@aws-sdk/client-codebuild/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
 
     "@aws-sdk/client-codebuild/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
@@ -12514,13 +12535,19 @@
 
     "@aws-sdk/client-dynamodb/@smithy/node-http-handler": ["@smithy/node-http-handler@4.12.1", "", { "dependencies": { "@smithy/core": "^3.33.3", "@smithy/types": "^4.18.0", "tslib": "^2.6.2" } }, "sha512-ThMkboGeONWXAelq9FvGsuJC4rOi+qyC4/zhUF58xYpxUg5sQKx2VXZYJmtNjr4dSuBJ1HeJXETQILCz3wOHvw=="],
 
-    "@aws-sdk/client-dynamodb/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
+    "@aws-sdk/client-iam/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
 
     "@aws-sdk/client-iam/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
+    "@aws-sdk/client-kms/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
+
     "@aws-sdk/client-kms/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
+    "@aws-sdk/client-lambda/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
+
     "@aws-sdk/client-lambda/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
+
+    "@aws-sdk/client-ses/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
 
     "@aws-sdk/client-ses/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
@@ -12530,29 +12557,17 @@
 
     "@aws-sdk/core/@smithy/signature-v4": ["@smithy/signature-v4@5.7.4", "", { "dependencies": { "@smithy/core": "^3.35.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-tHy0K0VtqNd5Y7Y41h0a0Lhh0L1GzC08dTWg0F7vRJWFtTENg7IZikf3wQkanYIRdb7ngoIPMTmqgUi401fEeQ=="],
 
-    "@aws-sdk/core/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/credential-provider-cognito-identity/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
 
-    "@aws-sdk/credential-provider-cognito-identity/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/credential-provider-env/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
-
-    "@aws-sdk/credential-provider-env/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@aws-sdk/credential-provider-http/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
 
     "@aws-sdk/credential-provider-http/@smithy/node-http-handler": ["@smithy/node-http-handler@4.12.1", "", { "dependencies": { "@smithy/core": "^3.33.3", "@smithy/types": "^4.18.0", "tslib": "^2.6.2" } }, "sha512-ThMkboGeONWXAelq9FvGsuJC4rOi+qyC4/zhUF58xYpxUg5sQKx2VXZYJmtNjr4dSuBJ1HeJXETQILCz3wOHvw=="],
 
-    "@aws-sdk/credential-provider-http/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/credential-provider-ini/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
 
-    "@aws-sdk/credential-provider-ini/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/credential-provider-login/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
-
-    "@aws-sdk/credential-provider-login/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@aws-sdk/credential-provider-node/@aws-sdk/credential-provider-env": ["@aws-sdk/credential-provider-env@3.972.82", "", { "dependencies": { "@aws-sdk/core": "^3.980.1", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.38.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-sAfysgoFWKg/CJvufYM7lhvMUfJpTsuwjCLzp843Vtw8NlQh2PW9/+upUFrsoQK46pJcv3u1a+st7qJ4jfSODw=="],
 
@@ -12566,35 +12581,25 @@
 
     "@aws-sdk/credential-provider-node/@aws-sdk/credential-provider-web-identity": ["@aws-sdk/credential-provider-web-identity@3.972.88", "", { "dependencies": { "@aws-sdk/core": "^3.980.1", "@aws-sdk/nested-clients": "^3.998.1", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.38.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-RmeE04naP7gWzux9l1vqNQPzuo2OkH0Ca9WDtX5Zf4NERoBLeWZNU2g1ka7aJ4Fc9fqBxBLtGL89vYEfFP1LHw=="],
 
+    "@aws-sdk/credential-provider-node/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
+
     "@aws-sdk/credential-provider-node/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
     "@aws-sdk/credential-provider-process/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
 
-    "@aws-sdk/credential-provider-process/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/credential-provider-sso/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
 
-    "@aws-sdk/credential-provider-sso/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/credential-provider-web-identity/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
-
-    "@aws-sdk/credential-provider-web-identity/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@aws-sdk/credential-providers/@aws-sdk/credential-provider-node": ["@aws-sdk/credential-provider-node@3.972.88", "", { "dependencies": { "@aws-sdk/credential-provider-env": "^3.972.76", "@aws-sdk/credential-provider-http": "^3.972.78", "@aws-sdk/credential-provider-ini": "^3.973.21", "@aws-sdk/credential-provider-process": "^3.972.76", "@aws-sdk/credential-provider-sso": "^3.973.20", "@aws-sdk/credential-provider-web-identity": "^3.972.82", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.36.1", "@smithy/credential-provider-imds": "^4.5.2", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-AG0KID5qhQPzrFkh5b0Cws1Amytvzo0L0Xj6hMgJXEwD6ZXAqninDhSNAWJiN5zU4YVVZnuidnqwPwYJ04IamA=="],
 
     "@aws-sdk/credential-providers/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
 
-    "@aws-sdk/credential-providers/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/dynamodb-codec/@smithy/core": ["@smithy/core@3.35.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-ejTukBuP/Pg3t9N8Ux+0zKsXeHWm7p6W3HbXFOyltKasSxZwCFmvTut7kBdZSCF3m9y1bXXyVu6p2xuMFcsTyQ=="],
-
-    "@aws-sdk/dynamodb-codec/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@aws-sdk/middleware-endpoint-discovery/@aws-sdk/types": ["@aws-sdk/types@3.974.6", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-v/clNZzZnDxGyvpHMOGpJKVXFAExJzUNAAjaWGdcx8QAcXLGwTaOkw33p5SHAi0YAioK32xB3hWwOekRVfmfKg=="],
 
     "@aws-sdk/middleware-endpoint-discovery/@smithy/core": ["@smithy/core@3.35.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-ejTukBuP/Pg3t9N8Ux+0zKsXeHWm7p6W3HbXFOyltKasSxZwCFmvTut7kBdZSCF3m9y1bXXyVu6p2xuMFcsTyQ=="],
-
-    "@aws-sdk/middleware-endpoint-discovery/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@aws-sdk/nested-clients/@aws-sdk/types": ["@aws-sdk/types@3.974.6", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-v/clNZzZnDxGyvpHMOGpJKVXFAExJzUNAAjaWGdcx8QAcXLGwTaOkw33p5SHAi0YAioK32xB3hWwOekRVfmfKg=="],
 
@@ -12602,25 +12607,13 @@
 
     "@aws-sdk/nested-clients/@smithy/node-http-handler": ["@smithy/node-http-handler@4.12.1", "", { "dependencies": { "@smithy/core": "^3.33.3", "@smithy/types": "^4.18.0", "tslib": "^2.6.2" } }, "sha512-ThMkboGeONWXAelq9FvGsuJC4rOi+qyC4/zhUF58xYpxUg5sQKx2VXZYJmtNjr4dSuBJ1HeJXETQILCz3wOHvw=="],
 
-    "@aws-sdk/nested-clients/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
-    "@aws-sdk/rds-signer/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/rds-signer/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
     "@aws-sdk/signature-v4-multi-region/@aws-sdk/types": ["@aws-sdk/types@3.974.6", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-v/clNZzZnDxGyvpHMOGpJKVXFAExJzUNAAjaWGdcx8QAcXLGwTaOkw33p5SHAi0YAioK32xB3hWwOekRVfmfKg=="],
 
     "@aws-sdk/signature-v4-multi-region/@smithy/signature-v4": ["@smithy/signature-v4@5.7.4", "", { "dependencies": { "@smithy/core": "^3.35.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-tHy0K0VtqNd5Y7Y41h0a0Lhh0L1GzC08dTWg0F7vRJWFtTENg7IZikf3wQkanYIRdb7ngoIPMTmqgUi401fEeQ=="],
 
-    "@aws-sdk/signature-v4-multi-region/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@aws-sdk/token-providers/@smithy/core": ["@smithy/core@3.36.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ=="],
-
-    "@aws-sdk/token-providers/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
-    "@aws-sdk/types/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
-    "@aws-sdk/xml-builder/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
 
     "@azure/identity/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
@@ -12806,10 +12799,6 @@
 
     "@metorial/mcp-proxy/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
 
-    "@mtsrc/mcp-runtime-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
-
-    "@mtsrc/webhook-sender-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
-
     "@mtsrc/ai-gateway-db/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@mtsrc/ai-gateway-db/prisma-json-types-generator": ["prisma-json-types-generator@5.2.0", "", { "dependencies": { "@prisma/generator-helper": "^7.10.0", "semver": "^7.8.5", "try": "^1.0.3", "tslib": "^2.8.1", "typescript": "npm:typescript@^6.0.3" }, "peerDependencies": { "@prisma/client": "^7.8.0", "pg": "^8.0.0", "prisma": "^7.8.0" }, "optionalPeers": ["pg"], "bin": { "prisma-json-types-generator": "index.js" } }, "sha512-Tc1XzT325dYupjAC3y9wj/7n9uV0/jMS/GJhtyR6zZprjAvF+zUoMGo4log7++Vz8VmRRFQJHkGeJ332MYXb6A=="],
@@ -12822,6 +12811,8 @@
 
     "@mtsrc/email-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
+    "@mtsrc/mcp-runtime-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
     "@mtsrc/scm-client-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@mtsrc/scm-code-workspace/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
@@ -12833,6 +12824,8 @@
     "@mtsrc/search-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@mtsrc/secret-store-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/webhook-sender-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@octokit/request/content-type": ["content-type@3.1.1", "", {}, "sha512-GW4qUsfFo59d0HbUibDlWv5wPz+vAAcaTWbKIuKCf0JkC7wWkSyf8f13IpXn5JkeMlB2P8iTSSIjwXljorg2vA=="],
 
@@ -12932,23 +12925,19 @@
 
     "@slates/provider/p-queue": ["p-queue@6.6.2", "", { "dependencies": { "eventemitter3": "^4.0.4", "p-timeout": "^3.2.0" } }, "sha512-RwFpb72c/BhQLEXIZ5K2e+AhgNVmIejGlTgiB9MzZ0e93GRvqZ7uSi0dvRF7/XIXDeNkra2fNHBxTyPDGySpjQ=="],
 
+    "@smithy/core/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
+
     "@smithy/core/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
     "@smithy/credential-provider-imds/@smithy/core": ["@smithy/core@3.35.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-ejTukBuP/Pg3t9N8Ux+0zKsXeHWm7p6W3HbXFOyltKasSxZwCFmvTut7kBdZSCF3m9y1bXXyVu6p2xuMFcsTyQ=="],
 
-    "@smithy/credential-provider-imds/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@smithy/fetch-http-handler/@smithy/core": ["@smithy/core@3.35.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-ejTukBuP/Pg3t9N8Ux+0zKsXeHWm7p6W3HbXFOyltKasSxZwCFmvTut7kBdZSCF3m9y1bXXyVu6p2xuMFcsTyQ=="],
 
-    "@smithy/fetch-http-handler/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
+    "@smithy/node-http-handler/@smithy/types": ["@smithy/types@4.20.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-lCA6QG22dPk9ecHbv91jDQZsmtPUjdS1aE2Il6NNPqe7DrYc0dZQi6DhcESk2KYXH2sp5xbAcGdYMZDFnuzA2A=="],
 
     "@smithy/node-http-handler/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
-    "@smithy/signature-v4/@smithy/types": ["@smithy/types@4.19.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-r7jh49VJxGerfAcTQA6gXcKc+98zOp/tqRwzYjgOE+iSQsP6cEU1hq2QzbuipmP68QtYdY9wKEhiCQZIzHgZ4Q=="],
-
     "@smithy/signature-v4/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
-
-    "@smithy/types/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
     "@surma/rollup-plugin-off-main-thread/magic-string": ["magic-string@0.25.9", "", { "dependencies": { "sourcemap-codec": "^1.4.8" } }, "sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ=="],
 
@@ -13538,8 +13527,6 @@
 
     "@aws-sdk/credential-provider-node/@aws-sdk/credential-provider-sso/@aws-sdk/token-providers": ["@aws-sdk/token-providers@3.1164.0", "", { "dependencies": { "@aws-sdk/core": "^3.980.1", "@aws-sdk/nested-clients": "^3.998.1", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.38.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-9LPRWfev5QZH1EnNn9O/Y++iCRpfxrJs4EIsJuOAKYZ0DY/kZ3aOx0qWzmN1OUOd8JlUk6Mjy1tJ8b7ul5tuVw=="],
 
-    "@aws-sdk/rds-signer/@smithy/types/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
-
     "@aws-sdk/signature-v4-multi-region/@smithy/signature-v4/@smithy/core": ["@smithy/core@3.35.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-ejTukBuP/Pg3t9N8Ux+0zKsXeHWm7p6W3HbXFOyltKasSxZwCFmvTut7kBdZSCF3m9y1bXXyVu6p2xuMFcsTyQ=="],
 
     "@babel/helper-compilation-targets/browserslist/baseline-browser-mapping": ["baseline-browser-mapping@2.10.38", "", { "bin": { "baseline-browser-mapping": "dist/cli.cjs" } }, "sha512-31/02mVB4yuQU6adKk5SlY6m+mxDwUq5KZkyYgnLrrKl7TEm1+3PyDtDBz2kOv/wxZz41GHsvV1A/u6RmiyBvw=="],
@@ -13910,10 +13897,6 @@
 
     "@metorial/mcp-proxy/vitest/why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
 
-    "@mtsrc/mcp-runtime-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
-
-    "@mtsrc/webhook-sender-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
-
     "@mtsrc/ai-gateway-db/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@mtsrc/ai-gateway-db/prisma-json-types-generator/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
@@ -13928,6 +13911,8 @@
 
     "@mtsrc/email-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@mtsrc/mcp-runtime-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@mtsrc/scm-client-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@mtsrc/scm-code-workspace/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
@@ -13939,6 +13924,8 @@
     "@mtsrc/search-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@mtsrc/secret-store-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/webhook-sender-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@opentelemetry/exporter-metrics-otlp-grpc/@opentelemetry/core/@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
@@ -14051,8 +14038,6 @@
     "@sentry/bundler-plugins/oxc-parser/@oxc-parser/binding-win32-x64-msvc": ["@oxc-parser/binding-win32-x64-msvc@0.152.0", "", { "os": "win32", "cpu": "x64" }, "sha512-sw0M80/dn9rcpu+Rqqph/C+MjvDDce6MlXmFjsNQtPEymha0eJy3ml6+foSUTqFfpDIDyHZZ4eoJ43IoMe8bJw=="],
 
     "@sentry/bundler-plugins/oxc-parser/@oxc-project/types": ["@oxc-project/types@0.152.0", "", {}, "sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw=="],
-
-    "@smithy/signature-v4/@smithy/types/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "@types/body-parser/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 

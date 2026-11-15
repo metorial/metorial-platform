@@ -13,6 +13,7 @@ import {
 } from '@metorial-subspace/public-mcp-guard';
 import type { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { classifyMcpResponse, recordMcpOperation } from '@metorial/metrics';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
 import { type SSEStreamingApi, streamSSE } from 'hono/streaming';
@@ -129,6 +130,24 @@ type HandleMcpRequestInput = {
     subspaceSessionId: string;
     response: Response;
   }) => Promise<void> | void;
+};
+
+let recordMcpMessage = (
+  message: JSONRPCMessage,
+  transport: 'sse' | 'streamable_http',
+  startedAt: number,
+  errorType?: Parameters<typeof recordMcpOperation>[0]['errorType']
+) => {
+  let request = message as { method?: unknown; params?: { name?: unknown } };
+  if (typeof request.method !== 'string') return;
+
+  recordMcpOperation({
+    method: request.method,
+    transport,
+    toolName: typeof request.params?.name === 'string' ? request.params.name : undefined,
+    durationSeconds: (performance.now() - startedAt) / 1000,
+    errorType
+  });
 };
 
 export let handleMcpRequest = async (c: Context, d: HandleMcpRequestInput) => {
@@ -279,11 +298,13 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
 
     if (c.req.method === 'POST') {
       let message = body as JSONRPCMessage;
+      let startedAt = performance.now();
       let { connection } = await handleSubspaceMcpRequest({
         ...connectionInput,
         message,
         waitForResponse: false
       });
+      recordMcpMessage(message, 'sse', startedAt);
       return finish(c.text('OK', 200), connection);
     }
 
@@ -326,6 +347,7 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
       resolveConnection = resolve;
     });
 
+    let startedAt = performance.now();
     let requestPromise = handleSubspaceMcpRequest({
       ...connectionInput,
       message,
@@ -341,6 +363,12 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
     let outcomePromise = requestPromise.then(
       result => {
         resolveConnection(result.connection);
+        recordMcpMessage(
+          message,
+          'streamable_http',
+          startedAt,
+          classifyMcpResponse(result.response?.mcp)
+        );
 
         if (result.response?.mcp) {
           stream.write(result.response.mcp);
@@ -352,6 +380,7 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
         return { type: 'complete' as const, result };
       },
       error => {
+        recordMcpMessage(message, 'streamable_http', startedAt, 'internal_error');
         if (stream.hasStarted()) stream.error(error);
         else stream.close();
         return { type: 'error' as const, error };

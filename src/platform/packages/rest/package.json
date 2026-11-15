@@ -19,7 +19,8 @@
     "async-ratelimiter": "^1.6.11",
     "qs": "^6.17.1",
     "@metorial/shared-settings": "workspace:*",
-    "@metorial/editions": "workspace:*"
+    "@metorial/editions": "workspace:*",
+    "@metorial/metrics": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
