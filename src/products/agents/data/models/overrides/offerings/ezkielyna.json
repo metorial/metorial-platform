@@ -1,0 +1,16 @@
+{
+  "deepseek-v4.1-flash": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "Offering is DeepSeek V4.1 Flash (text+image, 1M context) exactly; price is the reseller's own",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "glm-5.3": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "GLM-5.3 is Z.ai's Aug 14 2026 model; name matches exactly; reseller price is its own",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

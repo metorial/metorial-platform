@@ -1,0 +1,37 @@
+{
+  "open-qwen-3.8-flash-next": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-flash-next",
+    "reason": "Offering is Qwen3.8-Flash-Next exactly (262144 context matches); Augure's markup explains the higher price.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "ossington-4-1": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Augure's own sovereign Canadian reasoning model (full first-party definition, no base_model, per models.dev PR #11786); no Augure model exists in the index yet",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "ossington-5": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Augure's flagship first-party reasoning model (augureai.ca/models/ossington-5, full definition in models.dev PR #11786); not in the model index",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "rosedale-1": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Augure's frontier reasoning model per augureai.ca/models/rosedale-one, a first-party full definition; no matching model in the index",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "tofino-3": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Augure's own fast everyday model per augureai.ca/models/tofino-3 (replaced tofino-2.5); first-party model absent from the index",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}
