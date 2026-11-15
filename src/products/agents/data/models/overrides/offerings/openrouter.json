@@ -265,6 +265,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "moonshotai/kimi-k3.1-pro:batch": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3.1-pro",
+    "reason": "OpenRouter's batch tier of Kimi K3.1 Pro: same 2026-10-23 checkpoint (moonshotai/Kimi-K3.1-Pro on Hugging Face, 1M context) matching moonshot/kimi-k3.1-pro; the 0.346 input price is the batch-tier discount, not a different model.",
+    "by": "agent",
+    "at": "2026-11-15"
+  },
   "nex-agi/nex-n2.5-mini": {
     "decision": "defer",
     "until": "2026-12-12",
