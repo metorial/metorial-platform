@@ -6,6 +6,7 @@ import {
   Layout,
   Text
 } from '@mtsrc/email-client-internal';
+import React from 'react';
 import { UAParser } from 'ua-parser-js';
 import type { User } from '@mtsrc/auth-core-db';
 import { createTemplateSender, emailIdentity, sender } from './client';

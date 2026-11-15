@@ -1,4 +1,5 @@
 import { Code, createEmail, createTemplate, Layout, Text } from '@mtsrc/email-client-internal';
+import React from 'react';
 import { createTemplateSender, emailIdentity, sender } from './client';
 
 export let sendAuthCodeEmail = createTemplateSender(

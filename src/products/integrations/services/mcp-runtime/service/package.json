@@ -15,9 +15,9 @@
     "infra:up": "docker compose -p shuttle -f ./docker-compose.dev.yml --profile infra up -d --pull always",
     "infra:down": "docker compose -p shuttle -f ./docker-compose.dev.yml --profile infra down",
     "infra:logs": "docker compose -p shuttle -f ./docker-compose.dev.yml --profile infra logs -f",
-    "test": "vitest run --passWithNoTests --pool=forks",
+    "test": "vitest run --passWithNoTests --pool=forks --configLoader runner",
     "test:e2e": "metorial-e2e",
-    "test:watch": "bunx vitest watch",
+    "test:watch": "bunx vitest watch --configLoader runner",
     "typecheck": "bun run check-types",
     "dev:start": "bun --watch ./src/server.ts",
     "e2e:start": "bun ./src/server.ts"

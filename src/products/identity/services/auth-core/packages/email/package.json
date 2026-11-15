@@ -15,11 +15,13 @@
     "@metorial/shared-settings": "workspace:*",
     "@mtsrc/auth-core-db": "workspace:*",
     "@mtsrc/email-client-internal": "workspace:*",
+    "react": "19.3.0",
     "ua-parser-js": "2.0.10"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
+    "@types/react": "19.3.0",
     "typescript": "5.9.3"
   }
 }
