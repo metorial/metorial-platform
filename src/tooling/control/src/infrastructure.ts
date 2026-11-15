@@ -181,7 +181,6 @@ export let serviceDefinitions = (
       environment: {
         PORT: '4983',
         STORE_PATH: '/app',
-        MASTERPASS: 'postgres',
         ...Object.fromEntries(
           (options.postgres_databases?.length ? options.postgres_databases : ['postgres']).map(
             database => [
