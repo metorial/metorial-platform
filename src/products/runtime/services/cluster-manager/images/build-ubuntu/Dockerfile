@@ -15,9 +15,11 @@ RUN bun ./src/tooling/docker-build/prune.ts build --filter=function-bay --filter
 FROM scratch AS pruned
 COPY --from=pruner /app/out/ /
 
-FROM tooling AS function-bay
+FROM tooling AS dependencies
 COPY --from=pruned /json/ ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --linker=hoisted
+
+FROM dependencies AS function-bay
 ARG TURBO_API
 ARG TURBO_TEAM
 ENV TURBO_API=${TURBO_API}
