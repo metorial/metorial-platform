@@ -458,6 +458,8 @@ class ProviderRunConnection extends IProviderRunConnection {
     timeoutMs: number
   ): Promise<JSONRPCMessage> {
     let response = new ProgrammablePromise<JSONRPCMessage>();
+    // close() or the timer can reject it while sendMcpMessage is still pending, before it is awaited.
+    response.promise.catch(() => {});
 
     this.#pendingRequests.set(id, {
       resolve: msg => response.resolve(msg),

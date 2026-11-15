@@ -1,0 +1,766 @@
+import { checkEdition } from '@metorial/editions';
+import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
+import {
+  badRequestError,
+  internalServerError,
+  isServiceError,
+  notFoundError
+} from '@lowerdeck/error';
+import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
+import { getSentry } from '@lowerdeck/sentry';
+import { Context } from '@metorial/context';
+import { observeHttpRequest } from '@metorial/metrics';
+import { domainSettings, matchesDomain } from '@metorial/shared-settings';
+import { generateId } from '@metorial/id';
+import { PresenterContext } from '@metorial/presenter';
+import opentelemetry, { context, propagation, Span } from '@opentelemetry/api';
+import { Hono } from 'hono';
+import qs from 'qs';
+import {
+  EndpointDescriptor,
+  Group,
+  Handler,
+  IController,
+  Method,
+  ServiceRequest
+} from './controller';
+import { introspectVersion, introspectVersionList } from './introspect';
+import { parseBody } from './parseBody';
+import { RateLimiter } from './ratelimit';
+import { Authenticator, RequestFlags } from './types';
+
+let MAX_LOGGED_BODY_BYTES = 64 * 1024;
+
+let Sentry = getSentry();
+
+export let json = (data: any, status: number = 200, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json', ...headers }
+  });
+
+interface CustomHandler<AuthInfo, ApiVersion extends string> {
+  handler: (i: {
+    req: Request;
+    auth: AuthInfo;
+    context: Context;
+    version: ApiVersion;
+    url: URL;
+    corsHeaders: Record<string, string>;
+    server: any;
+    requestId: string;
+  }) => Promise<Response | undefined>;
+  path: RegExp;
+}
+
+export type RestRequestLogEvent<AuthInfo, ApiVersion extends string> = {
+  surface: 'rest';
+  requestId: string;
+  method: Method;
+  url: string;
+  path: string;
+  apiVersion: ApiVersion;
+  endpoint: {
+    name: string;
+    description: string;
+    confidential: boolean;
+    hideInDocs: boolean;
+    paths: Array<{ path: string; sdkPath: string }>;
+    legacyPaths?: string[];
+  };
+  status: number;
+  durationMs: number;
+  query: any;
+  params: Record<string, string>;
+  body: any;
+  response: any;
+  error?: unknown;
+  auth: AuthInfo;
+  context: Context;
+};
+
+export type RestRequestLogger<AuthInfo, ApiVersion extends string> = (
+  event: RestRequestLogEvent<AuthInfo, ApiVersion>
+) => void | Promise<void>;
+
+let emptyShape = (value: any): any => {
+  if (Array.isArray(value)) return value.map(item => emptyShape(item));
+  if (value instanceof Date) return '';
+  if (value && typeof value == 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [key, emptyShape(val)])
+    );
+  }
+  if (typeof value == 'number') return 0;
+  if (typeof value == 'boolean') return false;
+  if (value == null) return value;
+  return '';
+};
+
+let getOmittedLogBody = (sizeBytes: number) => ({
+  omitted: true,
+  reason: 'body_too_large',
+  sizeBytes
+});
+
+let getRequestBodySizeBytes = (contentLength: string | undefined, body: any) => {
+  let parsedContentLength = contentLength ? parseInt(contentLength) : NaN;
+  if (!isNaN(parsedContentLength)) return parsedContentLength;
+  if (body === undefined) return 0;
+
+  return Buffer.byteLength(JSON.stringify(body) ?? '');
+};
+
+let sensitiveLogFields = new Set([
+  'token',
+  'accesstoken',
+  'refreshtoken',
+  'idtoken',
+  'sessiontoken',
+  'authtoken',
+  'bearertoken',
+  'secret',
+  'clientsecret',
+  'secretkey',
+  'key',
+  'apikey',
+  'xapikey',
+  'accesskey',
+  'privatekey',
+  'signingkey',
+  'password',
+  'passwd',
+  'pwd',
+  'passphrase',
+  'authorization',
+  'cookie',
+  'setcookie',
+  'sessioncookie',
+  'credential',
+  'credentials'
+]);
+
+let isSensitiveLogField = (key: string) =>
+  sensitiveLogFields.has(key.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+let redactSensitiveFields = (value: any): any => {
+  if (Array.isArray(value)) return value.map(item => redactSensitiveFields(item));
+  if (value && typeof value == 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [
+        key,
+        isSensitiveLogField(key) ? '[redacted]' : redactSensitiveFields(val)
+      ])
+    );
+  }
+
+  return value;
+};
+
+let getPathForLogUrl = (path: string) => (path.startsWith('/') ? path : `/${path}`);
+
+let getUrlForLogging = (url: URL, routePath: string, confidential: boolean) => {
+  if (confidential) return `${url.origin}${getPathForLogUrl(routePath)}`;
+
+  let logUrl = new URL(url);
+  for (let key of Array.from(logUrl.searchParams.keys())) {
+    if (isSensitiveLogField(key)) logUrl.searchParams.set(key, '[redacted]');
+  }
+
+  return logUrl.toString();
+};
+
+export class RestServerBuilder<AuthInfo, ApiVersion extends string> {
+  #authenticate?: Authenticator<AuthInfo>;
+  #checkCors?: (i: { origin: string; auth: AuthInfo }) => boolean;
+  #rateLimiter?: RateLimiter<AuthInfo>;
+  #customHandlers: CustomHandler<AuthInfo, ApiVersion>[] = [];
+  #getPresenterContext?: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext;
+  #logger?: RestRequestLogger<AuthInfo, ApiVersion>;
+
+  constructor() {}
+
+  authenticate(authenticate: Authenticator<AuthInfo>) {
+    this.#authenticate = authenticate;
+    return this;
+  }
+
+  checkCors(checkCors: (i: { origin: string; auth: AuthInfo }) => boolean) {
+    this.#checkCors = checkCors;
+    return this;
+  }
+
+  rateLimiter(rateLimiter: RateLimiter<AuthInfo>) {
+    this.#rateLimiter = rateLimiter;
+    return this;
+  }
+
+  addCustomHandler(handler: CustomHandler<AuthInfo, ApiVersion>) {
+    this.#customHandlers.push(handler);
+    return this;
+  }
+
+  logger(logger: RestRequestLogger<AuthInfo, ApiVersion>) {
+    this.#logger = logger;
+    return this;
+  }
+
+  providePresenterContext(
+    getPresenterContext: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext
+  ) {
+    this.#getPresenterContext = getPresenterContext;
+    return this;
+  }
+
+  build() {
+    if (!this.#authenticate) throw new Error('authenticate is required');
+    if (!this.#rateLimiter) throw new Error('rateLimiter is required');
+
+    return RestServer.$$create$$_internal(
+      this.#authenticate,
+      this.#checkCors ?? (() => false),
+      this.#rateLimiter,
+      this.#customHandlers,
+      this.#getPresenterContext,
+      this.#logger
+    );
+  }
+}
+
+export class RestServer<AuthInfo, ApiVersion extends string> {
+  private constructor(
+    private authenticate: Authenticator<AuthInfo>,
+    private checkCors: (i: { origin: string; auth: AuthInfo }) => boolean,
+    private rateLimiter: RateLimiter<AuthInfo>,
+    private customHandlers: CustomHandler<AuthInfo, ApiVersion>[],
+    private getPresenterContext?: (
+      auth: AuthInfo & { apiVersion: ApiVersion }
+    ) => PresenterContext,
+    private logger?: RestRequestLogger<AuthInfo, ApiVersion>
+  ) {}
+
+  static $$create$$_internal<AuthInfo, ApiVersion extends string>(
+    authenticate: Authenticator<AuthInfo>,
+    checkCors: (i: { origin: string; auth: AuthInfo }) => boolean,
+    rateLimiter: RateLimiter<AuthInfo>,
+    customHandlers: CustomHandler<AuthInfo, ApiVersion>[],
+    getPresenterContext?: (auth: AuthInfo & { apiVersion: ApiVersion }) => PresenterContext,
+    logger?: RestRequestLogger<AuthInfo, ApiVersion>
+  ) {
+    return new RestServer(
+      authenticate,
+      checkCors,
+      rateLimiter,
+      customHandlers,
+      getPresenterContext,
+      logger
+    );
+  }
+
+  static create<AuthInfo, ApiVersion extends string>() {
+    return new RestServerBuilder<AuthInfo, ApiVersion>();
+  }
+
+  get controller() {
+    return Group.create<AuthInfo, {}>();
+  }
+
+  launch({
+    versions,
+    currentVersion
+  }: {
+    versions: {
+      [version: string]: {
+        apiVersion: ApiVersion;
+        displayVersion: string;
+        alternativeIdentifiers: string[];
+        controller: {
+          handlers: IController<AuthInfo>;
+          descriptor: EndpointDescriptor;
+        };
+      };
+    };
+    currentVersion: string;
+  }) {
+    // let ingestQueue = new PQueue({ concurrency: 25 });
+
+    let versionApps = new Map(
+      Object.entries(versions).flatMap(
+        ([_, { apiVersion, controller, alternativeIdentifiers, displayVersion }]) => {
+          let app = new Hono<{
+            Bindings: {
+              origin: string;
+              auth: AuthInfo;
+              context: Context;
+              requestId: string;
+              url: URL;
+              flags: RequestFlags;
+              span: Span;
+              server: any;
+            };
+          }>();
+
+          let getHandlers = (controller: IController<AuthInfo>) => {
+            let handlers: Handler<AuthInfo, any, any, any>[] = [];
+
+            for (let controllerOrHandler of Object.values(controller)) {
+              if (controllerOrHandler instanceof Handler) {
+                handlers.push(controllerOrHandler);
+              } else {
+                handlers.push(...getHandlers(controllerOrHandler.handlers));
+              }
+            }
+
+            return handlers;
+          };
+
+          let handlers = getHandlers(controller.handlers);
+
+          for (let handler of handlers) {
+            for (let path of handler.getRoutePaths()) {
+              app[handler.method](path, c =>
+                Sentry.withIsolationScope(() =>
+                  Sentry.startSpan(
+                    {
+                      op: `public.http.${handler.method}`,
+                      name: `${handler.method} ${path}`,
+                      attributes: {
+                        'http.method': handler.method,
+                        'http.path': path,
+                        requestId: c.env.requestId
+                      }
+                    },
+                    async span => {
+                      let response: { status: number; body: any } = {
+                        status: 200,
+                        body: null
+                      };
+                      let error: unknown;
+                      let startedAt = Date.now();
+
+                      let body = await parseBody(c);
+
+                      let query = qs.parse(c.env.url.search, {
+                        ignoreQueryPrefix: true,
+                        arrayLimit: 5000
+                      }) as any;
+
+                      Sentry.getCurrentScope().setContext('rpc.request', {
+                        url: c.req.url,
+                        query,
+                        apiVersion,
+                        body: body,
+                        auth: c.env.auth,
+                        context: c.env.context
+                      });
+
+                      c.env.span.setAttributes({
+                        'metorial.api.version': apiVersion,
+                        'metorial.request.id': c.env.requestId,
+                        'metorial.request.url': c.req.url,
+                        'metorial.request.method': handler.method,
+                        'metorial.request.context.ip': c.env.context.ip,
+                        'metorial.request.context.ua': c.env.context.ua ?? 'unknown'
+                      });
+
+                      // let objects: RequestObject[] = [];
+
+                      let request: ServiceRequest<AuthInfo> = {
+                        query,
+                        apiVersion,
+                        url: c.req.url,
+                        body: body?.data,
+                        headers: c.req.header(),
+                        params: c.req.param() as any,
+
+                        auth: c.env.auth,
+                        context: c.env.context,
+                        requestId: c.env.requestId,
+
+                        sharedMiddlewareMemo: new Map<string, Promise<any>>(),
+
+                        signal: c.req.raw.signal,
+                        setIdleTimeout: (seconds: number) =>
+                          c.env.server?.timeout?.(c.req.raw, seconds)
+                      };
+
+                      // let clientString = c.req.header('metorial-client');
+                      // let [clientName, clientVersion] = clientString?.split('@') ?? [];
+                      // let client = { name: clientName, version: clientVersion };
+
+                      try {
+                        let handlerRes = await provideExecutionContext(
+                          createExecutionContext({
+                            type: 'request',
+                            ip: request.context.ip,
+                            contextId: c.env.requestId,
+                            userAgent: request.context.ua ?? 'unknown'
+                          }),
+                          async () => await handler.run(request, {})
+                        );
+
+                        if (typeof handlerRes.response == 'function') {
+                          handlerRes.response = await handlerRes
+                            .response(
+                              this.getPresenterContext!({
+                                ...request.auth,
+                                apiVersion
+                              })
+                            )
+                            .run({});
+                        }
+
+                        // @ts-ignore
+                        for (let [key, value] of handlerRes.headers.entries()) {
+                          c.res.headers.set(key, value);
+                        }
+
+                        response = {
+                          status: 200,
+                          body: handlerRes.response
+                        };
+                        // objects = handlerRes.objects;
+                      } catch (e) {
+                        error = e;
+                        if (isServiceError(e)) {
+                          response = {
+                            status: e.data.status,
+                            body: e.toResponse()
+                          };
+                        } else {
+                          if (process.env.NODE_ENV != 'production') console.log(e);
+
+                          Sentry.captureException(e);
+                          console.error('Error in handler', e);
+
+                          response = {
+                            status: 500,
+                            body: internalServerError().toResponse()
+                          };
+                        }
+                      }
+
+                      let jsonBody = JSON.stringify(response.body);
+
+                      if (this.logger) {
+                        let isConfidential = !!handler.descriptor.confidential;
+                        let requestQuery = redactSensitiveFields(query);
+                        let requestParams = c.req.param() as any;
+                        let shouldRedactResponse = isConfidential && response.status < 400;
+
+                        let requestBodySizeBytes = getRequestBodySizeBytes(
+                          c.req.header('content-length'),
+                          request.body
+                        );
+                        let responseBodySizeBytes = Buffer.byteLength(jsonBody ?? '');
+
+                        let loggedRequestBody =
+                          requestBodySizeBytes > MAX_LOGGED_BODY_BYTES
+                            ? getOmittedLogBody(requestBodySizeBytes)
+                            : isConfidential
+                              ? emptyShape(request.body)
+                              : request.body;
+                        let loggedResponseBody =
+                          responseBodySizeBytes > MAX_LOGGED_BODY_BYTES
+                            ? getOmittedLogBody(responseBodySizeBytes)
+                            : shouldRedactResponse
+                              ? emptyShape(response.body)
+                              : response.body;
+
+                        try {
+                          await this.logger({
+                            surface: 'rest',
+                            requestId: c.env.requestId,
+                            method: handler.method,
+                            url: getUrlForLogging(c.env.url, path, isConfidential),
+                            path,
+                            apiVersion,
+                            endpoint: {
+                              name: handler.descriptor.name,
+                              description: handler.descriptor.description,
+                              confidential: !!handler.descriptor.confidential,
+                              hideInDocs: !!handler.descriptor.hideInDocs,
+                              paths: handler.paths,
+                              legacyPaths: handler.descriptor.legacyPaths
+                            },
+                            status: response.status,
+                            durationMs: Date.now() - startedAt,
+                            query: isConfidential ? emptyShape(requestQuery) : requestQuery,
+                            params: isConfidential ? emptyShape(requestParams) : requestParams,
+                            body: loggedRequestBody,
+                            response: loggedResponseBody,
+                            error: isConfidential ? undefined : error,
+                            auth: c.env.auth,
+                            context: c.env.context
+                          });
+                        } catch (e) {
+                          console.error('Error in request logger', e);
+                        }
+                      }
+
+                      return new Response(jsonBody, {
+                        status: response.status,
+                        headers: {
+                          'content-type': 'application/json'
+                        }
+                      });
+                    }
+                  )
+                )
+              );
+            }
+          }
+
+          app.notFound(async c => {
+            return c.json(notFoundError('endpoint', undefined).toResponse(), 404);
+          });
+
+          app.onError(async (err, c) => {
+            if (isServiceError(err)) return c.json(err.toResponse(), err.data.status);
+            if (process.env.NODE_ENV != 'production') console.log(err);
+            return c.json(internalServerError().toResponse(), 500);
+          });
+
+          return [apiVersion, ...alternativeIdentifiers].map(identifier => [
+            identifier,
+            {
+              app,
+              displayVersion,
+              version: apiVersion,
+              definition: { apiVersion, displayVersion, controller }
+            }
+          ]);
+        }
+      )
+    );
+
+    let knowVersions = new Set(
+      Object.entries(versions).flatMap(([key, { alternativeIdentifiers }]) => [
+        key,
+        ...alternativeIdentifiers
+      ])
+    );
+
+    let apiServerTracer = opentelemetry.trace.getTracer('@metorial/rest/server', '1.0.0');
+
+    let handlers = {
+      fetch: async (req: Request, server: any): Promise<any> => {
+        let requestId = generateId('req_');
+
+        return apiServerTracer.startActiveSpan('restApi.fetch', span =>
+          context.with(
+            propagation.setBaggage(context.active(), propagation.createBaggage({})),
+            () =>
+              provideExecutionContext(
+                {
+                  type: 'request',
+                  contextId: requestId,
+                  ip: 'x',
+                  userAgent: 'x'
+                },
+                async () => {
+                  let origin = req.headers.get('origin') ?? '';
+
+                  span.addEvent('request.start');
+
+                  let corsHeaders: Record<string, string> = {
+                    'access-control-allow-origin': origin,
+                    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+                    'access-control-allow-headers':
+                      'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret, metorial-verification-token',
+                    'access-control-max-age': '604800',
+                    'access-control-allow-credentials': 'true',
+                    'x-powered-by': 'Metorial'
+                  };
+
+                  try {
+                    let url = new URL(req.url);
+                    if (url.pathname == '/ping')
+                      return new Response('OK', { headers: corsHeaders });
+                    if (url.pathname == '/' && checkEdition('cloud'))
+                      return Response.redirect('https://metorial.com/api', 301);
+                    if (url.pathname == '/metorial/introspect/versions') {
+                      return json(
+                        introspectVersionList({ versions, currentVersion }),
+                        200,
+                        corsHeaders
+                      );
+                    }
+                    if (url.pathname == '/metorial/introspect/endpoints') {
+                      let version = url.searchParams.get('version');
+                      if (!version) {
+                        return json(
+                          badRequestError({
+                            message: 'Version is required'
+                          }).toResponse(),
+                          400,
+                          corsHeaders
+                        );
+                      }
+
+                      let selectedVersion = versionApps.get(version);
+                      if (!selectedVersion) {
+                        return json(
+                          badRequestError({
+                            message: `Invalid API version: ${version}`
+                          }).toResponse(),
+                          406,
+                          corsHeaders
+                        );
+                      }
+
+                      return json(
+                        introspectVersion({
+                          version: selectedVersion.definition,
+                          currentVersion
+                        }),
+                        200,
+                        corsHeaders
+                      );
+                    }
+
+                    if (req.method == 'OPTIONS') {
+                      return new Response(null, {
+                        status: 204,
+                        headers: corsHeaders
+                      });
+                    }
+
+                    let auth = await this.authenticate(req, url as URL);
+
+                    let corsOk =
+                      isLocalDevelopmentOrigin(origin) ||
+                      this.checkCors({
+                        origin,
+                        auth: auth.auth
+                      });
+                    if (!corsOk) corsHeaders = {};
+
+                    let rateLimit = await this.rateLimiter.check({
+                      auth: auth.auth,
+                      context: auth.context
+                    });
+                    if (!rateLimit.allowed) return rateLimit.response;
+
+                    // await updateExecutionContext({
+                    //   apiKeyId: 'apiKey' in auth.token ? auth.token.apiKey.id : undefined,
+                    //   ip: auth.context.ip,
+                    //   userAgent: auth.context.ua ?? 'unknown'
+                    // });
+
+                    let version =
+                      req.headers.get('metorial-version') ??
+                      url.searchParams.get('api-version');
+
+                    if (version && !knowVersions.has(version)) version = null;
+                    if (!version && auth.defaultVersion) version = auth.defaultVersion;
+                    if (!version) version = currentVersion;
+
+                    let selectedVersion = versionApps.get(version);
+
+                    if (!selectedVersion) {
+                      return json(
+                        badRequestError({
+                          message: `Invalid API version: ${version}`
+                        }).toResponse(),
+                        406,
+                        corsHeaders
+                      );
+                    }
+
+                    if (!auth.allowedVersions.includes(selectedVersion.version)) {
+                      return json(
+                        badRequestError({
+                          message: `Invalid API version: ${version}`
+                        }).toResponse(),
+                        406,
+                        corsHeaders
+                      );
+                    }
+
+                    for (let custom of this.customHandlers) {
+                      if (custom.path.test(url.pathname)) {
+                        return custom.handler({
+                          req,
+
+                          // @ts-ignore
+                          url,
+
+                          server,
+                          requestId,
+                          corsHeaders,
+                          auth: auth.auth,
+                          context: auth.context,
+                          version: selectedVersion.version
+                        });
+                      }
+                    }
+
+                    let res = await selectedVersion.app.fetch(req, {
+                      requestId,
+                      origin,
+                      url,
+                      span,
+                      server,
+                      ...auth
+                    });
+
+                    res.headers.set('metorial-version', selectedVersion.displayVersion);
+                    res.headers.set('metorial-req-id', requestId);
+                    res.headers.set('x-powered-by', 'Metorial');
+                    // res.headers.set('content-type', 'application/json');
+
+                    for (let [key, value] of Object.entries(corsHeaders)) {
+                      res.headers.set(key, value);
+                    }
+
+                    for (let [key, value] of Object.entries(rateLimit.headers)) {
+                      res.headers.set(key, value);
+                    }
+
+                    return res;
+                  } catch (e) {
+                    if (isServiceError(e)) {
+                      let noCors = false;
+
+                      if (e.data.status == 401) {
+                        if (process.env.METORIAL_ENV === 'production') {
+                          let origin = req.headers.get('origin');
+                          noCors = true;
+
+                          if (origin) {
+                            try {
+                              let url = new URL(origin);
+                              if (matchesDomain(url.hostname, domainSettings().apps)) {
+                                noCors = false;
+                              }
+                            } catch {}
+                          }
+                        }
+                      }
+
+                      return json(e.toResponse(), e.data.status, noCors ? {} : corsHeaders);
+                    }
+
+                    if (process.env.NODE_ENV != 'production') console.log(e);
+
+                    Sentry.captureException(e);
+
+                    return json(internalServerError().toResponse(), 500, corsHeaders);
+                  } finally {
+                    span.addEvent('request.end');
+                    span.end();
+                  }
+                }
+              )
+          )
+        );
+      }
+    };
+
+    return {
+      fetch: (req: Request, server: any): Promise<any> =>
+        observeHttpRequest(req, () => handlers.fetch(req, server))
+    };
+  }
+}

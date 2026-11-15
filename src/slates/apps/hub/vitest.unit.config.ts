@@ -14,8 +14,6 @@ export default defineConfig({
       FUNCTION_BAY_TENANT_IDENTIFIER: 'unit-test',
       FUNCTION_BAY_DEFAULT_MEMORY_MB: '128',
       FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: '30',
-      SIGNAL_API_URL: 'http://127.0.0.1:4312',
-      SIGNAL_SENDER_IDENTIFIER: 'unit-test',
       OBJECT_STORAGE_URL: 'http://127.0.0.1:9000',
       INVOCATIONS_BUCKET_NAME: 'unit-test',
       ENCRYPTION_KEY: 'unit-test-encryption-key',

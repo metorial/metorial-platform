@@ -3,7 +3,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
-import type { FunctionInvokeResponse } from '@metorial-platform-systems/function-bay-client';
+import type { FunctionInvokeResponse } from '@mtsrc/functions-client-internal';
 import type {
   SlatesParticipant,
   slatesRequestsByMethod,

@@ -1,0 +1,30 @@
+{
+  "BAAI/bge-m3": {
+    "decision": "link",
+    "model": "baai/bge-m3",
+    "reason": "Exact match of the BAAI/bge-m3 embedding model; vendor charges a premium over the $0.01 median, which is pricing, not identity",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "BAAI/bge-reranker-v2-m3": {
+    "decision": "link",
+    "model": "baai/bge-reranker-v2-m3",
+    "reason": "Exact match of the BAAI/bge-reranker-v2-m3 reranker; price premium is the vendor's own pricing",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "MiniMaxAI/MiniMax-M2.5": {
+    "decision": "link",
+    "model": "minimax/minimax-m2.5",
+    "reason": "Name and HF repo MiniMaxAI/MiniMax-M2.5 match exactly; stepping stone AG's premium EU hosting markup explains the higher price.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "NVIDIA/NVIDIA-Nemotron-3-Super-120B-A12B": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "reason": "Name matches Nemotron-3-Super-120B-A12B exactly (NVIDIA release, March 11 2026); steep vendor markup, context capped at 131072 by the vendor.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

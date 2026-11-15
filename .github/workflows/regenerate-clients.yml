@@ -42,7 +42,7 @@ jobs:
           GIT_CONFIG_COUNT: '1'
           GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/.insteadOf
           GIT_CONFIG_VALUE_0: https://github.com/
-        run: git -C platform submodule update --init --depth 1 src/outpost
+        run: git -C platform submodule update --init --depth 1 src/products/outpost/implementation
 
       - name: Check out Node SDK
         uses: actions/checkout@v4

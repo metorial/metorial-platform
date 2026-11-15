@@ -11,7 +11,10 @@ import {
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
-import { TriggerSelectionsForm } from '../../../scenes/callbacks/triggerSelections';
+import {
+  CallbackRegistrationNotice,
+  TriggerSelectionsForm
+} from '../../../scenes/callbacks/triggerSelections';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 
 export let CallbackSettingsPage = () => {
@@ -101,6 +104,17 @@ export let CallbackSettingsPage = () => {
               }
             />
             <selectionsMutator.RenderError />
+          </Box>
+
+          <Spacer size={20} />
+        </>
+      ) : registration.isRegistering || registration.failure || registration.hasTimedOut ? (
+        <>
+          <Box
+            title="Trigger Selections"
+            description="Triggers that take a selection appear here once the callback is registered."
+          >
+            <CallbackRegistrationNotice registration={registration} />
           </Box>
 
           <Spacer size={20} />

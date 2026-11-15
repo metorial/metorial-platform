@@ -2,6 +2,8 @@ import { v } from '@lowerdeck/validation';
 import type { SecurityReport } from '@metorial-subspace/db';
 import {
   createReviewModels,
+  createSubmissionVerifier,
+  emptyUsage,
   createReviewWorkspace,
   createReviewTools,
   createRunState,
@@ -9,9 +11,14 @@ import {
   ReportDraft,
   runReviewAgent
 } from '@metorial/review-engine';
+import { buildJudgeEvidence, sumUsage } from '../lib/agentRun';
 import { assembleReport } from '../lib/assemble';
 import type { CollectedEvidence } from '../lib/evidence';
-import { buildSystemPrompt, buildUserPrompt } from '../lib/playbooks';
+import {
+  buildConsistencyCriteria,
+  buildSystemPrompt,
+  buildUserPrompt
+} from '../lib/playbooks';
 import { qualityFixtures } from '../lib/qualityFixtures';
 import { createSecurityReportDefinition } from '../lib/report';
 import { scanSkill } from '../lib/skillDetectors';
@@ -137,24 +144,46 @@ for (let fixture of cases) {
 
   let preview = () =>
     assembleReport({ evidence, draft: draft.current, budgetExhausted: false, gaps: [] });
+  let system = buildSystemPrompt({ kind: 'skill', definition });
+  let verificationUsage = emptyUsage();
   let tools = createReviewTools({
     workspace,
     ledger,
     draft,
     state,
     stages: ['collecting', 'verifying', 'analyzing', 'writing'],
-    hooks: { previewScores: async () => preview().scores }
+    hooks: {
+      previewScores: async () => preview().scores,
+      validateSubmission: createSubmissionVerifier<SecurityReport>({
+        model: models.fast,
+        sectionNames: draft.sectionNames,
+        reviewInstructions: buildConsistencyCriteria({ kind: 'skill' }),
+        prepare: () => {
+          let result = preview();
+          return {
+            report: result.report,
+            scores: result.scores,
+            evidence: buildJudgeEvidence({ report: result.report, files })
+          };
+        },
+        abortSignal: signal,
+        onUsage: usage => {
+          verificationUsage = sumUsage(verificationUsage, usage);
+        }
+      })
+    }
   });
   try {
     let run = await runReviewAgent({
       model: models.balanced,
-      system: buildSystemPrompt({ kind: 'skill', definition }),
+      system,
       prompt: buildUserPrompt({ title: fixture.name, isUpdate: false }),
       tools,
       state,
       maxSteps: MAX_STEPS,
       maxCostMicros: MAX_COST_MICROS,
       maxFixRounds: 2,
+      extraCostMicros: () => verificationUsage.costMicros,
       abortSignal: signal
     });
     let result = preview();
@@ -178,7 +207,7 @@ for (let fixture of cases) {
         confidence: result.scores.confidence,
         findings: result.findings.map(finding => finding.key),
         gaps: state.lastErrors,
-        costMicros: run.usage.costMicros
+        costMicros: run.usage.costMicros + verificationUsage.costMicros
       })
     );
   } catch (error) {

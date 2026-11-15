@@ -1,4 +1,11 @@
 {
+  "Qwen/Qwen3.6-27B": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-27b",
+    "reason": "Offering is the exact HF repo Qwen/Qwen3.6-27B (image-text-to-text, created 2026-04-21), matching Qwen3.6 27B; TML's higher input price is its own deployment pricing",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
   "deepseek-ai/DeepSeek-V3.1": {
     "decision": "link",
     "model": "deepseek/deepseek-v3.1",

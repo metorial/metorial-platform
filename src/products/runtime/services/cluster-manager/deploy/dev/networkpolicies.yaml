@@ -1,0 +1,53 @@
+# Dev stand-ins for the runtime NetworkPolicies (PLAN section 10) so preflight's probe and the
+# e2e tests run against enforced policy. The installable policies are owned by the networking
+# chart; there is no egress gateway in this dev stack.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runtime-functions
+  namespace: metorial-runtime-functions
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: knative-serving
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kourier-system
+      ports:
+        - port: 8012
+        - port: 8022
+        - port: 9090
+        - port: 9091
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: metorial-runtime-dev
+          podSelector:
+            matchLabels:
+              app: runtime-cluster-manager
+      ports:
+        - port: 52241
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runtime-builds
+  namespace: metorial-runtime-builds
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: metorial-runtime-dev
+          podSelector:
+            matchLabels:
+              app: runtime-cluster-manager
+      ports:
+        - port: 52241

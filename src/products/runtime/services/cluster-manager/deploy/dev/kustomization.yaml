@@ -1,0 +1,11 @@
+# Local development stack on a cluster with Knative installed (../knative/install.sh):
+#   kubectl apply -k src/products/runtime/services/cluster-manager/deploy/dev
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespaces.yaml
+  - rbac.yaml
+  - trust.yaml
+  - networkpolicies.yaml
+  - object-storage.yaml
+  - cluster-manager.yaml

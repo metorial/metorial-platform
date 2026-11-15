@@ -215,7 +215,6 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     {
       label: 'Groups',
       collapsible: true,
-      enabled: groups.length > 0,
       onCreate: instanceId
         ? () =>
             showSkillGroupFormModal({
@@ -224,6 +223,20 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
             })
         : undefined,
       items: [
+        ...(groups.length == 0 && skillGroups.data && instanceId
+          ? [
+              {
+                icon: <RiFolderLine />,
+                label: 'Create Group',
+                onClick: () =>
+                  showSkillGroupFormModal({
+                    instanceId,
+                    onCreate: (group: { id: string }) =>
+                      navigate(Paths.instance.skillGroup(...params, group.id))
+                  })
+              }
+            ]
+          : []),
         ...groups.map(toGroupItem),
         ...(hasMoreGroups
           ? [

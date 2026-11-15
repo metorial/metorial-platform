@@ -1,0 +1,66 @@
+{
+  "name": "@mtsrc/auth-core-service",
+  "module": "index.ts",
+  "type": "commonjs",
+  "private": true,
+  "scripts": {
+    "start": "bun run server:start",
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "enterprise:dev": "bun run dev",
+    "server:build": "metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js --external bun:sqlite",
+    "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-hrzn-ares ./dist && sentry-cli sourcemaps upload --org metorial --project mte-hrzn-ares ./dist) || true",
+    "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
+    "server:start": "bun ./dist/index.js",
+    "frontend:build": "bun run --cwd ../frontends/auth app:build && if [ \"$METORIAL_EDITION\" != \"on-prem\" ]; then bun run --cwd ../frontends/admin app:build; fi",
+    "infra:up": "docker compose -p ares -f ./docker-compose.dev.yml --profile infra up -d --pull always",
+    "infra:down": "docker compose -p ares -f ./docker-compose.dev.yml --profile infra down",
+    "infra:logs": "docker compose -p ares -f ./docker-compose.dev.yml --profile infra logs -f",
+    "typecheck": "tsc --noEmit",
+    "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
+    "test:e2e": "metorial-e2e",
+    "frontend:dev": "bun run --cwd ../frontends/auth app:dev",
+    "prisma:generate": "bun run --cwd ../db prisma:generate",
+    "prisma:push": "bun run --cwd ../db prisma:push"
+  },
+  "devDependencies": {
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial/e2e": "1.0.0",
+    "@mtsrc/auth-core-frontend-admin": "workspace:*",
+    "@mtsrc/auth-core-frontend-auth": "workspace:*",
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "vitest": "5.0.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial/editions": "workspace:*",
+    "@mtsrc/auth-core-api-admin": "workspace:*",
+    "@mtsrc/auth-core-api-auth": "workspace:*",
+    "@mtsrc/auth-core-api-internal": "workspace:*",
+    "@mtsrc/auth-core-api-sso": "workspace:*",
+    "@mtsrc/auth-core-db": "workspace:*",
+    "@mtsrc/auth-core-email": "workspace:*",
+    "@mtsrc/auth-core-http": "workspace:*",
+    "@mtsrc/auth-core-module-account": "workspace:*",
+    "@mtsrc/auth-core-module-admin": "workspace:*",
+    "@mtsrc/auth-core-module-app": "workspace:*",
+    "@mtsrc/auth-core-module-audit": "workspace:*",
+    "@mtsrc/auth-core-module-authentication": "workspace:*",
+    "@mtsrc/auth-core-module-session": "workspace:*",
+    "@mtsrc/auth-core-module-sso": "workspace:*",
+    "@mtsrc/auth-core-module-sync": "workspace:*",
+    "@mtsrc/auth-core-module-user": "workspace:*",
+    "@mtsrc/auth-core-runtime": "workspace:*",
+    "@sentry/bun": "^11.11.0",
+    "@sentry/cli": "^3.8.2"
+  },
+  "overrides": {
+    "@react-email/components": "1.0.8"
+  }
+}

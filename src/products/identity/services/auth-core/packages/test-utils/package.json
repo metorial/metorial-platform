@@ -1,0 +1,18 @@
+{
+  "name": "@mtsrc/auth-core-test-utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "vitest": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3"
+  }
+}

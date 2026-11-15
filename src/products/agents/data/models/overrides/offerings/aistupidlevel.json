@@ -1,0 +1,56 @@
+{
+  "auto-best": {
+    "decision": "router",
+    "reason": "Auto Best is a routing mode that picks a model per request; no fixed underlying model. Vendor's own docs describe it as an automatic best-model selector.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-coding": {
+    "decision": "router",
+    "reason": "AI Stupid Level's docs list auto-coding as a routing mode for code that picks a model per request, alongside auto-tooling and auto-value-coding.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-fastest-quality": {
+    "decision": "router",
+    "reason": "Auto Fastest Quality is an automatic routing mode that selects the fastest model meeting a quality bar per request; no fixed underlying model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-reasoning": {
+    "decision": "router",
+    "reason": "Auto Reasoning routes each prompt to the most appropriate reasoning model per request (cf. Arcee's auto-reasoning and similar router offerings); no fixed underlying model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-tooling": {
+    "decision": "router",
+    "reason": "AI Stupid Level's docs list auto-tooling as a routing mode for agent sessions that call tools, picking a model per request.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-value": {
+    "decision": "router",
+    "reason": "Auto Value is an automatic routing mode that balances cost per request; no fixed underlying model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-value-coding": {
+    "decision": "router",
+    "reason": "AI Stupid Level's docs list auto-value-coding as a routing mode to spend less per coding run, picking a model per request.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-value-reasoning": {
+    "decision": "router",
+    "reason": "Auto Value Reasoning is a cost-optimized routing mode that picks a reasoning model per request; no fixed underlying model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "auto-value-tooling": {
+    "decision": "router",
+    "reason": "Auto Value Tool Use is a cost-optimized routing mode for tool-using agent sessions, picking a model per request; no fixed underlying model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

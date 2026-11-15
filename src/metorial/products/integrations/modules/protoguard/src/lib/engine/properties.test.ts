@@ -41,7 +41,7 @@ let richString = fc
     fc.oneof(
       fc.constantFrom(...FRAGMENTS),
       fc.string(),
-      fc.fullUnicodeString({ maxLength: 40 }),
+      fc.string({ unit: 'binary', maxLength: 40 }),
       fc.constantFrom(' ', '\n', '. ')
     ),
     { maxLength: 12 }
@@ -60,7 +60,8 @@ let richJson: fc.Arbitrary<unknown> = fc.letrec(tie => ({
       fc.oneof(fc.string(), fc.constantFrom('text', 'content', 'type', 'blob', 'data')),
       tie('value'),
       {
-        maxKeys: 5
+        maxKeys: 5,
+        noNullPrototype: true
       }
     )
   )
@@ -268,7 +269,7 @@ describe('engine properties', () => {
     let noiseChar = fc.constantFrom(
       ...'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 .,;:()-\n'
     );
-    let noise = (maxLength: number) => fc.stringOf(noiseChar, { maxLength });
+    let noise = (maxLength: number) => fc.string({ unit: noiseChar, maxLength });
 
     fc.assert(
       fc.property(

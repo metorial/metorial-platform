@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/module-email', async () => {
-  let relayClient = await import('@metorial-platform-systems/relay-client');
+  let relayClient = await import('@mtsrc/email-client-internal');
 
   return {
     Button: relayClient.Button,

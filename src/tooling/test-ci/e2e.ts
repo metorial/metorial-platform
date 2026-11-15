@@ -1,10 +1,17 @@
 import { createClient } from '@lowerdeck/rpc-client';
-import { prepareCompose } from './images';
+import { composeServiceName, prepareCompose } from './images';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readInventory } from './inventory';
 
 let [command, suite, sourceWorkspace, artifactDirectory] = process.argv.slice(2);
+let rpcPaths: Record<string, string> = {
+  email: 'metorial-relay',
+  search: 'metorial-voyager',
+  'slates-hub': 'slates-hub',
+  'slates-registry': 'slates-registry'
+};
+
 let definition = readInventory().suites.find(
   candidate => candidate.name === suite && candidate.runner === 'compose'
 );
@@ -74,9 +81,10 @@ if (command === 'prepare') {
         return [line.slice(0, separator), line.slice(separator + 1)];
       })
   );
-  config.services[suite].environment = {
+  let service = composeServiceName(suite);
+  config.services[service].environment = {
     ...ciEnvironment,
-    ...config.services[suite].environment
+    ...config.services[service].environment
   };
   let prepared = prepareCompose({
     config,
@@ -135,7 +143,7 @@ if (command === 'prepare') {
     let redis = new URL(environment.REDIS_URL);
     redis.pathname = '/1';
     environment.REDIS_URL = redis.toString();
-    if (suite === 'relay') {
+    if (suite === 'email') {
       let url = new URL(environment.DATABASE_URL);
       url.pathname = '/padd_relay_test';
       environment.DATABASE_URL = url.toString();
@@ -191,12 +199,12 @@ if (command === 'prepare') {
     let rpcPort = ['slates-hub', 'slates-registry'].includes(name)
       ? service.ports[1].published
       : port;
-    let path = ['slates-hub', 'slates-registry'].includes(name) ? name : `metorial-${name}`;
+    let path = rpcPaths[name] ?? `metorial-${name}`;
     let client = createClient<any>({
       endpoint: `http://127.0.0.1:${rpcPort}/${path}`,
       timeoutMs: 15000
     });
-    let resource = ['signal', 'relay'].includes(name) ? 'sender' : 'tenant';
+    let resource = ['signal', 'email'].includes(name) ? 'sender' : 'tenant';
     let identifier = `ci-${suite}-smoke`;
     let created = await client[resource].upsert({ name: 'CI smoke', identifier });
     let found = await client[resource].get({ [`${resource}Id`]: created.id });
@@ -204,7 +212,7 @@ if (command === 'prepare') {
       throw new Error(`RPC smoke failed for ${name}`);
     console.log(`RPC create/get smoke passed: ${name}`);
   }
-  if (suite !== 'voyager') {
+  if (suite !== 'search') {
     run(
       [
         'bunx',

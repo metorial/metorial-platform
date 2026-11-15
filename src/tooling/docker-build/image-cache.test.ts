@@ -253,6 +253,10 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
     await Bun.file(join(import.meta.dir, 'prune.ts')).text()
   );
   await Bun.write(
+    join(directory, 'src/tooling/test-ci/lockfile.ts'),
+    await Bun.file(join(import.meta.dir, '../test-ci/lockfile.ts')).text()
+  );
+  await Bun.write(
     join(directory, 'src/tooling/docker-build/dependency-cache.ts'),
     await Bun.file(join(import.meta.dir, 'dependency-cache.ts')).text()
   );
@@ -347,6 +351,14 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   expect(lifecycleChanged.tag).not.toBe(original.tag);
   expect(lifecycleChanged.text).toContain('no Turbo or source copying');
   await Bun.write(join(directory, 'packages/library/install.ts'), 'console.log(1);');
+
+  let resolverPath = join(directory, 'src/tooling/test-ci/lockfile.ts');
+  let resolver = await Bun.file(resolverPath).text();
+  await Bun.write(resolverPath, resolver + '\n');
+  expect(key()).not.toBe(metadataKey);
+  expect(resolveImage(directory).tag).not.toBe(original.tag);
+  await Bun.write(resolverPath, resolver);
+
   await Bun.write(
     join(directory, 'bun.lock'),
     (await Bun.file(join(directory, 'bun.lock')).text()).replaceAll(
@@ -599,6 +611,10 @@ test('parallel planners consume a read-only base snapshot and reject unpinned ba
 
 test('concurrent cold discovery serializes shared pruning and releases the lock on failure', async () => {
   let directory = await fixture();
+  await Bun.write(
+    join(directory, 'src/tooling/test-ci/lockfile.ts'),
+    await Bun.file(join(import.meta.dir, '../test-ci/lockfile.ts')).text()
+  );
   await Bun.write(join(directory, 'package.json'), '{"name":"fixture"}');
   await Bun.write(
     join(directory, 'Dockerfile'),

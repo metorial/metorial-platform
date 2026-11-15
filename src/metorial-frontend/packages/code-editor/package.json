@@ -17,7 +17,7 @@
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.15",
     "@lezer/highlight": "^1.2.5",
-    "@lezer/lr": "^1.4.11",
+    "@lezer/lr": "^1.4.12",
     "@metorial/ui": "^1.0.0",
     "@uiw/codemirror-themes": "^4.25.12",
     "@uiw/react-codemirror": "^4.25.12",

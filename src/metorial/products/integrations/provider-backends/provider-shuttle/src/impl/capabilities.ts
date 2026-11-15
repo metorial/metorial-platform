@@ -137,7 +137,13 @@ export class ProviderCapabilities extends IProviderCapabilities {
       return {
         status: 'failure',
         warnings: discovery.warnings,
-        error: discovery.error
+        error: discovery.error ?? {
+          type: 'connection_error',
+          error: {
+            code: 'discovery_failed',
+            message: 'MCP server discovery failed without error details'
+          }
+        }
       };
     }
 

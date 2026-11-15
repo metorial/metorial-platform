@@ -1,0 +1,39 @@
+# Added to deploy/dev's policies (NetworkPolicies are additive): function pods may reach the
+# gateway's tunnel port, build pods its proxy port. Nothing else changes.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runtime-functions-egress-gateway
+  namespace: metorial-runtime-functions
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: metorial-runtime-dev
+          podSelector:
+            matchLabels:
+              app: runtime-egress-gateway
+      ports:
+        - port: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runtime-builds-egress-gateway
+  namespace: metorial-runtime-builds
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: metorial-runtime-dev
+          podSelector:
+            matchLabels:
+              app: runtime-egress-gateway
+      ports:
+        - port: 8080

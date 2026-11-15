@@ -181,7 +181,7 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     payload: result.data.output,
     mappedType: result.data.type,
     mappedId: result.data.id,
-    attributes: normalizeEventAttributes((result.data as { attributes?: unknown }).attributes)
+    attributes: normalizeEventAttributes(result.data.attributes)
   });
   await triggerEventPayloadOffloadQueue.add({ triggerEventId: event.id });
 

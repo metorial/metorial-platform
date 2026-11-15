@@ -1,0 +1,13 @@
+{
+  "name": "@mtsrc/scm-code-bucket-service",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "enterprise:dev": "make dev",
+    "dev": "make dev",
+    "dev:start": "make dev",
+    "e2e:start": "sh ./scripts/e2e-start.sh",
+    "proto": "mkdir -p ./proto/compiled_proto && cd ./proto && grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=\"$(command -v protoc-gen-ts_proto)\" --ts_proto_out=./compiled_proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=. rpc.proto"
+  }
+}

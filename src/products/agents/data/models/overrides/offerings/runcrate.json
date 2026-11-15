@@ -1,0 +1,9 @@
+{
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "CloudPrice and Puter describe Turbo as an FP8-quantized throughput-optimized serving of the same Llama 3.3 70B Instruct checkpoint; a quantized serving is still that model, and the cheaper price reflects it.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

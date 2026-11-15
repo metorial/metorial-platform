@@ -46,7 +46,7 @@ jobs:
 
       # Bun validates the workspace graph even for a filtered install.
       - name: Checkout Outpost workspace
-        run: git submodule update --init --depth 1 -- src/outpost
+        run: git submodule update --init --depth 1 -- src/products/outpost/implementation
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2

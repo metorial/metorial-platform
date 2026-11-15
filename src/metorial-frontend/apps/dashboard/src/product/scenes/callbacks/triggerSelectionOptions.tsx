@@ -124,8 +124,11 @@ let RetryButton = ({ onRetry }: { onRetry: () => unknown }) => {
         loading={retrying}
         onClick={async () => {
           setRetrying(true);
-          await onRetry();
-          setRetrying(false);
+          try {
+            await onRetry();
+          } finally {
+            setRetrying(false);
+          }
         }}
       >
         Try Again

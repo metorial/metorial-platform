@@ -1,0 +1,16 @@
+{
+  "deepseek-v4.1-flash-fast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "A '-fast' higher-throughput serving of DeepSeek V4.1 Flash 1017 (Baseten variant) is still that checkpoint",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "minimax-m3.1-flash": {
+    "decision": "link",
+    "model": "minimax/minimax-m3.1-flash",
+    "reason": "Offering name and 1M context match MiniMax-M3.1-Flash (the full release, not the preview); Refuseless prices it below the median.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

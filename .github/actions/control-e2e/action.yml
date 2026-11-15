@@ -9,7 +9,7 @@ inputs:
     required: true
   control-directory:
     description: Directory of the control package, relative to the repository root
-    default: src/control
+    default: src/tooling/control
   args:
     description: Extra arguments for `control test:e2e` (filters, --oss, ...)
     default: ''

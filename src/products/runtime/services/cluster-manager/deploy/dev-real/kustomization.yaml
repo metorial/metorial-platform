@@ -1,0 +1,25 @@
+# The dev stack with the real function and build images, the egress gateway and the network log
+# store, for the real-runtime e2e suite (src/products/runtime/e2e). deploy/dev stays on the stand-in
+# images that the cluster-manager e2e suite expects.
+#
+# Images (docker context ./oss):
+#   docker build -f src/products/runtime/services/cluster-manager/service/Dockerfile -t dev.local/runtime-cluster-manager:dev .
+#   docker build -f src/products/runtime/services/cluster-manager/images/function-node24/Dockerfile -t dev.local/runtime-function-nodejs-24:dev .
+#   src/products/runtime/services/cluster-manager/images/build-ubuntu/build.sh -t dev.local/runtime-build-ubuntu:dev
+#   docker build -f src/products/runtime/services/networking/service/gateway.Dockerfile -t dev.local/runtime-egress-gateway:dev .
+#   docker build -f src/products/runtime/services/networking/service/logstore.Dockerfile -t dev.local/runtime-network-logs:dev .
+#
+# Apply:
+#   kubectl --context orbstack apply -k src/products/runtime/services/cluster-manager/deploy/dev-real
+#
+# The trust ConfigMaps carry a fixed dev-only key (trust.yaml) whose seed the e2e suite derives.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../dev
+  - egress-gateway.yaml
+  - network-logs.yaml
+  - networkpolicies.yaml
+patches:
+  - path: cluster-manager.yaml
+  - path: trust.yaml

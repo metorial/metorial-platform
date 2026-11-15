@@ -1,0 +1,18 @@
+{
+  "name": "@mtsrc/auth-core-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3"
+  }
+}

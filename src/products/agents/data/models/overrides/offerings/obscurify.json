@@ -1,0 +1,9 @@
+{
+  "meta-llama/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "HF repo meta-llama/Llama-3.3-70B-Instruct is this exact model; Obscurify's discount pricing explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

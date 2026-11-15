@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { assembleReport } from './assemble';
 import { createSecurityReportDefinition } from './report';
 import { qualityFixtures as fixtures } from './qualityFixtures';
+import { buildConsistencyCriteria } from './playbooks';
 import { scanSkill } from './skillDetectors';
 import { buildUsageStats } from './usage/stats';
 import { computeUsageScores } from './usage/assemble';
@@ -102,6 +103,21 @@ let reviewFixture = (
 };
 
 describe('review quality regression corpus', () => {
+  it('shares assessment criteria with the verifier without the agent execution workflow', () => {
+    let slate = buildConsistencyCriteria({ kind: 'slate' });
+    let skill = buildConsistencyCriteria({ kind: 'skill' });
+
+    expect(slate).toContain('Built and operated by Metorial.');
+    expect(skill).toContain('Scope: security only');
+    expect(skill).toContain('realistically harm');
+    for (let criteria of [slate, skill]) {
+      expect(criteria).toContain('Classifying actual reach');
+      expect(criteria).not.toContain('## How to work');
+      expect(criteria).not.toContain('## The shell');
+      expect(criteria).not.toContain('## Report sections');
+    }
+  });
+
   it('completes a static skill review with known exposure and an untested live workflow', () => {
     let { scores } = reviewFixture(
       {

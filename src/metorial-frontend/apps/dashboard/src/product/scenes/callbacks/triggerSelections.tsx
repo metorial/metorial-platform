@@ -213,7 +213,11 @@ export let formValuesAfterLoad = ({
   return values;
 };
 
-let RegistrationNotice = ({ registration }: { registration: CallbackRegistration }) => {
+export let CallbackRegistrationNotice = ({
+  registration
+}: {
+  registration: CallbackRegistration;
+}) => {
   if (registration.failure) {
     return (
       <Notice>
@@ -513,7 +517,7 @@ export let TriggerSelectionsForm = ({
         </Group>
       ) : null}
 
-      <RegistrationNotice registration={registration} />
+      <CallbackRegistrationNotice registration={registration} />
 
       <Spacer size={8} />
 

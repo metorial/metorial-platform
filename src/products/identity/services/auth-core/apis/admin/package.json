@@ -1,0 +1,32 @@
+{
+  "name": "@mtsrc/auth-core-api-admin",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hono": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*",
+    "@mtsrc/auth-core-api-auth": "workspace:*",
+    "@mtsrc/auth-core-db": "workspace:*",
+    "@mtsrc/auth-core-http": "workspace:*",
+    "@mtsrc/auth-core-identity-utils": "workspace:*",
+    "@mtsrc/auth-core-module-admin": "workspace:*",
+    "@mtsrc/auth-core-module-app": "workspace:*",
+    "@mtsrc/auth-core-module-audit": "workspace:*",
+    "@mtsrc/auth-core-module-authentication": "workspace:*",
+    "@mtsrc/auth-core-module-sso": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3"
+  }
+}

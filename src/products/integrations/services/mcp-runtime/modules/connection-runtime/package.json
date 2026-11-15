@@ -1,0 +1,34 @@
+{
+  "name": "@mtsrc/mcp-runtime-module-connection-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-env": "workspace:*",
+    "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+    "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+    "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+    "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
+    "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
+    "axios": "^1.21.0",
+    "p-queue": "^10.0.0",
+    "vitest": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

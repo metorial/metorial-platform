@@ -6,8 +6,8 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../packages/rest/src/controller';
-import { introspectApi } from '../../../../../../packages/rest/src/introspect';
+} from '../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
 import { v1SandboxMachineUsageTimelinePresenter } from '../../../../../../presenters/src/implementation/sandbox/machineUsageTimeline';
 import { v1SandboxMachineUsageSummaryPresenter } from '../../../../../../presenters/src/implementation/sandbox/machineUsageSummary';
 import {

@@ -1,0 +1,16 @@
+{
+  "deepseek-v4.1-flash-uncensored": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "dealignai abliterated build of DeepSeek V4.1 Flash with refusal removed in the weights, so it is not the base checkpoint; no index entry for the derivative yet.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "glm-5.3-flash-uncensored": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "dealignai abliterated build of Z.ai's GLM-5.3-Flash with refusal removed in the weights, so it is not the base checkpoint; no index entry for the derivative yet.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

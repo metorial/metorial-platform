@@ -1,0 +1,24 @@
+import { checkEdition } from '@metorial/editions';
+import { createRequire } from 'module';
+
+// Provide CommonJS `require` in ESM runtime for bundled deps.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).require = createRequire(import.meta.url);
+
+async function main() {
+  await import('./init');
+  await import('./instrument');
+  await import('./endpoints');
+  await import('./worker');
+
+  if (checkEdition('cloud')) {
+    await import('./adminServer');
+    let { ensureAdminApp } = await import('@mtsrc/auth-core-module-admin');
+    await ensureAdminApp();
+  }
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

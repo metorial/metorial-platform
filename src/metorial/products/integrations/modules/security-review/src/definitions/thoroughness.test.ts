@@ -30,17 +30,17 @@ describe('thoroughness tiers', () => {
     expect(isAiReviewAvailable()).toBe(false);
   });
 
-  it('gives slates at least $3 and 1000 steps of analysis budget', async () => {
+  it('gives slates at least $6 and 2000 steps of analysis budget', async () => {
     let { getThoroughnessTier } = await load({ AI_GATEWAY_API_KEY: 'key' });
 
     expect(
       getThoroughnessTier({ thoroughness: 'standard', scope: 'global' }).maxCostMicros
-    ).toBe(3_000_000);
+    ).toBe(6_000_000);
     expect(getThoroughnessTier({ thoroughness: 'deep', scope: 'global' }).maxCostMicros).toBe(
-      3_000_000
+      6_000_000
     );
     expect(getThoroughnessTier({ thoroughness: 'standard', scope: 'global' }).maxSteps).toBe(
-      1000
+      2000
     );
   });
 
