@@ -1,3 +1,5 @@
+let textFileNames = new Set(['license', 'licence', 'copying']);
+
 let textExtensions = new Set([
   'c',
   'cjs',
@@ -46,6 +48,7 @@ export let isSkillTextFile = (file: {
   fileName?: string | null;
   fileType?: string | null;
 }) => {
+  let fileName = file.fileName?.split('/').pop()?.toLowerCase() ?? '';
   let extension = getSkillFileExtension(file.fileName ?? '');
   let fileType = file.fileType?.toLowerCase() ?? '';
 
@@ -53,6 +56,7 @@ export let isSkillTextFile = (file: {
     fileType.startsWith('text/') ||
     fileType.includes('json') ||
     fileType.includes('xml') ||
+    textFileNames.has(fileName) ||
     textExtensions.has(extension)
   );
 };
