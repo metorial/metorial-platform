@@ -1,5 +1,5 @@
 import { delay } from '@lowerdeck/delay';
-import { createFunctionBayClient } from '@metorial-platform-systems/function-bay-client';
+import { createFunctionBayClient } from '@mtsrc/functions-client-internal';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { env } from './env';
 

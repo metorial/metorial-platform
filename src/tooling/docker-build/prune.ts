@@ -235,20 +235,6 @@ for (let directory of ancestors) {
   }
 }
 
-let originDirectory = enterprise
-  ? 'oss/src/origin/apps/code-bucket'
-  : 'src/origin/apps/code-bucket';
-let originService = enterprise ? 'oss/src/origin/apps/service' : 'src/origin/apps/service';
-
-if (existsSync(join(outputDirectory, 'full', originService))) {
-  let target = join(outputDirectory, 'full', originDirectory);
-  mkdirSync(target, { recursive: true });
-
-  for (let asset of ['package.json', 'index.ts', 'ts-proto-gen']) {
-    cpSync(join(originDirectory, asset), join(target, asset), { recursive: true });
-  }
-}
-
 console.log(`Pruned build closure: ${packages.length} task workspaces`);
 
 reportTiming('configuration and runtime assets', assetsStartedAt);

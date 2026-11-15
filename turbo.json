@@ -32,8 +32,8 @@
       ],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/function-bay-client#build": {
-      "dependsOn": ["^build", "@metorial/function-bay#prisma:generate"],
+    "@mtsrc/functions-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/functions-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "prisma:generate": {
@@ -166,44 +166,44 @@
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/ares-client#build": {
-      "dependsOn": ["^build", "@metorial/ares#prisma:generate"],
+    "@mtsrc/auth-core-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/auth-core-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/forge-client#build": {
-      "dependsOn": ["^build", "@metorial/forge#prisma:generate"],
+    "@mtsrc/build-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/build-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/nebula-client#build": {
-      "dependsOn": ["^build", "@metorial/nebula#prisma:generate"],
+    "@mtsrc/secret-store-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/secret-store-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/origin-client#build": {
-      "dependsOn": ["^build", "@metorial/origin#prisma:generate"],
+    "@mtsrc/scm-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/scm-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/relay-client#build": {
-      "dependsOn": ["^build", "@metorial/relay#prisma:generate"],
+    "@mtsrc/email-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/email-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/shuttle-client#build": {
-      "dependsOn": ["^build", "@metorial/shuttle#prisma:generate"],
+    "@mtsrc/mcp-runtime-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/mcp-runtime-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/signal-client#build": {
-      "dependsOn": ["^build", "@metorial/signal#prisma:generate"],
+    "@mtsrc/webhook-sender-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/webhook-sender-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/slates-client#build": {
       "dependsOn": ["^build", "@metorial/slates#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/synthesis-client#build": {
-      "dependsOn": ["^build", "@metorial/synthesis#prisma:generate"],
+    "@mtsrc/ai-gateway-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/ai-gateway-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/voyager-client#build": {
-      "dependsOn": ["^build", "@metorial/voyager#prisma:generate"],
+    "@mtsrc/search-client-internal#build": {
+      "dependsOn": ["^build", "@mtsrc/search-service#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-services/slates-registry-client#build": {
@@ -213,6 +213,21 @@
     "@metorial-services/slates-registry-internal-client#build": {
       "dependsOn": ["^build", "@metorial/slates-registry#prisma:generate"],
       "outputs": ["dist/**"]
+    },
+    "@mtsrc/functions-service#test": {
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README*",
+        "!Dockerfile",
+        "!dev.Dockerfile",
+        "!.dockerignore",
+        "!control/**",
+        "$TURBO_ROOT$/tsconfig*.json",
+        "$TURBO_ROOT$/src/products/runtime/packages/egress/testdata/vectors.json"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
     },
     "test": {
       "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
@@ -224,6 +239,41 @@
         "!.dockerignore",
         "!control/**",
         "$TURBO_ROOT$/tsconfig*.json"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
+    "@lowerdeck/rpc-spec#test": {
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README*",
+        "!Dockerfile",
+        "!dev.Dockerfile",
+        "!.dockerignore",
+        "!control/**",
+        "$TURBO_ROOT$/tsconfig*.json",
+        "$TURBO_ROOT$/src/lib/rpc/go/example/bucketrpc/bucketrpc.gen.go",
+        "$TURBO_ROOT$/src/lib/rpc/go/interop/generated/bucket.ts"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
+    "@metorial-platform-products/runtime#test": {
+      "dependsOn": ["^build", "prisma:generate", "^prisma:generate", "test:inputs"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README*",
+        "!**/Dockerfile",
+        "!**/*.Dockerfile",
+        "!.dockerignore",
+        "!**/control/**",
+        "$TURBO_ROOT$/src/lib/rpc/go/**/*.go",
+        "$TURBO_ROOT$/src/lib/rpc/go/**/go.mod",
+        "$TURBO_ROOT$/src/lib/rpc/go/**/go.sum",
+        "$TURBO_ROOT$/src/object-storage/clients/go/**/*.go",
+        "$TURBO_ROOT$/src/object-storage/clients/go/**/go.mod",
+        "$TURBO_ROOT$/src/object-storage/clients/go/**/go.sum"
       ],
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]

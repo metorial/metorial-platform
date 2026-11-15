@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { functionEgressWarnings } from '@metorial/module-networking';
 import { Presenter } from '@metorial/presenter';
 import { networkPolicyType } from '../../types';
 import { networkPolicyRuleSchema, presentNetworkPolicyRule } from './networkPolicyRule';
@@ -33,5 +34,27 @@ export let v1NetworkPolicyPresenter = Presenter.create(networkPolicyType)
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
     })
+  )
+  .build();
+
+export let dashboardNetworkPolicyPresenter = Presenter.create(networkPolicyType)
+  .presenter(async ({ networkPolicy }, opts) => {
+    let inner = await v1NetworkPolicyPresenter.present({ networkPolicy }, opts).run();
+
+    return {
+      ...inner,
+      warnings: functionEgressWarnings({
+        rules: (networkPolicy.currentVersion?.rules ?? []) as PrismaJson.NetworkPolicyRules
+      })
+    };
+  })
+  .schema(
+    v.object({
+      ...v1NetworkPolicyPresenter.schema.properties,
+      warnings: v.array(v.string(), {
+        description:
+          'Rules in this policy that have no effect in this deployment, for example internal address ranges in Metorial Cloud.'
+      })
+    }) as any
   )
   .build();

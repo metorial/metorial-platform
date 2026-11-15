@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@metorial/control": ["../../platform/packages/control/src/index.ts"],
+      "@metorial/control/presets": ["../../platform/packages/control/src/presets/index.ts"],
+      "@metorial/control/raw": ["../../platform/packages/control/src/raw.ts"]
+    }
+  }
+}

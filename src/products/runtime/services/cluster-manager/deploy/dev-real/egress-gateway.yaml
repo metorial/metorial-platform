@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metorial-egress-gateway
+  namespace: metorial-runtime-dev
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: egress-trust
+  namespace: metorial-runtime-dev
+data:
+  keys.json: '{"keys":{"4332912093164269":"oe1YYXDkg5mGKpA5eOfkA_rkIalPMjEZap6gfs0eXa4"}}'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-egress-gateway
+  namespace: metorial-runtime-dev
+  labels:
+    app: runtime-egress-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runtime-egress-gateway
+  template:
+    metadata:
+      labels:
+        app: runtime-egress-gateway
+    spec:
+      serviceAccountName: metorial-egress-gateway
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: dev.local/runtime-egress-gateway:dev
+          imagePullPolicy: Never
+          env:
+            - name: EGRESS_GATEWAY_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # h2c: supervisors get an empty EGRESS_GATEWAY_SERVER_NAME.
+            - name: EGRESS_GATEWAY_TLS
+              value: "false"
+            - name: EGRESS_GRANT_PUBLIC_KEYS_FILE
+              value: /var/run/metorial/trust/keys.json
+            # The on-prem default, so the tests can check that explicit internal entries still
+            # never reach the cluster's own ranges.
+            - name: ALLOW_INTERNAL_DESTINATIONS
+              value: "true"
+            # OrbStack: pod CIDR, Service CIDR, node network (IPv4 and IPv6). Other clusters
+            # need their own values here.
+            - name: HARD_DENY_CIDRS
+              value: 192.168.194.0/25,192.168.194.128/25,192.168.139.0/24,fd07:b51a:cc66::/64
+            - name: NETWORK_LOGS_URL
+              value: http://runtime-network-logs.metorial-runtime-dev.svc.cluster.local:52250/rpc
+            - name: NETWORK_LOGS_TOKEN_FILE
+              value: /var/run/metorial/identity/token
+            - name: EGRESS_OBSERVATION_FLUSH_INTERVAL_SECONDS
+              value: "2"
+          ports:
+            - name: tunnel
+              containerPort: 8443
+            - name: proxy
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: trust
+              mountPath: /var/run/metorial/trust
+              readOnly: true
+            - name: identity
+              mountPath: /var/run/metorial/identity
+              readOnly: true
+      volumes:
+        - name: trust
+          configMap:
+            name: egress-trust
+        - name: identity
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: metorial-network-logs
+                  expirationSeconds: 3600
+                  path: token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: runtime-egress-gateway
+  namespace: metorial-runtime-dev
+spec:
+  selector:
+    app: runtime-egress-gateway
+  ports:
+    - name: tunnel
+      port: 8443
+      targetPort: tunnel
+    - name: proxy
+      port: 8080
+      targetPort: proxy
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: runtime-cluster-manager-egress-gateway
+  namespace: metorial-runtime-dev
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["runtime-egress-gateway"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: runtime-cluster-manager-egress-gateway
+  namespace: metorial-runtime-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: runtime-cluster-manager-egress-gateway
+subjects:
+  - kind: ServiceAccount
+    name: runtime-cluster-manager
+    namespace: metorial-runtime-dev

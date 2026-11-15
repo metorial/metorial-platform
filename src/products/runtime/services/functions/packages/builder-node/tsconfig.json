@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@function-bay/tsconfig/base.json",
+  "exclude": [
+    "dist"
+  ],
+  "include": [
+    "src"
+  ],
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "esnext",
+    "types": ["bun"],
+    "baseUrl": ".",
+    "paths": {
+      "@function-bay/build": ["../build/src/index.ts"],
+      "@function-bay/utils": ["../utils/src/index.ts"]
+    }
+  }
+}

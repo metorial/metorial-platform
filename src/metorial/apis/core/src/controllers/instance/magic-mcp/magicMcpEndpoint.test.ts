@@ -6,7 +6,7 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../packages/rest/src/controller';
+} from '../../../../../../../platform/packages/rest/src/controller';
 import { magicMcpEndpointType } from '../../../../../../presenters/src/types';
 
 let mocks = vi.hoisted(() => ({

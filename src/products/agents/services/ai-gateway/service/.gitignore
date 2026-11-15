@@ -1,0 +1,5 @@
+node_modules
+dist
+dist-worker
+.env
+.env.test

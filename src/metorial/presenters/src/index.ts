@@ -153,6 +153,7 @@ import {
   v1NamespacePresenter,
   v1NamespacePropertyPresenter,
   v1IntegrationInternetGatewayNetworkLogsPresenter,
+  dashboardNetworkPolicyPresenter,
   v1NetworkPolicyPresenter,
   v1NetworkPolicyRulePresenter,
   v1IntegrationInternetGatewayPresenter,
@@ -1901,7 +1902,7 @@ export let integrationFirewallAssignmentPresenter = declarePresenter(
 );
 
 export let networkPolicyPresenter = declarePresenter(networkPolicyType, {
-  mt_2025_01_01_dashboard: v1NetworkPolicyPresenter,
+  mt_2025_01_01_dashboard: dashboardNetworkPolicyPresenter,
   mt_2026_01_01_magnetar: v1NetworkPolicyPresenter
 });
 

@@ -1,0 +1,20 @@
+{
+  "name": "@metorial-platform-systems/cluster-manager-spec",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./clusterManager": "./src/clusterManager.ts",
+    "./functionRuntime": "./src/functionRuntime.ts",
+    "./invoke": "./src/invoke.ts"
+  },
+  "scripts": {
+    "generate": "rpc-spec generate src/clusterManager.ts --go ../service/rpc/clustermanagerrpc --ts ../../../clients/cluster-manager/src/generated.ts && rpc-spec generate src/functionRuntime.ts --go ../service/rpc/functionruntimerpc",
+    "generate:check": "rpc-spec generate src/clusterManager.ts --go ../service/rpc/clustermanagerrpc --ts ../../../clients/cluster-manager/src/generated.ts --check && rpc-spec generate src/functionRuntime.ts --go ../service/rpc/functionruntimerpc --check"
+  },
+  "dependencies": {
+    "@lowerdeck/rpc-spec": "workspace:2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

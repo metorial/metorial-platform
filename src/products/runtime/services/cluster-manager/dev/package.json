@@ -1,0 +1,9 @@
+{
+  "name": "@metorial/runtime-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:start": "bun src/main.ts up",
+    "test": "bun test src"
+  }
+}

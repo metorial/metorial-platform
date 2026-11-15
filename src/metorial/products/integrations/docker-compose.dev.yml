@@ -81,7 +81,7 @@ services:
       - subspace-network
 
   forge:
-    image: ghcr.io/metorial/forge:latest
+    image: ghcr.io/metorial/build:latest
     container_name: subspace-forge
     restart: unless-stopped
     environment:
@@ -114,7 +114,7 @@ services:
       - subspace-network
 
   function-bay:
-    image: ghcr.io/metorial/function-bay:latest
+    image: ghcr.io/metorial/functions:latest
     container_name: subspace-function-bay
     restart: unless-stopped
     environment:
@@ -147,34 +147,8 @@ services:
     networks:
       - subspace-network
 
-  signal:
-    image: ghcr.io/metorial/signal:latest
-    container_name: subspace-signal
-    restart: unless-stopped
-    ports:
-      - '52050:52050'
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/signal
-      REDIS_URL: redis://redis:6379/0
-      OBJECT_STORAGE_URL: http://object-storage:52010
-      LOGS_BUCKET_NAME: bundles
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      object-storage:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -s http://localhost:52050/ > /dev/null || exit 1']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - subspace-network
-
   voyager:
-    image: ghcr.io/metorial/voyager:latest
+    image: ghcr.io/metorial/search:latest
     container_name: subspace-voyager
     restart: unless-stopped
     ports:
@@ -262,8 +236,6 @@ services:
       OBJECT_STORAGE_URL: http://object-storage:52010
       INVOCATIONS_BUCKET_NAME: subspace-invocations
       INITIAL_REGISTRIES: 'http://slates-registry:52040'
-      SIGNAL_API_URL: http://signal:52050/metorial-signal
-      SIGNAL_SENDER_IDENTIFIER: subspace-slates-hub
       SLATES_HUB_INSTANCE_IDENTIFIER: dev-subspace
       SERVICE_PUBLIC_URL: http://localhost:52045
       METORIAL_API_URL: ${METORIAL_API_URL:-http://localhost:4310}
@@ -280,8 +252,6 @@ services:
         condition: service_healthy
       function-bay:
         condition: service_healthy
-      signal:
-        condition: service_healthy
     healthcheck:
       test:
         [
@@ -295,7 +265,7 @@ services:
       - subspace-network
 
   shuttle:
-    image: ghcr.io/metorial/shuttle:latest
+    image: ghcr.io/metorial/mcp-runtime:latest
     container_name: subspace-shuttle
     restart: unless-stopped
     ports:
@@ -341,7 +311,7 @@ services:
       - subspace-network
 
   code-bucket:
-    image: ghcr.io/metorial/origin-code-bucket:latest
+    image: ghcr.io/metorial/mte-code-bucket:latest
     container_name: subspace-origin-code-bucket
     restart: unless-stopped
     ports:
@@ -362,8 +332,8 @@ services:
     networks:
       - subspace-network
 
-  origin:
-    image: ghcr.io/metorial/origin-service:latest
+  scm:
+    image: ghcr.io/metorial/mte-scm:latest
     container_name: subspace-origin
     restart: unless-stopped
     ports:
@@ -442,7 +412,7 @@ services:
       SHUTTLE_LIVE_URL: http://shuttle:52080
       SHUTTLE_PUBLIC_URL: http://localhost:52081
       SLATES_HUB_PUBLIC_URL: http://localhost:52045
-      ORIGIN_URL: http://origin:52090/metorial-origin
+      ORIGIN_URL: http://scm:52090/metorial-origin
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
       FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
       PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: provider-telemetry-error-groups
@@ -466,8 +436,6 @@ services:
       forge:
         condition: service_healthy
       function-bay:
-        condition: service_healthy
-      signal:
         condition: service_healthy
       voyager:
         condition: service_healthy

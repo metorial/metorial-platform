@@ -27,9 +27,9 @@ RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=tur
 
 FROM base AS control-runtime
 WORKDIR /runtime
-COPY src/control/runtime/package.json src/control/runtime/bun.lock ./
+COPY src/tooling/control/runtime/package.json src/tooling/control/runtime/bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
-COPY src/control/runtime/src ./src
+COPY src/tooling/control/runtime/src ./src
 RUN bun build ./src/cli.ts --target=bun --outfile=./control-runtime.js
 
 FROM base AS prisma-cli

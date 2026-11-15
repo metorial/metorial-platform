@@ -1,147 +1,139 @@
 {
-  "voyager": {
-    "dockerfile": "src/voyager/service/Dockerfile",
-    "image": "ghcr.io/metorial/voyager",
+  "search": {
+    "dockerfile": "src/platform/services/search/service/Dockerfile",
+    "image": "ghcr.io/metorial/search",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/voyager"
+      "--filter=@mtsrc/search-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "forge": {
-    "dockerfile": "src/forge/service/Dockerfile",
-    "image": "ghcr.io/metorial/forge",
+  "build": {
+    "dockerfile": "src/products/runtime/services/build/service/Dockerfile",
+    "image": "ghcr.io/metorial/build",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/forge"
+      "--filter=@mtsrc/build-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "synthesis": {
-    "dockerfile": "src/synthesis/service/Dockerfile",
-    "image": "ghcr.io/metorial/synthesis",
+  "ai-gateway": {
+    "dockerfile": "src/products/agents/services/ai-gateway/service/Dockerfile",
+    "image": "ghcr.io/metorial/ai-gateway",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/synthesis"
+      "--filter=@mtsrc/ai-gateway-service",
+      "--filter=@mtsrc/ai-gateway-db"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "signal": {
-    "dockerfile": "src/signal/service/Dockerfile",
-    "image": "ghcr.io/metorial/signal",
+  "webhook-sender": {
+    "dockerfile": "src/platform/services/webhook-sender/service/Dockerfile",
+    "image": "ghcr.io/metorial/webhook-sender",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/signal"
+      "--filter=@mtsrc/webhook-sender-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "shuttle": {
-    "dockerfile": "src/shuttle/service/Dockerfile",
-    "image": "ghcr.io/metorial/shuttle",
+  "mcp-runtime": {
+    "dockerfile": "src/products/integrations/services/mcp-runtime/service/Dockerfile",
+    "image": "ghcr.io/metorial/mcp-runtime",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/shuttle"
+      "--filter=@mtsrc/mcp-runtime-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "origin": {
-    "dockerfile": "src/origin/apps/service/Dockerfile",
-    "image": "ghcr.io/metorial/mte-origin",
+  "scm": {
+    "dockerfile": "src/products/storage/services/scm/services/api/Dockerfile",
+    "image": "ghcr.io/metorial/mte-scm",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/origin"
+      "--filter=@mtsrc/scm-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "function-bay": {
-    "dockerfile": "src/function-bay/service/Dockerfile",
-    "image": "ghcr.io/metorial/function-bay",
+  "functions": {
+    "dockerfile": "src/products/runtime/services/functions/service/Dockerfile",
+    "image": "ghcr.io/metorial/functions",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/function-bay"
+      "--filter=@mtsrc/functions-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "nebula": {
-    "dockerfile": "src/nebula/service/Dockerfile",
-    "image": "ghcr.io/metorial/nebula",
+  "secret-store": {
+    "dockerfile": "src/platform/services/secret-store/service/Dockerfile",
+    "image": "ghcr.io/metorial/secret-store",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/nebula"
+      "--filter=@mtsrc/secret-store-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "relay": {
-    "dockerfile": "src/relay/service/Dockerfile",
-    "image": "ghcr.io/metorial/relay",
+  "email": {
+    "dockerfile": "src/platform/services/email/service/Dockerfile",
+    "image": "ghcr.io/metorial/email",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
-      "--filter=@metorial/relay"
+      "--filter=@mtsrc/email-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
-  "ares": {
-    "dockerfile": "src/ares/service/Dockerfile",
-    "image": "ghcr.io/metorial/ares",
+  "auth-core": {
+    "dockerfile": "src/products/identity/services/auth-core/service/Dockerfile",
+    "image": "ghcr.io/metorial/auth-core",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [
       "prisma:generate",
       "server:build",
       "frontend:build",
-      "--filter=@metorial/ares"
+      "--filter=@mtsrc/auth-core-service"
     ],
     "buildArguments": {},
     "extraInputs": []
   },
   "deflector": {
-    "dockerfile": "src/function-bay/deflector/Dockerfile",
+    "dockerfile": "src/products/runtime/services/networking/legacy/deflector/Dockerfile",
     "image": "ghcr.io/metorial/deflector",
-    "platform": "linux/amd64",
-    "workspace": ".",
-    "tasks": [],
-    "buildArguments": {},
-    "extraInputs": []
-  },
-  "function-bay-observer": {
-    "dockerfile": "src/function-bay/observer/Dockerfile",
-    "image": "ghcr.io/metorial/function-bay-observer",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [],
@@ -165,7 +157,7 @@
     "extraInputs": []
   },
   "app-api": {
-    "dockerfile": "src/metorial/services/api/Dockerfile",
+    "dockerfile": "src/products/oss/services/oss-core/Dockerfile",
     "image": "ghcr.io/metorial/app-api",
     "platform": "linux/amd64",
     "workspace": ".",
@@ -218,11 +210,60 @@
     "extraInputs": []
   },
   "code-bucket": {
-    "dockerfile": "src/origin/apps/code-bucket/Dockerfile",
+    "dockerfile": "src/products/storage/services/scm/services/code-bucket/Dockerfile",
     "image": "ghcr.io/metorial/mte-code-bucket",
     "platform": "linux/amd64",
     "workspace": ".",
     "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-cluster-manager": {
+    "dockerfile": "src/products/runtime/services/cluster-manager/service/Dockerfile",
+    "image": "ghcr.io/metorial/runtime-cluster-manager",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-egress-gateway": {
+    "dockerfile": "src/products/runtime/services/networking/service/gateway.Dockerfile",
+    "image": "ghcr.io/metorial/runtime-egress-gateway",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-network-logs": {
+    "dockerfile": "src/products/runtime/services/networking/service/logstore.Dockerfile",
+    "image": "ghcr.io/metorial/runtime-network-logs",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-function-node24": {
+    "dockerfile": "src/products/runtime/services/cluster-manager/images/function-node24/Dockerfile",
+    "image": "ghcr.io/metorial/runtime-function-node24",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
+  "runtime-build-ubuntu": {
+    "dockerfile": "src/products/runtime/services/cluster-manager/images/build-ubuntu/Dockerfile",
+    "image": "ghcr.io/metorial/runtime-build-ubuntu",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "build",
+      "--filter=function-bay",
+      "--filter=@function-bay/nodejs"
+    ],
     "buildArguments": {},
     "extraInputs": []
   }
