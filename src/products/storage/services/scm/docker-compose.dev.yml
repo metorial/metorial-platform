@@ -25,7 +25,7 @@ services:
     image: ghcr.io/metorial/mte-object-store:dev
     build:
       context: ../../../../..
-      dockerfile: src/object-storage/Dockerfile
+      dockerfile: src/platform/services/object-storage/Dockerfile
     volumes:
       - object-store-data:/app/data
     environment:

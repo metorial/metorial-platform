@@ -40,7 +40,7 @@ services:
     image: ghcr.io/metorial/mte-object-store:dev
     build:
       context: ../../../../../..
-      dockerfile: src/object-storage/Dockerfile
+      dockerfile: src/platform/services/object-storage/Dockerfile
     container_name: forge-object-storage
     restart: unless-stopped
     ports:

@@ -110,7 +110,7 @@ jobs:
             dockerfile: ./src/products/storage/services/scm/services/code-bucket/Dockerfile
           - name: object-store
             image: ghcr.io/metorial/mte-object-store
-            dockerfile: ./src/object-storage/Dockerfile
+            dockerfile: ./src/platform/services/object-storage/Dockerfile
           - name: ai-gateway
             image: ghcr.io/metorial/ai-gateway
             dockerfile: ./src/products/agents/services/ai-gateway/service/Dockerfile

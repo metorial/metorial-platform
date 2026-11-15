@@ -82,4 +82,4 @@ require (
 
 replace github.com/metorial/metorial-platform/src/lib/rpc/go => ../../lib/rpc/go
 
-replace github.com/metorial/object-storage/clients/go => ../../object-storage/clients/go
+replace github.com/metorial/object-storage/clients/go => ../../platform/services/object-storage/clients/go
