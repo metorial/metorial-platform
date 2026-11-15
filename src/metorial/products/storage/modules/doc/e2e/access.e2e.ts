@@ -378,6 +378,16 @@ describe('module-documents access', () => {
       })
     ).toMatchObject({ roles: [] });
 
+    await db.documentParticipant.create({
+      data: {
+        id: uniqueId('e2e-document-participant'),
+        role: 'viewer',
+        documentOid: document.oid,
+        resourceActorOid: reader.actor.oid,
+        storeParticipantOid: null
+      }
+    });
+
     let participants = await firstPage(
       await documentParticipantService.listDocumentParticipants({
         ...scopeOf(fixture),
@@ -402,6 +412,15 @@ describe('module-documents access', () => {
       editCount: 0
     });
     expect(materialized!.storeParticipantOid).not.toBeNull();
+
+    let readerStoreParticipant = await db.storeParticipantActor.findUniqueOrThrow({
+      where: {
+        storeOid_resourceActorOid: { storeOid: store.oid, resourceActorOid: reader.actor.oid }
+      }
+    });
+    expect((await participantOf(document, reader.actor))!.storeParticipantOid).toBe(
+      readerStoreParticipant.storeParticipantOid
+    );
   });
 
   it('lists participants with their roles and hides system actors', async () => {
