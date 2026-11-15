@@ -577,6 +577,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "z-ai/glm-5.3:batch": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "The :batch suffix is OpenRouter's batch pricing for the same GLM-5.3 checkpoint (Hugging Face zai-org/GLM-5.3, 1M context, matches zhipu/glm-5.3's 2026-08-14 release); batch rates (0.257/0.791) are discounted vs the 1.4 median.",
+    "by": "agent",
+    "at": "2026-11-15"
+  },
   "~deepseek/deepseek-flash-latest": {
     "decision": "router",
     "reason": "OpenRouter's own listing: 'This model always redirects to the latest model in the DeepSeek Flash family'; the model served changes as DeepSeek ships releases, so it is a router, not one fixed model.",
