@@ -4904,7 +4904,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
       },
       "devDependencies": {
-        "@mtsrc/auth-core-service": "workspace:*",
+        "@mtsrc/auth-core-api-internal": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
@@ -5060,94 +5060,586 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/products/identity/services/auth-core/service": {
-      "name": "@mtsrc/auth-core-service",
+    "src/products/identity/services/auth-core/apis/admin": {
+      "name": "@mtsrc/auth-core-api-admin",
+      "version": "1.0.0",
       "dependencies": {
-        "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
-        "@aws-sdk/client-iam": "^3.1164.0",
-        "@aws-sdk/client-lambda": "^3.1164.0",
-        "@boxyhq/saml-jackson": "^26.2.0",
-        "@looped/hooks": "^0.1.3",
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/auth-core-api-auth": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-http": "workspace:*",
+        "@mtsrc/auth-core-identity-utils": "workspace:*",
+        "@mtsrc/auth-core-module-admin": "workspace:*",
+        "@mtsrc/auth-core-module-app": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-module-authentication": "workspace:*",
+        "@mtsrc/auth-core-module-sso": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/apis/auth": {
+      "name": "@mtsrc/auth-core-api-auth",
+      "version": "1.0.0",
+      "dependencies": {
         "@lowerdeck/api-mux": "workspace:2.0.0",
         "@lowerdeck/base62": "workspace:2.0.0",
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/encryption": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/event": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/forwarded-for": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
         "@lowerdeck/hono": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
         "@lowerdeck/ip-info": "workspace:2.0.0",
-        "@lowerdeck/lock": "workspace:2.0.0",
-        "@lowerdeck/once": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
-        "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/queue-checkpoint": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
         "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/tokens": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@marsidev/react-turnstile": "^1.6.3",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/auth-core-api-sso": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-http": "workspace:*",
+        "@mtsrc/auth-core-identity-utils": "workspace:*",
+        "@mtsrc/auth-core-module-account": "workspace:*",
+        "@mtsrc/auth-core-module-authentication": "workspace:*",
+        "@mtsrc/auth-core-module-session": "workspace:*",
+        "@mtsrc/auth-core-module-sso": "workspace:*",
+        "@mtsrc/auth-core-module-user": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-security": "workspace:*",
+        "@mtsrc/auth-core-sso-protocol": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+        "cookie": "^2.0.2",
+        "ua-parser-js": "2.0.10",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/apis/internal": {
+      "name": "@mtsrc/auth-core-api-internal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/api-mux": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/auth-core-api-auth": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-http": "workspace:*",
+        "@mtsrc/auth-core-module-account": "workspace:*",
+        "@mtsrc/auth-core-module-admin": "workspace:*",
+        "@mtsrc/auth-core-module-authentication": "workspace:*",
+        "@mtsrc/auth-core-module-session": "workspace:*",
+        "@mtsrc/auth-core-module-sso": "workspace:*",
+        "@mtsrc/auth-core-module-sync": "workspace:*",
+        "@mtsrc/auth-core-module-user": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/apis/sso": {
+      "name": "@mtsrc/auth-core-api-sso",
+      "version": "1.0.0",
+      "dependencies": {
+        "@boxyhq/saml-jackson": "^26.2.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/branding": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/auth-core-api-auth": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-http": "workspace:*",
+        "@mtsrc/auth-core-module-account": "workspace:*",
+        "@mtsrc/auth-core-module-session": "workspace:*",
+        "@mtsrc/auth-core-module-sso": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-sso-protocol": "workspace:*",
+        "cookie": "^2.0.2",
+        "marked": "^18.1.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/db": {
+      "name": "@mtsrc/auth-core-db",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/execution-context": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@prisma/adapter-pg": "^7.10.1",
+        "@prisma/client": "^7.10.1",
+        "dotenv": "^18.0.9",
+        "p-queue": "^10.0.0",
+        "prisma": "^7.10.1",
+        "prisma-json-types-generator": "^6.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/frontends/admin": {
+      "name": "@mtsrc/auth-core-frontend-admin",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
         "@metorial-io/data-hooks": "^1.0.1",
         "@metorial-io/layout": "^1.0.1",
         "@metorial-io/pages": "^1.0.0",
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
-        "@metorial/branding": "workspace:*",
+        "@remixicon/react": "^4.9.0",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
+        "react-router-dom": "^7.18.5",
+        "styled-components": "^6.6.0",
+      },
+      "devDependencies": {
+        "@mtsrc/auth-core-api-admin": "workspace:*",
+        "@vitejs/plugin-react": "5.2.0",
+        "vite": "7.3.7",
+      },
+    },
+    "src/products/identity/services/auth-core/frontends/auth": {
+      "name": "@mtsrc/auth-core-frontend-auth",
+      "version": "1.0.0",
+      "dependencies": {
+        "@looped/hooks": "^0.1.3",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@marsidev/react-turnstile": "^1.6.3",
+        "@metorial-io/data-hooks": "^1.0.1",
+        "@metorial-io/pages": "^1.0.0",
+        "@metorial-io/ui": "^1.0.0",
         "@metorial/editions": "workspace:*",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
         "@metorial/ui": "^1.0.0",
-        "@mtsrc/email-client-internal": "workspace:*",
-        "@prisma/adapter-pg": "^7.10.1",
-        "@prisma/client": "^7.10.1",
-        "@sentry/bun": "^11.11.0",
-        "@sentry/cli": "^3.8.2",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
         "@simplewebauthn/browser": "^14.0.0",
-        "@simplewebauthn/server": "^14.1.0",
-        "@types/qrcode": "^1.5.6",
-        "@types/ua-parser-js": "^0.7.39",
-        "axios": "^1.21.0",
-        "date-fns": "^4.4.0",
         "framer-motion": "^14.10.1",
-        "input-otp": "^1.5.0",
-        "ipaddr.js": "^2.5.0",
-        "jszip": "^3.10.2",
-        "marked": "^18.1.3",
-        "object-storage-client": "workspace:*",
-        "otplib": "^13.6.0",
-        "prisma": "^7.10.1",
-        "prisma-json-types-generator": "^6.0.0",
-        "qrcode": "^1.5.4",
         "react": "19.3.0",
         "react-dom": "19.3.0",
         "react-router-dom": "^7.18.5",
         "sonner": "^2.0.8",
         "styled-components": "^6.6.0",
-        "ua-parser-js": "2.0.10",
+      },
+      "devDependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/memo": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@metorial/util-endpoint": "^3.0.0",
+        "@mtsrc/auth-core-api-auth": "workspace:*",
+        "@vitejs/plugin-react": "5.2.0",
+        "jsdom": "31.0.0",
         "vite": "7.3.7",
-        "yaml": "^2.9.1",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/account": {
+      "name": "@mtsrc/auth-core-module-account",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-identity-utils": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/admin": {
+      "name": "@mtsrc/auth-core-module-admin",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-module-app": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-security": "workspace:*",
+        "date-fns": "^4.4.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/app": {
+      "name": "@mtsrc/auth-core-module-app",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/audit": {
+      "name": "@mtsrc/auth-core-module-audit",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/authentication": {
+      "name": "@mtsrc/auth-core-module-authentication",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-email": "workspace:*",
+        "@mtsrc/auth-core-identity-utils": "workspace:*",
+        "@mtsrc/auth-core-module-account": "workspace:*",
+        "@mtsrc/auth-core-module-app": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-module-session": "workspace:*",
+        "@mtsrc/auth-core-module-sync": "workspace:*",
+        "@mtsrc/auth-core-module-user": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-security": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+        "date-fns": "^4.4.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/session": {
+      "name": "@mtsrc/auth-core-module-session",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-module-sync": "workspace:*",
+        "@mtsrc/auth-core-module-user": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+        "date-fns": "^4.4.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/sso": {
+      "name": "@mtsrc/auth-core-module-sso",
+      "version": "1.0.0",
+      "dependencies": {
+        "@boxyhq/saml-jackson": "^26.2.0",
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/queue-checkpoint": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-module-account": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-module-authentication": "workspace:*",
+        "@mtsrc/auth-core-module-session": "workspace:*",
+        "@mtsrc/auth-core-module-sync": "workspace:*",
+        "@mtsrc/auth-core-module-user": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-security": "workspace:*",
+        "@mtsrc/auth-core-sso-protocol": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+        "date-fns": "^4.4.0",
+      },
+      "devDependencies": {
+        "@mtsrc/auth-core-api-internal": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/sync": {
+      "name": "@mtsrc/auth-core-module-sync",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/modules/user": {
+      "name": "@mtsrc/auth-core-module-user",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/event": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-identity-utils": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-module-sync": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@mtsrc/auth-core-security": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+        "@simplewebauthn/server": "^14.1.0",
+        "date-fns": "^4.4.0",
+        "otplib": "^13.6.0",
+        "qrcode": "^1.5.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/email": {
+      "name": "@mtsrc/auth-core-email",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/ip-info": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/email-client-internal": "workspace:*",
+        "ua-parser-js": "2.0.10",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/http": {
+      "name": "@mtsrc/auth-core-http",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/tokens": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/branding": "workspace:*",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+        "date-fns": "^4.4.0",
+        "hono": "^4.9.0",
+      },
+      "devDependencies": {
+        "@mtsrc/auth-core-sso-protocol": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/identity-utils": {
+      "name": "@mtsrc/auth-core-identity-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/runtime": {
+      "name": "@mtsrc/auth-core-runtime",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/security": {
+      "name": "@mtsrc/auth-core-security",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/sso-protocol": {
+      "name": "@mtsrc/auth-core-sso-protocol",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/editions": "workspace:*",
+        "@mtsrc/auth-core-test-utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/identity/services/auth-core/packages/test-utils": {
+      "name": "@mtsrc/auth-core-test-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "vitest": "^5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+      },
+    },
+    "src/products/identity/services/auth-core/service": {
+      "name": "@mtsrc/auth-core-service",
+      "dependencies": {
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@mtsrc/auth-core-api-admin": "workspace:*",
+        "@mtsrc/auth-core-api-auth": "workspace:*",
+        "@mtsrc/auth-core-api-internal": "workspace:*",
+        "@mtsrc/auth-core-api-sso": "workspace:*",
+        "@mtsrc/auth-core-db": "workspace:*",
+        "@mtsrc/auth-core-email": "workspace:*",
+        "@mtsrc/auth-core-http": "workspace:*",
+        "@mtsrc/auth-core-module-account": "workspace:*",
+        "@mtsrc/auth-core-module-admin": "workspace:*",
+        "@mtsrc/auth-core-module-app": "workspace:*",
+        "@mtsrc/auth-core-module-audit": "workspace:*",
+        "@mtsrc/auth-core-module-authentication": "workspace:*",
+        "@mtsrc/auth-core-module-session": "workspace:*",
+        "@mtsrc/auth-core-module-sso": "workspace:*",
+        "@mtsrc/auth-core-module-sync": "workspace:*",
+        "@mtsrc/auth-core-module-user": "workspace:*",
+        "@mtsrc/auth-core-runtime": "workspace:*",
+        "@sentry/bun": "^11.11.0",
+        "@sentry/cli": "^3.8.2",
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@vercel/ncc": "^0.45.0",
-        "@vitejs/plugin-react": "5.2.0",
-        "jsdom": "31.0.0",
-        "node-gyp": "^13.1.0",
         "vitest": "5.0.4",
       },
       "peerDependencies": {
@@ -5259,6 +5751,9 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/util-websocket": "^3.0.0",
         "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/mcp-runtime-api-internal": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connection-runtime": "workspace:*",
         "@types/bun": "^1.4.3",
       },
       "devDependencies": {
@@ -5266,6 +5761,504 @@
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/apis/connection": {
+      "name": "@mtsrc/mcp-runtime-api-connection",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-module-connection-runtime": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connections": "workspace:*",
+        "@mtsrc/mcp-runtime-module-tenants": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
+        "@mtsrc/mcp-runtime-presenters": "workspace:*",
+        "hono": "4.13.13",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/apis/internal": {
+      "name": "@mtsrc/mcp-runtime-api-internal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@hono/zod-validator": "^0.9.1",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/mcp-runtime-module-change-notifications": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connections": "workspace:*",
+        "@mtsrc/mcp-runtime-module-deployments": "workspace:*",
+        "@mtsrc/mcp-runtime-module-discovery": "workspace:*",
+        "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+        "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+        "@mtsrc/mcp-runtime-module-servers": "workspace:*",
+        "@mtsrc/mcp-runtime-module-tenants": "workspace:*",
+        "@mtsrc/mcp-runtime-presenters": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/apis/public": {
+      "name": "@mtsrc/mcp-runtime-api-public",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+        "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
+        "hono": "4.13.13",
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/db": {
+      "name": "@mtsrc/mcp-runtime-db",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/execution-context": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@prisma/adapter-pg": "^7.10.1",
+        "@prisma/client": "^7.10.1",
+        "@prisma/extension-read-replicas": "^0.5.0",
+        "dotenv": "^18.0.9",
+        "p-queue": "^10.0.0",
+        "prisma": "^7.10.1",
+        "prisma-json-types-generator": "^6.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/change-notifications": {
+      "name": "@mtsrc/mcp-runtime-module-change-notifications",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/connection-runtime": {
+      "name": "@mtsrc/mcp-runtime-module-connection-runtime",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+        "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+        "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+        "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
+        "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
+        "axios": "^1.21.0",
+        "p-queue": "^10.0.0",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/connections": {
+      "name": "@mtsrc/mcp-runtime-module-connections",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-storage": "workspace:*",
+        "date-fns": "^4.4.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/deployments": {
+      "name": "@mtsrc/mcp-runtime-module-deployments",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-data-utils": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-docker": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+        "@mtsrc/mcp-runtime-module-change-notifications": "workspace:*",
+        "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+        "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+        "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+        "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
+        "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
+        "@toon-format/toon": "^4.4.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/discovery": {
+      "name": "@mtsrc/mcp-runtime-module-discovery",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connection-runtime": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connections": "workspace:*",
+        "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
+        "date-fns": "^4.4.0",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/functions": {
+      "name": "@mtsrc/mcp-runtime-module-functions",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connections": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/oauth": {
+      "name": "@mtsrc/mcp-runtime-module-oauth",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-data-utils": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+        "@mtsrc/mcp-runtime-module-functions": "workspace:*",
+        "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+        "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
+        "date-fns": "^4.4.0",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/retention": {
+      "name": "@mtsrc/mcp-runtime-module-retention",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/retention-runner": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-storage": "workspace:*",
+        "date-fns": "^4.4.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/secrets": {
+      "name": "@mtsrc/mcp-runtime-module-secrets",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/servers": {
+      "name": "@mtsrc/mcp-runtime-module-servers",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-data-utils": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-module-deployments": "workspace:*",
+        "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/modules/tenants": {
+      "name": "@mtsrc/mcp-runtime-module-tenants",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/data-utils": {
+      "name": "@mtsrc/mcp-runtime-data-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "jsonata": "^2.2.2",
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/docker": {
+      "name": "@mtsrc/mcp-runtime-docker",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
+        "axios": "^1.21.0",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/env": {
+      "name": "@mtsrc/mcp-runtime-env",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/function-bay": {
+      "name": "@mtsrc/mcp-runtime-function-bay",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/programmable-promise": "workspace:2.0.0",
+        "@metorial/mcp-server": "^1.0.0-rc.11",
+        "@mtsrc/functions-client-internal": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/network": {
+      "name": "@mtsrc/mcp-runtime-network",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/ssrf": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "axios": "^1.21.0",
+        "ipaddr.js": "^2.5.0",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/oauth-utils": {
+      "name": "@mtsrc/mcp-runtime-oauth-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-data-utils": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
+        "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
+        "axios": "^1.21.0",
+        "date-fns": "^4.4.0",
+        "nanoid": "^6.0.2",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/presenters": {
+      "name": "@mtsrc/mcp-runtime-presenters",
+      "version": "1.0.0",
+      "dependencies": {
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/remote-protocol": {
+      "name": "@mtsrc/mcp-runtime-remote-protocol",
+      "version": "1.0.0",
+      "dependencies": {
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
+        "vitest": "5.0.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
+      },
+    },
+    "src/products/integrations/services/mcp-runtime/packages/storage": {
+      "name": "@mtsrc/mcp-runtime-storage",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/delay": "workspace:2.0.0",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "object-storage-client": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^25.9.9",
+        "typescript": "5.9.3",
+        "vitest": "5.0.4",
       },
     },
     "src/products/integrations/services/mcp-runtime/sdk": {
@@ -5322,75 +6315,32 @@
     "src/products/integrations/services/mcp-runtime/service": {
       "name": "@mtsrc/mcp-runtime-service",
       "dependencies": {
-        "@aws-sdk/client-cloudwatch-logs": "^3.1164.0",
-        "@aws-sdk/client-iam": "^3.1164.0",
-        "@aws-sdk/client-lambda": "^3.1164.0",
-        "@bufbuild/protobuf": "^2.17.0",
-        "@hono/zod-validator": "^0.9.1",
         "@lowerdeck/api-mux": "workspace:2.0.0",
-        "@lowerdeck/cache": "workspace:2.0.0",
-        "@lowerdeck/canonicalize": "workspace:2.0.0",
-        "@lowerdeck/cron": "workspace:2.0.0",
-        "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/encryption": "workspace:2.0.0",
-        "@lowerdeck/env": "workspace:2.0.0",
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/execution-context": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
-        "@lowerdeck/hono": "workspace:2.0.0",
-        "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/lock": "workspace:2.0.0",
-        "@lowerdeck/once": "workspace:2.0.0",
-        "@lowerdeck/pagination": "workspace:2.0.0",
-        "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/queue": "workspace:2.0.0",
-        "@lowerdeck/retention-runner": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
         "@lowerdeck/rpc-server": "workspace:2.0.0",
         "@lowerdeck/sentry": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/snowflake": "workspace:2.0.0",
-        "@lowerdeck/ssrf": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
-        "@lowerdeck/tokens": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/editions": "workspace:*",
-        "@metorial/mcp-server": "^1.0.0-rc.11",
-        "@metorial/settings": "workspace:*",
-        "@metorial/shared-settings": "workspace:*",
-        "@modelcontextprotocol/sdk": "^1.32.1",
-        "@mtsrc/functions-client-internal": "workspace:*",
-        "@mtsrc/secret-store-client-internal": "workspace:*",
-        "@prisma/adapter-pg": "^7.10.1",
-        "@prisma/client": "^7.10.1",
-        "@prisma/extension-read-replicas": "^0.5.0",
+        "@mtsrc/mcp-runtime-api-connection": "workspace:*",
+        "@mtsrc/mcp-runtime-api-internal": "workspace:*",
+        "@mtsrc/mcp-runtime-api-public": "workspace:*",
+        "@mtsrc/mcp-runtime-db": "workspace:*",
+        "@mtsrc/mcp-runtime-env": "workspace:*",
+        "@mtsrc/mcp-runtime-module-change-notifications": "workspace:*",
+        "@mtsrc/mcp-runtime-module-connections": "workspace:*",
+        "@mtsrc/mcp-runtime-module-deployments": "workspace:*",
+        "@mtsrc/mcp-runtime-module-discovery": "workspace:*",
+        "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
+        "@mtsrc/mcp-runtime-module-retention": "workspace:*",
+        "@mtsrc/mcp-runtime-module-servers": "workspace:*",
         "@sentry/bun": "^11.11.0",
         "@sentry/cli": "^3.8.2",
-        "@toon-format/toon": "^4.4.0",
-        "@types/pg": "^8.23.1",
-        "axios": "^1.21.0",
-        "date-fns": "^4.4.0",
-        "drizzle-orm": "^0.45.4",
-        "hono": "4.13.13",
-        "ipaddr.js": "^2.5.0",
-        "jsonata": "^2.2.2",
-        "jszip": "^3.10.2",
-        "object-storage-client": "workspace:*",
-        "p-queue": "^10.0.0",
-        "pg": "^8.23.1",
-        "prisma": "^7.10.1",
-        "prisma-json-types-generator": "^6.0.0",
-        "ws": "^8.22.1",
-        "yaml": "^2.9.1",
-        "zod": "^4.6.7",
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
-        "@types/ws": "^8.18.2",
         "@vercel/ncc": "^0.45.0",
         "vitest": "5.0.4",
       },
@@ -8898,9 +9848,55 @@
 
     "@mtsrc/ai-gateway-service": ["@mtsrc/ai-gateway-service@workspace:src/products/agents/services/ai-gateway/service"],
 
+    "@mtsrc/auth-core-api-admin": ["@mtsrc/auth-core-api-admin@workspace:src/products/identity/services/auth-core/apis/admin"],
+
+    "@mtsrc/auth-core-api-auth": ["@mtsrc/auth-core-api-auth@workspace:src/products/identity/services/auth-core/apis/auth"],
+
+    "@mtsrc/auth-core-api-internal": ["@mtsrc/auth-core-api-internal@workspace:src/products/identity/services/auth-core/apis/internal"],
+
+    "@mtsrc/auth-core-api-sso": ["@mtsrc/auth-core-api-sso@workspace:src/products/identity/services/auth-core/apis/sso"],
+
     "@mtsrc/auth-core-client-internal": ["@mtsrc/auth-core-client-internal@workspace:src/products/identity/clients/auth-core"],
 
+    "@mtsrc/auth-core-db": ["@mtsrc/auth-core-db@workspace:src/products/identity/services/auth-core/db"],
+
+    "@mtsrc/auth-core-email": ["@mtsrc/auth-core-email@workspace:src/products/identity/services/auth-core/packages/email"],
+
+    "@mtsrc/auth-core-frontend-admin": ["@mtsrc/auth-core-frontend-admin@workspace:src/products/identity/services/auth-core/frontends/admin"],
+
+    "@mtsrc/auth-core-frontend-auth": ["@mtsrc/auth-core-frontend-auth@workspace:src/products/identity/services/auth-core/frontends/auth"],
+
+    "@mtsrc/auth-core-http": ["@mtsrc/auth-core-http@workspace:src/products/identity/services/auth-core/packages/http"],
+
+    "@mtsrc/auth-core-identity-utils": ["@mtsrc/auth-core-identity-utils@workspace:src/products/identity/services/auth-core/packages/identity-utils"],
+
+    "@mtsrc/auth-core-module-account": ["@mtsrc/auth-core-module-account@workspace:src/products/identity/services/auth-core/modules/account"],
+
+    "@mtsrc/auth-core-module-admin": ["@mtsrc/auth-core-module-admin@workspace:src/products/identity/services/auth-core/modules/admin"],
+
+    "@mtsrc/auth-core-module-app": ["@mtsrc/auth-core-module-app@workspace:src/products/identity/services/auth-core/modules/app"],
+
+    "@mtsrc/auth-core-module-audit": ["@mtsrc/auth-core-module-audit@workspace:src/products/identity/services/auth-core/modules/audit"],
+
+    "@mtsrc/auth-core-module-authentication": ["@mtsrc/auth-core-module-authentication@workspace:src/products/identity/services/auth-core/modules/authentication"],
+
+    "@mtsrc/auth-core-module-session": ["@mtsrc/auth-core-module-session@workspace:src/products/identity/services/auth-core/modules/session"],
+
+    "@mtsrc/auth-core-module-sso": ["@mtsrc/auth-core-module-sso@workspace:src/products/identity/services/auth-core/modules/sso"],
+
+    "@mtsrc/auth-core-module-sync": ["@mtsrc/auth-core-module-sync@workspace:src/products/identity/services/auth-core/modules/sync"],
+
+    "@mtsrc/auth-core-module-user": ["@mtsrc/auth-core-module-user@workspace:src/products/identity/services/auth-core/modules/user"],
+
+    "@mtsrc/auth-core-runtime": ["@mtsrc/auth-core-runtime@workspace:src/products/identity/services/auth-core/packages/runtime"],
+
+    "@mtsrc/auth-core-security": ["@mtsrc/auth-core-security@workspace:src/products/identity/services/auth-core/packages/security"],
+
     "@mtsrc/auth-core-service": ["@mtsrc/auth-core-service@workspace:src/products/identity/services/auth-core/service"],
+
+    "@mtsrc/auth-core-sso-protocol": ["@mtsrc/auth-core-sso-protocol@workspace:src/products/identity/services/auth-core/packages/sso-protocol"],
+
+    "@mtsrc/auth-core-test-utils": ["@mtsrc/auth-core-test-utils@workspace:src/products/identity/services/auth-core/packages/test-utils"],
 
     "@mtsrc/build-client-internal": ["@mtsrc/build-client-internal@workspace:src/products/runtime/clients/build"],
 
@@ -8914,9 +9910,57 @@
 
     "@mtsrc/functions-service": ["@mtsrc/functions-service@workspace:src/products/runtime/services/functions/service"],
 
+    "@mtsrc/mcp-runtime-api-connection": ["@mtsrc/mcp-runtime-api-connection@workspace:src/products/integrations/services/mcp-runtime/apis/connection"],
+
+    "@mtsrc/mcp-runtime-api-internal": ["@mtsrc/mcp-runtime-api-internal@workspace:src/products/integrations/services/mcp-runtime/apis/internal"],
+
+    "@mtsrc/mcp-runtime-api-public": ["@mtsrc/mcp-runtime-api-public@workspace:src/products/integrations/services/mcp-runtime/apis/public"],
+
     "@mtsrc/mcp-runtime-client-internal": ["@mtsrc/mcp-runtime-client-internal@workspace:src/products/integrations/clients/mcp-runtime"],
 
+    "@mtsrc/mcp-runtime-data-utils": ["@mtsrc/mcp-runtime-data-utils@workspace:src/products/integrations/services/mcp-runtime/packages/data-utils"],
+
+    "@mtsrc/mcp-runtime-db": ["@mtsrc/mcp-runtime-db@workspace:src/products/integrations/services/mcp-runtime/db"],
+
+    "@mtsrc/mcp-runtime-docker": ["@mtsrc/mcp-runtime-docker@workspace:src/products/integrations/services/mcp-runtime/packages/docker"],
+
+    "@mtsrc/mcp-runtime-env": ["@mtsrc/mcp-runtime-env@workspace:src/products/integrations/services/mcp-runtime/packages/env"],
+
+    "@mtsrc/mcp-runtime-function-bay": ["@mtsrc/mcp-runtime-function-bay@workspace:src/products/integrations/services/mcp-runtime/packages/function-bay"],
+
+    "@mtsrc/mcp-runtime-module-change-notifications": ["@mtsrc/mcp-runtime-module-change-notifications@workspace:src/products/integrations/services/mcp-runtime/modules/change-notifications"],
+
+    "@mtsrc/mcp-runtime-module-connection-runtime": ["@mtsrc/mcp-runtime-module-connection-runtime@workspace:src/products/integrations/services/mcp-runtime/modules/connection-runtime"],
+
+    "@mtsrc/mcp-runtime-module-connections": ["@mtsrc/mcp-runtime-module-connections@workspace:src/products/integrations/services/mcp-runtime/modules/connections"],
+
+    "@mtsrc/mcp-runtime-module-deployments": ["@mtsrc/mcp-runtime-module-deployments@workspace:src/products/integrations/services/mcp-runtime/modules/deployments"],
+
+    "@mtsrc/mcp-runtime-module-discovery": ["@mtsrc/mcp-runtime-module-discovery@workspace:src/products/integrations/services/mcp-runtime/modules/discovery"],
+
+    "@mtsrc/mcp-runtime-module-functions": ["@mtsrc/mcp-runtime-module-functions@workspace:src/products/integrations/services/mcp-runtime/modules/functions"],
+
+    "@mtsrc/mcp-runtime-module-oauth": ["@mtsrc/mcp-runtime-module-oauth@workspace:src/products/integrations/services/mcp-runtime/modules/oauth"],
+
+    "@mtsrc/mcp-runtime-module-retention": ["@mtsrc/mcp-runtime-module-retention@workspace:src/products/integrations/services/mcp-runtime/modules/retention"],
+
+    "@mtsrc/mcp-runtime-module-secrets": ["@mtsrc/mcp-runtime-module-secrets@workspace:src/products/integrations/services/mcp-runtime/modules/secrets"],
+
+    "@mtsrc/mcp-runtime-module-servers": ["@mtsrc/mcp-runtime-module-servers@workspace:src/products/integrations/services/mcp-runtime/modules/servers"],
+
+    "@mtsrc/mcp-runtime-module-tenants": ["@mtsrc/mcp-runtime-module-tenants@workspace:src/products/integrations/services/mcp-runtime/modules/tenants"],
+
+    "@mtsrc/mcp-runtime-network": ["@mtsrc/mcp-runtime-network@workspace:src/products/integrations/services/mcp-runtime/packages/network"],
+
+    "@mtsrc/mcp-runtime-oauth-utils": ["@mtsrc/mcp-runtime-oauth-utils@workspace:src/products/integrations/services/mcp-runtime/packages/oauth-utils"],
+
+    "@mtsrc/mcp-runtime-presenters": ["@mtsrc/mcp-runtime-presenters@workspace:src/products/integrations/services/mcp-runtime/packages/presenters"],
+
+    "@mtsrc/mcp-runtime-remote-protocol": ["@mtsrc/mcp-runtime-remote-protocol@workspace:src/products/integrations/services/mcp-runtime/packages/remote-protocol"],
+
     "@mtsrc/mcp-runtime-service": ["@mtsrc/mcp-runtime-service@workspace:src/products/integrations/services/mcp-runtime/service"],
+
+    "@mtsrc/mcp-runtime-storage": ["@mtsrc/mcp-runtime-storage@workspace:src/products/integrations/services/mcp-runtime/packages/storage"],
 
     "@mtsrc/scm-client-internal": ["@mtsrc/scm-client-internal@workspace:src/products/storage/clients/scm"],
 
@@ -9792,8 +10836,6 @@
 
     "@types/prismjs": ["@types/prismjs@1.26.6", "", {}, "sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw=="],
 
-    "@types/qrcode": ["@types/qrcode@1.5.6", "", { "dependencies": { "@types/node": "*" } }, "sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw=="],
-
     "@types/qs": ["@types/qs@6.15.1", "", {}, "sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw=="],
 
     "@types/range-parser": ["@types/range-parser@1.2.7", "", {}, "sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ=="],
@@ -9823,8 +10865,6 @@
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="],
 
     "@types/turndown": ["@types/turndown@5.0.6", "", {}, "sha512-ru00MoyeeouE5BX4gRL+6m/BsDfbRayOskWqUvh7CLGW+UXxHQItqALa38kKnOiZPqJrtzJUgAC2+F0rL1S4Pg=="],
-
-    "@types/ua-parser-js": ["@types/ua-parser-js@0.7.39", "", {}, "sha512-P/oDfpofrdtF5xw433SPALpdSchtJmY7nsJItf8h3KXqOslkbySh8zq4dSWXH2oTjRvJ5PczVEoCZPow6GicLg=="],
 
     "@types/unist": ["@types/unist@3.0.3", "", {}, "sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q=="],
 
@@ -9938,7 +10978,7 @@
 
     "@xterm/xterm": ["@xterm/xterm@6.0.0", "", {}, "sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg=="],
 
-    "abbrev": ["abbrev@5.0.0", "", {}, "sha512-/XrFJgzQQQHpti1raDJC6m4ws6aNktmjBlhk8Fdlk7LwCEuDoieEJJY9OFHjfiFJFFRM2tK+Ky/IsfbbmlMu1w=="],
+    "abbrev": ["abbrev@3.0.1", "", {}, "sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg=="],
 
     "abort-controller": ["abort-controller@3.0.0", "", { "dependencies": { "event-target-shim": "^5.0.0" } }, "sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg=="],
 
@@ -10456,7 +11496,7 @@
 
     "entities": ["entities@8.1.0", "", {}, "sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA=="],
 
-    "env-paths": ["env-paths@2.2.1", "", {}, "sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A=="],
+    "env-paths": ["env-paths@3.0.0", "", {}, "sha512-dtJUTepzMW3Lm/NPxRf3wP4642UWhjL2sQxc+ym2YMj1m/H2zDNQOlezafzkHwn6sMstjHTwG6iQQsctDW/b1A=="],
 
     "error-ex": ["error-ex@1.3.4", "", { "dependencies": { "is-arrayish": "^0.2.1" } }, "sha512-sqQamAnR14VgCr1A618A3sGrygcpK+HEbenA/HiEAkkUwcZIIB/tgWqHFxWgOyDh4nB4JCRimh79dR5Ywc9MDQ=="],
 
@@ -10533,8 +11573,6 @@
     "expand-template": ["expand-template@2.0.3", "", {}, "sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg=="],
 
     "expect-type": ["expect-type@1.4.0", "", {}, "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA=="],
-
-    "exponential-backoff": ["exponential-backoff@3.1.3", "", {}, "sha512-ZgEeZXj30q+I0EN+CbSSpIyPaJ5HVQD18Z1m+u1FXbAeT94mr1zw50q4q6jiiC447Nl/YTcIYSAftiGqetwXCA=="],
 
     "express": ["express@5.3.0", "", { "dependencies": { "accepts": "^2.0.0", "body-parser": "^2.3.0", "content-disposition": "^2.0.1", "content-type": "^2.0.0", "cookie": "^0.7.1", "cookie-signature": "^1.2.1", "debug": "^4.4.0", "depd": "^2.0.0", "encodeurl": "^2.0.0", "escape-html": "^1.0.3", "etag": "^1.8.1", "finalhandler": "^2.1.0", "fresh": "^2.0.0", "http-errors": "^2.0.0", "merge-descriptors": "^2.0.0", "mime-types": "^3.0.0", "on-finished": "^2.4.1", "once": "^1.4.0", "parseurl": "^1.3.3", "proxy-addr": "^2.0.8", "qs": "^6.16.0", "range-parser": "^1.2.1", "router": "^2.2.0", "send": "^1.1.0", "serve-static": "^2.2.0", "statuses": "^2.0.1", "type-is": "^2.1.0", "vary": "^1.1.2" } }, "sha512-qCqy1xSoaugxOD4IVHb1ZWdkvCF2W3aE2okKouWj8VwJ+ztskSiXoBnCSJqfKT+cVPJhuJqe9YLbY425+Zh00g=="],
 
@@ -11384,8 +12422,6 @@
 
     "node-forge": ["node-forge@1.3.3", "", {}, "sha512-rLvcdSyRCyouf6jcOIPe/BgwG/d7hKjzMKOas33/pHEr6gbq18IK9zV7DiPvzsz0oBJPme6qr6H6kGZuI9/DZg=="],
 
-    "node-gyp": ["node-gyp@13.1.0", "", { "dependencies": { "env-paths": "^2.2.0", "exponential-backoff": "^3.1.1", "graceful-fs": "^4.2.6", "nopt": "^10.0.0", "proc-log": "^7.0.0", "semver": "^7.3.5", "tar": "^7.5.7", "tinyglobby": "^0.2.12", "undici": "^8.4.1", "which": "^7.0.0" }, "bin": { "node-gyp": "bin/node-gyp.js" } }, "sha512-FpNzOLFACKG0oRBYbZ5WOeWD1EqRTIWX90MaRIWTO18lVYPx8fqIjrdS3pihjnCkSmgop6zVGkSqg1vXZLksuw=="],
-
     "node-gyp-build": ["node-gyp-build@4.8.4", "", { "bin": { "node-gyp-build": "bin.js", "node-gyp-build-optional": "optional.js", "node-gyp-build-test": "build-test.js" } }, "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ=="],
 
     "node-gyp-build-optional-packages": ["node-gyp-build-optional-packages@5.2.2", "", { "dependencies": { "detect-libc": "^2.0.1" }, "bin": { "node-gyp-build-optional-packages": "bin.js", "node-gyp-build-optional-packages-optional": "optional.js", "node-gyp-build-optional-packages-test": "build-test.js" } }, "sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw=="],
@@ -11400,7 +12436,7 @@
 
     "nodemailer": ["nodemailer@10.3.1", "", {}, "sha512-uF0AFsJC07Y1vdW7p580DKAnh7rAO+4UPSSB3mDCPNDufoiaOebV6JmrzpxB14OjEEEiBsNdYoM2Y+fN8M7BBA=="],
 
-    "nopt": ["nopt@10.0.1", "", { "dependencies": { "abbrev": "^5.0.0" }, "bin": { "nopt": "bin/nopt.js" } }, "sha512-df3sBr/6ax9hSGuC3CspvLlbnX8cP5L5nZwXF8cGN8l0zSWR6BvzmQ6jPUKjvo6+/xdpkNvEcucBNUdBeeV13g=="],
+    "nopt": ["nopt@8.1.0", "", { "dependencies": { "abbrev": "^3.0.0" }, "bin": { "nopt": "bin/nopt.js" } }, "sha512-ieGu42u/Qsa4TFktmaKEwM6MQH0pOWnaB3htzh0JRtx84+Mebc0cbZYN5bC+6WTZ4+77xrL9Pn5m7CV6VIkV7A=="],
 
     "normalize-package-data": ["normalize-package-data@2.5.0", "", { "dependencies": { "hosted-git-info": "^2.1.4", "resolve": "^1.10.0", "semver": "2 || 3 || 4 || 5", "validate-npm-package-license": "^3.0.1" } }, "sha512-/5CMN3T0R4XTj4DcGaexo+roZSdSFW/0AOOTROrjxzCG1wrWXEsGbRKevjlIL+ZDE4sZlJr5ED4YW0yqmkK+eA=="],
 
@@ -11661,8 +12697,6 @@
     "prisma-json-types-generator": ["prisma-json-types-generator@6.0.0", "", { "dependencies": { "@prisma/generator-helper": "^7.10.1", "oxc-parser": "^0.156.0", "semver": "^7.8.5", "try": "^1.0.3", "tslib": "^2.9.1" }, "peerDependencies": { "@prisma/client": "^7.10.1", "pg": "^8.23.1", "prisma": "^7.10.1" }, "optionalPeers": ["pg"], "bin": { "prisma-json-types-generator": "index.js" } }, "sha512-oETYvxv81/O4zU+1PFLozEHL/O429EanvP+nTKZznwsxNpORMtSLhwuq53+39veEDxXBgnVRzsaMGc+TnAxKNQ=="],
 
     "prismjs": ["prismjs@1.30.0", "", {}, "sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw=="],
-
-    "proc-log": ["proc-log@7.0.0", "", {}, "sha512-FYgfaA69XZ93zaXLoMNQ+ViDXGGBgR8aLh03txzcFhV+9xOXx7+8DLCULrKKpR9+GsH9ZfHm82aSUPpozX0Ztg=="],
 
     "process": ["process@0.11.10", "", {}, "sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A=="],
 
@@ -12488,7 +13522,7 @@
 
     "y18n": ["y18n@5.0.8", "", {}, "sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA=="],
 
-    "yallist": ["yallist@5.0.0", "", {}, "sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw=="],
+    "yallist": ["yallist@4.0.0", "", {}, "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="],
 
     "yaml": ["yaml@2.9.1", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw=="],
 
@@ -12708,8 +13742,6 @@
 
     "@mapbox/node-pre-gyp/https-proxy-agent": ["https-proxy-agent@7.0.6", "", { "dependencies": { "agent-base": "^7.1.2", "debug": "4" } }, "sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw=="],
 
-    "@mapbox/node-pre-gyp/nopt": ["nopt@8.1.0", "", { "dependencies": { "abbrev": "^3.0.0" }, "bin": { "nopt": "bin/nopt.js" } }, "sha512-ieGu42u/Qsa4TFktmaKEwM6MQH0pOWnaB3htzh0JRtx84+Mebc0cbZYN5bC+6WTZ4+77xrL9Pn5m7CV6VIkV7A=="],
-
     "@metorial-io/data-hooks/@metorial/util-endpoint": ["@metorial/util-endpoint@1.0.1", "", { "dependencies": { "@metorial/util-async-iterator": "^1.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-LqRt1EX5lx+/zYiDwlOHBg9NXqkARl+XQWquaJihbGc8+TPVCxw8yWEh/n6mwPU7ydG3QiAqlEM1cfPMRFpTbQ=="],
 
     "@metorial-io/layout/framer-motion": ["framer-motion@12.43.0", "", { "dependencies": { "motion-dom": "^12.43.0", "motion-utils": "^12.39.0", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-1eaL3RvR/kAlbG7UYcpMptEyzPoENO0c6w7ZnB3/hh2vSAz/6uGAFn6fdoqTBguNstf3MsFhJHsD/0DHiclG+g=="],
@@ -12806,13 +13838,103 @@
 
     "@mtsrc/ai-gateway-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
+    "@mtsrc/auth-core-api-admin/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-api-auth/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-api-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-api-sso/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-db/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-email/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-http/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-identity-utils/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-account/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-admin/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-app/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-audit/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-authentication/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-session/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-sso/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-sync/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-module-user/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-runtime/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-security/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
     "@mtsrc/auth-core-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-sso-protocol/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/auth-core-test-utils/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@mtsrc/email-client-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@mtsrc/email-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
+    "@mtsrc/mcp-runtime-api-connection/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-api-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-api-public/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-data-utils/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-db/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-docker/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-env/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-function-bay/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-change-notifications/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-connection-runtime/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-connections/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-deployments/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-discovery/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-functions/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-oauth/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-retention/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-secrets/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-servers/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-module-tenants/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-network/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-oauth-utils/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-presenters/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-remote-protocol/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
     "@mtsrc/mcp-runtime-service/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@mtsrc/mcp-runtime-storage/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@mtsrc/scm-client-internal/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -12877,8 +13999,6 @@
     "@prisma/get-platform/@prisma/debug": ["@prisma/debug@7.2.0", "", {}, "sha512-YSGTiSlBAVJPzX4ONZmMotL+ozJwQjRmZweQNIq/ER0tQJKJynNkRB3kyvt37eOfsbMCXk3gnLF6J9OJ4QWftw=="],
 
     "@prisma/instrumentation/@opentelemetry/instrumentation": ["@opentelemetry/instrumentation@0.207.0", "", { "dependencies": { "@opentelemetry/api-logs": "0.207.0", "import-in-the-middle": "^2.0.0", "require-in-the-middle": "^8.0.0" }, "peerDependencies": { "@opentelemetry/api": "^1.3.0" } }, "sha512-y6eeli9+TLKnznrR8AZlQMSJT7wILpXH+6EYq5Vf/4Ao+huI7EedxQHwRgVUOMLFbe7VFDvHJrX9/f4lcwnJsA=="],
-
-    "@prisma/streams-local/env-paths": ["env-paths@3.0.0", "", {}, "sha512-dtJUTepzMW3Lm/NPxRf3wP4642UWhjL2sQxc+ym2YMj1m/H2zDNQOlezafzkHwn6sMstjHTwG6iQQsctDW/b1A=="],
 
     "@prisma/studio-core/@radix-ui/react-toggle": ["@radix-ui/react-toggle@1.1.10", "", { "dependencies": { "@radix-ui/primitive": "1.1.3", "@radix-ui/react-primitive": "2.1.3", "@radix-ui/react-use-controllable-state": "1.2.2" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-lS1odchhFTeZv3xwHH31YPObmJn8gOg7Lq12inrr0+BH/l3Tsq32VfjqH1oh80ARM3mlkfMic15n0kg4sD1poQ=="],
 
@@ -12963,8 +14083,6 @@
     "@types/nodemailer/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@types/pg/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
-
-    "@types/qrcode/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@types/readable-stream/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -13286,8 +14404,6 @@
 
     "node-fetch/whatwg-url": ["whatwg-url@5.0.0", "", { "dependencies": { "tr46": "~0.0.3", "webidl-conversions": "^3.0.0" } }, "sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw=="],
 
-    "node-gyp/which": ["which@7.0.0", "", { "dependencies": { "isexe": "^4.0.0" }, "bin": { "node-which": "bin/which.js" } }, "sha512-RancgH2dmbLdHl6LRhEqvklWMgl/Hdnun0Y90KhBOLkMefg8Qa7/Zel8Sm+8HEcP6DEjzsWzpkuBQEZok58isA=="],
-
     "normalize-package-data/semver": ["semver@5.7.2", "", { "bin": { "semver": "bin/semver" } }, "sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g=="],
 
     "npm-run-all/cross-spawn": ["cross-spawn@6.0.6", "", { "dependencies": { "nice-try": "^1.0.4", "path-key": "^2.0.1", "semver": "^5.5.0", "shebang-command": "^1.2.0", "which": "^1.2.9" } }, "sha512-VqCUuhcd1iB+dsv8gxPttb5iZh/D0iubSP21g36KXdEuf6I5JiioesUVjpCdHV9MZRUfVFlvwtIUyPfxo5trtw=="],
@@ -13413,6 +14529,8 @@
     "svgo/commander": ["commander@7.2.0", "", {}, "sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw=="],
 
     "svgo/css-select": ["css-select@4.3.0", "", { "dependencies": { "boolbase": "^1.0.0", "css-what": "^6.0.1", "domhandler": "^4.3.1", "domutils": "^2.8.0", "nth-check": "^2.0.1" } }, "sha512-wPpOYtnsVontu2mODhA19JrqWxNsfdatRKd64kmpRbQgh1KtItko5sTnEpPdpSaJszTOhEMlF/RPz28qj4HqhQ=="],
+
+    "tar/yallist": ["yallist@5.0.0", "", {}, "sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw=="],
 
     "tar-fs/chownr": ["chownr@1.1.4", "", {}, "sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg=="],
 
@@ -13573,8 +14691,6 @@
     "@lowerdeck/ssrf/@types/bun/bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "@mapbox/node-pre-gyp/https-proxy-agent/agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
-
-    "@mapbox/node-pre-gyp/nopt/abbrev": ["abbrev@3.0.1", "", {}, "sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg=="],
 
     "@metorial-io/data-hooks/@metorial/util-endpoint/@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0", "", {}, "sha512-Q7R+eB6E/eMirxowFvFi+EXnkFOn6EWr1SBwsMLCknu5qIZ/Kgm3yiqyaaisHm1vl7zki5+gIxYST9LxPjdrTA=="],
 
@@ -13906,13 +15022,103 @@
 
     "@mtsrc/ai-gateway-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@mtsrc/auth-core-api-admin/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-api-auth/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-api-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-api-sso/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-db/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-email/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-http/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-identity-utils/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-account/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-admin/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-app/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-audit/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-authentication/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-session/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-sso/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-sync/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-module-user/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-runtime/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-security/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@mtsrc/auth-core-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-sso-protocol/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/auth-core-test-utils/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@mtsrc/email-client-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@mtsrc/email-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@mtsrc/mcp-runtime-api-connection/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-api-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-api-public/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-data-utils/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-db/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-docker/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-env/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-function-bay/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-change-notifications/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-connection-runtime/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-connections/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-deployments/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-discovery/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-functions/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-oauth/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-retention/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-secrets/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-servers/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-module-tenants/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-network/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-oauth-utils/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-presenters/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-remote-protocol/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@mtsrc/mcp-runtime-service/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@mtsrc/mcp-runtime-storage/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@mtsrc/scm-client-internal/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -13969,8 +15175,6 @@
     "@prisma/studio-core/@radix-ui/react-toggle/@radix-ui/react-use-controllable-state": ["@radix-ui/react-use-controllable-state@1.2.2", "", { "dependencies": { "@radix-ui/react-use-effect-event": "0.0.2", "@radix-ui/react-use-layout-effect": "1.1.1" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-BjasUjixPFdS+NKkypcyyN5Pmg83Olst0+c6vGov0diwTEo6mgdqVR6hxcEgFuh4QrAs7Rc+9KuGJ9TVCj0Zzg=="],
 
     "@redis/graph/@redis/client/cluster-key-slot": ["cluster-key-slot@1.1.2", "", {}, "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA=="],
-
-    "@redis/graph/@redis/client/yallist": ["yallist@4.0.0", "", {}, "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="],
 
     "@rollup/plugin-babel/@rollup/pluginutils/@types/estree": ["@types/estree@0.0.39", "", {}, "sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw=="],
 
@@ -14057,8 +15261,6 @@
     "@types/nodemailer/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@types/pg/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
-
-    "@types/qrcode/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@types/readable-stream/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -14207,8 +15409,6 @@
     "node-fetch/whatwg-url/tr46": ["tr46@0.0.3", "", {}, "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw=="],
 
     "node-fetch/whatwg-url/webidl-conversions": ["webidl-conversions@3.0.1", "", {}, "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ=="],
-
-    "node-gyp/which/isexe": ["isexe@4.0.0", "", {}, "sha512-FFUtZMpoZ8RqHS3XeXEmHWLA4thH+ZxCv2lOiPIn1Xc7CxrqhWzNSDzD+/chS/zbYezmiwWLdQC09JdQKmthOw=="],
 
     "npm-run-all/cross-spawn/path-key": ["path-key@2.0.1", "", {}, "sha512-fEHGKCSmUSDPv4uoj8AlD+joPlq3peND+HRYyxFz4KPw4z926S/b8rIuFs2FYJg3BwsxJf6A9/3eIdLaYC+9Dw=="],
 
@@ -14517,8 +15717,6 @@
     "@boxyhq/metrics/@opentelemetry/sdk-metrics/@opentelemetry/core/@opentelemetry/semantic-conventions": ["@opentelemetry/semantic-conventions@1.45.0", "", {}, "sha512-aOP45mbcOKbQVvFWfQmgoOPT8R2iwbbbgl83k4CujGV9BrJhFr3qG55MFpwFs4YLabpuW3HhzUY9eQxPlDqaZw=="],
 
     "@boxyhq/saml-jackson/redis/@redis/client/cluster-key-slot": ["cluster-key-slot@1.1.2", "", {}, "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA=="],
-
-    "@boxyhq/saml-jackson/redis/@redis/client/yallist": ["yallist@4.0.0", "", {}, "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="],
 
     "@eslint/config-array/minimatch/brace-expansion/balanced-match": ["balanced-match@4.0.4", "", {}, "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA=="],
 
