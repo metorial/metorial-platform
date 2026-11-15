@@ -241,6 +241,7 @@ export let status = async (project: ProjectRoot) => {
   console.log(
     `mail: localhost:${data.service_ports!.mail} (inbox http://localhost:${data.service_ports!.mail_ui})`
   );
+  console.log(`DB Explorer: http://${data.hostname}:4983`);
 
   let compose = composePath(project);
   if (!existsSync(compose)) {

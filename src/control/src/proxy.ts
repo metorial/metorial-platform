@@ -19,6 +19,18 @@ interface Registrations {
 
 export let mailPort = 8025;
 
+export let dbExplorerPort = 4983;
+
+export let dbExplorerProxyAlias = (data: WorkspaceMetadata) =>
+  `metorial-db-explorer-${data.id}`;
+
+export let usesPostgres = (manifests: LoadedManifest[]) =>
+  manifests.some(
+    item =>
+      Object.keys(item.manifest.postgres).length > 0 ||
+      item.manifest.resources.some(resource => resource.type === 'postgres')
+  );
+
 export let mailProxyAlias = (data: WorkspaceMetadata) => `metorial-mail-${data.id}`;
 
 let usesMail = (manifests: LoadedManifest[]) =>
@@ -32,6 +44,7 @@ export let publicPorts = (manifests: LoadedManifest[], project: ProjectRoot) => 
     )
   );
   if (usesMail(applicable)) ports.add(mailPort);
+  if (usesPostgres(applicable)) ports.add(dbExplorerPort);
 
   return ports;
 };
@@ -255,6 +268,15 @@ export let register = async (
           : `http://${mailProxyAlias(data)}:8025`
     });
 
+  if (usesPostgres(selected))
+    routes.set(dbExplorerPort, {
+      port: dbExplorerPort,
+      target:
+        data.runtime === 'host'
+          ? `http://host.docker.internal:${data.service_ports?.db_explorer ?? defaultPorts.db_explorer}`
+          : `http://${dbExplorerProxyAlias(data)}:${dbExplorerPort}`
+    });
+
   let token = `${process.pid}-${BigInt(Date.now()) * 1000000n + (process.hrtime.bigint() % 1000000n)}`;
   let path = join(root, 'registrations', `${data.id}.json`);
   await withLock(join(root, 'lock'), () => {
@@ -276,7 +298,10 @@ export let register = async (
         for (let existing of session.routes) {
           if (
             existing.port === route.port &&
-            !(route.port === mailPort && existing.target === route.target)
+            !(
+              [mailPort, dbExplorerPort].includes(route.port) &&
+              existing.target === route.target
+            )
           )
             throw new Error(
               `workspace ${JSON.stringify(data.id)} already has ${existing.target !== route.target ? 'a different route' : 'an active development service'} on public port ${route.port}`

@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { atomicWrite, canonical, sortedEntries } from './files';
 import { rootEnvironment } from './environment';
 import { discover, loadExternals, readExternals, selectWithDependencies } from './manifest';
-import { requirementsFromManifests, writeCompose } from './infrastructure';
+import { postgresDatabases, requirementsFromManifests, writeCompose } from './infrastructure';
 import { createPostgres, mongoExec } from './docker';
 import * as commands from './process';
 import * as proxy from './proxy';
@@ -191,6 +191,8 @@ let ensureRunning = async (project: ProjectRoot, rebuild: boolean) => {
       project_name: servicesProject(data),
       network: 'workspace-services',
       mail_proxy_alias: proxy.mailProxyAlias(data),
+      db_explorer_proxy_alias: proxy.dbExplorerProxyAlias(data),
+      postgres_databases: postgresDatabases(selected),
       restart: true
     }
   );

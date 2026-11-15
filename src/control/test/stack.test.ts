@@ -264,7 +264,18 @@ describe('stack compose', () => {
     let { plan, compose } = render('development');
 
     expect(compose.name).toBe(plan.composeProject);
-    expect(Object.keys(compose.services).sort()).toEqual(['app', 'gateway', 'postgres-db2']);
+    expect(
+      (compose.services['drizzle-gateway'] as any).networks['control-proxy'].aliases
+    ).toEqual([proxy.dbExplorerProxyAlias(plan.data)]);
+    expect((compose.services['drizzle-gateway'] as any).environment.DATABASE_URL_api).toBe(
+      'postgresql://postgres:postgres@postgres-db2:5432/api'
+    );
+    expect(Object.keys(compose.services).sort()).toEqual([
+      'app',
+      'drizzle-gateway',
+      'gateway',
+      'postgres-db2'
+    ]);
     expect((compose.services.app as any).network_mode).toBe('service:gateway');
     expect((compose.services.gateway as any).networks.stack.aliases).toEqual([
       plan.hostname,
@@ -282,6 +293,7 @@ describe('stack compose', () => {
 
     expect(Object.keys(compose.services).sort()).toEqual([
       'api',
+      'drizzle-gateway',
       'gateway',
       'postgres-db2',
       'worker'

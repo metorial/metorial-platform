@@ -274,7 +274,12 @@ describe('workspace and runtime state', () => {
     await Bun.$`git -C ${source} -c user.name=Control -c user.email=control@example.com commit --allow-empty -qm fixture`.quiet();
     await Bun.$`git -C ${source} worktree add -qb feature ${root}`.quiet();
 
-    let ports = { ...environment.defaultPorts, mail, mail_ui: undefined };
+    let ports = {
+      ...environment.defaultPorts,
+      mail,
+      mail_ui: undefined,
+      db_explorer: undefined
+    };
     workspace.writeMetadata(
       root,
       workspaceData(source, { service_ports: ports, endpoint_ports: { api: { http: 30001 } } })
@@ -284,6 +289,7 @@ describe('workspace and runtime state', () => {
     let data = await workspace.metadata(value);
     let smtp = data.service_ports?.mail;
     let mailUi = data.service_ports?.mail_ui;
+    let explorer = data.service_ports?.db_explorer;
 
     if (mail === undefined) expect(smtp).toBeGreaterThanOrEqual(30000);
     else expect(smtp).toBe(mail);
@@ -291,7 +297,14 @@ describe('workspace and runtime state', () => {
     expect(smtp).not.toBe(30001);
     expect(mailUi).not.toBe(30001);
     expect(mailUi).not.toBe(smtp);
-    expect(data.service_ports).toEqual({ ...ports, mail: smtp, mail_ui: mailUi });
+    expect(explorer).toBeGreaterThanOrEqual(30000);
+    expect([smtp, mailUi, 30001]).not.toContain(explorer);
+    expect(data.service_ports).toEqual({
+      ...ports,
+      mail: smtp,
+      mail_ui: mailUi,
+      db_explorer: explorer
+    });
     expect(workspace.metadataIfPresent(root)).toEqual(data);
     expect(await workspace.metadata(value)).toEqual(data);
 
@@ -423,8 +436,10 @@ describe('generated workspaces and infrastructure', () => {
         })
       );
 
-      expect(Object.keys(rendered.services)).toHaveLength(1);
-      expect(Object.keys(rendered.volumes)).toEqual([`${type}-data`]);
+      expect(Object.keys(rendered.services)).toHaveLength(type === 'postgres' ? 2 : 1);
+      expect(Object.keys(rendered.volumes).sort()).toEqual(
+        (type === 'postgres' ? ['db_explorer-data', 'postgres-data'] : [`${type}-data`]).sort()
+      );
     }
   );
 
@@ -498,6 +513,83 @@ describe('generated workspaces and infrastructure', () => {
     );
 
     await unregister();
+  });
+
+  test('DB Explorer routes stay isolated for host workspaces and Docker stacks', async () => {
+    let root = temporary();
+    let value = project(root);
+    let postgres = load("name='api'\n[[resources]]\ntype='postgres'");
+    let host = workspaceData(root, {
+      service_ports: { ...environment.defaultPorts, db_explorer: 31998 }
+    });
+    let stack = workspaceData(root, { id: 'stack-feature', runtime: 'docker' });
+    let dynamic = join(root, '.control/proxy/dynamic');
+
+    expect(proxy.publicPorts([postgres], value).has(proxy.dbExplorerPort)).toBe(true);
+    let first = await proxy.register(value, host, [postgres]);
+    let second = await proxy.register(value, host, [postgres]);
+    let third = await proxy.register(value, stack, [postgres]);
+
+    expect(readFileSync(join(dynamic, 'feature.yml'), 'utf8')).toContain(
+      'http://host.docker.internal:31998'
+    );
+    expect(readFileSync(join(dynamic, 'stack-feature.yml'), 'utf8')).toContain(
+      `http://${proxy.dbExplorerProxyAlias(stack)}:4983`
+    );
+
+    await first();
+    expect(existsSync(join(dynamic, 'feature.yml'))).toBe(true);
+    await second();
+    await third();
+    expect(existsSync(join(dynamic, 'feature.yml'))).toBe(false);
+    expect(existsSync(join(dynamic, 'stack-feature.yml'))).toBe(false);
+  });
+
+  test('DB Explorer persists settings and connects to its own Postgres service', () => {
+    let requirements = {
+      postgres: true,
+      mongo: false,
+      redis: false,
+      nats: false,
+      etcd: false,
+      mail: false
+    };
+    let rendered = JSON.parse(
+      infrastructure.renderCompose(requirements, {
+        network: 'test',
+        db_explorer_proxy_alias: 'explorer-feature',
+        restart: true
+      })
+    );
+    let explorer = rendered.services['drizzle-gateway'];
+
+    expect(explorer.environment.DATABASE_URL_postgres).toBe(
+      'postgresql://postgres:postgres@postgres-db2:5432/postgres'
+    );
+    expect(explorer.environment.STORE_PATH).toBe('/app');
+    expect(explorer.volumes).toEqual(['db_explorer-data:/app']);
+    expect(explorer.networks['control-proxy'].aliases).toEqual(['explorer-feature']);
+    expect(explorer.depends_on['postgres-db2'].condition).toBe('service_healthy');
+    expect(infrastructure.serviceNames(requirements)).toContain('drizzle-gateway');
+  });
+
+  test('DB Explorer seeds every declared Postgres database once', () => {
+    let loaded = load(
+      "name='api'\n[postgres.main]\npackage='api'\ndatabase='core-db'\n[postgres.other]\npackage='api'\ndatabase='payment'\n"
+    );
+    let requirements = infrastructure.requirementsFromManifests([loaded]);
+    let databases = infrastructure.postgresDatabases([loaded, loaded]);
+    let services = infrastructure.serviceDefinitions(requirements, {
+      network: 'test',
+      postgres_databases: databases,
+      restart: false
+    });
+
+    expect(databases).toEqual(['core-db', 'payment']);
+    expect(services['drizzle-gateway'].environment).toMatchObject({
+      'DATABASE_URL_core-db': 'postgresql://postgres:postgres@postgres-db2:5432/core-db',
+      DATABASE_URL_payment: 'postgresql://postgres:postgres@postgres-db2:5432/payment'
+    });
   });
 
   test('workspace mailpit joins the proxy network under its alias', () => {

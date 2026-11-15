@@ -22,7 +22,8 @@ export let defaultPorts = {
   etcd_client: 32379,
   etcd_peer: 32380,
   mail: 31025,
-  mail_ui: 38025
+  mail_ui: 38025,
+  db_explorer: 34983
 };
 
 export let portKey = (name: string) => `CONTROL_PORT_${name.toUpperCase()}`;

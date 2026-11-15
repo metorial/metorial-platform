@@ -19,7 +19,10 @@ test.skipIf(process.env.CONTROL_DOCKER_TESTS !== '1')(
       { 'control:db:generate': 'true', 'control:db:push': 'true' }
     );
 
-    let allocated = await allocatePortValues(new Set(Object.values(defaultPorts)), 6);
+    let allocated = await allocatePortValues(
+      new Set(Object.values(defaultPorts)),
+      Object.keys(defaultPorts).length
+    );
     let env = Object.fromEntries(
       Object.keys(defaultPorts).map((name, index) => [portKey(name), String(allocated[index])])
     );
@@ -28,8 +31,8 @@ test.skipIf(process.env.CONTROL_DOCKER_TESTS !== '1')(
     try {
       await docker.start(root, discover(root), env);
 
-      for (let port of allocated.filter((_, index) => index !== 5))
-        expect(await docker.portReachable(port)).toBe(true);
+      for (let name of ['postgres', 'mongo', 'redis', 'nats', 'etcd_client', 'db_explorer'])
+        expect(await docker.portReachable(Number(env[portKey(name)]))).toBe(true);
 
       let pg = await commands.output(
         'docker',
