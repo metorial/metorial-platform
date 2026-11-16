@@ -111,6 +111,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "deepseek/deepseek-v4.1-flash:batch": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "The ':batch' suffix is OpenRouter's batch-pricing tier of the same model, so the link is correct. HF repo deepseek-ai/DeepSeek-V4.1-Flash (created 2026-09-10) and listing slug deepseek-v4.1-flash-20260910 match the index entry deepseek/deepseek-v4.1-flash (released 2026-09-10); the lower input price (0.023 vs median 0.223) is the discounted batch rate.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "dots-studio/dots-3-note-preview:free": {
     "decision": "defer",
     "until": "2026-12-12",
