@@ -14,6 +14,10 @@ import {
 let [command, dockerfileArgument, destination, canonical = '', buildArguments = '{}'] =
   process.argv.slice(2);
 let fingerprintPolicy = 4;
+let platforms = (process.env.IMAGE_CACHE_PLATFORMS || 'linux/amd64')
+  .split(',')
+  .map(platform => platform.trim())
+  .filter(Boolean);
 let pruneLockTimeoutMs = 300_000;
 let outputFile = process.env.GITHUB_OUTPUT;
 let startedAt = Date.now();
@@ -316,7 +320,7 @@ if (command === 'resolve') {
     JSON.stringify({
       version: 2,
       fingerprintPolicy,
-      platform: 'linux/amd64',
+      platform: platforms.join(','),
       recipe: pinned,
       args: JSON.parse(buildArguments)
     })
@@ -352,29 +356,38 @@ if (command === 'resolve') {
     );
     if (!found) console.log(`Image cache miss: ${repository}:${tag}`);
     if (found) {
-      let inspected = Bun.spawnSync(
-        [
-          'regctl',
-          'image',
-          'inspect',
-          `${repository}@${found}`,
-          '--platform',
-          'linux/amd64',
-          '--format',
-          '{{.OS}}/{{.Architecture}}'
-        ],
-        { stdout: 'pipe', stderr: 'pipe' }
-      );
-      if (inspected.exitCode) {
-        let error = inspected.stderr.toString();
-        if (
-          !/unauthorized|denied|forbidden/i.test(error) &&
-          /manifest unknown|name unknown|not found|no matching platform|\b404\b/i.test(error)
-        )
-          continue;
-        throw new Error(`Cannot inspect cached image: ${error}`);
+      let missingPlatform = false;
+      for (let platform of platforms) {
+        let inspected = Bun.spawnSync(
+          [
+            'regctl',
+            'image',
+            'inspect',
+            `${repository}@${found}`,
+            '--platform',
+            platform,
+            '--format',
+            '{{.OS}}/{{.Architecture}}'
+          ],
+          { stdout: 'pipe', stderr: 'pipe' }
+        );
+        if (inspected.exitCode) {
+          let error = inspected.stderr.toString();
+          if (
+            !/unauthorized|denied|forbidden/i.test(error) &&
+            /manifest unknown|name unknown|not found|no matching platform|\b404\b/i.test(error)
+          ) {
+            missingPlatform = true;
+            break;
+          }
+          throw new Error(`Cannot inspect cached image: ${error}`);
+        }
+        if (inspected.stdout.toString().trim() !== platform) {
+          missingPlatform = true;
+          break;
+        }
       }
-      if (inspected.stdout.toString().trim() !== 'linux/amd64') continue;
+      if (missingPlatform) continue;
       source = `${repository}@${found}`;
       break;
     }

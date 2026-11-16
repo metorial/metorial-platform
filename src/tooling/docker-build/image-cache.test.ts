@@ -518,6 +518,23 @@ test('cached images missing the required platform schedule builds', async () => 
   }
 });
 
+test('multi-platform builds change the fingerprint and require every platform', async () => {
+  let directory = await fixture();
+  let single = resolveImage(directory);
+  let multi = resolveImage(directory, '{}', {
+    IMAGE_CACHE_PLATFORMS: 'linux/amd64,linux/arm64'
+  });
+  expect(multi.tag).not.toBe(single.tag);
+
+  let amd64Only = resolveImage(directory, '{}', {
+    CACHE_HIT: 'true',
+    IMAGE_CACHE_PLATFORMS: 'linux/amd64,linux/arm64',
+    PLATFORM: 'linux/amd64'
+  });
+  expect(amd64Only.code, amd64Only.error).toBe(0);
+  expect(amd64Only.text).toContain('hit=false');
+});
+
 test('builder fingerprints retain planned base digests when upstream tags move', async () => {
   let directory = await fixture();
   let original = resolveImage(directory);
