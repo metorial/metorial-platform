@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { SlatePackRelease } from '../../../../prisma/generated/client';
 import { buildSlatePackChannelQueue } from '../../../queues/packs/channels';
+import { slatePackBuildService } from '../../../services/slatePackBuild';
 import { canBuildPacks, slatePackChannelService } from '../../../services/slatePackChannel';
 import { app } from './_app';
 import { tenantApp } from './tenant';
@@ -22,6 +23,30 @@ let presentRelease = (release: SlatePackRelease) => ({
   sha256: release.sha256,
   createdAt: release.createdAt,
   prunedAt: release.prunedAt
+});
+
+let presentBuild = (build: {
+  id: string;
+  status: 'running' | 'completed' | 'failed';
+  trigger: 'scheduled' | 'manual';
+  forceFullSync: boolean;
+  reset: boolean;
+  rewindFeed: boolean;
+  releasesWritten: number;
+  error: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+}) => ({
+  id: build.id,
+  status: build.status,
+  trigger: build.trigger,
+  forceFullSync: build.forceFullSync,
+  reset: build.reset,
+  rewindFeed: build.rewindFeed,
+  releasesWritten: build.releasesWritten,
+  error: build.error,
+  startedAt: build.startedAt,
+  completedAt: build.completedAt
 });
 
 export let slatePackController = app.controller({
@@ -52,6 +77,7 @@ export let slatePackController = app.controller({
           readyIncrementalCount: item.readyIncrementalCount,
           readyFullCount: item.readyFullCount,
           readySize: Number(item.readySize),
+          isBuilding: item.isBuilding,
           prunedCount: item.prunedCount
         }))
       };
@@ -83,6 +109,47 @@ export let slatePackController = app.controller({
       return Paginator.presentLight(list, presentRelease);
     }),
 
+  listBuilds: tenantApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({ tenantId: v.string(), subRegistryIdentifier: v.string() })
+      )
+    )
+    .do(async ctx => {
+      let channel = await slatePackChannelService.getChannelForTenant({
+        tenantOid: ctx.tenant.oid,
+        subRegistryId: ctx.input.subRegistryIdentifier
+      });
+
+      let paginator = await slatePackBuildService.listForChannel({ channelOid: channel.oid });
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, presentBuild);
+    }),
+
+  getBuild: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        subRegistryIdentifier: v.string(),
+        buildId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let channel = await slatePackChannelService.getChannelForTenant({
+        tenantOid: ctx.tenant.oid,
+        subRegistryId: ctx.input.subRegistryIdentifier
+      });
+      let build = await slatePackBuildService.getForChannel({
+        channelOid: channel.oid,
+        id: ctx.input.buildId
+      });
+
+      return { ...presentBuild(build), logs: build.logs };
+    }),
+
   forceFullSync: tenantApp
     .handler()
     .input(
@@ -109,7 +176,8 @@ export let slatePackController = app.controller({
 
       await buildSlatePackChannelQueue.add(
         { channelId: channel.id, forceFullSync: true, reset: ctx.input.reset ?? false,
-          rewindFeed: ctx.input.rewindFeed ?? false
+          rewindFeed: ctx.input.rewindFeed ?? false,
+          manual: true
         },
         { deduplication: { id: `slate-pack-force-${channel.id}-${Date.now()}` } }
       );
