@@ -1,0 +1,16 @@
+{
+  "muse-spark-1-2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Contributor is the same Muse Spark 1.2 model at a discounted tier in exchange for Meta using prompts/outputs for training (~95% cheaper per vendor listings); not a different model, so the price outlier is intentional",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
+  "muse-spark-1-3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Multiple sources confirm Muse Spark 1.3 Contributor is the same Muse Spark 1.3 model under a data-contribution pricing deal (~8-12% of standard rate), not a separate checkpoint; current link is correct",
+    "by": "agent",
+    "at": "2026-11-16"
+  }
+}
