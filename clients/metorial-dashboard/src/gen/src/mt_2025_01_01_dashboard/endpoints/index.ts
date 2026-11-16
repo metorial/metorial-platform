@@ -36,6 +36,7 @@ export * from './dashboard_instance_agents_instances';
 export * from './dashboard_instance_assistants';
 export * from './dashboard_instance_callback-events';
 export * from './dashboard_instance_callback-instances';
+export * from './dashboard_instance_callback-trigger-selection-options';
 export * from './dashboard_instance_callbacks';
 export * from './dashboard_instance_chat_connections';
 export * from './dashboard_instance_chat_events';

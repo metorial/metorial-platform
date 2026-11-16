@@ -363,7 +363,10 @@ declare global {
       description: string | null;
       selectionSchema: globalThis.Record<string, any>;
       status: 'active' | 'selection_required';
+      linkedOptionProviders?: globalThis.Record<string, string>;
     }[];
+
+    type CallbackEventAttributes = globalThis.Record<string, string[]>;
 
     type WebhookRegistrationSetup = {
       document: string;

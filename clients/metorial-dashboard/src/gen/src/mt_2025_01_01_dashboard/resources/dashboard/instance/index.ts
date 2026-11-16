@@ -2,6 +2,7 @@ export * from './agents';
 export * from './assistants';
 export * from './callback-events';
 export * from './callback-instances';
+export * from './callback-trigger-selection-options';
 export * from './callbacks';
 export * from './chat';
 export * from './chats';

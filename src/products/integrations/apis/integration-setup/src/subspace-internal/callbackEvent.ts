@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { callbackEventInternalService } from '@metorial-subspace/module-callback';
+import { eventAttributesValidator } from '@metorial-subspace/module-callback/src/lib/eventAttributes';
 import { receiveSlatesCallbackEvent } from '@metorial-subspace/provider-slates';
 import { app } from './_app';
 
@@ -19,6 +20,7 @@ export let callbackEventController = app.controller({
         webhookEventId: v.optional(v.string()),
         mappedType: v.optional(v.string()),
         mappedId: v.optional(v.string()),
+        attributes: v.optional(eventAttributesValidator),
         occurredAt: v.date()
       })
     )

@@ -39,6 +39,7 @@ import type {
   CallbackEventWithRelations,
   CallbackInstanceWithRelations,
   CallbackWithRelations,
+  TriggerSelectionOption,
   WebhookEvent,
   WebhookRegistrationWithRelations
 } from '@metorial-subspace/module-callback';
@@ -3775,6 +3776,10 @@ export let scmAccountPreviewType = PresentableType.create<{
 export let callbackType = PresentableType.create<{
   callback: CallbackWithRelations;
 }>()('callback');
+
+export let callbackTriggerSelectionOptionType = PresentableType.create<{
+  triggerSelectionOption: TriggerSelectionOption;
+}>()('callback.trigger_selection_option');
 
 export let callbackInstanceType = PresentableType.create<{
   callbackInstance: CallbackInstanceWithRelations;

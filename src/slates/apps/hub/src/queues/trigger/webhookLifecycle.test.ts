@@ -313,6 +313,13 @@ describe('automatic webhook lifecycle', () => {
       where: expect.objectContaining({ oid: target.oid }),
       data: expect.objectContaining({ status: 'deleted' })
     });
+    // A stack only collects messages for a moment, so it is created after the claim check.
+    let claimCheck = db.triggerWebhookTarget.count.mock.calls.findIndex(
+      ([query]: any) => query.where.renewalClaimUntil
+    );
+    expect(db.triggerWebhookTarget.count.mock.invocationCallOrder[claimCheck]).toBeLessThan(
+      invocation.createInvocationWithState.mock.invocationCallOrder[0]!
+    );
     expect(db.triggerRegistration.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

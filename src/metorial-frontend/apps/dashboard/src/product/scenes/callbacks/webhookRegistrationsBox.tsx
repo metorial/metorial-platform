@@ -1,9 +1,10 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { col, createDataList, EmptyValue, StatusBadge } from '@metorial/data-list';
+import { col, createDataList, StatusBadge } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import { useProvider, useWebhookRegistrations } from '@metorial/state';
-import { Badge, Button, Callout, Flex, Spacer, Text } from '@metorial/ui';
+import { Badge, Button, Callout, Flex, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
+import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { truncateReceiverUrl } from './shared';
 import {
@@ -17,6 +18,23 @@ import {
   showWebhookRegistrationSetup,
   webhookRegistrationStatus
 } from './webhookRegistrationsTable';
+
+let ReceiverCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 0;
+  white-space: normal;
+`;
+
+let ReceiverUrl = styled.span`
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: ${theme.colors.gray600};
+  overflow-wrap: anywhere;
+`;
 
 let createProviderWebhookRegistrationsList = (purpose: WebhookRegistrationTarget['purpose']) =>
   createDataList<{
@@ -38,34 +56,34 @@ let createProviderWebhookRegistrationsList = (purpose: WebhookRegistrationTarget
     .columns([
       col.custom({
         id: 'receiver',
-        header: WEBHOOK_REGISTRATION_COPY[purpose].tableHeaders[0],
+        header: WEBHOOK_REGISTRATION_COPY[purpose].tableHeader,
         render: row => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Text size="2">{row.name}</Text>
+          <ReceiverCell>
+            <Flex align="center" gap={8}>
+              <Text size="2" weight="strong">
+                {row.name}
+              </Text>
 
-            {row.status === 'awaiting_setup' && (
-              <StatusBadge status={row.status} descriptor={webhookRegistrationStatus} />
-            )}
+              {row.status === 'awaiting_setup' && (
+                <StatusBadge status={row.status} descriptor={webhookRegistrationStatus} />
+              )}
 
-            {row.status === 'active' && WEBHOOK_REGISTRATION_COPY[purpose].activeBadge && (
-              <Badge color="blue" size="2" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                {WEBHOOK_REGISTRATION_COPY[purpose].activeBadge}
-              </Badge>
+              {row.status === 'active' && WEBHOOK_REGISTRATION_COPY[purpose].activeBadge && (
+                <Badge color="blue" size="2" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  {WEBHOOK_REGISTRATION_COPY[purpose].activeBadge}
+                </Badge>
+              )}
+            </Flex>
+
+            {row.receiveUrl ? (
+              <ReceiverUrl>{truncateReceiverUrl(row.receiveUrl)}</ReceiverUrl>
+            ) : (
+              <Text size="1" color="gray600">
+                Not provisioned
+              </Text>
             )}
-          </div>
+          </ReceiverCell>
         )
-      }),
-      col.custom({
-        id: 'receiveUrl',
-        header: WEBHOOK_REGISTRATION_COPY[purpose].tableHeaders[1],
-        render: row =>
-          row.receiveUrl ? (
-            <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-              {truncateReceiverUrl(row.receiveUrl)}
-            </Text>
-          ) : (
-            <EmptyValue>Not provisioned</EmptyValue>
-          )
       })
     ])
     .link((row, _props, ctx) =>

@@ -164,5 +164,7 @@ declare global {
       | { webhookEventId: string; error: { code: string; message: string; status: number } };
 
     type TriggerRawEventMatchers = SlatesTriggerRoutingMatcher[];
+
+    type TriggerEventAttributes = Record<string, string[]>;
   }
 }

@@ -13,6 +13,7 @@ let callbackEvent = {
   providerTriggerKey: 'repository.pushed',
   mappedType: null,
   mappedId: null,
+  attributes: null,
   callback: { id: 'cbk_1' },
   callbackInstance: { id: 'cbi_1' },
   occurredAt: new Date('2026-01-01T00:00:00Z'),
@@ -27,6 +28,27 @@ describe('callback event presentation', () => {
 
       expect(presented).not.toHaveProperty('read_at');
       expect(presenter.schema.properties).not.toHaveProperty('read_at');
+    }
+  });
+
+  it('presents the stored attributes in single events and list items', async () => {
+    let attributes = { fileId: ['f1'], mimeType: ['text/plain', 'image/png'] };
+
+    for (let presenter of [v1CallbackEventPresenter, v1CallbackEventListPresenter]) {
+      let presented = await presenter
+        .present({ callbackEvent: { ...callbackEvent, attributes } }, context)
+        .run();
+
+      expect(presented.attributes).toEqual(attributes);
+      expect(presenter.schema.properties).toHaveProperty('attributes');
+    }
+  });
+
+  it('presents an empty record for events without attributes', async () => {
+    for (let presenter of [v1CallbackEventPresenter, v1CallbackEventListPresenter]) {
+      let presented = await presenter.present({ callbackEvent }, context).run();
+
+      expect(presented.attributes).toEqual({});
     }
   });
 

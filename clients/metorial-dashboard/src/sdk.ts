@@ -10,6 +10,7 @@ import {
   MetorialDashboardInstanceAgentsInstancesEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
   MetorialDashboardInstanceCallbackEventsEndpoint,
+  MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint,
   MetorialDashboardInstanceCallbackInstancesEndpoint,
   MetorialDashboardInstanceCallbacksEndpoint,
   MetorialDashboardInstanceChatConnectionsEndpoint,
@@ -1245,7 +1246,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     events: new MetorialDashboardInstanceCallbackEventsEndpoint(manager),
     instances: new MetorialDashboardInstanceCallbackInstancesEndpoint(manager),
     incomingWebhooks: new MetorialDashboardInstanceIncomingWebhooksEndpoint(manager),
-    registrations: new MetorialDashboardInstanceWebhookRegistrationsEndpoint(manager)
+    registrations: new MetorialDashboardInstanceWebhookRegistrationsEndpoint(manager),
+    triggerSelectionOptions:
+      new MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint(manager)
   }),
 
   chat: Object.assign(new MetorialDashboardInstanceChatsEndpoint(manager), {

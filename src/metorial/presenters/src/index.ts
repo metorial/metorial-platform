@@ -324,6 +324,7 @@ import {
   v1CallbackEventListPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
+  v1CallbackTriggerSelectionOptionPresenter,
   v1CallbackPresenter,
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
@@ -595,6 +596,7 @@ import {
   teamType,
   callbackEventType,
   callbackInstanceType,
+  callbackTriggerSelectionOptionType,
   callbackType,
   chatAuthenticatedUserType,
   chatAuthorType,
@@ -1257,6 +1259,14 @@ export let callbackPresenter = declarePresenter(callbackType, {
   mt_2025_01_01_dashboard: dashboardCallbackPresenter,
   mt_2026_01_01_magnetar: v1CallbackPresenter
 });
+
+export let callbackTriggerSelectionOptionPresenter = declarePresenter(
+  callbackTriggerSelectionOptionType,
+  {
+    mt_2025_01_01_dashboard: v1CallbackTriggerSelectionOptionPresenter,
+    mt_2026_01_01_magnetar: v1CallbackTriggerSelectionOptionPresenter
+  }
+);
 
 export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
   mt_2025_01_01_dashboard: dashboardCallbackInstancePresenter,

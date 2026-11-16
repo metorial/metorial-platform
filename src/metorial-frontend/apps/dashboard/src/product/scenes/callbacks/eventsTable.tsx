@@ -3,6 +3,7 @@ import {
   col,
   createDataList,
   defineStatus,
+  EmptyValue,
   f,
   withDefaults,
   type TableFilterEntityOptions
@@ -14,9 +15,16 @@ import {
   useProviderTriggers,
   useProvidersByIds
 } from '@metorial/state';
+import { Text } from '@metorial/ui';
 import { useMemo, type ComponentProps } from 'react';
 import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
+import {
+  eventAttributeKeys,
+  eventAttributeLabel,
+  eventAttributeOptions,
+  formatEventAttributes
+} from './eventAttributes';
 import { CHAT_EVENT_CATALOG, sentenceCase } from './listenerEditor';
 
 export type EventsFilters = Omit<
@@ -86,6 +94,28 @@ let useEventNameFilterOptions = (
   } satisfies TableFilterEntityOptions;
 };
 
+let useEventAttributeFilterOptions = (
+  instanceId: string | null | undefined,
+  search: string
+) => {
+  let providerTriggers = useProviderTriggers(
+    instanceId,
+    instanceId ? { userManagedCallbacks: true } : null
+  );
+  let keys = useMemo(
+    () => eventAttributeKeys(providerTriggers.data?.items ?? []),
+    [providerTriggers.data?.items]
+  );
+
+  return {
+    items: eventAttributeOptions(keys, search),
+    isLoading: providerTriggers.isLoading,
+    empty: keys.length
+      ? `Type a value to filter by ${keys.join(', ')}.`
+      : 'No trigger in this project has fields to filter by.'
+  } satisfies TableFilterEntityOptions;
+};
+
 let EventsList = createDataList<{
   organizationId: string;
   filters?: EventsFilters;
@@ -115,6 +145,16 @@ let EventsList = createDataList<{
       callbackId: f.entity(entityFilters.callback(instanceId, { pinned: true })),
       chatConnectionId: f.entity(entityFilters.chatConnection(instanceId, { pinned: true })),
       providerId: f.entity(entityFilters.provider(instanceId, { pinned: true })),
+      attribute: f.entity({
+        id: 'attribute',
+        fields: ['attribute'],
+        label: 'Attribute',
+        description: 'Filter by event attribute',
+        type: 'entity',
+        searchPlaceholder: 'Type a value, such as a file ID…',
+        useOptions: ({ search }) => useEventAttributeFilterOptions(instanceId, search),
+        useValueLabels: ids => Object.fromEntries(ids.map(id => [id, eventAttributeLabel(id)]))
+      }),
       createdAt: f.createdAt({ pinned: true })
     };
   })
@@ -143,6 +183,19 @@ let EventsList = createDataList<{
     }),
     col.refId('providerId', row => row.providerId, { header: 'Provider', copy: false }),
     col.refId('instanceId', row => row.instanceId, { header: 'Instance', copy: false }),
+    col.custom({
+      id: 'attributes',
+      header: 'Attributes',
+      isDefault: false,
+      render: row => {
+        let attributes = formatEventAttributes(row.attributes);
+        return attributes.length ? (
+          <Text size="2">{attributes.join(' · ')}</Text>
+        ) : (
+          <EmptyValue />
+        );
+      }
+    }),
     col.createdAt({ header: 'Recorded' }),
     col.id({ header: 'Event ID', isDefault: true })
   ])

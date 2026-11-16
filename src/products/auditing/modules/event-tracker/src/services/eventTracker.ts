@@ -10,6 +10,7 @@ class EventTrackerServiceImpl {
     callbackId: string;
     callbackTriggerKey?: string | null;
     providerId?: string | null;
+    attributes?: string[];
   }) {
     let systemEvent = await db.systemEvent.upsert({
       where: { callbackEventId: d.callbackEventId },
@@ -22,7 +23,8 @@ class EventTrackerServiceImpl {
         callbackEventId: d.callbackEventId,
         callbackId: d.callbackId,
         callbackTriggerKey: d.callbackTriggerKey ?? null,
-        providerId: d.providerId ?? null
+        providerId: d.providerId ?? null,
+        attributes: d.attributes ?? []
       },
       update: {},
       select: { id: true }

@@ -42,6 +42,7 @@ beforeEach(async () => {
     triggerId: 'changed',
     mappedType: 'changed',
     mappedId: 'item',
+    attributes: null,
     createdAt: new Date(),
     webhookEvent: { id: 'webhook-event' },
     triggerRegistrationInstance: {
@@ -79,6 +80,26 @@ describe('mapped event delivery', () => {
     expect(receive.mock.invocationCallOrder[0]).toBeLessThan(
       db.triggerEventDispatch.deleteMany.mock.invocationCallOrder[0]!
     );
+  });
+
+  it('forwards the stored attributes with the event', async () => {
+    event.attributes = { fileId: ['file_1'], mimeType: ['text/plain'] };
+
+    await deliver();
+
+    expect(receive).toHaveBeenCalledWith(
+      expect.objectContaining({
+        triggerEventId: 'event',
+        attributes: { fileId: ['file_1'], mimeType: ['text/plain'] }
+      })
+    );
+  });
+
+  it('sends no attributes when the event has none', async () => {
+    await deliver();
+
+    expect(receive).toHaveBeenCalledOnce();
+    expect(receive.mock.lastCall![0].attributes).toBeUndefined();
   });
 
   it('keeps the dispatch row when the receiver fails so the scanner retries', async () => {

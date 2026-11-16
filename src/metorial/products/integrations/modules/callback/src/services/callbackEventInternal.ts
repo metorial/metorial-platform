@@ -18,6 +18,7 @@ class callbackEventInternalServiceImpl {
     providerTriggerKey: string;
     mappedType?: string;
     mappedId?: string;
+    attributes?: Record<string, string[]>;
     occurredAt: Date;
   }) {
     let callback = await db.callback.findUniqueOrThrow({
@@ -55,6 +56,7 @@ class callbackEventInternalServiceImpl {
 
         mappedType: d.mappedType,
         mappedId: d.mappedId,
+        attributes: d.attributes,
 
         callbackOid: d.callbackInstance.callbackOid,
         callbackInstanceOid: d.callbackInstance.oid,

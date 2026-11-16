@@ -16,7 +16,7 @@ import {
 } from './_deliveryRoutes';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
 import { saveWebhookProviderResult } from './_providerResult';
-import { createTriggerInstanceStack } from './_stack';
+import { prepareTriggerInstanceStack } from './_stack';
 import { triggerStateInstanceInclude } from './_state';
 import {
   assertClaimCoversProviderCall,
@@ -175,7 +175,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
               throw error;
             });
 
-          let stack = await createTriggerInstanceStack({
+          let { createStack } = await prepareTriggerInstanceStack({
             registration,
             sessionId: instance.id,
             note: `trigger-webhook-register:${target.id}`
@@ -186,7 +186,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
             async () => {
               await assertClaimCoversProviderCall(target.oid, token);
               let result = await slateInvocationService.registerWebhook({
-                stack,
+                stack: await createStack(),
                 triggerGroupId: target.triggerGroup.key,
                 webhookTargetIdentifier: target.targetIdentifier,
                 webhookTargetPayload: target.webhookTargetPayload,

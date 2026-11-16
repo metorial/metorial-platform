@@ -12,6 +12,7 @@ import {
 } from '@metorial-subspace/provider-utils';
 import { slates } from '../client';
 import { toAuthMethodCapabilities } from './authMethodCapabilities';
+import { toPlatformTriggerOutputSchema } from './schemaMarkers';
 import { normalizeToolCategories, resolveToolCategoryKeys } from './toolCategories';
 
 type SlateSpecificationRecord = Awaited<ReturnType<typeof slates.slateSpecification.get>>;
@@ -139,7 +140,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
               name: t.name,
               description: t.description,
               inputJsonSchema: t.inputSchema,
-              outputJsonSchema: t.outputSchema,
+              outputJsonSchema: toPlatformTriggerOutputSchema(t.outputSchema),
               invocation,
               capabilities: t.capabilities ?? {},
               metadata: t.metadata ?? {},
@@ -175,7 +176,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
             name: t.name,
             description: t.description,
             inputJsonSchema: t.inputSchema,
-            outputJsonSchema: t.outputSchema,
+            outputJsonSchema: toPlatformTriggerOutputSchema(t.outputSchema),
             capabilities: t.capabilities ?? {},
             metadata: t.metadata ?? {},
             adapterIdentifier: t.adapter?.slateIdentifier ?? null,

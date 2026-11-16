@@ -9,6 +9,7 @@ export type CallbackEventsListOutput = {
     providerTriggerKey: string;
     mappedType: string | null;
     mappedId: string | null;
+    attributes: Record<string, string[]>;
     callbackId: string;
     callbackInstanceId: string;
     occurredAt: Date;

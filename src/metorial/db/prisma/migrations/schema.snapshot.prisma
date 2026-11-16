@@ -9082,6 +9082,8 @@ model SystemEvent {
   chatConnectionId String?
   providerId       String? // Denormalized for event delivery matching
 
+  attributes String[] @default([]) // "key:value", one entry per attribute value
+
   createdAt DateTime @default(now())
 
   deliveryIntents EventDeliveryIntent[]
@@ -9094,6 +9096,7 @@ model SystemEvent {
   @@index([chatConnectionId, eventType])
   @@index([providerId, eventType])
   @@index([payloadStorageKey])
+  @@index([attributes], type: Gin)
 }
 
 enum WebhookMethod {

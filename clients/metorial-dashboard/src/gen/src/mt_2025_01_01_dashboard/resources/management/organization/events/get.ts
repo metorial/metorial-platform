@@ -13,6 +13,7 @@ export type ManagementOrganizationEventsGetOutput = {
   chatEventId: string | null;
   chatConnectionId: string | null;
   providerId: string | null;
+  attributes: Record<string, string[]>;
   createdAt: Date;
   payload: Record<string, any> | null;
 };

@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { triggerEventServiceInternal } from '../../internal/triggerEventServiceInternal';
+import { normalizeEventAttributes } from '../../lib/eventAttributes';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { TRIGGER_EVENT_MAP_MAX_ATTEMPTS, triggerEventMapBackoffMs } from './_config';
 import { createTriggerInstanceStack } from './_stack';
@@ -179,7 +180,8 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     attempt: data.attempt,
     payload: result.data.output,
     mappedType: result.data.type,
-    mappedId: result.data.id
+    mappedId: result.data.id,
+    attributes: normalizeEventAttributes(result.data.attributes)
   });
   await triggerEventPayloadOffloadQueue.add({ triggerEventId: event.id });
 
