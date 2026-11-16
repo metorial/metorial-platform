@@ -118,6 +118,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance/seedance-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "Seedance 2.5 Flash is ByteDance's faster, cheaper variant of Seedance 2.5 (announced Nov 12, 2026), analogous to Seedance 2.0 Fast vs Seedance 2.0 which the catalog models separately. The index has no seedance-2.5-flash entry yet, so defer rather than mis-link it to bytedance/seedance-2.5.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "bytedance/seedance-v1.0-pro": {
     "decision": "defer",
     "until": "2026-12-12",
