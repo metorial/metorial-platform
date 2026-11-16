@@ -994,6 +994,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "lyber/kimi-k3.1-pro-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Lyber's abliterated build of Moonshot's Kimi K3.1 Pro with refusal behavior removed in the weights (the Hugging Face card lists moonshotai/Kimi-K3.1-Pro as base and Lyber AI and dealign.ai for uncensoring); a weight-edited derivative is not moonshot/kimi-k3.1-pro itself.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "meganova-ai/manta-flash-1.0": {
     "decision": "defer",
     "until": "2026-12-12",
