@@ -14,6 +14,8 @@ let state = vi.hoisted(() => ({
   hasGroup: false,
   groupLevel: null as 'read' | 'write' | 'manage' | null,
   groupIsDefault: false,
+  hasPortal: true,
+  refetch: vi.fn(),
   share: vi.fn()
 }));
 
@@ -27,12 +29,13 @@ vi.mock('@metorial/state', () => {
 
   let mutator = () => ({ mutate: state.share, isLoading: false, RenderError: () => null });
 
-  let loader = (data: any) => ({ data, isLoading: false, refetch: vi.fn() });
+  let loader = (data: any) => ({ data, isLoading: false, refetch: state.refetch });
 
   let group = () => ({ id: 'group', name: 'Team', isDefault: state.groupIsDefault });
 
   return {
-    usePortals: () => loader({ items: [{ id: 'portal', name: 'Portal' }] }),
+    usePortals: () =>
+      loader({ items: state.hasPortal ? [{ id: 'portal', name: 'Portal' }] : [] }),
     useSkillParticipants: () =>
       loader({
         items: state.hasParticipant
@@ -138,6 +141,8 @@ beforeEach(() => {
   state.hasGroup = false;
   state.groupLevel = null;
   state.groupIsDefault = false;
+  state.hasPortal = true;
+  state.refetch.mockReset();
   state.share.mockResolvedValue([{}, null]);
 
   host = document.createElement('div');
@@ -150,12 +155,12 @@ afterEach(async () => {
   host.remove();
 });
 
-let renderPanel = async (mode: SkillSharePanelMode = 'dashboard') => {
+let renderPanel = async (mode: SkillSharePanelMode = 'dashboard', portalId = 'portal') => {
   await act(async () =>
     root.render(
       <SkillSharePanelContent
         instanceId="instance"
-        context={{ mode, portalId: 'portal', skills: [{ id: 'skill' }] }}
+        context={{ mode, portalId, skills: [{ id: 'skill' }] }}
       />
     )
   );
@@ -177,6 +182,67 @@ let choose = async (select: HTMLButtonElement, label: string) => {
 };
 
 describe('skill participant access', () => {
+  it('prompts users to create a portal when none exists', async () => {
+    state.hasPortal = false;
+    await renderPanel('dashboard', '');
+
+    expect(host.textContent).toContain('Create a portal before sharing this skill.');
+  });
+
+  it.each(['Can edit', 'Remove'])(
+    'immediately reflects %s and rolls back a failed save',
+    async label => {
+      state.hasOrganizationMemberAccess = false;
+      state.grantLevel = 'read';
+      let finish: (result: unknown[]) => void = () => {};
+      state.share.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            finish = resolve;
+          })
+      );
+      let select = await renderPanel();
+      await choose(select, label);
+
+      if (label == 'Remove') {
+        expect(host.textContent).not.toContain('member@example.com');
+      } else {
+        expect(select.textContent).toBe('Can edit');
+        expect(select.disabled).toBe(true);
+      }
+
+      await act(async () => finish([null, { message: 'Save failed' }]));
+
+      let restored = host.querySelector<HTMLButtonElement>('[aria-label="Access"]')!;
+      expect(host.textContent).toContain('member@example.com');
+      expect(restored.textContent).toBe('Can view');
+      expect(restored.disabled).toBe(false);
+    }
+  );
+
+  it('keeps a changed permission visible until refreshed access arrives', async () => {
+    state.hasOrganizationMemberAccess = false;
+    state.roles = ['owner'];
+    state.grantLevel = 'write';
+    let finish: () => void = () => {};
+    let refreshed = new Promise<void>(resolve => {
+      finish = resolve;
+    });
+    state.refetch.mockReturnValue(refreshed);
+    let select = await renderPanel();
+    await choose(select, 'Can view');
+
+    expect(select.textContent).toBe('Can view');
+    expect(select.disabled).toBe(true);
+
+    state.roles = ['viewer'];
+    state.grantLevel = 'read';
+    await act(async () => finish());
+
+    expect(select.textContent).toBe('Can view');
+    expect(select.disabled).toBe(false);
+  });
+
   it.each(['dashboard', 'portal'] as const)(
     'shows inherited edit-and-share access in a disabled select in %s mode',
     async mode => {
@@ -247,6 +313,67 @@ describe('skill participant access', () => {
 });
 
 describe('skill group access', () => {
+  it.each(['Can edit', 'Remove'])(
+    'immediately reflects group %s and rolls back a failed save',
+    async label => {
+      state.hasParticipant = false;
+      state.hasGroup = true;
+      state.groupLevel = 'read';
+      let finish: (result: unknown[]) => void = () => {};
+      state.share.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            finish = resolve;
+          })
+      );
+      let select = await renderPanel();
+      await choose(select, label);
+
+      if (label == 'Remove') {
+        expect(host.textContent).not.toContain('Team');
+      } else {
+        expect(select.textContent).toBe('Can edit');
+        expect(select.disabled).toBe(true);
+      }
+
+      await act(async () => finish([null, { message: 'Save failed' }]));
+
+      let restored = host.querySelector<HTMLButtonElement>('[aria-label="Access"]')!;
+      expect(host.textContent).toContain('Team');
+      expect(restored.textContent).toBe('Can view');
+      expect(restored.disabled).toBe(false);
+    }
+  );
+
+  it.each([false, true])(
+    'keeps group changes visible through refresh (everyone: %s)',
+    async isDefault => {
+      state.hasParticipant = false;
+      state.hasGroup = true;
+      state.groupIsDefault = isDefault;
+      state.groupLevel = 'manage';
+      let finish: () => void = () => {};
+      let refreshed = new Promise<void>(resolve => {
+        finish = resolve;
+      });
+      state.refetch.mockReturnValue(refreshed);
+      await renderPanel();
+      let select = host.querySelector<HTMLButtonElement>(
+        isDefault ? '[aria-label="Access for everyone"]' : '[aria-label="Access"]'
+      )!;
+      await choose(select, 'Can edit');
+
+      expect(select.textContent).toBe('Can edit');
+      expect(select.disabled).toBe(true);
+
+      state.groupLevel = 'write';
+      await act(async () => finish());
+
+      expect(select.textContent).toBe('Can edit');
+      expect(select.disabled).toBe(false);
+    }
+  );
+
   it('resets the group-only sharing permission when an individual is selected', async () => {
     state.hasGroup = true;
     state.hasParticipant = false;

@@ -352,7 +352,9 @@ export let SkillSharePanelContent = (p: {
   let [isSearching, setIsSearching] = useState(false);
   let [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   let [permission, setPermission] = useState<InvitePermission>('read');
-  let [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
+  let [pendingPermissions, setPendingPermissions] = useState<
+    Record<string, AccountPermission | GroupPermission>
+  >({});
 
   let mode = p.context?.mode ?? 'dashboard';
   let canManagePortalGroups = mode == 'dashboard';
@@ -385,13 +387,14 @@ export let SkillSharePanelContent = (p: {
     () =>
       (participants.data?.items ?? [])
         .filter(isListedParticipant)
+        .filter(participant => pendingPermissions[`participant:${participant.id}`] != 'none')
         .filter(
           participant => !ownProfile || participant.actor.consumer?.id != ownProfile.consumerId
         )
         .sort(
           (a, b) => Number(isParticipantOwner(b.roles)) - Number(isParticipantOwner(a.roles))
         ),
-    [participants.data?.items, ownProfile?.consumerId]
+    [participants.data?.items, ownProfile?.consumerId, pendingPermissions]
   );
   let consumerProfiles = usePortalConsumerProfiles(p.instanceId, activePortalId, {
     limit: 100,
@@ -438,7 +441,7 @@ export let SkillSharePanelContent = (p: {
     setSelectedKeys(new Set());
     setSearch('');
     setIsSearching(false);
-    setRemovingGroupId(null);
+    setPendingPermissions({});
   }, [activePortalId, selectedSkillId]);
 
   let selectedSkill = skills.find(skill => skill.id == selectedSkillId);
@@ -504,7 +507,12 @@ export let SkillSharePanelContent = (p: {
   let everyoneGroup = canManagePortalGroups
     ? (consumerGroups.data?.items ?? []).find(group => group.isDefault)
     : undefined;
-  let allGroupAccesses = portalAccess.data?.items ?? [];
+  let allGroupAccesses = (portalAccess.data?.items ?? []).flatMap(access => {
+    let permission = pendingPermissions[`group:${access.id}`];
+    if (permission == 'none') return [];
+
+    return [{ ...access, accessLevel: permission ?? access.accessLevel }];
+  });
   let everyoneAccess = everyoneGroup
     ? allGroupAccesses.find(access => access.consumerGroup.id == everyoneGroup.id)
     : undefined;
@@ -623,6 +631,27 @@ export let SkillSharePanelContent = (p: {
     await p.onShared?.();
   };
 
+  let changeAccess = async (
+    key: string,
+    permission: AccountPermission | GroupPermission,
+    mutate: () => Promise<[unknown, unknown]>
+  ) => {
+    setPendingPermissions(current => ({ ...current, [key]: permission }));
+
+    try {
+      let [updated] = await mutate();
+      if (!updated) return;
+
+      await refetchAccess();
+    } finally {
+      setPendingPermissions(current => {
+        let next = { ...current };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
   let addGroupAccess = async (consumerGroupId: string, level: GroupPermission) => {
     if (!p.instanceId || !selectedSkillId) return false;
 
@@ -642,10 +671,9 @@ export let SkillSharePanelContent = (p: {
   };
 
   let updateGroupAccess = async (consumerAccessId: string, level: GroupPermission) => {
-    let [updated] = await updatePortalAccess.mutate({ consumerAccessId, permission: level });
-    if (!updated) return;
-
-    await refetchAccess();
+    await changeAccess(`group:${consumerAccessId}`, level, () =>
+      updatePortalAccess.mutate({ consumerAccessId, permission: level })
+    );
   };
 
   let setEveryoneAccess = async (value: string) => {
@@ -733,29 +761,24 @@ export let SkillSharePanelContent = (p: {
     if (!consumerProfileId || isCurrentConsumer) return;
     if (mode != 'dashboard' && participant.actor.organizationActor?.id) return;
 
-    let [shared] = await shareSkill.mutate({
-      instanceId: p.instanceId,
-      skillId: selectedSkillId,
-      consumerProfileIds: [consumerProfileId],
-      organizationMemberIds: [],
-      permission: nextPermission
-    });
-
-    if (!shared) return;
-    await refetchAccess();
+    let instanceId = p.instanceId;
+    await changeAccess(`participant:${participant.id}`, nextPermission, () =>
+      shareSkill.mutate({
+        instanceId,
+        skillId: selectedSkillId,
+        consumerProfileIds: [consumerProfileId],
+        organizationMemberIds: [],
+        permission: nextPermission
+      })
+    );
   };
 
   let removeGroupAccess = async (consumerAccessId: string) => {
     if (!p.instanceId || !activePortalId) return;
 
-    setRemovingGroupId(consumerAccessId);
-    try {
-      let [deleted] = await deletePortalAccess.mutate({ consumerAccessId });
-      if (!deleted) return;
-      await refetchAccess();
-    } finally {
-      setRemovingGroupId(null);
-    }
+    await changeAccess(`group:${consumerAccessId}`, 'none', () =>
+      deletePortalAccess.mutate({ consumerAccessId })
+    );
   };
 
   let ownGroupAccess = ownProfile
@@ -829,11 +852,11 @@ export let SkillSharePanelContent = (p: {
       </PanelHeader>
 
       {!hasShareTarget ? (
-        <EmptyState>
+        <ContentPanel>
           <Text size="2" color="gray600">
-            Select a portal before sharing this skill.
+            Create a portal before sharing this skill.
           </Text>
-        </EmptyState>
+        </ContentPanel>
       ) : (
         <>
           <ContentPanel>
@@ -957,13 +980,15 @@ export let SkillSharePanelContent = (p: {
                     let grantedPermission = consumerProfileId
                       ? grantedPermissionByProfileId.get(consumerProfileId)
                       : undefined;
-                    let participantPermission = isOwner
-                      ? 'owner'
-                      : hasOrganizationMemberAccess
-                        ? 'manage'
-                        : consumerProfileId && skillAccess.data
-                          ? (grantedPermission ?? 'none')
-                          : getParticipantPermission(participant.roles);
+                    let participantPermission =
+                      pendingPermissions[`participant:${participant.id}`] ??
+                      (isOwner
+                        ? 'owner'
+                        : hasOrganizationMemberAccess
+                          ? 'manage'
+                          : consumerProfileId && skillAccess.data
+                            ? (grantedPermission ?? 'none')
+                            : getParticipantPermission(participant.roles));
                     let participantAccessItems = isOwner
                       ? [...accountAccessItems, ownerAccessItem]
                       : hasOrganizationMemberAccess
@@ -993,6 +1018,8 @@ export let SkillSharePanelContent = (p: {
                             size="2"
                             disabled={
                               hasOrganizationMemberAccess ||
+                              pendingPermissions[`participant:${participant.id}`] !==
+                                undefined ||
                               !canManageAccess ||
                               !consumerProfileId ||
                               (isOwner && mode != 'dashboard') ||
@@ -1036,7 +1063,8 @@ export let SkillSharePanelContent = (p: {
                             size="2"
                             value={access.accessLevel ?? 'read'}
                             disabled={
-                              removingGroupId == access.id || updatePortalAccess.isLoading
+                              pendingPermissions[`group:${access.id}`] !== undefined ||
+                              updatePortalAccess.isLoading
                             }
                             items={groupAccessItems}
                             onChange={value => {
@@ -1121,7 +1149,7 @@ export let SkillSharePanelContent = (p: {
                     disabled={
                       createPortalAccess.isLoading ||
                       updatePortalAccess.isLoading ||
-                      (!!everyoneAccess && removingGroupId == everyoneAccess.id)
+                      Object.keys(pendingPermissions).some(key => key.startsWith('group:'))
                     }
                     items={[...groupLevelItems, { id: 'none', label: 'No access' }]}
                     onChange={setEveryoneAccess}
