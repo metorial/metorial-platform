@@ -4,7 +4,7 @@ import {
   isServiceError,
   ServiceError
 } from '@lowerdeck/error';
-import { db, snowflake, type Provider, type Tenant } from '@metorial-subspace/db';
+import { db, snowflake, type Provider, type Slate, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
   type CallbackCreateParam,
@@ -24,6 +24,8 @@ import {
   type DeliverySetupServingAuthCredentialsListParam,
   type DeliverySetupServingAuthCredentialsListRes,
   type ProviderWebhookEvent,
+  type TriggerSelectionOptionsListParam,
+  type TriggerSelectionOptionsListRes,
   type WebhookEventGetParam,
   type WebhookEventListParam,
   type WebhookEventListRes,
@@ -37,6 +39,7 @@ import {
   type WebhookRegistrationUpdateRes
 } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+import { toPlatformSelectableTriggerGroups } from './schemaMarkers';
 
 // The hub accepts at most this many credentials per lookup.
 let HUB_OAUTH_CREDENTIALS_PAGE_SIZE = 100;
@@ -78,6 +81,44 @@ let resolveSubspaceRefs = async (d: { tenant: Tenant; events: SlateWebhookEventR
       mirrors.map(m => [m.id, m.webhookRegistrationOid!] as const)
     )
   };
+};
+
+let getLinkedSlateIdentifier = (d: {
+  selectableTriggerGroups: PrismaJson.SelectableTriggerGroups | null;
+  triggerGroupKey: string;
+  field: string;
+}) => {
+  let providers = d.selectableTriggerGroups?.find(
+    group => group.key === d.triggerGroupKey
+  )?.linkedOptionProviders;
+
+  return providers && Object.hasOwn(providers, d.field) ? providers[d.field]! : null;
+};
+
+let findLinkedProviderVariants = async (d: {
+  tenant: Tenant;
+  slate: Slate;
+  linkedSlateIdentifier: string | null;
+}) => {
+  if (!d.linkedSlateIdentifier) return [];
+
+  let identifier = d.linkedSlateIdentifier.replace(/^@/, '');
+
+  return await db.providerVariant.findMany({
+    where: {
+      slate: {
+        registryUrl: d.slate.registryUrl,
+        identifierInRegistry: { in: [identifier, `@${identifier}`] }
+      },
+      provider: {
+        status: 'active',
+        isDisabled: false,
+        OR: [{ access: 'public' }, { access: 'tenant', ownerTenantOid: d.tenant.oid }]
+      }
+    },
+    include: { provider: true },
+    orderBy: { isDefault: 'desc' }
+  });
 };
 
 let presentSlateWebhookEvent = (
@@ -216,7 +257,11 @@ export class ProviderCallbacks extends IProviderCallbacks {
         callbackInstanceId: mirror.id
       })) as { selectableTriggerGroups?: PrismaJson.SelectableTriggerGroups };
 
-      return { selectableTriggerGroups: existing.selectableTriggerGroups };
+      return {
+        selectableTriggerGroups: toPlatformSelectableTriggerGroups(
+          existing.selectableTriggerGroups
+        )
+      };
     }
 
     let slateCallback = await db.slateCallback.findUniqueOrThrow({
@@ -285,7 +330,9 @@ export class ProviderCallbacks extends IProviderCallbacks {
       }
     });
 
-    return { selectableTriggerGroups: res.selectableTriggerGroups };
+    return {
+      selectableTriggerGroups: toPlatformSelectableTriggerGroups(res.selectableTriggerGroups)
+    };
   }
 
   override async deleteCallbackInstance(
@@ -310,6 +357,77 @@ export class ProviderCallbacks extends IProviderCallbacks {
     }
 
     return {};
+  }
+
+  override async listTriggerSelectionOptions(
+    data: TriggerSelectionOptionsListParam
+  ): Promise<TriggerSelectionOptionsListRes> {
+    let slateCallbackInstance = await db.slateCallbackInstance.findUnique({
+      where: { callbackInstanceOid: data.callbackInstance.oid, tenantOid: data.tenant.oid },
+      include: { slateCallback: { include: { slate: true } } }
+    });
+    if (!slateCallbackInstance) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_instance_not_synced',
+          message: 'This connection is not registered with the provider yet.'
+        })
+      );
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    let linkedVariants = await findLinkedProviderVariants({
+      tenant: data.tenant,
+      slate: slateCallbackInstance.slateCallback.slate,
+      linkedSlateIdentifier: getLinkedSlateIdentifier({
+        selectableTriggerGroups: data.callbackInstance.selectableTriggerGroups,
+        triggerGroupKey: data.input.triggerGroupKey,
+        field: data.input.field
+      })
+    });
+
+    let linkableAuthConfigVersions = linkedVariants.length
+      ? await data.listLinkableAuthConfigVersions({
+          providers: linkedVariants.map(variant => variant.provider)
+        })
+      : [];
+    let linkableSlateAuthConfigOids = linkableAuthConfigVersions.flatMap(version =>
+      version.slateAuthConfigOid ? [version.slateAuthConfigOid] : []
+    );
+    let linkableSlateAuthConfigs = linkableSlateAuthConfigOids.length
+      ? await db.slateAuthConfig.findMany({
+          where: { oid: { in: linkableSlateAuthConfigOids }, tenantOid: data.tenant.oid },
+          select: { id: true }
+        })
+      : [];
+
+    let res = await slates.callbackInstance.listSelectionOptions({
+      tenantId: tenant.id,
+      callbackId: slateCallbackInstance.slateCallback.id,
+      callbackInstanceId: slateCallbackInstance.id,
+      triggerGroupKey: data.input.triggerGroupKey,
+      field: data.input.field,
+      query: data.input.query,
+      pageToken: data.input.pageToken?.value,
+      pageTokenSource: data.input.pageToken?.source,
+      selection: data.input.selection,
+      linkedAuthConfigIds: linkableSlateAuthConfigs.map(config => config.id)
+    });
+
+    // The hub is only offered connections of these variants' providers, so whenever it listed
+    // with a linked connection there is a variant to name.
+    let linkedVariant = res.linked ? linkedVariants[0] : undefined;
+
+    return {
+      options: res.options,
+      nextPageToken: res.nextPageToken,
+      source: res.source,
+      linkedProvider:
+        res.linked && linkedVariant
+          ? { provider: linkedVariant.provider, connected: res.linked.connected }
+          : null
+    };
   }
 
   override async createWebhookRegistration(

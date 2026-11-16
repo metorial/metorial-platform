@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
     pool: 'forks',
+    // Its imports of workspace packages resolve to TypeScript source, which Node cannot load.
+    server: { deps: { inline: ['@slates/proto'] } },
     env: {
       NODE_ENV: 'test',
       REDIS_URL: 'redis://127.0.0.1:6379',

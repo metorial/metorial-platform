@@ -74,7 +74,7 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     boxDescription: (providerName: string) => string;
     emptyTitle: string;
     emptyText: (providerName: string) => string;
-    tableHeaders: [string, string];
+    tableHeader: string;
     activeBadge: string | null;
 
     urlTitle: string;
@@ -104,7 +104,7 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     emptyTitle: 'Action Required to Receive Events',
     emptyText: (providerName: string) =>
       `Create a receiver, add its secure URL in ${providerName}, then enter any verification values requested by the provider. Metorial will guide you through each step.`,
-    tableHeaders: ['Receiver', 'Receive URL'],
+    tableHeader: 'Receiver',
     activeBadge: null,
 
     urlTitle: 'Receive URL',
@@ -135,7 +135,7 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     emptyTitle: 'Delivery Is Not Set Up',
     emptyText: (providerName: string) =>
       `Create a push endpoint, connect it to your own OAuth app, then enter the values Metorial asks for. ${providerName} events arrive once the delivery setup is finished.`,
-    tableHeaders: ['Delivery Setup', 'Push Endpoint'],
+    tableHeader: 'Delivery Setup',
     activeBadge: 'Set Up',
 
     urlTitle: 'Push Endpoint',

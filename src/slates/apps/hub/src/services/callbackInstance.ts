@@ -122,6 +122,18 @@ class callbackInstanceServiceImpl {
     });
   }
 
+  async listSelectionOptions(d: {
+    tenant: Tenant;
+    callbackInstance: Prisma.CallbackInstanceGetPayload<{ include: typeof include }>;
+    input: Parameters<typeof triggerRegistrationService.listSelectionOptions>[0]['input'];
+  }) {
+    return triggerRegistrationService.listSelectionOptions({
+      tenant: d.tenant,
+      registration: d.callbackInstance.triggerRegistration,
+      input: d.input
+    });
+  }
+
   async deleteCallbackInstance(d: {
     tenant: Tenant;
     callbackInstance: CallbackInstance & { triggerRegistration: TriggerRegistration };

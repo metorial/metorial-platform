@@ -5,6 +5,7 @@ import {
   type RawProviderTrigger,
   providerTriggerType
 } from '../../../types';
+import { presentTriggerSchema } from '../../_shared/triggerSchema';
 
 let isRawProviderTrigger = (
   trigger: RawProviderTrigger | PresentedProviderTrigger
@@ -65,13 +66,13 @@ export let v1ProviderTriggerPresenter = Presenter.create(providerTriggerType)
       input_schema: inputJsonSchema
         ? {
             type: 'json_schema' as const,
-            schema: inputJsonSchema
+            schema: presentTriggerSchema(inputJsonSchema)
           }
         : null,
       output_schema: outputJsonSchema
         ? {
             type: 'json_schema' as const,
-            schema: outputJsonSchema
+            schema: presentTriggerSchema(outputJsonSchema)
           }
         : null,
 
@@ -127,7 +128,8 @@ export let v1ProviderTriggerPresenter = Presenter.create(providerTriggerType)
           type: v.literal('json_schema'),
           schema: v.record(v.any(), {
             name: 'schema',
-            description: 'JSON Schema defining the trigger delivery output shape'
+            description:
+              'JSON Schema defining the trigger delivery output shape. Fields marked `x-metorial-event-attribute` are stored with each event and can be used to filter the event list with its `attribute` parameter.'
           })
         })
       ),

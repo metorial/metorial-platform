@@ -27,6 +27,10 @@ export abstract class IProviderCallbacks extends IProviderFunctionality {
     data: CallbackInstanceDeleteParam
   ): Promise<CallbackInstanceDeleteRes>;
 
+  abstract listTriggerSelectionOptions(
+    data: TriggerSelectionOptionsListParam
+  ): Promise<TriggerSelectionOptionsListRes>;
+
   abstract createWebhookRegistration(
     data: WebhookRegistrationCreateParam
   ): Promise<WebhookRegistrationCreateRes>;
@@ -104,6 +108,32 @@ export interface CallbackInstanceDeleteParam {
 }
 
 export interface CallbackInstanceDeleteRes {}
+
+export type TriggerSelectionOptionsSource = 'own' | 'linked';
+
+export interface TriggerSelectionOptionsListParam {
+  tenant: Tenant;
+  callbackInstance: CallbackInstance;
+  // Called only when the field takes options from other providers; it returns the
+  // connections the caller may use for those providers.
+  listLinkableAuthConfigVersions: (d: {
+    providers: Provider[];
+  }) => Promise<ProviderAuthConfigVersion[]>;
+  input: {
+    triggerGroupKey: string;
+    field: string;
+    query?: string;
+    pageToken?: { source: TriggerSelectionOptionsSource; value: unknown };
+    selection?: Record<string, any>;
+  };
+}
+
+export interface TriggerSelectionOptionsListRes {
+  options: { value: string | number; label: string; description?: string }[];
+  nextPageToken: unknown;
+  source: TriggerSelectionOptionsSource;
+  linkedProvider: { provider: Provider; connected: boolean } | null;
+}
 
 export interface WebhookRegistrationCreateParam {
   tenant: Tenant;
@@ -256,5 +286,6 @@ export type CallbackEventRecorder = (d: {
   providerTriggerKey: string;
   mappedType?: string;
   mappedId?: string;
+  attributes?: Record<string, string[]>;
   occurredAt: Date;
 }) => Promise<{ oid: bigint } | null>;

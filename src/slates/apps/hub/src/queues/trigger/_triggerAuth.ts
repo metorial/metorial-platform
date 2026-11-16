@@ -16,7 +16,7 @@ let defaultRefreshBufferMs = 5 * 60 * 1000;
 // A failed refresh falls back to stored credentials so the provider's rejection is handled normally.
 export let resolveTriggerAuth = async (d: {
   tenant: Tenant;
-  slateInstance: SlateInstance;
+  slateInstance: SlateInstance | null;
   authConfig: (SlateAuthConfig & { authMethod: SlateAuthMethod }) | null;
   note: string;
   minExpirationBuffer?: number;
@@ -26,7 +26,7 @@ export let resolveTriggerAuth = async (d: {
   try {
     let auth = await slateAuthHandlerService.getSlateInstanceAuth({
       tenant: d.tenant,
-      slateInstance: d.slateInstance,
+      slateInstance: d.slateInstance ?? undefined,
       authConfigId: d.authConfig.id,
       minExpirationBuffer: d.minExpirationBuffer ?? defaultRefreshBufferMs
     });

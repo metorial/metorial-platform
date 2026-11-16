@@ -80,6 +80,54 @@ describe('callback presentation', () => {
     expect(presented.auth_credentials_id).toBe(expected);
   });
 
+  it('presents trigger group selection schemas with platform markers only', async () => {
+    let callback = createCallback(null);
+    callback.callbackInstances = [
+      {
+        selectableTriggerGroups: [
+          {
+            key: 'new_rows',
+            name: 'New rows',
+            description: null,
+            status: 'active',
+            selectionSchema: {
+              type: 'object',
+              required: ['spreadsheetId'],
+              properties: {
+                spreadsheetId: {
+                  type: 'string',
+                  title: 'Spreadsheet',
+                  'x-slates-options-linked': { slate: '@google/drive', optionList: 'files' }
+                },
+                sheetId: {
+                  type: 'string',
+                  'x-slates-options': true,
+                  'x-metorial-options': true
+                }
+              }
+            }
+          }
+        ]
+      }
+    ];
+
+    let presented = await v1CallbackPresenter
+      .present(
+        { callback },
+        { apiVersion: 'mt_2026_01_01_magnetar', accessType: 'user_auth_token' }
+      )
+      .run();
+
+    expect(presented.trigger_groups[0]!.selection_schema).toEqual({
+      type: 'object',
+      required: ['spreadsheetId'],
+      properties: {
+        spreadsheetId: { type: 'string', title: 'Spreadsheet' },
+        sheetId: { type: 'string', 'x-metorial-options': true }
+      }
+    });
+  });
+
   it('keeps managed credential status out of the public callback shape', async () => {
     let presented = await v1CallbackPresenter
       .present(

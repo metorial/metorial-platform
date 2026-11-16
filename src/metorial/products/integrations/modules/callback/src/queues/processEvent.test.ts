@@ -81,8 +81,25 @@ describe('callbackEventProcessQueueProcessor', () => {
       callbackEventId: 'cbe_1',
       callbackId: 'clb_1',
       callbackTriggerKey: 'issue.created',
-      providerId: 'prov_1'
+      providerId: 'prov_1',
+      attributes: []
     });
+  });
+
+  it('passes the callback event attributes to the system event in key:value form', async () => {
+    db.callbackEvent.findUnique.mockResolvedValue(
+      callbackEvent({
+        attributes: { fileId: ['f1'], range: ['A1:B2', 'C3:D4'] }
+      })
+    );
+
+    await run('cbe_1');
+
+    expect(recordCallbackEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: ['fileId:f1', 'range:A1:B2', 'range:C3:D4']
+      })
+    );
   });
 
   it('keeps the recorded trigger key when the provider has no matching trigger', async () => {

@@ -75,6 +75,7 @@ export let triggerEventProcessQueueProcessor = triggerEventProcessQueue.process(
     webhookEventId: event.webhookEvent?.id ?? undefined,
     mappedType: event.mappedType ?? undefined,
     mappedId: event.mappedId ?? undefined,
+    attributes: event.attributes ?? undefined,
     occurredAt: event.createdAt
   });
   await db.triggerEventDispatch.deleteMany({ where: { eventOid: event.oid } });

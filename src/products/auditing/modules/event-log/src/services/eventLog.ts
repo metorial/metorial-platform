@@ -2,6 +2,10 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { callbackEventService } from '@metorial-subspace/module-callback';
+import {
+  flattenEventAttributes,
+  parseEventAttributeFilter
+} from '@metorial-subspace/module-callback/src/lib/eventAttributes';
 import { chatEventService } from '@metorial-subspace/module-chat';
 import { db, Organization, SystemEventSource } from '@metorial/db';
 import { DateFilter, normalizeDateFilter } from '@metorial/list-utils';
@@ -25,8 +29,15 @@ class EventLogServiceImpl {
     callbackTriggerKeys?: string[];
     chatConnectionIds?: string[];
     providerIds?: string[];
+    attributeFilters?: string[];
     createdAt?: DateFilter;
   }) {
+    let attributeConditions = Object.entries(
+      parseEventAttributeFilter(d.attributeFilters ?? [])
+    ).map(([key, values]) => ({
+      attributes: { hasSome: flattenEventAttributes({ [key]: values }) }
+    }));
+
     let instanceOid: bigint | undefined;
     if (d.instanceId) {
       let instance = await db.instance.findFirst({
@@ -56,6 +67,7 @@ class EventLogServiceImpl {
               ? { in: d.chatConnectionIds }
               : undefined,
             providerId: d.providerIds?.length ? { in: d.providerIds } : undefined,
+            AND: attributeConditions.length ? attributeConditions : undefined,
             createdAt: normalizeDateFilter(d.createdAt)
           },
           include: systemEventInclude

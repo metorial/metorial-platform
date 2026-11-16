@@ -24,7 +24,7 @@ import {
 import { createTriggerRegistrationInstanceError } from './_instanceError';
 import { scheduleOrphanedTargetCleanup } from './_orphanedTargets';
 import { saveWebhookProviderResult } from './_providerResult';
-import { createTriggerInstanceStack } from './_stack';
+import { prepareTriggerInstanceStack } from './_stack';
 import { triggerStateInstanceInclude, triggerStateLeaseMs } from './_state';
 import {
   assertClaimCoversProviderCall,
@@ -137,7 +137,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
           tenant: target.tenant,
           note: `trigger-webhook-renew:${target.id}`
         });
-        let stack = await createTriggerInstanceStack({
+        let { createStack } = await prepareTriggerInstanceStack({
           registration: instance.triggerRegistration,
           sessionId: instance.id,
           note: `trigger-webhook-renew:${target.id}`
@@ -161,7 +161,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
 
         await assertClaimCoversProviderCall(target.oid, token);
         let result = await slateInvocationService.renewWebhook({
-          stack,
+          stack: await createStack(),
           triggerGroupId: target.triggerGroup.key,
           webhookRegistrationIdentifier: webhookRegistration.registrationIdentifier ?? '',
           webhookRegistrationPayload: saved.payload,
@@ -395,7 +395,7 @@ export let triggerWebhookRenewResultCleanupQueueProcessor =
             tenant: result.target.tenant,
             note: `trigger-renew-rollback:${result.operationId}`
           });
-          let stack = await createTriggerInstanceStack({
+          let { createStack } = await prepareTriggerInstanceStack({
             registration: result.instance.triggerRegistration,
             sessionId: result.instance.id,
             note: `trigger-renew-rollback:${result.operationId}`
@@ -403,7 +403,7 @@ export let triggerWebhookRenewResultCleanupQueueProcessor =
 
           await assertClaimCoversProviderCall(target.oid, token);
           let rollback = await slateInvocationService.unregisterWebhook({
-            stack,
+            stack: await createStack(),
             triggerGroupId: result.target.triggerGroup.key,
             webhookRegistrationIdentifier: result.registrationIdentifier,
             webhookRegistrationPayload: payload.payload

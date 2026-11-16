@@ -31,6 +31,7 @@ export let triggerEventListPresenter = async (event: PresentedTriggerEvent) => (
 
   mappedType: event.mappedType,
   mappedId: event.mappedId,
+  attributes: event.attributes,
 
   webhookEventId: event.webhookEvent?.id ?? null,
 

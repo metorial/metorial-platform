@@ -7,7 +7,7 @@ import { slateInvocationService } from '../../services/slateInvocation';
 import { generateWebhookRegistrationUrlKey } from '../../services/slateWebhookRegistration';
 import { TRIGGER_WEBHOOK_UNREGISTER_MAX_ATTEMPTS } from './_config';
 import { isDeliveryShared, usingDeliveryRemovalLock } from './_deliveryRoutes';
-import { createTriggerInstanceStack } from './_stack';
+import { prepareTriggerInstanceStack } from './_stack';
 import {
   assertClaimCoversProviderCall,
   claimWebhookTarget,
@@ -158,7 +158,7 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
               return;
             }
 
-            let stack = await createTriggerInstanceStack({
+            let { createStack } = await prepareTriggerInstanceStack({
               registration,
               sessionId: target.id,
               note: `trigger-webhook-unregister:${target.id}`
@@ -166,7 +166,7 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
 
             await assertClaimCoversProviderCall(target.oid, token);
             let result = await slateInvocationService.unregisterWebhook({
-              stack,
+              stack: await createStack(),
               triggerGroupId: target.triggerGroup.key,
               webhookRegistrationIdentifier: webhookRegistration.registrationIdentifier ?? '',
               webhookRegistrationPayload: decrypted.payload

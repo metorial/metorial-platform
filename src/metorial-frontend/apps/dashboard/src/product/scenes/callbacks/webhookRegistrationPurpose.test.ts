@@ -108,7 +108,7 @@ describe('webhook registration purpose', () => {
     expect(copy.createName('Slack')).toBe('Slack Webhook Receiver');
     expect(copy.boxTitle).toBe('Inbound Event Setup');
     expect(copy.emptyTitle).toBe('Action Required to Receive Events');
-    expect(copy.tableHeaders).toEqual(['Receiver', 'Receive URL']);
+    expect(copy.tableHeader).toBe('Receiver');
     expect(copy.activeBadge).toBeNull();
 
     expect(copy.urlTitle).toBe('Receive URL');

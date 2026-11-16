@@ -1,7 +1,8 @@
 import { Service } from '@lowerdeck/service';
-import type {
-  TriggerEventInvocationStatus,
-  TriggerRawEventSource
+import {
+  Prisma,
+  type TriggerEventInvocationStatus,
+  type TriggerRawEventSource
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
@@ -63,6 +64,7 @@ class triggerEventServiceInternalImpl {
     payload: PrismaJson.AnyRecord;
     mappedType: string;
     mappedId: string;
+    attributes: PrismaJson.TriggerEventAttributes | null;
   }) {
     return db.$transaction(async tx => {
       let changed = await tx.triggerEvent.updateMany({
@@ -73,6 +75,7 @@ class triggerEventServiceInternalImpl {
           payload: d.payload,
           mappedType: d.mappedType,
           mappedId: d.mappedId,
+          attributes: d.attributes ?? Prisma.DbNull,
           errorCode: null,
           errorMessage: null
         }

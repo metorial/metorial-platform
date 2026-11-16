@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../../types';
+import { presentTriggerSchema } from '../../_shared/triggerSchema';
 import { v1ProviderPreview } from '../provider/providerPreview';
 
 export let callbackSyncPresenter = Object.assign(
@@ -94,7 +95,7 @@ let presentTriggerGroups = (
     key: group.key,
     name: group.name,
     description: group.description,
-    selection_schema: group.selectionSchema,
+    selection_schema: presentTriggerSchema(group.selectionSchema),
     status: group.status
   }));
 };
@@ -127,7 +128,8 @@ let triggerGroupSchema = v.object(
 
     selection_schema: v.record(v.any(), {
       name: 'selection_schema',
-      description: 'JSON Schema the selection for this trigger group must match'
+      description:
+        'JSON Schema the selection for this trigger group must match. Fields marked `x-metorial-options` have a pick list in the dashboard.'
     }),
 
     status: v.enumOf(['active', 'selection_required'], {

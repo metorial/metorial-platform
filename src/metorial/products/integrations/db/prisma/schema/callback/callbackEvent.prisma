@@ -27,6 +27,9 @@ model CallbackEvent {
   mappedType String?
   mappedId   String?
 
+  /// [CallbackEventAttributes]
+  attributes Json?
+
   callbackOid BigInt
   callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
 

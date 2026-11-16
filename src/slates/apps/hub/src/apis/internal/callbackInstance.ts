@@ -79,6 +79,38 @@ export let callbackInstanceController = app.controller({
       })
     })),
 
+  listSelectionOptions: callbackInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackId: v.string(),
+        callbackInstanceId: v.string(),
+        triggerGroupKey: v.string(),
+        field: v.string(),
+        query: v.optional(v.string()),
+        pageToken: v.optional(v.any()),
+        pageTokenSource: v.optional(v.enumOf(['own', 'linked'])),
+        selection: v.optional(v.record(v.any())),
+        linkedAuthConfigIds: v.optional(v.array(v.string()))
+      })
+    )
+    .do(async ctx =>
+      callbackInstanceService.listSelectionOptions({
+        tenant: ctx.tenant,
+        callbackInstance: ctx.callbackInstance,
+        input: {
+          triggerGroupKey: ctx.input.triggerGroupKey,
+          field: ctx.input.field,
+          query: ctx.input.query,
+          pageToken: ctx.input.pageToken,
+          pageTokenSource: ctx.input.pageTokenSource,
+          selection: ctx.input.selection,
+          linkedAuthConfigIds: ctx.input.linkedAuthConfigIds
+        }
+      })
+    ),
+
   getMany: tenantApp
     .handler()
     .input(
