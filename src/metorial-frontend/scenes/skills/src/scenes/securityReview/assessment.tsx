@@ -472,8 +472,8 @@ export let SecurityReviewNotices = ({
   if (isSkillReview(review) && isCurrent && isAiReviewScheduled(review)) {
     notices.push(
       <Callout key="ai-scheduled" color="blue" size="1">
-        <strong>AI review scheduled.</strong> Only the deterministic scan has run so far. The
-        full report appears here once the AI review finishes.
+        <strong>AI review scheduled.</strong> Only a basic scan has run so far. The full report
+        appears here once the AI review finishes.
       </Callout>
     );
   }
