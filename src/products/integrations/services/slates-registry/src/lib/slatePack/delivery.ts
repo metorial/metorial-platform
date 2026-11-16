@@ -47,7 +47,7 @@ export let getFullSyncId = (date: Date) =>
     .toISOString()
     .replace(/[-:]/g, '')
     .replace('T', '')
-    .slice(0, 12);
+    .slice(0, 14);
 
 // Greedy and order preserving. A single item larger than the target gets a part of its own.
 export let splitIntoParts = <T>(items: T[], getSize: (item: T) => number, targetBytes: number) => {

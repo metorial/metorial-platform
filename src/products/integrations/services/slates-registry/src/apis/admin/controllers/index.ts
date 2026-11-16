@@ -2,6 +2,7 @@ import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
 import { app } from './_app';
 import { authController } from './auth';
 import { slateController } from './slate';
+import { slatePackController } from './slatePack';
 import { subRegistryController } from './subRegistry';
 import { tenantController } from './tenant';
 import { userController } from './user';
@@ -13,7 +14,8 @@ export let rootController = app.controller({
   user: userController,
   workspace: workspaceController,
   subRegistry: subRegistryController,
-  slate: slateController
+  slate: slateController,
+  slatePack: slatePackController
 });
 
 export let slatesRegistryAdminRPC = createServer({})(rootController);

@@ -65,7 +65,7 @@ describe('slate pack release names', () => {
   });
 
   it('derives the full sync id from the minute', () => {
-    expect(getFullSyncId(new Date('2026-11-13T09:05:59.999Z'))).toBe('202611130905');
+    expect(getFullSyncId(new Date('2026-11-13T09:05:59.999Z'))).toBe('20261113090559');
   });
 });
 

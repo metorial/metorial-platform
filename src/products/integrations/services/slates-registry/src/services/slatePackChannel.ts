@@ -1,4 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatePackChannel, SlatePackRelease } from '../../prisma/generated/client';
 import { db } from '../db';
@@ -116,6 +117,92 @@ class slatePackChannelServiceImpl {
     if (!channel) throw new ServiceError(notFoundError('slate_pack_channel'));
 
     return channel;
+  }
+
+  async listChannelsForTenant(d: { tenantOid: bigint }) {
+    let channels = await db.slatePackChannel.findMany({
+      where: { subRegistry: { tenantOid: d.tenantOid } },
+      include: { subRegistry: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    return Promise.all(
+      channels.map(async channel => {
+        let counts = await db.slatePackRelease.groupBy({
+          by: ['kind', 'status'],
+          where: { channelOid: channel.oid },
+          _count: { _all: true },
+          _sum: { size: true }
+        });
+        let ready = counts.filter(count => count.status === 'ready');
+
+        return {
+          channel,
+          readyIncrementalCount: ready.find(c => c.kind === 'incremental')?._count._all ?? 0,
+          readyFullCount: ready.find(c => c.kind === 'full')?._count._all ?? 0,
+          readySize: ready.reduce((sum, c) => sum + (c._sum.size ?? 0n), 0n),
+          prunedCount: counts
+            .filter(count => count.status === 'pruned')
+            .reduce((sum, c) => sum + c._count._all, 0)
+        };
+      })
+    );
+  }
+
+  async getChannelForTenant(d: { tenantOid: bigint; subRegistryId: string }) {
+    let channel = await db.slatePackChannel.findFirst({
+      where: { subRegistry: { identifier: d.subRegistryId, tenantOid: d.tenantOid } },
+      include: { subRegistry: true }
+    });
+    if (!channel) throw new ServiceError(notFoundError('slate_pack_channel'));
+
+    return channel;
+  }
+
+  async listReleasesForChannel(d: { channelOid: bigint; status?: 'ready' | 'pruned' }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.slatePackRelease.findMany({
+            ...opts,
+            where: { channelOid: d.channelOid, status: d.status }
+          })
+      )
+    );
+  }
+
+  // Keeps the sequence counter and feed cursor, so installations that already imported
+  // incremental packs stay consistent; the next full sync covers everything deleted here.
+  // Makes the incremental feed walk every version again. Installations import the repeats
+  // as ordinary updates, and versions they already have are skipped.
+  async rewindFeed(d: { channelId: string }) {
+    await db.slatePackChannel.update({
+      where: { id: d.channelId },
+      data: { feedCursorOid: null }
+    });
+  }
+
+  async countVersionsWithoutChecksum() {
+    return db.slateVersion.count({ where: { bundleArtifact: { checksum: '' } } });
+  }
+
+  async resetReleases(d: { channelId: string }) {
+    let channel = await findBuildChannel(d);
+    let now = new Date();
+
+    let releases = await db.slatePackRelease.findMany({
+      where: { channelOid: channel.oid, status: 'ready' }
+    });
+
+    for (let release of releases) {
+      await storage.deleteObject(release.bucket, release.storageKey).catch(() => {});
+      await db.slatePackRelease.update({
+        where: { oid: release.oid },
+        data: { status: 'pruned', prunedAt: now }
+      });
+    }
+
+    return { deleted: releases.length };
   }
 
   async getChannelInfo(d: { subRegistryId: string }) {
@@ -306,7 +393,7 @@ class slatePackChannelServiceImpl {
     let selection = await slatePackService.selectVersions({
       tenant: { oid: channel.subRegistry.tenantOid },
       subRegistry: channel.subRegistry,
-      versions: env.mirror.SLATES_PACK_FULL_SYNC_VERSIONS ?? 'current'
+      versions: 'current'
     });
     let selected = await this.loadSelectedVersions({
       versionOids: selection.map(item => item.version.oid)

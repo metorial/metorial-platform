@@ -28,7 +28,7 @@ export let slatePackChannelCron = createCron(
   }
 );
 
-export let buildSlatePackChannelQueue = createQueue<{ channelId: string }>({
+export let buildSlatePackChannelQueue = createQueue<{ channelId: string; forceFullSync?: boolean; reset?: boolean; rewindFeed?: boolean }>({
   name: 'sreg/packs/channel/build',
   redisUrl: env.service.REDIS_URL,
   workerOpts: { concurrency: 1 }
@@ -44,6 +44,10 @@ export let buildSlatePackChannelProcessor = buildSlatePackChannelQueue.process(a
     if (!canBuildPacks()) return;
 
     try {
+      if (data.reset) await slatePackChannelService.resetReleases({ channelId: data.channelId });
+
+      if (data.rewindFeed) await slatePackChannelService.rewindFeed({ channelId: data.channelId });
+
       let steps = 0;
       while (
         steps < maxIncrementalStepsPerRun &&
@@ -52,11 +56,17 @@ export let buildSlatePackChannelProcessor = buildSlatePackChannelQueue.process(a
         steps++;
       }
 
-      await slatePackChannelService.buildFullSyncIfDue(data);
+      await slatePackChannelService.buildFullSyncIfDue({
+        channelId: data.channelId,
+        force: data.forceFullSync || data.reset
+      });
       await slatePackChannelService.prune(data);
 
       if (steps === maxIncrementalStepsPerRun) {
-        await buildSlatePackChannelQueue.add(data, { delay: continueDelayMs });
+        await buildSlatePackChannelQueue.add(
+          { channelId: data.channelId },
+          { delay: continueDelayMs }
+        );
       }
     } catch (error) {
       await slatePackChannelService.recordBuildError({ channelId: data.channelId, error });

@@ -3,6 +3,7 @@ import { Logo } from '@metorial-io/ui';
 import {
   RiApps2Line,
   RiBuildingLine,
+  RiArchiveLine,
   RiDashboardLine,
   RiFileList3Line,
   RiStackLine,
@@ -77,6 +78,12 @@ export let Layout = () => {
           label: 'Slates',
           to: `/tenants/${tenantId}/slates`,
           isActive: isPrefixMatch(pathname, `/tenants/${tenantId}/slates`)
+        },
+        {
+          icon: <RiArchiveLine />,
+          label: 'Slate Packs',
+          to: `/tenants/${tenantId}/packs`,
+          isActive: isPrefixMatch(pathname, `/tenants/${tenantId}/packs`)
         }
       ]
     : [];

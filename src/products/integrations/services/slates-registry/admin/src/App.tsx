@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AuthCallback } from './pages/auth/AuthCallback';
+import { PackList } from './pages/packs/PackList';
 import { SlateBulkCreate } from './pages/slates/SlateBulkCreate';
 import { SlateCreate } from './pages/slates/SlateCreate';
 import { SlateDetail } from './pages/slates/SlateDetail';
@@ -44,6 +45,8 @@ export let App = () => {
         <Route path="/tenants/:tenantId/users" element={<UserList />} />
         <Route path="/tenants/:tenantId/users/new" element={<UserCreate />} />
         <Route path="/tenants/:tenantId/users/:userId" element={<UserDetail />} />
+
+        <Route path="/tenants/:tenantId/packs" element={<PackList />} />
 
         <Route path="/tenants/:tenantId/slates" element={<SlateList />} />
         <Route path="/tenants/:tenantId/slates/new" element={<SlateCreate />} />
