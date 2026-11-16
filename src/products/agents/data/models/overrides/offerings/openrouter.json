@@ -472,6 +472,20 @@
     "by": "agent",
     "at": "2026-11-15"
   },
+  "recraft/recraft-v4.1-flash-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Recraft's V4.1 Flash V2, a new faster text-to-image checkpoint that replaces V4.1 Flash in Studio and the API (released Nov 13, 2026 per OpenRouter); the index has only recraft/recraft-v4.1-flash, and V2 is a new generation, so defer rather than link the predecessor.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
+  "recraft/recraft-v4.1-flash-v2:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The :free suffix is OpenRouter's free route of Recraft's V4.1 Flash V2, the Nov 2026 replacement for V4.1 Flash in the speed tier; the index has only recraft/recraft-v4.1-flash, and V2 is a new generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "recursive/flint-v1.0:free": {
     "decision": "link",
     "model": "recursive/flint",
@@ -527,6 +541,13 @@
     "reason": "OpenRouter's listing: Tencent's Hunyuan-A13B, a 13B-active/80B-total open-weight MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "tencent/hy-world-2.1-panorama": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Tencent's HY-World 2.1 Panorama, a 360-degree panorama image-generation model from the Hunyuan World family (per OpenRouter and Splats coverage of the Aug 2026 2.1 release); the index has no HY-World entry, so defer rather than link an unrelated Tencent model.",
+    "by": "agent",
+    "at": "2026-11-16"
   },
   "unbiased/pareto-26.10": {
     "decision": "defer",
