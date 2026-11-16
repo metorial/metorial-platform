@@ -41,7 +41,6 @@ import {
 } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
-import { PublicUrlPurpose } from 'object-storage-client';
 import { fileFabricOwnerFromFile, fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { isContentAddressedKey, lockCargoObject } from '../lib/cargoObjects';
@@ -60,18 +59,12 @@ import {
   getStoredFileContent,
   shouldBufferFileContent
 } from '../lib/pendingFileContent';
-import {
-  resolveUploadStreamDestination,
-  type UploadStreamDestination
-} from '../lib/uploadDestination';
-import { getPurposeUploadSizeError, uploadUrlExpirationSecs } from '../lib/uploadPolicy';
+import { getPurposeUploadSizeError } from '../lib/uploadPolicy';
 import { fileCleanupSingleQueue } from '../queues/fileCleanup';
 import { fileHashBackfillQueue, fileHashQueue, getFileHashJobId } from '../queues/fileHash';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
-
-export type { UploadStreamDestination };
 
 let include = {
   purpose: true,
@@ -720,27 +713,11 @@ class FileServiceImpl {
    */
   async createPendingUploadForStream(): Promise<{
     storeId: string;
-    destination: UploadStreamDestination;
+    destination: { bucket: string; key: string };
   }> {
     let storeId = generatePlainId(20);
-    let bucket = getCargoFilesBucketName();
 
-    let destination = await resolveUploadStreamDestination({
-      bucket,
-      key: storeId,
-      presign: async () => {
-        let res = await getStorage().getPublicURL(
-          bucket,
-          storeId,
-          uploadUrlExpirationSecs,
-          PublicUrlPurpose.Upload
-        );
-
-        return { url: res.url, headers: res.headers };
-      }
-    });
-
-    return { storeId, destination };
+    return { storeId, destination: { bucket: getCargoFilesBucketName(), key: storeId } };
   }
 
   /**

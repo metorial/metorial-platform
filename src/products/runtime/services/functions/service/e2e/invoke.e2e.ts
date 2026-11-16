@@ -1,12 +1,11 @@
-import { createServer } from 'http';
 import JSZip from 'jszip';
-import type { AddressInfo } from 'net';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { FunctionVersion } from '../prisma/generated/client';
 import { db } from '../src/db';
 import { env } from '../src/env';
 import { getId } from '../src/id';
 import { defaultProvider } from '../src/providers';
+import { storage } from '../src/storage';
 import { functionBay } from './client';
 import {
   createBundle,
@@ -33,16 +32,16 @@ let handlers: Record<Exclude<ProviderIdentifier, 'aws.lambda'>, string> = {
 
 let providerIdentifier = env.provider.DEFAULT_PROVIDER;
 
-let serveZip = async (zip: Buffer) => {
-  let server = createServer((_, res) => {
-    res.writeHead(200, { 'content-type': 'application/zip' });
-    res.end(zip);
-  });
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+let storeZip = async (zip: Buffer) => {
+  let artifact = {
+    bucket: env.storage.BUNDLE_BUCKET_NAME,
+    storageKey: `e2e/sources/${getId('functionVersion').id}.zip`
+  };
+  await storage.putObject(artifact.bucket, artifact.storageKey, zip, 'application/zip');
 
   return {
-    url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/bundle.zip`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve()))
+    artifact,
+    close: () => storage.deleteObject(artifact.bucket, artifact.storageKey)
   };
 };
 
@@ -53,7 +52,7 @@ let deployEchoFunction = async () => {
 
   let zip = new JSZip();
   zip.file('index.js', handler);
-  let served = await serveZip(await zip.generateAsync({ type: 'nodebuffer' }));
+  let served = await storeZip(await zip.generateAsync({ type: 'nodebuffer' }));
 
   try {
     let tenant = await createTenant();
@@ -82,7 +81,7 @@ let deployEchoFunction = async () => {
       },
       runtime: runtime.runtime,
       env: { GREETING: 'hello e2e' },
-      zipFileUrl: served.url
+      zipFile: served.artifact
     });
 
     let bundle = await createBundle({ functionOid: func.oid });

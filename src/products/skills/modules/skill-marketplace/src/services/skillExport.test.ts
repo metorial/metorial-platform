@@ -782,7 +782,7 @@ describe('processSkillExport', () => {
     it('exports the code bucket through a pending upload', async () => {
       mocks.fileService.createPendingUploadForStream.mockResolvedValue({
         storeId: 'store_1',
-        destination: { type: 'internal', bucket: 'cargo-files', key: 'store_1' }
+        destination: { bucket: 'cargo-files', key: 'store_1' }
       });
 
       await run();

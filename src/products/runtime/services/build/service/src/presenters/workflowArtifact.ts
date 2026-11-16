@@ -14,6 +14,9 @@ export let workflowArtifactPresenter = async (
   runId: artifact.run.id,
   workflowId: artifact.workflow.id,
 
+  bucket: artifact.bucket,
+  storageKey: artifact.storageKey,
+
   url: await storage.getPublicURL(artifact.bucket, artifact.storageKey),
 
   createdAt: artifact.createdAt

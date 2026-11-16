@@ -10,7 +10,7 @@ import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
 import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
-import { getRegistryClient, getRegistryQuery } from '../../registry';
+import { getRegistryClient, getRegistryDownloadQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
 import { resolveSlateDeploymentConfig } from './config';
 import { buildSlateDeploymentFiles } from './packageFiles';
@@ -143,7 +143,7 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           slateId,
           versionId: version.version
         },
-        query: getRegistryQuery()
+        query: getRegistryDownloadQuery()
       });
       if ((zipRes.status as any) !== 200) {
         let body = await zipRes.text();

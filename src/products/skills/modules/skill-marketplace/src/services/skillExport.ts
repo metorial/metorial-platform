@@ -484,10 +484,10 @@ class SkillExportServiceImpl {
     await codeBucketClient.exportBucketFilesAsZipToUpload({
       bucketId: getSkillDestinationCodeBucketId(d.target.destination),
       prefix: '',
-      uploadUrl: destination.type === 'signed_url' ? destination.url : '',
-      uploadHeaders: destination.type === 'signed_url' ? destination.headers : {},
-      uploadBucket: destination.type === 'internal' ? destination.bucket : '',
-      uploadKey: destination.type === 'internal' ? destination.key : '',
+      uploadUrl: '',
+      uploadHeaders: {},
+      uploadBucket: destination.bucket,
+      uploadKey: destination.key,
       contentType: 'application/zip'
     });
 

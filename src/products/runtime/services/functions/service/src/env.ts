@@ -13,15 +13,7 @@ export let env = defineSettings({
 
   storage: {
     OBJECT_STORAGE_URL: objectStorageUrl,
-    BUNDLE_BUCKET_NAME: v.string(),
-    OBJECT_STORAGE_PUBLIC_URL: setting(v.optional(v.string()), {
-      description:
-        'Public base URL of signed object-storage links, as the object store hands it out'
-    }),
-    OBJECT_STORAGE_PUBLIC_INTERNAL_URL: setting(v.optional(v.string()), {
-      description:
-        'In-cluster base URL of the object store public listener; replaces OBJECT_STORAGE_PUBLIC_URL when this service downloads a signed link'
-    })
+    BUNDLE_BUCKET_NAME: v.string()
   },
 
   encryption: {

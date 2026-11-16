@@ -1,52 +1,29 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { fetchBuildManifest } from './fetchBuildManifest';
 
-let mockFetch = (impl: () => Promise<Response>) => {
-  vi.stubGlobal('fetch', vi.fn(impl));
-};
-
 describe('fetchBuildManifest', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it('returns the parsed manifest', async () => {
-    mockFetch(async () => new Response(JSON.stringify({ hash: 'abc' }), { status: 200 }));
-
-    let result = await fetchBuildManifest('https://example.test/manifest.json');
+    let result = await fetchBuildManifest(async () =>
+      Buffer.from(JSON.stringify({ hash: 'abc' }))
+    );
 
     expect(result).toEqual({ success: true, value: { hash: 'abc' } });
   });
 
-  it('fails without throwing when the response is HTML', async () => {
-    mockFetch(
-      async () =>
-        new Response('<html>error</html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html' }
-        })
-    );
+  it('fails without throwing when the manifest is not JSON', async () => {
+    let result = await fetchBuildManifest(async () => Buffer.from('<html>error</html>'));
 
-    let result = await fetchBuildManifest('https://example.test/manifest.json');
-
-    expect(result.success).toBe(false);
+    expect(result).toEqual({ success: false, reason: 'the manifest is not valid JSON' });
   });
 
-  it('fails when the status is not ok', async () => {
-    mockFetch(async () => new Response('<html>bad gateway</html>', { status: 502 }));
-
-    let result = await fetchBuildManifest('https://example.test/manifest.json');
-
-    expect(result).toEqual({ success: false, reason: 'unexpected status 502' });
-  });
-
-  it('fails when the request throws', async () => {
-    mockFetch(async () => {
-      throw new Error('network down');
+  it('fails without throwing when reading the manifest throws', async () => {
+    let result = await fetchBuildManifest(async () => {
+      throw new Error('object not found');
     });
 
-    let result = await fetchBuildManifest('https://example.test/manifest.json');
-
-    expect(result.success).toBe(false);
+    expect(result).toEqual({
+      success: false,
+      reason: 'reading the manifest failed: object not found'
+    });
   });
 });

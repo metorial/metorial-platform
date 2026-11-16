@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
-import { defineSettings } from '@metorial/settings';
+import { perEdition } from '@metorial/editions';
+import { defineSettings, setting } from '@metorial/settings';
 import {
   metorialEnv,
   metorialRegion,
@@ -34,7 +35,12 @@ export let env = defineSettings({
   storage: {
     OBJECT_STORAGE_URL: objectStorageUrl,
     INVOCATIONS_BUCKET_NAME: v.string(),
-    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number())
+    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number()),
+    SLATES_LIVE_INVOCATION_ENABLED: setting(v.boolean(), {
+      description:
+        'Lets slates upload large attachments straight to object storage during an invocation; off on-prem, where function pods cannot reach the public upload URL',
+      default: perEdition({ cloud: true, 'on-prem': false })
+    })
   },
 
   encryption: {

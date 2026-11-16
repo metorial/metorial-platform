@@ -2,23 +2,20 @@ export type FetchBuildManifestResult =
   | { success: true; value: unknown }
   | { success: false; reason: string };
 
-export let fetchBuildManifest = async (url: string): Promise<FetchBuildManifestResult> => {
-  let res: Response;
+export let fetchBuildManifest = async (
+  read: () => Promise<Buffer>
+): Promise<FetchBuildManifestResult> => {
+  let content: Buffer;
 
   try {
-    res = await fetch(url);
+    content = await read();
   } catch (error) {
-    return { success: false, reason: `request failed: ${(error as Error).message}` };
+    return { success: false, reason: `reading the manifest failed: ${(error as Error).message}` };
   }
 
-  if (!res.ok) return { success: false, reason: `unexpected status ${res.status}` };
-
   try {
-    return { success: true, value: JSON.parse(await res.text()) };
+    return { success: true, value: JSON.parse(content.toString('utf-8')) };
   } catch {
-    return {
-      success: false,
-      reason: `response was not valid JSON (content-type: ${res.headers.get('content-type') ?? 'unknown'})`
-    };
+    return { success: false, reason: 'the manifest is not valid JSON' };
   }
 };

@@ -9,10 +9,9 @@ let mocks = vi.hoisted(() => ({
     function: { ensure: vi.fn(), invoke: vi.fn(), delete: vi.fn() }
   },
   createClusterManagerClient: vi.fn(),
-  putObject: vi.fn(),
+  copyObject: vi.fn(),
   decryptEnv: vi.fn(),
   findTenant: vi.fn(),
-  fetch: vi.fn(),
   env: {
     storage: { BUNDLE_BUCKET_NAME: 'function-bay-bundles' },
     runtime: {
@@ -32,7 +31,7 @@ vi.mock('@metorial-platform-systems/cluster-manager-client', () => ({
 }));
 vi.mock('../../env', () => ({ env: mocks.env }));
 vi.mock('../../db', () => ({ db: { tenant: { findUniqueOrThrow: mocks.findTenant } } }));
-vi.mock('../../storage', () => ({ storage: { putObject: mocks.putObject } }));
+vi.mock('../../storage', () => ({ storage: { copyObject: mocks.copyObject } }));
 vi.mock('../../encryption', () => ({
   encryption: {
     encrypt: async (d: { entityId: string; secret: string }) => `enc:${d.entityId}:${d.secret}`
@@ -116,8 +115,6 @@ beforeEach(() => {
   });
   mocks.clusterManager.function.invoke.mockResolvedValue(successOutput);
   mocks.decryptEnv.mockResolvedValue({ API_KEY: 'secret' });
-  mocks.fetch.mockResolvedValue(new Response(new Uint8Array([80, 75, 3, 4])));
-  vi.stubGlobal('fetch', mocks.fetch);
 });
 
 describe('entrypointFromHandler', () => {
@@ -145,17 +142,17 @@ describe('knative deploy', () => {
       runtimeConfig: { handler: 'index.handler' } as any,
       runtime: { identifier: 'runtime_1' } as any,
       env,
-      zipFileUrl: 'https://artifacts.local/output.zip'
+      zipFile: { bucket: 'forge-artifacts', storageKey: 'runs/run_1/output.zip' }
     });
 
   it('imports the bundle, stores provider data and materializes speculatively', async () => {
     let res = await deploy();
 
-    expect(mocks.putObject).toHaveBeenCalledWith(
+    expect(mocks.copyObject).toHaveBeenCalledWith(
       'function-bay-bundles',
       'knative/sources/functionVersion_1.zip',
-      expect.any(Buffer),
-      'application/zip'
+      'forge-artifacts',
+      'runs/run_1/output.zip'
     );
     expect(mocks.clusterManager.bundle.import).toHaveBeenCalledWith({
       versionId: 'functionVersion_1',

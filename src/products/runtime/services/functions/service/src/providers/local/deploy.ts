@@ -1,6 +1,6 @@
 import { encryption } from '../../encryption';
 import { env } from '../../env';
-import { storage } from '../../storage';
+import { type BuildArtifactRef, copyBuildArtifact } from '../../lib/buildArtifact';
 
 let ensureLocalProviderEnabled = () => {
   if (env.provider.DEFAULT_PROVIDER !== 'local') {
@@ -14,15 +14,14 @@ export let deployFunction = async (d: {
   runtime: { identifier: string };
   runtimeConfig: { handler: string };
   env: Record<string, string>;
-  zipFileUrl: string;
+  zipFile: BuildArtifactRef;
 }) => {
   ensureLocalProviderEnabled();
 
-  let zipFile = Buffer.from(await (await fetch(d.zipFileUrl)).arrayBuffer());
   let bucket = env.storage.BUNDLE_BUCKET_NAME;
   let storageKey = `local/provider/${d.functionVersion.id}.zip`;
 
-  await storage.putObject(bucket, storageKey, zipFile, 'application/zip');
+  await copyBuildArtifact(d.zipFile, { bucket, key: storageKey });
 
   return {
     providerData: {

@@ -92,7 +92,8 @@ export class SlateInvocationStack {
 
     let capabilities = this.#capabilities?.hub;
     let supportsHubCapabilities = !!capabilities?.capabilitiesNotification;
-    let supportsLiveInvocation = !!capabilities?.liveInvocation;
+    let supportsLiveInvocation =
+      env.storage.SLATES_LIVE_INVOCATION_ENABLED && !!capabilities?.liveInvocation;
     let metorialApiUrl = capabilities?.runtimeInfo ? getMetorialApiUrl() : undefined;
 
     let liveInvocationToken =
@@ -121,7 +122,7 @@ export class SlateInvocationStack {
                 capabilities: {
                   attachments: {
                     directUpload: {
-                      enabled: true,
+                      enabled: env.storage.SLATES_LIVE_INVOCATION_ENABLED,
                       maxAttachmentSizeBytes:
                         env.storage.MAX_ATTACHMENT_SIZE_BYTES ??
                         DEFAULT_MAX_ATTACHMENT_SIZE_BYTES

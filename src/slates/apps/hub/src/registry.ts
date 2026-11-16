@@ -218,6 +218,11 @@ export let followsRegistryCurrentVersion = () =>
 
 export let getRegistryQuery = () => ({ supports_prebuilt: 'true' as const });
 
+// On-prem, the registry's signed object links point at the installation's public host, which the
+// hub cannot be expected to reach from inside the cluster; the registry streams the bundle instead.
+export let getRegistryDownloadQuery = () =>
+  checkEdition('on-prem') ? { ...getRegistryQuery(), proxy: 'true' as const } : getRegistryQuery();
+
 export let getRegistryClient = async (registry: Registry): Promise<RegistryClient> => {
   let token = await getReaderToken(registry);
 
