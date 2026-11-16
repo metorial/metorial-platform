@@ -9,14 +9,10 @@ import {
   integrationProviderService,
   integrationService
 } from '@metorial-subspace/module-integration';
-import {
-  callbackPresenter,
-  callbackTriggerSelectionOptionListPresenter
-} from '@metorial/presenters';
+import { callbackPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
-import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
@@ -215,80 +211,6 @@ export let callbackController = Controller.create(
         });
 
         return callbackPresenter.present({ callback });
-      }),
-
-    listTriggerSelectionOptions: callbackGroup
-      .post(
-        instancePath(
-          'callbacks/:callbackId/trigger-selection-options',
-          'callbacks.listTriggerSelectionOptions'
-        ),
-        {
-          name: 'List trigger selection options',
-          description:
-            'Lists the values a connected account can pick for one field of a trigger group selection, such as its spreadsheets or folders. Only fields marked with `x-slates-options` or `x-slates-options-linked` in the selection schema have options. A field can also take its options from another provider; `linked_provider` names it, and connecting that provider with the same account lets the list show everything. The options are listed with stored connections, so only connections the caller may use are considered.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
-      .use(hasFlags(['callbacks-enabled']))
-      .body(
-        'default',
-        v.object({
-          trigger_group_key: v.string({
-            description: 'Key of the trigger group the field belongs to',
-            examples: ['new_rows']
-          }),
-          field: v.string({
-            description: 'Selection field to list options for',
-            examples: ['spreadsheetId']
-          }),
-          callback_instance_id: v.optional(
-            v.string({
-              description:
-                'Callback instance whose connected account is used to list the options. Defaults to the most recently created one whose connection the caller may use.',
-              examples: ['cbi_5eFgHjKlMnPqRsTu']
-            })
-          ),
-          query: v.optional(
-            v.string({
-              description: 'Search text to narrow the options',
-              examples: ['orders']
-            })
-          ),
-          page_token: v.optional(
-            v.string({
-              description:
-                '`next_page_token` of the previous page. A token is rejected when the list it came from has changed; start again without it.'
-            })
-          ),
-          selection: v.optional(
-            v.record(v.any(), {
-              description:
-                'The selection as entered so far. Fields that depend on another field, such as a tab within a spreadsheet, read it from here.',
-              examples: [{ spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms' }]
-            })
-          )
-        })
-      )
-      .output(callbackTriggerSelectionOptionListPresenter)
-      .do(async ctx => {
-        let triggerSelectionOptions = await callbackService.listTriggerSelectionOptions({
-          instance: ctx.instance,
-          organizationActor: getOwnershipActor(ctx),
-          callback: ctx.callback,
-          input: {
-            triggerGroupKey: ctx.body.trigger_group_key,
-            field: ctx.body.field,
-            callbackInstanceId: ctx.body.callback_instance_id,
-            query: ctx.body.query,
-            pageToken: ctx.body.page_token,
-            selection: ctx.body.selection
-          }
-        });
-
-        return callbackTriggerSelectionOptionListPresenter.present({
-          triggerSelectionOptions
-        });
       }),
 
     delete: callbackGroup

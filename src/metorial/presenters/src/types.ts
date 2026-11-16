@@ -39,7 +39,7 @@ import type {
   CallbackEventWithRelations,
   CallbackInstanceWithRelations,
   CallbackWithRelations,
-  TriggerSelectionOptionList,
+  TriggerSelectionOption,
   WebhookEvent,
   WebhookRegistrationWithRelations
 } from '@metorial-subspace/module-callback';
@@ -3768,9 +3768,9 @@ export let callbackType = PresentableType.create<{
   callback: CallbackWithRelations;
 }>()('callback');
 
-export let callbackTriggerSelectionOptionListType = PresentableType.create<{
-  triggerSelectionOptions: TriggerSelectionOptionList;
-}>()('callback.trigger_selection_option_list');
+export let callbackTriggerSelectionOptionType = PresentableType.create<{
+  triggerSelectionOption: TriggerSelectionOption;
+}>()('callback.trigger_selection_option');
 
 export let callbackInstanceType = PresentableType.create<{
   callbackInstance: CallbackInstanceWithRelations;

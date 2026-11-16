@@ -436,11 +436,7 @@ export let TriggerSelectionsForm = ({
   };
 
   let groupLookup = (group: CallbackTriggerGroup) =>
-    lookup && {
-      ...lookup,
-      triggerGroupKey: group.key,
-      selection: parseGroupValues(group.selectionSchema, values[group.key]).selection
-    };
+    lookup && { ...lookup, triggerGroupKey: group.key };
 
   let unused = Object.keys(unusedSelections(triggerGroups, selections));
   let toggleRemoved = (key: string) =>

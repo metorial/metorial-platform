@@ -1,21 +1,7 @@
-import { Paths } from '@metorial/frontend-config';
-import { useCallbackTriggerSelectionOptions, useCurrentInstance } from '@metorial/state';
-import {
-  Button,
-  Combobox,
-  Input,
-  MultiSelect,
-  Spacer,
-  Text,
-  TextArrayInput
-} from '@metorial/ui';
+import { useCallbackTriggerSelectionOptions } from '@metorial/state';
+import { Button, Combobox, Input, MultiSelect, Spacer, TextArrayInput } from '@metorial/ui';
 import { useDebounced } from '@metorial/use-debounced';
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  getSelectionOptionsNote,
-  type SelectionOptionsNote
-} from './triggerSelectionOptionsNote';
+import { useState } from 'react';
 
 let LOOKUP_DEBOUNCE_MS = 400;
 
@@ -23,7 +9,6 @@ export type SelectionOptionsLookup = {
   instanceId: string;
   callbackId: string;
   triggerGroupKey: string;
-  selection: Record<string, unknown>;
 };
 
 type FieldProps = {
@@ -36,27 +21,13 @@ type FieldProps = {
 
 type OptionItem = { id: string; label: string; description?: string };
 
-// The other fields are sent along so a dependent list, such as the tabs of a spreadsheet, can
-// follow them. They are compared as text so that re-rendering the form is not a change.
-let useDependentSelection = (field: string, lookup: SelectionOptionsLookup) => {
-  let { [field]: _own, ...others } = lookup.selection;
-  let key = useDebounced(JSON.stringify(others), LOOKUP_DEBOUNCE_MS);
-
-  return useMemo(() => JSON.parse(key) as Record<string, unknown>, [key]);
-};
-
-// Without a query the input is the same for every caller, so the unsearched list is fetched once.
-let useOptions = (d: {
-  field: string;
-  lookup: SelectionOptionsLookup;
-  selection: Record<string, unknown>;
-  query?: string;
-}) => {
-  let options = useCallbackTriggerSelectionOptions(d.lookup.instanceId, d.lookup.callbackId, {
+// Without a search the input is the same for every caller, so the unsearched list is fetched once.
+let useOptions = (d: { field: string; lookup: SelectionOptionsLookup; query?: string }) => {
+  let options = useCallbackTriggerSelectionOptions(d.lookup.instanceId, {
+    callbackId: d.lookup.callbackId,
     triggerGroupKey: d.lookup.triggerGroupKey,
     field: d.field,
-    ...(d.query ? { query: d.query } : {}),
-    ...(Object.keys(d.selection).length ? { selection: d.selection } : {})
+    ...(d.query ? { search: d.query } : {})
   });
 
   let items: OptionItem[] = (options.data?.items ?? []).map(option => ({
@@ -67,10 +38,9 @@ let useOptions = (d: {
 
   return {
     items,
-    hasMore: Boolean(options.data?.nextPageToken),
+    hasMore: Boolean(options.data?.pagination.hasMoreAfter),
     isLoading: options.isLoading,
     error: options.error ? options.error.message : null,
-    note: getSelectionOptionsNote(options.data),
     refetch: options.refetch
   };
 };
@@ -137,35 +107,6 @@ let RetryButton = ({ onRetry }: { onRetry: () => unknown }) => {
   );
 };
 
-// Opens in a new tab so the selections entered so far are kept.
-let OptionsNote = ({ note }: { note: SelectionOptionsNote | null }) => {
-  let instance = useCurrentInstance();
-  if (!note) return null;
-
-  return (
-    <Text size="1" color="gray600" style={{ marginTop: 6 }}>
-      {note.text}
-      {note.kind === 'not_connected' ? (
-        <>
-          {' '}
-          <Link
-            to={Paths.instance.provider(
-              instance.data?.organization,
-              instance.data?.project,
-              instance.data,
-              note.provider.slug
-            )}
-            target="_blank"
-          >
-            {note.linkLabel}
-          </Link>
-          {note.linkSuffix}
-        </>
-      ) : null}
-    </Text>
-  );
-};
-
 export let SelectionOptionsField = ({
   field,
   label,
@@ -176,8 +117,7 @@ export let SelectionOptionsField = ({
   value,
   onChange
 }: FieldProps & { numeric?: boolean; value: string; onChange: (value: string) => void }) => {
-  let selection = useDependentSelection(field, lookup);
-  let initial = useOptions({ field, lookup, selection });
+  let initial = useOptions({ field, lookup });
   let [picked, setPicked] = useState<OptionItem | null>(null);
 
   let valueLabel = value
@@ -192,7 +132,7 @@ export let SelectionOptionsField = ({
       searchQuery && searchQuery !== value && searchQuery !== valueLabel
         ? searchQuery
         : undefined;
-    let options = useOptions({ field, lookup, selection, query });
+    let options = useOptions({ field, lookup, query });
     let items = withTypedValue(options.items, query, numeric);
 
     return {
@@ -224,23 +164,20 @@ export let SelectionOptionsField = ({
   }
 
   return (
-    <>
-      <Combobox
-        label={label}
-        description={description}
-        error={error}
-        placeholder="Search or choose"
-        value={value || null}
-        valueLabel={valueLabel}
-        debounceMs={LOOKUP_DEBOUNCE_MS}
-        provider={searchOptions}
-        onChange={(next, item) => {
-          setPicked(next && item ? { id: next, label: item.label } : null);
-          onChange(next ?? '');
-        }}
-      />
-      <OptionsNote note={initial.note} />
-    </>
+    <Combobox
+      label={label}
+      description={description}
+      error={error}
+      placeholder="Search or choose"
+      value={value || null}
+      valueLabel={valueLabel}
+      debounceMs={LOOKUP_DEBOUNCE_MS}
+      provider={searchOptions}
+      onChange={(next, item) => {
+        setPicked(next && item ? { id: next, label: item.label } : null);
+        onChange(next ?? '');
+      }}
+    />
   );
 };
 
@@ -253,12 +190,11 @@ export let SelectionOptionsListField = ({
   value,
   onChange
 }: FieldProps & { value: string[]; onChange: (value: string[]) => void }) => {
-  let selection = useDependentSelection(field, lookup);
   let [search, setSearch] = useState('');
   let debounced = useDebounced(search.trim(), LOOKUP_DEBOUNCE_MS);
   let query = search.trim() ? debounced : undefined;
-  let initial = useOptions({ field, lookup, selection });
-  let options = useOptions({ field, lookup, selection, query });
+  let initial = useOptions({ field, lookup });
+  let options = useOptions({ field, lookup, query });
   let [pickedLabels, setPickedLabels] = useState<Record<string, string>>({});
 
   if (initial.error) {
@@ -289,33 +225,30 @@ export let SelectionOptionsListField = ({
   });
 
   return (
-    <>
-      <MultiSelect
-        label={label}
-        description={description}
-        placeholder="Choose"
-        error={error}
-        value={value}
-        valueLabels={{ ...pickedLabels, ...listedLabels }}
-        items={items}
-        searchable
-        searchPlaceholder="Search, or paste an ID"
-        onSearchChange={setSearch}
-        isLoading={options.isLoading}
-        empty={messages.empty}
-        footer={messages.status}
-        onChange={next => {
-          // A name found through a search is kept, so the choice still shows it once the search is cleared.
-          setPickedLabels(current => ({
-            ...current,
-            ...Object.fromEntries(
-              next.filter(id => listedLabels[id]).map(id => [id, listedLabels[id]!])
-            )
-          }));
-          onChange(next);
-        }}
-      />
-      <OptionsNote note={initial.note} />
-    </>
+    <MultiSelect
+      label={label}
+      description={description}
+      placeholder="Choose"
+      error={error}
+      value={value}
+      valueLabels={{ ...pickedLabels, ...listedLabels }}
+      items={items}
+      searchable
+      searchPlaceholder="Search, or paste an ID"
+      onSearchChange={setSearch}
+      isLoading={options.isLoading}
+      empty={messages.empty}
+      footer={messages.status}
+      onChange={next => {
+        // A name found through a search is kept, so the choice still shows it once the search is cleared.
+        setPickedLabels(current => ({
+          ...current,
+          ...Object.fromEntries(
+            next.filter(id => listedLabels[id]).map(id => [id, listedLabels[id]!])
+          )
+        }));
+        onChange(next);
+      }}
+    />
   );
 };

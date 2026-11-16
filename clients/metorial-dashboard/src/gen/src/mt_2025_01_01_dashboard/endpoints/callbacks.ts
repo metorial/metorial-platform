@@ -10,8 +10,6 @@ import {
   mapDashboardInstanceCallbacksGetOutput,
   mapDashboardInstanceCallbacksListOutput,
   mapDashboardInstanceCallbacksListQuery,
-  mapDashboardInstanceCallbacksListTriggerSelectionOptionsBody,
-  mapDashboardInstanceCallbacksListTriggerSelectionOptionsOutput,
   mapDashboardInstanceCallbacksUpdateBody,
   mapDashboardInstanceCallbacksUpdateOutput,
   type DashboardInstanceCallbacksCreateBody,
@@ -20,8 +18,6 @@ import {
   type DashboardInstanceCallbacksGetOutput,
   type DashboardInstanceCallbacksListOutput,
   type DashboardInstanceCallbacksListQuery,
-  type DashboardInstanceCallbacksListTriggerSelectionOptionsBody,
-  type DashboardInstanceCallbacksListTriggerSelectionOptionsOutput,
   type DashboardInstanceCallbacksUpdateBody,
   type DashboardInstanceCallbacksUpdateOutput
 } from '../resources';
@@ -163,38 +159,6 @@ export class MetorialCallbacksEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceCallbacksUpdateOutput
-    );
-  }
-
-  /**
-   * @name List trigger selection options
-   * @description Lists the values a connected account can pick for one field of a trigger group selection, such as its spreadsheets or folders. Only fields marked with `x-slates-options` or `x-slates-options-linked` in the selection schema have options. A field can also take its options from another provider; `linked_provider` names it, and connecting that provider with the same account lets the list show everything. The options are listed with stored connections, so only connections the caller may use are considered.
-   *
-   * @param `callbackId` - string
-   * @param `body` - DashboardInstanceCallbacksListTriggerSelectionOptionsBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksListTriggerSelectionOptionsOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  listTriggerSelectionOptions(
-    callbackId: string,
-    body: DashboardInstanceCallbacksListTriggerSelectionOptionsBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksListTriggerSelectionOptionsOutput> {
-    let path = `callbacks/${callbackId}/trigger-selection-options`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceCallbacksListTriggerSelectionOptionsBody.transformTo(
-        body
-      ),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardInstanceCallbacksListTriggerSelectionOptionsOutput
     );
   }
 

@@ -2,7 +2,7 @@ import type {
   DashboardInstanceCallbacksCreateBody,
   DashboardInstanceCallbacksListOutput,
   DashboardInstanceCallbacksListQuery,
-  DashboardInstanceCallbacksListTriggerSelectionOptionsBody,
+  DashboardInstanceCallbackTriggerSelectionOptionsListQuery,
   DashboardInstanceCallbacksUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -105,25 +105,21 @@ export let callbackTriggerSelectionOptionsLoader = createLoader({
   name: 'callbackTriggerSelectionOptions',
   parents: [],
   fetch: (
-    i: {
-      instanceId: string;
-      callbackId: string;
-    } & DashboardInstanceCallbacksListTriggerSelectionOptionsBody
+    i: { instanceId: string } & DashboardInstanceCallbackTriggerSelectionOptionsListQuery
   ) =>
     withAuth(sdk => {
-      let { instanceId, callbackId, ...body } = i;
-      return sdk.callbacks.listTriggerSelectionOptions(instanceId, callbackId, body);
+      let { instanceId, ...query } = i;
+      return sdk.callbacks.triggerSelectionOptions.list(instanceId, query);
     }),
   mutators: {}
 });
 
 export let useCallbackTriggerSelectionOptions = (
   instanceId: string | null | undefined,
-  callbackId: string | null | undefined,
-  body: DashboardInstanceCallbacksListTriggerSelectionOptionsBody | null
+  query: DashboardInstanceCallbackTriggerSelectionOptionsListQuery | null
 ) =>
   callbackTriggerSelectionOptionsLoader.use(
-    instanceId && callbackId && body ? { instanceId, callbackId, ...body } : null
+    instanceId && query ? { instanceId, ...query } : null
   );
 
 export let useCreateCallback = callbacksLoader.createExternalMutator(

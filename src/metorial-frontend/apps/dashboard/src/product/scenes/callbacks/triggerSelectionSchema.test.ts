@@ -5,36 +5,15 @@ import {
   parseGroupValues
 } from './triggerSelectionSchema';
 
-let linked = { slate: 'linked', optionList: 'files', params: {} };
-
 describe('selection options in a field schema', () => {
-  it('treats a field with its own list or a linked list as having options', () => {
-    expect(hasSelectionOptions({ type: 'string', 'x-slates-options': true })).toBe(true);
-    expect(hasSelectionOptions({ type: 'string', 'x-slates-options-linked': linked })).toBe(
-      true
-    );
-    expect(
-      hasSelectionOptions({
-        type: 'string',
-        'x-slates-options': true,
-        'x-slates-options-linked': linked
-      })
-    ).toBe(true);
+  it('treats a field marked with options as having options', () => {
+    expect(hasSelectionOptions({ type: 'string', 'x-metorial-options': true })).toBe(true);
   });
 
   it('ignores a missing, disabled or malformed marker', () => {
     expect(hasSelectionOptions({ type: 'string' })).toBe(false);
-    expect(hasSelectionOptions({ type: 'string', 'x-slates-options': false })).toBe(false);
-    expect(hasSelectionOptions({ type: 'string', 'x-slates-options-linked': null })).toBe(
-      false
-    );
-    expect(hasSelectionOptions({ type: 'string', 'x-slates-options-linked': {} })).toBe(false);
-    expect(
-      hasSelectionOptions({
-        type: 'string',
-        'x-slates-options-linked': { slate: 'linked', optionList: 3 }
-      })
-    ).toBe(false);
+    expect(hasSelectionOptions({ type: 'string', 'x-metorial-options': false })).toBe(false);
+    expect(hasSelectionOptions({ type: 'string', 'x-metorial-options': 'true' })).toBe(false);
   });
 });
 

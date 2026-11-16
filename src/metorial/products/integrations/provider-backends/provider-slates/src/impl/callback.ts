@@ -4,7 +4,6 @@ import {
   isServiceError,
   ServiceError
 } from '@lowerdeck/error';
-import { v } from '@lowerdeck/validation';
 import { db, snowflake, type Provider, type Slate, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
@@ -40,13 +39,10 @@ import {
   type WebhookRegistrationUpdateRes
 } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+import { toPlatformSelectableTriggerGroups } from './schemaMarkers';
 
 // The hub accepts at most this many credentials per lookup.
 let HUB_OAUTH_CREDENTIALS_PAGE_SIZE = 100;
-
-let LINKED_OPTIONS_SCHEMA_KEY = 'x-slates-options-linked';
-
-let linkedOptionListValidator = v.object({ slate: v.string(), optionList: v.string() });
 
 type SlateWebhookEventRecord =
   | Awaited<ReturnType<typeof slates.slateWebhookEvent.get>>
@@ -92,13 +88,11 @@ let getLinkedSlateIdentifier = (d: {
   triggerGroupKey: string;
   field: string;
 }) => {
-  let group = d.selectableTriggerGroups?.find(group => group.key === d.triggerGroupKey);
-  let properties = group?.selectionSchema?.properties;
-  let property =
-    properties && Object.hasOwn(properties, d.field) ? properties[d.field] : undefined;
+  let providers = d.selectableTriggerGroups?.find(
+    group => group.key === d.triggerGroupKey
+  )?.linkedOptionProviders;
 
-  let marker = linkedOptionListValidator.validate(property?.[LINKED_OPTIONS_SCHEMA_KEY]);
-  return marker.success ? marker.value.slate : null;
+  return providers && Object.hasOwn(providers, d.field) ? providers[d.field]! : null;
 };
 
 let findLinkedProviderVariants = async (d: {
@@ -263,7 +257,11 @@ export class ProviderCallbacks extends IProviderCallbacks {
         callbackInstanceId: mirror.id
       })) as { selectableTriggerGroups?: PrismaJson.SelectableTriggerGroups };
 
-      return { selectableTriggerGroups: existing.selectableTriggerGroups };
+      return {
+        selectableTriggerGroups: toPlatformSelectableTriggerGroups(
+          existing.selectableTriggerGroups
+        )
+      };
     }
 
     let slateCallback = await db.slateCallback.findUniqueOrThrow({
@@ -332,7 +330,9 @@ export class ProviderCallbacks extends IProviderCallbacks {
       }
     });
 
-    return { selectableTriggerGroups: res.selectableTriggerGroups };
+    return {
+      selectableTriggerGroups: toPlatformSelectableTriggerGroups(res.selectableTriggerGroups)
+    };
   }
 
   override async deleteCallbackInstance(
@@ -375,6 +375,8 @@ export class ProviderCallbacks extends IProviderCallbacks {
       );
     }
 
+    let tenant = await getTenantForSlates(data.tenant);
+
     let linkedVariants = await findLinkedProviderVariants({
       tenant: data.tenant,
       slate: slateCallbackInstance.slateCallback.slate,
@@ -399,8 +401,6 @@ export class ProviderCallbacks extends IProviderCallbacks {
           select: { id: true }
         })
       : [];
-
-    let tenant = await getTenantForSlates(data.tenant);
 
     let res = await slates.callbackInstance.listSelectionOptions({
       tenantId: tenant.id,

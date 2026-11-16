@@ -1,5 +1,4 @@
-// Integrations mark the trigger output fields that are stored with each event for filtering.
-let EVENT_ATTRIBUTE_SCHEMA_KEY = 'x-slates-event-attribute';
+let EVENT_ATTRIBUTE_SCHEMA_KEY = 'x-metorial-event-attribute';
 
 type TriggerWithOutputSchema = {
   outputSchema?: { schema?: Record<string, any> | null } | null;
@@ -30,7 +29,6 @@ export let eventAttributeLabel = (attribute: string) => {
   return parts ? `${parts.key} is ${parts.value}` : attribute;
 };
 
-// The typed text is a value; each option applies it to one field. `key:value` picks the field.
 export let eventAttributeOptions = (keys: string[], search: string) => {
   let text = search.trim();
   if (!text) return [];

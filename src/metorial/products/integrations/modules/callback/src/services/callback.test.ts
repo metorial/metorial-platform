@@ -24,7 +24,6 @@ let {
 vi.mock('@lowerdeck/service', () => ({
   Service: { create: (_name: string, factory: () => unknown) => ({ build: factory }) }
 }));
-vi.mock('@lowerdeck/pagination', () => ({ Paginator: {} }));
 vi.mock('@metorial-subspace/db', () => ({ db, Prisma: { DbNull: null } }));
 vi.mock('@metorial-subspace/list-utils', () => ({}));
 vi.mock('@metorial-subspace/module-search', () => ({}));
@@ -186,13 +185,16 @@ describe('callbackService.listTriggerSelectionOptions', () => {
   let drive = { oid: 50n, id: 'pro_drive', name: 'Google Drive' };
   let organizationActor = { oid: 7n, type: 'member' } as any;
 
-  let list = (input: Record<string, any> = {}) =>
-    callbackService.listTriggerSelectionOptions({
+  let list = async ({ after, ...input }: Record<string, any> = {}) => {
+    let paginator = await callbackService.listTriggerSelectionOptions({
       instance: { oid: 3n } as any,
       organizationActor,
       callback: { ...callback, providerVariantOid: 500n },
       input: { triggerGroupKey: 'new_rows', field: 'spreadsheetId', ...input }
     });
+
+    return paginator.run({ after });
+  };
 
   let instanceWhere = () => db.callbackInstance.findFirst.mock.lastCall![0].where;
 
@@ -215,7 +217,7 @@ describe('callbackService.listTriggerSelectionOptions', () => {
     ['a linked provider that is not connected', 'own', { provider: drive, connected: false }],
     ['a connected linked provider', 'linked', { provider: drive, connected: true }]
   ])(
-    'passes the source and linked provider through with %s',
+    'returns the options and a cursor bound to their list with %s',
     async (_, source, linkedProvider) => {
       listTriggerSelectionOptions.mockResolvedValue({
         options: [{ value: 'sheet-1', label: 'Customer Orders' }],
@@ -224,11 +226,21 @@ describe('callbackService.listTriggerSelectionOptions', () => {
         linkedProvider
       });
 
-      expect(await list()).toEqual({
-        options: [{ value: 'sheet-1', label: 'Customer Orders' }],
-        nextPageToken: encodeToken({ source, value: { offset: 50 } }),
+      let page = await list();
+
+      expect(page).toEqual({
+        items: [{ value: 'sheet-1', label: 'Customer Orders' }],
+        pagination: {
+          hasNextPage: true,
+          hasPreviousPage: false,
+          after: expect.stringMatching(/^cur_/)
+        }
+      });
+
+      await list({ after: page.pagination.after });
+      expect(listTriggerSelectionOptions.mock.lastCall![0].input.pageToken).toEqual({
         source,
-        linkedProvider
+        value: { offset: 50 }
       });
     }
   );
@@ -356,7 +368,7 @@ describe('callbackService.listTriggerSelectionOptions', () => {
   });
 
   it('passes a page token with the list it came from to the backend', async () => {
-    await list({ pageToken: encodeToken({ source: 'linked', value: { offset: 50 } }) });
+    await list({ after: encodeToken({ source: 'linked', value: { offset: 50 } }) });
 
     expect(listTriggerSelectionOptions.mock.lastCall![0].input.pageToken).toEqual({
       source: 'linked',
@@ -369,8 +381,8 @@ describe('callbackService.listTriggerSelectionOptions', () => {
     ['a token without its list', encodeToken({ offset: 50 })],
     ['a token of an unknown list', encodeToken({ source: 'other', value: 1 })],
     ['a plain value', encodeToken('page-2')]
-  ])('rejects %s as a page token', async (_, pageToken) => {
-    await expect(list({ pageToken })).rejects.toMatchObject({
+  ])('rejects %s as a page token', async (_, after) => {
+    await expect(list({ after })).rejects.toMatchObject({
       data: { status: 400, message: 'Invalid page token.' }
     });
     expect(listTriggerSelectionOptions).not.toHaveBeenCalled();
@@ -386,7 +398,10 @@ describe('callbackService.listTriggerSelectionOptions', () => {
         linkedProvider: null
       });
 
-      expect((await list()).nextPageToken).toBeNull();
+      expect((await list()).pagination).toEqual({
+        hasNextPage: false,
+        hasPreviousPage: false
+      });
     }
   );
 });
@@ -415,13 +430,16 @@ describe('callbackService.listTriggerSelectionOptions linkable connections', () 
 
   let linkable: unknown;
 
-  let list = () =>
-    callbackService.listTriggerSelectionOptions({
+  let list = async () => {
+    let paginator = await callbackService.listTriggerSelectionOptions({
       instance: { oid: 3n } as any,
       organizationActor: { oid: 7n, type: 'member' } as any,
       callback: { ...callback, providerVariantOid: 500n },
       input: { triggerGroupKey: 'new_rows', field: 'spreadsheetId' }
     });
+
+    return paginator.run({});
+  };
 
   let linkableWhere = () => db.providerAuthConfig.findMany.mock.lastCall![0].where;
 

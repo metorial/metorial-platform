@@ -100,7 +100,7 @@ export let eventManagementController = Controller.create(
             attribute: v.optional(
               v.union([v.string(), v.array(v.string())], {
                 description:
-                  'Filter by event attribute, as "key:value" (split at the first colon, so the value may contain colons). Repeat the parameter to filter by several: values for the same key match any of them, different keys must all match.'
+                  'Filter by event attribute, as "key:value" (split at the first colon, so the value may contain colons). The keys are the trigger output fields marked `x-metorial-event-attribute` in the `output_schema` of a provider trigger. Repeat the parameter to filter by several: values for the same key match any of them, different keys must all match.'
               })
             ),
             created_at: dateFilterValidator('event creation time')

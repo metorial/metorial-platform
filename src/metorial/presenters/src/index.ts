@@ -323,7 +323,7 @@ import {
   v1CallbackEventListPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
-  v1CallbackTriggerSelectionOptionListPresenter,
+  v1CallbackTriggerSelectionOptionPresenter,
   v1CallbackPresenter,
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
@@ -594,7 +594,7 @@ import {
   teamType,
   callbackEventType,
   callbackInstanceType,
-  callbackTriggerSelectionOptionListType,
+  callbackTriggerSelectionOptionType,
   callbackType,
   chatAuthenticatedUserType,
   chatAuthorType,
@@ -1258,11 +1258,11 @@ export let callbackPresenter = declarePresenter(callbackType, {
   mt_2026_01_01_magnetar: v1CallbackPresenter
 });
 
-export let callbackTriggerSelectionOptionListPresenter = declarePresenter(
-  callbackTriggerSelectionOptionListType,
+export let callbackTriggerSelectionOptionPresenter = declarePresenter(
+  callbackTriggerSelectionOptionType,
   {
-    mt_2025_01_01_dashboard: v1CallbackTriggerSelectionOptionListPresenter,
-    mt_2026_01_01_magnetar: v1CallbackTriggerSelectionOptionListPresenter
+    mt_2025_01_01_dashboard: v1CallbackTriggerSelectionOptionPresenter,
+    mt_2026_01_01_magnetar: v1CallbackTriggerSelectionOptionPresenter
   }
 );
 

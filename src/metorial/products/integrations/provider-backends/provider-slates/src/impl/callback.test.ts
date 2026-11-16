@@ -24,10 +24,14 @@ let { db, slates, getTenantForSlates } = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({ db, snowflake: { nextId: () => 100n } }));
-vi.mock('@metorial-subspace/provider-utils', () => ({ IProviderCallbacks: class {} }));
+vi.mock('@metorial-subspace/provider-utils', async () => ({
+  ...(await vi.importActual('@metorial-subspace/provider-utils/src/lib/schemaMarkers')),
+  IProviderCallbacks: class {}
+}));
 vi.mock('../client', () => ({ slates, getTenantForSlates }));
 
 import { ProviderCallbacks } from './callback';
+import { toPlatformSelectableTriggerGroups } from './schemaMarkers';
 
 let input = () => ({
   tenant: { oid: 1n, projectOid: 2n },
@@ -132,7 +136,9 @@ describe('callback instance selection propagation', () => {
 
     let res = await new ProviderCallbacks({} as any).createCallbackInstance(input() as any);
 
-    expect(res).toEqual({ selectableTriggerGroups });
+    expect(res).toEqual({
+      selectableTriggerGroups: [{ ...selectableTriggerGroups[0], linkedOptionProviders: {} }]
+    });
     expect(slates.callbackInstance.get).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       callbackId: 'callback-1',
@@ -140,6 +146,59 @@ describe('callback instance selection propagation', () => {
     });
     expect(slates.callbackInstance.create).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['created now', false],
+    ['created by an earlier attempt', true]
+  ])(
+    'returns the trigger groups of an instance %s with platform schema markers',
+    async (_, retried) => {
+      let hubGroups = [
+        {
+          key: 'spreadsheet-changes',
+          name: 'Spreadsheet changes',
+          description: null,
+          status: 'selection_required',
+          selectionSchema: {
+            type: 'object',
+            properties: {
+              spreadsheetId: {
+                type: 'string',
+                'x-slates-options-linked': { slate: '@google/drive', optionList: 'files' }
+              }
+            }
+          }
+        }
+      ];
+
+      if (retried) {
+        db.slateCallbackInstance.findUnique.mockResolvedValue({
+          id: 'callback-instance-1',
+          slateCallback: { id: 'callback-1' }
+        });
+        slates.callbackInstance.get.mockResolvedValue({ selectableTriggerGroups: hubGroups });
+      } else {
+        slates.callbackInstance.create.mockResolvedValue({
+          id: 'callback-instance-1',
+          triggerRegistration: { id: 'registration-1' },
+          selectableTriggerGroups: hubGroups
+        });
+      }
+
+      let res = await new ProviderCallbacks({} as any).createCallbackInstance(input() as any);
+
+      expect(res.selectableTriggerGroups).toEqual([
+        {
+          ...hubGroups[0],
+          selectionSchema: {
+            type: 'object',
+            properties: { spreadsheetId: { type: 'string', 'x-metorial-options': true } }
+          },
+          linkedOptionProviders: { spreadsheetId: '@google/drive' }
+        }
+      ]);
+    }
+  );
 
   it('does not silently drop authentication from another backend', async () => {
     let data = input();
@@ -425,17 +484,20 @@ describe('trigger selection options', () => {
       field?: string;
       pageToken?: { source: 'own' | 'linked'; value: unknown };
     } = {}
-  ) =>
-    new ProviderCallbacks({} as any).listTriggerSelectionOptions({
+  ) => {
+    let hubGroups =
+      d.groups === undefined
+        ? selectableTriggerGroups({
+            spreadsheetId: { type: 'string', 'x-slates-options-linked': linkedMarker }
+          })
+        : d.groups;
+
+    return new ProviderCallbacks({} as any).listTriggerSelectionOptions({
       tenant: { oid: 1n },
       callbackInstance: {
         oid: 4n,
         selectableTriggerGroups:
-          d.groups === undefined
-            ? selectableTriggerGroups({
-                spreadsheetId: { type: 'string', 'x-slates-options-linked': linkedMarker }
-              })
-            : d.groups
+          toPlatformSelectableTriggerGroups(hubGroups ?? undefined) ?? null
       },
       listLinkableAuthConfigVersions,
       input: {
@@ -444,6 +506,7 @@ describe('trigger selection options', () => {
         pageToken: d.pageToken
       }
     } as any);
+  };
 
   let hubResult = (source: 'own' | 'linked', linked: { connected: boolean } | null = null) => {
     slates.callbackInstance.listSelectionOptions.mockResolvedValue({
@@ -534,7 +597,7 @@ describe('trigger selection options', () => {
 
   it.each<[string, Parameters<typeof list>[0]]>([
     ['the field has no linked list', { field: 'other' }],
-    ['the callback instance has no stored trigger groups', { groups: null }],
+    ['the hub returns no trigger groups', { groups: null }],
     [
       'the linked marker is incomplete',
       {

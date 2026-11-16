@@ -84,18 +84,11 @@ export type ListTriggerSelectionOptionsParams = {
     triggerGroupKey: string;
     field: string;
     callbackInstanceId?: string;
-    query?: string;
-    pageToken?: string;
-    selection?: Record<string, any>;
+    search?: string;
   };
 };
 
-export type TriggerSelectionOptionList = {
-  options: TriggerSelectionOptionsListRes['options'];
-  nextPageToken: string | null;
-  source: TriggerSelectionOptionsSource;
-  linkedProvider: TriggerSelectionOptionsListRes['linkedProvider'];
-};
+export type TriggerSelectionOption = TriggerSelectionOptionsListRes['options'][number];
 
 let pageTokenValidator = v.object({
   source: v.enumOf(['own', 'linked']),
@@ -123,7 +116,7 @@ let decodePageToken = (pageToken?: string) => {
 
 let encodePageToken = (d: { source: TriggerSelectionOptionsSource; value: unknown }) =>
   d.value === null || d.value === undefined || d.value === ''
-    ? null
+    ? undefined
     : Buffer.from(JSON.stringify(d)).toString('base64url');
 
 export let toAuditCallback = (callback: CallbackWithRelations): AuditSubspaceCallback => ({
@@ -234,17 +227,13 @@ class callbackServiceImpl {
     return callback;
   }
 
-  async listTriggerSelectionOptions(
-    d: MetorialFacing<ListTriggerSelectionOptionsParams>
-  ): Promise<TriggerSelectionOptionList> {
+  async listTriggerSelectionOptions(d: MetorialFacing<ListTriggerSelectionOptionsParams>) {
     let scope = await resolveMetorialFacing(d);
     let accessor = await getOwnershipAccessor({
       tenant: scope.tenant,
       organizationActor: d.organizationActor
     });
 
-    // Options are listed with one connected account the caller may use; the newest one unless
-    // the caller names one.
     let callbackInstance = await db.callbackInstance.findFirst({
       where: {
         callbackOid: d.callback.oid,
@@ -288,33 +277,34 @@ class callbackServiceImpl {
     if (!callbacks) throw new ServiceError(badRequestError(callbacksNotSupported));
 
     let authConfig = callbackInstance.providerAuthConfigVersion?.authConfig ?? null;
-    let pageToken = decodePageToken(d.input.pageToken);
 
-    let res = await callbacks.listTriggerSelectionOptions({
-      tenant: scope.tenant,
-      callbackInstance,
-      listLinkableAuthConfigVersions: ({ providers }) =>
-        this.listLinkableAuthConfigVersions({
+    // The provider decides the page size and only pages forward.
+    return Paginator.create<TriggerSelectionOption>(({ externalCursor }) =>
+      externalCursor(async page => {
+        let res = await callbacks.listTriggerSelectionOptions({
+          tenant: scope.tenant,
           callbackInstance,
-          authConfig,
-          accessor,
-          providers
-        }),
-      input: {
-        triggerGroupKey: d.input.triggerGroupKey,
-        field: d.input.field,
-        query: d.input.query,
-        pageToken,
-        selection: d.input.selection
-      }
-    });
+          listLinkableAuthConfigVersions: ({ providers }) =>
+            this.listLinkableAuthConfigVersions({
+              callbackInstance,
+              authConfig,
+              accessor,
+              providers
+            }),
+          input: {
+            triggerGroupKey: d.input.triggerGroupKey,
+            field: d.input.field,
+            query: d.input.search,
+            pageToken: decodePageToken(page.cursor)
+          }
+        });
 
-    return {
-      options: res.options,
-      nextPageToken: encodePageToken({ source: res.source, value: res.nextPageToken }),
-      source: res.source,
-      linkedProvider: res.linkedProvider
-    };
+        return {
+          items: res.options,
+          nextCursor: encodePageToken({ source: res.source, value: res.nextPageToken })
+        };
+      })
+    );
   }
 
   async updateCallback(d: MetorialFacing<UpdateCallbackParams>) {
@@ -418,9 +408,7 @@ class callbackServiceImpl {
     return callback;
   }
 
-  // Connections of other providers that may list options for this callback: those of the same
-  // owner as its connection (connections without an owner are the ones shared across the
-  // project) that the caller may use.
+  // Connections without an owner are the ones shared across the project.
   private async listLinkableAuthConfigVersions(d: {
     callbackInstance: Pick<CallbackInstance, 'tenantOid' | 'environmentOid'>;
     authConfig: ProviderAuthConfig | null;

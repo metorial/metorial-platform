@@ -30,17 +30,8 @@ export let fieldKind = (schema: FieldSchema): FieldKind => {
   return 'json';
 };
 
-export let hasSelectionOptions = (schema: FieldSchema) => {
-  let linked = schema['x-slates-options-linked'];
-
-  return (
-    schema['x-slates-options'] === true ||
-    (typeof linked === 'object' &&
-      linked !== null &&
-      typeof linked.slate === 'string' &&
-      typeof linked.optionList === 'string')
-  );
-};
+export let hasSelectionOptions = (schema: FieldSchema) =>
+  schema['x-metorial-options'] === true;
 
 export let orderedFields = (schema: FieldSchema) => {
   let required: string[] = schema.required ?? [];

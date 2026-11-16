@@ -15,12 +15,12 @@ describe('eventAttributeKeys', () => {
     expect(
       eventAttributeKeys([
         trigger({
-          mimeType: { type: 'string', 'x-slates-event-attribute': true },
+          mimeType: { type: 'string', 'x-metorial-event-attribute': true },
           name: { type: 'string' },
-          fileId: { type: 'string', 'x-slates-event-attribute': true }
+          fileId: { type: 'string', 'x-metorial-event-attribute': true }
         }),
-        trigger({ fileId: { type: 'string', 'x-slates-event-attribute': true } }),
-        trigger({ threadId: { type: 'string', 'x-slates-event-attribute': 'yes' } }),
+        trigger({ fileId: { type: 'string', 'x-metorial-event-attribute': true } }),
+        trigger({ threadId: { type: 'string', 'x-metorial-event-attribute': 'yes' } }),
         { outputSchema: null },
         {}
       ])
