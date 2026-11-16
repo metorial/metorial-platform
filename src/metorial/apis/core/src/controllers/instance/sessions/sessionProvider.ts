@@ -265,13 +265,22 @@ export let sessionProviderController = Controller.create(
       .body('default', sessionProviderCreateBodyValidator)
       .output(sessionProviderPresenter)
       .do(async ctx => {
+        let organizationActor = getOwnershipActor(ctx);
+
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          organizationActor: getOwnershipActor(ctx),
+          organizationActor,
           sessionId: ctx.body.session_id
         });
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor,
+          session
+        });
+
         let input = await resolveSessionProviderInput({
           instance: ctx.instance,
+          organizationActor,
           auditScope: ctx.auditScope,
           providerDeployment: mapSessionProviderDeploymentSource(ctx.body),
           providerConfig: mapSessionProviderConfigSource(ctx.body),
@@ -280,6 +289,7 @@ export let sessionProviderController = Controller.create(
         });
         let sessionProvider = await sessionProviderService.createSessionProvider({
           instance: ctx.instance,
+          organizationActor,
           auditScope: ctx.auditScope,
           session,
           input
@@ -313,6 +323,12 @@ export let sessionProviderController = Controller.create(
       )
       .output(sessionProviderPresenter)
       .do(async ctx => {
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          session: ctx.sessionProvider.session
+        });
+
         let sessionProvider = await sessionProviderService.updateSessionProvider({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
@@ -346,6 +362,12 @@ export let sessionProviderController = Controller.create(
       )
       .output(sessionProviderPresenter)
       .do(async ctx => {
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          session: ctx.sessionProvider.session
+        });
+
         let sessionProvider = await sessionProviderService.archiveSessionProvider({
           instance: ctx.instance,
           auditScope: ctx.auditScope,

@@ -95,7 +95,14 @@ describe('api-core providers: catalog', () => {
       expectError(await publishable.get(path), 404);
     }
 
-    expectError(await publishable.get('/provider-specification-change-notifications'), 401);
+    for (let path of [
+      '/provider-specification-change-notifications',
+      `/providers/${remote.providerId}/security-review`,
+      '/security-reviews/unknown',
+      '/security-reviews/unknown/revisions'
+    ]) {
+      expectError(await publishable.get(path), 401);
+    }
 
     for (let path of [
       `/provider-versions/${version.id}`,

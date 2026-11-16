@@ -29,6 +29,7 @@ import {
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
 import {
+  assertSetupSessionRedirectUrl,
   providerSetupSessionInclude,
   providerSetupSessionService
 } from '@metorial-subspace/module-auth';
@@ -440,6 +441,8 @@ class integrationSetupSessionServiceImpl {
   async createIntegrationSetupSessionInternal(
     d: { tenant: Tenant; environment: Environment } & CreateIntegrationSetupSessionParams
   ) {
+    assertSetupSessionRedirectUrl(d.input.redirectUrl);
+
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integration);

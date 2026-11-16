@@ -99,6 +99,33 @@ export let getGitHubAuthenticatedUser = async (backend: ScmBackend, accessToken:
   return (await github.request('GET /user')).data;
 };
 
+export let gitHubUserCanAccessInstallation = async (i: {
+  backend: ScmBackend;
+  accessToken: string;
+  installationId: string;
+}) => {
+  assertScmBackendAllowed(i.backend);
+
+  let github = new Octokit({
+    auth: i.accessToken,
+    baseUrl: i.backend.apiUrl,
+    request: {
+      fetch: scmFetch,
+      headers: { 'X-GitHub-Api-Version': GITHUB_REST_API_VERSION }
+    }
+  });
+
+  for (let page = 1; ; page++) {
+    let response = await github.request('GET /user/installations', { per_page: 100, page });
+    let installations = response.data.installations ?? [];
+
+    if (installations.some(installation => String(installation.id) === i.installationId)) {
+      return true;
+    }
+    if (installations.length < 100) return false;
+  }
+};
+
 export let listGitHubInstallationRequests = async (backend: ScmBackend) => {
   let github = await createGitHubAppClient(backend);
   let requests: any[] = [];

@@ -48,6 +48,9 @@ type FileUploadAccessInput = {
   overridePermissions?: boolean;
 };
 
+let singleMediaTypePattern =
+  /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*\s*(;[\x20-\x2b\x2d-\x7e]*)?$/i;
+
 let isObjectMissingError = (error: unknown) =>
   error instanceof ObjectStorageError && error.statusCode === 404;
 
@@ -185,6 +188,15 @@ class FileUploadServiceImpl {
       );
     }
 
+    let fileType = d.input.mimeType?.trim() || 'application/octet-stream';
+    if (!singleMediaTypePattern.test(fileType)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'File type must be a single media type, for example image/png'
+        })
+      );
+    }
+
     let purpose = await filePurposeService.getFilePurposeById({ id: d.purpose });
     if (purpose.slug === documentFilePurposeSlug) {
       throw new ServiceError(
@@ -221,7 +233,6 @@ class FileUploadServiceImpl {
 
     let storeId = generatePlainId(20);
     let uploadId = await ID.generateId('fileUpload');
-    let fileType = d.input.mimeType?.trim() || 'application/octet-stream';
     let uploadUrlExpiresAt = getUploadUrlExpiresAt();
     let fabricOwner = {
       ...fileFabricOwnerFromScope(d, d.input.size),

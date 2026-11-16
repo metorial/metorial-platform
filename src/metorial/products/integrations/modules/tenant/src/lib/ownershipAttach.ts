@@ -1,8 +1,9 @@
 import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from './metorialDb';
+import { effectiveOwnerActorOid, type OwnedResource } from './ownership';
 import {
   assertCanAttachOwnedResources,
-  internalOwnershipAccessor,
+  ownershipAttachRestrictedError,
   type OwnershipAccessor
 } from './ownershipAccess';
 
@@ -12,6 +13,16 @@ type SubspaceResourceIds = {
   providerConfigIds?: (string | null | undefined)[];
   providerAuthConfigIds?: (string | null | undefined)[];
   integrationInstanceIds?: (string | null | undefined)[];
+};
+
+type ConsumerSubspaceResourceIds = SubspaceResourceIds & {
+  parentIntegrationInstanceId?: string | null;
+  inheritedProviderConfigIds?: (string | null | undefined)[];
+};
+
+type ConsumerAttachableResource = OwnedResource & {
+  id?: string;
+  owningIntegrationInstanceOid?: bigint | null;
 };
 
 let loadSubspaceResources = async (d: SubspaceResourceIds) => {
@@ -57,6 +68,17 @@ let resolveSubspaceParentOwnerActorOid = async (d: SubspaceResourceIds) => {
     : null;
 };
 
+let resolveParentIntegrationInstanceOid = async (d: ConsumerSubspaceResourceIds) => {
+  if (!d.parentIntegrationInstanceId) return null;
+
+  let integrationInstance = await db.integrationInstance.findFirst({
+    where: { id: d.parentIntegrationInstanceId, tenantOid: d.tenant.oid },
+    select: { oid: true }
+  });
+
+  return integrationInstance?.oid ?? null;
+};
+
 export let assertCanAttachSubspaceResourcesToCoreParent = async (
   d: SubspaceResourceIds & { accessor: OwnershipAccessor }
 ) => {
@@ -76,8 +98,42 @@ export let assertCanAttachSubspaceResourcesToCoreParent = async (
   });
 };
 
-export let assertConsumerCanAttachSubspaceResources = async (d: SubspaceResourceIds) =>
-  await assertCanAttachSubspaceResourcesToCoreParent({
-    ...d,
-    accessor: { ...internalOwnershipAccessor, kind: 'consumer', isEnforced: true }
-  });
+export let assertConsumerCanAttachSubspaceResources = async (
+  d: ConsumerSubspaceResourceIds
+) => {
+  if (!d.parent) return;
+
+  let { configs, authConfigs, integrationInstances } = await loadSubspaceResources(d);
+  let [parentOwnerActorOid, parentIntegrationInstanceOid] = await Promise.all([
+    resolveSubspaceParentOwnerActorOid(d),
+    resolveParentIntegrationInstanceOid(d)
+  ]);
+
+  let isParentUnowned = !d.parent.ownerActorOid;
+  let isPartOfParent = (child: ConsumerAttachableResource) =>
+    !!parentIntegrationInstanceOid &&
+    child.owningIntegrationInstanceOid === parentIntegrationInstanceOid;
+
+  let assertOwnedByParent = (
+    children: ConsumerAttachableResource[],
+    resource: string,
+    isInherited: (child: ConsumerAttachableResource) => boolean = () => false
+  ) => {
+    for (let child of children) {
+      let childOwnerActorOid = effectiveOwnerActorOid(child);
+      if (childOwnerActorOid && childOwnerActorOid === parentOwnerActorOid) continue;
+      if (!childOwnerActorOid && isParentUnowned) continue;
+      if (!childOwnerActorOid && (isPartOfParent(child) || isInherited(child))) continue;
+
+      throw ownershipAttachRestrictedError({ resource, id: child.id });
+    }
+  };
+
+  assertOwnedByParent(
+    configs,
+    'provider config',
+    config => !!config.id && !!d.inheritedProviderConfigIds?.includes(config.id)
+  );
+  assertOwnedByParent(authConfigs, 'provider auth config');
+  assertOwnedByParent(integrationInstances, 'integration instance');
+};

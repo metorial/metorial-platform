@@ -3,6 +3,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
 import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../../lib/githubApp';
+import { normalizePath } from '../../lib/normalizePath';
 import { runCodeBucketImport } from './importError';
 
 export let importGithubQueue = createQueue<{
@@ -48,7 +49,7 @@ export let importGithubQueueProcessor = importGithubQueue.process(async data => 
         owner: data.owner,
         repo: data.repo,
         ref: data.ref,
-        path: data.path,
+        path: normalizePath(data.path),
         token,
         ...(await getGitHubTransferEndpoints(repo.installation.backend, data.owner, data.repo))
       });

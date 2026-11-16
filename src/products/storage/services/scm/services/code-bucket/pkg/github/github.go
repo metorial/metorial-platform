@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/util"
@@ -48,8 +49,8 @@ const (
 )
 
 var (
-	apiClient      = &http.Client{Timeout: apiTimeout}
-	transferClient = &http.Client{Timeout: transferTimeout}
+	apiClient      = egress.NewClient(apiTimeout)
+	transferClient = egress.NewClient(transferTimeout)
 
 	sleepFn = sleepContext
 

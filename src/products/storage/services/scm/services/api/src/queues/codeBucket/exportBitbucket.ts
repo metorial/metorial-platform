@@ -3,6 +3,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { getBitbucketAccessTokenWithInstallation } from '../../lib/bitbucket';
 import { codeBucketClient } from '../../lib/codeWorkspace';
+import { normalizePath } from '../../lib/normalizePath';
 import { assertScmUrlsReachable } from '../../lib/scmFetch';
 import { codeBucketService } from '../../services/codeBucket';
 import { getBitbucketCloneUrl } from './bitbucket';
@@ -38,7 +39,7 @@ export let exportBitbucketQueueProcessor = exportBitbucketQueue.process(async da
     await codeBucketClient.exportBucketToBitbucketDataCenter({
       bucketId: data.bucketId,
       cloneUrl,
-      path: data.path,
+      path: normalizePath(data.path),
       branch,
       commitMessage,
       username: '',
@@ -49,7 +50,7 @@ export let exportBitbucketQueueProcessor = exportBitbucketQueue.process(async da
       bucketId: data.bucketId,
       workspace: repo.externalOwner,
       repo: repo.externalName,
-      path: data.path,
+      path: normalizePath(data.path),
       branch,
       commitMessage,
       token,

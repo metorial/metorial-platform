@@ -64,6 +64,7 @@ import {
   adminSetupInvalidBindingError,
   adminSetupToolFiltersError
 } from '../lib/adminSetupErrors';
+import { assertSetupSessionRedirectUrl } from '../lib/setupSessionRedirectUrl';
 import { isAdminSetupSession } from '../lib/setupSessionType';
 import {
   providerSetupSessionCreatedQueue,
@@ -434,6 +435,8 @@ class providerSetupSessionServiceImpl {
   }
 
   async createProviderSetupSessionInternal(d: CreateProviderSetupSessionParams) {
+    assertSetupSessionRedirectUrl(d.input.redirectUrl);
+
     let solution = await getMetorialSolution();
     let normalizedConfiguration = normalizeProviderSetupSessionConfiguration(
       d.input.configuration

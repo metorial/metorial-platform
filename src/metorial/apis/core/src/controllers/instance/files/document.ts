@@ -1,7 +1,11 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { documentEditTokenService, documentService } from '@metorial/module-documents';
+import {
+  documentEditTokenService,
+  documentIdPattern,
+  documentService
+} from '@metorial/module-documents';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, getInstanceCargoActorInput } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -275,7 +279,11 @@ export let documentController = Controller.create(
       .body(
         'default',
         v.object({
-          target_document_id: v.optional(v.string()),
+          target_document_id: v.optional(
+            v.string({
+              modifiers: [v.regex(documentIdPattern, { message: 'Invalid document ID' })]
+            })
+          ),
           title: v.optional(v.string())
         })
       )

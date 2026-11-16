@@ -266,6 +266,7 @@ class sessionProviderInputServiceImpl {
     resolvedProviders?: ResolvedSessionProviderInput[];
     session: Session;
     isNewSession?: boolean;
+    ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
 
@@ -275,7 +276,8 @@ class sessionProviderInputServiceImpl {
         await this.resolveProviderSessionInput({
           tenant: d.tenant,
           environment: d.environment,
-          providers: d.providers
+          providers: d.providers,
+          ownershipAccessor: d.ownershipAccessor
         })
       ).providers;
 

@@ -1,5 +1,6 @@
 import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import {
+  forbiddenError,
   internalServerError,
   isServiceError,
   notAcceptableError,
@@ -25,8 +26,11 @@ import {
 import { v } from '@lowerdeck/validation';
 import * as Cookie from 'cookie';
 import type { ServiceRequest } from './controller';
+import { redactSensitiveFields, redactSensitiveUrl } from './redact';
 
 let verbose = process.env.NODE_ENV !== 'production';
+
+let rpcMediaTypes = new Set(['application/rpc+json', 'application/json']);
 
 let Sentry = getSentry();
 let tracer = trace.getTracer('lowerdeck.rpc-server');
@@ -42,6 +46,35 @@ let validation = v.object({
 });
 
 let normalizeHandlerName = (name: string) => name.replace(/\./g, ':');
+
+let getMediaType = (contentType: string) => contentType.split(';')[0]!.trim().toLowerCase();
+
+let getHostForOrigin = (origin: URL, host: string) => {
+  try {
+    return new URL(`${origin.protocol}//${host.trim()}`).host;
+  } catch {
+    return null;
+  }
+};
+
+let isSameOriginRequest = (req: { url: string; headers: Headers }, origin: string) => {
+  if (req.headers.get('sec-fetch-site') == 'same-origin') return true;
+
+  try {
+    let originUrl = new URL(origin);
+    let requestHosts = [
+      req.headers.get('x-forwarded-host')?.split(',')[0],
+      req.headers.get('host'),
+      new URL(req.url).host
+    ];
+
+    return requestHosts.some(
+      host => !!host && getHostForOrigin(originUrl, host) == originUrl.host
+    );
+  } catch {
+    return false;
+  }
+};
 
 let isBatchRpcBody = (body: unknown) => validation.validate(body).success;
 
@@ -195,11 +228,7 @@ export let rpcMux = (
         return new Response(null, { status: 403 });
       }
 
-      let contentType = req.headers.get('content-type') ?? '';
-      if (
-        !contentType.includes('application/rpc+json') &&
-        !contentType.includes('application/json')
-      ) {
+      if (!rpcMediaTypes.has(getMediaType(req.headers.get('content-type') ?? ''))) {
         return new Response(
           JSON.stringify(
             notAcceptableError({
@@ -207,6 +236,13 @@ export let rpcMux = (
             }).toResponse()
           ),
           { status: 406, headers: corsHeaders }
+        );
+      }
+
+      if (opts.cors && origin && !corsOk && !isSameOriginRequest(req, origin)) {
+        return new Response(
+          JSON.stringify(forbiddenError({ message: 'Origin is not allowed' }).toResponse()),
+          { status: 403 }
         );
       }
 
@@ -393,14 +429,16 @@ export let rpcMux = (
                       };
 
                       Sentry.getCurrentScope().setContext('rpc.request', {
-                        url: req.url,
-                        query: Object.fromEntries(url.searchParams.entries())
+                        url: redactSensitiveUrl(req.url),
+                        query: redactSensitiveFields(
+                          Object.fromEntries(url.searchParams.entries())
+                        )
                       });
 
                       if (opts.captureRequestBody !== false)
                         Sentry.getCurrentScope().addAttachment({
                           filename: 'rpc.request.body.json',
-                          data: body,
+                          data: redactSensitiveFields(body),
                           contentType: 'application/json'
                         });
 
@@ -524,10 +562,12 @@ export let rpcMux = (
 
                       Sentry.captureException(e, {
                         extra: {
-                          url: req.url,
+                          url: redactSensitiveUrl(req.url),
                           method: req.method,
                           ip,
-                          ...(opts.captureRequestBody !== false ? { body } : {})
+                          ...(opts.captureRequestBody !== false
+                            ? { body: redactSensitiveFields(body) }
+                            : {})
                         }
                       });
 

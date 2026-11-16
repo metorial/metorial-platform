@@ -5,20 +5,30 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
+	"github.com/metorial/metorial/services/code-bucket/pkg/util"
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	gitclient "github.com/go-git/go-git/v5/plumbing/transport/client"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
+
+func init() {
+	gitTransport := githttp.NewClient(&http.Client{Transport: egress.Transport})
+	gitclient.InstallProtocol("https", gitTransport)
+	gitclient.InstallProtocol("http", gitTransport)
+}
 
 func WalkDataCenterRepo(
 	ctx context.Context,
@@ -70,7 +80,11 @@ func PrepareDataCenterRepo(
 		cleanup()
 		return nil, nil, err
 	}
-	root := filepath.Join(worktreeDir, filepath.FromSlash(normalizedPath))
+	root, err := util.ResolveWithin(worktreeDir, normalizedPath)
+	if err != nil {
+		cleanup()
+		return nil, nil, fmt.Errorf("invalid Bitbucket import path: %w", err)
+	}
 	iter := func(yield func(FileToUpload) error) error {
 		return filepath.WalkDir(root, func(filePath string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
@@ -166,10 +180,16 @@ func UploadToDataCenterRepo(
 	if err != nil {
 		return err
 	}
-	targetDir := filepath.Join(worktreeDir, filepath.FromSlash(normalizedTarget))
+	targetDir := filepath.FromSlash(normalizedTarget)
+
+	worktreeRoot, err := os.OpenRoot(worktreeDir)
+	if err != nil {
+		return err
+	}
+	defer worktreeRoot.Close()
 
 	if opts.ExplicitDeletesOnly {
-		if err := removeDataCenterPaths(targetDir, opts.DeletePaths); err != nil {
+		if err := removeDataCenterPaths(worktreeRoot, targetDir, opts.DeletePaths); err != nil {
 			return err
 		}
 	} else if normalizedTarget == "" {
@@ -181,27 +201,16 @@ func UploadToDataCenterRepo(
 			if entry.Name() == ".git" {
 				continue
 			}
-			if err := os.RemoveAll(filepath.Join(worktreeDir, entry.Name())); err != nil {
+			if err := worktreeRoot.RemoveAll(entry.Name()); err != nil {
 				return err
 			}
 		}
-	} else if err := os.RemoveAll(targetDir); err != nil {
+	} else if err := worktreeRoot.RemoveAll(targetDir); err != nil {
 		return err
 	}
 
 	if err := iter(func(file FileToUpload) error {
-		filePath, err := normalizeRepoPath(file.Path, false)
-		if err != nil {
-			return err
-		}
-		destination := filepath.Join(targetDir, filepath.FromSlash(filePath))
-		if err := ensureWithin(targetDir, destination); err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
-			return err
-		}
-		return os.WriteFile(destination, file.Content, 0o644)
+		return writeDataCenterFile(worktreeRoot, targetDir, file)
 	}); err != nil {
 		return err
 	}
@@ -238,7 +247,28 @@ func UploadToDataCenterRepo(
 	return nil
 }
 
-func removeDataCenterPaths(targetDir string, deletePaths []string) error {
+func writeDataCenterFile(worktreeRoot *os.Root, targetDir string, file FileToUpload) error {
+	filePath, err := normalizeRepoPath(file.Path, false)
+	if err != nil {
+		return err
+	}
+
+	destination := filepath.Join(targetDir, filepath.FromSlash(filePath))
+	if err := ensureWithin(targetDir, destination); err != nil {
+		return err
+	}
+	if parent := filepath.Dir(destination); parent != "." {
+		if err := worktreeRoot.MkdirAll(parent, 0o755); err != nil {
+			return err
+		}
+	}
+
+	return worktreeRoot.WriteFile(destination, file.Content, 0o644)
+}
+
+func removeDataCenterPaths(worktreeRoot *os.Root, targetDir string, deletePaths []string) error {
+	targetDir = filepath.Clean(targetDir)
+
 	for _, deletePath := range deletePaths {
 		filePath, err := normalizeRepoPath(deletePath, false)
 		if err != nil {
@@ -249,7 +279,7 @@ func removeDataCenterPaths(targetDir string, deletePaths []string) error {
 		if err := ensureWithin(targetDir, destination); err != nil {
 			return err
 		}
-		if err := os.Remove(destination); err != nil {
+		if err := worktreeRoot.Remove(destination); err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
@@ -260,7 +290,7 @@ func removeDataCenterPaths(targetDir string, deletePaths []string) error {
 			if err := ensureWithin(targetDir, parent); err != nil {
 				break
 			}
-			if err := os.Remove(parent); err != nil {
+			if err := worktreeRoot.Remove(parent); err != nil {
 				break
 			}
 		}

@@ -324,8 +324,7 @@ export let magicMcpEndpointController = Controller.create(
                 instance: ctx.instance,
                 organizationActor: getOwnershipActor(ctx),
                 magicMcpServerId: server.magicMcpServerId,
-                accessTags: ctx.accessTags,
-                consumerSurface: ctx.consumerSurface
+                accessTags: ctx.accessTags
               })
             )
           );
@@ -537,8 +536,7 @@ export let magicMcpEndpointController = Controller.create(
                 instance: ctx.instance,
                 organizationActor: getOwnershipActor(ctx),
                 magicMcpServerId: server.magicMcpServerId,
-                accessTags: ctx.accessTags,
-                consumerSurface: ctx.consumerSurface
+                accessTags: ctx.accessTags
               })
             )
           );

@@ -11,8 +11,11 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 
-let securityReviewInstanceGroup = instanceGroup.use(hasFlags(['security-reviews-enabled']));
+let securityReviewInstanceGroup = instanceGroup
+  .use(requireConsumerTokenForPublishableKey())
+  .use(hasFlags(['security-reviews-enabled']));
 
 let providerGroup = securityReviewInstanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {

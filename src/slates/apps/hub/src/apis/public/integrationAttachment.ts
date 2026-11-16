@@ -23,17 +23,13 @@ import {
 import { slateAuthHandlerService } from '../../services/slateInstanceAuthHandler';
 import { storage } from '../../storage';
 
-let HOP_BY_HOP_RESPONSE_HEADERS = new Set([
-  'connection',
-  'keep-alive',
-  'proxy-authenticate',
-  'proxy-authorization',
-  'te',
-  'trailer',
-  'transfer-encoding',
-  'upgrade',
-  'content-encoding'
-]);
+let PROXIED_RESPONSE_HEADERS = [
+  'content-type',
+  'cache-control',
+  'expires',
+  'etag',
+  'last-modified'
+];
 
 let UPSTREAM_ERROR_BODY_MAX_BYTES = 16 * 1024;
 let MAX_REDIRECTS = 5;
@@ -51,6 +47,46 @@ let attachmentUrlResponseHeaders = (contentType: string) => ({
   'content-type': contentType,
   'content-disposition': ATTACHMENT_CONTENT_DISPOSITION
 });
+
+let proxiedResponseHeaders = (upstream: Headers) => {
+  let headers = new Headers();
+
+  for (let name of PROXIED_RESPONSE_HEADERS) {
+    let value = upstream.get(name);
+    if (value) headers.set(name, value);
+  }
+
+  let contentLength = upstream.get('content-length');
+  if (contentLength && !upstream.has('content-encoding')) {
+    headers.set('content-length', contentLength);
+  }
+
+  return headers;
+};
+
+let readBodyPrefix = async (response: Response, maxBytes: number) => {
+  let reader = response.body?.getReader();
+  if (!reader) return '';
+
+  let chunks: Uint8Array[] = [];
+  let size = 0;
+
+  try {
+    while (size < maxBytes) {
+      let { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      size += value.byteLength;
+    }
+  } catch {
+    return '';
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+
+  return new TextDecoder().decode(Buffer.concat(chunks).subarray(0, maxBytes));
+};
 
 let refreshLock = createLock({
   name: 'shub/att/refresh/lock',
@@ -181,7 +217,8 @@ export let integrationAttachmentApp = createHono().get(
         let object = await storage.getObject(attachment.storageBucket, attachment.storageKey);
         let responseHeaders = new Headers({
           'content-type': attachmentContentType(attachment, object.metadata.content_type),
-          'content-disposition': ATTACHMENT_CONTENT_DISPOSITION
+          'content-disposition': ATTACHMENT_CONTENT_DISPOSITION,
+          'x-content-type-options': 'nosniff'
         });
         if (preferUrl) responseHeaders.set(ATTACHMENT_RESULT_RESPONSE_HEADER, 'direct');
         return new Response(new Uint8Array(object.data), {
@@ -252,26 +289,23 @@ export let integrationAttachmentApp = createHono().get(
       }
 
       if (upstream.status === 200) {
-        let responseHeaders = new Headers();
-        upstream.headers.forEach((value, key) => {
-          if (!HOP_BY_HOP_RESPONSE_HEADERS.has(key.toLowerCase()))
-            responseHeaders.set(key, value);
-        });
+        let responseHeaders = proxiedResponseHeaders(upstream.headers);
         if (attachment.mimeType && !responseHeaders.has('content-type')) {
           responseHeaders.set('content-type', attachment.mimeType);
         }
         responseHeaders.set('content-disposition', ATTACHMENT_CONTENT_DISPOSITION);
+        responseHeaders.set('x-content-type-options', 'nosniff');
         if (preferUrl) responseHeaders.set(ATTACHMENT_RESULT_RESPONSE_HEADER, 'direct');
         return new Response(upstream.body, { status: 200, headers: responseHeaders });
       }
 
-      let upstreamBody = await upstream.text().catch(() => '');
+      let upstreamBody = await readBodyPrefix(upstream, UPSTREAM_ERROR_BODY_MAX_BYTES);
       throw new ServiceError(
         badRequestError({
           code: 'integration_attachment_upstream_error',
           message: `The integration returned an unexpected response (status ${upstream.status}) while fetching this attachment.`,
           upstreamStatus: upstream.status,
-          upstreamError: upstreamBody.slice(0, UPSTREAM_ERROR_BODY_MAX_BYTES)
+          upstreamError: upstreamBody
         })
       );
     } catch (err) {

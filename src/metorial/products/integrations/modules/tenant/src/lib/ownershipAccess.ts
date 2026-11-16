@@ -746,10 +746,18 @@ export let assertCanUseSubspaceResources = async (d: {
   });
 };
 
+let isOwnedByOtherConsumer = async (accessor: OwnershipAccessor, resource: OwnedResource) => {
+  let ownerActorOid = effectiveOwnerActorOid(resource);
+  if (!ownerActorOid || accessor.ownActorOids.includes(ownerActorOid)) return false;
+
+  return await isConsumerActorOid(ownerActorOid);
+};
+
 export let assertCanUseSessionById = async (d: {
   instance: Parameters<typeof resolveMetorialFacing>[0]['instance'];
   organizationActor?: OrganizationActor;
   sessionId: string;
+  isCrossConsumerUseDenied?: boolean;
 }) => {
   let { tenant, environment } = await resolveMetorialFacing(d);
   let scope = { id: d.sessionId, tenantOid: tenant.oid, environmentOid: environment.oid };
@@ -781,6 +789,14 @@ export let assertCanUseSessionById = async (d: {
     ? await getOwnershipAccessor({ tenant, organizationActor: d.organizationActor })
     : internalOwnershipAccessor;
   await assertCanUseOwnedResource(accessor, session, { resource: 'session' });
+
+  if (
+    d.isCrossConsumerUseDenied &&
+    accessor.kind === 'consumer' &&
+    (await isOwnedByOtherConsumer(accessor, session))
+  ) {
+    throw ownershipRestrictedError({ resource: 'session', id: d.sessionId });
+  }
 };
 
 export type OwnershipFacing = {

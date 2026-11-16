@@ -22,6 +22,12 @@ import {
 } from '@metorial/module-file';
 import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';
+import {
+  getDirectUploadFileType,
+  getDocumentContentType,
+  getServedContentType,
+  isPassiveMediaType
+} from './mediaType';
 import { resolveUploadTarget } from './uploadAccess';
 import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
 import { parseUploadMode, parseUploadRequest } from './uploadRequest';
@@ -228,6 +234,7 @@ let handleDirectUpload = async (c: Context, auth: AuthInfo, context: RequestCont
     auditScope: requireUploadAuditScope(target),
     purpose,
     file,
+    mimeType: getDirectUploadFileType(file.type),
     title,
     fileName,
     authorization: access.authorization,
@@ -344,23 +351,6 @@ let createFileUploadHandler =
       }
     );
   };
-
-let getServedContentType = (contentType?: string | null) => {
-  if (contentType?.startsWith('image/')) return contentType;
-  return 'application/octet-stream';
-};
-
-let getDocumentContentType = (contentType?: string | null) =>
-  contentType && contentType !== 'application/octet-stream'
-    ? contentType
-    : 'text/plain; charset=utf-8';
-
-let isPassiveMediaType = (contentType: string) => {
-  let mediaType = contentType.split(';')[0]!.trim().toLowerCase();
-  if (mediaType == 'image/svg+xml') return false;
-
-  return mediaType == 'application/pdf' || /^(image|video|audio)\//.test(mediaType);
-};
 
 let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'attachment') => {
   let fallbackName = fileName.replace(/["\\\r\n]/g, '_').replace(/[^\x20-\x7e]/g, '_');

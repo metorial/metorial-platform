@@ -34,6 +34,7 @@ import {
 import { getBackend } from '@metorial-subspace/provider';
 import { addMinutes } from 'date-fns';
 import { env } from '../env';
+import { assertSetupSessionRedirectUrl } from '../lib/setupSessionRedirectUrl';
 import {
   providerOAuthSetupCreatedQueue,
   providerOAuthSetupUpdatedQueue
@@ -178,6 +179,8 @@ class providerOAuthSetupServiceImpl {
   }
 
   async createProviderOAuthSetupInternal(d: CreateProviderOAuthSetupParams) {
+    assertSetupSessionRedirectUrl(d.input.redirectUrl);
+
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.providerDeployment);
