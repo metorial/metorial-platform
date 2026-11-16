@@ -17,6 +17,7 @@ import { buildChangeNotificationFilterClause } from '../lib/subRegistryFilter';
 import { buildChangeNotificationSupportsPrebuiltWhere } from '../lib/slateVersion/visibility';
 import { isRootMode, isSigningEnabled } from '../mode';
 import { storage } from '../storage';
+import type { BuildRun } from './slatePackBuild';
 import { signingKeyService } from './signingKey';
 import { slatePackService, type PackSelection } from './slatePack';
 
@@ -141,6 +142,10 @@ class slatePackChannelServiceImpl {
           readyIncrementalCount: ready.find(c => c.kind === 'incremental')?._count._all ?? 0,
           readyFullCount: ready.find(c => c.kind === 'full')?._count._all ?? 0,
           readySize: ready.reduce((sum, c) => sum + (c._sum.size ?? 0n), 0n),
+          isBuilding:
+            (await db.slatePackBuild.count({
+              where: { channelOid: channel.oid, status: 'running' }
+            })) > 0,
           prunedCount: counts
             .filter(count => count.status === 'pruned')
             .reduce((sum, c) => sum + c._count._all, 0)
@@ -175,24 +180,26 @@ class slatePackChannelServiceImpl {
   // incremental packs stay consistent; the next full sync covers everything deleted here.
   // Makes the incremental feed walk every version again. Installations import the repeats
   // as ordinary updates, and versions they already have are skipped.
-  async rewindFeed(d: { channelId: string }) {
+  async rewindFeed(d: { channelId: string; run?: BuildRun }) {
     await db.slatePackChannel.update({
       where: { id: d.channelId },
       data: { feedCursorOid: null }
     });
+    await d.run?.log('Rewound the incremental feed to the first change notification.');
   }
 
   async countVersionsWithoutChecksum() {
     return db.slateVersion.count({ where: { bundleArtifact: { checksum: '' } } });
   }
 
-  async resetReleases(d: { channelId: string }) {
+  async resetReleases(d: { channelId: string; run?: BuildRun }) {
     let channel = await findBuildChannel(d);
     let now = new Date();
 
     let releases = await db.slatePackRelease.findMany({
       where: { channelOid: channel.oid, status: 'ready' }
     });
+    await d.run?.log(`Deleting ${releases.length} existing packs.`);
 
     for (let release of releases) {
       await storage.deleteObject(release.bucket, release.storageKey).catch(() => {});
@@ -201,6 +208,8 @@ class slatePackChannelServiceImpl {
         data: { status: 'pruned', prunedAt: now }
       });
     }
+
+    await d.run?.log(`Deleted ${releases.length} packs.`);
 
     return { deleted: releases.length };
   }
@@ -274,7 +283,7 @@ class slatePackChannelServiceImpl {
   }
 
   // Returns whether another pack may be due right away.
-  async buildIncremental(d: { channelId: string }) {
+  async buildIncremental(d: { channelId: string; run?: BuildRun }) {
     if (!canBuildPacks()) return false;
 
     let channel = await findBuildChannel(d);
@@ -319,9 +328,21 @@ class slatePackChannelServiceImpl {
       isPageFull: notifications.length === feedScanLimit
     });
 
-    if (selection.action === 'wait') return false;
+    if (selection.action === 'wait') {
+      if (d.run?.trigger === 'manual') {
+        await d.run.log(
+          notifications.length
+            ? `No incremental pack is due: ${notifications.length} new notifications are waiting for the pack to reach ${Math.round(getTargetBytes() / 1024 / 1024)} MB or for the oldest to be a day old.`
+            : 'No incremental pack is due: there are no new versions.'
+        );
+      }
+      return false;
+    }
 
     if (selection.action === 'advance') {
+      await d.run?.log(
+        `Skipped ${notifications.length} notifications without a stored bundle.`
+      );
       await db.slatePackChannel.update({
         where: { oid: channel.oid },
         data: { feedCursorOid: selection.cursorOid }
@@ -334,7 +355,12 @@ class slatePackChannelServiceImpl {
     });
     let sequence = channel.lastSequence + 1;
 
+    await d.run?.log(
+      `Building incremental pack #${sequence} with ${selected.length} versions (${notifications.length} notifications read).`
+    );
+
     let release = await this.writeRelease({
+      run: d.run,
       channel,
       selected,
       delivery: {
@@ -372,13 +398,16 @@ class slatePackChannelServiceImpl {
 
     if (!claimed) {
       await storage.deleteObject(release.bucket, release.storageKey).catch(() => {});
+      await d.run?.log(`Pack #${sequence} was built by another process and was discarded.`);
       return false;
     }
+
+    await d.run?.log(`Published incremental pack #${sequence}.`);
 
     return true;
   }
 
-  async buildFullSyncIfDue(d: { channelId: string; force?: boolean }) {
+  async buildFullSyncIfDue(d: { channelId: string; force?: boolean; run?: BuildRun }) {
     if (!canBuildPacks()) return false;
 
     let channel = await findBuildChannel(d);
@@ -389,6 +418,10 @@ class slatePackChannelServiceImpl {
       !channel.lastFullSyncAt ||
       now.getTime() - channel.lastFullSyncAt.getTime() >= fullSyncIntervalMs;
     if (!isDue) return false;
+
+    await d.run?.log(
+      d.force ? 'Starting a forced full sync.' : 'Starting the scheduled full sync.'
+    );
 
     let selection = await slatePackService.selectVersions({
       tenant: { oid: channel.subRegistry.tenantOid },
@@ -408,6 +441,10 @@ class slatePackChannelServiceImpl {
     ).flatMap(part => splitIntoParts(part, () => 1, SLATE_PACK_MAX_ENTRIES));
     if (!parts.length) parts = [[]];
 
+    await d.run?.log(
+      `Selected the current version of ${selected.length} integrations, split into ${parts.length} parts (sync ${fullSyncId} covering pack #${coversSequence}).`
+    );
+
     let written: Awaited<ReturnType<typeof this.writeRelease>>[] = [];
 
     try {
@@ -416,6 +453,7 @@ class slatePackChannelServiceImpl {
 
         written.push(
           await this.writeRelease({
+            run: d.run,
             channel,
             selected: part,
             delivery: {
@@ -458,7 +496,12 @@ class slatePackChannelServiceImpl {
           data: { lastFullSyncAt: now, lastBuildError: null, lastBuildErrorAt: null }
         });
       });
+
+      await d.run?.log(`Published full sync ${fullSyncId} with ${parts.length} parts.`);
     } catch (error) {
+      await d.run?.log(
+        `The full sync failed, so its ${written.length} written parts are being deleted.`
+      );
       await Promise.all(
         written.map(release =>
           storage.deleteObject(release.bucket, release.storageKey).catch(() => {})
@@ -470,7 +513,7 @@ class slatePackChannelServiceImpl {
     return true;
   }
 
-  async prune(d: { channelId: string }) {
+  async prune(d: { channelId: string; run?: BuildRun }) {
     let channel = await findBuildChannel(d);
     let now = new Date();
 
@@ -510,6 +553,8 @@ class slatePackChannelServiceImpl {
         data: { status: 'pruned', prunedAt: now }
       });
     }
+
+    if (stale.length) await d.run?.log(`Deleted ${stale.length} outdated packs.`);
 
     return { pruned: stale.length };
   }
@@ -565,6 +610,7 @@ class slatePackChannelServiceImpl {
   }
 
   private async writeRelease(d: {
+    run?: BuildRun;
     channel: BuildChannel;
     selected: SelectedVersion[];
     delivery: SlatePackDelivery;
@@ -573,6 +619,8 @@ class slatePackChannelServiceImpl {
     let ids = getId('slatePackRelease');
     let bucket = env.storage.PACKAGE_BUCKET_NAME;
     let storageKey = `slate-pack-releases/${d.channel.id}/${ids.id}.slatepack`;
+
+    await d.run?.log(`Writing ${d.fileName} with ${d.selected.length} versions.`);
 
     let contents = slatePackService.buildPackContents({
       selected: d.selected,
@@ -589,6 +637,11 @@ class slatePackChannelServiceImpl {
       await slatePackService.streamSignedPack(contents),
       'application/zip'
     );
+
+    await d.run?.log(
+      `Wrote ${d.fileName}: ${stored.digests.size} bytes, sha256 ${stored.digests.sha256.slice(0, 12)}.`
+    );
+    await d.run?.releaseWritten();
 
     return {
       ...ids,

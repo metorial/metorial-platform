@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { EmptyState, MonoCode, MonoText } from '../../components/styled';
 import { useSlatePackOverview, useSlatePackReleases } from '../../hooks';
+import { BuildTable } from './BuildTable';
 import { ForceFullSyncDialog } from './ForceFullSyncDialog';
 import { formatBytes } from './formatBytes';
 
@@ -218,6 +219,14 @@ export let PackList = () => {
                     </div>
                   </Flex>
 
+                  {channel.isBuilding && (
+                    <Callout color="blue">
+                      <Text size="2">
+                        A build is running. Open it in the Builds table to follow its log.
+                      </Text>
+                    </Callout>
+                  )}
+
                   {channel.lastBuildError && (
                     <Callout color="red">
                       <Text size="2">
@@ -235,6 +244,13 @@ export let PackList = () => {
                 </Flex>
               </Group.Content>
             </Group.Wrapper>
+
+            {tenantId && (
+              <BuildTable
+                tenantId={tenantId}
+                subRegistryIdentifier={channel.subRegistry.identifier}
+              />
+            )}
 
             {tenantId && (
               <ReleaseTable

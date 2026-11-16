@@ -655,6 +655,7 @@ model SlatePackChannel {
   updatedAt DateTime @default(now()) @updatedAt
 
   releases SlatePackRelease[]
+  builds   SlatePackBuild[]
 }
 
 model SlatePackRelease {
@@ -685,6 +686,41 @@ model SlatePackRelease {
   @@unique([channelOid, sequence])
   @@unique([channelOid, fullSyncId, part])
   @@index([channelOid, kind, status])
+}
+
+enum SlatePackBuildStatus {
+  running
+  completed
+  failed
+}
+
+enum SlatePackBuildTrigger {
+  scheduled
+  manual
+}
+
+model SlatePackBuild {
+  oid     BigInt                @id
+  id      String                @unique
+  status  SlatePackBuildStatus  @default(running)
+  trigger SlatePackBuildTrigger
+
+  channelOid BigInt
+  channel    SlatePackChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  forceFullSync Boolean @default(false)
+  reset         Boolean @default(false)
+  rewindFeed    Boolean @default(false)
+
+  releasesWritten Int @default(0)
+
+  logs  String[]
+  error String?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([channelOid, startedAt])
 }
 
 enum MirrorResultStatus {
