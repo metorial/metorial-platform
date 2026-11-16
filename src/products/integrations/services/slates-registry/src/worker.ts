@@ -10,6 +10,7 @@ import {
 } from './queues/mirror/sync';
 import { cleanupSlatePackBatchesCron, processSlatePackProcessor } from './queues/mirror/packs';
 import { buildSlatePackChannelProcessor, slatePackChannelCron } from './queues/packs/channels';
+import { backfillChecksumsCron, backfillChecksumsProcessor } from './queues/signing/checksums';
 import { backfillSignaturesProcessor, ensureSigningKeyCron } from './queues/signing';
 
 await runQueueProcessors([
@@ -17,6 +18,8 @@ await runQueueProcessors([
   cleanupProcessor,
   ensureSigningKeyCron,
   backfillSignaturesProcessor,
+  backfillChecksumsCron,
+  backfillChecksumsProcessor,
   mirrorSyncCron,
   mirrorSyncAllProcessor,
   mirrorSyncUpstreamProcessor,

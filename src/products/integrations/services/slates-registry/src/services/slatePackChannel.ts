@@ -306,7 +306,7 @@ class slatePackChannelServiceImpl {
     let selection = await slatePackService.selectVersions({
       tenant: { oid: channel.subRegistry.tenantOid },
       subRegistry: channel.subRegistry,
-      versions: 'current'
+      versions: env.mirror.SLATES_PACK_FULL_SYNC_VERSIONS ?? 'current'
     });
     let selected = await this.loadSelectedVersions({
       versionOids: selection.map(item => item.version.oid)

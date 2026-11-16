@@ -35,6 +35,7 @@ export let env = defineSettings({
     SLATES_PACK_MAX_BYTES: v.optional(v.number()),
     SLATES_PACK_CHANNELS: v.optional(v.string()),
     SLATES_PACK_TARGET_BYTES: v.optional(v.number()),
+    SLATES_PACK_FULL_SYNC_VERSIONS: v.optional(v.enumOf(['current', 'all'])),
     SLATES_PACK_INCREMENTAL_RETENTION_DAYS: v.optional(v.number())
   },
 
