@@ -938,6 +938,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "hyperresearch/ousia-1": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "No verifiable evidence what HyperResearch's Ousia 1 is: web results are unrelated, no Hugging Face repo, no matching entry in the model index. Defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "inception/mercury-2.5-preview": {
     "decision": "defer",
     "until": "2026-12-12",

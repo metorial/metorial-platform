@@ -104,6 +104,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "UltraSpeed is Xiaomi's high-speed serving of the MiMo V2.6 Pro checkpoint: same release date (2026-09-21/22), 1M context, same weights repo (XiaomiMiMo/MiMo-V2.6-Pro-RL); the index has no separate ultraspeed entry. The 10x price is the premium for the speed tier, explaining the outlier.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "mistral-large-latest": {
     "decision": "router",
     "reason": "Mistral's rolling alias that always serves the newest Mistral Large release (currently Mistral Large 4, Oct 2026); the model it picks changes with each release, so it is a pointer, and the gateway's 4/12 rate matches the original 2024 Mistral Large and looks stale.",
