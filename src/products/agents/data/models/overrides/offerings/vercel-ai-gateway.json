@@ -251,6 +251,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "heygen/heygen-decision-1": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "HeyGen's docs list heygen-decision-1 as a separate decision model released 2026-11-13; the index has HeyGen Video and Voice but no HeyGen decision model, so defer rather than link another lab's decision model.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
+  "heygen/heygen-decision-1-turbo": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "HeyGen's docs list heygen-decision-1-turbo as a lower-cost preview variant of HeyGen Decision 1, released 2026-11-13; the index has no HeyGen decision entries, so defer rather than link the base or another lab's model.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "humansand/ampersand-v0.1": {
     "decision": "defer",
     "until": "2026-12-12",
