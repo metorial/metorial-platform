@@ -39,6 +39,10 @@ export function createApp(config: Config) {
     let entry;
     try {
       entry = await config.storage.get(`v8/${config.team}/${hash}`);
+    } catch (error) {
+      stats.errors += 1;
+      console.error('warp-cache: storage read failed, treating as cache miss', error);
+      entry = null;
     } finally {
       stats.inFlightReads -= 1;
     }
@@ -76,7 +80,11 @@ export function createApp(config: Config) {
           await Promise.all(body.hashes.slice(offset, offset + 16).map(async hash => {
             if (!hashPattern.test(hash)) return;
             let key = `v8/${config.team}/${hash}`;
-            let [exists, metadata] = await Promise.all([config.storage.exists(key), config.storage.metadata(key)]);
+            let [exists, metadata] = await Promise.all([config.storage.exists(key), config.storage.metadata(key)]).catch(error => {
+              stats.errors += 1;
+              console.error('warp-cache: storage query failed, treating as cache miss', error);
+              return [false, null] as const;
+            });
             entries[hash] = exists && metadata ? { size: metadata.size, taskDurationMs: metadata.duration || 0, tag: metadata.tag } : null;
             if (exists && metadata) stats.hits += 1;
             else stats.misses += 1;
