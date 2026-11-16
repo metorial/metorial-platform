@@ -20,6 +20,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "alibaba/qwen4-max": {
+    "decision": "defer",
+    "until": "2026-12-11",
+    "reason": "Alibaba's new Qwen4-Max flagship (announced Sept 2026, preview-only access). The index has only the separate preview checkpoint alibaba/qwen4-max-preview; the stable qwen4-max is not in the index yet, so defer rather than link to the preview.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "alibaba/wan-v2.5-t2v-preview": {
     "decision": "defer",
     "until": "2026-12-12",
