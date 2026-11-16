@@ -32,6 +32,7 @@ export type MagicMcpGroupsListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   search?: string | undefined;
+  id?: string | string[] | undefined;
 };
 
 export let mapMagicMcpGroupsListQuery =

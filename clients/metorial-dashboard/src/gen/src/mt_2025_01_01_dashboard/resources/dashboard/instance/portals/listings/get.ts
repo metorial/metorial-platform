@@ -6,6 +6,7 @@ export type DashboardInstancePortalsListingsGetOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type DashboardInstancePortalsListingsGetOutput = {
 export let mapDashboardInstancePortalsListingsGetOutput =
   /* @__PURE__ */ mapObject<DashboardInstancePortalsListingsGetOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,

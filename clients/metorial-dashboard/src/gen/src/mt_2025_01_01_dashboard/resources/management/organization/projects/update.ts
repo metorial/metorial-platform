@@ -6,6 +6,7 @@ export type ManagementOrganizationProjectsUpdateOutput = {
   status: 'active' | 'deleted';
   slug: string;
   name: string;
+  assistantEnabled: boolean;
   organizationId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -13,7 +14,7 @@ export type ManagementOrganizationProjectsUpdateOutput = {
 
 export let mapManagementOrganizationProjectsUpdateOutput =
   /* @__PURE__ */ mapObject<ManagementOrganizationProjectsUpdateOutput>(
-    ['organization_id', 'created_at', 'updated_at'],
+    ['assistant_enabled', 'organization_id', 'created_at', 'updated_at'],
     1
   );
 

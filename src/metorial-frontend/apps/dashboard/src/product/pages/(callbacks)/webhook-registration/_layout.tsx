@@ -13,6 +13,7 @@ import { RiWebhookLine } from '@remixicon/react';
 import { Outlet, useParams } from 'react-router-dom';
 import {
   getWebhookRegistrationStatusColor,
+  isWebhookRegistrationRemoved,
   WEBHOOK_REGISTRATION_STATUS_LABELS
 } from '../../../scenes/callbacks/shared';
 import { showWebhookRegistrationSetup } from '../../../scenes/callbacks/webhookRegistrationsTable';
@@ -40,7 +41,12 @@ export let WebhookRegistrationLayout = () => {
       icon={<RiWebhookLine />}
       breadcrumbs={[
         {
-          label: 'Webhook Registrations'
+          label: 'Webhook Registrations',
+          to: Paths.instance.webhookRegistrations(
+            organization.data,
+            project.data,
+            instance.data
+          )
         },
         {
           label: registration.data?.name,
@@ -49,25 +55,31 @@ export let WebhookRegistrationLayout = () => {
       ]}
       tabs={[
         { label: 'Overview', to: registrationPath() },
-        { label: 'Events', to: registrationPath('events') },
+        ...(registration.data?.purpose === 'delivery_setup'
+          ? []
+          : [{ label: 'Events', to: registrationPath('events') }]),
         { label: 'Settings', to: registrationPath('settings') }
       ]}
-      actions={[
-        {
-          label: 'View Setup',
-          variant: 'outline',
-          disabled: !instance.data || !registration.data,
-          onClick: () => {
-            if (!instance.data || !registration.data) return;
+      actions={
+        registration.data && isWebhookRegistrationRemoved(registration.data)
+          ? []
+          : [
+              {
+                label: 'View Setup',
+                variant: 'outline',
+                disabled: !instance.data || !registration.data,
+                onClick: () => {
+                  if (!instance.data || !registration.data) return;
 
-            showWebhookRegistrationSetup({
-              instanceId: instance.data.id,
-              registration: registration.data,
-              onComplete: () => void registration.refetch()
-            });
-          }
-        }
-      ]}
+                  showWebhookRegistrationSetup({
+                    instanceId: instance.data.id,
+                    registration: registration.data,
+                    onComplete: () => void registration.refetch()
+                  });
+                }
+              }
+            ]
+      }
       attributes={
         registration.data
           ? [

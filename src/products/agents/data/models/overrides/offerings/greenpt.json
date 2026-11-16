@@ -1,0 +1,44 @@
+{
+  "gemma4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The name 'gemma4' does not identify which Gemma 4 size is served; its 262K context fits the 12B, 26B-A4B or 31B variants and I cannot tell which, so I defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "green-s": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GreenPT's own Green S, a speech-to-text model for pre-recorded and live transcription (per Orq.ai and searchit listings); the index has no GreenPT entry and no evidence of which ASR checkpoint it serves, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "green-s-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GreenPT's Green S Pro, the higher tier of its Green S speech-to-text model (per Orq.ai and Eden AI listings); the index has no GreenPT entry and no evidence of the underlying checkpoint, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "holo2-30b-a3b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "H Company's Holo2-30B-A3B, the open-weight 30B-total/3B-active agents-and-vision MoE (released Nov 2025 per LLM Reference); a real model the index has no H Company entry for, so defer rather than link another lab's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "metis": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GreenPT's Metis, its EU-hosted decision model that returns a calibrated probability for each answer option in one pass (released Oct 2026, per GreenPT's blog and coverage); the index has no GreenPT entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3-235b-a22b-instruct-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "GreenPT serves Alibaba's Qwen3 235B-A22B Instruct 2507 open-weight checkpoint (262K context matches); its 1.026/3.078 rate is GreenPT's own pricing, a premium over the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

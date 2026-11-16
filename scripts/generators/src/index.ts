@@ -9,6 +9,7 @@ import {
   type IntrospectedType,
   type IntrospectionSnapshot
 } from './fetch';
+import { findSdkPathCollisions } from './sdkPaths';
 
 // Generate type exports for Python packages
 let generateTypeExports = (
@@ -170,15 +171,26 @@ if (language === 'go') {
 
 let introspections = new Map<string, Awaited<ReturnType<typeof getEndpoints>>>();
 
+for (let version of versions.versions) {
+  let data = await getEndpoints(workingUrl, version.version, snapshot);
+  let collisions = findSdkPathCollisions(data.endpoints);
+
+  if (collisions.length) {
+    throw new Error(
+      `${version.version} has SDK paths that generate the same identifiers. Rename one of each in its controller:\n${collisions
+        .map(sdkPaths => `  ${sdkPaths.join(' / ')}`)
+        .join('\n')}`
+    );
+  }
+
+  introspections.set(version.version, data);
+}
+
 if (language === 'typescript') {
   for (let version of filteredVersions) {
-    let data = await getEndpoints(workingUrl, version.version, snapshot);
-
-    for (let type of data.types) {
+    for (let type of introspections.get(version.version)!.types) {
       mapperModule.validateMapperType(type.type, type.name);
     }
-
-    introspections.set(version.version, data);
   }
 }
 
@@ -236,9 +248,7 @@ __all__ = [${exportedAliases.map(alias => `"${alias}"`).join(', ')}]
 }
 
 for (let version of filteredVersions) {
-  let { endpoints, types, controllers } =
-    introspections.get(version.version) ??
-    (await getEndpoints(workingUrl, version.version, snapshot));
+  let { endpoints, types, controllers } = introspections.get(version.version)!;
 
   // For Go, separate endpoints into public and management groups.
   // Dashboard and consumer endpoints are excluded entirely.

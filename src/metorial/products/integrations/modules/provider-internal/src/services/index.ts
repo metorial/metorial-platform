@@ -1,4 +1,5 @@
 export * from './provider';
+export * from './providerAvailability';
 export * from './providerCombination';
 export * from './providerDeployment';
 export * from './providerDeploymentConfigPair';

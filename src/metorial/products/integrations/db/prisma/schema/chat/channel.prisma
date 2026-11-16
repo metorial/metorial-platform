@@ -72,10 +72,10 @@ model ChatChannel {
   updatedAt         DateTime  @default(now()) @updatedAt
   lastInteractionAt DateTime?
 
-  threads      ChatThread[]
-  messages     ChatMessage[]
+  threads       ChatThread[]
+  messages      ChatMessage[]
   messageGroups ChatMessageGroup[]
-  chatEvents   ChatEvent[]
+  chatEvents    ChatEvent[]
 
   @@unique([chatOid, channelId])
 }

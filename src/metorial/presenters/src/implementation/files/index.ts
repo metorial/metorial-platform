@@ -1,4 +1,5 @@
 export * from './document';
+export * from './documentComment';
 export * from './documentEditToken';
 export * from './documentParticipant';
 export * from './documentVersion';

@@ -1,7 +1,8 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { skillGroupType } from '../../types';
-import { v1SkillPreviewPresenter } from './skill';
+import { getImageUrl } from '@metorial/db';
+import { presentSkillImage, skillImageSchema, v1SkillPreviewPresenter } from './skill';
 
 export let v1SkillGroupPresenter = Presenter.create(skillGroupType)
   .presenter(async ({ skillGroup }) => ({
@@ -11,6 +12,8 @@ export let v1SkillGroupPresenter = Presenter.create(skillGroupType)
     name: skillGroup.name,
     description: skillGroup.description,
     metadata: skillGroup.metadata,
+    image_url: await getImageUrl(skillGroup),
+    image: presentSkillImage(skillGroup.image),
     allow_consumer_skill_assignment: skillGroup.allowConsumerSkillAssignment,
     skills: await Promise.all(skillGroup.skills.map(skill => v1SkillPreviewPresenter(skill))),
     created_at: skillGroup.createdAt,
@@ -24,6 +27,8 @@ export let v1SkillGroupPresenter = Presenter.create(skillGroupType)
       name: v.string(),
       description: v.nullable(v.string()),
       metadata: v.nullable(v.record(v.any())),
+      image_url: v.string(),
+      image: skillImageSchema,
       allow_consumer_skill_assignment: v.boolean(),
       skills: v.array(v1SkillPreviewPresenter.schema),
       created_at: v.date(),

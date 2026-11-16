@@ -11,6 +11,11 @@ import {
   uniqueId,
   useOrganization
 } from '@metorial/e2e';
+import { loadOrganizationFixture } from '@metorial/e2e/db';
+import {
+  oauthApplicationService,
+  oauthAuthorizationService
+} from '@metorial/module-machine-access';
 import { describe, expect, it } from 'vitest';
 import {
   createConsumerProfile,
@@ -249,6 +254,44 @@ describe('api-core consumer: instance consumers and surfaces', () => {
       let surfaces = await listAll(org.clients.rest, dashboardPath('/consumer-surfaces'));
       let cliSurfaces = surfaces.filter(surface => surface.name === 'Metorial CLI');
       expect(cliSurfaces).toHaveLength(1);
+    });
+
+    it('exchanges a member CLI sign-in for only its own internal consumer session', async () => {
+      let path = '/member-consumer-session';
+      expectError(await org.clients.instance.post(path, {}), 403, 'forbidden');
+      expectError(await org.clients.rest.post(dashboardPath(path), {}), 403, 'forbidden');
+
+      if (!(await oauthApplicationService.getCliAuthOAuthApplication())) {
+        await oauthApplicationService.upsertCliAuthOAuthApplication();
+      }
+      let fixture = await loadOrganizationFixture(org.ids);
+      let issued = await oauthAuthorizationService.issueCliAuthTokenForMember({
+        organization: fixture.organization,
+        member: fixture.member,
+        context: { ip: '127.0.0.1', ua: 'metorial-e2e-cli' }
+      });
+      let cli = rest(metorialEndpoints().api, {
+        apiKey: issued.oauthToken.accessToken,
+        version: API_VERSIONS.magnetar,
+        headers: { 'metorial-instance-id': org.ids.instanceId }
+      });
+      let own = expectOk(await cli.post('/get-member-consumer', {}));
+      let exchanged = expectOk(await cli.post(path, {}));
+      expect(exchanged.access_token).toEqual(expect.any(String));
+      expect(exchanged).not.toHaveProperty('refresh_token');
+
+      let consumer = rest(metorialEndpoints().api, {
+        apiKey: exchanged.access_token,
+        version: API_VERSIONS.magnetar
+      });
+      let profile = expectOk(await consumer.post('/consumer/profile', {}));
+      expect(profile.id).toBe(own.profile.id);
+      expectError(await consumer.post(path, {}), 403, 'forbidden');
+      expectError(
+        await consumer.post('/magic-mcp-tokens', { name: 'persistent-token' }),
+        403,
+        'forbidden'
+      );
     });
 
     it('requires a known surface identifier', async () => {

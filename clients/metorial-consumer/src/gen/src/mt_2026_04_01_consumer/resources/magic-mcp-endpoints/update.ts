@@ -147,7 +147,11 @@ export type MagicMcpEndpointsUpdateBody = {
   enableSkillResources?: boolean | undefined;
   skillSelection?:
     | { type: 'all' }
-    | { type: 'selected'; skillIds: string[]; skillGroupIds: string[] }
+    | {
+        type: 'selected';
+        skillIds?: string[] | undefined;
+        skillGroupIds?: string[] | undefined;
+      }
     | undefined;
   source?: 'explorer' | undefined;
 };

@@ -189,6 +189,7 @@ export type ManagementInstanceSessionsEventsListOutput = {
           connectionId: string | null;
           groupId: string | null;
           similarErrorCount: number;
+          issueId: string | null;
           createdAt: Date;
         } | null;
         input: Record<string, any> | null;
@@ -243,6 +244,7 @@ export type ManagementInstanceSessionsEventsListOutput = {
         connectionId: string | null;
         groupId: string | null;
         similarErrorCount: number;
+        issueId: string | null;
         createdAt: Date;
       } | null;
       createdAt: Date;
@@ -259,6 +261,7 @@ export type ManagementInstanceSessionsEventsListOutput = {
       connectionId: string | null;
       groupId: string | null;
       similarErrorCount: number;
+      issueId: string | null;
       createdAt: Date;
     } | null;
     warning: {
@@ -445,6 +448,7 @@ export let mapManagementInstanceSessionsEventsListOutput =
                             'connection_id',
                             'group_id',
                             'similar_error_count',
+                            'issue_id',
                             'created_at'
                           ]
                         ]
@@ -502,6 +506,7 @@ export let mapManagementInstanceSessionsEventsListOutput =
                       'connection_id',
                       'group_id',
                       'similar_error_count',
+                      'issue_id',
                       'created_at'
                     ]
                   ]
@@ -521,6 +526,7 @@ export let mapManagementInstanceSessionsEventsListOutput =
                 'connection_id',
                 'group_id',
                 'similar_error_count',
+                'issue_id',
                 'created_at'
               ]
             ]

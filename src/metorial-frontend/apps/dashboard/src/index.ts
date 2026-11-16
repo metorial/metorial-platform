@@ -22,6 +22,8 @@ export {
 } from './product';
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
+export { useSkillsSidebarGroups } from './product/scenes/skills/navigation/sidebarGroups';
+export { useSkillMarketplacesNav } from './product/scenes/skills/navigation/useSkillMarketplacesNav';
 export {
   defineEntityFilter,
   entityFilters,
@@ -55,6 +57,7 @@ export { showIdentityDelegationRequestFormModal } from './product/scenes/identit
 export { showAddIdentityCredentialModal } from './product/scenes/identity/credentialModal';
 export {
   ConfigureSectionCard,
+  ProviderConnectionSetupForm,
   showConfigureIntegrationProviderPanelFlow,
   showCreateIntegrationProviderFirstFlow,
   type IntegrationProviderPanelSubmitInput
@@ -80,6 +83,7 @@ export {
   MarketplaceManagersList,
   showMarketplaceManagerPanel
 } from './product/scenes/skills/marketplaceManagers';
+export { showSkillMarketplaceFormModal } from './product/scenes/skills/marketplaceModal';
 export { showSkillPluginFormModal } from './product/scenes/skills/pluginModal';
 export { showSkillFormModal } from './product/scenes/skills/modal';
 export { showSkillTemplateFormModal } from './product/scenes/skills/templateModal';

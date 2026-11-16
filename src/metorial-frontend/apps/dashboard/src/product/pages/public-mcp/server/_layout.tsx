@@ -98,7 +98,7 @@ export let PublicMcpServerLayout = () => {
                 label: 'Status',
                 value: <PublicMcpServerStatusBadge status={server.data.status} />
               },
-              { label: 'Slug', value: <ID id={server.data.slug} /> },
+              { label: 'Identifier', value: <ID id={server.data.slug} /> },
               { label: 'Deployment', value: <ID id={server.data.deployment.id} /> },
               { label: 'Created', value: <RenderDate date={server.data.createdAt} /> }
             ]

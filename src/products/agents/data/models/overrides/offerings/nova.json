@@ -1,0 +1,9 @@
+{
+  "nova-2-pro-v1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon's Nova 2 Pro (Bedrock-style -v1 model id), the high-capability Nova 2 reasoning model released Dec 2025 with 1M context and multimodal input (per AWS announcements); the index has nova-2-lite but no Nova 2 Pro entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

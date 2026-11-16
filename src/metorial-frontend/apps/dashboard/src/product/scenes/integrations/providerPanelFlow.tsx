@@ -56,6 +56,7 @@ import {
 import { FlatCreateSection } from '../providerCreationPanel/flatCreateLayout';
 import { ProviderSetupSections } from '../sessionTemplates/addProviderPanelFlow';
 import { IntegrationProviderCallbacksSection } from '../callbacks/providerCallbacksSection';
+import { providerNeedsWebhookReceiver } from '../callbacks/webhookRegistrationPurpose';
 
 type ToolFilterFormValues = {
   toolSelection: ToolSelection;
@@ -553,6 +554,7 @@ let IntegrationProviderSetupStep = (p: {
   onComplete: () => void;
   submitLabel?: string;
   showAuthConfigModeToggle?: boolean;
+  lockAuthConfigMode?: boolean;
   initialAuthConfigMode?: IntegrationProviderAuthConfigMode;
   requireAuthConfigModeSelection?: boolean;
   animateAuthConfigSection?: boolean;
@@ -613,7 +615,8 @@ let IntegrationProviderSetupStep = (p: {
       : null
   );
   let showConnectionMode =
-    !!p.showAuthConfigModeToggle && visibility.provider.data?.type.auth.status == 'enabled';
+    !!(p.showAuthConfigModeToggle || p.lockAuthConfigMode) &&
+    visibility.provider.data?.type.auth.status == 'enabled';
   let effectiveShowAuthConfig = showConnectionMode && authConfigMode == 'provided';
   let oauthAutoRegistrationEnabled = getProviderOAuthAutoRegistrationEnabled(
     visibility.provider.data
@@ -1085,7 +1088,7 @@ let IntegrationProviderSetupStep = (p: {
         providerName={visibility.providerName}
       />
 
-      {showConnectionMode ? (
+      {showConnectionMode && !p.lockAuthConfigMode ? (
         <ConfigureSectionCard
           title={p.authConfigModeCopy?.title ?? 'Connection'}
           description={
@@ -1199,10 +1202,7 @@ let IntegrationProviderSetupStep = (p: {
           instanceId={instance.data!.id}
           providerVersionId={visibility.provider.data?.currentVersion?.id}
           providerName={visibility.providerName}
-          webhookRegistrationSupported={
-            providerTriggers?.status === 'enabled' &&
-            providerTriggers.webhookRegistration.status === 'supported'
-          }
+          webhookRegistrationSupported={providerNeedsWebhookReceiver(providerTriggers)}
           callback={existingCallback}
           value={form.values.callbacksStatus}
           onChange={value => form.setFieldValue('callbacksStatus', value)}
@@ -1284,6 +1284,29 @@ let IntegrationProviderSetupStep = (p: {
     </Flex>
   );
 };
+
+export let ProviderConnectionSetupForm = (p: {
+  providerId: string;
+  mode: 'personal' | 'shared';
+  submitLabel?: string;
+  onBack: () => void;
+  onSave: (input: IntegrationProviderPanelSubmitInput) => void;
+}) => (
+  <IntegrationProviderSetupStep
+    providerId={p.providerId}
+    hideCallbacks
+    lockAuthConfigMode
+    initialAuthConfigMode={p.mode == 'shared' ? 'provided' : 'not_provided'}
+    submitLabel={p.submitLabel}
+    close={() => {}}
+    onBack={p.onBack}
+    onComplete={() => {}}
+    onSubmitProvider={async input => {
+      p.onSave(input);
+      return { success: true };
+    }}
+  />
+);
 
 export let AddIntegrationProviderPanel = (p: {
   integration?: IntegrationPreview;

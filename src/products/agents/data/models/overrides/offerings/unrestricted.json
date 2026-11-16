@@ -1,0 +1,30 @@
+{
+  "deepseek-v4.1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Listings describe it as dealignai's DeepSeek V4.1 Flash Uncensored — the base with refusal behavior removed directly in the weights. A weight-modified derivative is not the base checkpoint.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "glm-5.3-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Brutal AI and Silk Compute describe it as an abliterated (refusal-direction removed) version of Z.ai's GLM-5.3 Flash — a weight-modified derivative, not the base checkpoint.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "mimo-v2.6-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai/MiMo-V2.6-Flash-RL-UNCENSORED on Hugging Face is an uncensored (refusal-reduced) rework of Xiaomi's MiMo-V2.6-Flash weights — a derivative fine-tune, not the base model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "qwen3.8-27b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face listings (huihui-ai, orcarouter, JonathanColetti) describe it as an abliterated/Heretic-refusal-removed build derived from Qwen/Qwen3.8-27B — a fine-tune, not the base checkpoint.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

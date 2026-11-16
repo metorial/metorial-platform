@@ -1,0 +1,218 @@
+{
+  "anthropic/claude-sonnet-3.5-june": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The June 2024 first release of Claude 3.5 Sonnet; the index's anthropic/claude-3.5-sonnet is the October 2024 'v2' revision — a different checkpoint, and the index has no entry for the June version.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/elevenlabs-music": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs Music (v1 2025, v2 2026), ElevenLabs' text-to-music generation model (per ElevenLabs' docs); the index has ElevenLabs speech and transcription models but no music entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemini-deep-research": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's Gemini Deep Research alias; Google has shipped the agent as several checkpoints (the 12-2025 preview and the 04-2026 deep-research previews) and the listing does not say which one Poe serves, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-3": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Google DeepMind's Imagen 3 text-to-image model (announced May 2024); the index's Google image models are the Gemini/Nano Banana lines with no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-3-fast": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 3 Fast, the speed-and-cost tier of Google DeepMind's Imagen 3 text-to-image model; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-4": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 4, Google DeepMind's fourth-generation text-to-image model unveiled at Google I/O in May 2025; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-4-fast": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 4 Fast, the speed-optimized tier of Google's Imagen 4 text-to-image model; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-4-ultra": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 4 Ultra, the highest-fidelity tier of Google's Imagen 4 text-to-image model; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/lyria": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of Google DeepMind's Lyria text-to-music model; the index has only the Lyria 3.x/RealTime checkpoints and the listing does not say which generation Poe serves, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google DeepMind's Veo 2 text-to-video model (introduced Dec 2024, per Poe/DeepMind listings); the index's Veo line starts at the 3.1 previews, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google DeepMind's Veo 3 text-to-video model with native synchronized audio (released May 2025 per Google I/O coverage); the index's Veo line has only the 3.1 previews, no Veo 3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Veo 3 Fast (veo-3.0-fast-generate-001), the speed-and-price-optimized Veo 3 tier (per Google's developer blog); the index's Veo line has only the 3.1 previews, no Veo 3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram's first-generation text-to-image model; the index has no Ideogram entry at all, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram-v2": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram v2 (Aug 2024), Ideogram AI's text-to-image model with inpainting and in-image text rendering; the index has no Ideogram entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram-v2a": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram v2a, the faster and cheaper variant of Ideogram v2 optimized for speed with minimal quality loss; the index has no Ideogram entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram-v2a-turbo": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram v2a Turbo, the turbo speed tier of Ideogram's v2a text-to-image model; the index has no Ideogram entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "lumalabs/ray2": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Luma Labs' Ray2, the text/image-to-video generation model released Jan 2025 (per Luma's own page); the index has no Luma or Ray entry at all, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/chatgpt-4o-latest": {
+    "decision": "link",
+    "model": "openai/gpt-4o",
+    "reason": "OpenAI's chatgpt-4o-latest is the continuously-updated ChatGPT build of GPT-4o — the same model with additional RLHF (per OpenAI); still openai/gpt-4o, at Poe's 4.5/14 gateway rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/dall-e-3": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "OpenAI's DALL-E 3 text-to-image model; the index's only OpenAI image models are the gpt-image line, with no DALL-E entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-4o-mini-search": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's GPT-4o mini Search Preview (Mar 2025), a tool-specific model trained for web search in Chat Completions, since shut down; a distinct checkpoint from GPT-4o mini and the index has no entry (only gpt-5-search-api), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-4o-search": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's GPT-4o Search Preview (Mar 2025), a tool-specific model trained for web search in Chat Completions, since shut down; a distinct checkpoint from GPT-4o and the index has no entry (only gpt-5-search-api), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/sora-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's Sora 2, the video generation model released Sept 2025 with synchronized audio (per OpenAI's announcement and coverage); the index has no Sora entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/sora-2-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's Sora 2 Pro, the higher-quality Pro tier of the Sora 2 video model (Sept 2025, up to 1024p per listings); the index has no Sora entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "poetools/claude-code": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "A Poe Poetools bot: a Claude-powered coding tool wrapper on Poe's platform, not a distinct model; no published price, context, or model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "runwayml/runway": {
+    "decision": "router",
+    "reason": "Poe's generic Runway bot: requests go to Runway's platform, which serves its current video models (Gen-4.5/GWM per Runway's site); the name fixes no checkpoint, so it picks the model per request.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "runwayml/runway-gen-4-turbo": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Runway's Gen-4 Turbo video model (Sept 2024, image-to-video, per Runway/Replicate listings); the index's Runway line has only Gen-4.5 and Aleph 2.0, no Gen-4 entry, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topazlabs-co/topazlabs": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's TopazLabs bot serves Topaz Labs' proprietary image-enhancement models (the Wonder/Starlight line per Runware's catalog); the index has no Topaz entry and the listing does not say which model, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "trytako/tako": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Trytako's Tako, a tool-capable chat model served on Poe (per Poe/EDNA listings); the vendor discloses no lineage or underlying checkpoint and the index has no Tako entry, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of xAI's Grok 3 (Feb 2025) at 3/15; the index has no Grok 3 entry (its xAI chat line starts at the 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-3-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of xAI's Grok 3 Mini, the lightweight thinking model (Apr 2025) at 0.3/0.5; the index has no Grok 3 entry, so defer rather than link the wrong Grok generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of xAI's Grok 4 (Jul 2025, 256K context) at 3/15; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

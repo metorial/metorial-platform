@@ -7,8 +7,6 @@ import {
   mapDashboardInstanceSkillsMarketplacesArchiveOutput,
   mapDashboardInstanceSkillsMarketplacesCreateBody,
   mapDashboardInstanceSkillsMarketplacesCreateOutput,
-  mapDashboardInstanceSkillsMarketplacesGetEditorUrlBody,
-  mapDashboardInstanceSkillsMarketplacesGetEditorUrlOutput,
   mapDashboardInstanceSkillsMarketplacesGetOutput,
   mapDashboardInstanceSkillsMarketplacesListOutput,
   mapDashboardInstanceSkillsMarketplacesListQuery,
@@ -19,8 +17,6 @@ import {
   type DashboardInstanceSkillsMarketplacesArchiveOutput,
   type DashboardInstanceSkillsMarketplacesCreateBody,
   type DashboardInstanceSkillsMarketplacesCreateOutput,
-  type DashboardInstanceSkillsMarketplacesGetEditorUrlBody,
-  type DashboardInstanceSkillsMarketplacesGetEditorUrlOutput,
   type DashboardInstanceSkillsMarketplacesGetOutput,
   type DashboardInstanceSkillsMarketplacesListOutput,
   type DashboardInstanceSkillsMarketplacesListQuery,
@@ -226,38 +222,6 @@ export class MetorialSkillsMarketplacesEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceSkillsMarketplacesSyncOutput
-    );
-  }
-
-  /**
-   * @name Get skill marketplace editor URL
-   * @description Creates an embeddable editor URL for a skill marketplace.
-   *
-   * @param `skillMarketplaceId` - string
-   * @param `body` - DashboardInstanceSkillsMarketplacesGetEditorUrlBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceSkillsMarketplacesGetEditorUrlOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  getEditorUrl(
-    skillMarketplaceId: string,
-    body: DashboardInstanceSkillsMarketplacesGetEditorUrlBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceSkillsMarketplacesGetEditorUrlOutput> {
-    let path = `skill-marketplaces/${skillMarketplaceId}/editor-url`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceSkillsMarketplacesGetEditorUrlBody.transformTo(
-        body
-      ),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardInstanceSkillsMarketplacesGetEditorUrlOutput
     );
   }
 }

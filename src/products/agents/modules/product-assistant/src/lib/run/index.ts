@@ -1,0 +1,214 @@
+import type {
+  Instance,
+  ProductAssistant,
+  ProductAssistantConversation,
+  ProductAssistantImplementation,
+  ProductAssistantMessage,
+  Project
+} from '@metorial/db';
+import type { FilePart, ModelMessage, TextPart } from 'ai';
+import { summaryModel } from '../../definitions/models/_util';
+import type { InputMessage, State } from '../../types';
+import type { Implementation, Model } from '../definitions';
+import { getConversationHistory } from '../history/getHistory';
+import { Agent, DefaultCompactionStrategy, Session } from '../open-harness';
+import { getAgentRunExtensions } from './extension';
+import type { AgentRunResult, AgentRunStateOptions, AgentRunWireMessage } from './state';
+import { AgentRunState } from './state';
+
+export * from './extension';
+export * from './partialJson';
+export * from './state';
+
+export type AgentRunOptions = AgentRunStateOptions & {
+  onSnapshot?: (snapshot: AgentRunWireMessage) => void | Promise<void>;
+  snapshotIntervalMs?: number;
+};
+
+let deserializeMessages = (
+  serialized: PrismaJson.ProductAssistantMessageSerializedContent
+): ModelMessage[] =>
+  serialized.messages
+    .map(([ts, msg]) => ({ ts, msg }))
+    .sort((a, b) => a.ts - b.ts)
+    .map(m => m.msg as ModelMessage);
+
+// An assistant message stores the whole conversation it was generated from (history, input and
+// reply), so history restarts from the latest assistant message instead of concatenating the chain.
+let historyToModelMessages = (history: ProductAssistantMessage[]) =>
+  history.reduce<ModelMessage[]>(
+    (messages, message) =>
+      message.type == 'assistant'
+        ? deserializeMessages(message.serialized)
+        : [...messages, ...deserializeMessages(message.serialized)],
+    []
+  );
+
+let inputMessageToModelMessages = (input: InputMessage): ModelMessage[] => [
+  {
+    role: 'user',
+    content: input.parts.map(p => {
+      if (p.type === 'text') {
+        return {
+          type: 'text' as const,
+          text: p.text
+        } satisfies TextPart;
+      }
+
+      if (p.type === 'file') {
+        return {
+          type: 'file' as const,
+          filename: p.filename,
+          mediaType: p.mediaType,
+          data: Buffer.from(p.data, p.encoding)
+        } satisfies FilePart;
+      }
+
+      throw new Error(`Unsupported part type: ${JSON.stringify(p)}`);
+    })
+  }
+];
+
+let handoffResponsesToModelMessages = (
+  responses: Array<{ toolCallId: string; toolName: string; output: unknown }>
+): ModelMessage[] => [
+  {
+    role: 'tool',
+    content: responses.map(response => ({
+      type: 'tool-result',
+      toolCallId: response.toolCallId,
+      toolName: response.toolName,
+      output: response.output
+    }))
+  } as ModelMessage
+];
+
+export class AgentRun {
+  abortController = new AbortController();
+
+  constructor(
+    private readonly agent: Agent,
+    private readonly model: Model,
+    private readonly project: Project,
+    private readonly instance: Instance,
+    private readonly assistant: ProductAssistant,
+    private readonly assistantImplementation: ProductAssistantImplementation,
+    private readonly implementation: Implementation
+  ) {}
+
+  private async createSession() {
+    let compaction = this.agent.compaction;
+
+    return new Session({
+      agent: this.agent,
+      autoCompact: compaction?.autoCompact ?? true,
+      contextWindow: compaction?.contextWindow ?? Math.ceil(this.model.contextWindow * 0.9),
+      reservedTokens: compaction?.reservedTokens ?? 20_000,
+      shouldCompact: compaction?.shouldCompact,
+      compactionStrategy:
+        compaction?.strategy ??
+        new DefaultCompactionStrategy({
+          protectedTokens: compaction?.protectedTokens ?? 20_000,
+          minPruneSavings: compaction?.minPruneSavings ?? 10_000,
+          summaryModel: (await summaryModel).model
+        }),
+      retry: { maxRetries: 5 }
+    });
+  }
+
+  private async runSession(d: {
+    session: Session;
+    input: ModelMessage[];
+    initialState?: State;
+    delta?: AgentRunOptions;
+  }) {
+    let iterator = d.session.send(d.input, { signal: this.abortController.signal });
+
+    let runState = new AgentRunState(
+      d.session.messages,
+      { ...d.delta, extensions: getAgentRunExtensions(this.agent) },
+      d.initialState
+    );
+    let snapshotInterval: ReturnType<typeof setInterval> | undefined;
+    let snapshotInFlight = false;
+    let writeSnapshot = async () => {
+      if (!d.delta?.onSnapshot || snapshotInFlight) return;
+
+      snapshotInFlight = true;
+      try {
+        await d.delta.onSnapshot(runState.getSnapshot());
+      } finally {
+        snapshotInFlight = false;
+      }
+    };
+
+    if (d.delta?.onSnapshot) {
+      snapshotInterval = setInterval(
+        () => void writeSnapshot(),
+        d.delta.snapshotIntervalMs ?? 500
+      );
+    }
+
+    let streamError: unknown;
+
+    try {
+      for await (let event of iterator) {
+        if (event.type == 'error') streamError ??= event.error;
+        runState.pipe(event);
+      }
+    } catch (error) {
+      runState.pipe({
+        type: 'error',
+        error
+      } as any);
+      throw error;
+    } finally {
+      if (snapshotInterval) clearInterval(snapshotInterval);
+      await writeSnapshot();
+    }
+
+    if (streamError) throw streamError;
+
+    return runState.result();
+  }
+
+  async run(d: {
+    input: InputMessage;
+    conversation: ProductAssistantConversation;
+    lastMessageId: string;
+    historySize: number;
+    delta?: AgentRunOptions;
+  }): Promise<AgentRunResult> {
+    let session = await this.createSession();
+    let history = await getConversationHistory({
+      conversation: d.conversation,
+      lastMessageId: d.lastMessageId,
+      size: d.historySize
+    });
+
+    session.messages.push(...historyToModelMessages(history));
+
+    return await this.runSession({
+      session,
+      input: inputMessageToModelMessages(d.input),
+      delta: d.delta
+    });
+  }
+
+  async resume(d: {
+    serialized: PrismaJson.ProductAssistantMessageSerializedContent;
+    state: State;
+    responses: Array<{ toolCallId: string; toolName: string; output: unknown }>;
+    delta?: AgentRunOptions;
+  }): Promise<AgentRunResult> {
+    let session = await this.createSession();
+    session.messages.push(...deserializeMessages(d.serialized));
+
+    return await this.runSession({
+      session,
+      input: handoffResponsesToModelMessages(d.responses),
+      initialState: d.state,
+      delta: d.delta
+    });
+  }
+}

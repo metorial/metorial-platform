@@ -1,0 +1,37 @@
+enum AttributionRuleEffect {
+  assign
+  exclude
+}
+
+model AttributionRule {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+
+  effect   AttributionRuleEffect @default(assign)
+  priority Int                   @default(0)
+  enabled  Boolean               @default(true)
+
+  /// [AttributionRuleMatch]
+  match Json
+
+  validFrom  DateTime  @default(now())
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  targetEntityOid BigInt
+  targetEntity    Entity @relation(fields: [targetEntityOid], references: [oid])
+
+  scopeProjectOid BigInt?
+  scopeProject    Project? @relation(fields: [scopeProjectOid], references: [oid])
+
+  scopeInstanceOid BigInt?
+  scopeInstance    Instance? @relation(fields: [scopeInstanceOid], references: [oid])
+
+  @@index([organizationOid, enabled])
+}

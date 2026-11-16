@@ -1,6 +1,7 @@
 export * from './access';
 export * from './agents';
 export * from './configurations';
+export * from './content-previews';
 export * from './create';
 export * from './delete';
 export * from './duplicate';
@@ -19,6 +20,7 @@ export * from './merge-requests';
 export * from './participants';
 export * from './plugins';
 export * from './publish-consumer-skill';
+export * from './security-review';
 export * from './share';
 export * from './syncs';
 export * from './templates';

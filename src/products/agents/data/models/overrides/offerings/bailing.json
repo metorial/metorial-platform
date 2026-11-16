@@ -1,0 +1,16 @@
+{
+  "Ling-1T": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ant Group inclusionAI's Ling-1T, the open trillion-parameter MoE flagship (~50B active, 128K context, released Oct 2025 per Ant's announcement); the index's Ling line starts at 3.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Ring-1T": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ant Group inclusionAI's Ring-1T, the open trillion-parameter (50B active) thinking MoE built on the Ling 2.0 architecture and trained on the Ling-1T-base foundation (per inclusionAI/SiliconFlow); the index's inclusionai line has Ling flash models only, no Ring entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

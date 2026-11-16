@@ -13,6 +13,7 @@ import { resolveWebhookSkip } from '../../lib/webhookSkip';
 import { secretService, slateInvocationService } from '../../services';
 import { globalTenant } from '../../services/tenant';
 import { createTriggerRawEvents } from '../trigger/_rawEvent';
+import { createWebhookExpansionInbox } from '../trigger/webhookExpand';
 import { webhookEventPayloadOffloadQueue } from './payloadOffload';
 
 export let processWebhookEventQueue = createQueue<{ webhookEventId: string }>({
@@ -27,7 +28,7 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
     let registration = event.webhookRegistration;
 
     let attempt = await slateWebhookEventServiceInternal.beginAttempt({ eventOid: event.oid });
-    let isFinalAttempt = job.attemptsMade >= (job.opts.attempts ?? 25);
+    let isFinalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 25);
 
     let version = await getLatestSlateVersionSupportingTriggerGroup({
       slate: registration.slate,
@@ -123,11 +124,19 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       throw new Error(`trigger_group.webhook.process failed: ${result.error.message}`);
     }
 
+    let skip = resolveWebhookSkip(result.data);
+    // A retryable skip (e.g. a verification key outage) must not drop an already-acked delivery.
+    let retrySkip = skip?.retryable && !isFinalAttempt ? skip : null;
+
     await slateWebhookEventServiceInternal.recordInvocation({
       eventOid: event.oid,
       attempt,
       invocationOid: result.invocation.oid,
-      status: 'succeeded'
+      status: retrySkip ? 'failed' : 'succeeded',
+      errorCode: retrySkip?.reason,
+      errorMessage: retrySkip
+        ? `Webhook skipped with retryable status ${result.data.response?.status}`
+        : undefined
     });
 
     await slateWebhookEventServiceInternal.setSlateResponse({
@@ -135,7 +144,16 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       response: result.data.response ?? null
     });
 
-    let skip = resolveWebhookSkip(result.data);
+    if (retrySkip) {
+      await slateWebhookEventServiceInternal.resolveRetryableFailure({
+        eventOid: event.oid,
+        isFinalAttempt: false
+      });
+      throw new Error(
+        `trigger_group.webhook.process skipped with retryable status: ${retrySkip.reason}`
+      );
+    }
+
     if (skip) {
       await slateWebhookEventServiceInternal.markSkipped({
         eventOid: event.oid,
@@ -150,11 +168,12 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
       });
     }
 
-    await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
-    await publishWebhookEventResolved(event.id);
-    await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
-
-    if (skip) return;
+    if (skip) {
+      await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
+      await publishWebhookEventResolved(event.id);
+      await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
+      return;
+    }
 
     if (result.data.events.length > 0) {
       let target = registration.triggerWebhookTarget;
@@ -213,11 +232,18 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
         );
       }
 
-      let { hadCandidates, hasRemainingCandidates } = await createTriggerRawEvents({
-        source: 'webhook',
-        webhookEventOid: event.oid,
-        events: eventsForCreation
-      });
+      let { hadCandidates, hasRemainingCandidates } = result.data.requiresExpansion
+        ? await createWebhookExpansionInbox({
+            webhookEventOid: event.oid,
+            webhookEventId: event.id,
+            webhookRegistrationOid: registration.oid,
+            events: eventsForCreation
+          })
+        : await createTriggerRawEvents({
+            source: 'webhook',
+            webhookEventOid: event.oid,
+            events: eventsForCreation
+          });
 
       // Every tenant this webhook would have fanned out to has callbacks disabled -
       // nothing downstream will ever read this event, so discard it entirely.
@@ -227,8 +253,14 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
           reason: 'callbacks_disabled',
           count: result.data.events.length
         });
+        await publishWebhookEventResolved(event.id);
         await db.slateWebhookEvent.deleteMany({ where: { oid: event.oid } });
+        return;
       }
     }
+
+    await slateWebhookEventServiceInternal.resolveSuccess({ eventOid: event.oid });
+    await publishWebhookEventResolved(event.id);
+    await webhookEventPayloadOffloadQueue.add({ webhookEventId: event.id });
   }
 );

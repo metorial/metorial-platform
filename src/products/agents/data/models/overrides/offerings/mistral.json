@@ -1,0 +1,16 @@
+{
+  "labs-devstral-small-2512": {
+    "decision": "link",
+    "model": "mistral/devstral-small-2",
+    "reason": "Mistral Labs' Devstral Small 2 (labs-devstral-small-2512, released 2025-12-09, 24B open coding model, 256K context) matches the catalog's mistral/devstral-small-2 exactly.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "labs-leanstral-1-5-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Leanstral 1.5 is Mistral's 119B-A6B Lean 4 proof-engineering Labs model (Apache 2.0, June 2026); the index has no entry for it, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

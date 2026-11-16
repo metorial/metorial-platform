@@ -1,112 +1,93 @@
 import { Prisma, type TriggerRawEventSource } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId } from '../../id';
-import { triggerRawEventPayloadOffloadQueue } from './payloadOffload';
-import { triggerRawEventMappingQueue } from './rawEventMapping';
+import { TRIGGER_DISPATCH_RECHECK_DELAY_MS } from './_config';
+import { enqueueTriggerRawEventMapping } from './rawEventMapping';
 
-// Tenants that have callbacks disabled must never have trigger data persisted for them.
-let getDisabledTriggerRegistrationInstanceOids = async (oids: bigint[]) => {
-  if (oids.length === 0) return new Set<bigint>();
+export type TriggerRawEventInput = {
+  triggerRegistrationInstanceOids: bigint[];
+  payload: PrismaJson.AnyRecord;
+  idempotencyKey?: string | null;
+  triggerIds: string[];
+  matchers?: PrismaJson.TriggerRawEventMatchers | null;
+};
 
-  let disabled = await db.triggerRegistrationInstance.findMany({
+export let findAllowedTriggerInstances = async (
+  tx: Prisma.TransactionClient,
+  oids: bigint[]
+) => {
+  if (!oids.length) return [];
+  await tx.$queryRaw`SELECT t."oid" FROM "Tenant" t
+    JOIN "TriggerRegistration" r ON r."tenantOid" = t."oid"
+    JOIN "TriggerRegistrationInstance" i ON i."triggerRegistrationOid" = r."oid"
+    WHERE i."oid" IN (${Prisma.join(oids)}) FOR SHARE OF t, r`;
+  return tx.triggerRegistrationInstance.findMany({
     where: {
       oid: { in: oids },
-      triggerRegistration: { tenant: { disableCallbacks: true } }
+      triggerRegistration: { status: 'active', tenant: { disableCallbacks: false } }
     },
     select: { oid: true }
   });
+};
 
-  return new Set(disabled.map(row => row.oid));
+export let persistTriggerRawEvents = async (
+  tx: Prisma.TransactionClient,
+  d: {
+    source: TriggerRawEventSource;
+    webhookEventOid?: bigint | null;
+    events: TriggerRawEventInput[];
+  }
+) => {
+  let allOids = [...new Set(d.events.flatMap(event => event.triggerRegistrationInstanceOids))];
+  let instances = await findAllowedTriggerInstances(tx, allOids);
+  let allowed = new Set(instances.map(instance => instance.oid));
+  let rows = d.events.flatMap(event =>
+    event.triggerRegistrationInstanceOids
+      .filter(oid => allowed.has(oid))
+      .map(oid => ({
+        ...getId('triggerRawEvent'),
+        source: d.source,
+        triggerRegistrationInstanceOid: oid,
+        webhookEventOid: d.webhookEventOid ?? null,
+        payload: event.payload,
+        idempotencyKey: event.idempotencyKey ?? null,
+        triggerIds: event.triggerIds,
+        pendingTriggerMapCount: event.triggerIds.length,
+        matchers: event.matchers ?? Prisma.DbNull
+      }))
+  );
+  let created = rows.length
+    ? await tx.triggerRawEvent.createManyAndReturn({
+        skipDuplicates: true,
+        data: rows,
+        select: { id: true, oid: true }
+      })
+    : [];
+
+  if (created.length) {
+    let nextAttemptAt = new Date(Date.now() + TRIGGER_DISPATCH_RECHECK_DELAY_MS);
+
+    await tx.triggerRawEventDispatch.createMany({
+      data: created.map(row => ({ rawEventOid: row.oid, nextAttemptAt })),
+      skipDuplicates: true
+    });
+  }
+
+  return {
+    created,
+    hadCandidates: allOids.length > 0,
+    hasRemainingCandidates: allowed.size > 0
+  };
 };
 
 export let createTriggerRawEvents = async (d: {
   source: TriggerRawEventSource;
   webhookEventOid?: bigint;
-  events: {
-    triggerRegistrationInstanceOids: bigint[];
-    payload: PrismaJson.AnyRecord;
-    idempotencyKey?: string | null;
-    triggerIds: string[];
-    matchers?: PrismaJson.TriggerRawEventMatchers | null;
-  }[];
+  events: TriggerRawEventInput[];
 }) => {
-  let allOids = [...new Set(d.events.flatMap(event => event.triggerRegistrationInstanceOids))];
-  let disabledOids = await getDisabledTriggerRegistrationInstanceOids(allOids);
+  let result = await db.$transaction(tx => persistTriggerRawEvents(tx, d));
 
-  let hadCandidates = false;
-  let hasRemainingCandidates = false;
+  await enqueueTriggerRawEventMapping(result.created);
 
-  let filteredEvents = d.events.map(event => {
-    if (event.triggerRegistrationInstanceOids.length > 0) hadCandidates = true;
-
-    let triggerRegistrationInstanceOids = event.triggerRegistrationInstanceOids.filter(
-      oid => !disabledOids.has(oid)
-    );
-    if (triggerRegistrationInstanceOids.length > 0) hasRemainingCandidates = true;
-
-    return { ...event, triggerRegistrationInstanceOids };
-  });
-
-  let rows = filteredEvents.flatMap(event =>
-    event.triggerRegistrationInstanceOids.map(triggerRegistrationInstanceOid => ({
-      ...getId('triggerRawEvent'),
-      source: d.source,
-      triggerRegistrationInstanceOid,
-      webhookEventOid: d.webhookEventOid ?? null,
-      payload: event.payload,
-      idempotencyKey: event.idempotencyKey ?? null,
-      triggerIds: event.triggerIds,
-      pendingTriggerMapCount: event.triggerIds.length,
-      matchers: event.matchers ?? Prisma.DbNull
-    }))
-  );
-
-  if (rows.length === 0)
-    return { created: [] as { id: string }[], hadCandidates, hasRemainingCandidates };
-
-  let created = await db.triggerRawEvent.createManyAndReturn({
-    skipDuplicates: true,
-    data: rows,
-    select: { id: true }
-  });
-
-  if (created.length > 0) {
-    await triggerRawEventMappingQueue.addMany(created.map(row => ({ rawEventId: row.id })));
-  }
-
-  return { created, hadCandidates, hasRemainingCandidates };
-};
-
-export let decrementPendingTriggerMapCount = async (d: { rawEventOid: bigint }) => {
-  let updated = await db.triggerRawEvent.update({
-    where: { oid: d.rawEventOid },
-    data: { pendingTriggerMapCount: { decrement: 1 } }
-  });
-
-  if (updated.processingStatus === 'failed') {
-    await maybeFinalizeFailedRawEvent({ rawEventOid: updated.oid, rawEventId: updated.id });
-  }
-
-  return updated;
-};
-
-export let markRawEventProcessingFailed = async (d: { rawEventOid: bigint }) => {
-  let updated = await db.triggerRawEvent.update({
-    where: { oid: d.rawEventOid },
-    data: { processingStatus: 'failed' }
-  });
-
-  await maybeFinalizeFailedRawEvent({ rawEventOid: updated.oid, rawEventId: updated.id });
-};
-
-let maybeFinalizeFailedRawEvent = async (d: { rawEventOid: bigint; rawEventId: string }) => {
-  let pendingChildren = await db.triggerEvent.count({
-    where: {
-      rawEventOid: d.rawEventOid,
-      status: { in: ['pending', 'mapping_failed'] }
-    }
-  });
-  if (pendingChildren > 0) return;
-
-  await triggerRawEventPayloadOffloadQueue.add({ rawEventId: d.rawEventId });
+  return result;
 };

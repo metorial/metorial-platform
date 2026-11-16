@@ -156,7 +156,8 @@ export let portalConsumerAccessController = Controller.create(
             }),
             v.object({
               type: v.literal('skill'),
-              skill_id: v.string()
+              skill_id: v.string(),
+              permission: v.optional(v.enumOf(['read', 'write', 'manage']))
             }),
             v.object({
               type: v.literal('skill_template'),
@@ -164,7 +165,8 @@ export let portalConsumerAccessController = Controller.create(
             }),
             v.object({
               type: v.literal('skill_group'),
-              skill_group_id: v.string()
+              skill_group_id: v.string(),
+              permission: v.optional(v.enumOf(['read', 'write', 'manage']))
             }),
             v.object({
               type: v.literal('skill_marketplace'),
@@ -297,7 +299,8 @@ export let portalConsumerAccessController = Controller.create(
                     input,
                     access: {
                       type: 'skill',
-                      skill: localSkill!
+                      skill: localSkill!,
+                      accessLevel: access.permission
                     }
                   })
                 : access.type == 'skill_template'
@@ -321,7 +324,8 @@ export let portalConsumerAccessController = Controller.create(
                         input,
                         access: {
                           type: 'skill_group',
-                          skillGroup: localSkillGroup!
+                          skillGroup: localSkillGroup!,
+                          accessLevel: access.permission
                         }
                       })
                     : access.type == 'skill_plugin'
@@ -356,7 +360,8 @@ export let portalConsumerAccessController = Controller.create(
     update: consumerAccessGroup
       .patch(instancePath('portals/:portalId/access/:accessId', 'portals.access.update'), {
         name: 'Update portal access',
-        description: 'Updates the shared listing fields for a portal access rule.'
+        description:
+          'Updates the shared listing fields of a portal access rule, and the access level of skill and skill group rules.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
@@ -365,7 +370,8 @@ export let portalConsumerAccessController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
-          readme: v.optional(v.nullable(v.string()))
+          readme: v.optional(v.nullable(v.string())),
+          permission: v.optional(v.enumOf(['read', 'write', 'manage']))
         })
       )
       .output(consumerAccessPresenter)
@@ -376,7 +382,8 @@ export let portalConsumerAccessController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            readme: ctx.body.readme
+            readme: ctx.body.readme,
+            accessLevel: ctx.body.permission
           }
         });
 

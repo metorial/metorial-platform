@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
+import { VISIBLE_INSTANCE_WHERE } from './_shared';
 import { monitorInternalService } from './monitorInternal';
 
 let severityRank = {
@@ -9,10 +10,7 @@ let severityRank = {
   critical: 4
 };
 
-let updateMonitorAlertWindow = async (d: {
-  monitorOid: bigint;
-  timestamp: Date;
-}) =>
+let updateMonitorAlertWindow = async (d: { monitorOid: bigint; timestamp: Date }) =>
   await withTransaction(
     async db => {
       await db.monitor.updateMany({
@@ -43,6 +41,7 @@ class alertInternalServiceImpl {
         environment: true,
         solution: true,
         instances: {
+          where: VISIBLE_INSTANCE_WHERE,
           include: { filter: true }
         }
       }

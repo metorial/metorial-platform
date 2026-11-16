@@ -14,6 +14,7 @@ export type DashboardOrganizationsEventsListOutput = {
     chatEventId: string | null;
     chatConnectionId: string | null;
     providerId: string | null;
+    attributes: Record<string, string[]>;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -62,6 +63,7 @@ export type DashboardOrganizationsEventsListQuery = {
   callbackTriggerKey?: string | string[] | undefined;
   chatConnectionId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  attribute?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 

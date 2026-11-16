@@ -4,17 +4,15 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useDeleteIntegrationFirewallAssignment,
   useIntegrationFirewallAssignments,
   useIntegrationInternetGateway
 } from '@metorial/state';
-import { Attributes, Button, Menu, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
-import { RiMore2Line } from '@remixicon/react';
+import { Attributes, Button, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { Navigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { showApplyFirewallPanel } from '../_applyFirewallPanel';
-import { EmptyText } from '../_common';
+import { EmptyText, FirewallBindingsTable } from '../_common';
 import { useNetworkManagementAccess } from '../_gate';
 
 let RestrictedPublicIp = styled.span`
@@ -44,7 +42,6 @@ export let NetworkSettingsPage = () => {
     limit: 100,
     order: 'desc'
   });
-  let deleteBinding = useDeleteIntegrationFirewallAssignment();
 
   return renderWithLoader({ internetGateway, firewallBindings })(
     ({ internetGateway, firewallBindings }) => {
@@ -105,51 +102,14 @@ export let NetworkSettingsPage = () => {
               ) : undefined
             }
           >
-            {gatewayBindings.length > 0 ? (
-              <Table
-                headers={['Firewall', 'Target', 'Created', '']}
-                data={gatewayBindings.map(binding => ({
-                  data: [
-                    <Text size="2" weight="strong">
-                      {binding.firewall.name}
-                    </Text>,
-                    <Text size="2">
-                      {binding.target?.name ?? 'Integration Internet Gateway'}
-                    </Text>,
-                    <RenderDate date={binding.createdAt} />,
-                    canWrite ? (
-                      <div
-                        style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}
-                      >
-                        <Menu
-                          items={[{ id: 'remove', label: 'Remove' }]}
-                          onItemClick={async item => {
-                            if (item !== 'remove') return;
-
-                            await deleteBinding.mutate({
-                              instanceId: instance.data!.id,
-                              integrationFirewallAssignmentId: binding.id
-                            });
-                            firewallBindings.refetch();
-                          }}
-                        >
-                          <Button
-                            size="1"
-                            variant="outline"
-                            iconLeft={<RiMore2Line />}
-                            title="Firewall actions"
-                          />
-                        </Menu>
-                      </div>
-                    ) : null
-                  ]
-                }))}
-              />
-            ) : (
-              <EmptyText>
-                No firewalls are applied to the integration internet gateway.
-              </EmptyText>
-            )}
+            <FirewallBindingsTable
+              bindings={gatewayBindings}
+              instanceId={instance.data!.id}
+              canWrite={canWrite}
+              showTarget
+              onChange={() => firewallBindings.refetch()}
+              emptyState="No firewalls are applied to the integration internet gateway."
+            />
           </Box>
         </>
       );

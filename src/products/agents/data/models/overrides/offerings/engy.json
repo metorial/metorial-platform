@@ -1,0 +1,30 @@
+{
+  "deepseek-v4.1-flash": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "engy serves the same DeepSeek-V4.1-Flash checkpoint (552B MoE, 1M context, Sep 2025) as deepseek/deepseek-v4.1-flash; its 0.03/0.12 price is far below the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4.1-flash-1017": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "engy serves the October 17, 2026 snapshot of DeepSeek V4.1 Flash (deepseek-ai/DeepSeek-V4.1-Flash-1017 on Hugging Face, 1M context), matching deepseek/deepseek-v4.1-flash-1017; its 0.03/0.12 price is a steep discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3.6-35b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "engy serves Alibaba's Qwen3.6 35B-A3B open-weight MoE (262K native context); its 0.045/0.3 rate is a discount off the model's 0.248 median but it is the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "engy serves Alibaba's Qwen3.8 27B open-weight dense vision-language model (Aug 2026); its 0.045/0.32 rate is a discount off the model's 0.4 median but it is the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

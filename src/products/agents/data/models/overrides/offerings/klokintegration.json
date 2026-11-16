@@ -1,0 +1,23 @@
+{
+  "Kloker": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "klokintegration.se's house chat model wraps a swappable open-source base that the Klok team verifies and upgrades periodically (per its own listing); a moving alias with no fixed underlying model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Kloker-Integration-Architect": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The same swappable-base Kloker endpoint with Klok's server-side system-prompt injection and ecosystem lookup tools for integration architecture (per its listing); a prompt/tool-wrapped product variant, not a distinct model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Kloker-Integration-Developer": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The same swappable-base Kloker endpoint with Klok's server-side system-prompt injection and ecosystem lookup tools for integration development (per its listing); a prompt/tool-wrapped product variant, not a distinct model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

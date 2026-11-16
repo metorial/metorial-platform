@@ -1,0 +1,1439 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model ConnectionLogsStorageBucket {
+  oid               BigInt             @id
+  bucket            String             @unique
+  createdAt         DateTime           @default(now())
+  serverConnections ServerConnection[]
+}
+
+enum ChangeNotificationType {
+  public_server_version_created
+  private_server_version_created
+}
+
+model ChangeNotification {
+  oid BigInt @id
+  id  String @unique
+
+  type ChangeNotificationType
+
+  serverOid BigInt?
+  server    Server? @relation(fields: [serverOid], references: [oid])
+
+  serverVersionOid BigInt?
+  serverVersion    ServerVersion? @relation(fields: [serverVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}
+
+enum ContainerRegistryType {
+  docker
+}
+
+model ContainerRegistry {
+  oid BigInt @id
+  id  String @unique
+
+  type       ContainerRegistryType
+  identifier String                @unique
+  name       String
+  url        String
+
+  secretOid BigInt?
+  secret    Secret? @relation(fields: [secretOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  repositories ContainerRepository[]
+}
+
+enum ContainerRepositoryType {
+  docker
+}
+
+model ContainerRepository {
+  oid BigInt @id
+  id  String @unique
+
+  type       ContainerRepositoryType
+  identifier String                  @unique
+  name       String
+
+  registryOid BigInt
+  registry    ContainerRegistry @relation(fields: [registryOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  registryConnectionOid BigInt?
+  repositoryVersions    ContainerRepositoryVersion[]
+  repositoryTags        ContainerRepositoryTag[]
+}
+
+enum ContainerRepositoryTagDiscoveryStatus {
+  pending
+  succeeded
+  failed
+}
+
+enum ContainerRepositoryTagType {
+  tag
+  digest
+}
+
+model ContainerRepositoryTag {
+  oid BigInt @id
+  id  String @unique
+
+  type ContainerRepositoryTagType
+
+  discoveryStatus ContainerRepositoryTagDiscoveryStatus
+
+  identifier String
+  name       String
+
+  // Either tag or digest is set
+  tag    String?
+  digest String?
+
+  currentVersionOid BigInt?
+  currentVersion    ContainerRepositoryVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersionInTags")
+
+  repositoryOid BigInt
+  repository    ContainerRepository @relation(fields: [repositoryOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  lastDiscoveryErrorOid BigInt?
+  lastDiscoveryError    ContainerRepositoryTagDiscoveryError? @relation(fields: [lastDiscoveryErrorOid], references: [oid], name: "lastErrorForTag")
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  lastSyncedAt DateTime?
+
+  repositoryTagDiscoveryErrors ContainerRepositoryTagDiscoveryError[]
+  repositoryVersionTags        ContainerRepositoryTagVersion[]
+  servers                      Server[]
+  serverVersions               ServerVersion[]
+
+  @@unique([repositoryOid, identifier])
+}
+
+model ContainerRepositoryVersion {
+  oid BigInt @id
+  id  String @unique
+
+  digest String
+
+  repositoryOid BigInt
+  repository    ContainerRepository @relation(fields: [repositoryOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  currentInTags         ContainerRepositoryTag[]        @relation("currentVersionInTags")
+  repositoryVersionTags ContainerRepositoryTagVersion[]
+  serverVersions        ServerVersion[]
+
+  @@unique([repositoryOid, digest])
+}
+
+model ContainerRepositoryTagVersion {
+  oid BigInt @id
+
+  repositoryVersionOid BigInt
+  repositoryVersion    ContainerRepositoryVersion @relation(fields: [repositoryVersionOid], references: [oid])
+
+  repositoryTagOid BigInt
+  repositoryTag    ContainerRepositoryTag @relation(fields: [repositoryTagOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@unique([repositoryVersionOid, repositoryTagOid])
+}
+
+model ContainerRepositoryTagDiscoveryError {
+  oid BigInt @id
+  id  String @unique
+
+  code    String
+  message String
+
+  repositoryTagOid BigInt
+  repositoryTag    ContainerRepositoryTag @relation(fields: [repositoryTagOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  lastForTag ContainerRepositoryTag[] @relation("lastErrorForTag")
+}
+
+enum ServerDeploymentStatus {
+  queued
+  deploying
+  succeeded
+  failed
+}
+
+model ServerDeployment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ServerDeploymentStatus
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  functionServerOid BigInt?
+  functionServer    FunctionServer? @relation(fields: [functionServerOid], references: [oid])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  steps         ServerDeploymentStep[]
+  serverVersion ServerVersion?
+
+  @@index([tenantOid, createdAt])
+  @@index([status, startedAt])
+  @@index([status, createdAt])
+}
+
+enum ServerDeploymentStepType {
+  started
+  discovering
+  deploying
+  publishing
+}
+
+enum ServerDeploymentStepStatus {
+  running
+  succeeded
+  failed
+}
+
+model ServerDeploymentStep {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ServerDeploymentStepStatus
+  type   ServerDeploymentStepType
+
+  deploymentOid BigInt
+  deployment    ServerDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  /// [ServerDeploymentStepLogs]
+  logs Json[]
+
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  @@index([deploymentOid, createdAt])
+}
+
+enum ServerDiscoveryStatus {
+  pending
+  succeeded
+  failed
+}
+
+model ServerDiscovery {
+  oid BigInt @id
+  id  String @unique
+
+  status ServerDiscoveryStatus
+
+  /// [ServerDiscoveryError]
+  error Json @default("null")
+
+  /// [ServerDiscoveryWarning]
+  warnings Json[]
+
+  connectionOid BigInt?
+  connection    ServerConnection? @relation(fields: [connectionOid], references: [oid])
+
+  specificationOid BigInt?
+  specification    ServerSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  serverConfigOid BigInt
+  serverConfig    ServerConfig @relation(fields: [serverConfigOid], references: [oid])
+
+  serverAuthConfigOid BigInt?
+  serverAuthConfig    ServerAuthConfig? @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  serverVersionOid BigInt
+  serverVersion    ServerVersion @relation(fields: [serverVersionOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([tenantOid, createdAt])
+  @@index([status])
+}
+
+model ServerSpecification {
+  oid BigInt @id
+  id  String @unique
+
+  hash String
+
+  /// [ServerSpecificationValue]
+  value Json
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverDiscoveries ServerDiscovery[]
+
+  @@unique([serverOid, hash])
+}
+
+model DeploymentProvider {
+  oid BigInt @id
+  id  String @unique
+
+  name       String
+  identifier String @unique
+
+  createdAt         DateTime         @default(now())
+  serverDeployments FunctionServer[]
+}
+
+enum FunctionServerStatus {
+  pending
+  succeeded
+  failed
+}
+
+model FunctionServer {
+  oid    BigInt               @id
+  id     String               @unique
+  status FunctionServerStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  functionBayTenantId     String
+  functionBayFunctionId   String
+  functionBayDeploymentId String
+  functionBayVersionId    String?
+
+  supportsOAuth             Boolean
+  supportsOauthTokenRefresh Boolean
+
+  /// [FunctionServerInfo]
+  info Json
+
+  /// [FunctionServerConfigSchema]
+  configSchema Json
+
+  /// [FunctionServerAuthConfigSchema]
+  authConfigSchema Json
+
+  delegatedOauthConfigOid BigInt?
+  delegatedOauthConfig    DelegatedOAuthConfig? @relation(fields: [delegatedOauthConfigOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  providerOid BigInt
+  provider    DeploymentProvider @relation(fields: [providerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverDeployments            ServerDeployment[]
+  serverVersions               ServerVersion[]
+  delegatedOAuthConnections    DelegatedOAuthConnection[]
+  forFunctionServerAuthConfigs DelegatedOAuthConfig[]     @relation("forDelegatedOAuthConfig")
+  functionServerInvocations    FunctionServerInvocation[]
+}
+
+model UpcomingFunctionServer {
+  oid BigInt @id
+  id  String @unique
+
+  /// [UpcomingFunctionServerPayload]
+  payload Json
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+model FunctionServerInvocation {
+  oid BigInt @id
+
+  isError Boolean
+
+  functionBayInvocationId String
+  errorCode               String?
+  errorMessage            String?
+
+  connectionOid BigInt?
+  connection    ServerConnection? @relation(fields: [connectionOid], references: [oid])
+
+  functionServerOid BigInt
+  functionServer    FunctionServer @relation(fields: [functionServerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  /// [FunctionServerInvocationLogs]
+  logs Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantOid, createdAt])
+  @@index([connectionOid, createdAt])
+}
+
+model ServerConfig {
+  oid BigInt @id
+  id  String @unique
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConnections ServerConnection[]
+  serverDiscoveries ServerDiscovery[]
+}
+
+model ServerInstanceConfiguration {
+  oid BigInt @id
+  id  String @unique
+
+  enclaveId String
+
+  /// [CompiledEgressNetworkAllowList]
+  egressPolicy Json
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConnections ServerConnection[]
+  serverOAuthSetups ServerOAuthSetup[]
+}
+
+enum ServerAuthConfigType {
+  remote
+  delegated
+}
+
+model ServerAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  type ServerAuthConfigType
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  credentialsOid BigInt?
+  credentials    ServerOAuthCredentials? @relation(fields: [credentialsOid], references: [oid])
+
+  remoteOAuthConnectionOid BigInt?
+  remoteOAuthConnection    RemoteOAuthConnection? @relation(fields: [remoteOAuthConnectionOid], references: [oid])
+
+  remoteOAuthConnectionAuthTokenOid BigInt?
+  remoteOAuthConnectionAuthToken    RemoteOAuthConnectionAuthToken? @relation(fields: [remoteOAuthConnectionAuthTokenOid], references: [oid])
+
+  delegatedOAuthConnectionOid BigInt?
+  delegatedOAuthConnection    DelegatedOAuthConnection? @relation(fields: [delegatedOAuthConnectionOid], references: [oid])
+
+  delegatedOAuthConnectionAuthTokenOid BigInt?
+  delegatedOAuthConnectionAuthToken    DelegatedOAuthConnectionAuthToken? @relation(fields: [delegatedOAuthConnectionAuthTokenOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  remoteOAuthConnectionSetups    RemoteOAuthConnectionSetup[]
+  serverOAuthSetups              ServerOAuthSetup[]
+  serverConnections              ServerConnection[]
+  serverDiscoveries              ServerDiscovery[]
+  serverAuthConfigExports        ServerAuthConfigExport[]
+  delegatedOAuthConnectionSetups DelegatedOAuthConnectionSetup[]
+  serverAuthConfigEvents         ServerAuthConfigEvent[]
+}
+
+model ServerAuthConfigExport {
+  oid BigInt @id
+  id  String @unique
+
+  note String
+
+  serverAuthConfigOid BigInt
+  serverAuthConfig    ServerAuthConfig @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+}
+
+enum ServerConnectionStatus {
+  new
+  connected
+  disconnected
+}
+
+model ServerConnection {
+  oid BigInt @id
+  id  String @unique
+
+  status          ServerConnectionStatus
+  isLogsInStorage Boolean
+
+  logBucketOid BigInt
+  logBucket    ConnectionLogsStorageBucket @relation(fields: [logBucketOid], references: [oid])
+
+  /// [ServerConnectionClient]
+  client Json
+
+  /// [ServerConnectionCapabilities]
+  capabilities Json
+
+  serverConfigOid BigInt
+  serverConfig    ServerConfig @relation(fields: [serverConfigOid], references: [oid])
+
+  serverVersionOid BigInt
+  serverVersion    ServerVersion @relation(fields: [serverVersionOid], references: [oid])
+
+  serverAuthConfigOid BigInt?
+  serverAuthConfig    ServerAuthConfig? @relation(fields: [serverAuthConfigOid], references: [oid])
+
+  serverInstanceConfigurationOid BigInt?
+  serverInstanceConfiguration    ServerInstanceConfiguration? @relation(fields: [serverInstanceConfigurationOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt  DateTime  @default(now())
+  lastPingAt DateTime?
+
+  serverDiscoveries         ServerDiscovery[]
+  serverConnectionLogsTemps ServerConnectionLogsTemp[]
+  functionServerInvocations FunctionServerInvocation[]
+}
+
+model ServerAuthConfigEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  message String?
+  payload Json?
+
+  functionInvocationId String?
+  serverConnectionId   String?
+
+  serverAuthConfigOid BigInt
+  serverAuthConfig    ServerAuthConfig @relation(fields: [serverAuthConfigOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([serverAuthConfigOid, createdAt])
+  @@index([functionInvocationId])
+  @@index([serverConnectionId])
+}
+
+model ServerConnectionLogsTemp {
+  oid BigInt @id
+
+  serverConnectionOid BigInt
+  serverConnection    ServerConnection @relation(fields: [serverConnectionOid], references: [oid])
+
+  /// [ServerConnectionLogLines]
+  logLines Json
+
+  createdAt DateTime @default(now())
+
+  @@index([serverConnectionOid, createdAt])
+}
+
+enum ServerOAuthCredentialsType {
+  remote
+  delegated
+}
+
+model ServerOAuthCredentials {
+  oid  BigInt                     @id
+  id   String                     @unique
+  type ServerOAuthCredentialsType
+
+  isDefault Boolean @default(false)
+
+  remoteConnectionOid BigInt?                @unique
+  remoteConnection    RemoteOAuthConnection? @relation(fields: [remoteConnectionOid], references: [oid])
+
+  delegatedConnectionOid BigInt?                   @unique
+  delegatedConnection    DelegatedOAuthConnection? @relation(fields: [delegatedConnectionOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverAuthConfigs ServerAuthConfig[]
+  serverOAuthSetups ServerOAuthSetup[]
+
+  @@index(isDefault)
+}
+
+enum ServerOAuthSetupType {
+  remote
+  delegated
+}
+
+enum ServerOAuthSetupStatus {
+  pending
+  completed
+  failed
+}
+
+model ServerOAuthSetup {
+  oid BigInt @id
+  id  String @unique
+
+  status ServerOAuthSetupStatus
+  type   ServerOAuthSetupType
+
+  /// [ServerOAuthSetupAuthConfig]
+  authConfigValue Json
+
+  redirectUri         String
+  callbackUrlOverride String?
+
+  credentialsOid BigInt
+  credentials    ServerOAuthCredentials @relation(fields: [credentialsOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  authConfigOid BigInt?
+  authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid])
+
+  serverInstanceConfigurationOid BigInt?
+  serverInstanceConfiguration    ServerInstanceConfiguration? @relation(fields: [serverInstanceConfigurationOid], references: [oid])
+
+  remoteOAuthConnectionSetupOid BigInt?                     @unique
+  remoteOAuthConnectionSetup    RemoteOAuthConnectionSetup? @relation(fields: [remoteOAuthConnectionSetupOid], references: [oid])
+
+  delegatedOAuthConnectionSetupOid BigInt?                        @unique
+  delegatedOAuthConnectionSetup    DelegatedOAuthConnectionSetup? @relation(fields: [delegatedOAuthConnectionSetupOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events ServerOAuthSetupEvent[]
+}
+
+model ServerOAuthSetupEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type String
+
+  message String?
+  payload Json?
+
+  functionInvocationId String?
+  serverConnectionId   String?
+
+  serverOAuthSetupOid BigInt
+  serverOAuthSetup    ServerOAuthSetup @relation(fields: [serverOAuthSetupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([serverOAuthSetupOid, createdAt])
+  @@index([functionInvocationId])
+  @@index([serverConnectionId])
+}
+
+model DelegatedOAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  name String?
+
+  /// [FunctionServerAuthConfigSchema]
+  authConfigSchema     Json
+  authConfigSchemaHash String
+
+  supportsOauthTokenRefresh Boolean
+
+  errorCode    String?
+  errorMessage String?
+
+  serverOid BigInt @unique
+  server    Server @relation(fields: [serverOid], references: [oid], name: "forDelegatedOAuthConfig")
+
+  functionServerOid BigInt         @unique
+  functionServer    FunctionServer @relation(fields: [functionServerOid], references: [oid], name: "forDelegatedOAuthConfig")
+
+  createdAt DateTime @default(now())
+
+  remoteOAuthConnections          DelegatedOAuthConnection[]
+  remoteOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  servers                         Server[]
+  functionServers                 FunctionServer[]
+
+  @@unique([serverOid, authConfigSchemaHash])
+}
+
+enum DelegatedOAuthConnectionStatus {
+  active
+  inactive
+}
+
+model DelegatedOAuthConnection {
+  oid BigInt @id
+  id  String @unique
+
+  status DelegatedOAuthConnectionStatus
+
+  clientId String
+
+  errorCode    String?
+  errorMessage String?
+
+  secretOid BigInt?
+  secret    Secret? @relation(fields: [secretOid], references: [oid])
+
+  configOid BigInt
+  config    DelegatedOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  functionServerOid BigInt
+  functionServer    FunctionServer @relation(fields: [functionServerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverOAuthCredentials ServerOAuthCredentials?
+
+  remoteOAuthConnectionEvents     DelegatedOAuthConnectionEvent[]
+  remoteOAuthConnectionSetups     DelegatedOAuthConnectionSetup[]
+  remoteOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  serverAuthConfigs               ServerAuthConfig[]
+}
+
+enum DelegatedOAuthConnectionEventType {
+  errors
+}
+
+model DelegatedOAuthConnectionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type          DelegatedOAuthConnectionEventType
+  discriminator String?
+
+  metadata Json?
+
+  connectionOid BigInt
+  connection    DelegatedOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([connectionOid, type, discriminator])
+}
+
+enum DelegatedOAuthConnectionSetupStatus {
+  pending
+  completed
+  failed
+}
+
+model DelegatedOAuthConnectionSetup {
+  oid    BigInt                              @id
+  id     String                              @unique
+  status DelegatedOAuthConnectionSetupStatus
+
+  stateIdentifier String? @unique
+
+  /// [DelegatedOAuthConnectionAuthConfig]
+  authConfigValue Json
+
+  /// [DelegatedOAuthConnectionAuthState]
+  authStateValue Json
+
+  errorCode    String?
+  errorMessage String?
+
+  connectionOid BigInt
+  connection    DelegatedOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  authTokenOid BigInt?
+  authToken    DelegatedOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+
+  authConfigOid BigInt?
+  authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverOAuthSetup ServerOAuthSetup?
+
+  @@index([status])
+}
+
+enum DelegatedOAuthConnectionAuthTokenSource {
+  import
+  oauth
+}
+
+model DelegatedOAuthConnectionAuthToken {
+  oid    BigInt                                  @id
+  id     String                                  @unique
+  source DelegatedOAuthConnectionAuthTokenSource
+
+  /// [DelegatedOAuthConnectionAuthConfig]
+  authConfigValue Json
+
+  /// [DelegatedOAuthConnectionAuthState]
+  authStateValue Json
+
+  scope     String?
+  tokenType String?
+  idToken   String?
+
+  expiresAt DateTime?
+
+  firstErrorAt    DateTime?
+  lastErrorAt     DateTime?
+  errorDisabledAt DateTime?
+  errorCount      Int       @default(0)
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  connectionOid BigInt?
+  connection    DelegatedOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  configOid BigInt
+  config    DelegatedOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  refreshedAt DateTime?
+
+  authAttempts      DelegatedOAuthConnectionSetup[]
+  serverAuthConfigs ServerAuthConfig[]
+  errors            DelegatedOAuthConnectionAuthTokenError[]
+}
+
+model DelegatedOAuthConnectionAuthTokenError {
+  oid BigInt @id
+  id  String @unique
+
+  authTokenOid BigInt
+  authToken    DelegatedOAuthConnectionAuthToken @relation(fields: [authTokenOid], references: [oid], onDelete: Cascade)
+
+  errorCode    String
+  errorMessage String?
+
+  functionInvocationId String?
+
+  createdAt DateTime @default(now())
+}
+
+model RemoteOAuthDiscoveryDocument {
+  oid BigInt @id
+  id  String @unique
+
+  providerName String
+  providerUrl  String
+  discoveryUrl String @unique
+
+  /// [RemoteOAuthConfig]
+  config Json
+
+  configHash String
+
+  version Int
+
+  createdAt   DateTime @default(now())
+  refreshedAt DateTime @default(now()) @updatedAt
+
+  providerOAuthAutoRegistrations RemoteOAuthAutoRegistration[]
+  remoteOAuthConfigs             RemoteOAuthConfig[]
+}
+
+model RemoteOAuthAutoRegistration {
+  oid BigInt @id
+  id  String @unique
+
+  clientId     String
+  clientSecret String?
+
+  autoRegistrationName String?
+
+  registrationClientUri   String?
+  registrationAccessToken String?
+  clientSecretExpiresAt   DateTime?
+
+  /// [RemoteOAuthAutoRegistrationData]
+  data Json
+
+  discoveryDocumentOid BigInt?
+  discoveryDocument    RemoteOAuthDiscoveryDocument? @relation(fields: [discoveryDocumentOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  connections RemoteOAuthConnection[]
+}
+
+model RemoteOAuthRegistrationError {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  payload  Json
+  endpoint String
+
+  configOid BigInt?
+  config    RemoteOAuthConfig? @relation(fields: [configOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    RemoteOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+enum RemoteOAuthConfigDiscoveryStatus {
+  discovering
+  failed
+  manual
+  supports_auto_registration
+}
+
+model RemoteOAuthConfig {
+  oid BigInt @id
+  id  String @unique
+
+  discoverStatus RemoteOAuthConfigDiscoveryStatus @default(manual)
+
+  name String?
+
+  /// [RemoteOAuthConfig]
+  config Json
+
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  errorCode    String?
+  errorMessage String?
+
+  scopes String[]
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid], name: "forRemoteOAuthConfig")
+
+  oauthDiscoveryDocumentOid BigInt?
+  oauthDiscoveryDocument    RemoteOAuthDiscoveryDocument? @relation(fields: [oauthDiscoveryDocumentOid], references: [oid])
+
+  createdAt        DateTime  @default(now())
+  lastDiscoveredAt DateTime?
+
+  remoteOAuthConnections          RemoteOAuthConnection[]
+  remoteOAuthRegistrationErrors   RemoteOAuthRegistrationError[]
+  remoteOAuthConnectionAuthTokens RemoteOAuthConnectionAuthToken[]
+  servers                         Server[]
+}
+
+enum RemoteOAuthConnectionStatus {
+  active
+  inactive
+}
+
+enum RemoteOAuthConnectionDiscoveryStatus {
+  discovering
+  failed
+  succeeded
+}
+
+model RemoteOAuthConnection {
+  oid BigInt @id
+  id  String @unique
+
+  status          RemoteOAuthConnectionStatus
+  discoveryStatus RemoteOAuthConnectionDiscoveryStatus
+
+  clientId String?
+  scopes   String[]
+
+  secretOid BigInt?
+  secret    Secret? @relation(fields: [secretOid], references: [oid])
+
+  providerName String
+  providerUrl  String
+
+  discoveryUrl String?
+
+  errorCode    String?
+  errorMessage String?
+
+  configOid BigInt
+  config    RemoteOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  registrationOid BigInt?
+  registration    RemoteOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
+
+  rotatedFromOid BigInt?
+  rotatedFrom    RemoteOAuthConnection?  @relation("remoteOAuthConnectionRotation", fields: [rotatedFromOid], references: [oid], onDelete: SetNull)
+  rotatedTo      RemoteOAuthConnection[] @relation("remoteOAuthConnectionRotation")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  registrationAttemptCount  Int       @default(0)
+  lastRegistrationAttemptAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverOAuthCredentials ServerOAuthCredentials?
+
+  remoteOAuthConnectionEvents     RemoteOAuthConnectionEvent[]
+  remoteOAuthConnectionProfiles   RemoteOAuthConnectionProfile[]
+  remoteOAuthConnectionSetups     RemoteOAuthConnectionSetup[]
+  remoteOAuthConnectionAuthTokens RemoteOAuthConnectionAuthToken[]
+  remoteOAuthRegistrationErrors   RemoteOAuthRegistrationError[]
+  serverAuthConfigs               ServerAuthConfig[]
+
+  @@index([discoveryStatus, status, lastRegistrationAttemptAt])
+  @@index([rotatedFromOid, status])
+}
+
+enum RemoteOAuthConnectionEventType {
+  errors
+  auto_registration_succeeded
+  auto_registration_failed
+  config_auto_discovered
+  config_auto_updated
+  credentials_rotated
+}
+
+model RemoteOAuthConnectionEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type          RemoteOAuthConnectionEventType
+  discriminator String?
+
+  metadata Json?
+
+  connectionOid BigInt
+  connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([connectionOid, type, discriminator])
+}
+
+model RemoteOAuthConnectionProfile {
+  oid BigInt @id
+  id  String @unique
+
+  sub String
+
+  name  String?
+  email String?
+
+  rawProfile Json?
+
+  connectionOid BigInt
+  connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  tokens                     RemoteOAuthConnectionAuthToken[]
+  RemoteOAuthConnectionSetup RemoteOAuthConnectionSetup[]
+
+  @@unique([connectionOid, sub])
+}
+
+enum RemoteOAuthConnectionSetupStatus {
+  pending
+  completed
+  failed
+}
+
+model RemoteOAuthConnectionSetup {
+  oid BigInt @id
+  id  String @unique
+
+  stateIdentifier String? @unique
+
+  status RemoteOAuthConnectionSetupStatus
+
+  errorCode    String?
+  errorMessage String?
+
+  codeVerifier String?
+
+  connectionOid BigInt
+  connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  authTokenOid BigInt?
+  authToken    RemoteOAuthConnectionAuthToken? @relation(fields: [authTokenOid], references: [oid], onDelete: SetNull)
+
+  authConfigOid BigInt?
+  authConfig    ServerAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
+
+  profileOid BigInt?
+  profile    RemoteOAuthConnectionProfile? @relation(fields: [profileOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  serverOAuthSetup ServerOAuthSetup?
+
+  @@index([status])
+}
+
+enum RemoteOAuthConnectionAuthTokenSource {
+  import
+  oauth
+}
+
+model RemoteOAuthConnectionAuthToken {
+  oid    BigInt                               @id
+  id     String                               @unique
+  source RemoteOAuthConnectionAuthTokenSource
+
+  scope     String?
+  tokenType String?
+  idToken   String?
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  expiresAt DateTime?
+
+  connectionProfileOid BigInt?
+  connectionProfile    RemoteOAuthConnectionProfile? @relation(fields: [connectionProfileOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    RemoteOAuthConnection? @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  configOid BigInt
+  config    RemoteOAuthConfig @relation(fields: [configOid], references: [oid])
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  firstErrorAt    DateTime?
+  lastErrorAt     DateTime?
+  errorDisabledAt DateTime?
+  errorCount      Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  refreshedAt DateTime?
+
+  authAttempts      RemoteOAuthConnectionSetup[]
+  serverAuthConfigs ServerAuthConfig[]
+  errors            RemoteOAuthConnectionAuthTokenError[]
+}
+
+model RemoteOAuthConnectionAuthTokenError {
+  oid BigInt @id
+  id  String @unique
+
+  authTokenOid BigInt
+  authToken    RemoteOAuthConnectionAuthToken @relation(fields: [authTokenOid], references: [oid], onDelete: Cascade)
+
+  errorCode    String
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+}
+
+enum SecretStatus {
+  active
+  deleted
+}
+
+enum SecretType {
+  registry_credentials
+  server_config_value
+  oauth_connection_credentials
+  oauth_token
+}
+
+model Secret {
+  oid    BigInt       @id
+  id     String       @unique
+  type   SecretType
+  status SecretStatus
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  encryptedSecret String
+
+  isDelegatedToNebula Boolean @default(false)
+  nebulaSecretId      String?
+
+  createdAt DateTime @default(now())
+
+  registries                         ContainerRegistry[]
+  serverConfigs                      ServerConfig[]
+  remoteOAuthConnections             RemoteOAuthConnection[]
+  remoteOAuthConnectionAuthTokens    RemoteOAuthConnectionAuthToken[]
+  delegatedOAuthConnections          DelegatedOAuthConnection[]
+  delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+}
+
+enum ServerType {
+  container
+  remote
+  function
+}
+
+enum ServerRemoteProtocol {
+  sse
+  streamable_http
+  stateless
+}
+
+model Server {
+  oid BigInt @id
+  id  String @unique
+
+  type ServerType
+
+  name        String
+  description String?
+  metadata    Json?
+
+  /// [ServerConfigSchema]
+  draftConfigSchema      Json
+  draftConfigTransformer String
+
+  draftRemoteUrl      String?
+  draftRemoteProtocol ServerRemoteProtocol?
+
+  draftRepositoryTagOid BigInt?
+  draftRepositoryTag    ContainerRepositoryTag? @relation(fields: [draftRepositoryTagOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  currentVersionOid BigInt?
+  currentVersion    ServerVersion? @relation(fields: [currentVersionOid], references: [oid], name: "currentVersion")
+
+  remoteOauthConfigOid BigInt?
+  remoteOauthConfig    RemoteOAuthConfig? @relation(fields: [remoteOauthConfigOid], references: [oid])
+
+  delegatedOauthConfigOid BigInt?
+  delegatedOauthConfig    DelegatedOAuthConfig? @relation(fields: [delegatedOauthConfigOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConfigs                      ServerConfig[]
+  serverVersions                     ServerVersion[]
+  serverSpecifications               ServerSpecification[]
+  changeNotifications                ChangeNotification[]
+  remoteOAuthConnections             RemoteOAuthConnection[]
+  remoteOAuthConfig                  RemoteOAuthConfig[]                 @relation("forRemoteOAuthConfig")
+  delegatedOAuthConfig               DelegatedOAuthConfig?               @relation("forDelegatedOAuthConfig")
+  serverAuthConfigs                  ServerAuthConfig[]
+  serverOAuthCredentials             ServerOAuthCredentials[]
+  serverOAuthSetups                  ServerOAuthSetup[]
+  remoteOAuthConnectionAuthTokens    RemoteOAuthConnectionAuthToken[]
+  delegatedOAuthConnections          DelegatedOAuthConnection[]
+  delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  functionServers                    FunctionServer[]
+  upcomingFunctionServers            UpcomingFunctionServer[]
+  serverDeployments                  ServerDeployment[]
+}
+
+enum RemoteProtocolAutoSwitchStatus {
+  none
+  attempting
+  succeeded
+  failed
+}
+
+model ServerVersion {
+  oid BigInt @id
+  id  String @unique
+
+  isCurrent Boolean @default(false)
+
+  identifier String
+
+  /// [ServerConfigSchema]
+  configSchema      Json
+  configTransformer String
+
+  remoteUrl                             String?
+  remoteProtocol                        ServerRemoteProtocol?
+  originalRemoteProtocol                ServerRemoteProtocol?
+  remoteProtocolAutoSwitchStatus        RemoteProtocolAutoSwitchStatus @default(none)
+  remoteServerNeedsManualAuthentication Boolean                        @default(false)
+
+  serverOid BigInt
+  server    Server @relation(fields: [serverOid], references: [oid])
+
+  repositoryTagOid BigInt?
+  repositoryTag    ContainerRepositoryTag? @relation(fields: [repositoryTagOid], references: [oid])
+
+  repositoryVersionOid BigInt?
+  repositoryVersion    ContainerRepositoryVersion? @relation(fields: [repositoryVersionOid], references: [oid])
+
+  functionServerOid BigInt?
+  functionServer    FunctionServer? @relation(fields: [functionServerOid], references: [oid])
+
+  deploymentOid BigInt           @unique
+  deployment    ServerDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  serverConnections   ServerConnection[]
+  currentInServers    Server[]             @relation("currentVersion")
+  serverDiscoveries   ServerDiscovery[]
+  changeNotifications ChangeNotification[]
+
+  @@unique([serverOid, identifier])
+  @@index([serverOid, isCurrent])
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  functionBayTenantId String?
+  nebulaTenantId      String?
+
+  logRetentionInDays Int     @default(30)
+  storeContent       Boolean @default(true)
+  collectErrors      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  secrets                            Secret[]
+  registries                         ContainerRegistry[]
+  repositories                       ContainerRepository[]
+  repositoryTags                     ContainerRepositoryTag[]
+  repositoryVersions                 ContainerRepositoryVersion[]
+  serverConfigs                      ServerConfig[]
+  serverInstanceConfigurations       ServerInstanceConfiguration[]
+  serverConnections                  ServerConnection[]
+  serverDiscoveries                  ServerDiscovery[]
+  servers                            Server[]
+  serverVersions                     ServerVersion[]
+  remoteOAuthConnections             RemoteOAuthConnection[]
+  remoteOAuthConnectionProfiles      RemoteOAuthConnectionProfile[]
+  remoteOAuthConnectionSetups        RemoteOAuthConnectionSetup[]
+  remoteOAuthConnectionAuthTokens    RemoteOAuthConnectionAuthToken[]
+  serverAuthConfigs                  ServerAuthConfig[]
+  serverOAuthSetups                  ServerOAuthSetup[]
+  serverOAuthCredentials             ServerOAuthCredentials[]
+  delegatedOAuthConnections          DelegatedOAuthConnection[]
+  delegatedOAuthConnectionSetups     DelegatedOAuthConnectionSetup[]
+  delegatedOAuthConnectionAuthTokens DelegatedOAuthConnectionAuthToken[]
+  upcomingFunctionServers            UpcomingFunctionServer[]
+  serverDeployments                  ServerDeployment[]
+  functionServerInvocations          FunctionServerInvocation[]
+}

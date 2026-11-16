@@ -77,7 +77,7 @@ export let dashboardWorkforceConfigurationController = Controller.create(
           allow_organization_member_full_skill_access: v.optional(
             v.boolean({
               description:
-                'Give portal consumers who are organization members full access to every skill they can see in the portal. Only applies with store-based skill access.'
+                'Allow portal consumers who are organization members to edit and share every skill they can see in the portal. Only applies with store-based skill access.'
             })
           )
         })

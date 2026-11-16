@@ -1,174 +1,98 @@
 import type { DashboardInstanceIncomingWebhooksListQuery } from '@metorial/dashboard-sdk';
+import {
+  col,
+  createDataList,
+  defineStatus,
+  EmptyValue,
+  f,
+  withDefaults,
+  type StatusDefinition
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  IncomingWebhookPreview,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useIncomingWebhooks
-} from '@metorial/state';
-import {
-  getConstrainedEnumListFilterValue,
-  getListFilterValue,
-  Table as DashboardTable,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { useIncomingWebhooks } from '@metorial/state';
 import { ID } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import type { ComponentProps } from 'react';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
-import { getIncomingWebhookStatusColor, getIncomingWebhookStatusLabel } from './shared';
+import {
+  getIncomingWebhookStatusColor,
+  getIncomingWebhookStatusLabel,
+  INCOMING_WEBHOOK_STATUS_LABELS
+} from './shared';
 
-type IncomingWebhooksTableProps = {
-  instanceId: string;
-  filters?: Omit<
-    DashboardInstanceIncomingWebhooksListQuery,
-    'limit' | 'after' | 'before' | 'cursor'
-  >;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+export type IncomingWebhooksFilters = Omit<
+  DashboardInstanceIncomingWebhooksListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
 
-let useIncomingWebhooksTableState: TableStateProvider<
-  IncomingWebhooksTableProps,
-  IncomingWebhookPreview,
-  TableStateProviderResult<IncomingWebhookPreview>
-> = (props, opts) => {
-  let webhooks = useIncomingWebhooks(props.instanceId, {
-    order: 'desc',
-    ...props.filters,
-    status: getConstrainedEnumListFilterValue(
-      opts.filter.status,
-      ['pending', 'failed_retrying', 'failed_final', 'succeeded'],
-      props.filters?.status
-    ),
-    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
-    webhookRegistrationId:
-      getListFilterValue(opts.filter.webhookRegistrationId) ??
-      props.filters?.webhookRegistrationId
-  });
+export type IncomingWebhookStatus =
+  'pending' | 'failed_retrying' | 'failed_final' | 'succeeded';
 
-  return {
-    isLoading: webhooks.isLoading,
-    error: webhooks.error,
-    hasMoreAfter: webhooks.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: webhooks.data?.pagination.hasMoreBefore ?? false,
-    items: webhooks.data?.items ?? [],
-    loadNext: webhooks.next,
-    loadPrevious: webhooks.previous
-  };
-};
-
-let useIncomingWebhooksTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<IncomingWebhookPreview>[]>(
-    () => [
+export let incomingWebhookStatus = defineStatus(
+  Object.fromEntries(
+    Object.keys(INCOMING_WEBHOOK_STATUS_LABELS).map(status => [
+      status,
       {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'pending', label: 'Pending' },
-          { id: 'failed_retrying', label: 'Retrying' },
-          { id: 'failed_final', label: 'Failed' },
-          { id: 'succeeded', label: 'Succeeded' }
-        ]
-      },
-      entityFilters.provider(instanceId),
-      entityFilters.webhookRegistration(instanceId)
-    ],
-    [instanceId]
-  );
+        label: getIncomingWebhookStatusLabel(status),
+        color: getIncomingWebhookStatusColor(status)
+      }
+    ])
+  ) as Record<IncomingWebhookStatus, StatusDefinition>
+);
 
-let incomingWebhooksTable = new DashboardTable<
-  IncomingWebhooksTableProps,
-  IncomingWebhookPreview
->('incoming-webhooks')
-  .state(useIncomingWebhooksTableState)
-  .columns([
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: webhook => (
-        <Badge color={getIncomingWebhookStatusColor(webhook.status)}>
-          {getIncomingWebhookStatusLabel(webhook.status)}
-        </Badge>
-      )
-    },
-    {
-      id: 'providerId',
-      isDefault: true,
-      header: 'Provider',
-      render: webhook => <ID id={webhook.providerId} copy={false} />
-    },
-    {
-      id: 'attemptCount',
-      isDefault: true,
-      header: 'Attempts',
-      render: webhook => <Text size="2">{webhook.attemptCount}</Text>
-    },
-    {
-      id: 'webhookRegistrationId',
-      isDefault: false,
-      header: 'Registration',
-      render: webhook =>
-        webhook.webhookRegistrationId ? (
-          <ID id={webhook.webhookRegistrationId} copy={false} />
-        ) : (
-          <Text size="2" color="gray600">
-            Unmatched
-          </Text>
-        )
-    },
-    {
-      id: 'receivedAt',
-      isDefault: true,
-      header: 'Received',
-      render: webhook => <RenderDate date={webhook.receivedAt} />
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'Webhook ID',
-      render: webhook => <ID id={webhook.id} />
-    }
-  ])
-  .link((webhook, props) =>
-    Paths.instance.incomingWebhook(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      webhook.id
+let IncomingWebhooksList = createDataList<{
+  instanceId?: string;
+  filters?: IncomingWebhooksFilters;
+}>('incoming-webhooks')
+  .context(useInstanceContext)
+  .filters((props, ctx) => {
+    let instanceId = props.instanceId ?? ctx.instanceId;
+
+    return {
+      status: f.status(incomingWebhookStatus),
+      providerId: f.entity(entityFilters.provider(instanceId)),
+      webhookRegistrationId: f.entity(entityFilters.webhookRegistration(instanceId))
+    };
+  })
+  .paginated(({ props, ctx, filters }) =>
+    useIncomingWebhooks(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(props.filters, { order: 'desc' as const, ...filters })
     )
+  )
+  .columns([
+    col.status(incomingWebhookStatus),
+    col.refId('providerId', row => row.providerId, {
+      header: 'Provider',
+      isDefault: true,
+      copy: false
+    }),
+    col.text({ id: 'attemptCount', header: 'Attempts', get: row => row.attemptCount }),
+    col.custom({
+      id: 'webhookRegistrationId',
+      header: 'Registration',
+      isDefault: false,
+      render: row =>
+        row.webhookRegistrationId ? (
+          <ID id={row.webhookRegistrationId} copy={false} />
+        ) : (
+          <EmptyValue>Unmatched</EmptyValue>
+        )
+    }),
+    col.date('receivedAt', { id: 'receivedAt', header: 'Received', isDefault: true }),
+    col.id({ header: 'Webhook ID', isDefault: true })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.incomingWebhook(ctx.organization, ctx.project, ctx.instance, row.id)
   )
   .build();
 
-export let IncomingWebhooksTable = ({
-  instanceId,
-  filters,
-  emptyState
-}: {
-  instanceId: string;
-  filters?: IncomingWebhooksTableProps['filters'];
-  emptyState?: string;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useIncomingWebhooksTableFilters(instanceId);
-
-  return incomingWebhooksTable({
-    instanceId,
-    filters,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState: emptyState ?? 'No inbound webhooks received yet.'
-  });
-};
+export let IncomingWebhooksTable = (props: ComponentProps<typeof IncomingWebhooksList>) => (
+  <IncomingWebhooksList
+    emptyState={{
+      initial: 'No inbound webhooks received yet.',
+      filtered: 'No inbound webhooks match your filters.'
+    }}
+    {...props}
+  />
+);

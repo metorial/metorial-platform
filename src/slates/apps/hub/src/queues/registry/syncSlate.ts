@@ -4,8 +4,14 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, ID, snowflake } from '../../id';
-import { getRegistryClient, getRegistryQuery, supportsPrebuiltSlates } from '../../registry';
+import {
+  followsRegistryCurrentVersion,
+  getRegistryClient,
+  getRegistryQuery,
+  supportsPrebuiltSlates
+} from '../../registry';
 import { deploySlateVersionQueue } from '../deployment/deploy';
+import { discoverSlateQueue } from '../discovery/discover';
 
 export let syncSlateQueue = createQueue<{
   id: string;
@@ -165,6 +171,17 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
         }
       });
 
+      let followsRegistry = followsRegistryCurrentVersion();
+
+      // The registry is authoritative for the current version, including pins to an older
+      // one, so any other version still waiting to become current is superseded.
+      if (followsRegistry && isCurrentVersion) {
+        await db.slateVersion.updateMany({
+          where: { slateOid: slate.oid, oid: { not: version.oid }, willBeCurrent: true },
+          data: { willBeCurrent: false }
+        });
+      }
+
       let shouldDeploy =
         isCurrentVersion &&
         ['unavailable', 'pending', 'deployment_failed', 'discovery_failed'].includes(
@@ -185,6 +202,16 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
 
       if (shouldDeploy) {
         await deploySlateAfterSyncQueue.add({ versionId: version.id }, { id: version.id });
+      }
+
+      let isActiveButNotCurrent =
+        followsRegistry &&
+        isCurrentVersion &&
+        version.status === 'active' &&
+        slate.currentVersionOid !== version.oid;
+
+      if (isActiveButNotCurrent) {
+        await discoverSlateQueue.add({ versionId: version.id });
       }
     }
   })

@@ -1,0 +1,9 @@
+{
+  "qwen3.6": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "Boundless lists 'Qwen3.6 35B-A3B' under the short id qwen3.6; the 262K context and text/image modalities match Alibaba's 35B MoE checkpoint, and its 0.04/0.35 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

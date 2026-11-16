@@ -1,0 +1,6 @@
+/*
+  Access-Control-Allow-Origin: *
+  X-Content-Type-Options: nosniff
+
+/fingerprint.json
+  Cache-Control: no-store

@@ -1,0 +1,9 @@
+{
+  "Agents-A1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "InternScience's Agents-A1 is a real 35B-A3B MoE agentic model (Hugging Face InternScience/Agents-A1, 262K context, July 2026) matching the offering's specs; the index has no InternScience entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

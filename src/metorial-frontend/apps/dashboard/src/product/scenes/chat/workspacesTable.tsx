@@ -1,35 +1,29 @@
-import { renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import { useChatWorkspaces } from '@metorial/state';
-import { Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
 
-export let ChatWorkspacesTable = (p: { instanceId: string; chatInstanceId: string }) => {
-  let workspaces = useChatWorkspaces(p.instanceId, p.chatInstanceId, { order: 'desc' });
+let ChatWorkspacesList = createDataList<{ instanceId: string; chatInstanceId: string }>(
+  'chat-workspaces'
+)
+  .paginated(({ props }) =>
+    useChatWorkspaces(props.instanceId, props.chatInstanceId, { order: 'desc' })
+  )
+  .columns([
+    col.text({
+      id: 'name',
+      header: 'Name',
+      weight: 'strong',
+      get: row => row.name ?? row.providerWorkspaceId
+    }),
+    col.text({ id: 'domain', header: 'Domain', get: row => row.domain }),
+    col.id({ isDefault: true })
+  ])
+  .build();
 
-  return renderWithPagination(workspaces, { hidePaginationWhenUnavailable: true })(
-    workspaces => (
-      <>
-        <Table
-          headers={['Name', 'Domain', 'ID']}
-          data={workspaces.data.items.map(workspace => ({
-            data: [
-              <Text size="2" weight="strong">
-                {workspace.name ?? workspace.providerWorkspaceId}
-              </Text>,
-              <Text size="2" color={workspace.domain ? undefined : 'gray600'}>
-                {workspace.domain ?? '-'}
-              </Text>,
-              <ID id={workspace.id} />
-            ]
-          }))}
-        />
-
-        {workspaces.data.items.length === 0 && (
-          <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-            No workspaces have been synced for this chat instance yet.
-          </Text>
-        )}
-      </>
-    )
-  );
-};
+export let ChatWorkspacesTable = (p: { instanceId: string; chatInstanceId: string }) => (
+  <ChatWorkspacesList
+    {...p}
+    listVariant="embedded"
+    hideToolbar
+    emptyState="No workspaces have been synced for this chat instance yet."
+  />
+);

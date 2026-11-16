@@ -9,6 +9,12 @@ export type SkillsListOutput = {
     name: string;
     description: string | null;
     imageUrl: string;
+    image: {
+      object: 'skill.image';
+      type: 'file' | 'url' | 'icon' | 'default';
+      icon: string | null;
+      color: string | null;
+    };
     clientName: string;
     clientDescription: string | null;
     clientMetadata: Record<string, any> | null;
@@ -87,6 +93,7 @@ export type SkillsListOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -162,6 +169,7 @@ export type SkillsListOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -234,6 +242,7 @@ export type SkillsListOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -372,7 +381,8 @@ export let mapSkillsListOutput = /* @__PURE__ */ createMapper<SkillsListOutput>(
                                             ]
                                           ]
                                         ],
-                                        'assigned_via'
+                                        'assigned_via',
+                                        'sso_group_ids'
                                       ]
                                     ]
                                   ]
@@ -477,7 +487,8 @@ export let mapSkillsListOutput = /* @__PURE__ */ createMapper<SkillsListOutput>(
                                                   ]
                                                 ]
                                               ],
-                                              'assigned_via'
+                                              'assigned_via',
+                                              'sso_group_ids'
                                             ]
                                           ]
                                         ]
@@ -575,7 +586,8 @@ export let mapSkillsListOutput = /* @__PURE__ */ createMapper<SkillsListOutput>(
                                                   ]
                                                 ]
                                               ],
-                                              'assigned_via'
+                                              'assigned_via',
+                                              'sso_group_ids'
                                             ]
                                           ]
                                         ]
@@ -657,6 +669,7 @@ export type SkillsListQuery = {
   skillGroupId?: string | string[] | undefined;
   integrationId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  ownedByMe?: boolean | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -672,6 +685,7 @@ export let mapSkillsListQuery = /* @__PURE__ */ createMapper<SkillsListQuery>([
           'skill_group_id',
           'integration_id',
           'provider_id',
+          'owned_by_me',
           ['created_at', 1, 5],
           ['updated_at', 1, 5]
         ]

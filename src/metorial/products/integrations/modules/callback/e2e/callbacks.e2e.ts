@@ -354,17 +354,18 @@ describe('module-callback callbacks', () => {
           include: { callbackInstances: true }
         });
         expect(callback.status).toBe('archived');
+        expect(callback.archivedAt).toBeInstanceOf(Date);
+        expect(callback.callbackInstances).toHaveLength(1);
+        expect(callback.callbackInstances[0]).toMatchObject({
+          status: 'archived',
+          isParentDeleted: true
+        });
+        expect(callback.callbackInstances[0]!.archivedAt).toBeInstanceOf(Date);
+
         return callback;
       },
       { timeoutMs: 90_000, intervalMs: 1_000 }
     );
-    expect(archived.archivedAt).toBeInstanceOf(Date);
-    expect(archived.callbackInstances).toHaveLength(1);
-    expect(archived.callbackInstances[0]).toMatchObject({
-      status: 'archived',
-      isParentDeleted: true
-    });
-    expect(archived.callbackInstances[0]!.archivedAt).toBeInstanceOf(Date);
     expect(await findActiveCallbacks(setup.integrationProvider.id)).toEqual([]);
 
     let fetched = await callbackService.getCallbackById({

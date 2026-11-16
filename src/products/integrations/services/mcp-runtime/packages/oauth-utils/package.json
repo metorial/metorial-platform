@@ -1,0 +1,32 @@
+{
+  "name": "@mtsrc/mcp-runtime-oauth-utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests --pool=forks",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@mtsrc/mcp-runtime-data-utils": "workspace:*",
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-env": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
+    "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
+    "axios": "^1.21.0",
+    "date-fns": "^4.4.0",
+    "nanoid": "^6.0.2",
+    "vitest": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.4"
+  }
+}

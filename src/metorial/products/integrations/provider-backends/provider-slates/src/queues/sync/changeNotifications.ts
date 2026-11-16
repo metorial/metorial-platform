@@ -40,7 +40,7 @@ export let syncChangeNotificationsQueueProcessor = syncChangeNotificationsQueue.
             slateVersionId: item.slateVersionId!
           },
           opts: {
-            id: item.slateVersionId!
+            deduplication: { id: item.slateVersionId! }
           }
         }))
         .filter(item => item.data.slateVersionId)
@@ -55,6 +55,6 @@ export let syncChangeNotificationsQueueProcessor = syncChangeNotificationsQueue.
       update: { cursor: lastItem.id }
     });
 
-    await syncChangeNotificationsQueue.add({}, { id: backend.id });
+    await syncChangeNotificationsQueue.add({}, { deduplication: { id: backend.id } });
   }
 );

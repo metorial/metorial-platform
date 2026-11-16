@@ -4,6 +4,7 @@ import type {
   SlateWebhookEvent,
   SlateWebhookRegistration
 } from '../../prisma/generated/client';
+import { redactWebhookRequest } from '../lib/redactWebhookRequest';
 import { loadOffloadedWebhookEventRequest } from '../queues/webhook/payloadOffload';
 
 type PresentedSlateWebhookEvent = SlateWebhookEvent & {
@@ -28,7 +29,10 @@ export let slateWebhookEventListPresenter = async (event: PresentedSlateWebhookE
   updatedAt: event.updatedAt
 });
 
-export let slateWebhookEventPresenter = async (event: PresentedSlateWebhookEvent) => {
+let presentWebhookEvent = async (
+  event: PresentedSlateWebhookEvent,
+  redact: (request: PrismaJson.SlateWebhookEventRequest | null) => typeof request
+) => {
   let request = event.request;
   if (request === null && event.requestStorageKey) {
     request = await loadOffloadedWebhookEventRequest(event.requestStorageKey);
@@ -37,7 +41,16 @@ export let slateWebhookEventPresenter = async (event: PresentedSlateWebhookEvent
   return {
     ...(await slateWebhookEventListPresenter(event)),
 
-    request,
+    request: redact(request),
     slateResponse: event.slateResponse
   };
 };
+
+export let slateWebhookEventPresenter = (event: PresentedSlateWebhookEvent) =>
+  presentWebhookEvent(event, request =>
+    redactWebhookRequest(request, event.webhookRegistration)
+  );
+
+// Operators can see every registration's receive URL already, so theirs stays in place.
+export let slateWebhookEventAdminPresenter = (event: PresentedSlateWebhookEvent) =>
+  presentWebhookEvent(event, request => redactWebhookRequest(request));

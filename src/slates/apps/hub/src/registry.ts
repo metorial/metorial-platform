@@ -1,6 +1,7 @@
 import { ServiceError, validationError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { v } from '@lowerdeck/validation';
+import { checkEdition } from '@metorial/editions';
 import { addMinutes } from 'date-fns';
 import { hc } from 'hono/client';
 import type { Registry } from '../prisma/generated/client';
@@ -210,6 +211,10 @@ export let createSlatesRegistryClient = (o: {
   }) as unknown as RegistryClient;
 
 export let supportsPrebuiltSlates = () => env.registry.SUPPORTS_PREBUILT_SLATES !== false;
+
+// Mirror registries can pin an older current version. Cloud hubs keep the highest-version rule.
+export let followsRegistryCurrentVersion = () =>
+  checkEdition('on-prem') || env.service.METORIAL_ENV === 'development';
 
 export let getRegistryQuery = () => ({ supports_prebuilt: 'true' as const });
 

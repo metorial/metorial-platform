@@ -7,6 +7,7 @@ export type ManagementOrganizationProjectsListOutput = {
     status: 'active' | 'deleted';
     slug: string;
     name: string;
+    assistantEnabled: boolean;
     organizationId: string;
     createdAt: Date;
     updatedAt: Date;
@@ -16,7 +17,10 @@ export type ManagementOrganizationProjectsListOutput = {
 
 export let mapManagementOrganizationProjectsListOutput =
   /* @__PURE__ */ createMapper<ManagementOrganizationProjectsListOutput>(
-    [7, [1, ['organization_id', 'created_at', 'updated_at']]],
+    [
+      7,
+      [1, ['assistant_enabled', 'organization_id', 'created_at', 'updated_at']]
+    ],
     1
   );
 

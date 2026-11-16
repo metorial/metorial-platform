@@ -1,19 +1,24 @@
-import type { DashboardInstanceSkillsPluginsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import type {
+  DashboardInstanceSkillsPluginsListOutput,
+  DashboardInstanceSkillsPluginsListQuery
+} from '@metorial/dashboard-sdk';
+import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
+import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useSkillPlugins
-} from '@metorial/state';
-import { Avatar, Text, theme } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
+import { useSkillPlugins } from '@metorial/state';
+import { Avatar, Text } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { EmptyState } from '@metorial/empty-state';
+import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
+import { entityFilters } from '../entityFilters';
 import { showSkillPluginFormModal } from './pluginModal';
 
+type SkillPlugin = DashboardInstanceSkillsPluginsListOutput['items'][number];
+
+export type SkillPluginFilters = Omit<
+  DashboardInstanceSkillsPluginsListQuery,
+  'after' | 'before' | 'cursor' | 'limit'
+>;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -22,117 +27,116 @@ let Description = styled.span`
   -webkit-box-orient: vertical;
 `;
 
-export let SkillPluginsGrid = (
-  p: { instanceId: string; getPluginPath?: (pluginId: string) => string } & Omit<
-    DashboardInstanceSkillsPluginsListQuery,
-    'after' | 'before' | 'cursor' | 'limit'
-  >
-) => {
-  let { instanceId, getPluginPath, ...query } = p;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let navigate = useNavigate();
-  let plugins = useSkillPlugins(instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 21,
-    ...query
-  });
-  let getDefaultPluginPath = (pluginId: string) =>
-    Paths.organization.settings(
-      organization.data,
-      'project',
-      project.data?.slug,
-      'instance',
-      instance.data?.slug,
-      'skills',
-      'plugins',
-      pluginId
-    );
-  let hasActiveFilters = !!(
-    query.search ||
-    query.category ||
-    query.skillMarketplaceId ||
-    query.createdAt ||
-    query.updatedAt ||
-    (Array.isArray(query.status) ? query.status.length > 0 : query.status)
+let getDefaultPluginPath = (ctx: InstanceContext, pluginId: string) =>
+  Paths.organization.settings(
+    ctx.organization,
+    'project',
+    ctx.project?.slug,
+    'instance',
+    ctx.instance?.slug,
+    'skills',
+    'plugins',
+    pluginId
   );
 
-  let showCreateModal = () => {
-    if (!instance.data) return;
+export let SkillPluginsEmptyState = (p: { getPluginPath?: (pluginId: string) => string }) => {
+  let ctx = useInstanceContext();
+  let navigate = useNavigate();
 
-    showSkillPluginFormModal({
-      instanceId: instance.data.id,
-      onCreate: plugin => {
-        navigate(getPluginPath?.(plugin.id) ?? getDefaultPluginPath(plugin.id));
-      }
-    });
-  };
+  return (
+    <EmptyState
+      extra="Skill Plugins"
+      title="Create your first plugin"
+      description="Bundle skills to use them in agent clients or publish them in a marketplace."
+      action={{
+        label: 'Create Plugin',
+        onClick: () => {
+          if (!ctx.instanceId) return;
 
-  return renderWithPagination(plugins, {
-    emptyState: (
-      <>
-        {query.search && (
-          <Text size="2" color="gray600">
-            No plugins found.
-          </Text>
-        )}
+          showSkillPluginFormModal({
+            instanceId: ctx.instanceId,
+            onCreate: plugin =>
+              navigate(p.getPluginPath?.(plugin.id) ?? getDefaultPluginPath(ctx, plugin.id))
+          });
+        }
+      }}
+    />
+  );
+};
 
-        {!hasActiveFilters && (
-          <EmptyState
-            extra="Skill Plugins"
-            title="Create your first plugin"
-            description="Bundle skills to use them in agent clients or publish them in a marketplace."
-            action={{
-              label: 'Create Plugin',
-              onClick: showCreateModal
-            }}
-          />
-        )}
-
-        {!query.search && hasActiveFilters && (
-          <Text size="2" color="gray600">
-            No plugins match the current filters.
-          </Text>
-        )}
-      </>
+export let SkillPluginsList = createDataList<{
+  instanceId?: string;
+  getPluginPath?: (pluginId: string) => string;
+  filters?: SkillPluginFilters;
+}>('skill-plugins')
+  .context(useInstanceContext)
+  .filters((props, ctx) => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+    category: f.string('category', 'Category'),
+    skillMarketplaceId: f.entity(
+      entityFilters.skillMarketplace(props.instanceId ?? ctx.instanceId)
+    ),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search plugins…')
+  .paginated(({ props, ctx, filters, search }) =>
+    useSkillPlugins(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(
+        { order: 'desc' as const, status: ['active' as const], limit: 21, ...props.filters },
+        { ...filters, search: search ?? props.filters?.search }
+      )
     )
-  })(plugins => (
-    <>
-      {plugins.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
-          {plugins.data.items.map(plugin => (
-            <ItemGrid.Item
-              key={plugin.id}
-              href={getPluginPath?.(plugin.id) ?? getDefaultPluginPath(plugin.id)}
-              entity={{ id: plugin.id, hasUsage: true }}
-              title={plugin.name}
-              description={
-                <Description>
-                  {plugin.description || 'No description provided yet.'}
-                </Description>
-              }
-              variant="v2"
-              height={200}
-              icon={
-                <Avatar
-                  entity={{
-                    name: plugin.name,
-                    photoUrl: plugin.imageUrl ?? undefined,
-                    imageUrl: `https://avatar-cdn.metorial.com/${plugin.id}`
-                  }}
-                  size={30}
-                  imageFit="contain"
-                />
-              }
-              bottom={
-                <Text size="1">{plugin.id}</Text>
-              }
-            />
-          ))}
-        </ItemGrid.Root>
-      )}
-    </>
-  ));
+  )
+  .columns([
+    col.name<SkillPlugin>(),
+    col.text<SkillPlugin>({ id: 'category', header: 'Category', get: row => row.category }),
+    col.createdAt<SkillPlugin>(),
+    col.id<SkillPlugin>({ isDefault: true }),
+    col.status<SkillPlugin, any>(lifecycleStatus, { isDefault: false }),
+    col.updatedAt<SkillPlugin>()
+  ])
+  .link(
+    (row, props, ctx) => props.getPluginPath?.(row.id) ?? getDefaultPluginPath(ctx, row.id)
+  )
+  .item(plugin => ({
+    title: plugin.name,
+    description: (
+      <Description>{plugin.description || 'No description provided yet.'}</Description>
+    ),
+    icon: (
+      <Avatar
+        entity={{
+          name: plugin.name,
+          photoUrl: plugin.imageUrl ?? undefined,
+          imageUrl: `https://avatar-cdn.metorial.com/${plugin.id}`
+        }}
+        size={30}
+        imageFit="contain"
+      />
+    ),
+    footer: <Text size="1">{plugin.id}</Text>,
+    height: 200
+  }))
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .build();
+
+export let SkillPluginsGrid = (
+  p: { instanceId: string; getPluginPath?: (pluginId: string) => string } & SkillPluginFilters
+) => {
+  let { instanceId, getPluginPath, ...filters } = p;
+
+  return (
+    <SkillPluginsList
+      instanceId={instanceId}
+      getPluginPath={getPluginPath}
+      filters={filters}
+      hideToolbar
+      emptyState={{
+        initial: () => <SkillPluginsEmptyState getPluginPath={getPluginPath} />,
+        filtered: 'No plugins match the current filters.'
+      }}
+    />
+  );
 };

@@ -1,0 +1,82 @@
+model GlobalSecurityReview {
+  id String @id
+
+  subjectKey             String @unique
+  slateRegistryId        String
+  slateVersionRegistryId String
+
+  status String
+
+  currentRevisionId String?
+
+  ownerOid Int?
+  owner    Cell? @relation(fields: [ownerOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  revisions GlobalSecurityReviewRevision[]
+
+  @@index([slateRegistryId])
+  @@index([updatedAt])
+}
+
+model GlobalSecurityReviewRevision {
+  id String @id
+
+  number       Int
+  snapshotOfId String?
+
+  status      String
+  stage       String?
+  activity    String?
+  mode        String
+  trigger     String
+  failureCode String?
+  blockReason String?
+
+  awaitingTools Boolean @default(false)
+
+  report   Json?
+  scores   Json?
+  findings Json?
+  census   Json?
+  context  Json?
+
+  evidenceHash  String?
+  rulesVersion  String
+  promptVersion String
+  thoroughness  String
+  source        String  @default("agent")
+  workspaceKey  String?
+
+  model      String?
+  costMicros BigInt  @default(0)
+
+  reviewId String
+  review   GlobalSecurityReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  runnerOid Int?
+  runner    Cell? @relation("GlobalSecurityReviewRevisionRunner", fields: [runnerOid], references: [oid], onDelete: SetNull)
+
+  heartbeatAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  @@unique([reviewId, number])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model GlobalSecurityReviewSubjectSetting {
+  slateRegistryId String @id
+
+  disabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}

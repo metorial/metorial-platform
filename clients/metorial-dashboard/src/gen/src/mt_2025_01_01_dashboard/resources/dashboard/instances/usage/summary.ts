@@ -14,6 +14,7 @@ export type DashboardInstancesUsageSummaryOutput = {
     | 'session_error'
     | 'auth_event'
     | 'auth_error'
+    | 'protoguard_warning'
     | 'consumer'
   )[];
   groupBy:
@@ -47,6 +48,7 @@ export type DashboardInstancesUsageSummaryOutput = {
       | 'session_error'
       | 'auth_event'
       | 'auth_error'
+      | 'protoguard_warning'
       | 'consumer';
     count: number;
     successCount: number;
@@ -149,6 +151,7 @@ export type DashboardInstancesUsageSummaryQuery = {
     | 'session_error'
     | 'auth_event'
     | 'auth_error'
+    | 'protoguard_warning'
     | 'consumer'
     | (
         | 'tool_call'
@@ -159,6 +162,7 @@ export type DashboardInstancesUsageSummaryQuery = {
         | 'session_error'
         | 'auth_event'
         | 'auth_error'
+        | 'protoguard_warning'
         | 'consumer'
       )[];
   from: Date;

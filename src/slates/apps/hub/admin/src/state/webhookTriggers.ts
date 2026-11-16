@@ -2,7 +2,7 @@ import { createLoader } from '@metorial-io/data-hooks';
 import { adminClient, withAuthRedirect } from '../hooks/client.js';
 import { usePaginatedLoader } from './usePaginatedLoader.js';
 
-export type WebhookTriggerType = 'automated' | 'manual';
+export type WebhookTriggerType = 'automated' | 'manual' | 'delivery_config';
 export type WebhookTriggerOwner = 'tenant' | 'global';
 
 export let webhookTriggersLoader = createLoader({

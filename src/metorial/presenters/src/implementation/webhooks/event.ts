@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { unflattenEventAttributes } from '@metorial-subspace/module-callback/src/lib/eventAttributes';
 import { resolveSystemEventPayload } from '@metorial/module-event-tracker/src/lib/resolvePayload';
 import { Presenter } from '@metorial/presenter';
 import { systemEventType } from '../../types';
@@ -21,6 +22,8 @@ export let v1SystemEventListPresenter = Presenter.create(systemEventType)
     chat_connection_id: event.chatConnectionId ?? null,
 
     provider_id: event.providerId ?? null,
+
+    attributes: unflattenEventAttributes(event.attributes),
 
     created_at: event.createdAt
   }))
@@ -91,6 +94,10 @@ export let v1SystemEventListPresenter = Presenter.create(systemEventType)
           examples: ['prv_1aBcDeFgHjKlMnPq']
         })
       ),
+      attributes: v.record(v.array(v.string({ examples: ['application/pdf'] })), {
+        description:
+          'Short key/value attributes the integration attached to the event (for example a file id or MIME type), mapping each key to its values. Empty for events without attributes. Filter the event list by them with the `attribute` parameter.'
+      }),
       created_at: v.date({ description: 'When the event was recorded' })
     })
   )

@@ -4,3 +4,4 @@ export * from './monitor';
 export * from './monitorInternal';
 export * from './protoGuardAlert';
 export * from './protoGuardConfig';
+export * from './protoGuardSuppression';

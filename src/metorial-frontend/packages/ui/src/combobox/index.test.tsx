@@ -122,6 +122,58 @@ describe('loading popover', () => {
 });
 
 describe('search input', () => {
+  it.each([
+    { mode: 'static', autofillValue: 'NL' },
+    { mode: 'grouped', autofillValue: 'Netherlands' },
+    { mode: 'provider', autofillValue: 'netherlands' }
+  ])(
+    'selects the country by ID when the browser autofills $autofillValue in $mode mode',
+    async ({ mode, autofillValue }) => {
+      let countries = [
+        { id: 'AT', label: 'Austria' },
+        { id: 'NL', label: 'Netherlands' }
+      ];
+      let onChange = vi.fn();
+      let AutofillCombobox = () => {
+        let [value, setValue] = useState<string | null>(null);
+
+        return (
+          <Combobox
+            name="option"
+            label="Options"
+            {...(mode === 'provider'
+              ? { provider: () => ({ items: countries }) }
+              : {
+                  items:
+                    mode === 'grouped' ? [{ label: 'Countries', items: countries }] : countries
+                })}
+            value={value}
+            onChange={(value, item) => {
+              setValue(value);
+              onChange(value, item);
+            }}
+          />
+        );
+      };
+
+      await render(<AutofillCombobox />);
+      let autofillInput = container.querySelector('input[name="option"]') as HTMLInputElement;
+
+      await act(async () => {
+        let setter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value'
+        )!.set!;
+        setter.call(autofillInput, autofillValue);
+        autofillInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenLastCalledWith('NL', countries[1]);
+      expect(input().value).toBe('Netherlands');
+      expect(autofillInput.value).toBe('NL');
+    }
+  );
+
   it.each(['static', 'provider'])(
     'preserves the first character after clearing in %s mode',
     async mode => {

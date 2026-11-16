@@ -6,6 +6,10 @@ import { providerTypeType } from '../../../types';
 export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
   .presenter(async ({ providerType, provider, tenant, oauthCallbackUrl }) => {
     let attributes = providerType.attributes;
+    let webhookRegistration =
+      attributes.triggers.status == 'enabled'
+        ? attributes.triggers.webhookRegistration
+        : undefined;
 
     return {
       object: 'provider.type' as const,
@@ -17,7 +21,11 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
           ? {
               status: 'enabled' as const,
               webhook_registration: {
-                status: attributes.triggers?.webhookRegistration?.status ?? 'unsupported'
+                status: webhookRegistration?.status ?? ('unsupported' as const),
+                purpose:
+                  webhookRegistration?.status === 'supported'
+                    ? (webhookRegistration.purpose ?? ('webhook_receiver' as const))
+                    : null
               }
             }
           : {
@@ -103,7 +111,14 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
                 name: 'status',
                 description:
                   'Whether webhook receivers can be registered for this provider type'
-              })
+              }),
+              purpose: v.nullable(
+                v.enumOf(['webhook_receiver', 'delivery_setup'], {
+                  name: 'purpose',
+                  description:
+                    'What a webhook registration is for; null when unsupported. `webhook_receiver`: events only arrive once a webhook receiver is registered with the provider. `delivery_setup`: triggers register automatically, and a registration is only the one-time delivery setup for connections that use your own OAuth app.'
+                })
+              )
             })
           }),
           v.object({

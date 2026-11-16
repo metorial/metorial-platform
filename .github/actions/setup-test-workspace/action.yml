@@ -27,7 +27,7 @@ runs:
         set -euo pipefail
         if [ ! -f "$RUNNER_TEMP/backend-inventory.json" ]; then
           cd "$SOURCE_WORKSPACE"
-          directory=src/control
+          directory=src/tooling/control
           set -- --oss
           if [ -f oss/package.json ]; then directory="oss/$directory"; set --; fi
           bun "$directory/src/main.ts" "$@" ci describe --json > "$RUNNER_TEMP/backend-inventory.json"

@@ -1,0 +1,16 @@
+{
+  "BAAI/bge-large-en-v1.5": {
+    "decision": "link",
+    "model": "baai/bge-large-en-v1.5",
+    "reason": "Exact match to BAAI/bge-large-en-v1.5 (335M-parameter English embedding model, 512-token window, Sep 2023). Deep Infra's flat $0.01/1M price is simply well below the model's median across providers.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Deep Infra's own docs: Turbo is Llama 3.3 70B Instruct with FP8 quantization for faster inference; a quantized serving is still meta/llama-3.3-70b-instruct, at the cheaper 0.1/0.32 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

@@ -1,4 +1,5 @@
 import { mapLinkRange } from './linkRange';
+import { useMetorialAssistantEnabled } from '@metorial/state';
 import { useBubbleOverlay } from './useBubbleOverlay';
 import { preserveEditorSelection } from './overlays';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -21,8 +22,12 @@ import {
   IconExternalLink,
   IconUnlink,
   IconClose,
-  IconCheck
+  IconCheck,
+  IconComment,
+  IconSparkle
 } from './icons';
+import { AskAiPanel } from './agent/AskAiPanel';
+import { getDocsAgentApi } from './agent/api';
 import { validateLinkUrl } from './url';
 import { InlineTurnIntoDropdown } from './ToolbarDropdowns';
 
@@ -62,6 +67,32 @@ let Btn = styled.button<{ $active?: boolean; $danger?: boolean }>`
   &:disabled {
     color: ${({ theme }) => theme.color.textSubtle};
     cursor: not-allowed;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+let AiBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: ${({ theme }) => theme.color.accent};
+  border-radius: ${({ theme }) => theme.size.radiusSm};
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.motion.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.color.bgHover};
   }
 
   svg {
@@ -127,9 +158,14 @@ interface Props {
    *  clicked. The bubble menu will then open in link-edit mode at the
    *  current selection (or current cursor, if the selection is empty). */
   linkPromptToken?: number;
+  readOnly?: boolean;
+  onComment?: (range: { from: number; to: number }) => void;
 }
 
 let BUBBLE_MENU_OPTIONS = { placement: 'top', offset: 8 } as const;
+
+let getScrollBoundary = (editor: Editor | null) =>
+  editor?.view.dom.closest<HTMLElement>('[data-editor-scroll]') ?? undefined;
 
 let inlineBubbleMenuPluginKey = new PluginKey('inlineBubbleMenu');
 
@@ -148,8 +184,9 @@ let bubbleShouldShow = ({
 }) => {
   // While link mode is open, the menu wrapper has data-link-mode="true".
   // Keep the menu visible regardless of selection state in that case.
-  if (element?.querySelector('[data-link-mode="true"]')) return true;
+  if (element?.querySelector('[data-link-mode="true"], [data-keep-open="true"]')) return true;
 
+  if (getDocsAgentApi(e)?.hasPendingJobs()) return false;
   if (from === to) return false;
   if (state.selection instanceof CellSelection) return false;
   if (e.isActive('image')) return false;
@@ -182,8 +219,9 @@ function resolveLinkTargetRange(editor: Editor): SavedRange {
   return { from, to };
 }
 
-export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
-  let [mode, setMode] = useState<'menu' | 'link'>('menu');
+export function EditorBubbleMenu({ editor, linkPromptToken, readOnly, onComment }: Props) {
+  let assistantEnabled = useMetorialAssistantEnabled();
+  let [mode, setMode] = useState<'menu' | 'link' | 'ai'>('menu');
   let [linkUrl, setLinkUrl] = useState('');
   let [linkError, setLinkError] = useState<string | null>(null);
   let [savedRange, setSavedRange] = useState<SavedRange | null>(null);
@@ -266,7 +304,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
   // exit link mode. The check guards against the dispatch we trigger
   // ourselves to force-show the menu.
   useEffect(() => {
-    if (!editor || mode !== 'link') return;
+    if (!editor || mode === 'menu') return;
     let handler = ({ transaction }: { transaction: { selectionSet: boolean } }) => {
       if (!transaction.selectionSet) return;
       // The selection actually moved (not just doc-only changes).
@@ -364,14 +402,29 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
   let overlay = useBubbleOverlay(editor, inlineBubbleMenuPluginKey, () =>
     closeLinkMode({ hideMenu: true })
   );
-  let options = useMemo(
-    () => ({ ...BUBBLE_MENU_OPTIONS, ...overlay.lifecycle }),
-    [overlay.lifecycle]
-  );
+  let options = useMemo(() => {
+    let boundary = getScrollBoundary(editor);
+    return {
+      ...BUBBLE_MENU_OPTIONS,
+      ...(boundary ? { flip: { boundary, padding: 8 }, shift: { boundary, padding: 8 } } : {}),
+      ...overlay.lifecycle
+    };
+  }, [editor, overlay.lifecycle]);
 
   if (!editor) return null;
 
   let hasExistingLink = !!editor.getAttributes('link').href;
+  let canAskAi = assistantEnabled && !readOnly && !!getDocsAgentApi(editor)?.canWrite;
+  let startComment = () => {
+    let { from, to } = editor.state.selection;
+    onComment?.({ from, to });
+    editor.view.dispatch(editor.state.tr.setMeta(inlineBubbleMenuPluginKey, 'hide'));
+  };
+  let commentButton = onComment && (
+    <Btn type="button" onClick={startComment} title="Comment">
+      <IconComment />
+    </Btn>
+  );
 
   return (
     <BubbleMenu
@@ -381,8 +434,21 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
       shouldShow={props => overlay.canShow() && bubbleShouldShow(props)}
     >
       <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
-        {mode === 'menu' ? (
+        {readOnly ? (
+          commentButton
+        ) : mode === 'ai' && canAskAi ? (
+          <AskAiPanel editor={editor} onClose={() => setMode('menu')} />
+        ) : mode === 'menu' || mode === 'ai' ? (
           <>
+            {canAskAi && (
+              <>
+                <AiBtn type="button" onClick={() => setMode('ai')} title="Ask AI">
+                  <IconSparkle />
+                  Ask AI
+                </AiBtn>
+                <Divider />
+              </>
+            )}
             <InlineTurnIntoDropdown editor={editor} />
             <Divider />
             <Btn
@@ -442,6 +508,12 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
             >
               <IconLink />
             </Btn>
+            {commentButton && (
+              <>
+                <Divider />
+                {commentButton}
+              </>
+            )}
           </>
         ) : (
           <LinkEditor data-link-mode="true">

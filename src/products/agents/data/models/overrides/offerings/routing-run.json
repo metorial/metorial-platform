@@ -1,0 +1,9 @@
+{
+  "nemotron-3-ultra": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "reason": "routing.run lists NVIDIA's Nemotron 3 Ultra 550B A55B by its exact name; the flat 0.1/0.1 rate and 131K context cap are the gateway's serving limits, not a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

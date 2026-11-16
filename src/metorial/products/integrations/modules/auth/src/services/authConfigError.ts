@@ -23,7 +23,8 @@ let include = {
   authConfig: true,
   authCredentials: true,
   oauthSetup: true,
-  provider: true
+  provider: true,
+  issue: true
 };
 export let authConfigErrorInclude = include;
 
@@ -35,6 +36,7 @@ type ListAuthConfigErrorsParams = {
   providerOAuthSetupIds?: string[];
   providerIds?: string[];
   authConfigErrorGlobalIds?: string[];
+  issueIds?: string[];
   providerInvocationIds?: string[];
   types?: string[];
   createdAt?: DateFilter;
@@ -128,6 +130,7 @@ class authConfigErrorServiceImpl {
                 groups?.length
                   ? { groupOid: { in: groups.map(group => group.oid) } }
                   : undefined!,
+                d.issueIds ? { issue: { id: { in: d.issueIds } } } : undefined!,
                 buildStoredProviderInvocationIdFilter(d.providerInvocationIds) ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
 

@@ -1,0 +1,7 @@
+{
+  "name": "@metorial/runtime-cluster-manager",
+  "private": true,
+  "scripts": {
+    "dev:start": "bun ../../src/main.ts logs runtime-cluster-manager"
+  }
+}

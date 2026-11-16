@@ -39,6 +39,7 @@ import type {
   CallbackEventWithRelations,
   CallbackInstanceWithRelations,
   CallbackWithRelations,
+  TriggerSelectionOption,
   WebhookEvent,
   WebhookRegistrationWithRelations
 } from '@metorial-subspace/module-callback';
@@ -85,6 +86,7 @@ import {
   AccessTag,
   AccessTagEntity,
   AccessTagPolicy,
+  AgentTelemetryIngestToken,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -99,6 +101,8 @@ import {
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
   ConsumerAuthTestAuthorization,
+  ConsumerDevice,
+  ConsumerDeviceClient,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -111,6 +115,8 @@ import {
   ConsumerSurfaceProviderGroup,
   ConsumerToken,
   Document,
+  DocumentComment,
+  DocumentCommentThread,
   DocumentParticipant,
   EventDeliveryAttempt,
   EventDeliveryIntent,
@@ -129,6 +135,7 @@ import {
   MagicMcpServerAlias,
   MagicMcpSession,
   MagicMcpToken,
+  McpClientType,
   Namespace,
   NamespaceCompartment,
   NamespaceProperty,
@@ -169,7 +176,6 @@ import {
   SkillMergeRequestComment,
   SkillMergeRequestEvent,
   SkillMergeRequestItem,
-  SkillParticipant,
   SkillPlugin,
   SkillPluginRepository,
   SkillPluginSkill,
@@ -177,6 +183,7 @@ import {
   Store,
   StoreParticipant,
   StoreParticipantActor,
+  StoreParticipantPermissions,
   SandboxRegion,
   SystemEvent,
   Team,
@@ -218,6 +225,7 @@ import type {
   SkillFileContent,
   SkillGroupItemResource,
   SkillGroupResource,
+  SkillContentPreview,
   SkillItemResource,
   SkillResource,
   SkillTemplateItemResource,
@@ -1054,6 +1062,7 @@ type RawAuthConfigError = SubspacePrisma.ProviderAuthConfigErrorGetPayload<{
     authCredentials: true;
     oauthSetup: true;
     provider: true;
+    issue: true;
   };
 }>;
 
@@ -1275,6 +1284,15 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
   project: Project;
   reducedSubprocessors: boolean;
 }>()('project_reduced_subprocessors_configuration');
+
+export let projectAiAnalysisConfigurationType = PresentableType.create<{
+  project: Project;
+  assistantEnabled: boolean;
+  reducedSubprocessors: boolean;
+  aiAnalysisEnabled: boolean;
+  usageReviewsEnabled: boolean;
+  skillReviewHoldPending: boolean;
+}>()('project_ai_analysis_configuration');
 
 export let projectResourceOwnershipConfigurationType = PresentableType.create<{
   project: Project;
@@ -1619,6 +1637,9 @@ export let documentType = PresentableType.create<{
     createdByResourceActor?: ResourceActorPresentationRecord | null;
     resolvedTitle?: string;
     resolvedContent?: string;
+    resolvedAnnotations?: PrismaJson.DocumentAnnotations | null;
+    hasDraft?: boolean;
+    annotationActors?: ResourceActorPresentationRecord[];
   };
 }>()('document');
 
@@ -1667,6 +1688,24 @@ export let documentParticipantType = PresentableType.create<{
       (StoreParticipant & { primaryResourceActor: ResourceActorPresentationRecord }) | null;
   };
 }>()('documentParticipant');
+
+type DocumentCommentPresentationRecord = DocumentComment & {
+  resourceActor: ResourceActorPresentationRecord;
+};
+
+export let documentCommentType = PresentableType.create<{
+  documentComment: DocumentCommentPresentationRecord;
+  thread: DocumentCommentThread;
+}>()('documentComment');
+
+export let documentCommentThreadType = PresentableType.create<{
+  documentCommentThread: DocumentCommentThread & {
+    document: Document;
+    createdByResourceActor: ResourceActorPresentationRecord;
+    resolvedByResourceActor: ResourceActorPresentationRecord | null;
+    comments: DocumentCommentPresentationRecord[];
+  };
+}>()('documentCommentThread');
 
 export let storeType = PresentableType.create<{
   store: Store;
@@ -1777,12 +1816,9 @@ export type StoreResourceParticipantPresentationRecord = StoreParticipant & {
 };
 
 export let storeParticipantType = PresentableType.create<{
-  storeParticipant:
-    | (StoreParticipantActor & {
-        store: Store;
-        resourceActor: ResourceActorPresentationRecord;
-      })
-    | StoreResourceParticipantPresentationRecord;
+  storeParticipant: StoreResourceParticipantPresentationRecord & {
+    permissions: StoreParticipantPermissions[];
+  };
 }>()('storeParticipant');
 
 export let skillAgentType = PresentableType.create<{
@@ -1822,6 +1858,10 @@ export let skillFileChangeType = PresentableType.create<{
   skillFileChange: SkillFileChangeResult;
   skill: { id: string };
 }>()('skillFileChange');
+
+export let skillContentPreviewType = PresentableType.create<{
+  skillContentPreview: SkillContentPreview;
+}>()('skillContentPreview');
 
 export let skillMcpAvailabilityType = PresentableType.create<{
   skillMcpAvailability: SkillMcpAvailability;
@@ -1915,6 +1955,17 @@ export let skillMarketplaceType = PresentableType.create<{
                   skill: true;
                 };
               };
+              skillGroupPlugin: {
+                include: {
+                  skillGroup: {
+                    select: {
+                      oid: true;
+                      id: true;
+                      name: true;
+                    };
+                  };
+                };
+              };
             };
           };
         };
@@ -1954,6 +2005,17 @@ export let skillMarketplacePluginType = PresentableType.create<{
             skill: true;
           };
         };
+        skillGroupPlugin: {
+          include: {
+            skillGroup: {
+              select: {
+                oid: true;
+                id: true;
+                name: true;
+              };
+            };
+          };
+        };
       };
     }> | null;
   };
@@ -1961,6 +2023,8 @@ export let skillMarketplacePluginType = PresentableType.create<{
   pluginAccess?: {
     canUpdate?: boolean;
     canDelete?: boolean;
+    readableSkillIds?: Set<string>;
+    readableSkillGroupIds?: Set<string>;
   };
 }>()('skillMarketplacePlugin');
 
@@ -2008,12 +2072,25 @@ export let skillPluginType = PresentableType.create<{
           skill: true;
         };
       };
+      skillGroupPlugin: {
+        include: {
+          skillGroup: {
+            select: {
+              oid: true;
+              id: true;
+              name: true;
+            };
+          };
+        };
+      };
     };
   }>;
   accessTags?: AnyAccessTagSelector;
   pluginAccess?: {
     canUpdate?: boolean;
     canDelete?: boolean;
+    readableSkillIds?: Set<string>;
+    readableSkillGroupIds?: Set<string>;
   };
 }>()('skillPlugin');
 
@@ -2083,6 +2160,7 @@ export let skillAccessType = PresentableType.create<{
   skill: Skill;
   grants: {
     level: 'read' | 'write' | 'manage';
+    inheritedFrom: SkillGroup | null;
     accessTag: AccessTag & {
       consumerGroup: (ConsumerGroup & { personalOwner: ConsumerProfile | null }) | null;
       consumerProfile: ConsumerProfile | null;
@@ -2091,15 +2169,11 @@ export let skillAccessType = PresentableType.create<{
 }>()('skillAccess');
 
 export let skillParticipantType = PresentableType.create<{
-  skillParticipant:
-    | (SkillParticipant & {
-        skill: Skill;
-        resourceActor: ResourceActorPresentationRecord;
-      })
-    | (StoreResourceParticipantPresentationRecord & {
-        skill: Skill;
-        hasOrganizationMemberAccess?: boolean;
-      });
+  skillParticipant: StoreResourceParticipantPresentationRecord & {
+    skill: Skill;
+    consumer?: (Consumer & { instanceConsumers: InstanceConsumer[] }) | null;
+    hasOrganizationMemberAccess?: boolean;
+  };
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{
@@ -2591,6 +2665,25 @@ export let consumerSessionType = PresentableType.create<{
   consumerSession: ConsumerSession;
 }>()('consumer.session');
 
+export let consumerDeviceType = PresentableType.create<{
+  consumerDevice: ConsumerDevice & {
+    clients: (ConsumerDeviceClient & {
+      mcpClientType: McpClientType;
+      excludedMagicMcpServers: { magicMcpServer: Pick<MagicMcpServer, 'id'> }[];
+      excludedSkills: { skill: Pick<Skill, 'id'> }[];
+    })[];
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.device');
+
+export let consumerDeviceTelemetryTokenType = PresentableType.create<{
+  consumerDevice: Pick<ConsumerDevice, 'id'>;
+  ingestToken: AgentTelemetryIngestToken;
+  secret: string;
+  ingestUrl: string;
+  expiresAt: Date | null;
+}>()('consumer.device.telemetry_token');
+
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
   tenant: SubspacePrisma.TenantGetPayload<{}>;
@@ -2923,6 +3016,7 @@ export let protoGuardAlertType = PresentableType.create<{
       message: true;
       connection: true;
       providerRun: true;
+      issue: true;
       instances: {
         include: { filter: true };
       };
@@ -2932,6 +3026,8 @@ export let protoGuardAlertType = PresentableType.create<{
 
 export let protoGuardConfigType = PresentableType.create<{
   config: {
+    enabled: boolean;
+    alertProbabilityThreshold: number;
     alertFilterCountThreshold: number;
     filters: {
       filter: SubspacePrisma.ProtoGuardFilterGetPayload<{}>;
@@ -2940,6 +3036,12 @@ export let protoGuardConfigType = PresentableType.create<{
     }[];
   };
 }>()('protoguard.filter_config');
+
+export let protoGuardSuppressionType = PresentableType.create<{
+  suppression: SubspacePrisma.ProtoGuardSuppressionGetPayload<{
+    include: { filter: true; provider: true };
+  }>;
+}>()('protoguard.suppression');
 
 export let deploymentPreviewType = PresentableType.create<{
   deployment: RawProviderDeploymentPreview;
@@ -3377,6 +3479,7 @@ type RawSessionError = SubspacePrisma.SessionErrorGetPayload<{
     group: true;
     providerRun: true;
     connection: true;
+    issue: true;
   };
 }>;
 
@@ -3501,6 +3604,16 @@ export let sessionErrorType = PresentableType.create<{
 export let sessionErrorGroupType = PresentableType.create<{
   sessionErrorGroup: RawSessionErrorGroup;
 }>()('sessionErrorGroup');
+
+export let providerIssueType = PresentableType.create<{
+  providerIssue: SubspacePrisma.ProviderIssueGetPayload<{
+    include: {
+      provider: true;
+      protoGuardFilter: true;
+      occurrencePeriods: true;
+    };
+  }>;
+}>()('provider.issue');
 
 export let providerRunType = PresentableType.create<{
   providerRun: RawProviderRun;
@@ -3663,6 +3776,10 @@ export let scmAccountPreviewType = PresentableType.create<{
 export let callbackType = PresentableType.create<{
   callback: CallbackWithRelations;
 }>()('callback');
+
+export let callbackTriggerSelectionOptionType = PresentableType.create<{
+  triggerSelectionOption: TriggerSelectionOption;
+}>()('callback.trigger_selection_option');
 
 export let callbackInstanceType = PresentableType.create<{
   callbackInstance: CallbackInstanceWithRelations;
@@ -3866,3 +3983,42 @@ export let chatAuthenticatedUserType = PresentableType.create<{
   author: RawChatAuthenticatedUserAuthor;
   workspace: ChatWorkspace | null;
 }>()('chat_authenticated_user');
+
+type RawSecurityReview = SubspacePrisma.SecurityReviewGetPayload<{
+  include: { provider: true; providerVersion: true };
+}>;
+
+type RawSecurityReviewRevision = SubspacePrisma.SecurityReviewRevisionGetPayload<{
+  include: { findings: true };
+}>;
+
+export let providerSecurityReviewType = PresentableType.create<{
+  review: RawSecurityReview;
+  current: RawSecurityReviewRevision | null;
+  inProgress: RawSecurityReviewRevision | null;
+  usage?: {
+    status:
+      'disabled' | 'waiting_for_review' | 'not_enough_data' | 'pending' | 'running' | 'ready';
+    review: RawSecurityReview | null;
+    current: RawSecurityReviewRevision | null;
+    inProgress: RawSecurityReviewRevision | null;
+    canRun: boolean;
+  };
+}>()('provider.security_review');
+
+export let providerSecurityReviewRevisionType = PresentableType.create<{
+  review: RawSecurityReview;
+  revision: RawSecurityReviewRevision;
+}>()('provider.security_review.revision');
+
+export let skillSecurityReviewType = PresentableType.create<{
+  review: RawSecurityReview;
+  current: RawSecurityReviewRevision | null;
+  inProgress: RawSecurityReviewRevision | null;
+  verdict: 'pass' | 'warn' | 'fail' | 'pending' | 'unavailable' | 'dismissed';
+}>()('skill.security_review');
+
+export let skillSecurityReviewRevisionType = PresentableType.create<{
+  review: RawSecurityReview;
+  revision: RawSecurityReviewRevision;
+}>()('skill.security_review.revision');

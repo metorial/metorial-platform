@@ -1,0 +1,9 @@
+{
+  "deepseek-v4.1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Vercel changelog: Ultrafast serves the October 17 update of DeepSeek V4.1 Flash via Fireworks' accelerated serverless endpoint — same checkpoint, premium price for ~1000 tok/s throughput.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

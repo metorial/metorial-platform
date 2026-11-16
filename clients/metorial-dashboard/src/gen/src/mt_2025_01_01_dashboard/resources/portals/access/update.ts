@@ -6,11 +6,16 @@ import {
 export type PortalsAccessUpdateOutput = {
   object: 'consumer.access';
   id: string;
-  accessLevel: 'read' | 'manage' | null;
+  accessLevel: 'read' | 'write' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;
-  listing: { id: string; name: string; description: string | null } | null;
+  listing: {
+    id: string;
+    name: string;
+    description: string | null;
+    isDiscoverable: boolean;
+  } | null;
   access:
     | {
         type: 'provider_template';
@@ -101,6 +106,7 @@ export let mapPortalsAccessUpdateOutput =
   /* @__PURE__ */ mapObject<PortalsAccessUpdateOutput>(
     [
       'access_level',
+      ['listing', 0, [1, ['is_discoverable']]],
       [
         'access',
         0,
@@ -139,6 +145,7 @@ export type PortalsAccessUpdateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
   readme?: string | null | undefined;
+  permission?: 'read' | 'write' | 'manage' | undefined;
 };
 
 export let mapPortalsAccessUpdateBody =

@@ -1,0 +1,9 @@
+{
+  "Qwen/Qwen3.8-27B-TEE": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Chutes serves Qwen3.8 27B inside a Trusted Execution Environment; the TEE deployment is the same Alibaba checkpoint (functionally identical to standard Qwen 3.8 27B per Chutes/Venice docs), at Chutes' 0.039/1.25 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

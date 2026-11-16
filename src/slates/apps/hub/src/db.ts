@@ -120,6 +120,7 @@ declare global {
     type SlateToolCategories = SlateToolCategory[];
 
     type AnyRecord = Record<string, any>;
+    type TriggerState = import('../prisma/generated/client').Prisma.JsonValue;
 
     type SlateProviderInfo = SlatesMessageProviderIdentifyResponse['result']['provider'];
 
@@ -163,5 +164,7 @@ declare global {
       | { webhookEventId: string; error: { code: string; message: string; status: number } };
 
     type TriggerRawEventMatchers = SlatesTriggerRoutingMatcher[];
+
+    type TriggerEventAttributes = Record<string, string[]>;
   }
 }

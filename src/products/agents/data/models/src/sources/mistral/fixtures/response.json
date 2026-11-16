@@ -1,0 +1,13 @@
+{
+  "index": "| Model | API name | Status |\n| --- | --- | --- |\n| [Chat](/models/test-chat) | `test-chat` | GA |\n| [Voice](/models/test-voice) | `test-voice` | GA |",
+  "pages": [
+    {
+      "path": "/models/test-chat",
+      "document": "# Chat\n- API names: `test-chat`\n- Pricing: Input $1 /M Tokens; Cached input $0.1 /M Tokens; Output $2 /M Tokens"
+    },
+    {
+      "path": "/models/test-voice",
+      "document": "# Voice\n- API names: `test-voice`\n- Pricing: Input $0.003 /Min"
+    }
+  ]
+}

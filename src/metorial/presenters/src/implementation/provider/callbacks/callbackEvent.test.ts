@@ -13,6 +13,7 @@ let callbackEvent = {
   providerTriggerKey: 'repository.pushed',
   mappedType: null,
   mappedId: null,
+  attributes: null,
   callback: { id: 'cbk_1' },
   callbackInstance: { id: 'cbi_1' },
   occurredAt: new Date('2026-01-01T00:00:00Z'),
@@ -27,6 +28,27 @@ describe('callback event presentation', () => {
 
       expect(presented).not.toHaveProperty('read_at');
       expect(presenter.schema.properties).not.toHaveProperty('read_at');
+    }
+  });
+
+  it('presents the stored attributes in single events and list items', async () => {
+    let attributes = { fileId: ['f1'], mimeType: ['text/plain', 'image/png'] };
+
+    for (let presenter of [v1CallbackEventPresenter, v1CallbackEventListPresenter]) {
+      let presented = await presenter
+        .present({ callbackEvent: { ...callbackEvent, attributes } }, context)
+        .run();
+
+      expect(presented.attributes).toEqual(attributes);
+      expect(presenter.schema.properties).toHaveProperty('attributes');
+    }
+  });
+
+  it('presents an empty record for events without attributes', async () => {
+    for (let presenter of [v1CallbackEventPresenter, v1CallbackEventListPresenter]) {
+      let presented = await presenter.present({ callbackEvent }, context).run();
+
+      expect(presented.attributes).toEqual({});
     }
   });
 
@@ -57,5 +79,44 @@ describe('callback event presentation', () => {
       .run();
 
     expect(presented.details?.payload).toEqual({ action: 'opened' });
+  });
+
+  it('redacts credential headers of the inbound webhook request', async () => {
+    let presented = await v1CallbackEventPresenter
+      .present(
+        {
+          callbackEvent,
+          details: {
+            status: 'succeeded',
+            payload: null,
+            attemptCount: 1,
+            error: null,
+            webhook: {
+              id: 'whe_1',
+              status: 'succeeded',
+              attemptCount: 1,
+              request: {
+                method: 'POST',
+                url: 'https://hub.example/receive',
+                headers: {
+                  Authorization: 'Bearer shared-push-token',
+                  'x-goog-channel-token': 'channel-secret',
+                  'content-type': 'application/json'
+                },
+                body: null
+              },
+              receivedAt: new Date('2026-01-01T00:00:00Z')
+            }
+          }
+        } as any,
+        context
+      )
+      .run();
+
+    expect(presented.details?.webhook?.request?.headers).toEqual({
+      Authorization: '[REDACTED]',
+      'x-goog-channel-token': '[REDACTED]',
+      'content-type': 'application/json'
+    });
   });
 });

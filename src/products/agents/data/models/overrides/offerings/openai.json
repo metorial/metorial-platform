@@ -1,0 +1,9 @@
+{
+  "chatgpt-image-latest": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenAI's docs describe it as an alias pointing to the image snapshot previously used in ChatGPT (GPT-Image-2.5 Sunburst is recommended for API use instead). A moving alias to an unnamed snapshot, not a fixed catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

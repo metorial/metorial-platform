@@ -15,6 +15,7 @@ import { alertService, monitorService, protoGuardAlertService } from '../src';
 import {
   callTool,
   openSession,
+  readMemoTool,
   readNotesTool,
   scopeOf,
   waitForProtoGuardRun
@@ -25,7 +26,9 @@ let ids = (items: { id: string }[]) => items.map(item => item.id);
 describe('module-monitor protoguard alerts', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
-  let server = useMcpTestServer({ tools: [...defaultMcpTestTools, readNotesTool] });
+  let server = useMcpTestServer({
+    tools: [...defaultMcpTestTools, readNotesTool, readMemoTool]
+  });
   let remote = useFixture(() =>
     createRemoteProvider(org.clients.instance, { url: server.url })
   );
@@ -33,11 +36,10 @@ describe('module-monitor protoguard alerts', () => {
   let sessionOnce: ReturnType<typeof openSession> | undefined;
   let ensureSession = () => (sessionOnce ??= openSession(org, remote.providerId));
 
-  let raiseProtoGuardAlert = async () => {
+  let raiseProtoGuardAlert = async (toolName: string) => {
     let opened = await ensureSession();
-    let { message } = await callTool(opened, 'read_notes');
-    let run = await waitForProtoGuardRun(message.oid);
-    expect(run.alert).not.toBeNull();
+    let { message } = await callTool(opened, toolName);
+    let run = await waitForProtoGuardRun(message.oid, { alert: true });
 
     let scope = await scopeOf(org);
     let filterKeys = [...new Set(run.alert!.instances.map(instance => instance.filter.key))];
@@ -66,12 +68,12 @@ describe('module-monitor protoguard alerts', () => {
   };
 
   let firstOnce: ReturnType<typeof raiseProtoGuardAlert> | undefined;
-  let ensureFirstAlert = () => (firstOnce ??= raiseProtoGuardAlert());
+  let ensureFirstAlert = () => (firstOnce ??= raiseProtoGuardAlert('read_notes'));
 
   let secondOnce: ReturnType<typeof raiseProtoGuardAlert> | undefined;
   let ensureSecondAlert = async () => {
     await ensureFirstAlert();
-    return await (secondOnce ??= raiseProtoGuardAlert());
+    return await (secondOnce ??= raiseProtoGuardAlert('read_memo'));
   };
 
   it('opens one pending alert per triggered filter on that filter’s monitor', async () => {
@@ -160,6 +162,38 @@ describe('module-monitor protoguard alerts', () => {
         first.alert.createdAt.getTime()
       );
     }
+  }, 300_000);
+
+  it('folds a repeated injection into the existing alert instead of raising a new one', async () => {
+    let first = await ensureFirstAlert();
+    let opened = await ensureSession();
+    let scope = await scopeOf(org);
+
+    let { message } = await callTool(opened, 'read_notes');
+    let run = await waitForProtoGuardRun(message.oid, { triggered: true });
+    expect(run).toMatchObject({ status: 'completed', alert: null });
+    expect(run.triggeredFilterCount).toBeGreaterThan(0);
+
+    let alert = await eventually(
+      async () => {
+        let current = await subspaceDb.protoGuardAlert.findUniqueOrThrow({
+          where: { oid: first.alert.oid }
+        });
+        expect(current.occurrenceCount).toBeGreaterThanOrEqual(2);
+        return current;
+      },
+      { timeoutMs: 60_000, intervalMs: 500 }
+    );
+    expect(alert.lastSeenAt!.getTime()).toBeGreaterThan(alert.firstSeenAt!.getTime());
+
+    expect(
+      await firstPage(
+        await alertService.listAlerts({
+          instance: scope.instance,
+          sessionMessageIds: [message.id]
+        })
+      )
+    ).toEqual([]);
   }, 300_000);
 
   it('filters monitor and protoguard alerts by run, filter, session and source', async () => {

@@ -54,15 +54,16 @@ model MagicMcpServer {
   subspaceSession MagicMcpSession?
   endpoints       MagicMcpEndpointServer[]
 
-  tokens                 MagicMcpToken[]
-  uses                   MagicMcpTokenUse[]
-  groups                 MagicMcpGroupServer[]
-  accessTagEntities      AccessTagEntity[]
-  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessMagicMcpServer")
-  accessRequests         ConsumerAccessRequest[] @relation("ConsumerAccessRequestMagicMcpServer")
-  consumerAuthClients    ConsumerAuthClient[]
-  consumerAccessListings ConsumerAccessListing[]
-  consumerIntegrations   ConsumerIntegration[]
+  tokens                         MagicMcpToken[]
+  uses                           MagicMcpTokenUse[]
+  groups                         MagicMcpGroupServer[]
+  accessTagEntities              AccessTagEntity[]
+  consumerAccesses               ConsumerAccess[]                             @relation("ConsumerAccessMagicMcpServer")
+  accessRequests                 ConsumerAccessRequest[]                      @relation("ConsumerAccessRequestMagicMcpServer")
+  consumerAuthClients            ConsumerAuthClient[]
+  consumerAccessListings         ConsumerAccessListing[]
+  consumerIntegrations           ConsumerIntegration[]
+  consumerDeviceClientExclusions ConsumerDeviceClientExcludedMagicMcpServer[]
 
   @@index([ownerActorOid])
   @@index([instanceOid, status])

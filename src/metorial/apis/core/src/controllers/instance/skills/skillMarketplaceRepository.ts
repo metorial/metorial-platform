@@ -1,18 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillMarketplaceRepositoryService,
-  skillMarketplaceService
-} from '@metorial/module-skill-marketplace';
+import { skillMarketplaceRepositoryService } from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import {
-  bucketEditorTokenPresenter,
-  skillMarketplaceRepositoryPresenter
-} from '@metorial/presenters';
+import { skillMarketplaceRepositoryPresenter } from '@metorial/presenters';
 import { getSkillMarketplaceAccess, skillMarketplaceGroup } from './skillMarketplace';
 
 let readScopes = ['instance.skill:read'] as const;
@@ -135,39 +129,6 @@ export let skillMarketplaceRepositoryController = Controller.create(
           });
 
         return skillMarketplaceRepositoryPresenter.present({ skillMarketplaceRepository });
-      }),
-
-    getEditorUrl: skillMarketplaceGroup
-      .post(
-        instancePath(
-          'skill-marketplaces/:skillMarketplaceId/editor-url',
-          'skills.marketplaces.getEditorUrl'
-        ),
-        {
-          name: 'Get skill marketplace editor URL',
-          description: 'Creates an embeddable editor URL for a skill marketplace.',
-          hideInDocs: true
-        }
-      )
-      .use(isDashboardGroup())
-      .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({}))
-      .output(bucketEditorTokenPresenter)
-      .do(async ctx => {
-        let token = await skillMarketplaceService.getSkillMarketplaceEditorUrl({
-          ...(await getSkillMarketplaceAccess(ctx)),
-          skillMarketplace: ctx.skillMarketplace,
-          isReadOnly: true
-        });
-
-        return bucketEditorTokenPresenter.present({
-          token: {
-            id: ctx.skillMarketplace.id,
-            url: token.url,
-            expiresAt: token.expiresAt
-          }
-        });
       })
   }
 );

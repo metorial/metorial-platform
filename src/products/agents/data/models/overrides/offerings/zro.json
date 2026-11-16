@@ -1,0 +1,16 @@
+{
+  "dolly1-security": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Zro's own docs describe Dolly 1 Security as an uncensored security variant of GLM-5.3 Flash with no safety filters — a weight-modified derivative of GLM-5.3 Flash, not the base model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "dolly2-security": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Zro docs and the MoonMath-ai/GLM-5.3-Uncensored-FP8 Hugging Face card describe it as MoonMath's own abliteration of GLM-5.3 weights — a derivative fine-tune, not the base checkpoint.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

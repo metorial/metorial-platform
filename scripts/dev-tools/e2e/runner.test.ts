@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -12,6 +12,7 @@ import {
   tail,
   turboArgs,
   waitHealthy,
+  type Plan,
   type RunningProcess,
   type Service
 } from './runner';
@@ -123,6 +124,71 @@ describe('stack cache key', () => {
 });
 
 describe('health', () => {
+  test('starts systems under test before waiting for dependency health', async () => {
+    let directory = mkdtempSync(path.join(tmpdir(), 'control-e2e-startup-'));
+    let source = path.join(directory, 'source');
+    let ready = path.join(directory, 'ready');
+    mkdirSync(path.join(directory, 'workspace'));
+    let server = Bun.serve({
+      port: 0,
+      fetch: () => new Response('ok', { status: existsSync(ready) ? 200 : 503 })
+    });
+    servers.push(server);
+
+    await Bun.write(
+      path.join(source, 'package.json'),
+      JSON.stringify({
+        name: 'startup-fixture',
+        private: true,
+        scripts: { dependency: 'bun dependency.ts', sut: 'bun sut.ts' }
+      })
+    );
+    await Bun.write(path.join(source, 'dependency.ts'), 'setInterval(() => {}, 1000);');
+    await Bun.write(
+      path.join(source, 'sut.ts'),
+      "await Bun.write(process.env.READY_FILE!, 'ready'); setInterval(() => {}, 1000);"
+    );
+
+    let plan: Plan = {
+      mode: 'local',
+      concurrency: 1,
+      healthTimeoutSeconds: 1,
+      files: [],
+      prepare: [],
+      dependencies: [service({ start: ['dependency'], health: [{ url: server.url.href }] })],
+      suts: [service({ name: '@x/sut', start: ['sut'], env: { READY_FILE: ready } })],
+      stacks: []
+    };
+    let planPath = path.join(directory, 'plan.json');
+    await Bun.write(planPath, JSON.stringify(plan));
+
+    try {
+      let child = Bun.spawn(
+        [process.execPath, path.join(import.meta.dir, 'runner.ts'), planPath],
+        {
+          env: {
+            ...process.env,
+            CONTROL_E2E_SOURCE: source,
+            CONTROL_E2E_WORKSPACE: path.join(directory, 'workspace'),
+            CONTROL_E2E_LOGS: path.join(directory, 'logs')
+          },
+          stdout: 'pipe',
+          stderr: 'pipe'
+        }
+      );
+      let [stdout, stderr, code] = await Promise.all([
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text(),
+        child.exited
+      ]);
+
+      expect(code, stdout + stderr).toBe(0);
+      expect(existsSync(ready)).toBe(true);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   test('defaults to 2xx and honours explicit statuses', () => {
     expect(isHealthyStatus(204)).toBe(true);
     expect(isHealthyStatus(404)).toBe(false);

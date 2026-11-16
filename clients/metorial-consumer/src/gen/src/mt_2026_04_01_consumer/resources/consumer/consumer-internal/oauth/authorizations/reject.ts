@@ -22,9 +22,7 @@ export type ConsumerConsumerInternalOauthAuthorizationsRejectOutput = {
     clientId: string;
     redirectUris: string[];
     tokenEndpointAuthMethod:
-      | 'client_secret_basic'
-      | 'client_secret_post'
-      | 'none';
+      'client_secret_basic' | 'client_secret_post' | 'none';
     portalId: string | null;
     consumerSurfaceId: string | null;
     skillPlugin: {

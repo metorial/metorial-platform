@@ -23,7 +23,7 @@ export let SkillAgentsPage = () => {
     <SkillAgentsScene
       instanceId={instance.data?.id}
       skillId={skillId}
-      getDocumentPath={documentId => `${skillPath}/agent/${documentId}`}
+      getDocumentPath={(_, itemId) => `${skillPath}/item/${itemId}`}
     />
   );
 };

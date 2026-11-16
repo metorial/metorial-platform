@@ -1,0 +1,16 @@
+{
+  "claudinio": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Claudin.io's own coding endpoint model (May 2026, 256K context, $0.5/$2); no disclosed lineage or weights and the index has no Claudinio entry, so the identity cannot be pinned.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "claudius": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Claudin.io's premium endpoint model ($3/$8, 256K context); no disclosed lineage and the index has no Claudius entry, so the identity cannot be pinned.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

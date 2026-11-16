@@ -1,0 +1,7 @@
+base_model = "anthropic/claude-sonnet-4-5-20250929"
+
+[cost.text.input]
+price = 3.3
+
+[cost.text.output]
+price = 16.5

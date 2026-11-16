@@ -3,63 +3,28 @@ import {
   DashboardInstanceSessionsListOutput,
   DashboardInstanceSessionsListQuery
 } from '@metorial/dashboard-sdk';
-import { Paths } from '@metorial/frontend-config';
 import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useDeleteSession,
-  useSessions
-} from '@metorial/state';
-import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { RiDeleteBinLine } from '@remixicon/react';
-import { useMemo, useState } from 'react';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue,
-  type TableFilter,
+  col,
+  createDataList,
+  deleteAction,
+  f,
+  lifecycleStatus,
+  withDefaults,
+  type DataListVariant,
   type TableLayoutProps
-} from '@metorial/table';
+} from '@metorial/data-list';
+import { Paths } from '@metorial/frontend-config';
+import { useDeleteSession, useSessions } from '@metorial/state';
+import { Badge } from '@metorial/ui';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 
 type Session = DashboardInstanceSessionsListOutput['items'][number];
 
-type ProviderSessionsTableProps = {
-  providerId?: string;
-  status?: string;
-  limit?: DashboardInstanceSessionsListQuery['limit'];
-  agentId?: string;
-  actorId?: string;
-  consumerId?: string;
-  identityId?: string;
-  providerDeploymentId?: string;
-  providerAuthConfigId?: string;
-  providerConfigId?: string;
-  createdAt?: DashboardInstanceSessionsListQuery['createdAt'];
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let getSessionStatusFilterValue = (
-  value: FilterPayload | undefined
-):
-  | Extract<DashboardInstanceSessionsListQuery['status'], 'active' | 'archived'>[]
-  | undefined => {
-  return getEnumListFilterValue(value, ['active', 'archived']);
-};
-
-let getSessionLifecycleStatusColor = (status: Session['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
+type SessionFilters = Omit<
+  DashboardInstanceSessionsListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
 
 export let SessionConnectionStatusBadge = ({
   connectionStatus,
@@ -77,136 +42,32 @@ export let SessionConnectionStatusBadge = ({
   return <Badge color="gray">Unknown</Badge>;
 };
 
-let useProviderSessionsTableState: TableStateProvider<
-  ProviderSessionsTableProps,
-  Session,
-  TableStateProviderResult<Session>
-> = (
-  props: ProviderSessionsTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let sessions = useSessions(props.instance.data?.id, {
-    order: 'desc',
-    limit: props.limit,
-    search: opts.search || undefined,
-    providerId: getListFilterValue(opts.filter.providerId) ?? props.providerId ?? undefined,
-    agentId: getListFilterValue(opts.filter.agentId) ?? props.agentId,
-    actorId: getListFilterValue(opts.filter.actorId) ?? props.actorId,
-    consumerId: getListFilterValue(opts.filter.consumerId) ?? props.consumerId,
-    identityId: getListFilterValue(opts.filter.identityId) ?? props.identityId,
-    status: getSessionStatusFilterValue(opts.filter.status) ?? (props.status as any),
-    providerDeploymentId:
-      getListFilterValue(opts.filter.providerDeploymentId) ?? props.providerDeploymentId,
-    providerAuthConfigId:
-      getListFilterValue(opts.filter.providerAuthConfigId) ?? props.providerAuthConfigId,
-    providerConfigId:
-      getListFilterValue(opts.filter.providerConfigId) ?? props.providerConfigId,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.createdAt
-  });
+let sessionStatuses = ['active', 'archived'] as const;
 
-  return {
-    isLoading: sessions.isLoading,
-    error: sessions.error,
-    hasMoreAfter: sessions.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: sessions.data?.pagination.hasMoreBefore ?? false,
-    items: sessions.data?.items ?? [],
-    loadNext: sessions.next,
-    loadPrevious: sessions.previous
-  };
-};
-
-let useProviderSessionsTableHookState = (
-  _: ReturnType<typeof useProviderSessionsTableState>,
-  props: ProviderSessionsTableProps
-) => {
-  let deleteSession = useDeleteSession();
-  let [loadingIds, setLoadingIds] = useState<string[]>([]);
-
-  return {
-    deleteSession,
-    instanceId: props.instance.data?.id ?? '',
-    loadingIds,
-    setLoadingIds
-  };
-};
-
-let deleteProviderSessionImmediately = async (
-  session: Session,
-  state: ReturnType<typeof useProviderSessionsTableHookState>
-) => {
-  state.setLoadingIds((current: string[]) => [...new Set([...current, session.id])]);
-
-  try {
-    await state.deleteSession.mutate({
-      instanceId: state.instanceId,
-      sessionId: session.id
-    });
-  } finally {
-    state.setLoadingIds((current: string[]) => current.filter(id => id != session.id));
-  }
-};
-
-let useProviderSessionsFilters = (instanceId: string | undefined) =>
-  useMemo<TableFilter<Session>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'active', label: 'Active' },
-          { id: 'archived', label: 'Archived' }
-        ]
-      },
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by creation time',
-        type: 'date'
-      },
-      entityFilters.provider(instanceId),
-      entityFilters.agent(instanceId),
-      entityFilters.actor(instanceId),
-      entityFilters.consumer(instanceId),
-      entityFilters.identity(instanceId),
-      entityFilters.providerDeployment(instanceId),
-      entityFilters.providerAuthConfig(instanceId)
-    ],
-    [instanceId]
-  );
-
-let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Session>(
-  'provider-sessions'
-)
-  .state(useProviderSessionsTableState)
-  .hookState(useProviderSessionsTableHookState)
+let ProviderSessionsList = createDataList<{ filters?: SessionFilters }>('provider-sessions')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+    createdAt: f.createdAt({ description: 'Filter by creation time' }),
+    providerId: f.entity(entityFilters.provider(ctx.instanceId)),
+    agentId: f.entity(entityFilters.agent(ctx.instanceId)),
+    actorId: f.entity(entityFilters.actor(ctx.instanceId)),
+    consumerId: f.entity(entityFilters.consumer(ctx.instanceId)),
+    identityId: f.entity(entityFilters.identity(ctx.instanceId)),
+    providerDeploymentId: f.entity(entityFilters.providerDeployment(ctx.instanceId)),
+    providerAuthConfigId: f.entity(entityFilters.providerAuthConfig(ctx.instanceId))
+  }))
+  .search('Search by provider, tool, agent, consumer or session ID…')
+  .paginated(({ props, ctx, filters, search, limit }) =>
+    useSessions(
+      ctx.instanceId,
+      withDefaults(props.filters, { order: 'desc' as const, limit, ...filters, search })
+    )
+  )
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: session => (
-        <div>
-          <Text size="2" weight="strong">
-            {session.name ?? `Session ${session.id.slice(0, 8)}...`}
-          </Text>
-          {session.description && (
-            <Text size="2" color="gray600">
-              {session.description}
-            </Text>
-          )}
-        </div>
-      )
-    },
-    {
+    col.name({ get: session => session.name ?? `Session ${session.id.slice(0, 8)}...` }),
+    col.custom({
       id: 'status',
-      isDefault: true,
       header: 'Connection',
       render: session => (
         <SessionConnectionStatusBadge
@@ -215,106 +76,40 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
           hasWarnings={session.hasWarnings}
         />
       )
-    },
-    {
+    }),
+    col.status(lifecycleStatus, {
       id: 'lifecycleStatus',
-      isDefault: false,
       header: 'Lifecycle',
-      render: session => (
-        <Badge color={getSessionLifecycleStatusColor(session.status)}>{session.status}</Badge>
-      )
-    },
-    {
-      id: 'providers',
-      isDefault: true,
-      header: 'Providers',
-      render: session => (
-        <Text size="2">
-          {session.providers.length}{' '}
-          {session.providers.length === 1 ? 'provider' : 'providers'}
-        </Text>
-      )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: session => <RenderDate date={session.createdAt} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: session => <RenderDate date={session.updatedAt} />
-    },
-    {
+      isDefault: false
+    }),
+    col.count('providers', session => session.providers.length, 'provider', {
+      header: 'Providers'
+    }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.text({
       id: 'deploymentIds',
-      isDefault: false,
       header: 'Deployment IDs',
-      render: session => (
-        <Text size="2">
-          {[...new Set(session.providers.map(item => item.deployment.id))].join(', ')}
-        </Text>
-      )
-    },
-    {
-      id: 'id',
       isDefault: false,
-      header: 'Session ID',
-      render: session => <ID id={session.id} />
-    }
+      get: session =>
+        [...new Set(session.providers.map(item => item.deployment.id))].join(', ')
+    }),
+    col.id({ header: 'Session ID' })
   ])
-  .search('Search by provider, tool, agent, consumer or session ID...')
-  .link((session, props) =>
-    Paths.instance.providerSession(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      session.id
-    )
+  .link((session, _props, ctx) =>
+    Paths.instance.providerSession(ctx.organization, ctx.project, ctx.instance, session.id)
   )
-  .actions({
-    deleteImmediate: async (sessions, state) => {
-      let session = sessions[0];
-      if (!session) return;
-
-      await deleteProviderSessionImmediately(session, state);
-    },
-    delete: async (sessions, state) => {
-      let session = sessions[0];
-      if (!session) return;
-
-      confirm({
-        title: 'Delete session',
-        description: `Are you sure you want to delete ${session.name ?? 'this session'}?`,
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await deleteProviderSessionImmediately(session, state);
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
+  .itemActions([
+    deleteAction({
+      noun: 'Session',
+      name: session => session.name,
       disabled: session => session.status !== 'active',
-      action: 'delete'
-    }
-  ])
-  .bulkActions([
-    {
-      id: 'delete-selected',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      disabled: session => session.status !== 'active',
-      action: 'deleteImmediate',
-      bulkExecution: {
-        mode: 'per-row',
-        batchSize: 10
-      }
-    }
+      useMutate: () => useDeleteSession(),
+      input: (session, { ctx }) => ({
+        instanceId: ctx.instanceId ?? '',
+        sessionId: session.id
+      })
+    })
   ])
   .build();
 
@@ -330,7 +125,8 @@ export let ProviderSessionsTable = ({
   providerAuthConfigId,
   providerConfigId,
   createdAt,
-  layout
+  layout,
+  listVariant
 }: {
   providerId?: string;
   status?: string;
@@ -344,29 +140,24 @@ export let ProviderSessionsTable = ({
   providerConfigId?: string;
   createdAt?: DashboardInstanceSessionsListQuery['createdAt'];
   layout?: TableLayoutProps;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useProviderSessionsFilters(instance.data?.id);
-
-  return providerSessionsTable({
-    ...layout,
-    tableFilters,
-    providerId,
-    status,
-    limit,
-    agentId,
-    actorId,
-    consumerId,
-    identityId,
-    providerDeploymentId,
-    providerAuthConfigId,
-    providerConfigId,
-    createdAt,
-    instance,
-    organization,
-    project,
-    emptyState: 'No sessions found.'
-  });
-};
+  listVariant?: DataListVariant;
+}) => (
+  <ProviderSessionsList
+    {...layout}
+    filters={{
+      providerId,
+      status: sessionStatuses.filter(value => value == status),
+      agentId,
+      actorId,
+      consumerId,
+      identityId,
+      providerDeploymentId,
+      providerAuthConfigId,
+      providerConfigId,
+      createdAt
+    }}
+    listLimit={limit}
+    listVariant={listVariant}
+    emptyState="No sessions found."
+  />
+);

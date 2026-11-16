@@ -17,6 +17,7 @@ export type SubspaceInternalClient = {
       webhookEventId?: string;
       mappedType?: string;
       mappedId?: string;
+      attributes?: Record<string, string[]>;
       occurredAt: Date;
     }) => Promise<{ received: boolean }>;
   };

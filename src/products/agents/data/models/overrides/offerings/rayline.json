@@ -1,0 +1,16 @@
+{
+  "arc-sage-1.0": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Rayline's hosted ARC Sage tier; underlying checkpoint unidentified in search results and no catalog entry exists yet, so re-check once models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-14"
+  },
+  "arc-swift-1.0": {
+    "decision": "defer",
+    "until": "2026-12-14",
+    "reason": "Rayline's hosted ARC Swift tier; underlying checkpoint unidentified and no catalog entry exists yet, so re-check once models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "id": "first/test-chat",
+      "providers": [
+        {
+          "providerId": "first",
+          "pricing": {
+            "prompt": "1e-6",
+            "completion": "2e-6",
+            "input_cache_read": "1e-7",
+            "tiers": [
+              {
+                "up_to_tokens": 100,
+                "prompt": "1e-6",
+                "completion": "2e-6"
+              },
+              {
+                "up_to_tokens": null,
+                "prompt": "2e-6",
+                "completion": "4e-6"
+              }
+            ]
+          }
+        }
+      ],
+      "pricing": {
+        "prompt": "9e-6",
+        "completion": "9e-6"
+      }
+    }
+  ]
+}

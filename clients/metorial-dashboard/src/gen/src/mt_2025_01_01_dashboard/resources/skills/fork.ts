@@ -8,6 +8,12 @@ export type SkillsForkOutput = {
   name: string;
   description: string | null;
   imageUrl: string;
+  image: {
+    object: 'skill.image';
+    type: 'file' | 'url' | 'icon' | 'default';
+    icon: string | null;
+    color: string | null;
+  };
   clientName: string;
   clientDescription: string | null;
   clientMetadata: Record<string, any> | null;
@@ -86,6 +92,7 @@ export type SkillsForkOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -161,6 +168,7 @@ export type SkillsForkOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -233,6 +241,7 @@ export type SkillsForkOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -362,7 +371,8 @@ export let mapSkillsForkOutput = /* @__PURE__ */ mapObject<SkillsForkOutput>(
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]
@@ -458,7 +468,8 @@ export let mapSkillsForkOutput = /* @__PURE__ */ mapObject<SkillsForkOutput>(
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]
@@ -547,7 +558,8 @@ export let mapSkillsForkOutput = /* @__PURE__ */ mapObject<SkillsForkOutput>(
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]

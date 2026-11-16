@@ -42,6 +42,9 @@ model SkillExportRef {
 
   fileDestinationTag Int?
 
+  fileManifestOid BigInt?
+  fileManifest    SkillDestinationManifest? @relation(fields: [fileManifestOid], references: [oid], onDelete: SetNull)
+
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
@@ -68,6 +71,12 @@ model SkillExport {
 
   target SkillExportTarget
   status SkillExportStatus
+
+  zipJobId       String?
+  zipJobAttempts Int     @default(0)
+
+  /// [SkillExportRenamedEntries]
+  renamedEntries Json?
 
   exportRefOid BigInt
   exportRef    SkillExportRef @relation(fields: [exportRefOid], references: [oid], onDelete: Cascade)

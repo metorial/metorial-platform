@@ -1,0 +1,23 @@
+{
+  "google/gemma-4-31b-it": {
+    "decision": "link",
+    "model": "google/gemma-4-31b-it",
+    "reason": "AI/ML API serves Google's Gemma 4 31B IT (google/gemma-4-31B-it on Hugging Face, 30.7B dense, 256K context); same model as google/gemma-4-31b-it, with AI/ML API's 1.04742/1.57642 price far above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gryphe/mythomax-l2-13b": {
+    "decision": "link",
+    "model": "gryphe/mythomax-l2-13b",
+    "reason": "AI/ML API serves Gryphe's MythoMax L2 13B (Gryphe/MythoMax-L2-13b on Hugging Face, a Llama-2 13B tensor-merge fine-tune); its flat 1.98 rate is a large vendor markup over the model's 0.095 median but the link is right.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "x-ai/grok-4-fast-non-reasoning": {
+    "decision": "link",
+    "model": "xai/grok-4-fast",
+    "reason": "Grok 4 Fast (non-reasoning) is xAI's 2M-context fast model (models.dev xai/grok-4-fast-non-reasoning, released 2025-12-18), tracked in the catalog as xai/grok-4-fast; AI/ML API's 1.25/2.5 price is above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

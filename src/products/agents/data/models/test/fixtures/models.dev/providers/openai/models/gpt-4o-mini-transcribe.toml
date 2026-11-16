@@ -1,0 +1,18 @@
+name = "GPT-4o mini Transcribe"
+release_date = "2025-03-20"
+last_updated = "2025-03-20"
+open_weights = false
+
+[modalities]
+input = ["text", "image"]
+output = ["text"]
+
+[limit]
+context = 200000
+output = 64000
+
+[cost.text.input]
+price = 1.25
+
+[cost.text.output]
+price = 5

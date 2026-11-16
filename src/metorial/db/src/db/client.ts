@@ -337,6 +337,12 @@ declare global {
     type Record = { [key: string]: any };
     type OrganizationConfigValue = any;
 
+    type SkillGroupPluginSyncIssues = {
+      skillId: string;
+      reason: 'limit_exceeded';
+      message: string;
+    }[];
+
     type NetworkingPolicyPortRange = { from: number; to: number };
     type NetworkingPolicyRule = {
       id: string;
@@ -432,6 +438,7 @@ declare global {
     }[];
 
     type ProductAssistantConversationInput = unknown;
+    type ProductAssistantRequestInput = unknown;
     type ProductAssistantMessageStateContent = ProductAssistant.State;
     type ProductAssistantMessageSerializedContent = ProductAssistant.MessageSerializedContent;
     type ProductAssistantRunCost = ProductAssistant.RunCost;
@@ -439,6 +446,14 @@ declare global {
     type ProductAssistantSubspaceMcpToolList = ProductAssistant.SubspaceMcpToolList;
 
     type SystemEventPayload = { [key: string]: any };
+
+    type DocumentAnnotations = {
+      v: 1;
+      contentHash: string;
+      actors: string[];
+      blocks: { id: string; h: string; e: number[] }[];
+      comments: { t: string; s: [number, number]; e: [number, number]; q: string }[];
+    };
 
     type WebImageCandidate = {
       url: string;
@@ -462,6 +477,32 @@ declare global {
       rejectedReason: string | null;
     };
     type WebImageCandidates = WebImageCandidate[];
+
+    type SkillSyncResultStats = {
+      filesTotal: number;
+      filesUploaded: number;
+      filesSkipped: number;
+      blobsCreated: number;
+      blobsReused: number;
+      lfsUploaded: number;
+      bytesUploaded: number;
+      deleted: number;
+      unexpectedDeletes: number;
+      githubRequests: number;
+      rateLimitWaitMs: number;
+      commitsCreated: number;
+      batchSizeReductions: number;
+    };
+
+    type SkillSyncPropagationErrorDetails = {
+      unexpectedDeletes?: number;
+      total?: number;
+      path?: string;
+      paths?: string[];
+      keys?: string[];
+    };
+
+    type SkillExportRenamedEntries = { path: string; archivePath: string }[];
 
     type EventDeliveryAttemptDetails = {
       request: {

@@ -230,12 +230,19 @@ let DetailEmptyState = styled.div`
   text-align: center;
 `;
 
-export let ProviderErrorTracingScene = ({ errorGroupId }: { errorGroupId: string }) => {
+export let ProviderErrorTracingScene = ({
+  errorGroupId,
+  issueId
+}: {
+  errorGroupId?: string;
+  issueId?: string;
+}) => {
   let instance = useCurrentInstance();
   let instanceId = instance.data?.id;
 
   let errors = useAllSessionErrors(instanceId, {
     sessionErrorGroupId: errorGroupId,
+    issueId,
     limit: 100
   });
 
@@ -321,7 +328,7 @@ export let ProviderErrorTracingScene = ({ errorGroupId }: { errorGroupId: string
         (window as any).metorial_setRestrictHeight(false);
       } catch {}
     };
-  }, [errorGroupId]);
+  }, [errorGroupId, issueId]);
 
   return (
     <SplitPaneWrapper>

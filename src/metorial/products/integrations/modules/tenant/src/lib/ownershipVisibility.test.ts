@@ -29,6 +29,7 @@ import {
   canSeeOwnedResource,
   canUseOwnedResource,
   canUseCoreOwnedResource,
+  defaultOwnershipFilter,
   internalOwnershipAccessor,
   isOwnershipEnforced,
   ownedCoreResourceWhere,
@@ -206,6 +207,28 @@ describe('ownership filter', () => {
     let where = ownedResourceWhere(accessor(), { ownership: 'usable' });
 
     expect(where.AND).toHaveLength(3);
+  });
+
+  it('defaults consumers to usable resources so their own resources stay listed', () => {
+    let consumer = accessor({ kind: 'consumer' });
+
+    expect(defaultOwnershipFilter(consumer)).toBe('usable');
+    expect(defaultOwnershipFilter(accessor({ kind: 'consumer', isEnforced: false }))).toBe(
+      'usable'
+    );
+    expect(ownedResourceWhere(consumer)).toEqual(
+      ownedResourceWhere(consumer, { ownership: 'usable' })
+    );
+    expect(ownedCoreResourceWhere(consumer)).toEqual(
+      ownedCoreResourceWhere(consumer, { ownership: 'usable' })
+    );
+    expect(JSON.stringify(ownedCoreResourceWhere(consumer))).toContain('"own"');
+  });
+
+  it('keeps the shared default for members and API callers when enforced', () => {
+    expect(defaultOwnershipFilter(accessor())).toBe('shared');
+    expect(defaultOwnershipFilter(accessor({ kind: 'api' }))).toBe('shared');
+    expect(defaultOwnershipFilter(accessor({ isEnforced: false }))).toBe('all');
   });
 });
 

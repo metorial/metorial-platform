@@ -1,6 +1,7 @@
 enum SlateWebhookRegistrationType {
   automated
   manual
+  delivery_config
 }
 
 enum SlateWebhookRegistrationOwner {
@@ -50,20 +51,28 @@ model SlateWebhookRegistration {
 
   registrationIdentifier String?
 
+  expiresAt  DateTime?
+  renewAfter DateTime?
+
   authRouting SlateWebhookRegistrationAuthRouting @default(any)
+
+  oauthClientId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  webhookEvents               SlateWebhookEvent[]
-  authMethods                 SlateWebhookRegistrationAuthMethod[]
-  oauthCredentials            SlateWebhookRegistrationOAuthCredentials[]
-  triggerWebhookTarget        TriggerWebhookTarget?
-  triggerRegistrationWebhooks TriggerRegistrationWebhook[]
-  triggerRoutingDrops         TriggerRoutingDrop[]
+  expansionInbox                   TriggerWebhookExpansion[]
+  deliveryRoutes                   TriggerDeliveryRoute[]
+  webhookEvents                    SlateWebhookEvent[]
+  authMethods                      SlateWebhookRegistrationAuthMethod[]
+  oauthCredentials                 SlateWebhookRegistrationOAuthCredentials[]
+  triggerWebhookTarget             TriggerWebhookTarget?
+  triggerRegistrationWebhooks      TriggerRegistrationWebhook[]
+  triggerRoutingDrops              TriggerRoutingDrop[]
   triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
 
   @@index([tenantOid, createdAt])
+  @@index([slateOid, oauthClientId])
 }
 
 model SlateWebhookRegistrationAuthMethod {

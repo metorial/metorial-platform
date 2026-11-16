@@ -1,0 +1,30 @@
+{
+  "lucidnova-rf1-100b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidQuery's LucidNova RF1 100B, the company's first hybrid diffusion-reasoning/autoregressive model (per LucidQuery's About page and spec listings, 120K context); a real first-party model with no index entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "lucidquery-agi-01-frontier": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidQuery's own AGI-01 Frontier, the deep-reasoning flagship of its two-model AGI 01 family (300K context, per LucidQuery's docs and aggregator listings); a real first-party model and the index has no LucidQuery AGI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "lucidquery-agi-01-swift": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidQuery's own AGI-01 Swift, the fast default of its AGI 01 family (300K context, per LucidQuery's blog, docs and its Hugging Face access page); a real first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "lucidquery-nexus-coder": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidQuery's Nexus Coder 300B, its hybrid autoregressive/diffusion coding model (codename lucidquery-nexus-coder-300b, per LucidQuery's blog and LinkedIn); a real first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

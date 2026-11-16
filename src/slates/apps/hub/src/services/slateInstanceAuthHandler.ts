@@ -27,6 +27,8 @@ import { slateInvocationService } from './slateInvocation';
 let TRANSIENT_REFRESH_RETRY_DELAY_MS = 10_000;
 let RECENT_REFRESH_FAILURE_WINDOW_MS = 10_000;
 let USABLE_TOKEN_MARGIN_MS = 5_000;
+let REFRESH_WAIT_TIMEOUT_MS = 60_000;
+let REFRESH_POLL_INTERVAL_MS = 1_000;
 
 let include = { secret: true, authMethod: true };
 
@@ -321,6 +323,7 @@ class slateAuthHandlerServiceImpl {
     type Refreshed = { authConfig: AuthConfigWithSecret; decrypted: SecretSlateAuthConfig };
     let completed: Refreshed | undefined;
     let failure: { error: unknown } | undefined;
+    let refreshWaitDeadline = Date.now() + REFRESH_WAIT_TIMEOUT_MS;
 
     try {
       await refreshLock.usingLock(
@@ -336,7 +339,7 @@ class slateAuthHandlerServiceImpl {
               // Callers queued behind a transient failure fail fast instead of each
               // repeating the full retry cycle.
               if (await hasRecentRefreshFailure(fresh)) {
-                if (!canUseCurrentToken) {
+                if (!hasUsableToken(fresh.tokenExpiresAt)) {
                   throw refreshFailedError('The provider is temporarily unavailable.');
                 }
               } else {
@@ -353,7 +356,10 @@ class slateAuthHandlerServiceImpl {
                       : null
                 });
 
-                if (!outcome.ok && !(outcome.transient && canUseCurrentToken)) {
+                if (
+                  !outcome.ok &&
+                  !(outcome.transient && hasUsableToken(fresh.tokenExpiresAt))
+                ) {
                   throw outcome.error;
                 }
               }
@@ -380,9 +386,18 @@ class slateAuthHandlerServiceImpl {
           throw err;
         }
       } else {
-        let fresh = await reload();
-        if (hasUsableToken(fresh.tokenExpiresAt)) {
-          return { authConfig: fresh, decrypted: await decryptFresh(fresh) };
+        // Token persistence can finish before the identity lock is released by sibling sync.
+        while (true) {
+          let fresh = await reload();
+          if (hasUsableToken(fresh.tokenExpiresAt)) {
+            return { authConfig: fresh, decrypted: await decryptFresh(fresh) };
+          }
+          if (!err.isContention) throw err;
+
+          let remainingMs = refreshWaitDeadline - Date.now();
+          if (remainingMs <= 0) break;
+
+          await delay(Math.min(REFRESH_POLL_INTERVAL_MS, remainingMs));
         }
 
         throw new ServiceError(

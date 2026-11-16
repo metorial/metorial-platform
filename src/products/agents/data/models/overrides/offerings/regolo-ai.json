@@ -1,0 +1,37 @@
+{
+  "brick-complexity-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Regolo's own Brick tier (2026): Regolo's blog describes Brick as classifying prompts and forwarding to a model pool, while listings present Brick Complexity Pro as its agent-serving model. No index entry for Regolo/Brick and no identifiable base model, so wait for models.dev.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "brick-v1-beta": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Regolo's own model page: Brick v1 Beta is a lightweight prompt-complexity classifier for LLM routing pipelines, a LoRA-tuned Qwen 3.5 0.8B (2026). A first-party Regolo classifier the index has no entry for; a fine-tune is not the Qwen base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gpt-oss-120b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Regolo serves OpenAI's open-weight GPT OSS 120B checkpoint (117B MoE, 5.1B active, 128K context); same model as openai/gpt-oss-120b, with Regolo's 1.1215/4.7103 price well above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen-image": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's original Qwen-Image (Hugging Face Qwen/Qwen-Image, Aug 2025), the 20B MMDiT text-to-image model; the index's Qwen-Image line starts at 2.0 (Mar 2026), so defer rather than link a later generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3-reranker-4b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-Reranker-4B (Hugging Face Qwen/Qwen3-Reranker-4B, Jun 2025), the mid-size text reranker of the Qwen3 Embedding/Reranker series; the index has only the 0.6B and 8B rerankers, so defer rather than link a different size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

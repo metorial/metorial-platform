@@ -1,5 +1,22 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import {
+  triggerDispatchCron,
+  triggerDispatchQueueProcessor,
+  triggerMappedDispatchQueueProcessor
+} from './dispatch';
+import {
+  triggerWebhookExpandQueueProcessor,
+  triggerWebhookExpansionCron,
+  triggerWebhookExpansionSearchQueueProcessor
+} from './webhookExpand';
+import {
+  triggerWebhookRenewCron,
+  triggerWebhookRenewQueueProcessor,
+  triggerWebhookRenewSearchQueueProcessor,
+  triggerWebhookRenewResultCleanupQueueProcessor,
+  triggerWebhookRenewResultSearchQueueProcessor
+} from './webhookRenew';
+import {
   triggerRawEventCleanupQueueProcessor,
   triggerRawEventFailedSweepCron,
   triggerRawEventFailedSweepQueueProcessor
@@ -15,11 +32,7 @@ import { triggerPollQueueProcessor } from './poll';
 import { triggerRawEventMappingQueueProcessor } from './rawEventMapping';
 import { triggerRegistrationCleanupQueueProcessor } from './registrationCleanup';
 import { triggerRoutingMatcherResyncQueueProcessor } from './routingMatcherResync';
-import {
-  triggerScheduleReleaseStaleClaimsCron,
-  triggerScheduleSearchCron,
-  triggerScheduleSearchQueueProcessor
-} from './schedule';
+import { triggerScheduleSearchCron, triggerScheduleSearchQueueProcessor } from './schedule';
 import { triggerRegistrationInstanceSetupQueueProcessor } from './setup';
 import {
   triggerWebhookRediscoverCron,
@@ -37,8 +50,18 @@ import {
 import { triggerWebhookUnregisterQueueProcessor } from './webhookUnregister';
 
 export let triggerQueues = combineQueueProcessors([
+  triggerDispatchCron,
+  triggerDispatchQueueProcessor,
+  triggerMappedDispatchQueueProcessor,
+  triggerWebhookExpandQueueProcessor,
+  triggerWebhookExpansionCron,
+  triggerWebhookExpansionSearchQueueProcessor,
+  triggerWebhookRenewCron,
+  triggerWebhookRenewQueueProcessor,
+  triggerWebhookRenewSearchQueueProcessor,
+  triggerWebhookRenewResultCleanupQueueProcessor,
+  triggerWebhookRenewResultSearchQueueProcessor,
   triggerScheduleSearchCron,
-  triggerScheduleReleaseStaleClaimsCron,
   triggerScheduleSearchQueueProcessor,
   triggerPollQueueProcessor,
   triggerRegistrationInstanceSetupQueueProcessor,

@@ -1,0 +1,9 @@
+{
+  "gpt-oss-120b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Opper serves OpenAI's open-weight GPT OSS 120B checkpoint (117B MoE, 5.1B active, 128K context); same model as openai/gpt-oss-120b, with Opper's 1.1622/4.88124 price well above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

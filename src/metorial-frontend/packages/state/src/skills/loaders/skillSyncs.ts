@@ -1,4 +1,5 @@
 import type {
+  DashboardInstanceSkillsSyncsForceBody,
   DashboardInstanceSkillsSyncsGetOutput,
   DashboardInstanceSkillsSyncsListQuery
 } from '@metorial/dashboard-sdk';
@@ -29,6 +30,13 @@ export let skillSyncsLoader = createLoader({
     withAuth(sdk => sdk.skillSyncs.list(i.instanceId, normalizeSkillSyncsListQuery(i))),
   mutators: {}
 });
+
+export let useForceSkillSync = skillSyncsLoader.createExternalMutator(
+  (i: DashboardInstanceSkillsSyncsForceBody & { instanceId: string; skillSyncId: string }) =>
+    withAuth(sdk =>
+      sdk.skillSyncs.force(i.instanceId, i.skillSyncId, { allowMassDelete: i.allowMassDelete })
+    )
+);
 
 export let useSkillSyncs = (
   instanceId: string | null | undefined,

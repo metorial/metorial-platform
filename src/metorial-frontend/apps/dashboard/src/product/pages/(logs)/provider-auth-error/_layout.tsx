@@ -89,14 +89,10 @@ export let ProviderAuthErrorLayout = () => {
     <ExtraHeaderLayout
       header={
         <Link
-          to={Paths.instance.providerAuthErrors(
-            organization.data,
-            project.data,
-            instance.data
-          )}
+          to={Paths.instance.providerIssues(organization.data, project.data, instance.data)}
         >
           <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to all auth errors
+            Back to all issues
           </Button>
         </Link>
       }
@@ -108,12 +104,8 @@ export let ProviderAuthErrorLayout = () => {
         )}
         breadcrumbs={[
           {
-            label: 'Auth Errors',
-            to: Paths.instance.providerAuthErrors(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            label: 'Issues',
+            to: Paths.instance.providerIssues(organization.data, project.data, instance.data)
           },
           {
             label: group.data?.code ? getErrorLabel(group.data.code) : 'Auth Error',

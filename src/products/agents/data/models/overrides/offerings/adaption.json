@@ -1,0 +1,9 @@
+{
+  "qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Offering is exactly Qwen3.8 27B (text+image input, 262K context match); Adaption's odd cheap-input/expensive-output split is vendor pricing, not a different model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

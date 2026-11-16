@@ -6,6 +6,7 @@ export type DashboardOrganizationsProjectsDeleteOutput = {
   status: 'active' | 'deleted';
   slug: string;
   name: string;
+  assistantEnabled: boolean;
   organizationId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -13,6 +14,6 @@ export type DashboardOrganizationsProjectsDeleteOutput = {
 
 export let mapDashboardOrganizationsProjectsDeleteOutput =
   /* @__PURE__ */ mapObject<DashboardOrganizationsProjectsDeleteOutput>(
-    ['organization_id', 'created_at', 'updated_at'],
+    ['assistant_enabled', 'organization_id', 'created_at', 'updated_at'],
     1
   );

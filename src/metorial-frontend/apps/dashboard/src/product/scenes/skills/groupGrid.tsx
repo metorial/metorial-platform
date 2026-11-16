@@ -1,19 +1,17 @@
-import type { DashboardInstanceSkillsGroupsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import type { DashboardInstanceSkillsGroupsListOutput } from '@metorial/dashboard-sdk';
+import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
+import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useSkillGroups
-} from '@metorial/state';
-import { Avatar, Text, theme } from '@metorial/ui';
+import { useSkillGroups } from '@metorial/state';
+import { Avatar, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { EmptyState } from '@metorial/empty-state';
+import { useInstanceContext } from '../../lib/dataList';
+import { entityFilters } from '../entityFilters';
 import { showSkillGroupFormModal } from './groupModal';
 
+type SkillGroup = DashboardInstanceSkillsGroupsListOutput['items'][number];
 
 let Description = styled.span`
   display: -webkit-box;
@@ -51,101 +49,86 @@ export let SkillGroupGridCard = (p: {
         size={30}
       />
     }
-    bottom={
-      <Text size="1">{p.skillGroup.id}</Text>
-    }
+    bottom={<Text size="1">{p.skillGroup.id}</Text>}
   />
 );
 
-export let SkillGroupsGrid = (
-  p: { instanceId: string } & Omit<
-    DashboardInstanceSkillsGroupsListQuery,
-    'after' | 'before' | 'cursor' | 'limit'
-  >
-) => {
-  let { instanceId, ...query } = p;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
+export let SkillGroupsEmptyState = () => {
+  let ctx = useInstanceContext();
   let navigate = useNavigate();
-  let skillGroups = useSkillGroups(instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 21,
-    ...query
-  });
-  let hasActiveFilters = !!(
-    query.search ||
-    query.skillId ||
-    query.createdAt ||
-    query.updatedAt ||
-    (Array.isArray(query.status) ? query.status.length > 0 : query.status)
+
+  return (
+    <EmptyState
+      extra="Skill Groups"
+      title="Create your first group"
+      description="Groups let you organize related skills and manage them as a set."
+      action={{
+        label: 'Create Group',
+        onClick: () => {
+          if (!ctx.instanceId) return;
+
+          showSkillGroupFormModal({
+            instanceId: ctx.instanceId,
+            onCreate: skillGroup =>
+              navigate(
+                Paths.instance.skillGroup(
+                  ctx.organization,
+                  ctx.project,
+                  ctx.instance,
+                  skillGroup.id
+                )
+              )
+          });
+        }
+      }}
+    />
   );
-
-  let showCreateModal = () => {
-    if (!instance.data) return;
-
-    showSkillGroupFormModal({
-      instanceId: instance.data.id,
-      onCreate: skillGroup => {
-        navigate(
-          Paths.instance.skillGroup(
-            organization.data,
-            project.data,
-            instance.data,
-            skillGroup.id
-          )
-        );
-      }
-    });
-  };
-
-  return renderWithPagination(skillGroups, {
-    emptyState: (
-      <>
-        {query.search && (
-          <Text size="2" color="gray600">
-            No groups found.
-          </Text>
-        )}
-
-        {!hasActiveFilters && (
-          <EmptyState
-            extra="Skill Groups"
-            title="Create your first group"
-            description="Groups let you organize related skills and manage them as a set."
-            action={{
-              label: 'Create Group',
-              onClick: showCreateModal
-            }}
-          />
-        )}
-
-        {!query.search && hasActiveFilters && (
-          <Text size="2" color="gray600">
-            No groups match the current filters.
-          </Text>
-        )}
-      </>
-    )
-  })(skillGroups => (
-    <>
-      {skillGroups.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
-          {skillGroups.data.items.map(skillGroup => (
-            <SkillGroupGridCard
-              key={skillGroup.id}
-              skillGroup={skillGroup}
-              href={Paths.instance.skillGroup(
-                organization.data,
-                project.data,
-                instance.data,
-                skillGroup.id
-              )}
-            />
-          ))}
-        </ItemGrid.Root>
-      )}
-    </>
-  ));
 };
+
+export let SkillGroupsList = createDataList('skill-groups')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+    skillId: f.entity(entityFilters.skill(ctx.instanceId)),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search groups…')
+  .paginated(({ ctx, filters, search }) =>
+    useSkillGroups(
+      ctx.instanceId,
+      withDefaults(
+        { order: 'desc' as const, status: ['active' as const], limit: 21 },
+        { ...filters, search }
+      )
+    )
+  )
+  .columns([
+    col.name<SkillGroup>(),
+    col.createdAt<SkillGroup>(),
+    col.id<SkillGroup>({ isDefault: true }),
+    col.status<SkillGroup, any>(lifecycleStatus, { isDefault: false }),
+    col.updatedAt<SkillGroup>()
+  ])
+  .link((group, _props, ctx) =>
+    Paths.instance.skillGroup(ctx.organization, ctx.project, ctx.instance, group.id)
+  )
+  .item(group => ({
+    title: group.name,
+    description: (
+      <Description>{group.description || 'No description provided yet.'}</Description>
+    ),
+    icon: (
+      <Avatar
+        entity={{
+          name: group.name,
+          imageUrl: `https://avatar-cdn.metorial.com/${group.id}`
+        }}
+        size={30}
+      />
+    ),
+    footer: <Text size="1">{group.id}</Text>,
+    height: 200
+  }))
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .build();

@@ -80,23 +80,24 @@ model Skill {
   deletedAt  DateTime?
 
   accessTagEntities               AccessTagEntity[]
-  consumerAccesses                ConsumerAccess[]                 @relation("ConsumerAccessSkill")
+  consumerAccesses                ConsumerAccess[]                    @relation("ConsumerAccessSkill")
   consumerAccessListings          ConsumerAccessListing[]
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]
+  skillParticipants               SkillParticipant[]               @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]
   skillDestinationItems           SkillDestinationItem[]
   managedSkillPlugins             ManagedSkillPlugin[]
   skillExportRefs                 SkillExportRef[]
-  sourceMergeRequests             SkillMergeRequest[]              @relation("SkillMergeRequestSource")
-  targetMergeRequests             SkillMergeRequest[]              @relation("SkillMergeRequestTarget")
-  forkSyncs                       SkillForkSync[]                  @relation("SkillForkSyncFork")
-  upstreamForkSyncs               SkillForkSync[]                  @relation("SkillForkSyncUpstream")
+  sourceMergeRequests             SkillMergeRequest[]                 @relation("SkillMergeRequestSource")
+  targetMergeRequests             SkillMergeRequest[]                 @relation("SkillMergeRequestTarget")
+  forkSyncs                       SkillForkSync[]                     @relation("SkillForkSyncFork")
+  upstreamForkSyncs               SkillForkSync[]                     @relation("SkillForkSyncUpstream")
   skillImportItems                SkillImportItem[]
+  consumerDeviceClientExclusions  ConsumerDeviceClientExcludedSkill[]
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeId])
@@ -130,4 +131,5 @@ model SkillVersion {
 
   @@unique([skillOid, versionNumber])
   @@index([skillOid, createdAt])
+  @@index([createdAt])
 }

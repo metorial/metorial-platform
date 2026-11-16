@@ -56,6 +56,7 @@ model SkillPlugin {
   magicMcpTokens                 MagicMcpToken[]
   magicMcpEndpoints              MagicMcpEndpoint[]
   managed                        ManagedSkillPlugin?
+  skillGroupPlugin               SkillGroupPlugin?
   skillPluginSkills              SkillPluginSkill[]
   skillMarketplacePlugins        SkillMarketplacePlugin[]
   skillDestinationItems          SkillDestinationItem[]
@@ -105,6 +106,7 @@ model SkillMarketplacePlugin {
 
   @@unique([skillMarketplaceOid, skillPluginOid])
   @@unique([skillMarketplaceOid, pluginSlug])
+  @@index([skillPluginOid, status])
 }
 
 model SkillPluginRepository {
@@ -157,6 +159,7 @@ model SkillPluginSkill {
 
   @@unique([skillPluginOid, skillOid])
   @@unique([skillPluginOid, pluginSkillSlug])
+  @@index([skillOid, status])
 }
 
 model ManagedSkillPlugin {
@@ -173,4 +176,24 @@ model ManagedSkillPlugin {
 
   createdAt       DateTime         @default(now())
   skillExportRefs SkillExportRef[]
+}
+
+model SkillGroupPlugin {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  /// [SkillGroupPluginSyncIssues]
+  syncIssues Json?
+
+  lastReconciledAt DateTime?
+  createdAt        DateTime  @default(now())
+
+  skillGroupOid BigInt
+  skillGroup    SkillGroup @relation(fields: [skillGroupOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt      @unique
+  skillPlugin    SkillPlugin @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  @@index([skillGroupOid])
+  @@index([lastReconciledAt])
 }

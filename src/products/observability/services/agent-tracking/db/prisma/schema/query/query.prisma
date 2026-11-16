@@ -1,0 +1,51 @@
+enum QueryExportStatus {
+  queued
+  running
+  completed
+  failed
+  cancelled
+  expired
+}
+
+model QueryExport {
+  oid BigInt @id
+  id  String @unique
+
+  status QueryExportStatus @default(queued)
+  format String
+
+  /// [CanonicalQuery]
+  query Json
+  /// [QueryExportScope]
+  scope Json
+  asOf  DateTime
+
+  objectKey String
+  uploadId  String?
+  /// [QueryExportParts]
+  parts     Json    @default("[]")
+  cursor    String?
+  rows      BigInt  @default(0)
+  bytes     BigInt  @default(0)
+
+  leaseOwner     String?
+  leaseExpiresAt DateTime?
+  attempts       Int       @default(0)
+  lastProgressAt DateTime?
+  error          String?
+
+  selectsPersonal Boolean @default(false)
+
+  createdBy   String?
+  completedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  @@index([organizationOid, createdAt])
+  @@index([status, leaseExpiresAt])
+  @@index([status, expiresAt])
+}

@@ -1,0 +1,16 @@
+{
+  "qwen3-embedding-4b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-embedding-4b",
+    "reason": "Privatemode serves Alibaba's Qwen3-Embedding 4B (Qwen/Qwen3-Embedding-4B on Hugging Face, 32K window); its 0.1502 input rate is the vendor's confidential-compute premium over the model's 0.02 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voxtral-mini-3b": {
+    "decision": "link",
+    "model": "mistral/voxtral-mini-3b-2507",
+    "reason": "Privatemode serves Mistral's Voxtral Mini 3B (2507) speech model; its 0.00462 audio rate is the vendor's own pricing for that checkpoint, below the model's text-token median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

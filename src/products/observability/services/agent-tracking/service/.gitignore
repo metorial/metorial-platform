@@ -1,0 +1,14 @@
+node_modules/
+dist
+
+# dotenv environment variable files
+.env
+.env.*
+!.env.example
+
+*.log
+*.tsbuildinfo
+
+coverage/
+.vitest/
+

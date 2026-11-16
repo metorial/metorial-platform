@@ -41,6 +41,9 @@ let ProviderOverviewPage = dynamicPage(() =>
 let ProviderUsagePage = dynamicPage(() =>
   import('./pages/provider/usage').then(c => c.ProviderUsagePage)
 );
+let ProviderSecurityPage = dynamicPage(() =>
+  import('./pages/provider/security').then(c => c.ProviderSecurityPage)
+);
 let ProviderVersionsPage = dynamicPage(() =>
   import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
 );
@@ -93,17 +96,8 @@ let SkillProvidersPage = dynamicPage(() =>
 let SkillAgentsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/agents').then(c => c.SkillAgentsPage)
 );
-let SkillAgentDocumentPage = dynamicPage(() =>
-  import('./pages/(skills)/skill/agent').then(c => c.SkillAgentDocumentPage)
-);
-let SkillParticipantsPage = dynamicPage(() =>
-  import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
-);
 let SkillGroupsForSkillPage = dynamicPage(() =>
   import('./pages/(skills)/skill/groups').then(c => c.SkillGroupsPage)
-);
-let SkillVersionsPage = dynamicPage(() =>
-  import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
 );
 let SkillMergeRequestsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/merge-requests').then(c => c.SkillMergeRequestsPage)
@@ -114,17 +108,23 @@ let SkillMergeRequestPage = dynamicPage(() =>
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
 );
+let SkillSecurityPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/security').then(c => c.SkillSecurityPage)
+);
 let SkillTemplateLayout = dynamicPage(() =>
   import('./pages/(skills)/skill-template/_layout').then(c => c.SkillTemplateLayout)
 );
 let SkillTemplatePage = dynamicPage(() =>
   import('./pages/(skills)/skill-template').then(c => c.SkillTemplatePage)
 );
+let SkillTemplateItemPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/item').then(c => c.SkillTemplateItemPage)
+);
+let SkillTemplateProvidersPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/providers').then(c => c.SkillTemplateProvidersPage)
+);
 let SkillTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-template/settings').then(c => c.SkillTemplateSettingsPage)
-);
-let SkillGroupLayout = dynamicPage(() =>
-  import('./pages/(skills)/skill-group/_layout').then(c => c.SkillGroupLayout)
 );
 let SkillGroupPage = dynamicPage(() =>
   import('./pages/(skills)/skill-group').then(c => c.SkillGroupPage)
@@ -137,9 +137,6 @@ let SkillMarketplaceLayout = dynamicPage(() =>
 );
 let SkillMarketplacePage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace').then(c => c.SkillMarketplacePage)
-);
-let SkillMarketplaceEditorPage = dynamicPage(() =>
-  import('./pages/(skills)/skill-marketplace/editor').then(c => c.SkillMarketplaceEditorPage)
 );
 let SkillMarketplaceSyncsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/syncs').then(c => c.SkillMarketplaceSyncsPage)
@@ -170,6 +167,9 @@ let IntegrationInstancesPage = dynamicPage(() =>
 );
 let IntegrationUsagePage = dynamicPage(() =>
   import('./pages/(integrations)/integration/usage').then(c => c.IntegrationUsagePage)
+);
+let IntegrationAccessPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/access').then(c => c.IntegrationAccessPage)
 );
 let IntegrationSettingsPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/settings').then(c => c.IntegrationSettingsPage)
@@ -208,6 +208,9 @@ let MagicMcpServerOverviewPage = dynamicPage(() =>
 );
 let MagicMcpServerUsagePage = dynamicPage(() =>
   import('./pages/magic-mcp/server/usage').then(c => c.MagicMcpServerUsagePage)
+);
+let MagicMcpServerAccessPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/access').then(c => c.MagicMcpServerAccessPage)
 );
 let MagicMcpServerConfigPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
@@ -295,11 +298,17 @@ let ManagedServersPage = dynamicPage(() =>
 let SessionLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
 );
-let AuthLogsListLayout = dynamicPage(() =>
-  import('./pages/(logs)/(list)/_layout').then(c => c.AuthLogsListLayout)
+let ProviderIssuesPage = dynamicPage(() =>
+  import('./pages/(logs)/(list)/provider-issues').then(c => c.ProviderIssuesPage)
 );
-let ServerErrorsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/provider-errors').then(c => c.ProviderErrorsPage)
+let ProviderIssuesRedirect = dynamicPage(() =>
+  import('./pages/(logs)/(list)/provider-issues').then(c => c.ProviderIssuesRedirect)
+);
+let ProviderIssuePage = dynamicPage(() =>
+  import('./pages/(logs)/provider-issue').then(c => c.ProviderIssuePage)
+);
+let ProviderIssueLayout = dynamicPage(() =>
+  import('./pages/(logs)/provider-issue/_layout').then(c => c.ProviderIssueLayout)
 );
 let SessionsPage = dynamicPage(() =>
   import('./pages/(logs)/(list)/sessions').then(c => c.SessionsPage)
@@ -315,12 +324,6 @@ let ServerErrorPage = dynamicPage(() =>
 );
 let ServerErrorLayout = dynamicPage(() =>
   import('./pages/(logs)/provider-error/_layout').then(c => c.ProviderErrorLayout)
-);
-let ProviderAuthErrorsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/provider-auth-errors').then(c => c.ProviderAuthErrorsPage)
-);
-let ProviderAuthEventsPage = dynamicPage(() =>
-  import('./pages/(logs)/(list)/provider-auth-events').then(c => c.ProviderAuthEventsPage)
 );
 let ProviderAuthErrorPage = dynamicPage(() =>
   import('./pages/(logs)/provider-auth-error').then(c => c.ProviderAuthErrorPage)
@@ -359,6 +362,11 @@ let EventDestinationsPage = dynamicPage(() =>
 );
 let EventsPage = dynamicPage(() =>
   import('./pages/(callbacks)/(list)/events').then(c => c.EventsPage)
+);
+let WebhookRegistrationsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/(list)/webhook-registrations').then(
+    c => c.WebhookRegistrationsPage
+  )
 );
 let WebhookRegistrationLayout = dynamicPage(() =>
   import('./pages/(callbacks)/webhook-registration/_layout').then(
@@ -536,26 +544,14 @@ export let productLogsSlice = createSlice([
                     element: <ToolCallsPage />
                   },
                   {
-                    path: 'provider-errors',
-                    element: <ServerErrorsPage />
+                    path: 'provider-issues',
+                    element: <ProviderIssuesPage />
                   }
                 ]
               },
-              {
-                path: '',
-                element: <AuthLogsListLayout />,
-
-                children: [
-                  {
-                    path: 'provider-auth-events',
-                    element: <ProviderAuthEventsPage />
-                  },
-                  {
-                    path: 'provider-auth-errors',
-                    element: <ProviderAuthErrorsPage />
-                  }
-                ]
-              }
+              { path: 'provider-errors', element: <ProviderIssuesRedirect /> },
+              { path: 'provider-auth-errors', element: <ProviderIssuesRedirect /> },
+              { path: 'provider-auth-events', element: <ProviderIssuesRedirect /> }
             ]
           },
 
@@ -590,12 +586,12 @@ export let productLogsSlice = createSlice([
             ]
           },
           {
-            path: 'provider-errors',
+            path: 'provider-issues',
             element: <ProviderSessionsListLayout />,
             children: [
               {
                 path: '',
-                element: <ServerErrorsPage />
+                element: <ProviderIssuesPage />
               }
             ]
           }
@@ -614,6 +610,18 @@ export let productTraceDetailSlice = createSlice([
         element: <InstanceLayout />,
 
         children: [
+          {
+            path: 'provider-issue/:providerIssueId',
+            element: <ProviderIssueLayout />,
+
+            children: [
+              {
+                path: '',
+                element: <ProviderIssuePage />
+              }
+            ]
+          },
+
           {
             path: 'provider-error/:providerErrorId',
             element: <ServerErrorLayout />,
@@ -990,20 +998,8 @@ export let productSkillsSlice = createSlice([
                 element: <SkillAgentsPage />
               },
               {
-                path: 'agent/:documentId',
-                element: <SkillAgentDocumentPage />
-              },
-              {
-                path: 'participants',
-                element: <SkillParticipantsPage />
-              },
-              {
                 path: 'groups',
                 element: <SkillGroupsForSkillPage />
-              },
-              {
-                path: 'versions',
-                element: <SkillVersionsPage />
               },
               {
                 path: 'merge-requests',
@@ -1016,6 +1012,10 @@ export let productSkillsSlice = createSlice([
               {
                 path: 'settings',
                 element: <SkillSettingsPage />
+              },
+              {
+                path: 'security',
+                element: <SkillSecurityPage />
               }
             ]
           },
@@ -1028,6 +1028,14 @@ export let productSkillsSlice = createSlice([
                 element: <SkillTemplatePage />
               },
               {
+                path: 'item/:itemId',
+                element: <SkillTemplateItemPage />
+              },
+              {
+                path: 'providers',
+                element: <SkillTemplateProvidersPage />
+              },
+              {
                 path: 'settings',
                 element: <SkillTemplateSettingsPage />
               }
@@ -1035,7 +1043,6 @@ export let productSkillsSlice = createSlice([
           },
           {
             path: 'skill-group/:skillGroupId',
-            element: <SkillGroupLayout />,
             children: [
               {
                 path: '',
@@ -1054,10 +1061,6 @@ export let productSkillsSlice = createSlice([
               {
                 path: '',
                 element: <SkillMarketplacePage />
-              },
-              {
-                path: 'editor',
-                element: <SkillMarketplaceEditorPage />
               },
               {
                 path: 'syncs',
@@ -1159,6 +1162,10 @@ export let productIntegrationsSlice = createSlice([
                 )
               },
               {
+                path: 'access',
+                element: <IntegrationAccessPage />
+              },
+              {
                 path: 'settings',
                 element: <IntegrationSettingsPage />
               }
@@ -1207,6 +1214,10 @@ export let productIntegrationsSlice = createSlice([
                 ]
               },
               {
+                path: 'security',
+                element: <ProviderSecurityPage />
+              },
+              {
                 path: 'versions',
                 element: <ProviderVersionsPage />
               },
@@ -1248,6 +1259,10 @@ export let productIntegrationsSlice = createSlice([
                   {
                     path: 'usage',
                     element: <MagicMcpServerUsagePage />
+                  },
+                  {
+                    path: 'access',
+                    element: <MagicMcpServerAccessPage />
                   },
                   {
                     path: 'config',
@@ -1401,6 +1416,15 @@ export let productCallbacksSlice = createSlice([
                 element: <CallbackSettingsPage />
               }
             ]
+          },
+
+          {
+            path: 'webhook-registrations',
+            element: (
+              <FlaggedPage flag="callbacks-enabled">
+                <WebhookRegistrationsPage />
+              </FlaggedPage>
+            )
           },
 
           {

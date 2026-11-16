@@ -79,6 +79,7 @@ export type DashboardInstanceSkillsMergeRequestsEventsGetOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -155,6 +156,7 @@ export type DashboardInstanceSkillsMergeRequestsEventsGetOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -244,7 +246,8 @@ export let mapDashboardInstanceSkillsMergeRequestsEventsGetOutput =
                                     ['is_default', 'created_at', 'updated_at']
                                   ]
                                 ],
-                                'assigned_via'
+                                'assigned_via',
+                                'sso_group_ids'
                               ]
                             ]
                           ]
@@ -334,7 +337,8 @@ export let mapDashboardInstanceSkillsMergeRequestsEventsGetOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]

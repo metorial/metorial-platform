@@ -1,11 +1,10 @@
-import { mapObject } from '@metorial/util-resource-mapper/compact';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsParticipantsGetOutput = {
   object: 'skill.participant';
   id: string;
   skillId: string;
-  roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
-  hasOrganizationMemberAccess: boolean;
+  roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
   actor: {
     type: 'organization_actor' | 'consumer' | 'resource_actor';
     name: string;
@@ -73,6 +72,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -81,7 +81,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   surfaces:
     | {
         id: string;
-        roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+        roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
         actor: {
           type: 'organization_actor' | 'consumer' | 'resource_actor';
           name: string;
@@ -149,6 +149,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -161,97 +162,19 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   lastActiveAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-};
+} & { consumerId: string | null; hasOrganizationMemberAccess: boolean };
 
 export let mapDashboardInstanceSkillsParticipantsGetOutput =
-  /* @__PURE__ */ mapObject<DashboardInstanceSkillsParticipantsGetOutput>(
+  /* @__PURE__ */ createMapper<DashboardInstanceSkillsParticipantsGetOutput>(
     [
-      'skill_id',
-      'has_organization_member_access',
+      3,
       [
-        'actor',
-        0,
         [
-          1,
-          [
-            'image_url',
-            [
-              'organization_actor',
-              1,
-              [
-                1,
-                [
-                  'organization_id',
-                  'image_url',
-                  [
-                    'teams',
-                    0,
-                    [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
-                  ],
-                  'created_at',
-                  'updated_at'
-                ]
-              ]
-            ],
-            [
-              'consumer',
-              0,
-              [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
-            ],
-            [
-              'consumer_profile',
-              1,
-              [
-                3,
-                [
-                  [
-                    0,
-                    [
-                      1,
-                      [
-                        'image_url',
-                        'consumer_id',
-                        'user_id',
-                        'created_at',
-                        'updated_at',
-                        [
-                          'groups',
-                          0,
-                          [
-                            2,
-                            [
-                              1,
-                              [
-                                [
-                                  'group',
-                                  0,
-                                  [
-                                    1,
-                                    ['is_default', 'created_at', 'updated_at']
-                                  ]
-                                ],
-                                'assigned_via'
-                              ]
-                            ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ]
-          ]
-        ]
-      ],
-      [
-        'surfaces',
-        0,
-        [
-          2,
+          0,
           [
             1,
             [
+              'skill_id',
               [
                 'actor',
                 0,
@@ -270,21 +193,14 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                           [
                             'teams',
                             0,
-                            [
-                              2,
-                              [1, ['assignment_id', 'created_at', 'updated_at']]
-                            ]
+                            [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
                           ],
                           'created_at',
                           'updated_at'
                         ]
                       ]
                     ],
-                    [
-                      'consumer',
-                      0,
-                      [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
-                    ],
+                    ['consumer', 0, [1, ['image_url', 'user_id', 'created_at', 'updated_at']]],
                     [
                       'consumer_profile',
                       1,
@@ -312,16 +228,10 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                                         [
                                           'group',
                                           0,
-                                          [
-                                            1,
-                                            [
-                                              'is_default',
-                                              'created_at',
-                                              'updated_at'
-                                            ]
-                                          ]
+                                          [1, ['is_default', 'created_at', 'updated_at']]
                                         ],
-                                        'assigned_via'
+                                        'assigned_via',
+                                        'sso_group_ids'
                                       ]
                                     ]
                                   ]
@@ -335,15 +245,106 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
                   ]
                 ]
               ],
+              [
+                'surfaces',
+                0,
+                [
+                  2,
+                  [
+                    1,
+                    [
+                      [
+                        'actor',
+                        0,
+                        [
+                          1,
+                          [
+                            'image_url',
+                            [
+                              'organization_actor',
+                              1,
+                              [
+                                1,
+                                [
+                                  'organization_id',
+                                  'image_url',
+                                  [
+                                    'teams',
+                                    0,
+                                    [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                                  ],
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
+                            ],
+                            [
+                              'consumer',
+                              0,
+                              [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                            ],
+                            [
+                              'consumer_profile',
+                              1,
+                              [
+                                3,
+                                [
+                                  [
+                                    0,
+                                    [
+                                      1,
+                                      [
+                                        'image_url',
+                                        'consumer_id',
+                                        'user_id',
+                                        'created_at',
+                                        'updated_at',
+                                        [
+                                          'groups',
+                                          0,
+                                          [
+                                            2,
+                                            [
+                                              1,
+                                              [
+                                                [
+                                                  'group',
+                                                  0,
+                                                  [
+                                                    1,
+                                                    ['is_default', 'created_at', 'updated_at']
+                                                  ]
+                                                ],
+                                                'assigned_via',
+                                                'sso_group_ids'
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ],
+                      'last_active_at',
+                      'created_at'
+                    ]
+                  ]
+                ]
+              ],
               'last_active_at',
-              'created_at'
+              'created_at',
+              'updated_at',
+              'consumer_id',
+              'has_organization_member_access'
             ]
           ]
         ]
-      ],
-      'last_active_at',
-      'created_at',
-      'updated_at'
+      ]
     ],
     1
   );

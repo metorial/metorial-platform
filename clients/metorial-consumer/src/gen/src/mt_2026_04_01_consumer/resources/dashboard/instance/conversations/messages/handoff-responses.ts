@@ -26,11 +26,7 @@ export type DashboardInstanceConversationsMessagesHandoffResponsesOutput = {
     object: 'assistant.request';
     id: string;
     status:
-      | 'pending'
-      | 'waiting_for_user'
-      | 'completed'
-      | 'cancelled'
-      | 'failed';
+      'pending' | 'waiting_for_user' | 'completed' | 'cancelled' | 'failed';
     actor: {
       type: 'organization_actor' | 'consumer' | 'resource_actor';
       name: string;
@@ -98,11 +94,13 @@ export type DashboardInstanceConversationsMessagesHandoffResponsesOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
         | null;
     } | null;
+    context: { mode: string; requestedMode: string; canWrite: boolean } | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -196,7 +194,8 @@ export let mapDashboardInstanceConversationsMessagesHandoffResponsesOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]
@@ -210,6 +209,7 @@ export let mapDashboardInstanceConversationsMessagesHandoffResponsesOutput =
                 ]
               ]
             ],
+            ['context', 0, [1, ['requested_mode', 'can_write']]],
             'created_at',
             'updated_at'
           ]

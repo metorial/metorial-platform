@@ -1,0 +1,37 @@
+{
+  "BAAI/bge-large-en-v1.5": {
+    "decision": "link",
+    "model": "baai/bge-large-en-v1.5",
+    "reason": "Exact match to BAAI/bge-large-en-v1.5 (335M-parameter English embedding model, 512-token window). Hugging Face's flat $0.01/1M price is simply well below the model's median across providers.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen2.5-Coder-32B-Instruct": {
+    "decision": "link",
+    "model": "alibaba/qwen2.5-coder-32b-instruct",
+    "reason": "Exact Hugging Face id Qwen/Qwen2.5-Coder-32B-Instruct, Alibaba's open-weight coder model (2024-11-12, 131K context); HF's 0.06/0.2 inference price is below the model's median but it is the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-Coder-480B-A35B-Instruct": {
+    "decision": "link",
+    "model": "alibaba/qwen3-coder-480b-a35b-instruct",
+    "reason": "Exact Hugging Face id Qwen/Qwen3-Coder-480B-A35B-Instruct, Alibaba's open agentic-coding MoE (2025-07-22, 262K context); HF's flat 2/2 inference price is far above the model's median but it is the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-R1-0528": {
+    "decision": "link",
+    "model": "deepseek/deepseek-r1-0528",
+    "reason": "Exact checkpoint: deepseek-ai/DeepSeek-R1-0528 on Hugging Face (MIT, released 2025-05-28) is the catalog's DeepSeek R1 0528. HF inference pricing (3/5) is far above what other providers charge for this model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai-org/GLM-4.6V-Flash": {
+    "decision": "link",
+    "model": "zhipu/glm-4.6v-flash",
+    "reason": "zai-org/GLM-4.6V-Flash on Hugging Face is Z.ai's 9B lightweight vision-language model of the GLM-4.6V series (released 2025-12-08), matching zhipu/glm-4.6v-flash; HF's 0.3/0.9 inference price is above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "glm-4.5-airx": {
+    "decision": "link",
+    "model": "zhipu/glm-4.5-air",
+    "reason": "GLM-4.5-AirX is Z.ai's speed-optimized serving of the same GLM-4.5-Air checkpoint (same capabilities and 131K context, ~10x faster responses); the 1.1/4.5 price is the speed premium.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

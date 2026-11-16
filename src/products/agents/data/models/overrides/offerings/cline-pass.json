@@ -1,0 +1,9 @@
+{
+  "cline-pass/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Cline Pass serves Meta's Muse Spark 1.3 Contributor tier (offered free in Cline); it is the same Muse Spark 1.3 weights under data-contribution terms, not a separate model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

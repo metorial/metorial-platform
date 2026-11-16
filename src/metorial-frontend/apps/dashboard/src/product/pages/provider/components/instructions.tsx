@@ -1,5 +1,5 @@
 import { CodeBlock } from '@metorial/code';
-import { AnimatePanes, Control, Spacer, theme } from '@metorial/ui';
+import { AnimatePanes, OptionToggle, Spacer, theme } from '@metorial/ui';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { CodeViewer } from './codeViewer';
@@ -124,7 +124,10 @@ let InstructionItem = ({ item }: { item: InstructionItem }) => {
       <ItemAside>
         {options.length > 1 && (
           <>
-            <Control
+            <OptionToggle
+              ariaLabel="Variant"
+              size="2"
+              itemMinWidth={64}
               items={options.map((option, i) => ({
                 id: String(i),
                 label: option.label

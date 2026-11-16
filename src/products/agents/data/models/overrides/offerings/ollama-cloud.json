@@ -1,0 +1,16 @@
+{
+  "nemotron-3-super": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "reason": "Ollama's own library page: Nemotron 3 Super is NVIDIA's 120B MoE with 12B active parameters; Ollama Cloud's 0.015/0.6 rate is its own pricing for that checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nemotron-3-ultra": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "reason": "Ollama's own library page: Nemotron 3 Ultra is NVIDIA's 550B MoE with 55B active parameters; Ollama Cloud's 0.1/3 rate is its own pricing for that checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

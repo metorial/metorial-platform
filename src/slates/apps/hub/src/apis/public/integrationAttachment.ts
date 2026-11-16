@@ -184,7 +184,10 @@ export let integrationAttachmentApp = createHono().get(
           'content-disposition': ATTACHMENT_CONTENT_DISPOSITION
         });
         if (preferUrl) responseHeaders.set(ATTACHMENT_RESULT_RESPONSE_HEADER, 'direct');
-        return new Response(object.data, { status: 200, headers: responseHeaders });
+        return new Response(new Uint8Array(object.data), {
+          status: 200,
+          headers: responseHeaders
+        });
       }
 
       if (!attachment.targetUrl) {

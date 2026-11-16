@@ -1,0 +1,8 @@
+{
+  "name": "metorial-models",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "models.metorial.com", "custom_domain": true }],
+  "assets": { "directory": "./site" }
+}

@@ -1,0 +1,44 @@
+{
+  "bee-brood": {
+    "decision": "exclude",
+    "category": "deployment",
+    "reason": "Bee by HEOSSI is a gateway; bee-brood is a product-tier endpoint alias for an undisclosed upstream model (no public weights; its HF org has no model repos), so no catalog model can be identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bee-buzz": {
+    "decision": "exclude",
+    "category": "deployment",
+    "reason": "Bee by HEOSSI is a gateway; bee-buzz is a product-tier endpoint alias for an undisclosed upstream model (no public weights; its HF org has no model repos), so no catalog model can be identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bee-cell": {
+    "decision": "exclude",
+    "category": "deployment",
+    "reason": "Bee by HEOSSI is a gateway; bee-cell is a product-tier endpoint alias for an undisclosed upstream model (no public weights; its HF org has no model repos), so no catalog model can be identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bee-comb": {
+    "decision": "exclude",
+    "category": "deployment",
+    "reason": "Bee by HEOSSI is a gateway; bee-comb is a product-tier endpoint alias for an undisclosed upstream model (no public weights; its HF org has no model repos), so no catalog model can be identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bee-hive": {
+    "decision": "exclude",
+    "category": "deployment",
+    "reason": "Bee by HEOSSI is a gateway; bee-hive is a product-tier endpoint alias for an undisclosed upstream model (no public weights; its HF org has no model repos), so no catalog model can be identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bee-swarm": {
+    "decision": "exclude",
+    "category": "deployment",
+    "reason": "Bee by HEOSSI is a gateway; bee-swarm is a product-tier endpoint alias for an undisclosed upstream model (no public weights; its HF org has no model repos), so no catalog model can be identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

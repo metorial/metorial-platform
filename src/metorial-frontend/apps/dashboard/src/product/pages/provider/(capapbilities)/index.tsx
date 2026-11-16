@@ -1,12 +1,7 @@
-import { DashboardInstanceProvidersToolsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
-import {
-  useCurrentInstance,
-  useProviderToolCategories,
-  useProviderTools
-} from '@metorial/state';
-import { Badge, Button, Flex, Text, showModal } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { useCurrentInstance } from '@metorial/state';
+import { showModal } from '@metorial/ui';
+import { ProviderToolsTable, type ProviderTool } from '../../../scenes/providers/toolsTable';
 import { getJsonSchemaObject } from '../../../lib/jsonSchema';
 import { useProviderVersionContext } from '../providerVersionContext';
 import {
@@ -19,7 +14,6 @@ import {
   type CapabilityMetadataBadge
 } from './components/detailsPanel';
 
-type ProviderTool = DashboardInstanceProvidersToolsListOutput['items'][number];
 type ToolModeBadge = CapabilityMetadataBadge;
 
 let getToolModeBadges = (tool: Pick<ProviderTool, 'tags'>) => {
@@ -39,24 +33,6 @@ let getToolModeBadges = (tool: Pick<ProviderTool, 'tags'>) => {
 export let ProviderToolsPage = () => {
   let instance = useCurrentInstance();
   let { selectedVersionId } = useProviderVersionContext();
-  let tools = useProviderTools(
-    instance.data?.id,
-    selectedVersionId ? { providerVersionId: selectedVersionId } : null
-  );
-
-  let toolItems = tools.data?.items ?? [];
-  let hasToolCategories = toolItems.some(tool => tool.toolCategoryKeys.length > 0);
-  let toolCategories = useProviderToolCategories(instance.data?.id, toolItems);
-  let categoryNames = new Map(
-    (toolCategories.getCategories(toolItems) ?? []).map(category => [
-      category.key,
-      category.name
-    ])
-  );
-
-  let getCategoryLabels = (tool: ProviderTool) =>
-    tool.toolCategoryKeys.map(key => ({ key, label: categoryNames.get(key) ?? key }));
-
   let onViewDetails = (tool: ProviderTool) => {
     let modeBadges = getToolModeBadges(tool);
 
@@ -67,7 +43,7 @@ export let ProviderToolsPage = () => {
 
     let metadataBadges: CapabilityMetadataBadge[] = [
       ...modeBadges,
-      ...getCategoryLabels(tool).map(category => ({
+      ...tool.categoryLabels.map(category => ({
         label: category.label,
         color: 'blue' as const
       })),
@@ -117,65 +93,11 @@ export let ProviderToolsPage = () => {
     ));
   };
 
-  let toolsContent = renderWithLoader({ tools })(({ tools }) => (
-    <>
-      <Table
-        headers={hasToolCategories ? ['Name', 'Type', 'Categories', ''] : ['Name', 'Type', '']}
-        data={tools.data.items.map(tool => {
-          let modeBadges = getToolModeBadges(tool);
-          let description =
-            tool.description && tool.description.length > 110
-              ? `${tool.description.slice(0, 110)}...`
-              : (tool.description ?? '');
-
-          return {
-            data: [
-              <Flex direction="column" gap={2}>
-                <Text size="2" weight="strong">
-                  {tool.name}
-                </Text>
-              </Flex>,
-              <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                {modeBadges.length > 0 ? (
-                  modeBadges.map(modeBadge => (
-                    <Badge key={modeBadge.label} color={modeBadge.color} size="2">
-                      {modeBadge.label}
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge color="gray" size="2">
-                    Default
-                  </Badge>
-                )}
-              </Flex>,
-              ...(hasToolCategories
-                ? [
-                    <Flex gap={6} align="center" wrap="wrap">
-                      {getCategoryLabels(tool).map(category => (
-                        <Badge key={category.key} color="blue" size="2">
-                          {category.label}
-                        </Badge>
-                      ))}
-                    </Flex>
-                  ]
-                : []),
-              <Flex justify="end" style={{ width: '100%' }}>
-                <Button size="2" variant="outline" onClick={() => onViewDetails(tool)}>
-                  View Details
-                </Button>
-              </Flex>
-            ]
-          };
-        })}
-      />
-
-      {tools.data.items.length === 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No tools found for this provider.
-        </Text>
-      )}
-    </>
+  return renderWithLoader({ instance })(({ instance }) => (
+    <ProviderToolsTable
+      instanceId={instance.data.id}
+      providerVersionId={selectedVersionId}
+      onViewDetails={onViewDetails}
+    />
   ));
-
-  return renderWithLoader({ instance })(() => toolsContent);
 };

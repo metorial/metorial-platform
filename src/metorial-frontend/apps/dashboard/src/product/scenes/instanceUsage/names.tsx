@@ -38,6 +38,12 @@ let unknownGroupNames: Partial<Record<UsageGroupBy, string>> = {
   error_type: 'Unknown error'
 };
 
+let usageKindNames: Partial<Record<string, string>> = {
+  session_error: 'Tool errors',
+  auth_error: 'Auth errors',
+  protoguard_warning: 'ProtoGuard warnings'
+};
+
 export let getUnknownGroupName = (groupBy: UsageGroupBy | undefined) =>
   (groupBy && unknownGroupNames[groupBy]) ?? 'Unknown';
 
@@ -79,7 +85,8 @@ export let useUsageGroupNames = (groupBy: UsageGroupBy | undefined, ids: string[
     }
 
     return (id: string) => {
-      if (groupBy == 'error_type' || groupBy == 'kind') return formatUsageLabel(id);
+      if (groupBy == 'kind') return usageKindNames[id] ?? formatUsageLabel(id);
+      if (groupBy == 'error_type') return formatUsageLabel(id);
       return names.get(id);
     };
   }, [groupBy, providers.data, magicMcpServers.data, integrations.data]);

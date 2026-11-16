@@ -1,16 +1,19 @@
-import { renderWithPagination } from '@metorial/data-hooks';
-import {
-  useSandboxImage,
-  useSandboxImageBuildsForImage,
-  useSandboxImageVersions
-} from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
-import { formatDurationBetween, formatEnumLabel } from '../lib/format';
+import { col, createDataList, defineStatus } from '@metorial/data-list';
+import type {
+  DashboardInstanceSandboxImageBuildsListOutput,
+  DashboardInstanceSandboxImagesVersionsListOutput
+} from '@metorial/dashboard-sdk';
+import { Paths } from '@metorial/frontend-config';
+import { useSandboxImageBuildsForImage, useSandboxImageVersions } from '@metorial/state';
+import { useInstanceContext } from '../../../lib/dataList';
+import { formatDurationBetween } from '../lib/format';
 import { SandboxBuildStatusBadge } from '../shared/statusBadges';
-import { imageVersionLabel, useSandboxImagePaths } from './common';
+import { imageVersionLabel } from './common';
 
 export type ImageBuildFilter = 'all' | 'succeeded' | 'failed' | 'progress';
+
+type Build = DashboardInstanceSandboxImageBuildsListOutput['items'][number];
+type Version = DashboardInstanceSandboxImagesVersionsListOutput['items'][number];
 
 let statusFilter = (status: ImageBuildFilter) =>
   status === 'all'
@@ -27,97 +30,110 @@ let statusFilter = (status: ImageBuildFilter) =>
             'replicating' as const
           ];
 
-let OwnVersions = ({
-  imageId,
-  limit,
-  status
-}: {
-  imageId: string;
-  limit: number;
-  status: ImageBuildFilter;
-}) => {
-  let paths = useSandboxImagePaths();
-  let image = useSandboxImage(paths.instanceId, imageId);
-  let builds = useSandboxImageBuildsForImage(paths.instanceId, imageId, {
-    order: 'desc',
-    limit,
-    status: statusFilter(status)
-  });
-  return renderWithPagination(builds, {
-    hidePaginationWhenUnavailable: true
-  })(builds =>
-    builds.data.items.length ? (
-      <Table
-        headers={['Version', 'Build Status', 'Duration', 'Regions', 'Created']}
-        data={builds.data.items.map(build => ({
-          href: paths.version(imageId, build.versionId),
-          data: [
-            <span>
-              {imageVersionLabel({
-                id: build.versionId,
-                versionNumber: build.versionNumber
-              })}{' '}
-            </span>,
-            <SandboxBuildStatusBadge status={build.status} />,
-            formatDurationBetween(build.createdAt, build.endedAt),
-            build.regions.map(region => `${region.region} · ${region.status}`).join(', ') ||
-              '—',
-            <RenderDate date={build.createdAt} />
-          ]
-        }))}
-      />
-    ) : (
-      <Text size="2">No versions found. Start a build to create one.</Text>
-    )
-  );
-};
+let versionStatus = defineStatus({
+  active: { label: 'Active', color: 'blue' },
+  pending: { label: 'Pending', color: 'orange' },
+  deleted: { label: 'Deleted', color: 'gray' }
+});
 
-let GlobalVersions = ({ imageId, limit }: { imageId: string; limit: number }) => {
-  let paths = useSandboxImagePaths();
-  let image = useSandboxImage(paths.instanceId, imageId);
-  let versions = useSandboxImageVersions(paths.instanceId, imageId, { limit, order: 'desc' });
-  return renderWithPagination(versions, {
-    hidePaginationWhenUnavailable: true
-  })(versions =>
-    versions.data.items.length ? (
-      <Table
-        headers={['Version', 'Status', 'Regions', 'Created']}
-        data={versions.data.items.map(version => [
-          <span>{imageVersionLabel(version)}</span>,
-          <Badge
-            color={
-              version.status === 'active'
-                ? 'blue'
-                : version.status === 'pending'
-                  ? 'orange'
-                  : 'gray'
-            }
-          >
-            {formatEnumLabel(version.status)}
-          </Badge>,
-          version.regions.join(', ') || '—',
-          <RenderDate date={version.createdAt} />
-        ])}
-      />
-    ) : (
-      <Text size="2">No versions available.</Text>
+type OwnVersionsProps = { imageId: string; status: ImageBuildFilter };
+
+let OwnVersionsList = createDataList<OwnVersionsProps>('sandbox-image-builds', {
+  customizable: false
+})
+  .context(useInstanceContext)
+  .paginated(({ props, ctx, limit }) =>
+    useSandboxImageBuildsForImage(ctx.instanceId, props.imageId, {
+      order: 'desc',
+      limit,
+      status: statusFilter(props.status)
+    })
+  )
+  .columns([
+    col.text<Build>({
+      id: 'version',
+      header: 'Version',
+      get: build =>
+        imageVersionLabel({ id: build.versionId, versionNumber: build.versionNumber })
+    }),
+    col.custom<Build>({
+      id: 'status',
+      header: 'Build Status',
+      render: build => <SandboxBuildStatusBadge status={build.status} />
+    }),
+    col.text<Build>({
+      id: 'duration',
+      header: 'Duration',
+      get: build => formatDurationBetween(build.createdAt, build.endedAt)
+    }),
+    col.text<Build>({
+      id: 'regions',
+      header: 'Regions',
+      get: build =>
+        build.regions.map(region => `${region.region} · ${region.status}`).join(', ')
+    }),
+    col.createdAt<Build>()
+  ])
+  .link((build, props, ctx) =>
+    Paths.instance.sandboxImageVersion(
+      ctx.organization,
+      ctx.project,
+      ctx.instance,
+      props.imageId,
+      build.versionId
     )
-  );
-};
+  )
+  .build();
+
+let GlobalVersionsList = createDataList<{ imageId: string }>('sandbox-image-versions', {
+  customizable: false
+})
+  .context(useInstanceContext)
+  .paginated(({ props, ctx, limit }) =>
+    useSandboxImageVersions(ctx.instanceId, props.imageId, { limit, order: 'desc' })
+  )
+  .columns([
+    col.text<Version>({
+      id: 'version',
+      header: 'Version',
+      get: version => imageVersionLabel(version)
+    }),
+    col.status<Version, 'active' | 'pending' | 'deleted'>(versionStatus),
+    col.text<Version>({
+      id: 'regions',
+      header: 'Regions',
+      get: version => version.regions.join(', ')
+    }),
+    col.createdAt<Version>()
+  ])
+  .build();
 
 export let SandboxImageVersionsTable = ({
   imageId,
   owner,
   limit = 20,
-  status = 'all'
+  status = 'all',
+  variant = 'embedded'
 }: {
   imageId: string;
   owner: 'own' | 'global';
   limit?: number;
   status?: ImageBuildFilter;
+  variant?: 'embedded' | 'preview';
 }) =>
   owner === 'own' ? (
-    <OwnVersions imageId={imageId} limit={limit} status={status} />
+    <OwnVersionsList
+      imageId={imageId}
+      status={status}
+      listVariant={variant}
+      listLimit={limit}
+      emptyState="No versions found. Start a build to create one."
+    />
   ) : (
-    <GlobalVersions imageId={imageId} limit={limit} />
+    <GlobalVersionsList
+      imageId={imageId}
+      listVariant={variant}
+      listLimit={limit}
+      emptyState="No versions available."
+    />
   );

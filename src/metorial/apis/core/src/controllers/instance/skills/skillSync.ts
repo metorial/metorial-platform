@@ -13,6 +13,7 @@ import { skillSyncPresenter, skillSyncRepositoryChecksPresenter } from '@metoria
 import { getSkillPluginAccess } from './skillPlugin';
 
 let readScopes = ['instance.skill:read'] as const;
+let writeScopes = ['instance.skill:write'] as const;
 
 let statusValidator = v.enumOf([
   'pending',
@@ -128,6 +129,42 @@ export let skillSyncController = Controller.create(
         });
 
         return skillSyncRepositoryChecksPresenter.present({ repositoryChecks });
+      }),
+
+    force: skillSyncGroup
+      .post(
+        Path(
+          '/dashboard/instances/:instanceId/skill-syncs/:skillSyncId/force',
+          'dashboard.instance.skills.syncs.force'
+        ),
+        {
+          name: 'Force skill sync',
+          description:
+            'Starts a new sync of the same marketplace or plugin and sends it to every linked repository, even if nothing changed.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body(
+        'default',
+        v.object({
+          allow_mass_delete: v.optional(
+            v.boolean({
+              name: 'allow_mass_delete',
+              description:
+                "Let the new sync delete repository files Metorial didn't expect, past the deletion guard. Only for marketplaces and plugins on manifest storage."
+            })
+          )
+        })
+      )
+      .output(skillSyncPresenter)
+      .do(async ctx => {
+        let skillSync = await skillSyncService.forceSkillSync({
+          ...(await getSkillPluginAccess(ctx)),
+          skillSyncId: ctx.skillSync.id,
+          allowMassDelete: ctx.body.allow_mass_delete
+        });
+
+        return skillSyncPresenter.present({ skillSync });
       })
   }
 );

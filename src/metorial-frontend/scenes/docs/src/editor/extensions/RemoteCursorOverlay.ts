@@ -167,16 +167,23 @@ let getActiveRemoteClientIds = (awareness: Awareness) => {
   return active;
 };
 
+let viewsPublishingCursor = new WeakSet<EditorView>();
+
 let publishLocalCursor = (view: EditorView, awareness: Awareness) => {
   let ystate = getYSyncState(view.state);
   if (!ystate || ystate.binding.mapping.size === 0) return;
 
   if (!view.hasFocus()) {
-    if ((awareness.getLocalState() as RemoteCursorState | null)?.cursor != null) {
+    if (
+      viewsPublishingCursor.delete(view) &&
+      (awareness.getLocalState() as RemoteCursorState | null)?.cursor != null
+    ) {
       awareness.setLocalStateField('cursor', null);
     }
     return;
   }
+
+  viewsPublishingCursor.add(view);
 
   let selection = view.state.selection;
   let anchor = absolutePositionToRelativePosition(
@@ -309,7 +316,12 @@ export let RemoteCursorOverlay = (options: RemoteCursorOverlayOptions) =>
               scheduleOverlayUpdate();
             };
 
-            awareness.on('update', refresh);
+            let handleAwarenessUpdate = (_change: unknown, origin: unknown) => {
+              if (origin === 'local') return;
+              refresh();
+            };
+
+            awareness.on('update', handleAwarenessUpdate);
             view.dom.addEventListener('focusin', handleFocusChange);
             view.dom.addEventListener('focusout', handleFocusChange);
             window.addEventListener('resize', scheduleOverlayUpdate);
@@ -326,7 +338,7 @@ export let RemoteCursorOverlay = (options: RemoteCursorOverlayOptions) =>
               },
               destroy: () => {
                 cancelAnimationFrame(raf);
-                awareness.off('update', refresh);
+                awareness.off('update', handleAwarenessUpdate);
                 awareness.setLocalStateField('cursor', null);
                 view.dom.removeEventListener('focusin', handleFocusChange);
                 view.dom.removeEventListener('focusout', handleFocusChange);

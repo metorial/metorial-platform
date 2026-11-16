@@ -10,6 +10,7 @@ export let v1ProjectPresenter = Presenter.create(projectType)
     status: project.status,
     slug: project.slug,
     name: project.name,
+    assistant_enabled: project.assistantEnabled && !project.reducedSubprocessors,
     organization_id: project.organization.id,
     created_at: project.createdAt,
     updated_at: project.updatedAt
@@ -38,6 +39,11 @@ export let v1ProjectPresenter = Presenter.create(projectType)
         name: 'name',
         description: `The project's name`,
         examples: ['API Integration']
+      }),
+      assistant_enabled: v.boolean({
+        description:
+          'Whether Metorial Assistant is available in this project, including compliance restrictions.',
+        examples: [true]
       }),
       organization_id: v.string({
         name: 'organization_id',

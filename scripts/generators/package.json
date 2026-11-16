@@ -13,7 +13,7 @@
     "generate:client:python": "bun start --snapshot=${INTROSPECTION_SNAPSHOT:-../../clients/.introspection/snapshot.json} ../../clients/metorial-python/src/metorial/_generated python",
     "generate:client:python_": "bun start --snapshot=${INTROSPECTION_SNAPSHOT:-../../clients/.introspection/snapshot.json} ../../clients/metorial-python/packages/metorial-generated python",
     "generate:client:go": "bun start --snapshot=${INTROSPECTION_SNAPSHOT:-../../clients/.introspection/snapshot.json} ../../clients/metorial-go/v1 go",
-    "test": "bun test src/languages/typescript/*.test.ts",
+    "test": "bun test src/*.test.ts src/languages/typescript/*.test.ts",
     "benchmark:mappers": "bun src/languages/typescript/benchmark.ts",
     "benchmark:mapper-patterns": "bun src/languages/typescript/patterns.benchmark.ts"
   },

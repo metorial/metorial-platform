@@ -3,8 +3,6 @@ import { showScmRepositoryPicker } from '@metorial/scene-scm';
 import {
   allSkillMarketplacePluginsLoader,
   skillMarketplaceLoader,
-  type SkillMarketplaceRepository,
-  type SkillPluginRepository,
   useCreateSkillMarketplaceRepository,
   useCreateSkillPluginRepository,
   useCurrentOrganization,
@@ -12,7 +10,9 @@ import {
   useDeleteSkillMarketplaceRepository,
   useDeleteSkillPluginRepository,
   useSkillMarketplaceRepositories,
-  useSkillPluginRepositories
+  useSkillPluginRepositories,
+  type SkillMarketplaceRepository,
+  type SkillPluginRepository
 } from '@metorial/state';
 import { Badge, Button, Menu, RenderDate, Text, confirm, theme } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
@@ -57,6 +57,12 @@ let ContentActions = styled.div`
   justify-content: flex-end;
   margin-bottom: 12px;
 `;
+
+let marketplaceManagedScopeNotice =
+  'Metorial manages the plugins/ folder and the marketplace manifest files in each linked repository, and removes anything else it finds there when it syncs.';
+
+let pluginManagedScopeNotice =
+  'Metorial manages the skills/ folder and the plugin manifest files in each linked repository, and removes anything else it finds there when it syncs.';
 
 let formatRepoProvider = (provider: 'github' | 'gitlab' | 'bitbucket' | undefined) => {
   if (provider === 'github') return 'GitHub';
@@ -164,7 +170,6 @@ export let SkillPluginRepositoriesSettingsBox = (p: {
       excludedRepositoryIdentifiers: linkedRepositoryIdentifiers,
       allowCreate: true,
       title: 'Link repository',
-      description: 'Select or create a Git repository, then link it to this skill plugin.',
       onManageSourceControl: manageSourceControl,
       onSelect: async repo => {
         let [created] = await createRepository.mutate({
@@ -210,7 +215,7 @@ export let SkillMarketplaceRepositoriesSettingsBox = (p: {
   return (
     <Box
       title="Repositories"
-      description="Link repositories used to source and sync this skill resource."
+      description={`Link repositories to sync this marketplace into. ${marketplaceManagedScopeNotice}`}
       rightActions={
         <Button
           size="2"
@@ -254,8 +259,6 @@ export let useSkillMarketplaceRepositoriesManager = (p: {
       excludedRepositoryIdentifiers: linkedRepositoryIdentifiers,
       allowCreate: true,
       title: 'Link repository',
-      description:
-        'Select or create a Git repository, then link it to this skill marketplace.',
       onManageSourceControl: manageSourceControl,
       onClose: () => {
         repositories.refetch();
@@ -380,7 +383,7 @@ let RepositoriesBox = (p: {
   return (
     <Box
       title="Repositories"
-      description="Link repositories used to source and sync this skill resource."
+      description={`Link repositories to sync this plugin into. ${pluginManagedScopeNotice}`}
       rightActions={
         <Button size="2" iconLeft={<RiAddLine />} onClick={p.onOpenPicker} variant="outline">
           Link Repository

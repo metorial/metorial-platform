@@ -3,6 +3,7 @@ import { DetailsSettingsLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCallbackById,
+  useCallbackRegistration,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
@@ -10,6 +11,10 @@ import {
 import { Button, Input, Spacer } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  CallbackRegistrationNotice,
+  TriggerSelectionsForm
+} from '../../../scenes/callbacks/triggerSelections';
 import { DeleteResourceDangerZone } from '../../../scenes/deleteResourceDangerZone';
 
 export let CallbackSettingsPage = () => {
@@ -18,7 +23,9 @@ export let CallbackSettingsPage = () => {
   let project = useCurrentProject();
   let { callbackId } = useParams();
   let callback = useCallbackById(instance.data?.id, callbackId);
+  let registration = useCallbackRegistration(instance.data?.id, callbackId);
   let updateMutator = callback.useUpdateMutator();
+  let selectionsMutator = callback.useUpdateMutator();
   let deleteMutator = callback.useDeleteMutator();
   let navigate = useNavigate();
 
@@ -74,6 +81,45 @@ export let CallbackSettingsPage = () => {
       </Box>
 
       <Spacer size={20} />
+
+      {callback.data.triggerGroups.length ? (
+        <>
+          <Box
+            title="Trigger Selections"
+            description="Some triggers can be narrowed to what you choose, such as specific folders. Saving re-registers the affected triggers."
+          >
+            <TriggerSelectionsForm
+              triggerGroups={callback.data.triggerGroups}
+              selections={callback.data.triggerGroupSelections}
+              lookup={
+                instance.data
+                  ? { instanceId: instance.data.id, callbackId: callback.data.id }
+                  : undefined
+              }
+              registration={registration}
+              loading={selectionsMutator.isLoading}
+              success={selectionsMutator.isSuccess}
+              onSave={selections =>
+                selectionsMutator.mutate({ triggerGroupSelections: selections })
+              }
+            />
+            <selectionsMutator.RenderError />
+          </Box>
+
+          <Spacer size={20} />
+        </>
+      ) : registration.isRegistering || registration.failure || registration.hasTimedOut ? (
+        <>
+          <Box
+            title="Trigger Selections"
+            description="Triggers that take a selection appear here once the callback is registered."
+          >
+            <CallbackRegistrationNotice registration={registration} />
+          </Box>
+
+          <Spacer size={20} />
+        </>
+      ) : null}
 
       <DeleteResourceDangerZone
         description="Turning callbacks off stops event delivery for this integration provider and removes every registration Metorial made with the provider."

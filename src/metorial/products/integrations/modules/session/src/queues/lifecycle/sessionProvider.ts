@@ -1,5 +1,6 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { requestSecurityReview } from '@metorial-subspace/module-security-review-request';
 import { env } from '../../env';
 
 export let sessionProviderCreatedQueue = createQueue<{ sessionProviderId: string }>({
@@ -14,7 +15,7 @@ export let sessionProviderCreatedQueueProcessor = sessionProviderCreatedQueue.pr
       where: { id: data.sessionProviderId }
     });
 
-    await db.providerUse.upsert({
+    let use = await db.providerUse.upsert({
       where: {
         tenantOid_solutionOid_environmentOid_providerOid: {
           tenantOid: sessionProvider.tenantOid,
@@ -42,5 +43,14 @@ export let sessionProviderCreatedQueueProcessor = sessionProviderCreatedQueue.pr
         lastUseAt: new Date()
       }
     });
+
+    if (use.sessions + use.deployments == 1) {
+      let provider = await db.provider.findUnique({
+        where: { oid: sessionProvider.providerOid },
+        select: { id: true }
+      });
+
+      if (provider) await requestSecurityReview({ subject: 'provider', id: provider.id });
+    }
   }
 );

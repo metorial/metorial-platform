@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { providerIssueRecorderService } from '@metorial-subspace/module-provider-issue';
 import {
   recordProviderAuthErrorUsage,
   recordProviderAuthEventUsage
@@ -200,6 +201,8 @@ let createErrorForAuthConfig = async (d: {
       groupOid: group.oid
     }
   });
+
+  await providerIssueRecorderService.recordAuthConfigError({ authConfigErrorId: error.id });
 };
 
 let getAuthConfigVersionForSync = async (d: { providerAuthConfigVersionId: string }) =>

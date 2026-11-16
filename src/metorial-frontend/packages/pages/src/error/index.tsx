@@ -76,6 +76,7 @@ export let ErrorPage = ({
   title,
   description,
   onRetry,
+  onHome,
   homeHref = '/',
   retryLabel = 'Try again',
   homeLabel = 'Go home'
@@ -83,6 +84,7 @@ export let ErrorPage = ({
   title: string;
   description: string;
   onRetry?: () => void;
+  onHome?: () => void;
   homeHref?: string;
   retryLabel?: string;
   homeLabel?: string;
@@ -109,7 +111,11 @@ export let ErrorPage = ({
           <Button color="red" onClick={retry}>
             {retryLabel}
           </Button>
-          <Button color="gray" variant="outline" onClick={() => window.location.assign(homeHref)}>
+          <Button
+            color="gray"
+            variant="outline"
+            onClick={onHome ?? (() => window.location.assign(homeHref))}
+          >
             {homeLabel}
           </Button>
         </Actions>

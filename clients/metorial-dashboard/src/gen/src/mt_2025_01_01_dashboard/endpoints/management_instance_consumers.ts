@@ -5,6 +5,8 @@ import {
 
 import {
   mapDashboardInstanceConsumersCreateBody,
+  mapDashboardInstanceConsumersCreateMemberSessionBody,
+  mapDashboardInstanceConsumersCreateMemberSessionOutput,
   mapDashboardInstanceConsumersCreateOutput,
   mapDashboardInstanceConsumersGetMemberConsumerBody,
   mapDashboardInstanceConsumersGetMemberConsumerOutput,
@@ -14,6 +16,8 @@ import {
   mapDashboardInstanceConsumersUpdateBody,
   mapDashboardInstanceConsumersUpdateOutput,
   type DashboardInstanceConsumersCreateBody,
+  type DashboardInstanceConsumersCreateMemberSessionBody,
+  type DashboardInstanceConsumersCreateMemberSessionOutput,
   type DashboardInstanceConsumersCreateOutput,
   type DashboardInstanceConsumersGetMemberConsumerBody,
   type DashboardInstanceConsumersGetMemberConsumerOutput,
@@ -169,6 +173,38 @@ export class MetorialManagementInstanceConsumersEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceConsumersGetMemberConsumerOutput
+    );
+  }
+
+  /**
+   * @name Create member consumer session
+   * @description Exchanges a CLI sign-in for a short-lived credential for the member’s own consumer profile.
+   *
+   * @param `instanceId` - string
+   * @param `body` - DashboardInstanceConsumersCreateMemberSessionBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceConsumersCreateMemberSessionOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  createMemberSession(
+    instanceId: string,
+    body: DashboardInstanceConsumersCreateMemberSessionBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceConsumersCreateMemberSessionOutput> {
+    let path = `instances/${instanceId}/member-consumer-session`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceConsumersCreateMemberSessionBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceConsumersCreateMemberSessionOutput
     );
   }
 

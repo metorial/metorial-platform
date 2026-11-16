@@ -6,6 +6,7 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
+  useDashboardFlags,
   useMagicMcpServer
 } from '@metorial/state';
 import { RenderDate } from '@metorial/ui';
@@ -16,6 +17,7 @@ import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerButton, type OpenExplorerMode } from '../../../components/openExplorer';
 import { ResourceOwnerInline } from '../../../components/resourceOwnerEntity';
 import { useResourceOwnershipAccess } from '../../../lib/resourceOwnership';
+import { ResourceSharePopover } from '../../../scenes/portalShare';
 
 export let MagicMcpServerLayout = () => {
   let instance = useCurrentInstance();
@@ -27,6 +29,11 @@ export let MagicMcpServerLayout = () => {
   let createSession = useCreateMagicMcpServerSession();
   let [isCreatingSession, setIsCreatingSession] = useState(false);
   let ownership = useResourceOwnershipAccess(server.data);
+  let flags = useDashboardFlags();
+  let portalSharing =
+    !!flags.data?.flags['portals-access'] &&
+    !!flags.data?.flags['paid-portals'] &&
+    ownership.canUse;
 
   let serverPathParams = [
     organization.data,
@@ -68,12 +75,42 @@ export let MagicMcpServerLayout = () => {
       tabs={[
         { label: 'Overview', to: Paths.instance.magicMcp.server(...serverPathParams) },
         { label: 'Usage', to: Paths.instance.magicMcp.server(...serverPathParams, 'usage') },
+        ...(portalSharing
+          ? [
+              {
+                label: 'Access',
+                to: Paths.instance.magicMcp.server(...serverPathParams, 'access')
+              }
+            ]
+          : []),
         {
           label: 'Settings',
           to: Paths.instance.magicMcp.server(...serverPathParams, 'config')
         }
       ]}
       actions={[
+        ...(portalSharing && server.data
+          ? [
+              {
+                type: 'custom' as const,
+                render: () => (
+                  <ResourceSharePopover
+                    instanceId={instance.data?.id}
+                    resource={
+                      server.data
+                        ? {
+                            type: 'magic_mcp_server',
+                            id: server.data.id,
+                            name: server.data.name ?? server.data.id,
+                            description: server.data.description
+                          }
+                        : null
+                    }
+                  />
+                )
+              }
+            ]
+          : []),
         {
           type: 'custom',
           render: () => (

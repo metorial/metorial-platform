@@ -32,12 +32,16 @@ model TriggerEvent {
   mappedType String?
   mappedId   String?
 
+  /// [TriggerEventAttributes]
+  attributes Json?
+
   errorCode    String?
   errorMessage String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  dispatch    TriggerEventDispatch?
   invocations TriggerEventInvocation[]
 
   @@unique([rawEventOid, triggerId])
@@ -68,4 +72,14 @@ model TriggerEventInvocation {
   createdAt DateTime @default(now())
 
   @@index([triggerEventOid, createdAt])
+}
+
+model TriggerEventDispatch {
+  eventOid BigInt       @id
+  event    TriggerEvent @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
+
+  nextAttemptAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([nextAttemptAt, eventOid])
 }

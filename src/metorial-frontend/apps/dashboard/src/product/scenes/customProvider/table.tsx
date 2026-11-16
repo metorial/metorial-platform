@@ -1,109 +1,34 @@
-import {
+import type {
   DashboardInstanceCustomProvidersListOutput,
   DashboardInstanceCustomProvidersListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import {
+  col,
+  createDataList,
+  f,
+  lifecycleStatus,
+  normalizeArrayFilterValue,
+  withDefaults
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useCustomProviders
-} from '@metorial/state';
-import { Input, Spacer, Text, theme } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
-import styled from 'styled-components';
-import {
-  TableFilters,
-  useFilterQuery,
-  FilterPayload,
-  TableFilter,
-  TableFilterState,
-  getFilterPayload,
-  getConstrainedEnumListFilterValue,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getListFilterValue,
-  normalizeArrayFilterValue
-} from '@metorial/table';
-import { useDebounced } from '@metorial/use-debounced';
+import { useCustomProviders } from '@metorial/state';
+import { Text } from '@metorial/ui';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 import { CustomProviderImage } from './image';
 import { getCustomProviderRemoteProtocolLabel } from './utils';
 
 type CustomProvider = DashboardInstanceCustomProvidersListOutput['items'][number];
 
-let customProviderTypeOptions: {
-  id: CustomProvider['type'];
-  label: string;
-}[] = [
-  { id: 'function', label: 'Function' },
-  { id: 'container', label: 'Container' },
-  { id: 'remote', label: 'Remote' }
-];
+export type CustomProvidersFilters = Omit<
+  DashboardInstanceCustomProvidersListQuery,
+  'after' | 'before' | 'cursor'
+>;
 
-let getCustomProviderStatusColor = (status: CustomProvider['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
-
-let getTypeLabel = (type: CustomProvider['type']) => {
-  if (type === 'function') return 'Function';
-  if (type === 'container') return 'Container';
-  return 'Remote';
-};
-
-let Toolbar = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1;
-  min-width: 260px;
-`;
-
-let HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-`;
-
-let HeaderBadges = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-`;
-
-let getStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceCustomProvidersListQuery['status'] => {
-  return getEnumListFilterValue(value, ['active', 'archived']);
-};
-
-let getTypeFilterValue = (
-  value: FilterPayload | undefined,
-  defaultValue: DashboardInstanceCustomProvidersListQuery['type']
-): DashboardInstanceCustomProvidersListQuery['type'] => {
-  return getConstrainedEnumListFilterValue(
-    value,
-    ['function', 'container', 'remote'],
-    defaultValue
-  );
-};
-
-let getDateFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceCustomProvidersListQuery['createdAt'] => {
-  return getDateRangeFilterValue(value);
+let typeLabels: Record<string, string> = {
+  function: 'Function',
+  container: 'Container',
+  remote: 'Remote'
 };
 
 let getRepositoryLabel = (provider: CustomProvider) => {
@@ -116,53 +41,6 @@ let getRepositoryLabel = (provider: CustomProvider) => {
     return provider.scmRepo.url;
   }
 };
-
-let getCommonCustomProviderFilters = (
-  instanceId: string | undefined
-): TableFilter<CustomProvider>[] => [
-  {
-    id: 'status',
-    fields: ['status'],
-    label: 'Status',
-    description: 'Filter by status',
-    type: 'select',
-    options: [
-      { id: 'active', label: 'Active' },
-      { id: 'archived', label: 'Archived' }
-    ]
-  },
-  entityFilters.provider(instanceId, { label: 'Published Provider' }),
-  {
-    id: 'createdAt',
-    fields: ['createdAt'],
-    label: 'Created',
-    description: 'Filter by created date',
-    type: 'date'
-  },
-  {
-    id: 'updatedAt',
-    fields: ['updatedAt'],
-    label: 'Updated',
-    description: 'Filter by updated date',
-    type: 'date'
-  }
-];
-
-let getManagedCustomProviderFilters = (
-  instanceId: string | undefined
-): TableFilter<CustomProvider>[] => [
-  {
-    id: 'type',
-    fields: ['type'],
-    label: 'Type',
-    description: 'Filter by type',
-    type: 'select',
-    options: customProviderTypeOptions.filter(
-      option => option.id === 'function' || option.id === 'container'
-    )
-  },
-  ...getCommonCustomProviderFilters(instanceId)
-];
 
 let getProviderDetail = (provider: CustomProvider) => {
   if (provider.draft.remoteMcpServer?.url) {
@@ -181,139 +59,134 @@ let getProviderDetail = (provider: CustomProvider) => {
 
   let repositoryLabel = getRepositoryLabel(provider);
   if (repositoryLabel) {
-    return {
-      label: repositoryLabel,
-      secondary: provider.scmRepo?.defaultBranch
-    };
+    return { label: repositoryLabel, secondary: provider.scmRepo?.defaultBranch };
   }
 
   if (provider.provider?.slug) {
-    return {
-      label: provider.provider.slug,
-      secondary: provider.provider.access
-    };
+    return { label: provider.provider.slug, secondary: provider.provider.access };
   }
 
-  return {
-    label: undefined,
-    secondary: undefined
-  };
+  return { label: undefined, secondary: undefined };
 };
+
+let getTitle = (provider: CustomProvider) =>
+  provider.name || provider.provider?.name || 'Untitled';
+
+let createCustomProvidersList = (opts: { name: string; hasTypeFilter: boolean }) =>
+  createDataList<{ filters?: CustomProvidersFilters }>(opts.name)
+    .context(useInstanceContext)
+    .filters((_props, ctx) => {
+      let { type, ...common } = {
+        type: f.select('type', 'Type', [
+          { id: 'function', label: 'Function' },
+          { id: 'container', label: 'Container' }
+        ]),
+        status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+        providerId: f.entity(
+          entityFilters.provider(ctx.instanceId, { label: 'Published Provider' })
+        ),
+        createdAt: f.createdAt(),
+        updatedAt: f.updatedAt()
+      };
+
+      return (opts.hasTypeFilter ? { type, ...common } : common) as {
+        type: typeof type;
+      } & typeof common;
+    })
+    .search('Search providers…')
+    .paginated(({ props, ctx, filters, search, limit }) =>
+      useCustomProviders(
+        ctx.instanceId,
+        withDefaults(
+          { order: 'desc' as const, ...props.filters },
+          { ...filters, search: search ?? props.filters?.search, limit }
+        )
+      )
+    )
+    .columns([
+      col.custom<CustomProvider>({
+        id: 'name',
+        header: 'Name',
+        render: row => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CustomProviderImage
+              providerId={row.provider?.id}
+              name={getTitle(row)}
+              size={26}
+              radius={5}
+            />
+
+            <div>
+              <Text size="2" weight="strong">
+                {getTitle(row)}
+              </Text>
+              {(row.description ?? row.provider?.description) && (
+                <Text size="1" color="gray600">
+                  {row.description ?? row.provider?.description}
+                </Text>
+              )}
+            </div>
+          </div>
+        )
+      }),
+      col.text<CustomProvider>({
+        id: 'type',
+        header: 'Type',
+        get: row => typeLabels[row.type] ?? row.type
+      }),
+      col.status<CustomProvider, string>(lifecycleStatus),
+      col.text<CustomProvider>({
+        id: 'detail',
+        header: 'Source',
+        get: row => getProviderDetail(row).label
+      }),
+      col.createdAt(),
+      col.updatedAt(),
+      col.id()
+    ])
+    .link((row, _props, ctx) =>
+      Paths.instance.customProvider(ctx.organization, ctx.project, ctx.instance, row.id)
+    )
+    .item(row => {
+      let detail = getProviderDetail(row);
+
+      return {
+        title: getTitle(row),
+        description: row.description ?? row.provider?.description,
+        icon: (
+          <CustomProviderImage
+            providerId={row.provider?.id}
+            name={getTitle(row)}
+            size={30}
+            radius={5}
+          />
+        ),
+        footer: detail.label ? <Text size="1">{detail.label}</Text> : undefined,
+        height: 230
+      };
+    })
+    .layouts(['grid', 'table'], { default: 'grid' })
+    .build();
+
+let ManagedCustomProvidersList = createCustomProvidersList({
+  name: 'custom-providers',
+  hasTypeFilter: true
+});
+
+let ExternalCustomProvidersList = createCustomProvidersList({
+  name: 'external-providers',
+  hasTypeFilter: false
+});
 
 export let CustomProvidersGrid = ({
   withSearch: _withSearch,
   ...filters
-}: DashboardInstanceCustomProvidersListQuery & { withSearch?: boolean }) => {
-  let instance = useCurrentInstance();
-  let instanceId = instance.data?.id;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
-  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
-  let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
-  let typeFilters = normalizeArrayFilterValue(filters.type);
-  let isExternalOnly = typeFilters?.length === 1 && typeFilters[0] === 'remote';
-  let tableFilters = useMemo(
-    () =>
-      isExternalOnly
-        ? getCommonCustomProviderFilters(instanceId)
-        : getManagedCustomProviderFilters(instanceId),
-    [instanceId, isExternalOnly]
-  );
-  let status = getStatusFilterValue(filterPayload.status) ?? filters.status;
-  let type = getTypeFilterValue(filterPayload.type, filters.type);
-  let providerId = getListFilterValue(filterPayload.providerId) ?? filters.providerId;
-  let createdAt = getDateFilterValue(filterPayload.createdAt) ?? filters.createdAt;
-  let updatedAt = getDateFilterValue(filterPayload.updatedAt) ?? filters.updatedAt;
-  let customProviders = useCustomProviders(instanceId, {
-    order: 'desc',
-    ...filters,
-    status,
-    type,
-    providerId,
-    search: searchDebounced || filters.search,
-    createdAt,
-    updatedAt
-  });
-  let hasActiveFilters = !!(searchDebounced || filters.search || filterState.length > 0);
+}: CustomProvidersFilters & { withSearch?: boolean }) => {
+  let types = normalizeArrayFilterValue(filters.type);
+  let List =
+    types?.length === 1 && types[0] === 'remote'
+      ? ExternalCustomProvidersList
+      : ManagedCustomProvidersList;
 
-  useFilterQuery({
-    filters: tableFilters,
-    filterState: [filterState, setFilterState],
-    searchState: [search, setSearch],
-    debouncedSearch: searchDebounced
-  });
-
-  return (
-    <>
-      <Toolbar>
-        <SearchWrapper>
-          <Input
-            label="Search"
-            hideLabel
-            size="2"
-            placeholder="Search providers..."
-            value={search}
-            onInput={setSearch}
-          />
-        </SearchWrapper>
-
-        <TableFilters
-          filters={tableFilters}
-          filterState={[filterState, setFilterState]}
-          fullWidth={false}
-        />
-      </Toolbar>
-
-      <Spacer size={15} />
-
-      {renderWithPagination(customProviders)(customProviders => (
-        <>
-          {customProviders.data.items.length > 0 && (
-            <ItemGrid.Root width="300px">
-              {customProviders.data.items.map(provider => {
-                let detail = getProviderDetail(provider);
-                let title = provider.name || provider.provider?.name || 'Untitled';
-
-                return (
-                  <ItemGrid.Item
-                    key={provider.id}
-                    href={Paths.instance.customProvider(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      provider.id
-                    )}
-                    entity={{ id: provider.id, hasUsage: true }}
-                    title={title}
-                    description={provider.description ?? provider.provider?.description}
-                    variant="v2"
-                    height={230}
-                    icon={
-                      <CustomProviderImage
-                        providerId={provider.provider?.id}
-                        name={title}
-                        size={30}
-                        radius={5}
-                      />
-                    }
-                    bottom={detail.label ? <Text size="1">{detail.label}</Text> : undefined}
-                  />
-                );
-              })}
-            </ItemGrid.Root>
-          )}
-
-          {customProviders.data.items.length === 0 && (
-            <Text size="2" color="gray600">
-              {hasActiveFilters
-                ? 'No providers match the current filters.'
-                : 'No providers found.'}
-            </Text>
-          )}
-        </>
-      ))}
-    </>
-  );
+  return <List filters={filters} />;
 };

@@ -37,8 +37,8 @@ model ChatAuthor {
   updatedAt         DateTime  @default(now()) @updatedAt
   lastInteractionAt DateTime?
 
-  chatMessages ChatMessage[]
-  chatEvents   ChatEvent[]
+  chatMessages      ChatMessage[]
+  chatEvents        ChatEvent[]
   recipientChannels ChatChannel[]
 
   chatInstanceProviders ChatInstanceProvider[]

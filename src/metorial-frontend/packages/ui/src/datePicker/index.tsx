@@ -6,7 +6,7 @@ import { keyframes, styled } from 'styled-components';
 import { Button, InputDescription, InputLabel } from '..';
 import { AnimateContent } from '../animateContent';
 import { AnimatePanes } from '../animatePanes';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { useDialogZIndex } from '../dialog/state';
 import { Title } from '../text';
 import { theme } from '../theme';
@@ -181,7 +181,7 @@ export let DatePicker = (
     placeholder?: string;
     icon?: React.ReactNode;
     extra?: React.ReactNode;
-    size?: ButtonSize;
+    size?: ControlSize;
     label: string;
     hideLabel?: boolean;
     description?: string;
@@ -193,7 +193,8 @@ export let DatePicker = (
 ) => {
   let state = useDatePickerState(props);
   let [open, setOpen] = useState(false);
-  let sizeStyles = getButtonSize(props.size ?? '3');
+  let size = useControlSize(props.size);
+  let sizeStyles = getControlSize(size);
   let zIndex = useDialogZIndex(open);
 
   return (
@@ -215,7 +216,7 @@ export let DatePicker = (
               <Button
                 type="button"
                 variant="soft"
-                size={props.size ?? '3'}
+                size={size}
                 iconRight={props.icon}
                 aria-label={props.label}
                 disabled={props.disabled}
@@ -231,7 +232,7 @@ export let DatePicker = (
             <Trigger
               style={{
                 ...sizeStyles,
-                fontSize: 14
+                fontSize: getFieldFontSize(size)
               }}
               aria-label={props.label}
               disabled={props.disabled}

@@ -46,6 +46,7 @@ model Consumer {
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
   storeParticipants          StoreParticipant[]
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
 
   @@unique([email, organizationOid])
 }
@@ -153,6 +154,7 @@ model ConsumerProfile {
   workspaceProfile               WorkspaceProfile?
   oauthAuthorizations            OAuthAuthorization[]
   oauthAuthorizationFlows        OAuthAuthorizationFlow[]
+  devices                        ConsumerDevice[]
   serviceAccount                 ServiceAccount?
 
   @@unique([surfaceOid, aresUserId])

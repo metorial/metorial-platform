@@ -35,8 +35,8 @@ export let SessionLogsListLayout = () => {
             to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
           },
           {
-            label: 'Tool Errors',
-            to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
+            label: 'Issues',
+            to: Paths.instance.providerIssues(organization.data, project.data, instance.data)
           }
         ]}
       />
@@ -47,52 +47,3 @@ export let SessionLogsListLayout = () => {
     </ContentLayout>
   );
 };
-
-export let AuthLogsListLayout = () => {
-  let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-
-  return (
-    <ContentLayout>
-      <PageHeader
-        title="Auth Logs"
-        description="Investigate authentication lifecycle events and auth failures across your providers."
-      />
-
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Authentications',
-            to: Paths.instance.providerAuthEvents(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: 'Auth Errors',
-            to: Paths.instance.providerAuthErrors(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          }
-        ]}
-      />
-
-      <PaginationSearchParamsProvider enabled={true}>
-        <Outlet />
-      </PaginationSearchParamsProvider>
-    </ContentLayout>
-  );
-};
-
-/**
- * @deprecated Use {@link SessionLogsListLayout} for session logs or
- * {@link AuthLogsListLayout} for auth logs instead.
- */
-export let LogsListLayout = SessionLogsListLayout;

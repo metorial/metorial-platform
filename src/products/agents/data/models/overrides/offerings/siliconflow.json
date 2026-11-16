@@ -1,0 +1,93 @@
+{
+  "PaddlePaddle/PaddleOCR-VL-1.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "PaddleOCR-VL-1.5, the next-generation 0.9B multi-task OCR VLM released 2026-01-29 (Hugging Face PaddlePaddle/PaddleOCR-VL-1.5); a separate generation from the index's baidu/paddleocr-vl (Oct 2025), so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Pro/deepseek-ai/DeepSeek-V3.1-Terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "SiliconFlow's Pro-tier serving of DeepSeek-V3.1-Terminus (2025-09-22), a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen2.5-72B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-30B-A3B-Thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-30B-A3B-Thinking (Hugging Face Qwen/Qwen3-VL-30B-A3B-Thinking, Sep 2025), the thinking variant of the 30B-A3B vision-language MoE; the index has the 30B-A3B base and its Instruct variant but no Thinking entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-32B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-32B-Instruct (Hugging Face Qwen/Qwen3-VL-32B-Instruct, Oct 2025), the dense 32B vision-language model; the index's Qwen3-VL line has 30B-A3B and 235B sizes but no 32B entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-32B-Thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-32B-Thinking (Hugging Face Qwen/Qwen3-VL-32B-Thinking, Oct 2025), the thinking variant of the dense 32B vision-language model; the index has no Qwen3-VL 32B entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-8B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-8B-Instruct (Hugging Face Qwen/Qwen3-VL-8B-Instruct, Oct 2025), the dense 8B vision-language model; the index's Qwen3-VL line has no 8B entry, so defer rather than link qwen3-8b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-OCR": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The original DeepSeek-OCR (HF deepseek-ai/DeepSeek-OCR, Oct 2025, 3B vision-language OCR model, MIT); the index only has the later DeepSeek OCR 2 (Jan 2026), a separate checkpoint, so defer the v1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-V3.1-Terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-V3.2-Exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-31B-it": {
+    "decision": "link",
+    "model": "google/gemma-4-31b-it",
+    "reason": "SiliconFlow serves Google's Gemma 4 31B IT checkpoint (google/gemma-4-31B-it on Hugging Face, Apache 2.0); same model as google/gemma-4-31b-it, at SiliconFlow's higher 0.75/1 price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inclusionAI/Ling-flash-2.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling-flash-2.0, the 100B-total/6.1B-active MoE of the Ling 2.0 series (Hugging Face inclusionAI/Ling-flash-2.0, MIT, Sept 2025); the index's Ling line starts at 3.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/Hunyuan-A13B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "SiliconFlow serves Tencent's Hunyuan-A13B-Instruct, the open-weight 80B-total/13B-active MoE (Hugging Face, June 2025); the index has no Hunyuan A13B entry, so defer rather than link another Hunyuan model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

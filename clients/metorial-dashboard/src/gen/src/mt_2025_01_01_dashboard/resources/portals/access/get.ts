@@ -3,11 +3,16 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 export type PortalsAccessGetOutput = {
   object: 'consumer.access';
   id: string;
-  accessLevel: 'read' | 'manage' | null;
+  accessLevel: 'read' | 'write' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;
-  listing: { id: string; name: string; description: string | null } | null;
+  listing: {
+    id: string;
+    name: string;
+    description: string | null;
+    isDiscoverable: boolean;
+  } | null;
   access:
     | {
         type: 'provider_template';
@@ -98,6 +103,7 @@ export let mapPortalsAccessGetOutput =
   /* @__PURE__ */ mapObject<PortalsAccessGetOutput>(
     [
       'access_level',
+      ['listing', 0, [1, ['is_discoverable']]],
       [
         'access',
         0,

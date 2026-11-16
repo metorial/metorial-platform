@@ -284,6 +284,7 @@ class ProviderListingService {
             status: 'active',
 
             AND: [
+              { provider: { isDisabled: false } },
               includeDeprecated ? undefined! : { isDeprecated: false },
               remoteVisibilityFilter ? { provider: remoteVisibilityFilter } : undefined!,
               {

@@ -1,0 +1,46 @@
+import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
+import { PrismaClient } from '../prisma/generated/client';
+
+let adapter = createPrismaPgAdapter(
+  {
+    connectionString: process.env.SLATES_REGISTRY_DATABASE_URL ?? process.env.DATABASE_URL
+  },
+  {
+    environment: process.env.METORIAL_ENV,
+    databaseName: 'slates-registry',
+    role: 'primary'
+  }
+);
+
+export let db = new PrismaClient({ adapter });
+
+declare global {
+  namespace PrismaJson {
+    type EntityLinks = {
+      url: string;
+      label: string;
+    }[];
+
+    interface SlateJson {
+      name: string;
+      version: string;
+      description?: string;
+      categories?: string[];
+      skills?: string[];
+      logoUrl?: string;
+      networkIsolation?: boolean;
+      timeout?: number;
+    }
+
+    type SigningPublicKey = {
+      kty: 'OKP';
+      crv: 'Ed25519';
+      x: string;
+    };
+
+    type FilterExpression = {
+      type: 'prefix' | 'scope' | 'slate';
+      value: string;
+    }[];
+  }
+}

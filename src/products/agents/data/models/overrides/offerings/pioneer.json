@@ -1,0 +1,72 @@
+{
+  "fastino/GLiNER-2.5-Decide": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Fastino's GLiNER-2.5-Decide, a 340M open-weight structured decision model released 2026-09-24 (per Fastino's blog); the catalog has a decision kind but the index has no GLiNER entry yet, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliguard-LLMGuardrails-300M": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiGuard is a 300M encoder-based guardrail model for LLM safety moderation on the GLiNER2 interface (text-classification, per its Hugging Face card); a moderation classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliguard-PII-multi": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2-Guardrails-PII-Multi is a multilingual safety-moderation and PII-filtering token-classification model on GLiNER2 (per its Hugging Face card); a moderation classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2-base-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2 Base is a 205M schema-based information-extraction and text-classification model (per its Hugging Face card); an extraction classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2-large-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2 Large is the larger GLiNER2 schema-based information-extraction model (per its Hugging Face card); an extraction classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2-multi-large-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2 Multi Large, the multilingual large variant of the GLiNER2 schema-based information-extraction family (per the GLiNER2 paper and listings); an extraction classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2-multi-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2 Multi is a multilingual zero-shot information-extraction model on the GLiNER2 interface (per its Hugging Face card); an extraction classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2-privacy-filter-PII-multi": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2-PII is a 300M multilingual PII detection and masking token-classification model (per its Hugging Face card); a privacy-filter classifier is a non-chat model no catalog entry matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2.5-base-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2.5 Base is a 0.2B span-free information-extraction model doing NER, relation extraction and constrained classification (per Fastino's blog and Hugging Face); a task extraction model is non-chat, matching the GLiNER2 base decision.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2.5-multi-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2.5 Multi is the 0.3B multilingual span-free extraction checkpoint built on mDeBERTa-v3-base (per Fastino's blog and its model card); an entity/relation extraction task model is non-chat, matching the GLiNER2 multi decision.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

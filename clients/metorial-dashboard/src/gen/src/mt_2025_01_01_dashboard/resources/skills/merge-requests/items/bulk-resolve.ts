@@ -89,6 +89,7 @@ export type SkillsMergeRequestsItemsBulkResolveOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -179,7 +180,8 @@ export let mapSkillsMergeRequestsItemsBulkResolveOutput =
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]

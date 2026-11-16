@@ -2,23 +2,10 @@ import {
   DashboardInstanceIdentitiesDelegationRequestsListOutput,
   DashboardInstanceIdentitiesDelegationRequestsListQuery
 } from '@metorial/dashboard-sdk';
+import { col, createDataList, defineStatus, f, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useIdentityDelegationRequests
-} from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableFilter,
-  getEnumListFilterValue,
-  getListFilterValue
-} from '@metorial/table';
-import { useMemo } from 'react';
+import { useIdentityDelegationRequests } from '@metorial/state';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 
 type IdentityDelegationRequest =
@@ -29,171 +16,60 @@ type IdentityDelegationRequestFilters = Omit<
   'limit' | 'after' | 'before' | 'cursor'
 >;
 
-type IdentityDelegationRequestsTableProps = {
+let delegationRequestStatus = defineStatus({
+  pending: { label: 'Pending', color: 'orange' },
+  approved: { label: 'Approved', color: 'green' },
+  denied: { label: 'Denied', color: 'red' },
+  canceled: { label: 'Canceled', color: 'gray' }
+});
+
+let IdentityDelegationRequestsList = createDataList<{
   instanceId: string;
   filters?: IdentityDelegationRequestFilters;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let getRequestStatusColor = (status: IdentityDelegationRequest['status']) => {
-  if (status === 'approved') return 'green';
-  if (status === 'pending') return 'orange';
-  if (status === 'denied') return 'red';
-  return 'gray';
-};
-
-let getStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceIdentitiesDelegationRequestsListQuery['status'] => {
-  return getEnumListFilterValue(value, ['pending', 'approved', 'denied', 'canceled']);
-};
-
-let useIdentityDelegationRequestsTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<IdentityDelegationRequest>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'pending', label: 'Pending' },
-          { id: 'approved', label: 'Approved' },
-          { id: 'denied', label: 'Denied' },
-          { id: 'canceled', label: 'Canceled' }
-        ]
-      },
-      entityFilters.actor(instanceId),
-      entityFilters.identity(instanceId)
-    ],
-    [instanceId]
-  );
-
-let useIdentityDelegationRequestsTableState = (
-  props: IdentityDelegationRequestsTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let requests = useIdentityDelegationRequests(props.instanceId, {
-    order: 'desc',
-    ...props.filters,
-    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    actorId: getListFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
-    identityId: getListFilterValue(opts.filter.identityId) ?? props.filters?.identityId
-  });
-
-  return {
-    isLoading: requests.isLoading,
-    error: requests.error,
-    hasMoreAfter: requests.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: requests.data?.pagination.hasMoreBefore ?? false,
-    items: requests.data?.items ?? [],
-    loadNext: requests.next,
-    loadPrevious: requests.previous
-  };
-};
-
-let identityDelegationRequestsTable = new DashboardTable<
-  IdentityDelegationRequestsTableProps,
-  IdentityDelegationRequest
->('identity-delegation-requests')
-  .state(useIdentityDelegationRequestsTableState)
+}>('identity-delegation-requests')
+  .context(useInstanceContext)
+  .filters(props => ({
+    status: f.status(delegationRequestStatus),
+    actorId: f.entity(entityFilters.actor(props.instanceId)),
+    identityId: f.entity(entityFilters.identity(props.instanceId)),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .paginated(({ props, filters }) =>
+    useIdentityDelegationRequests(
+      props.instanceId,
+      withDefaults(props.filters, { order: 'desc' as const, ...filters })
+    )
+  )
   .columns([
-    {
+    col.twoLine({
       id: 'requester',
-      isDefault: true,
       header: 'Requester',
-      render: (request: IdentityDelegationRequest) => (
-        <div>
-          <Text size="2" weight="strong">
-            {request.requester.name}
-          </Text>
-          <Text size="1" color="gray600">
-            {request.requester.type}
-          </Text>
-        </div>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: (request: IdentityDelegationRequest) => (
-        <Badge color={getRequestStatusColor(request.status)}>{request.status}</Badge>
-      )
-    },
-    {
-      id: 'delegation',
-      isDefault: true,
+      primary: (row: IdentityDelegationRequest) => row.requester.name,
+      secondary: row => row.requester.type
+    }),
+    col.status(delegationRequestStatus),
+    col.refId('delegation', row => row.delegation.id, {
       header: 'Delegation',
-      render: (request: IdentityDelegationRequest) => <ID id={request.delegation.id} />
-    },
-    {
-      id: 'identity',
-      isDefault: true,
-      header: 'Identity',
-      render: (request: IdentityDelegationRequest) => (
-        <Text size="2">{request.delegation.identity.name}</Text>
-      )
-    },
-    {
-      id: 'expiresAt',
-      isDefault: false,
-      header: 'Expires',
-      render: (request: IdentityDelegationRequest) => <RenderDate date={request.expiresAt} />
-    },
-    {
-      id: 'identityId',
-      isDefault: false,
-      header: 'Identity ID',
-      render: (request: IdentityDelegationRequest) => <ID id={request.identityId} />
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: (request: IdentityDelegationRequest) => <RenderDate date={request.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Request ID',
-      render: (request: IdentityDelegationRequest) => <ID id={request.id} />
-    }
-  ] as any)
-  .link(((request: IdentityDelegationRequest, props: IdentityDelegationRequestsTableProps) =>
+      isDefault: true
+    }),
+    col.text({ id: 'identity', header: 'Identity', get: row => row.delegation.identity.name }),
+    col.date('expiresAt', { header: 'Expires' }),
+    col.refId('identityId', row => row.identityId, { header: 'Identity ID' }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ header: 'Request ID' })
+  ])
+  .link((row, _props, ctx) =>
     Paths.organization.instance.identity.delegation(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      request.delegation?.id
-    )) as any)
+      ctx.organization,
+      ctx.project,
+      ctx.instance,
+      row.delegation?.id
+    )
+  )
   .build();
 
-export let IdentityDelegationRequestsTable = ({
-  instanceId,
-  filters
-}: {
-  instanceId: string;
-  filters?: IdentityDelegationRequestFilters;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useIdentityDelegationRequestsTableFilters(instanceId);
-
-  return identityDelegationRequestsTable({
-    instanceId,
-    filters,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState: 'No delegation requests found.'
-  });
-};
+export let IdentityDelegationRequestsTable = (
+  p: Parameters<typeof IdentityDelegationRequestsList>[0]
+) => <IdentityDelegationRequestsList emptyState="No delegation requests found." {...p} />;

@@ -1,135 +1,72 @@
-import {
-  DashboardInstanceFirewallsListOutput,
-  DashboardInstanceFirewallsListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceFirewallsListOutput } from '@metorial/dashboard-sdk';
+import { col, createDataList, lifecycleStatus } from '@metorial/data-list';
 import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCreateFirewall,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useFirewalls
-} from '@metorial/state';
-import {
-  Table as DashboardTable,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import { Button, Dialog, Input, RenderDate, Spacer, Text, showModal } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { useCreateFirewall, useFirewalls } from '@metorial/state';
+import { Button, Dialog, Input, Spacer, showModal } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
-import { statusBadge } from '../_common';
+import { useInstanceContext } from '../../../lib/dataList';
 import { useNetworkManagementAccess } from '../_gate';
 
 type Firewall = DashboardInstanceFirewallsListOutput['items'][number];
 
-type FirewallsTableProps = DashboardInstanceFirewallsListQuery & {
-  instance: ReturnType<typeof useCurrentInstance>;
-  firewallPath: (firewallId: string) => string;
-};
-
-let firewallsTableState: TableStateProvider<
-  FirewallsTableProps,
-  Firewall,
-  TableStateProviderResult<Firewall>
-> = (props, { search }) => {
-  let firewalls = useFirewalls(props.instance.data?.id, {
-    order: props.order ?? 'desc',
-    search: search || undefined
-  });
-
-  return {
-    isLoading: firewalls.isLoading,
-    error: firewalls.error,
-    hasMoreAfter: firewalls.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: firewalls.data?.pagination.hasMoreBefore ?? false,
-    items: firewalls.data?.items ?? [],
-    loadNext: firewalls.next,
-    loadPrevious: firewalls.previous
-  };
-};
-
-let firewallsTable = new DashboardTable<FirewallsTableProps, Firewall>('network-firewalls')
-  .state(firewallsTableState)
+let FirewallsList = createDataList('network-firewalls')
+  .context(useInstanceContext)
   .search('Search firewalls…')
+  .paginated(({ ctx, search }) => useFirewalls(ctx.instanceId, { order: 'desc', search }))
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: firewall => (
-        <div>
-          <Text size="2" weight="strong">
-            {firewall.name}
-          </Text>
-          {firewall.description && (
-            <Text size="1" color="gray600">
-              {firewall.description}
-            </Text>
-          )}
-        </div>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: firewall => statusBadge(firewall.status)
-    },
-    {
-      id: 'policies',
-      isDefault: false,
+    col.name<Firewall>(),
+    col.status<Firewall, 'active' | 'archived' | 'deleted'>(lifecycleStatus, {
+      isDefault: false
+    }),
+    col.count<Firewall>('policies', firewall => firewall.networkPolicies.length, 'policy', {
       header: 'Policies',
-      render: firewall => <Text size="2">{firewall.networkPolicies.length}</Text>
-    },
-    {
-      id: 'updatedAt',
-      isDefault: true,
-      header: 'Updated',
-      render: firewall => <RenderDate date={firewall.updatedAt} />
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: firewall => <ID id={firewall.id} />
-    }
+      isDefault: false
+    }),
+    col.updatedAt<Firewall>({ isDefault: true }),
+    col.id<Firewall>({ isDefault: true })
   ])
-  .link((firewall, props) => props.firewallPath(firewall.id))
+  .link((firewall, _props, ctx) =>
+    Paths.instance.networkFirewall(ctx.organization, ctx.project, ctx.instance, firewall.id)
+  )
   .build();
 
 let FirewallsTable = () => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
+  let ctx = useInstanceContext();
   let navigate = useNavigate();
   let { canWrite } = useNetworkManagementAccess();
-  let firewallPath = (firewallId: string) =>
-    Paths.instance.networkFirewall(organization.data, project.data, instance.data, firewallId);
 
-  return firewallsTable({
-    instance,
-    firewallPath,
-    emptyState: 'No firewalls configured.',
-    headerActions: () =>
-      canWrite ? (
-        <Button
-          size="2"
-          disabled={!instance.data}
-          onClick={() => {
-            if (!instance.data) return;
+  return (
+    <FirewallsList
+      emptyState="No firewalls configured."
+      headerActions={() =>
+        canWrite ? (
+          <Button
+            size="2"
+            disabled={!ctx.instanceId}
+            onClick={() => {
+              if (!ctx.instanceId) return;
 
-            showCreateFirewallModal({
-              instanceId: instance.data.id,
-              onCreate: firewallId => navigate(firewallPath(firewallId))
-            });
-          }}
-        >
-          Create Firewall
-        </Button>
-      ) : null
-  });
+              showCreateFirewallModal({
+                instanceId: ctx.instanceId,
+                onCreate: firewallId =>
+                  navigate(
+                    Paths.instance.networkFirewall(
+                      ctx.organization,
+                      ctx.project,
+                      ctx.instance,
+                      firewallId
+                    )
+                  )
+              });
+            }}
+          >
+            Create Firewall
+          </Button>
+        ) : null
+      }
+    />
+  );
 };
 
 let showCreateFirewallModal = (p: {
@@ -186,12 +123,4 @@ let showCreateFirewallModal = (p: {
     );
   });
 
-export let NetworkFirewallsPage = () => {
-  let instance = useCurrentInstance();
-
-  return (
-    <>
-      <FirewallsTable />
-    </>
-  );
-};
+export let NetworkFirewallsPage = () => <FirewallsTable />;

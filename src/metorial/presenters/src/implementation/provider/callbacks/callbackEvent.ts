@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackEventType } from '../../../types';
+import { redactHeaders } from './redactHeaders';
 
 export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
   .presenter(async ({ callbackEvent, details }) => ({
@@ -13,6 +14,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
     provider_trigger_key: callbackEvent.providerTriggerKey,
     mapped_type: callbackEvent.mappedType,
     mapped_id: callbackEvent.mappedId,
+    attributes: callbackEvent.attributes ?? {},
 
     callback_id: callbackEvent.callback.id,
     callback_instance_id: callbackEvent.callbackInstance.id,
@@ -44,7 +46,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                       object: 'callback_event.details.webhook.request' as const,
                       method: details.webhook.request.method,
                       url: details.webhook.request.url,
-                      headers: details.webhook.request.headers,
+                      headers: redactHeaders(details.webhook.request.headers),
                       body: details.webhook.request.body
                     }
                   : null,
@@ -101,6 +103,12 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
           examples: ['42']
         })
       ),
+
+      attributes: v.record(v.array(v.string({ examples: ['application/pdf'] })), {
+        name: 'attributes',
+        description:
+          'Short key/value attributes the provider attached to this event (for example a file id or MIME type), mapping each key to its values. Empty for events without attributes.'
+      }),
 
       callback_id: v.string({
         name: 'callback_id',

@@ -36,6 +36,24 @@ vi.mock('../../id', () => ({
 vi.mock('../../lib/slateVersion', () => ({
   getActiveSlateVersion: vi.fn(async () => ({ id: 'version' }))
 }));
+vi.mock('./_triggerAuth', async () => {
+  let { secretService } = await import('../../services/secret');
+  return {
+    resolveTriggerAuth: async (d: any) => {
+      if (!d.authConfig) return null;
+      let decrypted = await secretService.DANGEROUSLY_decryptSecret({
+        secretOid: d.authConfig.secretOid,
+        purpose: 'slate_authentication_configuration',
+        tenant: d.tenant,
+        note: d.note
+      });
+      return {
+        authenticationMethodId: d.authConfig.authMethod.key,
+        data: decrypted.output ?? decrypted.input ?? {}
+      };
+    }
+  };
+});
 vi.mock('../../services/secret', () => ({
   secretService: { DANGEROUSLY_decryptSecret: decrypt }
 }));

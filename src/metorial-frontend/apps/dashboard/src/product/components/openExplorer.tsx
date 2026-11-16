@@ -1,3 +1,4 @@
+import { useMetorialAssistantEnabled } from '@metorial/state';
 import { Button, Menu } from '@metorial/ui';
 import { SideBox } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
@@ -59,6 +60,7 @@ export let getExplorerModeUrl = (
 
 export let OpenExplorerButton = (p: OpenExplorerButtonProps) => {
   let navigate = useNavigate();
+  let assistantEnabled = useMetorialAssistantEnabled();
 
   let buttonLabel = p.children ?? p.buttonLabel ?? 'Open Explorer';
 
@@ -72,11 +74,16 @@ export let OpenExplorerButton = (p: OpenExplorerButtonProps) => {
           label: p.manualLabel ?? 'Manual Tool Calls',
           description: p.manualDescription ?? 'Inspect tools and call them yourself.'
         },
-        {
-          id: 'assistant',
-          label: p.assistantLabel ?? 'Metorial Assistant',
-          description: p.assistantDescription ?? 'Chat with an agent that can use the tools.'
-        }
+        ...(assistantEnabled
+          ? [
+              {
+                id: 'assistant',
+                label: p.assistantLabel ?? 'Metorial Assistant',
+                description:
+                  p.assistantDescription ?? 'Chat with an agent that can use the tools.'
+              }
+            ]
+          : [])
       ]}
       onItemClick={id => {
         let mode: OpenExplorerMode = id === 'assistant' ? 'assistant' : 'manual';

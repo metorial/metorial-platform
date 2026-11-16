@@ -1,0 +1,101 @@
+import { runQueueProcessors } from '@metorial/queue';
+import { documentQueueProcessor as cargoDocumentQueueProcessor } from '@metorial/module-documents';
+import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/module-file';
+import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/module-store';
+import { accessQueueProcessor } from '@metorial/module-access';
+import { agentTelemetryQueueProcessor } from '@metorial/module-agent-telemetry';
+import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
+import { auditLogQueueProcessor } from '@metorial/module-audit-log';
+import { auditTrackerQueueProcessor } from '@metorial/module-audit-tracker';
+import { communityQueueProcessor } from '@metorial/module-community';
+import { consumerAccessQueueProcessor } from '@metorial/module-consumer-access';
+import { consumerCoreQueueProcessor } from '@metorial/module-consumer-core';
+import { consumerEntitiesQueueProcessor } from '@metorial/module-consumer-entities';
+import { consumerOAuthQueueProcessor } from '@metorial/module-consumer-oauth';
+import { emailQueueProcessor } from '@metorial/module-email';
+import { eventDeliveryQueueProcessor } from '@metorial/module-event-delivery';
+import { eventDestinationQueueProcessor } from '@metorial/module-event-destination';
+import { eventTrackerQueueProcessor } from '@metorial/module-event-tracker';
+import {
+  machineAccessQueueProcessor,
+  startCliAuthScopesSync
+} from '@metorial/module-machine-access';
+import { magicQueueProcessor } from '@metorial/module-magic';
+import {
+  networkingQueueProcessor,
+  startNetworkingBackfill
+} from '@metorial/module-networking';
+import { organizationQueueProcessor } from '@metorial/module-organization';
+import { outpostQueueProcessor } from '@metorial/module-outpost';
+import { portalQueueProcessor } from '@metorial/module-portal';
+import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
+import { ensureSystemProfile } from '@metorial/db';
+import { checkEdition } from '@metorial/editions';
+import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
+import { skillConfigurationQueueProcessor } from '@metorial/module-skill-configurations';
+import { skillGroupQueueProcessor } from '@metorial/module-skill-groups';
+import { skillImportQueueProcessor } from '@metorial/module-skill-import';
+import { skillMarketplaceQueueProcessor } from '@metorial/module-skill-marketplace';
+import { skillMergeRequestQueueProcessor } from '@metorial/module-skill-merge-requests';
+import { skillTemplateQueueProcessor } from '@metorial/module-skill-templates';
+import { usageQueueProcessor } from '@metorial/module-usage';
+import { userQueueProcessor } from '@metorial/module-user';
+import { webQueueProcessor } from '@metorial/module-web';
+import { multiRegionQueueProcessor } from '@metorial/multi-region';
+
+process.env.TZ = 'UTC';
+
+await ensureSystemProfile();
+
+let sandbox = checkEdition('cloud') ? await import('@metorial/module-sandbox') : undefined;
+
+export let worker = runQueueProcessors([
+  auditTrackerQueueProcessor,
+  auditLogQueueProcessor,
+  auditLogStreamQueueProcessor,
+  eventTrackerQueueProcessor,
+  eventDeliveryQueueProcessor,
+  eventDestinationQueueProcessor,
+  productAssistantQueueProcessor,
+  networkingQueueProcessor,
+  ...(sandbox ? [sandbox.sandboxQueueProcessor] : []),
+  userQueueProcessor,
+  machineAccessQueueProcessor,
+  organizationQueueProcessor,
+  outpostQueueProcessor,
+  emailQueueProcessor,
+  accessQueueProcessor,
+  cargoFileQueueProcessor,
+  cargoDocumentQueueProcessor,
+  cargoStoreQueueProcessor,
+  cargoSkillQueueProcessor,
+  skillTemplateQueueProcessor,
+  skillGroupQueueProcessor,
+  skillConfigurationQueueProcessor,
+  skillImportQueueProcessor,
+  skillMarketplaceQueueProcessor,
+  skillMergeRequestQueueProcessor,
+  usageQueueProcessor,
+  communityQueueProcessor,
+  webQueueProcessor,
+  consumerCoreQueueProcessor,
+  consumerAccessQueueProcessor,
+  consumerEntitiesQueueProcessor,
+  consumerOAuthQueueProcessor,
+  portalQueueProcessor,
+  magicQueueProcessor,
+  agentTelemetryQueueProcessor,
+  multiRegionQueueProcessor
+]);
+
+startNetworkingBackfill().catch(err =>
+  console.error('Failed to start networking backfill', err)
+);
+
+sandbox
+  ?.startSandboxBackfill()
+  .catch(err => console.error('Failed to start sandbox backfill', err));
+
+startCliAuthScopesSync().catch(err =>
+  console.error('Failed to start CLI auth scopes sync', err)
+);

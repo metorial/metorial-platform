@@ -72,6 +72,7 @@ export let getProviderTenantFilter = (d: {
   includeDeprecated?: boolean;
 }) => ({
   AND: [
+    { isDisabled: false },
     d.includeDeprecated ? undefined! : { isDeprecated: false },
     getProviderEnvironmentVisibilityFilter(d),
     getPublicRemoteProviderVisibilityFilter(d) ?? undefined!,

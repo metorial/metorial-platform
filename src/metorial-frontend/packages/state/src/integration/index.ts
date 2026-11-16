@@ -1,5 +1,6 @@
 export * from './loaders/callbackEvents';
 export * from './loaders/callbackInstances';
+export * from './loaders/callbackRegistration';
 export * from './loaders/callbacks';
 export * from './loaders/incomingWebhooks';
 export * from './loaders/integrationInstanceProviders';

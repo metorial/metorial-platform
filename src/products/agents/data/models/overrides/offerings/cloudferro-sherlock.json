@@ -1,0 +1,16 @@
+{
+  "openai/gpt-oss-120b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Exact id: OpenAI's open-weight GPT OSS 120B (openai/gpt-oss-120b on Hugging Face, Apache 2.0, 117B MoE, 128K context). CloudFerro's EU sovereign-cloud 2.92/2.92 price is far above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "speakleash/Bielik-11B-v3.0-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Speakleash/ACK Cyfronet's Bielik 11B v3.0 Instruct (Hugging Face, Apache 2.0, Nov 2025), an instruct tune of their own Bielik v3 base; a real chat model the index does not contain.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

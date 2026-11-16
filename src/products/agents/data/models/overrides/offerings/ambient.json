@@ -1,0 +1,16 @@
+{
+  "ambient/small": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Ambient's provider-specific Small tier; models.dev marks it Provider-specific and no listing identifies the underlying checkpoint (its Large tier maps to GLM-5.2), so there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unsloth/qwen3.8-27b-gguf": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Ambient serves Unsloth's Q4 GGUF quantization of Qwen3.8-27B (unsloth/Qwen3.8-27B-GGUF is derived from Qwen/Qwen3.8-27B per its Hugging Face metadata); a quantized serving is still that model at Ambient's flat 0.001 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

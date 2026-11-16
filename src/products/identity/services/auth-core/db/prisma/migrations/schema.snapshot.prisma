@@ -1,0 +1,1716 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+enum AccountStatus {
+  active
+  deleting
+}
+
+model Account {
+  oid BigInt @id
+  id  String @unique
+
+  clientId   String @unique
+  identifier String @unique
+  name       String
+
+  status           AccountStatus @default(active)
+  allowEmailLogin  Boolean       @default(true)
+  allowSocialLogin Boolean       @default(true)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  users          User[]
+  ssoTenants     SsoTenant[]
+  accountDomains AccountDomain[]
+  authIntents    AuthIntent[]
+  authAttempts   AuthAttempt[]
+  ssoAuths       SsoAuth[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([appOid, identifier])
+  @@index([appOid, status])
+}
+
+model AccountDomain {
+  oid BigInt @id
+  id  String @unique
+
+  domain String
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  allowedTenants     AccountDomainSsoTenant[]
+  allowedConnections AccountDomainSsoConnection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([appOid, domain])
+  @@index([accountOid])
+}
+
+model AccountDomainSsoTenant {
+  oid BigInt @id
+  id  String @unique
+
+  domainOid BigInt
+  domain    AccountDomain @relation(fields: [domainOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([domainOid, tenantOid])
+  @@index([tenantOid])
+}
+
+model AccountDomainSsoConnection {
+  oid BigInt @id
+  id  String @unique
+
+  domainOid BigInt
+  domain    AccountDomain @relation(fields: [domainOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([domainOid, connectionOid])
+  @@index([connectionOid])
+}
+
+model Admin {
+  oid      BigInt @id
+  id       String @unique
+  email    String @unique
+  password String
+  name     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  adminSessions AdminSession[]
+}
+
+model AdminSession {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  adminOid BigInt
+  admin    Admin  @relation(fields: [adminOid], references: [oid], onDelete: Cascade)
+
+  ip String?
+  ua String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model AccessGroup {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  rules       AccessGroupRule[]
+  assignments AccessGroupAssignment[]
+}
+
+model AccessGroupRule {
+  oid BigInt @id
+  id  String @unique
+
+  accessGroupOid BigInt
+  accessGroup    AccessGroup @relation(fields: [accessGroupOid], references: [oid], onDelete: Cascade)
+
+  type  String
+  value String
+
+  createdAt DateTime @default(now())
+}
+
+model AccessGroupAssignment {
+  oid BigInt @id
+  id  String @unique
+
+  accessGroupOid BigInt
+  accessGroup    AccessGroup @relation(fields: [accessGroupOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accessGroupOid, appOid])
+}
+
+enum AppMode {
+  standard
+  horizon
+}
+
+model App {
+  oid BigInt @id
+  id  String @unique
+
+  clientId String  @unique
+  slug     String? @unique
+
+  mode AppMode @default(standard)
+
+  hasTerms Boolean @default(true)
+
+  isSessionless    Boolean @default(false)
+  disableEmailAuth Boolean @default(false)
+
+  defaultRedirectUrl String
+  redirectDomains    String[] @default([])
+
+  defaultTenantOid BigInt?
+  defaultTenant    Tenant? @relation(fields: [defaultTenantOid], references: [oid], onDelete: SetNull, name: "DefaultTenant")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenants                Tenant[]
+  users                  User[]
+  authIntents            AuthIntent[]
+  authAttempts           AuthAttempt[]
+  authDeviceUserSessions AuthDeviceUserSession[]
+  emailDomains           EmailDomain[]
+  userEmails             UserEmail[]
+  oauthProviders         AppOAuthProvider[]
+  accounts               Account[]
+  accountDomains         AccountDomain[]
+  ssoTenants             SsoTenant[]
+  auditLogs              AuditLog[]
+  accessGroups           AccessGroup[]
+  accessGroupAssignments AccessGroupAssignment[]
+  ssoScimOperations      SsoScimOperation[]
+  importedSsoDelegations SsoImportedDelegation[]
+}
+
+model SyncListener {
+  oid BigInt @id
+  id  String @unique
+
+  identifier  String   @unique
+  callbackUrl String
+  secret      String
+  eventTypes  String[] @default(["user.changed"])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum OAuthProviderType {
+  github
+  google
+}
+
+model AppOAuthProvider {
+  oid BigInt @id
+  id  String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  provider     OAuthProviderType
+  clientId     String
+  clientSecret String
+  redirectUri  String
+
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  identityProvider UserIdentityProvider?
+
+  @@unique([appOid, provider])
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  clientId String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  users User[]
+  apps  App[]  @relation("DefaultTenant")
+}
+
+model AuditLog {
+  oid BigInt @id
+  id  String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  type String
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
+  ip String?
+  ua String? @db.Text
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([appOid, createdAt])
+  @@index([userOid, createdAt])
+  @@index([type, createdAt])
+}
+
+enum AuthIntentType {
+  email_code
+  oauth
+  password
+}
+
+enum AuthIntentIdentifier {
+  email
+}
+
+model AuthIntent {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  type AuthIntentType
+
+  ua String? @db.Text
+  ip String
+
+  redirectUrl String
+
+  identifierType AuthIntentIdentifier
+  identifier     String
+
+  captchaVerifiedAt DateTime?
+  passwordVersion   String?
+  twoFactorRevision Int?
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  userIdentityOid BigInt?
+  userIdentity    UserIdentity? @relation(fields: [userIdentityOid], references: [oid], onDelete: SetNull)
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  consumedAt DateTime?
+
+  steps                AuthIntentStep[]
+  verificationAttempts AuthIntentVerificationAttempt[]
+  codes                AuthIntentCode[]
+  authAttempts         AuthAttempt[]
+}
+
+enum AuthIntentStepType {
+  email_code
+  password
+  two_factor
+}
+
+model AuthIntentStep {
+  oid   BigInt @id
+  id    String @unique
+  index Int
+
+  type AuthIntentStepType
+
+  email String?
+
+  challenge          String?
+  challengeExpiresAt DateTime?
+
+  authIntentOid BigInt
+  authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  verifiedAt DateTime?
+
+  verifications AuthIntentVerificationAttempt[]
+  codes         AuthIntentCode[]
+}
+
+enum AuthIntentVerificationAttemptStatus {
+  success
+  failure
+}
+
+model AuthIntentVerificationAttempt {
+  oid BigInt @id
+  id  String @unique
+
+  status AuthIntentVerificationAttemptStatus
+  method AuthIntentStepType                  @default(email_code)
+
+  authIntentOid BigInt
+  authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
+
+  stepId String
+  step   AuthIntentStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([authIntentOid, method, status, createdAt])
+}
+
+model AuthIntentCode {
+  oid BigInt @id
+  id  String @unique
+
+  email String
+  code  String
+
+  authIntentOid BigInt
+  authIntent    AuthIntent @relation(fields: [authIntentOid], references: [oid], onDelete: Cascade)
+
+  stepOid BigInt
+  step    AuthIntentStep @relation(fields: [stepOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum AuthAttemptStatus {
+  pending
+  consumed
+}
+
+enum AuthLoginMethod {
+  email
+  oauth
+  sso
+  password
+}
+
+model AuthAttempt {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  status AuthAttemptStatus
+
+  loginMethod AuthLoginMethod?
+
+  authorizationCode String? @unique
+
+  redirectUrl String
+
+  ip String
+  ua String? @db.Text
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
+  authIntentOid BigInt?
+  authIntent    AuthIntent? @relation(fields: [authIntentOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+enum AuthBlockIdentifierType {
+  email
+  ip
+}
+
+model AuthBlock {
+  id String @id @default(uuid()) @db.Uuid
+
+  identifierType AuthBlockIdentifierType
+  identifier     String
+
+  ip String
+
+  blockedAt    DateTime @default(now())
+  blockedUntil DateTime
+
+  @@index([identifierType, identifier])
+  @@index([ip])
+  @@index([blockedUntil])
+}
+
+model AuthDevice {
+  oid BigInt @id
+  id  String @unique
+
+  clientSecret String @unique
+
+  ip String
+  ua String? @db.Text
+
+  lastIp String
+  lastUa String? @db.Text
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  lastActiveAt DateTime?
+
+  history      AuthDeviceHistory[]
+  sessions     AuthDeviceUserSession[]
+  authAttempts AuthAttempt[]
+  authIntents  AuthIntent[]
+}
+
+model AuthDeviceHistory {
+  id BigInt @id
+
+  ip String
+  ua String? @db.Text
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model AuthDeviceUserSession {
+  oid BigInt @id
+  id  String @unique
+
+  deviceOid BigInt
+  device    AuthDevice @relation(fields: [deviceOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  createdAt    DateTime  @default(now())
+  loggedOutAt  DateTime?
+  lastActiveAt DateTime?
+  expiresAt    DateTime
+
+  twoFactorSetups UserTwoFactorSetup[]
+
+  lifecycleOwner          String?
+  lifecycleOwnerSessionId String?
+  lifecycleOwnerRevision  BigInt?
+  lifecycleOwnerLogoutUrl String?
+  lifecycleClaimedAt      DateTime?
+  lifecycleSyncedAt       DateTime?
+
+  @@index([lifecycleOwner, lifecycleOwnerSessionId])
+}
+
+model QueueCheckpoint {
+  queue String @id
+
+  processedThrough DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum SsoAuthStatus {
+  pending
+  completed
+}
+
+enum SsoAuthPurpose {
+  authentication
+  connection_test
+  elevation
+}
+
+model SsoAuth {
+  oid          BigInt @id
+  id           String @unique
+  clientSecret String @unique
+
+  status  SsoAuthStatus  @default(pending)
+  purpose SsoAuthPurpose @default(authentication)
+
+  redirectUri  String
+  state        String  @unique
+  codeVerifier String?
+  email        String?
+  forceAuthn   Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
+  connectionOid BigInt?
+  connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  userProfileOid BigInt?
+  userProfile    SsoUserProfile? @relation(fields: [userProfileOid], references: [oid], onDelete: SetNull)
+
+  userOid BigInt?
+  user    SsoUser? @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  delegationAuthRequest SsoDelegationAuthRequest?
+  testSso               SsoTest?
+}
+
+enum SsoConnectionProviderType {
+  saml
+  oidc
+}
+
+enum SsoConnectionStatus {
+  active
+  disabled
+}
+
+model SsoConnection {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  status SsoConnectionStatus @default(active)
+
+  internalId           String?
+  internalClientId     String?
+  internalClientSecret String?
+
+  sourceId String?
+
+  importedDelegationOid BigInt?
+  importedDelegation    SsoImportedDelegation? @relation(fields: [importedDelegationOid], references: [oid], onDelete: Cascade)
+
+  providerType SsoConnectionProviderType
+  providerName String?
+
+  name String
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionSetups             SsoConnectionSetup[]
+  userProfiles                 SsoUserProfile[]
+  auths                        SsoAuth[]
+  tests                        SsoTest[]
+  directories                  SsoDirectory[]
+  groups                       SsoConnectionGroup[]
+  roles                        SsoConnectionRole[]
+  allowedAccountDomains        AccountDomainSsoConnection[]
+  delegationAuthorizationCodes SsoDelegationAuthorizationCode[]
+  delegationTokens             SsoDelegationToken[]
+
+  @@unique([importedDelegationOid, sourceId])
+  @@index([importedDelegationOid, status])
+}
+
+enum SsoDirectoryStatus {
+  active
+  disabled
+}
+
+enum SsoImportedDelegationStatus {
+  active
+  disabled
+}
+
+enum SsoDelegationTokenType {
+  identity
+  metadata
+}
+
+model AresInstance {
+  oid BigInt @id
+  id  String @unique
+
+  singletonKey String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  exportedDelegations SsoExportedDelegation[]
+}
+
+model RemoteAresInstance {
+  oid BigInt @id
+  id  String @unique
+
+  remoteId String @unique
+
+  authorizationEndpointUrl String
+  tokenUrl                 String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  importedDelegations SsoImportedDelegation[]
+}
+
+model SsoExportedDelegation {
+  oid BigInt @id
+  id  String @unique
+
+  identifier   String
+  clientId     String  @unique
+  clientSecret String
+  redirectUri  String?
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    AresInstance @relation(fields: [instanceOid], references: [oid], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  localImports       SsoImportedDelegation[]          @relation("LocalExportedDelegation")
+  authRequests       SsoDelegationAuthRequest[]
+  authorizationCodes SsoDelegationAuthorizationCode[]
+  tokens             SsoDelegationToken[]
+
+  @@unique([tenantOid, identifier])
+  @@index([instanceOid])
+}
+
+model SsoImportedDelegation {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoImportedDelegationStatus @default(active)
+
+  clientId           String  @unique
+  clientSecret       String
+  sourceDelegationId String
+  sourceTenantId     String
+  sourceExternalId   String?
+
+  remoteInstanceOid BigInt
+  remoteInstance    RemoteAresInstance @relation(fields: [remoteInstanceOid], references: [oid], onDelete: Restrict)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  localExportedDelegationOid BigInt?                @unique
+  localExportedDelegation    SsoExportedDelegation? @relation("LocalExportedDelegation", fields: [localExportedDelegationOid], references: [oid], onDelete: SetNull)
+
+  lastSyncAttemptAt DateTime?
+  lastSyncedAt      DateTime?
+  syncFailureCount  Int       @default(0)
+  lastSyncError     String?   @db.Text
+  disabledAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenant      SsoTenant?
+  connections SsoConnection[]
+
+  @@unique([remoteInstanceOid, sourceDelegationId])
+  @@index([appOid, status])
+  @@index([lastSyncedAt])
+}
+
+model SsoDelegationAuthRequest {
+  oid BigInt @id
+  id  String @unique
+
+  redirectUri         String
+  state               String
+  codeChallenge       String
+  codeChallengeMethod String
+  sourceConnectionId  String?
+  expiresAt           DateTime
+
+  exportedDelegationOid BigInt
+  exportedDelegation    SsoExportedDelegation @relation(fields: [exportedDelegationOid], references: [oid], onDelete: Cascade)
+
+  ssoAuthOid BigInt  @unique
+  ssoAuth    SsoAuth @relation(fields: [ssoAuthOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([exportedDelegationOid, expiresAt])
+}
+
+model SsoDelegationAuthorizationCode {
+  oid BigInt @id
+  id  String @unique
+
+  codeHash      String    @unique
+  redirectUri   String
+  codeChallenge String?
+  expiresAt     DateTime
+  consumedAt    DateTime?
+
+  exportedDelegationOid BigInt
+  exportedDelegation    SsoExportedDelegation @relation(fields: [exportedDelegationOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([exportedDelegationOid, expiresAt])
+}
+
+model SsoDelegationToken {
+  oid BigInt @id
+  id  String @unique
+
+  type      SsoDelegationTokenType
+  tokenHash String                 @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  exportedDelegationOid BigInt
+  exportedDelegation    SsoExportedDelegation @relation(fields: [exportedDelegationOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt?
+  userProfile    SsoUserProfile? @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([exportedDelegationOid, expiresAt])
+}
+
+model SsoDirectory {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoDirectoryStatus @default(active)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  internalId String @unique
+
+  name         String
+  type         String
+  scimPath     String
+  scimEndpoint String
+  scimSecret   String
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  ownedUserProfiles SsoUserProfile[]          @relation("SsoUserProfileOwnerDirectory")
+  userProfiles      SsoDirectoryUserProfile[]
+  groups            SsoDirectoryGroup[]
+  roles             SsoDirectoryRole[]
+  scimOperations    SsoScimOperation[]
+
+  @@unique([connectionOid, internalId])
+}
+
+model SsoDirectoryGroup {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoConnectionGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoDirectoryRole {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoConnectionRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, roleOid])
+  @@index([roleOid])
+}
+
+model SsoScimOperation {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt?
+  directory    SsoDirectory? @relation(fields: [directoryOid], references: [oid], onDelete: SetNull)
+
+  appOid BigInt?
+  app    App?    @relation(fields: [appOid], references: [oid], onDelete: SetNull)
+
+  internalDirectoryId String
+  method              String
+  resourceType        String
+  resourceId          String?
+  statusCode          Int
+  success             Boolean
+  durationMs          Int
+  eventNames          String[]
+  errorMessage        String?  @db.Text
+
+  /// [JsonObject]
+  query Json?
+
+  /// [JsonValue]
+  requestBody Json?
+
+  /// [JsonValue]
+  responseBody Json?
+
+  createdAt DateTime @default(now())
+
+  userChanges SsoUserChange[]
+
+  @@index([createdAt])
+  @@index([directoryOid, createdAt])
+  @@index([appOid, createdAt])
+}
+
+model SsoConnectionGroup {
+  oid BigInt @id
+  id  String @unique
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  rootGroupOid BigInt?
+  rootGroup    SsoGroup? @relation(fields: [rootGroupOid], references: [oid], onDelete: SetNull)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userProfiles SsoUserProfileGroup[]
+  directories  SsoDirectoryGroup[]
+
+  @@unique([connectionOid, value])
+  @@index([rootGroupOid])
+}
+
+model SsoConnectionRole {
+  oid BigInt @id
+  id  String @unique
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  rootRoleOid BigInt?
+  rootRole    SsoRole? @relation(fields: [rootRoleOid], references: [oid], onDelete: SetNull)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userProfiles SsoUserProfileRole[]
+  directories  SsoDirectoryRole[]
+
+  @@unique([connectionOid, value])
+  @@index([rootRoleOid])
+}
+
+model SsoGroup {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionGroups SsoConnectionGroup[]
+  users            SsoUserGroup[]
+
+  @@unique([tenantOid, value])
+}
+
+model SsoRole {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionRoles SsoConnectionRole[]
+  users           SsoUserRole[]
+
+  @@unique([tenantOid, value])
+}
+
+enum SsoUserProfileStatus {
+  active
+  deprovisioned
+}
+
+model SsoUserProfile {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoUserProfileStatus @default(active)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  email     String
+  uid       String
+  uidHash   String
+  sub       String?
+  firstName String
+  lastName  String
+  roles     String[]
+  groups    String[]
+
+  isGroupRoleMemberReconciled Boolean @default(false)
+
+  ownerDirectoryOid BigInt?
+  ownerDirectory    SsoDirectory? @relation("SsoUserProfileOwnerDirectory", fields: [ownerDirectoryOid], references: [oid], onDelete: SetNull)
+
+  /// [JsonObject]
+  raw Json
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  auths                        SsoAuth[]
+  delegationAuthorizationCodes SsoDelegationAuthorizationCode[]
+  delegationTokens             SsoDelegationToken[]
+
+  userIdentities UserIdentity[]
+  ownedUser      SsoUser?                  @relation("SsoUserOwnerProfile")
+  groupLinks     SsoUserProfileGroup[]
+  roleLinks      SsoUserProfileRole[]
+  directories    SsoDirectoryUserProfile[]
+}
+
+model SsoUserGroup {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoUserRole {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userOid, roleOid])
+  @@index([roleOid])
+}
+
+model SsoUserProfileGroup {
+  oid BigInt @id
+  id  String @unique
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoConnectionGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userProfileOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoUserProfileRole {
+  oid BigInt @id
+  id  String @unique
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoConnectionRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userProfileOid, roleOid])
+  @@index([roleOid])
+}
+
+model SsoDirectoryUserProfile {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  externalId String?
+
+  /// [JsonObject]
+  raw Json?
+
+  lastSeenAt      DateTime?
+  deprovisionedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, userProfileOid])
+  @@unique([directoryOid, externalId])
+}
+
+enum SsoConnectionSetupStatus {
+  pending
+  completed
+}
+
+model SsoConnectionSetup {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoConnectionSetupStatus @default(pending)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
+
+  clientSecret String @unique
+
+  redirectUri String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum SsoTenantStatus {
+  pending
+  completed
+  disabled
+}
+
+enum SsoTenantEnrollment {
+  app
+  account
+  disabled
+}
+
+model SsoTenant {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoTenantStatus @default(pending)
+
+  clientId   String  @unique
+  name       String
+  externalId String? @unique
+
+  /// [JsonObject]
+  metadata Json?
+
+  enrollment SsoTenantEnrollment @default(app)
+  hideInUI   Boolean             @default(false)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: Restrict)
+
+  importedDelegationOid BigInt?                @unique
+  importedDelegation    SsoImportedDelegation? @relation(fields: [importedDelegationOid], references: [oid], onDelete: Cascade)
+
+  syncRevision BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connections      SsoConnection[]
+  connectionSetups SsoConnectionSetup[]
+  users            SsoUser[]
+  userChanges      SsoUserChange[]
+  userProfiles     SsoUserProfile[]
+  groups           SsoGroup[]
+  roles            SsoRole[]
+  auths            SsoAuth[]
+  tests            SsoTest[]
+
+  identityProvider      UserIdentityProvider?
+  allowedAccountDomains AccountDomainSsoTenant[]
+  exportedDelegations   SsoExportedDelegation[]
+
+  @@index([appOid, enrollment])
+  @@index([accountOid, status])
+}
+
+enum SsoTestStatus {
+  pending
+  completed
+}
+
+model SsoTest {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoTestStatus @default(pending)
+
+  // Keep the public auth ID as an audit value after the temporary auth row is deleted.
+  authId  String   @unique
+  authOid BigInt?  @unique
+  auth    SsoAuth? @relation(fields: [authOid], references: [oid], onDelete: SetNull)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  email     String?
+  firstName String?
+  lastName  String?
+  uid       String?
+  sub       String?
+  groups    String[]
+  roles     String[]
+  raw       Json?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+}
+
+enum SsoUserStatus {
+  active
+  deprovisioned
+}
+
+model SsoUser {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoUserStatus @default(active)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  email     String
+  firstName String
+  lastName  String
+
+  ownerProfileOid BigInt?         @unique
+  ownerProfile    SsoUserProfile? @relation("SsoUserOwnerProfile", fields: [ownerProfileOid], references: [oid], onDelete: SetNull)
+
+  syncRevision BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles   SsoUserProfile[]
+  groupLinks SsoUserGroup[]
+  roleLinks  SsoUserRole[]
+  auths      SsoAuth[]
+  changes    SsoUserChange[]
+
+  @@index([tenantOid, email])
+}
+
+model SsoUserChange {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt?
+  user    SsoUser? @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
+  userId          String
+  status          SsoUserStatus
+  email           String
+  firstName       String
+  lastName        String
+  ownerProfileOid BigInt?
+
+  source        String
+  changedFields String[]
+
+  scimOperationOid BigInt?
+  scimOperation    SsoScimOperation? @relation(fields: [scimOperationOid], references: [oid], onDelete: SetNull)
+
+  /// [JsonValue]
+  assignedGroups Json
+
+  /// [JsonValue]
+  assignedRoles Json
+
+  /// [JsonObject]
+  snapshot Json
+
+  createdAt DateTime @default(now())
+
+  @@index([userOid, createdAt])
+  @@index([tenantOid, createdAt])
+  @@index([scimOperationOid])
+  @@index([createdAt])
+}
+
+model EmailDomain {
+  oid BigInt @id
+  id  String @unique
+
+  domain String @unique
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  emails UserEmail[]
+}
+
+model UserEmail {
+  oid BigInt @id
+  id  String @unique
+
+  isPrimary Boolean @default(false)
+
+  email           String
+  normalizedEmail String
+
+  domainOid BigInt
+  domain    EmailDomain @relation(fields: [domainOid], references: [oid])
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  verifiedAt   DateTime?
+  lastResentAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  verifications UserEmailVerification[]
+
+  @@unique([email, appOid])
+}
+
+model UserEmailVerification {
+  oid BigInt @id
+  id  String @unique
+  key String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  userEmailOid BigInt
+  userEmail    UserEmail @relation(fields: [userEmailOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
+
+model UserIdentityProvider {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+
+  oauthProviderOid BigInt?           @unique
+  oauthProvider    AppOAuthProvider? @relation(fields: [oauthProviderOid], references: [oid], onDelete: SetNull)
+
+  ssoTenantOid BigInt?    @unique
+  ssoTenant    SsoTenant? @relation(fields: [ssoTenantOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  UserIdentity UserIdentity[]
+}
+
+model UserIdentity {
+  oid BigInt @id
+  id  String @unique
+
+  providerOid BigInt
+  provider    UserIdentityProvider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  uid       String
+  name      String
+  firstName String
+  lastName  String
+  email     String
+  photoUrl  String?
+
+  ssoUserProfileOid BigInt?
+  ssoUserProfile    SsoUserProfile? @relation(fields: [ssoUserProfileOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  authIntents AuthIntent[]
+
+  @@unique([providerOid, uid])
+}
+
+model UserTermsType {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String
+  version    String
+  name       String
+
+  createdAt DateTime @default(now())
+
+  userTermsAgreements UserTermsAgreement[]
+
+  @@unique([identifier, version])
+}
+
+model UserTermsAgreement {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  typeOid BigInt
+  type    UserTermsType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+
+  ip String
+  ua String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([userOid, typeOid])
+}
+
+enum UserTwoFactorMethod {
+  totp
+  passkey
+}
+
+enum UserTwoFactorSetupStatus {
+  pending
+  ready
+  completed
+  cancelled
+}
+
+model UserTwoFactor {
+  oid BigInt @id
+  id  String @unique
+
+  method          UserTwoFactorMethod
+  name            String
+  encryptedSecret String?
+  lastTimeStep    Int?
+  credentialId    String?             @unique
+  publicKey       Bytes?
+  counter         BigInt              @default(0)
+  transports      String[]            @default([])
+  deviceType      String?
+  backedUp        Boolean             @default(false)
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userOid, method])
+}
+
+model UserRecoveryCode {
+  oid BigInt @id
+  id  String @unique
+
+  hash String
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  consumedAt DateTime?
+
+  @@unique([userOid, hash])
+}
+
+model UserTwoFactorSetup {
+  oid BigInt @id
+  id  String @unique
+
+  secretHash             String                   @unique
+  method                 UserTwoFactorMethod?
+  status                 UserTwoFactorSetupStatus @default(pending)
+  revision               Int
+  name                   String?
+  encryptedSecret        String?
+  lastTimeStep           Int?
+  credentialId           String?
+  publicKey              Bytes?
+  counter                BigInt                   @default(0)
+  transports             String[]                 @default([])
+  deviceType             String?
+  backedUp               Boolean                  @default(false)
+  challenge              String?
+  challengeExpiresAt     DateTime?
+  failures               Int                      @default(0)
+  encryptedRecoveryCodes String?
+
+  callbackUrl String
+  returnUrl   String
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt
+  session    AuthDeviceUserSession @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  completedAt DateTime?
+
+  @@index([expiresAt, id])
+  @@index([userOid, createdAt])
+}
+
+enum UserType {
+  user
+  system
+}
+
+enum UserOwner {
+  self
+  tenant
+}
+
+enum UserStatus {
+  active
+  deleted
+}
+
+enum UserSignupMethod {
+  unknown
+  email
+  oauth
+  sso
+}
+
+model User {
+  oid BigInt @id
+  id  String @unique
+
+  type   UserType
+  owner  UserOwner
+  status UserStatus
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid])
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
+  email     String
+  name      String
+  firstName String
+  lastName  String
+
+  /// [EntityImage]
+  image Json
+
+  isFullyCreated Boolean @default(true)
+
+  // The defaults describe rows that predate these columns. Writers that create a user
+  // without witnessing a login -- projections, SCIM -- pass `unknown` and `false`.
+  signupMethod UserSignupMethod @default(email)
+  hasLoggedIn  Boolean          @default(true)
+
+  syncRevision       BigInt  @default(0)
+  hyperplaneRevision BigInt?
+
+  lastLoginAt  DateTime?
+  lastActiveAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  authIntents            AuthIntent[]
+  authAttempts           AuthAttempt[]
+  authDeviceUserSessions AuthDeviceUserSession[]
+  userEmails             UserEmail[]
+  userEmailVerifications UserEmailVerification[]
+  userIdentities         UserIdentity[]
+  userTermsAgreements    UserTermsAgreement[]
+  auditLogs              AuditLog[]
+  password               UserPassword?
+
+  twoFactorRevision Int @default(0)
+
+  twoFactors      UserTwoFactor[]
+  twoFactorSetups UserTwoFactorSetup[]
+  recoveryCodes   UserRecoveryCode[]
+
+  @@unique([appOid, email])
+  @@index([accountOid, id])
+  @@index([appOid, email])
+}
+
+model UserPassword {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt @unique
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  hash    String
+  version String @default(dbgenerated("(gen_random_uuid())::text"))
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

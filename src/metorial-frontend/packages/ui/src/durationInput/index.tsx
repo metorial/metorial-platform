@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { styled } from 'styled-components';
-import { ButtonSize } from '../button/constants';
+import { ControlSize, useControlSize } from '../controlSize';
 import { Error } from '../error';
 import { InputHeader } from '../input';
 import { NumberInputField } from '../numberInput/field';
@@ -28,7 +28,7 @@ export type DurationInputProps = {
   allowNever?: boolean;
   neverLabel?: string;
   defaultValue?: number;
-  size?: ButtonSize;
+  size?: ControlSize;
   disabled?: boolean;
   style?: React.CSSProperties;
 };
@@ -71,10 +71,11 @@ export let DurationInput = ({
   allowNever,
   neverLabel = 'Never',
   defaultValue,
-  size = '3',
+  size: sizeProp,
   disabled,
   style
 }: DurationInputProps) => {
+  let size = useControlSize(sizeProp);
   let id = useId();
   let [unit, setUnit] = useState(() => pickDurationUnit(value, units));
   let lastEmittedRef = useRef(value);

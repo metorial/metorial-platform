@@ -1,0 +1,20 @@
+{
+  "name": "@mtsrc/auth-core-identity-utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "bunx vitest run --passWithNoTests --configLoader runner",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@mtsrc/auth-core-test-utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.9.9",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

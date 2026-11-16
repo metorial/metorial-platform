@@ -10,6 +10,7 @@ enum ConsumerAccessTargetType {
 
 enum ConsumerAccessLevel {
   read
+  write
   manage
 }
 
@@ -69,6 +70,8 @@ model ConsumerAccessListing {
   name        String
   description String?
   readme      String?
+
+  isDiscoverable Boolean @default(true)
 
   surfaceOid BigInt
   surface    ConsumerSurface @relation(fields: [surfaceOid], references: [oid], onDelete: Cascade)

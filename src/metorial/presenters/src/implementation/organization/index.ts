@@ -12,6 +12,7 @@ export * from './organizationMember';
 export * from './organizationScopes';
 export * from './profile';
 export * from './project';
+export * from './projectAiAnalysisConfiguration';
 export * from './projectBrand';
 export * from './projectReducedSubprocessorsConfiguration';
 export * from './projectRetention';

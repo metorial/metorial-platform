@@ -3,6 +3,8 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillGroupIds,
+  getReadablePluginSkillIds,
   getWritableSkillPluginIds,
   skillMarketplacePluginService
 } from '@metorial/module-skill-marketplace';
@@ -31,11 +33,12 @@ export let skillMarketplacePluginGroup = skillMarketplaceGroup.use(async ctx => 
     );
   }
 
-  let skillMarketplacePlugin = await skillMarketplacePluginService.getSkillMarketplacePluginById({
-    ...(await getSkillPluginAccess(ctx)),
-    skillMarketplace: ctx.skillMarketplace,
-    skillMarketplacePluginId: ctx.params.skillMarketplacePluginId
-  });
+  let skillMarketplacePlugin =
+    await skillMarketplacePluginService.getSkillMarketplacePluginById({
+      ...(await getSkillPluginAccess(ctx)),
+      skillMarketplace: ctx.skillMarketplace,
+      skillMarketplacePluginId: ctx.params.skillMarketplacePluginId
+    });
 
   return { skillMarketplacePlugin };
 });
@@ -95,16 +98,25 @@ export let skillMarketplacePluginController = Controller.create(
         let nestedPlugins = list.items.flatMap(item =>
           item.skillPlugin ? [item.skillPlugin] : []
         );
-        let [writablePluginIds, archivablePluginIds] = await Promise.all([
-          getWritableSkillPluginIds({
-            plugins: nestedPlugins,
-            ...accessInput
-          }),
-          getArchivableSkillPluginIds({
-            plugins: nestedPlugins,
-            ...accessInput
-          })
-        ]);
+        let [writablePluginIds, archivablePluginIds, readableSkillIds, readableSkillGroupIds] =
+          await Promise.all([
+            getWritableSkillPluginIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            }),
+            getArchivableSkillPluginIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            }),
+            getReadablePluginSkillIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            }),
+            getReadablePluginSkillGroupIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            })
+          ]);
 
         return Paginator.present(list, skillMarketplacePlugin =>
           skillMarketplacePluginPresenter.present({
@@ -113,7 +125,9 @@ export let skillMarketplacePluginController = Controller.create(
             pluginAccess: skillMarketplacePlugin.skillPlugin
               ? {
                   canUpdate: writablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
-                  canDelete: archivablePluginIds.has(skillMarketplacePlugin.skillPlugin.id)
+                  canDelete: archivablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
+                  readableSkillIds,
+                  readableSkillGroupIds
                 }
               : undefined
           })

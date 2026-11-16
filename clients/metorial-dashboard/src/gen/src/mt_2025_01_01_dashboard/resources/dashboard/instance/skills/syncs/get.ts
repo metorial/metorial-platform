@@ -29,7 +29,18 @@ export type DashboardInstanceSkillsSyncsGetOutput = {
     prName: string;
     prDescription: string | null;
     commitMessage: string | null;
+    errorCode: string | null;
     errorMessage: string | null;
+    unexpectedDeleteCount: number | null;
+    waitingUntil: Date | null;
+    waitingReason: string | null;
+    endReason:
+      | 'superseded'
+      | 'pull_request_closed'
+      | 'pull_request_deleted'
+      | 'branch_deleted'
+      | null;
+    continuedInSyncId: string | null;
     createdAt: Date;
     updatedAt: Date;
     startedAt: Date | null;
@@ -60,7 +71,13 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
               'pr_name',
               'pr_description',
               'commit_message',
+              'error_code',
               'error_message',
+              'unexpected_delete_count',
+              ['waiting_until', 1, 4],
+              'waiting_reason',
+              'end_reason',
+              'continued_in_sync_id',
               'created_at',
               'updated_at',
               'started_at',

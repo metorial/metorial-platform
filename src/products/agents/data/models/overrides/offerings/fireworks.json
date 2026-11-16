@@ -1,0 +1,9 @@
+{
+  "accounts/fireworks/routers/deepseek-v4p1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Fireworks' Ultra-fast (Preview) path serves the same DeepSeek V4.1 Flash 1017 checkpoint on a faster serving path (per its models.dev entry); still deepseek/deepseek-v4.1-flash-1017, priced at a speed-tier premium (2.4/9.6).",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

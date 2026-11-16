@@ -368,6 +368,7 @@ let showSkillImportFileError = (message: string) =>
 
 export let useSkillImportActions = (p: {
   instanceId: string;
+  skillGroupId?: string;
   getSkillPath: (skillId: string) => string;
 }) => {
   let uploadFile = useUploadFile();
@@ -388,6 +389,7 @@ export let useSkillImportActions = (p: {
   let createImport = async (source: SkillImportSource) => {
     let [skillImport] = await createSkillImport.mutate({
       instanceId: p.instanceId,
+      skillGroupId: p.skillGroupId,
       source
     });
     if (!skillImport) return false;

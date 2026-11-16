@@ -15,6 +15,7 @@ import {
   resolveSessionConnectionOids,
   resolveSessionMessageOids,
   resolveSessionOids,
+  VISIBLE_INSTANCE_WHERE,
   type DateFilter,
   type Scope
 } from './_shared';
@@ -25,7 +26,9 @@ export let protoGuardAlertInclude = {
   message: true,
   connection: true,
   providerRun: true,
+  issue: true,
   instances: {
+    where: VISIBLE_INSTANCE_WHERE,
     include: { filter: true }
   }
 } as const;
@@ -56,6 +59,7 @@ export type ListProtoGuardAlertsParams = Scope & {
   sessionMessageIds?: string[];
   sessionConnectionIds?: string[];
   providerRunIds?: string[];
+  issueIds?: string[];
   createdAt?: DateFilter;
 };
 
@@ -102,7 +106,11 @@ class protoGuardAlertServiceImpl {
               d.ids ? { id: { in: d.ids } } : undefined!,
               runOids ? { runOid: { in: runOids } } : undefined!,
               filterOids
-                ? { instances: { some: { filterOid: { in: filterOids } } } }
+                ? {
+                    instances: {
+                      some: { ...VISIBLE_INSTANCE_WHERE, filterOid: { in: filterOids } }
+                    }
+                  }
                 : undefined!,
               sessionOids ? { sessionOid: { in: sessionOids } } : undefined!,
               sessionMessageOids ? { messageOid: { in: sessionMessageOids } } : undefined!,
@@ -110,6 +118,7 @@ class protoGuardAlertServiceImpl {
                 ? { connectionOid: { in: sessionConnectionOids } }
                 : undefined!,
               providerRunOids ? { providerRunOid: { in: providerRunOids } } : undefined!,
+              d.issueIds ? { issue: { id: { in: d.issueIds } } } : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
             ].filter(Boolean)
           },

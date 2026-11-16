@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  protoGuardService: { scheduleMessageScan: vi.fn() },
   db: {
     sessionMessage: {
       create: vi.fn()
@@ -32,6 +33,9 @@ vi.mock('@metorial/module-usage', () => ({
   recordSessionMessageUsage: vi.fn(async () => {})
 }));
 
+vi.mock('@metorial-subspace/module-protoguard', () => ({
+  protoGuardService: mocks.protoGuardService
+}));
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   getId: mocks.getId,
@@ -180,6 +184,30 @@ describe('createMessage retention', () => {
     expect(createdData().output).toBe('DbNull');
     expect(message.output).toEqual(output);
     expect(message.input).toEqual(baseProps.input);
+  });
+
+  it('hands the in-memory payload and tool identity to ProtoGuard at none', async () => {
+    let output = { type: 'tool.result', data: { answer: 42 } } as any;
+
+    await createMessage({
+      ...baseProps,
+      session: sessionAt('none'),
+      status: 'succeeded',
+      tool,
+      output,
+      responderParticipant: { oid: 401n } as any
+    });
+
+    expect(createdData().methodOrToolKey).toBeNull();
+    expect(mocks.protoGuardService.scheduleMessageScan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        methodOrToolKey: 'search',
+        tool,
+        input: baseProps.input,
+        output,
+        message: expect.objectContaining({ id: 'msg_created', retentionLevel: 'none' })
+      })
+    );
   });
 });
 

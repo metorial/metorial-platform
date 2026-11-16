@@ -60,6 +60,7 @@ model CustomProviderVersion {
   customProviderCommits             CustomProviderCommit[]
   customProviderCommitsBefore       CustomProviderCommit[]             @relation("CustomProviderCommitToEnvVersionBefore")
   upcomingCustomProviders           UpcomingCustomProvider[]
+  securityReview                    SecurityReview?
 
   @@unique([customProviderOid, versionIndex])
   @@unique([customProviderOid, versionIdentifier])

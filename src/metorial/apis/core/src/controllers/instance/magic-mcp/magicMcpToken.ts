@@ -17,6 +17,7 @@ import { integrationsGroup, instancePath } from '../../../middleware/instanceGro
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpTokenPresenter } from '@metorial/presenters';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
+import { getSignedInOAuthToken } from '../../../lib/signedInOAuthToken';
 
 export let magicMcpTokenGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.magicMcpTokenId) {
@@ -196,7 +197,8 @@ export let magicMcpTokenController = Controller.create(
             metadata: ctx.body.metadata,
             magicMcpServer,
             magicMcpEndpoint
-          }
+          },
+          signedInOAuthToken: getSignedInOAuthToken(ctx)
         });
 
         if (ctx.consumerProfile) {

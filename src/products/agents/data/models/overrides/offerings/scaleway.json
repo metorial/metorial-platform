@@ -1,0 +1,9 @@
+{
+  "qwen3-embedding-8b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-embedding-8b",
+    "reason": "Offering name and 32K context match Alibaba's Qwen3-Embedding-8B (Apache 2.0, June 2025). The 0.11215 input price is Scaleway's own embedding pricing, not a different model.",
+    "by": "agent",
+    "at": "2026-11-14"
+  }
+}

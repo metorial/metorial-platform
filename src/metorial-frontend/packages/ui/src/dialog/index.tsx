@@ -5,6 +5,7 @@ export * from './largePanel';
 export * from './panel';
 export {
   preventPopoverDismissForNestedOverlay,
+  useDialogContext,
   useDialogZIndex,
   useZIndex,
   useZindex

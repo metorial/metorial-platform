@@ -530,11 +530,21 @@ export type MonacoCodeEditorProps = {
   readOnly?: boolean;
   ariaLabel?: string;
   fileName?: string;
+  wordWrap?: boolean;
 };
 
 export let MonacoCodeEditor = forwardRef<MonacoCodeEditorHandle, MonacoCodeEditorProps>(
   (
-    { value, language = 'plaintext', onChange, onBlur, readOnly, ariaLabel, fileName },
+    {
+      value,
+      language = 'plaintext',
+      onChange,
+      onBlur,
+      readOnly,
+      ariaLabel,
+      fileName,
+      wordWrap
+    },
     outerRef
   ) => {
     let containerRef = useRef<HTMLDivElement | null>(null);
@@ -598,7 +608,7 @@ export let MonacoCodeEditor = forwardRef<MonacoCodeEditorHandle, MonacoCodeEdito
         roundedSelection: false,
         scrollBeyondLastLine: false,
         smoothScrolling: true,
-        wordWrap: 'off',
+        wordWrap: wordWrap ? 'on' : 'off',
         padding: { top: 14, bottom: 14 },
         scrollbar: {
           alwaysConsumeMouseWheel: false,
@@ -650,6 +660,10 @@ export let MonacoCodeEditor = forwardRef<MonacoCodeEditorHandle, MonacoCodeEdito
     useEffect(() => {
       editorRef.current?.updateOptions({ readOnly: !!readOnly });
     }, [readOnly]);
+
+    useEffect(() => {
+      editorRef.current?.updateOptions({ wordWrap: wordWrap ? 'on' : 'off' });
+    }, [wordWrap]);
 
     return (
       <div

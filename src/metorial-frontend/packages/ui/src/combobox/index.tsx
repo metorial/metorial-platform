@@ -3,12 +3,13 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { useDialogContext, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { Spinner } from '../spinner';
 import { theme } from '../theme';
+import { surface } from '../controlSize/scale';
 
 let fadeIn = keyframes`
   from {
@@ -130,11 +131,11 @@ let Popup = styled(BaseCombobox.Popup)`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px;
+  padding: ${surface.padding}px;
   box-shadow: ${theme.shadows.medium};
   background: ${theme.colors.gray200};
   border: 1px solid ${theme.colors.gray400};
-  border-radius: 10px;
+  border-radius: ${surface.borderRadius};
   max-height: min(320px, var(--available-height));
   overflow: hidden;
 
@@ -171,7 +172,7 @@ let Item = styled(BaseCombobox.Item)`
   gap: 6px;
   min-height: 38px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: ${surface.itemBorderRadius};
   outline: none;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -265,8 +266,7 @@ export type ComboboxGroupData<TData = unknown> = {
 };
 
 export type ComboboxData<TData = unknown> =
-  | ComboboxItemData<TData>[]
-  | ComboboxGroupData<TData>[];
+  ComboboxItemData<TData>[] | ComboboxGroupData<TData>[];
 
 export type ComboboxProviderArgs<TData = unknown> = {
   search: string;
@@ -288,7 +288,7 @@ type CachedComboboxProviderResult<TData = unknown> = {
 };
 
 type ComboboxPropsBase<TData> = {
-  size?: ButtonSize;
+  size?: ControlSize;
   label?: React.ReactNode;
   description?: React.ReactNode;
   hideLabel?: boolean;
@@ -305,6 +305,7 @@ type ComboboxPropsBase<TData> = {
   onChange?: (value: string | null, item: ComboboxItemData<TData> | null) => void;
   onSearchChange?: (value: string) => void;
   renderItem?: (item: ComboboxItemData<TData>) => React.ReactNode;
+  hideItemIndicator?: boolean;
 } & Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'size' | 'value' | 'defaultValue' | 'onChange'
@@ -321,8 +322,7 @@ type ProviderComboboxProps<TData> = ComboboxPropsBase<TData> & {
 };
 
 export type ComboboxProps<TData = unknown> =
-  | StaticComboboxProps<TData>
-  | ProviderComboboxProps<TData>;
+  StaticComboboxProps<TData> | ProviderComboboxProps<TData>;
 
 let useDebouncedValue = <T,>(value: T, delay: number) => {
   let [debouncedValue, setDebouncedValue] = useState(() => value);
@@ -391,7 +391,7 @@ let ComboboxInner = <TData,>({
   empty,
   search,
   setSearch,
-  size = '3',
+  size: sizeProp,
   label,
   description,
   hideLabel,
@@ -407,6 +407,7 @@ let ComboboxInner = <TData,>({
   onChange,
   onSearchChange,
   renderItem,
+  hideItemIndicator,
   ...inputProps
 }: ComboboxPropsBase<TData> &
   ComboboxProviderResult<TData> & {
@@ -416,10 +417,12 @@ let ComboboxInner = <TData,>({
   let generatedId = useId();
   let { id: providedId, name, onFocus, ...restInputProps } = inputProps;
   let id = providedId ?? generatedId;
-  let sizeStyles = getButtonSize(size);
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getControlSize(size);
   let normalizedValue = value ?? null;
   let normalizedGroups = useMemo(() => normalizeGroups(items), [items]);
   let flatItems = useMemo(() => flattenGroups(normalizedGroups), [normalizedGroups]);
+  let itemValues = useMemo(() => flatItems.map(item => item.id), [flatItems]);
   let [labelCache, setLabelCache] = useState<Record<string, string>>(() =>
     createLabelCache(flatItems)
   );
@@ -538,8 +541,8 @@ let ComboboxInner = <TData,>({
             setSearch(selectedLabel);
           }
         }}
-        items={flatItems}
-        filteredItems={flatItems}
+        items={itemValues}
+        filteredItems={itemValues}
         autoHighlight
         disabled={disabled}
         readOnly={readOnly}
@@ -567,7 +570,7 @@ let ComboboxInner = <TData,>({
               padding: sizeStyles.padding,
               paddingRight: 0,
               height: sizeStyles.height,
-              fontSize: '14px'
+              fontSize: getFieldFontSize(size)
             }}
             {...restInputProps}
           />
@@ -600,11 +603,13 @@ let ComboboxInner = <TData,>({
                       <GroupLabel>{group.label}</GroupLabel>
                       {group.items.map(item => (
                         <Item key={item.id} value={item.id} disabled={item.disabled}>
-                          <ItemIndicatorSlot>
-                            <ItemIndicator>
-                              <RiCheckLine size={14} />
-                            </ItemIndicator>
-                          </ItemIndicatorSlot>
+                          {hideItemIndicator ? null : (
+                            <ItemIndicatorSlot>
+                              <ItemIndicator>
+                                <RiCheckLine size={14} />
+                              </ItemIndicator>
+                            </ItemIndicatorSlot>
+                          )}
                           <ItemContent>
                             {renderItem ? (
                               renderItem(item)
@@ -623,11 +628,13 @@ let ComboboxInner = <TData,>({
                   ) : (
                     group.items.map(item => (
                       <Item key={item.id} value={item.id} disabled={item.disabled}>
-                        <ItemIndicatorSlot>
-                          <ItemIndicator>
-                            <RiCheckLine size={14} />
-                          </ItemIndicator>
-                        </ItemIndicatorSlot>
+                        {hideItemIndicator ? null : (
+                          <ItemIndicatorSlot>
+                            <ItemIndicator>
+                              <RiCheckLine size={14} />
+                            </ItemIndicator>
+                          </ItemIndicatorSlot>
+                        )}
                         <ItemContent>
                           {renderItem ? (
                             renderItem(item)

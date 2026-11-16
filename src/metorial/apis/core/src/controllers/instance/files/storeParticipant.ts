@@ -1,10 +1,7 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { isStoreResourceFlagEnabled } from '@metorial/module-access';
 import { storeParticipantService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
-import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { storeParticipantPresenter } from '@metorial/presenters';
@@ -15,29 +12,20 @@ export let storeParticipantGroup = storeGroup.use(async ctx => {
     throw new Error('storeParticipantId is required');
   }
 
-  if (
-    await isStoreResourceFlagEnabled({ project: ctx.project, flag: 'store-participants-v2' })
-  ) {
-    let storeParticipant = await storeParticipantService.getStoreResourceParticipantById({
-      project: ctx.project,
-      instance: ctx.instance,
-      store: ctx.store,
-      participantId: ctx.params.storeParticipantId
-    });
-
-    return { storeParticipant };
-  }
-
-  let storeParticipant = await storeParticipantService.getStoreParticipantById({
-    storeParticipantId: ctx.params.storeParticipantId,
-    ...(await getInstanceCargoAccess(ctx))
+  let participant = await storeParticipantService.getStoreResourceParticipantById({
+    project: ctx.project,
+    instance: ctx.instance,
+    store: ctx.store,
+    participantId: ctx.params.storeParticipantId
+  });
+  let permissions = await storeParticipantService.findParticipantPermissions({
+    store: ctx.store,
+    participants: [participant]
   });
 
-  if (storeParticipant.store.id !== ctx.store.id) {
-    throw new ServiceError(notFoundError('store.participant', ctx.params.storeParticipantId));
-  }
-
-  return { storeParticipant };
+  return {
+    storeParticipant: { ...participant, permissions: permissions.get(participant.oid) ?? [] }
+  };
 });
 
 export let storeParticipantController = Controller.create(
@@ -57,32 +45,24 @@ export let storeParticipantController = Controller.create(
       .outputList(storeParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        if (
-          await isStoreResourceFlagEnabled({
-            project: ctx.project,
-            flag: 'store-participants-v2'
-          })
-        ) {
-          let paginator = await storeParticipantService.listStoreResourceParticipants({
-            project: ctx.project,
-            instance: ctx.instance,
-            store: ctx.store
-          });
-          let list = await paginator.run(ctx.query);
-
-          return Paginator.present(list, storeParticipant =>
-            storeParticipantPresenter.present({ storeParticipant })
-          );
-        }
-
-        let paginator = await storeParticipantService.listStoreParticipants({
-          storeIds: [ctx.store.id],
-          ...(await getInstanceCargoAccess(ctx))
+        let paginator = await storeParticipantService.listStoreResourceParticipants({
+          project: ctx.project,
+          instance: ctx.instance,
+          store: ctx.store
         });
         let list = await paginator.run(ctx.query);
+        let permissions = await storeParticipantService.findParticipantPermissions({
+          store: ctx.store,
+          participants: list.items
+        });
 
-        return Paginator.present(list, storeParticipant =>
-          storeParticipantPresenter.present({ storeParticipant })
+        return Paginator.present(list, participant =>
+          storeParticipantPresenter.present({
+            storeParticipant: {
+              ...participant,
+              permissions: permissions.get(participant.oid) ?? []
+            }
+          })
         );
       }),
 

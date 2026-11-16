@@ -7,8 +7,8 @@ import {
   mapDashboardInstanceSkillsPluginsArchiveOutput,
   mapDashboardInstanceSkillsPluginsCreateBody,
   mapDashboardInstanceSkillsPluginsCreateOutput,
-  mapDashboardInstanceSkillsPluginsGetEditorUrlBody,
-  mapDashboardInstanceSkillsPluginsGetEditorUrlOutput,
+  mapDashboardInstanceSkillsPluginsDetachSkillGroupBody,
+  mapDashboardInstanceSkillsPluginsDetachSkillGroupOutput,
   mapDashboardInstanceSkillsPluginsGetOutput,
   mapDashboardInstanceSkillsPluginsListOutput,
   mapDashboardInstanceSkillsPluginsListQuery,
@@ -19,8 +19,8 @@ import {
   type DashboardInstanceSkillsPluginsArchiveOutput,
   type DashboardInstanceSkillsPluginsCreateBody,
   type DashboardInstanceSkillsPluginsCreateOutput,
-  type DashboardInstanceSkillsPluginsGetEditorUrlBody,
-  type DashboardInstanceSkillsPluginsGetEditorUrlOutput,
+  type DashboardInstanceSkillsPluginsDetachSkillGroupBody,
+  type DashboardInstanceSkillsPluginsDetachSkillGroupOutput,
   type DashboardInstanceSkillsPluginsGetOutput,
   type DashboardInstanceSkillsPluginsListOutput,
   type DashboardInstanceSkillsPluginsListQuery,
@@ -200,6 +200,38 @@ export class MetorialSkillsPluginsEndpoint {
   }
 
   /**
+   * @name Detach skill plugin from skill group
+   * @description Stops syncing a plugin from its skill group. The plugin keeps its current skills, which can then be edited directly.
+   *
+   * @param `skillPluginId` - string
+   * @param `body` - DashboardInstanceSkillsPluginsDetachSkillGroupBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsPluginsDetachSkillGroupOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  detachSkillGroup(
+    skillPluginId: string,
+    body: DashboardInstanceSkillsPluginsDetachSkillGroupBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsPluginsDetachSkillGroupOutput> {
+    let path = `skill-plugins/${skillPluginId}/detach-skill-group`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsPluginsDetachSkillGroupBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsPluginsDetachSkillGroupOutput
+    );
+  }
+
+  /**
    * @name Sync skill plugin
    * @description Forces a skill plugin sync.
    *
@@ -226,36 +258,6 @@ export class MetorialSkillsPluginsEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceSkillsPluginsSyncOutput
-    );
-  }
-
-  /**
-   * @name Get skill plugin editor URL
-   * @description Creates an embeddable editor URL for a skill plugin.
-   *
-   * @param `skillPluginId` - string
-   * @param `body` - DashboardInstanceSkillsPluginsGetEditorUrlBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceSkillsPluginsGetEditorUrlOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  getEditorUrl(
-    skillPluginId: string,
-    body: DashboardInstanceSkillsPluginsGetEditorUrlBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceSkillsPluginsGetEditorUrlOutput> {
-    let path = `skill-plugins/${skillPluginId}/editor-url`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceSkillsPluginsGetEditorUrlBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardInstanceSkillsPluginsGetEditorUrlOutput
     );
   }
 }

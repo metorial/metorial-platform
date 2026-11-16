@@ -1,0 +1,23 @@
+{
+  "doubao-seed-1-6-thinking-250715": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Doubao Seed 1.6 Thinking, ByteDance's separate reasoning SKU (announced Jun 2025 alongside doubao-seed-1.6 and -flash), at its July 15 2025 snapshot; a dated revision of a variant the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-09-2025": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Sept 25, 2025 preview of the next Gemini 2.5 Flash — a separate checkpoint the index has no entry for (it has only the Flash-Lite 09-2025 preview and the GA 2.5 Flash); defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "grok-4.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "302.AI's listing of xAI's Grok 4.1 (announced Nov 2025 per x.ai and VentureBeat) at 2/10; the index has no base Grok 4.1 entry (only grok-4.1-fast), so defer rather than link the fast variant.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

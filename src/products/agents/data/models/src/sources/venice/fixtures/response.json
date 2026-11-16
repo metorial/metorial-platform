@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "test-chat",
+      "type": "text",
+      "model_spec": {
+        "pricing": {
+          "input": {
+            "usd": 1,
+            "diem": 99
+          },
+          "output": {
+            "usd": 2,
+            "diem": 99
+          },
+          "cache_input": {
+            "usd": 0.1,
+            "diem": 99
+          }
+        }
+      }
+    }
+  ]
+}

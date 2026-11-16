@@ -1,0 +1,2 @@
+name = "OpenRouter"
+env = ["OPENROUTER_API_KEY"]

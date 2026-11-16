@@ -1,0 +1,638 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+enum ChangeNotificationType {
+  repo_push
+  repository_sync_status_changed
+}
+
+model ChangeNotification {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ChangeNotificationType
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid])
+
+  repoPushOid BigInt?
+  repoPush    ScmRepositoryPush? @relation(fields: [repoPushOid], references: [oid])
+
+  repositorySyncOid BigInt?
+  repositorySync    ScmRepositorySync? @relation("RepositorySyncChangeNotifications", fields: [repositorySyncOid], references: [oid], onDelete: SetNull)
+
+  materialHash String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantOid, oid])
+}
+
+model CodeBucketPurpose {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier String @unique
+
+  createdAt DateTime @default(now())
+
+  codeBuckets CodeBucket[]
+}
+
+enum CodeBucketStatus {
+  ready
+  importing
+  failed
+}
+
+model CodeBucket {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  purposeOid BigInt
+  purpose    CodeBucketPurpose @relation(fields: [purposeOid], references: [oid])
+
+  status       CodeBucketStatus @default(ready)
+  errorMessage String?
+
+  isReadOnly Boolean @default(false)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  parentOid BigInt?
+  parent    CodeBucket?  @relation("CodeBucketParent", fields: [parentOid], references: [oid], onDelete: SetNull)
+  children  CodeBucket[] @relation("CodeBucketParent")
+
+  templateOid BigInt?
+  template    CodeBucketTemplate? @relation(fields: [templateOid], references: [oid])
+
+  repositoryOid BigInt?
+  repository    ScmRepository? @relation(fields: [repositoryOid], references: [oid])
+  path          String?
+
+  isSynced Boolean @default(false)
+  syncRef  String?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  providerFor        CodeBucketTemplate[] @relation("ProviderBucket")
+  scmRepositorySyncs ScmRepositorySync[]
+}
+
+model CodeBucketTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  /// [CodeBucketTemplateContents]
+  contents Json
+
+  providerBucketOid BigInt?
+  providerBucket    CodeBucket? @relation(fields: [providerBucketOid], references: [oid], name: "ProviderBucket")
+
+  createdAt DateTime @default(now())
+
+  buckets CodeBucket[]
+}
+
+enum ScmProvider {
+  github
+  gitlab
+  bitbucket
+}
+
+enum ScmRepositorySyncStatus {
+  pending
+  creating_branch
+  syncing_contents
+  creating_pr
+  waiting_for_ci
+  waiting_for_review
+  merging
+  merged
+  failed
+  cancelled
+  complete_unmerged
+  complete_direct_push
+  complete_no_changes
+}
+
+enum ScmRepositoryAccessMode {
+  pull_request
+  default_branch
+}
+
+enum ScmAccountType {
+  user
+  organization
+}
+
+enum ScmRepositorySyncSourceType {
+  code_bucket
+  manifest
+}
+
+model ScmAccount {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+  type     ScmAccountType
+
+  name       String
+  identifier String
+
+  externalId String
+
+  backendOid BigInt
+  backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  scmRepos ScmRepository[]
+
+  @@unique([tenantOid, backendOid, externalId])
+}
+
+model ScmRepository {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+
+  name       String
+  identifier String
+
+  externalId        String
+  externalName      String
+  externalOwner     String
+  externalUrl       String
+  externalIsPrivate Boolean
+
+  defaultBranch String @default("main")
+
+  webhookReconcileBlockedUntil  DateTime?
+  webhookReconcileBlockedReason String?
+  webhookReconciledAt           DateTime?
+
+  backendOid BigInt
+  backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    ScmAccount @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  installationOid BigInt
+  installation    ScmInstallation @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  codeBuckets         CodeBucket[]
+  scmRepoWebhooks     ScmRepositoryWebhook[]
+  scmRepoPushes       ScmRepositoryPush[]
+  changeNotifications ChangeNotification[]
+  scmRepositorySyncs  ScmRepositorySync[]
+  remoteStates        ScmRepositoryRemoteState[]
+
+  @@unique([tenantOid, backendOid, externalId])
+  @@index([webhookReconcileBlockedUntil, oid])
+  @@index([webhookReconciledAt, oid])
+}
+
+model ScmRepositorySync {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status               ScmRepositorySyncStatus @default(pending)
+  repositoryAccessMode ScmRepositoryAccessMode @default(pull_request)
+  requestKey           String?
+  endReason            String?
+
+  sourceType ScmRepositorySyncSourceType @default(code_bucket)
+  sourceKey  String?
+
+  manifestBucket         String?
+  manifestKey            String?
+  manifestSha256         String?
+  manifestEntryCount     Int?
+  previousManifestBucket String?
+  previousManifestKey    String?
+  previousManifestSha256 String?
+
+  /// [RepositorySyncDeletionGuard]
+  deletionGuard   Json?
+  allowMassDelete Boolean @default(false)
+
+  branchName             String
+  requestedBranchName    String?
+  baseBranch             String
+  baseCommitSha          String?
+  lastPushedCommitSha    String?
+  /// Sticky once anyone else's commits were seen on the branch since Origin created or last
+  /// reset it; a conflicting branch is only reset while this is false.
+  foreignCommitsOnBranch Boolean @default(false)
+
+  title       String
+  description String?
+
+  enableAutoMerge       Boolean @default(true)
+  forceMergeOrPush      Boolean @default(false)
+  mergeBeforeChecksPass Boolean @default(false)
+
+  deletePaths String[] @default([])
+
+  explicitDeletesOnly Boolean @default(false)
+
+  gitLfsThresholdBytes Int?
+
+  providerPrId               String?
+  providerPrUrl              String?
+  providerMergeSha           String?
+  mergeAttemptSnapshotHashes String[] @default([])
+
+  errorMessage         String?
+  errorCode            String?
+  /// [RepositorySyncErrorDetails]
+  errorDetails         Json?
+  waitingReason        String?
+  ciState              String?
+  /// [RepositorySyncStatusSnapshot]
+  statusSnapshot       Json?
+  attemptCount         Int     @default(0)
+  noProgressSliceCount Int     @default(0)
+
+  /// [SyncLogEntry]
+  logs Json[] @default([])
+
+  /// [RepositorySyncResultStats]
+  resultStats Json?
+
+  lastPolledAt DateTime?
+  nextPollAt   DateTime?
+  completedAt  DateTime?
+
+  continuedFromSyncOid BigInt?
+  continuedFromSync    ScmRepositorySync?  @relation("RepositorySyncContinuation", fields: [continuedFromSyncOid], references: [oid], onDelete: SetNull)
+  continuedBySyncs     ScmRepositorySync[] @relation("RepositorySyncContinuation")
+
+  supersededBySyncOid BigInt?
+  supersededBySync    ScmRepositorySync?  @relation("RepositorySyncSupersession", fields: [supersededBySyncOid], references: [oid], onDelete: SetNull)
+  supersededSyncs     ScmRepositorySync[] @relation("RepositorySyncSupersession")
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  codeBucketOid BigInt?
+  codeBucket    CodeBucket? @relation(fields: [codeBucketOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  changeNotifications ChangeNotification[] @relation("RepositorySyncChangeNotifications")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([tenantOid, requestKey])
+  @@index([tenantOid])
+  @@index([repoOid])
+  @@index([repoOid, repositoryAccessMode, status])
+  @@index([codeBucketOid])
+  @@index([repoOid, sourceKey, baseBranch, oid])
+  @@index([status])
+  @@index([status, nextPollAt])
+  @@index([supersededBySyncOid])
+  @@index([createdAt])
+}
+
+model ScmRepositoryRemoteState {
+  oid BigInt @id @default(autoincrement())
+
+  sourceKey String
+  branch    String
+
+  commitSha  String
+  treeSha    String
+  listingKey String
+  entryCount Int
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([repoOid, sourceKey, branch])
+  @@index([updatedAt])
+  @@index([listingKey])
+}
+
+model ScmInstallation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider ScmProvider
+
+  backendOid BigInt
+  backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  ownerActorOid BigInt
+  ownerActor    Actor  @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  externalInstallationId String?
+  accountType            ScmAccountType?
+
+  accessToken          String?
+  refreshToken         String?
+  accessTokenExpiresAt DateTime?
+
+  tokensNebulaSecretId String?
+
+  externalAccountId       String
+  externalAccountLogin    String
+  externalAccountName     String?
+  externalAccountEmail    String?
+  externalAccountImageUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  repos    ScmRepository[]
+  sessions ScmInstallationSession[]
+
+  @@unique([tenantOid, provider, backendOid, externalAccountId])
+}
+
+enum ScmRepositoryWebhookType {
+  push
+}
+
+enum ScmRepositoryWebhookEvent {
+  push
+  pull_request
+  pull_request_review
+  ci_status
+  ci_check
+}
+
+model ScmRepositoryWebhook {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmRepositoryWebhookType
+
+  repoOid BigInt        @unique
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  externalId       String
+  registeredEvents ScmRepositoryWebhookEvent[] @default([])
+
+  signingSecret               String?
+  signingSecretNebulaSecretId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  events ScmRepositoryWebhookReceivedEvent[]
+}
+
+model ScmRepositoryWebhookReceivedEvent {
+  oid BigInt @id @default(autoincrement())
+
+  webhookOid BigInt
+  webhook    ScmRepositoryWebhook @relation(fields: [webhookOid], references: [oid], onDelete: Cascade)
+
+  idempotencyKey String?
+
+  eventType String
+  payload   String
+
+  createdAt DateTime @default(now())
+
+  pushes ScmRepositoryPush[]
+
+  @@unique([webhookOid, idempotencyKey])
+  @@index([createdAt])
+}
+
+model ScmRepositoryPush {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  webhookReceivedEventOid BigInt?
+  webhookReceivedEvent    ScmRepositoryWebhookReceivedEvent? @relation(fields: [webhookReceivedEventOid], references: [oid], onDelete: SetNull)
+  webhookDispatchedAt     DateTime?
+
+  pusherName       String?
+  pusherEmail      String?
+  senderIdentifier String?
+  commitMessage    String?
+
+  branchName String
+  sha        String
+
+  createdAt           DateTime             @default(now())
+  changeNotifications ChangeNotification[]
+
+  @@index([webhookReceivedEventOid])
+}
+
+enum ScmBackendType {
+  github
+  github_enterprise
+  gitlab
+  gitlab_selfhosted
+  bitbucket
+  bitbucket_data_center
+}
+
+model ScmBackend {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmBackendType
+
+  defaultIdentifier String? @unique
+
+  name        String
+  description String?
+
+  apiUrl String // e.g., "https://api.github.com", "https://gitlab.com/api/v4", "https://gitlab.company.com/api/v4"
+  webUrl String // e.g., "https://github.com", "https://gitlab.com", "https://gitlab.company.com"
+
+  appId            String?
+  appSlug          String? // GitHub App slug (e.g., "my-app-name")
+  appWebhookSecret String?
+  appPrivateKey    String?
+
+  appWebhookSecretNebulaSecretId String?
+  appPrivateKeyNebulaSecretId    String?
+
+  clientId     String?
+  clientSecret String?
+
+  clientSecretNebulaSecretId String?
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  isDefault Boolean @default(false) // System-managed default backends (like github.com)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  installations                ScmInstallation[]
+  selectedInstallationSessions ScmInstallationSession[] @relation("selectedScmBackend")
+  backendSetupSessions         ScmBackendSetupSession[]
+  accounts                     ScmAccount[]
+  repositories                 ScmRepository[]
+}
+
+enum ScmInstallationSessionStatus {
+  pending
+  pending_approval
+  succeeded
+}
+
+model ScmInstallationSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  ownerActorOid BigInt
+  ownerActor    Actor  @relation(fields: [ownerActorOid], references: [oid], onDelete: Cascade)
+
+  installationOid BigInt?
+  installation    ScmInstallation? @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
+
+  selectedBackendOid BigInt?
+  selectedBackend    ScmBackend? @relation("selectedScmBackend", fields: [selectedBackendOid], references: [oid], onDelete: SetNull)
+
+  redirectUrl String?
+
+  status ScmInstallationSessionStatus @default(pending)
+  state  String                       @unique
+
+  githubInstallationRequestId          String?
+  githubPendingAccountId               String?
+  githubPendingAccountLogin            String?
+  githubPendingAccountType             ScmAccountType?
+  githubPendingRequesterId             String?
+  githubPendingApprovalAt              DateTime?
+  githubInstallationRequestBaselineIds String[]        @default([])
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  backendSetupSessions ScmBackendSetupSession[]
+
+  @@index([tenantOid])
+  @@index([installationOid])
+  @@index([selectedBackendOid])
+  @@index([status, selectedBackendOid, githubPendingAccountId])
+  @@index([state])
+}
+
+model ScmBackendSetupSession {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  backendOid BigInt?     @unique
+  backend    ScmBackend? @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
+
+  parentInstallationSessionOid BigInt?
+  parentInstallationSession    ScmInstallationSession? @relation(fields: [parentInstallationSessionOid], references: [oid], onDelete: Cascade)
+
+  type ScmBackendType
+
+  redirectUrl String?
+
+  state String @unique
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([tenantOid])
+  @@index([state])
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  nebulaTenantId String?
+
+  createdAt DateTime @default(now())
+
+  scmAccounts             ScmAccount[]
+  scmBackends             ScmBackend[]
+  scmInstallations        ScmInstallation[]
+  scmInstallationSessions ScmInstallationSession[]
+  scmBackendSetupSessions ScmBackendSetupSession[]
+  codeBuckets             CodeBucket[]
+  scmRepositories         ScmRepository[]
+  scmRepositoryPushes     ScmRepositoryPush[]
+  scmRepositorySyncs      ScmRepositorySync[]
+  changeNotifications     ChangeNotification[]
+}
+
+model Actor {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+
+  scmInstallations        ScmInstallation[]
+  scmInstallationSessions ScmInstallationSession[]
+}

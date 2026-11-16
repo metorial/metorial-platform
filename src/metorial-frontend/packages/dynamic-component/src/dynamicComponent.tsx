@@ -11,7 +11,8 @@ let requestIdleCallbackWithFallback =
     : (cb: () => any, opts: any) => cb();
 
 export let dynamicPage = <Params extends any[]>(
-  loader: () => Promise<(...p: Params) => ReactNode>
+  loader: () => Promise<(...p: Params) => ReactNode>,
+  opts?: { fallback?: () => ReactNode }
 ) => {
   let loadPromise: Promise<(p: any) => ReactNode> | null = null;
 
@@ -64,7 +65,7 @@ export let dynamicPage = <Params extends any[]>(
 
     if (Component) return React.createElement(Component as any, props as any);
 
-    return null;
+    return opts?.fallback ? opts.fallback() : null;
   };
 };
 

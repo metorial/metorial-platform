@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type {
   Callback,
   CallbackInstance,
+  Prisma,
   Tenant,
   TriggerRegistration
 } from '../../prisma/generated/client';
@@ -66,9 +67,14 @@ class callbackInstanceServiceImpl {
   async createCallbackInstance(d: {
     tenant: Tenant;
     callback: Callback;
-    input: { slateInstanceId: string; authConfigId?: string };
+    input: {
+      slateInstanceId: string;
+      authConfigId?: string;
+      triggerGroupSelections?: Record<string, Record<string, any>>;
+    };
   }) {
-    if (d.callback.tenantOid !== d.tenant.oid) throw new ServiceError(notFoundError('callback'));
+    if (d.callback.tenantOid !== d.tenant.oid)
+      throw new ServiceError(notFoundError('callback'));
 
     let slateInstance = await slateInstanceService.getSlateInstanceById({
       tenant: d.tenant,
@@ -96,7 +102,36 @@ class callbackInstanceServiceImpl {
       }
     });
 
-    return db.callbackInstance.findUniqueOrThrow({ where: { oid: instance.oid }, include });
+    let created = await db.callbackInstance.findUniqueOrThrow({
+      where: { oid: instance.oid },
+      include
+    });
+
+    return {
+      ...created,
+      selectableTriggerGroups: triggerRegistration.selectableTriggerGroups,
+      ignoredSelectionKeys: triggerRegistration.ignoredSelectionKeys
+    };
+  }
+
+  async listSelectableTriggerGroups(d: {
+    callbackInstance: Prisma.CallbackInstanceGetPayload<{ include: typeof include }>;
+  }) {
+    return triggerRegistrationService.listSelectableTriggerGroups({
+      registration: d.callbackInstance.triggerRegistration
+    });
+  }
+
+  async listSelectionOptions(d: {
+    tenant: Tenant;
+    callbackInstance: Prisma.CallbackInstanceGetPayload<{ include: typeof include }>;
+    input: Parameters<typeof triggerRegistrationService.listSelectionOptions>[0]['input'];
+  }) {
+    return triggerRegistrationService.listSelectionOptions({
+      tenant: d.tenant,
+      registration: d.callbackInstance.triggerRegistration,
+      input: d.input
+    });
   }
 
   async deleteCallbackInstance(d: {

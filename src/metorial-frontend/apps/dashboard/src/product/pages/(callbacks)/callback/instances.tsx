@@ -3,6 +3,7 @@ import { DetailsTableLayout } from '@metorial/details-layout';
 import { useCallbackById, useCurrentInstance } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 import { CallbackInstancesTable } from '../../../scenes/callbacks/callbackInstancesTable';
+import { CallbackDeliverySetupCallout } from '../../../scenes/callbacks/webhookRegistrationsBox';
 
 export let CallbackInstancesPage = () => {
   let instance = useCurrentInstance();
@@ -14,6 +15,13 @@ export let CallbackInstancesPage = () => {
       title="Registrations"
       description="The callback automatically registers for events on every integration instance."
     >
+      <CallbackDeliverySetupCallout
+        instanceId={instance.data.id}
+        providerId={callback.data.provider.id}
+        authCredentialsId={callback.data.authCredentialsId}
+        authCredentialsIsManaged={callback.data.authCredentialsIsManaged}
+      />
+
       <CallbackInstancesTable
         instanceId={instance.data.id}
         filters={{ callbackId: callback.data.id }}

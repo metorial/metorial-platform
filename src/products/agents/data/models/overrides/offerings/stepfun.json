@@ -1,0 +1,16 @@
+{
+  "stepaudio-2.5-asr": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "StepAudio 2.5 ASR is StepFun's speech-recognition model (April 2026, ASR+MTP-5 architecture); the index has no StepAudio entry (only step-tts-2), so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stepaudio-2.5-tts": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "StepAudio 2.5 TTS is StepFun's contextual text-to-speech model (April 2026); the index has no matching catalog entry, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

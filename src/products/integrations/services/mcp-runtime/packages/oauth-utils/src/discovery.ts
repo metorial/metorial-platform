@@ -1,0 +1,334 @@
+import type { ServerRemoteProtocol } from '@mtsrc/mcp-runtime-db';
+import {
+  META_CLIENT_CAPABILITIES,
+  META_CLIENT_INFO,
+  META_PROTOCOL_VERSION,
+  STATELESS_PROTOCOL_VERSION
+} from '@mtsrc/mcp-runtime-remote-protocol';
+import { getStandardHeaders } from '@mtsrc/mcp-runtime-remote-protocol';
+import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
+import { axiosWithoutSse } from '@mtsrc/mcp-runtime-network';
+import type { OAuthConfiguration } from './types';
+
+export class OAuthDiscovery {
+  private static readonly WWW_AUTHENTICATE_TIMEOUT = 5000; // 5 seconds
+
+  static async discover(providerUrl: string): Promise<OAuthConfiguration | null> {
+    let url = new URL(providerUrl);
+    if (url.protocol !== 'https:') {
+      return null; // Only support HTTPS for security reasons
+    }
+
+    let baseUrl = `${url.protocol}//${url.host}`;
+
+    try {
+      let config = await this.fetchDiscoveryDocument(providerUrl);
+      if (config) return config;
+    } catch (error) {}
+
+    for (let discoveryUrl of this.getResourceDiscoveryUrls(baseUrl, url.pathname)) {
+      try {
+        let config = await this.fetchDiscoveryDocument(discoveryUrl);
+        if (config) return config;
+      } catch (error) {}
+    }
+
+    try {
+      let config = await this.wwwAuthenticateDiscovery(baseUrl);
+      if (config) return config;
+    } catch (error) {}
+
+    return null;
+  }
+
+  private static getResourceDiscoveryUrls(baseUrl: string, pathname: string): string[] {
+    let normalizedPath = pathname === '/' ? '' : pathname.replace(/\/$/, '');
+
+    return Array.from(
+      new Set([
+        // RFC 9728 (protected resource metadata), RFC 8414 (authorization server metadata)
+        `${baseUrl}/.well-known/oauth-protected-resource${normalizedPath}`,
+        `${baseUrl}/.well-known/oauth-authorization-server${normalizedPath}`,
+
+        // OIDC Discovery 1.0
+        `${baseUrl}${normalizedPath}/.well-known/openid-configuration`,
+
+        // Legacy/incorrect orderings
+        `${baseUrl}${normalizedPath}/.well-known/oauth-authorization-server`,
+        `${baseUrl}${normalizedPath}/.well-known/oauth-protected-resource`,
+        `${baseUrl}${normalizedPath}/oauth/metadata.json`,
+        `${baseUrl}/.well-known/openid-configuration`,
+        `${baseUrl}/oauth/metadata.json`,
+
+        // Fallback: providers that publish metadata at the host root regardless of path
+        `${baseUrl}/.well-known/oauth-protected-resource`,
+        `${baseUrl}/.well-known/oauth-authorization-server`
+      ])
+    );
+  }
+
+  static async checkIfManualAuthIsNeeded(
+    url: string,
+    opts: { protocol?: ServerRemoteProtocol } = {}
+  ) {
+    if (opts.protocol == 'stateless') return this.checkIfStatelessManualAuthIsNeeded(url);
+
+    try {
+      let response = await axiosWithoutSse(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Metorial (https://metorial.com)'
+        },
+        validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
+        maxRedirects: 5,
+        timeout: 2000,
+        ...getAxiosSsrfFilter(url)
+      });
+
+      return response.status === 401;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private static async checkIfStatelessManualAuthIsNeeded(url: string) {
+    let request = {
+      jsonrpc: '2.0',
+      id: 'metorial-auth-probe',
+      method: 'server/discover',
+      params: {
+        _meta: {
+          [META_PROTOCOL_VERSION]: STATELESS_PROTOCOL_VERSION,
+          [META_CLIENT_INFO]: { name: 'Metorial', version: '1.0.0' },
+          [META_CLIENT_CAPABILITIES]: {}
+        }
+      }
+    };
+
+    try {
+      let response = await axiosWithoutSse(url, {
+        method: 'POST',
+        headers: {
+          ...getStandardHeaders(request),
+          Accept: 'application/json, text/event-stream',
+          'Content-Type': 'application/json',
+          'User-Agent': 'Metorial (https://metorial.com)'
+        },
+        data: request,
+        validateStatus: status => status >= 200 && status < 500,
+        maxRedirects: 5,
+        timeout: 2000,
+        ...getAxiosSsrfFilter(url)
+      });
+
+      return response.status === 401;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private static async fetchDiscoveryDocument(
+    url: string
+  ): Promise<OAuthConfiguration | null> {
+    let config = await this.fetchJsonDocument(url);
+    if (!config) return null;
+
+    if (this.isValidOAuthConfig(config)) {
+      return config;
+    }
+
+    let authServers = this.getProtectedResourceAuthorizationServers(config);
+    if (!authServers || authServers.length === 0) return null;
+
+    for (let serverUrl of authServers) {
+      try {
+        let serverConfig = await this.fetchAuthorizationServerConfig(serverUrl);
+        if (serverConfig) {
+          return {
+            authorization_servers: authServers,
+            authorization_server: serverUrl,
+            ...config,
+            ...serverConfig
+          };
+        }
+      } catch (error) {
+        console.debug(`Failed to discover authorization server ${serverUrl}:`, error);
+      }
+    }
+
+    return null;
+  }
+
+  private static async fetchJsonDocument(url: string): Promise<any | null> {
+    try {
+      let response = await axiosWithoutSse(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Metorial (https://metorial.com)'
+        },
+        validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
+        maxRedirects: 5,
+        timeout: 2000,
+        ...getAxiosSsrfFilter(url)
+      });
+
+      if (response.status >= 400) {
+        return null;
+      }
+
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private static async fetchAuthorizationServerConfig(
+    authorizationServerUrl: string
+  ): Promise<OAuthConfiguration | null> {
+    let discoveryUrls = this.getAuthorizationServerDiscoveryUrls(authorizationServerUrl);
+
+    for (let discoveryUrl of discoveryUrls) {
+      let config = await this.fetchJsonDocument(discoveryUrl);
+      if (this.isValidOAuthConfig(config)) return config;
+    }
+
+    return null;
+  }
+
+  private static getAuthorizationServerDiscoveryUrls(authorizationServerUrl: string) {
+    let url: URL;
+
+    try {
+      url = new URL(authorizationServerUrl);
+    } catch (error) {
+      return [];
+    }
+
+    if (url.protocol !== 'https:') return [];
+
+    if (url.pathname.includes('/.well-known/')) {
+      return [url.toString()];
+    }
+
+    let baseUrl = `${url.protocol}//${url.host}`;
+    let pathname = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '');
+
+    return Array.from(
+      new Set([
+        `${baseUrl}/.well-known/oauth-authorization-server${pathname}`,
+        `${baseUrl}/.well-known/openid-configuration${pathname}`,
+        `${baseUrl}${pathname}/.well-known/oauth-authorization-server`,
+        `${baseUrl}${pathname}/.well-known/openid-configuration`,
+        url.toString()
+      ])
+    );
+  }
+
+  private static async wwwAuthenticateDiscovery(
+    baseUrl: string
+  ): Promise<OAuthConfiguration | null> {
+    let controller = new AbortController();
+    let timeoutId = setTimeout(() => controller.abort(), this.WWW_AUTHENTICATE_TIMEOUT);
+
+    try {
+      let response = await axiosWithoutSse(baseUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json,text/event-stream',
+          'User-Agent': 'Metorial (https://metorial.com)'
+        },
+        signal: controller.signal,
+        validateStatus: () => true, // allow all statuses to be processed
+        maxRedirects: 5,
+        timeout: 2000,
+        ...getAxiosSsrfFilter(baseUrl)
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.status !== 401) {
+        return null;
+      }
+
+      let wwwAuth = response.headers['www-authenticate'];
+      if (!wwwAuth) {
+        return null;
+      }
+
+      let authServers = this.parseAuthorizationServers(wwwAuth);
+      if (!authServers || authServers.length === 0) {
+        return null;
+      }
+
+      for (let serverUrl of authServers) {
+        try {
+          let config = await this.fetchAuthorizationServerConfig(serverUrl);
+          if (config) {
+            return config;
+          }
+        } catch (error) {
+          console.debug(`Failed to fetch from authorization server ${serverUrl}:`, error);
+        }
+      }
+
+      return null;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+
+      if (process.env.NODE_ENV !== 'production') {
+        if (error.name === 'AbortError') {
+          console.debug('WWW-Authenticate discovery timed out');
+        } else {
+          console.debug('Error during WWW-Authenticate discovery:', error);
+        }
+      }
+
+      return null;
+    }
+  }
+
+  private static parseAuthorizationServers(wwwAuth: string): string[] | null {
+    let match = wwwAuth.match(/authorization_servers\s*=\s*"([^"]+)"/);
+    if (!match) return null;
+
+    try {
+      let serversJson = match[1]!.replace(/\\"/g, '"');
+      let servers = JSON.parse(serversJson);
+      if (Array.isArray(servers)) {
+        return servers.filter(url => typeof url === 'string');
+      }
+    } catch (error) {
+      console.debug('Error parsing authorization_servers:', error);
+    }
+
+    return null;
+  }
+
+  private static getProtectedResourceAuthorizationServers(config: any): string[] | null {
+    if (
+      !config ||
+      typeof config !== 'object' ||
+      !Array.isArray(config.authorization_servers)
+    ) {
+      return null;
+    }
+
+    let servers = config.authorization_servers.filter(
+      (server: unknown) => typeof server === 'string'
+    );
+
+    return servers.length > 0 ? servers : null;
+  }
+
+  private static isValidOAuthConfig(config: any): boolean {
+    return (
+      config &&
+      typeof config === 'object' &&
+      typeof config.authorization_endpoint === 'string' &&
+      typeof config.token_endpoint === 'string' &&
+      (config.issuer === undefined || typeof config.issuer === 'string')
+    );
+  }
+}

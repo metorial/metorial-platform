@@ -5,6 +5,10 @@ model SkillRepository {
   repoId      String @unique
   syncCounter Int    @default(0)
 
+  providerRepositoryKey       String?
+  providerRepositoryPath      String?
+  providerIdentityRefreshedAt DateTime?
+
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
@@ -19,6 +23,19 @@ model SkillRepository {
 
   deletionsAppliedAt DateTime?
 
+  lastPropagatedManifestOid BigInt?
+  lastPropagatedManifest    SkillDestinationManifest? @relation(fields: [lastPropagatedManifestOid], references: [oid], onDelete: SetNull)
+
+  lastPropagatedAt        DateTime?
+  lastDriftCheckAt        DateTime?
+  dismissedManifestSha256 String?
+
+  repairAttempts Int       @default(0)
+  nextRepairAt   DateTime?
+
+  sourceRecoveryLimitWindows   Int       @default(0)
+  sourceRecoveryLimitReachedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -30,4 +47,9 @@ model SkillRepository {
   @@index([resourceGroupOid])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([nextRepairAt])
+  @@index([lastDriftCheckAt])
+  @@index([providerRepositoryKey])
+  @@index([providerRepositoryPath])
+  @@index([providerIdentityRefreshedAt, id])
 }

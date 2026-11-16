@@ -6,6 +6,7 @@ import type {
 import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useRef } from 'react';
 import { withAuth } from '../../user';
+import { refetchSkillGroupMembershipLoaders } from './skillGroups';
 import { skillsLoader } from './skills';
 
 export type SkillImport = DashboardInstanceSkillsImportsCreateOutput;
@@ -64,6 +65,7 @@ export let useSkillImport = (
 
     refreshedSkillsRef.current = true;
     skillsLoader.refetchAll();
+    refetchSkillGroupMembershipLoaders();
   }, [data.data?.status]);
 
   return data;

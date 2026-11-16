@@ -84,6 +84,7 @@ export type DashboardInstanceSkillsImportsCreateBody = {
         path?: string | undefined;
       }
     | { type: 'file'; fileId: string };
+  skillGroupId?: string | undefined;
 };
 
 export let mapDashboardInstanceSkillsImportsCreateBody =
@@ -92,5 +93,6 @@ export let mapDashboardInstanceSkillsImportsCreateBody =
       'source',
       0,
       [3, [[0, [1, ['repository_url', 'repository_id', 'file_id']]]]]
-    ]
+    ],
+    'skill_group_id'
   ]);
