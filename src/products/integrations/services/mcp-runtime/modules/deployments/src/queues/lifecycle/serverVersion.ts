@@ -2,9 +2,13 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
 import { withTransaction } from '@mtsrc/mcp-runtime-db';
+import { deployServerSucceededQueue } from '../deployment/succeeded';
 import { createChangeNotificationQueue } from '@mtsrc/mcp-runtime-module-change-notifications';
 
-export let serverVersionCreatedQueue = createQueue<{ serverVersionId: string }>({
+export let serverVersionCreatedQueue = createQueue<{
+  serverVersionId: string;
+  serverDeploymentId?: string;
+}>({
   name: 'shut/l/serverVersion/created',
   redisUrl: env.service.REDIS_URL,
   workerOpts: {
@@ -55,5 +59,9 @@ export let serverVersionCreatedQueueProcessor = serverVersionCreatedQueue.proces
     await createChangeNotificationQueue.add({
       serverVersionId: serverVersion.id
     });
+
+    if (data.serverDeploymentId) {
+      await deployServerSucceededQueue.add({ serverDeploymentId: data.serverDeploymentId });
+    }
   }
 );

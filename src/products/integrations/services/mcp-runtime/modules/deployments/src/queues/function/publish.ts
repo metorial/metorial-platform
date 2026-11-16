@@ -7,8 +7,7 @@ import { getId } from '@mtsrc/mcp-runtime-db';
 import { DeploymentManager } from '../../lib/deployment';
 import { versionIdentifier } from '@mtsrc/mcp-runtime-data-utils';
 import { normalizeJsonSchema } from '@mtsrc/mcp-runtime-data-utils';
-import { withTransaction } from '@mtsrc/mcp-runtime-db';
-import { deployServerSucceededQueue } from '../deployment/succeeded';
+import { addAfterTransactionHook, withTransaction } from '@mtsrc/mcp-runtime-db';
 import { serverVersionCreatedQueue } from '../lifecycle/serverVersion';
 
 export let deployFunctionServerPublishQueue = createQueue<{
@@ -90,12 +89,11 @@ export let deployFunctionServerPublishQueueProcessor =
           functionServerOid: functionServer.oid
         }
       });
-      await serverVersionCreatedQueue.add({
-        serverVersionId: version.id
-      });
-
-      await deployServerSucceededQueue.add({
-        serverDeploymentId: data.serverDeploymentId
-      });
+      await addAfterTransactionHook(() =>
+        serverVersionCreatedQueue.add({
+          serverVersionId: version.id,
+          serverDeploymentId: data.serverDeploymentId
+        })
+      );
     });
   });

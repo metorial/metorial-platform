@@ -5,7 +5,6 @@ import { getId } from '@mtsrc/mcp-runtime-db';
 import { DeploymentManagerStep } from '../../lib/deployment';
 import { versionIdentifier } from '@mtsrc/mcp-runtime-data-utils';
 import { deployServerFailedQueue } from '../deployment/failed';
-import { deployServerSucceededQueue } from '../deployment/succeeded';
 import { serverVersionCreatedQueue } from '../lifecycle/serverVersion';
 
 export let deployContainerServerWatchQueue = createQueue<{
@@ -101,7 +100,8 @@ export let deployContainerServerWatchQueueProcessor = deployContainerServerWatch
 
     if (version.deploymentOid == deployment.oid) {
       await serverVersionCreatedQueue.add({
-        serverVersionId: version.id
+        serverVersionId: version.id,
+        serverDeploymentId: data.serverDeploymentId
       });
 
       step.log([
@@ -112,10 +112,6 @@ export let deployContainerServerWatchQueueProcessor = deployContainerServerWatch
         'MCP server deployment succeeded.'
       ]);
       step.succeed();
-
-      await deployServerSucceededQueue.add({
-        serverDeploymentId: data.serverDeploymentId
-      });
     } else {
       step.log([
         `Version has already been discovered for digest ${tag.currentVersion?.digest}.`
