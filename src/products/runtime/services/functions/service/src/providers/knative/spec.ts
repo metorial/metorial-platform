@@ -7,6 +7,7 @@ import type {
 import { db } from '../../db';
 import { encryption } from '../../encryption';
 import { env } from '../../env';
+import { internalObjectStorageUrl } from '../../lib/internalObjectStorageUrl';
 import { storage } from '../../storage';
 import { getClusterManager } from './clusterManager';
 
@@ -47,7 +48,7 @@ export let importBundleFromUrl = async (d: {
   functionVersion: { id: string };
   zipFileUrl: string;
 }) => {
-  let res = await fetch(d.zipFileUrl);
+  let res = await fetch(internalObjectStorageUrl(d.zipFileUrl));
   if (!res.ok) {
     throw new Error(`Failed to download function bundle: ${res.status} ${res.statusText}`);
   }

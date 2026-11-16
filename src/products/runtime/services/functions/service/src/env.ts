@@ -13,7 +13,15 @@ export let env = defineSettings({
 
   storage: {
     OBJECT_STORAGE_URL: objectStorageUrl,
-    BUNDLE_BUCKET_NAME: v.string()
+    BUNDLE_BUCKET_NAME: v.string(),
+    OBJECT_STORAGE_PUBLIC_URL: setting(v.optional(v.string()), {
+      description:
+        'Public base URL of signed object-storage links, as the object store hands it out'
+    }),
+    OBJECT_STORAGE_PUBLIC_INTERNAL_URL: setting(v.optional(v.string()), {
+      description:
+        'In-cluster base URL of the object store public listener; replaces OBJECT_STORAGE_PUBLIC_URL when this service downloads a signed link'
+    })
   },
 
   encryption: {
@@ -136,10 +144,7 @@ export let lambdaNetworkConfig = (() => {
   if (!Array.isArray(parsed.subnetIds) || parsed.subnetIds.length === 0) {
     throw new Error('LAMBDA_NETWORK_CONFIG.subnetIds must contain at least one subnet ID');
   }
-  if (
-    !Array.isArray(parsed.securityGroupIds) ||
-    parsed.securityGroupIds.length === 0
-  ) {
+  if (!Array.isArray(parsed.securityGroupIds) || parsed.securityGroupIds.length === 0) {
     throw new Error(
       'LAMBDA_NETWORK_CONFIG.securityGroupIds must contain at least one security group ID'
     );

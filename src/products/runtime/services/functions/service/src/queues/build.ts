@@ -9,6 +9,7 @@ import { env } from '../env';
 import { ensureForgeWorkflow, forge } from '../forge';
 import { ID, snowflake } from '../id';
 import { fetchBuildManifest } from '../lib/fetchBuildManifest';
+import { internalObjectStorageUrl } from '../lib/internalObjectStorageUrl';
 import { defaultProvider } from '../providers';
 import {
   MANIFEST_ARTIFACT_NAME,
@@ -151,7 +152,9 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
       return;
     }
 
-    let manifestResult = await fetchBuildManifest(manifestArtifact.url.url);
+    let manifestResult = await fetchBuildManifest(
+      internalObjectStorageUrl(manifestArtifact.url.url)
+    );
     if (!manifestResult.success) {
       let attempt = (data.manifestFetchAttempt ?? 0) + 1;
 
@@ -445,7 +448,7 @@ let uploadBundleQueueProcessor = uploadBundleQueue.process(async data => {
   let bucket = env.storage.BUNDLE_BUCKET_NAME;
 
   try {
-    let res = await fetch(data.outputUrl);
+    let res = await fetch(internalObjectStorageUrl(data.outputUrl));
     if (!res.ok) {
       throw new Error(`Failed to download function bundle: ${res.status} ${res.statusText}`);
     }
