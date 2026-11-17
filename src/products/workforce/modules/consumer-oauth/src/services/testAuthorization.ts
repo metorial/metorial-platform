@@ -151,11 +151,15 @@ class ConsumerOAuthTestAuthorizationService {
       );
     }
 
-    if (magicMcpEndpoint.servers.length == 0) {
+    if (
+      magicMcpEndpoint.servers.length == 0 &&
+      !magicMcpEndpoint.enableSkillResources &&
+      !magicMcpEndpoint.enableSkillEditing
+    ) {
       throw new ServiceError(
         preconditionFailedError({
           message:
-            'Add at least one Magic MCP server to the endpoint before creating a test authorization.'
+            'Add at least one Magic MCP server or enable skills on the endpoint before creating a test authorization.'
         })
       );
     }
