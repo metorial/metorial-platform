@@ -14,7 +14,8 @@ import {
   computeExposure,
   computeRisk,
   computeScores,
-  computeSecurityScore
+  computeSecurityScore,
+  reachIndex
 } from './scoring';
 
 let finding = (kind: 'security' | 'capability' | 'positive', severity: any = 'info') => ({
@@ -238,7 +239,7 @@ describe('security score', () => {
         provenance: 'impersonation_suspected',
         findings: [securityFinding('high', 'impersonation')]
       })
-    ).toBe(0);
+    ).toBeLessThanOrEqual(1);
     expect(
       computeSecurityScore({
         provenance: 'tenant_remote_third_party',
@@ -331,6 +332,146 @@ describe('security score', () => {
         findings: [finding('capability', 'info')]
       })
     ).toBe(100);
+  });
+});
+
+let toolsWith = (counts: Record<string, number>) =>
+  Object.entries(counts).flatMap(([tag, count]) =>
+    Array.from({ length: count }, () => tool(tag))
+  );
+
+let publicReadOnly = toolsWith({ read: 7, untrusted_input: 5 });
+
+let crm = toolsWith({
+  read: 7,
+  write: 7,
+  destructive: 3,
+  bulk_private_data: 5,
+  untrusted_input: 3
+});
+
+let workspaceChat = toolsWith({
+  read: 20,
+  write: 26,
+  untrusted_input: 14,
+  destructive: 8,
+  external_send: 4,
+  bulk_private_data: 10,
+  access_control: 3
+});
+
+let slateScore = (
+  tools: ReturnType<typeof tool>[],
+  findings: ReturnType<typeof securityFinding>[] = []
+) =>
+  computeSecurityScore({
+    provenance: 'metorial_built',
+    findings,
+    controls: controls('slate', {}),
+    exposure: 'high',
+    reach: reachIndex({ tools })
+  });
+
+describe('reach', () => {
+  it('is zero without capabilities', () => {
+    expect(reachIndex({ tools: null })).toBe(0);
+    expect(reachIndex({ tools: [] })).toBe(0);
+  });
+
+  it('weighs capabilities by how much harm they can do', () => {
+    expect(reachIndex({ tools: [tool('access_control')] })).toBeGreaterThan(
+      reachIndex({ tools: [tool('destructive')] })
+    );
+    expect(reachIndex({ tools: [tool('destructive')] })).toBeGreaterThan(
+      reachIndex({ tools: [tool('write')] })
+    );
+    expect(reachIndex({ tools: [tool('write')] })).toBeGreaterThan(
+      reachIndex({ tools: [tool('read')] })
+    );
+  });
+
+  it('adds less for every further tool with the same capability', () => {
+    let one = reachIndex({ tools: toolsWith({ destructive: 1 }) });
+    let two = reachIndex({ tools: toolsWith({ destructive: 2 }) });
+    let three = reachIndex({ tools: toolsWith({ destructive: 3 }) });
+
+    expect(two - one).toBeLessThan(one);
+    expect(three - two).toBeLessThan(two - one);
+    expect(reachIndex({ tools: toolsWith({ destructive: 200 }) })).toBeLessThan(1);
+  });
+
+  it('counts skill behaviors', () => {
+    expect(
+      reachIndex({
+        tools: [],
+        behaviors: [{ tag: 'code_execution' }, { tag: 'network_egress' }]
+      })
+    ).toBeGreaterThan(reachIndex({ tools: [], behaviors: [{ tag: 'subagents' }] }));
+  });
+
+  it('orders clean Metorial integrations by what they can do', () => {
+    let narrow = slateScore(publicReadOnly);
+    let medium = slateScore(crm);
+    let broad = slateScore(workspaceChat);
+
+    expect(narrow).toBeGreaterThan(medium);
+    expect(medium).toBeGreaterThan(broad);
+    expect(broad).toBeLessThan(100);
+    expect(broad).toBeGreaterThan(90);
+  });
+
+  it('keeps the broadest Metorial integration above 90 with a critical defect', () => {
+    expect(slateScore(workspaceChat, [securityFinding('critical')])).toBeGreaterThan(90);
+    expect(slateScore(workspaceChat, [securityFinding('critical')])).toBeLessThan(
+      slateScore(workspaceChat)
+    );
+  });
+
+  it('keeps a broad but well-built custom provider good', () => {
+    expect(
+      computeSecurityScore({
+        provenance: 'tenant_code',
+        findings: [securityFinding('medium'), securityFinding('low')],
+        controls: controls('function', {}),
+        exposure: 'critical',
+        reach: reachIndex({ tools: workspaceChat })
+      })
+    ).toBeGreaterThan(80);
+  });
+
+  it('never raises the score when a capability is added', () => {
+    let tags = ['read', 'write', 'destructive', 'external_send', 'access_control'];
+    for (let provenance of ['metorial_built', 'tenant_code'] as const) {
+      let tools: ReturnType<typeof tool>[] = [];
+      let previous = computeSecurityScore({ provenance, findings: [], reach: 0 });
+      for (let tag of [...tags, ...tags, ...tags]) {
+        tools = [...tools, tool(tag)];
+        let next = computeSecurityScore({
+          provenance,
+          findings: [],
+          reach: reachIndex({ tools })
+        });
+        expect(next).toBeLessThanOrEqual(previous);
+        previous = next;
+      }
+    }
+  });
+});
+
+describe('rounding', () => {
+  it('rounds scores up to the next integer', () => {
+    expect(
+      computeSecurityScore({ provenance: 'tenant_code', findings: [], reach: 0.04 })
+    ).toBe(100);
+    expect(
+      computeSecurityScore({ provenance: 'tenant_code', findings: [securityFinding('low')] })
+    ).toBe(99);
+  });
+
+  it('does not round a whole score up because of floating point error', () => {
+    expect(
+      computeSecurityScore({ provenance: 'metorial_built', findings: [], reach: 0.6 })
+    ).toBe(94);
   });
 });
 

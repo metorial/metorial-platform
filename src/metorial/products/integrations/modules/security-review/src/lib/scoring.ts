@@ -63,7 +63,7 @@ let OPERATOR_TRUST: Partial<
   Record<SecurityProvenanceClass, { scale: number; exponent: number }>
 > = { metorial_built: { scale: 0.1, exponent: 0.5 } };
 let HARDENING_HEADROOM = 0.12;
-let REACH_FACTORS: Record<SecurityLevel, number> = {
+let EXPOSURE_FACTORS: Record<SecurityLevel, number> = {
   unknown: 1,
   low: 0.5,
   moderate: 0.75,
@@ -76,6 +76,13 @@ let GAP_SIZES: Record<SecurityControlDisposition, number> = {
   not_met: 1,
   not_applicable: 0
 };
+let REACH_WEIGHTS: Record<KnownLevel, number> = {
+  low: 0.002,
+  moderate: 0.012,
+  high: 0.04,
+  critical: 0.08
+};
+let REACH_HEADROOM = 0.2;
 let ASSURANCE_LOSS = {
   incomplete: 0.06,
   unresolvedObservation: 0.02,
@@ -87,6 +94,8 @@ let PROVENANCE_ASSURANCE_LOSS: Partial<Record<SecurityProvenanceClass, number>> 
   tenant_remote_third_party: 0.02,
   tenant_remote_vendor_plausible: 0.01
 };
+
+let ROUNDING_TOLERANCE = 1e-9;
 
 let deceptiveCategories: SecurityFindingCategoryKey[] = [
   'impersonation',
@@ -153,7 +162,35 @@ export let hardeningFactor = (d: {
       0
     ) / total;
 
-  return 1 - HARDENING_HEADROOM * REACH_FACTORS[d.exposure] * gap;
+  return 1 - HARDENING_HEADROOM * EXPOSURE_FACTORS[d.exposure] * gap;
+};
+
+// Every capability is a place where an undetected defect or a manipulated agent can do harm, so
+// a well-built subject that can do more keeps more residual risk. Each further tool carrying the
+// same capability adds less, so breadth matters without letting tool count dominate.
+export let reachIndex = (d: {
+  tools: Pick<SecurityReportTool, 'tags'>[] | null;
+  behaviors?: Pick<SecurityReportBehavior, 'tag'>[];
+}) => {
+  let capabilities = [
+    ...(d.tools ?? []).flatMap(tool =>
+      tool.tags.map(tag => ({ key: `tool:${tag}`, level: tagTiers[tag] }))
+    ),
+    ...(d.behaviors ?? []).map(behavior => ({
+      key: `skill:${behavior.tag}`,
+      level: skillTagTiers[behavior.tag]
+    }))
+  ];
+  let repeats: Record<string, number> = {};
+  let retained = 1;
+
+  for (let capability of capabilities) {
+    let seen = repeats[capability.key] ?? 0;
+    repeats[capability.key] = seen + 1;
+    retained *= 1 - REACH_WEIGHTS[capability.level] * REPEAT_DECAY ** seen;
+  }
+
+  return 1 - retained;
 };
 
 export let assuranceFactor = (d: {
@@ -173,11 +210,18 @@ export let assuranceFactor = (d: {
 };
 
 // Metorial operates and remediates its own integrations through its release pipeline, so their
-// overall deficiency is compressed: findings and gaps still order them, but nothing short of a
-// complete collapse moves them out of the top of the scale.
-let operatorTrusted = (provenance: SecurityProvenanceClass, factor: number) => {
-  let trust = OPERATOR_TRUST[provenance];
-  return trust ? 1 - trust.scale * (1 - factor) ** trust.exponent : factor;
+// defects are compressed and they never leave the top of the scale. The top of the scale is
+// earned by being both defect-free and narrow in reach, which is what orders them.
+let trustedScore = (d: {
+  provenance: SecurityProvenanceClass;
+  retained: number;
+  reach: number;
+}) => {
+  let trust = OPERATOR_TRUST[d.provenance];
+  if (!trust) return d.retained * (1 - REACH_HEADROOM * d.reach);
+
+  let earned = (1 - (1 - d.retained) ** trust.exponent) * (1 - d.reach);
+  return 1 - trust.scale * (1 - earned);
 };
 
 export let computeSecurityScore = (d: {
@@ -185,15 +229,16 @@ export let computeSecurityScore = (d: {
   findings: Pick<SecurityReportFinding, 'kind' | 'severity' | 'category'>[];
   controls?: Pick<SecurityReportControl, 'key' | 'disposition'>[];
   exposure?: SecurityLevel;
+  reach?: number;
   assurance?: number;
 }) => {
-  let factor =
+  let retained =
     findingsFactor(d) *
     hardeningFactor({ controls: d.controls ?? [], exposure: d.exposure ?? 'unknown' }) *
     (d.assurance ?? 1);
-  let score = 100 * operatorTrusted(d.provenance, factor);
+  let score = 100 * trustedScore({ provenance: d.provenance, retained, reach: d.reach ?? 0 });
 
-  return Math.max(0, Math.min(100, Math.round(score)));
+  return Math.max(0, Math.min(100, Math.ceil(score - ROUNDING_TOLERANCE)));
 };
 
 export let bandForScore = (score: number): SecurityBand =>
@@ -386,6 +431,7 @@ export let computeScores = (d: {
     findings: d.findings,
     controls,
     exposure,
+    reach: reachIndex({ tools: d.tools, behaviors: d.behaviors }),
     assurance: assuranceFactor({
       provenance: d.provenance,
       complete: isCoverageComplete(d.coverage),
