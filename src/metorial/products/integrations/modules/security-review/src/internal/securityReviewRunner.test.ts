@@ -228,7 +228,7 @@ describe('security review consistency checks', () => {
     expect(mocks.agent).toHaveBeenCalledTimes(1);
   });
 
-  it('does not turn the attached malformed scores verdict into a partial assessment', async () => {
+  it('ignores the attached malformed scores verdict without retrying it', async () => {
     mocks.judge.mockResolvedValue(
       judgeResponse({
         consistent: false,
@@ -241,10 +241,11 @@ describe('security review consistency checks', () => {
 
     expect(result.complete).toBe(true);
     expect(result.gaps).toEqual([]);
-    expect(result.costMicros).toBe(3300);
-    expect(mocks.judge).toHaveBeenCalledTimes(3);
+    expect(result.costMicros).toBe(1100);
+    expect(mocks.judge).toHaveBeenCalledTimes(1);
     expect(mocks.agent).toHaveBeenCalledTimes(1);
-    expect(runLog.toString()).toContain('retaining locally validated report');
+    expect(runLog.toString()).toContain('ignored 2 unusable issue(s)');
+    expect(runLog.toString()).toContain('report is consistent');
     expect(runLog.toString()).not.toContain('scores: undefined');
   });
 

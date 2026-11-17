@@ -1,4 +1,3 @@
-import { v } from '@lowerdeck/validation';
 import { jsonSchema, NoObjectGeneratedError, Output, streamText } from 'ai';
 import { setTimeout as delay } from 'node:timers/promises';
 import {
@@ -21,6 +20,7 @@ let JUDGE_REASONING_EFFORT: ReviewReasoningEffort = 'low';
 let JUDGE_MAX_ACTIVITY_CHARS = 12_000;
 let JUDGE_MAX_ATTEMPTS = 3;
 let JUDGE_RETRY_DELAY_MS = 1000;
+let JUDGE_MAX_DROPPED_LOG_CHARS = 2000;
 
 let JUDGE_SYSTEM = `Check whether the final security review agrees with itself and is supported by
 the supplied evidence.
@@ -41,9 +41,9 @@ Flag an issue when:
 
 Strong security quality can coexist with low-severity findings. A claim that no security issues were
 found requires zero security findings. Scores and headlines are computed by application code and cannot
-be edited by the reviewer. Only reject a concrete defect in an editable report section. Identify that
-section, the conflicting claim and evidence, and the correction needed. Never ask the reviewer to
-change a computed score or headline.
+be edited by the reviewer. Only report a concrete defect in an editable report section. For each issue
+name that section, the claim that is wrong, the evidence it conflicts with, and the correction the
+reviewer should make. Never ask the reviewer to change a computed score or headline.
 
 Apply the same review criteria as the reviewer. These are static assessments: lack of live execution,
 visibility into an external service, or proof about every possible runtime outcome is not a coverage
@@ -57,11 +57,12 @@ them only to interpret the report; your task is the consistency check, not execu
 
 Do not flag style, length, or anything you would merely phrase differently. An empty issue list is the
 expected result for a well-written report. This is a read-only check of supplied data. You have no
-tools and must not plan a new investigation. Keep the check focused; return only the verdict JSON,
-with concise, actionable messages for genuine contradictions.`;
+tools and must not plan a new investigation. Keep the check focused; return only the verdict JSON:
+an issues list, empty when the report is consistent, with concise entries for genuine contradictions.`;
 
 export type ConsistencyIssue = {
   section: string;
+  path?: string;
   message: string;
 };
 
@@ -85,10 +86,6 @@ export let runConsistencyJudge = async (d: {
   onLog?: (entry: string) => void | Promise<void>;
 }) => {
   let sectionNames = d.sectionNames ?? Object.keys(d.report as object);
-  let validator = v.object({
-    consistent: v.boolean(),
-    issues: v.array(v.object({ section: v.enumOf(sectionNames), message: v.string() }))
-  });
   let usage = emptyUsage();
   let feedback = '';
   let requestedModel = d.model;
@@ -209,24 +206,25 @@ Editable report sections: ${sectionNames.join(', ')}.`;
           );
         },
         output: Output.object({
-          schema: jsonSchema<ConsistencyVerdict>({
+          schema: jsonSchema<unknown>({
             type: 'object',
             properties: {
-              consistent: { type: 'boolean' },
               issues: {
                 type: 'array',
                 items: {
                   type: 'object',
                   properties: {
                     section: { type: 'string', enum: sectionNames },
-                    message: { type: 'string', minLength: 1 }
+                    claim: { type: 'string' },
+                    evidence: { type: 'string' },
+                    correction: { type: 'string', minLength: 1 }
                   },
-                  required: ['section', 'message'],
+                  required: ['section', 'claim', 'evidence', 'correction'],
                   additionalProperties: false
                 }
               }
             },
-            required: ['consistent', 'issues'],
+            required: ['issues'],
             additionalProperties: false
           })
         })
@@ -246,23 +244,21 @@ Editable report sections: ${sectionNames.join(', ')}.`;
       usage = addReviewUsage(usage, attemptUsage);
       d.onUsage?.(attemptUsage);
 
-      let validated = validator.validate(await result.output);
-      if (!validated.success) {
+      let parsed = parseVerdict(await result.output, sectionNames);
+      if (!parsed) {
         throw new InvalidConsistencyVerdictError(
-          'Verdict must contain consistent and issues, each with an editable section and a non-empty message.'
+          'Verdict must contain an issues list; return issues: [] when the report is consistent.'
         );
       }
-      let verdict = validated.value;
-      if (
-        verdict.consistent != (verdict.issues.length == 0) ||
-        verdict.issues.some(
-          issue => !issue.message.trim() || issue.message.trim() == 'undefined'
-        )
-      ) {
-        throw new InvalidConsistencyVerdictError(
-          'consistent must agree with the issue list, and every issue must explain a concrete correction.'
+      if (parsed.dropped.length) {
+        await log(
+          `consistency check ignored ${parsed.dropped.length} unusable issue(s): ${JSON.stringify(parsed.dropped).slice(0, JUDGE_MAX_DROPPED_LOG_CHARS)}`
         );
       }
+      let verdict: ConsistencyVerdict = {
+        consistent: parsed.issues.length == 0,
+        issues: parsed.issues
+      };
 
       return { verdict, usage };
     } catch (error) {
@@ -299,10 +295,10 @@ Editable report sections: ${sectionNames.join(', ')}.`;
       clearTimeout(idleTimeout);
       clearTimeout(deadline);
       if (truncated) {
-        feedback = `\n\nYour previous attempt spent its entire ${JUDGE_MAX_OUTPUT_TOKENS}-token output budget before returning a verdict. Reason briefly: check each editable section once against the evidence, then return the verdict JSON immediately. Return consistent: true with issues: [] if there is no concrete report defect.`;
+        feedback = `\n\nYour previous attempt spent its entire ${JUDGE_MAX_OUTPUT_TOKENS}-token output budget before returning a verdict. Reason briefly: check each editable section once against the evidence, then return the verdict JSON immediately. Return issues: [] if there is no concrete report defect.`;
       } else if (invalidOutput) {
         feedback =
-          '\n\nYour previous response did not satisfy the verdict schema. Return consistent: true with issues: [] if there is no concrete report defect. Otherwise every issue needs an editable section and a message explaining the evidence and correction. Do not return issues about computed scores.';
+          '\n\nYour previous response did not satisfy the verdict schema. Return a JSON object with an issues list: issues: [] if there is no concrete report defect, otherwise one entry per defect with an editable section, the claim, the conflicting evidence and the correction. Do not return issues about computed scores.';
       }
       let delayMs = JUDGE_RETRY_DELAY_MS * 2 ** (attempt - 1);
       await d.onLog?.(
@@ -316,6 +312,64 @@ Editable report sections: ${sectionNames.join(', ')}.`;
       await logQueue;
     }
   }
+};
+
+let isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value == 'object' && value !== null && !Array.isArray(value);
+
+let text = (value: unknown) => {
+  if (typeof value != 'string') return undefined;
+
+  let trimmed = value.trim();
+  return trimmed && trimmed != 'undefined' ? trimmed : undefined;
+};
+
+let resolveSection = (raw: string, sectionNames: string[]) =>
+  [...sectionNames]
+    .sort((a, b) => b.length - a.length)
+    .find(
+      name =>
+        raw == name || (raw.startsWith(name) && /^[.[/:\s(]/.test(raw.slice(name.length)))
+    );
+
+let parseIssue = (raw: unknown, sectionNames: string[]): ConsistencyIssue | undefined => {
+  if (!isRecord(raw)) return;
+
+  let path = text(raw.section);
+  let section = path && resolveSection(path, sectionNames);
+  if (!path || !section) return;
+
+  let claim = text(raw.claim);
+  let evidence = text(raw.evidence);
+  let correction = text(raw.correction);
+  let message = [
+    text(raw.message),
+    claim,
+    evidence && `Evidence: ${evidence}`,
+    correction && `Correction: ${correction}`
+  ]
+    .filter(Boolean)
+    .join(' ');
+  if (!message) return;
+
+  return { section, ...(path != section ? { path } : {}), message };
+};
+
+let parseVerdict = (output: unknown, sectionNames: string[]) => {
+  if (!isRecord(output)) return;
+  if (!Array.isArray(output.issues)) {
+    return output.consistent === true ? { issues: [], dropped: [] } : undefined;
+  }
+
+  let issues: ConsistencyIssue[] = [];
+  let dropped: unknown[] = [];
+  for (let raw of output.issues) {
+    let issue = parseIssue(raw, sectionNames);
+    if (issue) issues.push(issue);
+    else dropped.push(raw);
+  }
+
+  return { issues, dropped };
 };
 
 let addReviewUsage = (a: ReviewUsage, b: ReviewUsage): ReviewUsage => ({
@@ -345,7 +399,7 @@ export let createSubmissionVerifier = <R>(d: {
     let errors: string[];
     try {
       let { verdict } = await runConsistencyJudge({ ...d, ...prepared });
-      errors = verdict.issues.map(issue => `${issue.section}: ${issue.message}`);
+      errors = verdict.issues.map(issue => `${issue.path ?? issue.section}: ${issue.message}`);
       await d.onLog?.(
         errors.length
           ? `consistency check returned corrections to the reviewer:\n${errors.map(error => `  - ${error}`).join('\n')}`

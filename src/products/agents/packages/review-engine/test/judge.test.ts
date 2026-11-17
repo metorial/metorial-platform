@@ -16,7 +16,7 @@ let pricing = {
   cacheWritePerMillion: 0
 };
 
-let response = (verdict: unknown = { consistent: true, issues: [] }) => ({
+let response = (verdict: unknown = { issues: [] }) => ({
   stream: new ReadableStream({
     start(controller) {
       controller.enqueue({ type: 'stream-start', warnings: [] });
@@ -66,38 +66,114 @@ describe('consistency judge', () => {
     { consistent: false, issues: [{ section: 'scores' }, { section: 'scores' }] },
     { consistent: false, issues: [{ section: 'summary' }] },
     { consistent: false, issues: [{ section: 'summary', message: '   ' }] },
-    { consistent: false, issues: [{ section: 'summary', message: 'undefined' }] },
+    { consistent: false, issues: [{ section: 'summary', correction: 'undefined' }] },
     { consistent: false, issues: [] },
-    { consistent: true, issues: [{ section: 'summary', message: 'Contradiction' }] },
-    { consistent: false, issues: [{ section: 'scores', message: 'Change score' }] }
-  ])('repairs a malformed verdict without forwarding invalid issues: %j', async verdict => {
-    let onUsage = vi.fn();
-    let calls = 0;
+    { issues: [{ section: 'scores', message: 'Change score' }] },
+    { issues: [{ section: 'summaryish', message: 'Not a section' }] },
+    { consistent: true }
+  ])('treats a verdict without usable issues as consistent: %j', async verdict => {
+    let onLog = vi.fn();
+    let model = new MockLanguageModelV4({ doStream: response(verdict) });
+
+    let result = await run(model, { onLog });
+
+    expect(result.verdict).toEqual({ consistent: true, issues: [] });
+    expect(model.doStreamCalls).toHaveLength(1);
+  });
+
+  it('logs issues it could not forward to the reviewer', async () => {
+    let onLog = vi.fn();
     let model = new MockLanguageModelV4({
-      doStream: async () => response(++calls == 1 ? verdict : undefined)
+      doStream: response({ issues: [{ section: 'scores', message: 'Change score' }] })
+    });
+
+    await run(model, { onLog });
+
+    expect(onLog.mock.calls.flat().join('\n')).toContain('ignored 1 unusable issue(s)');
+  });
+
+  it('forwards the claim, evidence and correction of an issue at a section path', async () => {
+    let model = new MockLanguageModelV4({
+      doStream: response({
+        issues: [
+          {
+            section: 'findings[record-mutation-and-deletion].body',
+            claim: 'The body says only deletion requires confirmation.',
+            evidence: 'The SKILL.md requires confirmation for all destructive actions.',
+            correction: 'State that all destructive actions require confirmation.',
+            severity: 'medium'
+          }
+        ]
+      })
     });
 
     let result = await run(model, {
-      onUsage,
-      reviewInstructions: 'Static review of intended behavior.'
+      report: { summary: { text: 'A report' }, findings: [] },
+      sectionNames: ['summary', 'findings']
     });
 
-    expect(result.verdict).toEqual({ consistent: true, issues: [] });
-    expect(model.doStreamCalls).toHaveLength(2);
-    expect(result.usage.costMicros).toBe(2200);
-    expect(onUsage).toHaveBeenCalledTimes(2);
-    expect(JSON.stringify(model.doStreamCalls[1]!.prompt)).toContain(
-      'previous response did not satisfy'
-    );
-    expect(JSON.stringify(model.doStreamCalls[0]!.prompt)).toContain(
-      'Static review of intended behavior.'
-    );
+    expect(result.verdict).toEqual({
+      consistent: false,
+      issues: [
+        {
+          section: 'findings',
+          path: 'findings[record-mutation-and-deletion].body',
+          message:
+            'The body says only deletion requires confirmation. Evidence: The SKILL.md requires confirmation for all destructive actions. Correction: State that all destructive actions require confirmation.'
+        }
+      ]
+    });
+    expect(model.doStreamCalls).toHaveLength(1);
   });
+
+  it('keeps usable issues and drops the rest', async () => {
+    let model = new MockLanguageModelV4({
+      doStream: response({
+        consistent: true,
+        issues: [
+          { section: 'scores', message: 'Change score' },
+          { section: 'summary', message: 'Acknowledge deletion.' }
+        ]
+      })
+    });
+
+    expect((await run(model)).verdict).toEqual({
+      consistent: false,
+      issues: [{ section: 'summary', message: 'Acknowledge deletion.' }]
+    });
+  });
+
+  it.each([[], 'consistent', { consistent: false }, { issues: 'none' }])(
+    'retries a response that is not a verdict: %j',
+    async verdict => {
+      let onUsage = vi.fn();
+      let calls = 0;
+      let model = new MockLanguageModelV4({
+        doStream: async () => response(++calls == 1 ? verdict : undefined)
+      });
+
+      let result = await run(model, {
+        onUsage,
+        reviewInstructions: 'Static review of intended behavior.'
+      });
+
+      expect(result.verdict).toEqual({ consistent: true, issues: [] });
+      expect(model.doStreamCalls).toHaveLength(2);
+      expect(result.usage.costMicros).toBe(2200);
+      expect(onUsage).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(model.doStreamCalls[1]!.prompt)).toContain(
+        'previous response did not satisfy'
+      );
+      expect(JSON.stringify(model.doStreamCalls[0]!.prompt)).toContain(
+        'Static review of intended behavior.'
+      );
+    }
+  );
 
   it('does not accept an endlessly malformed response as report feedback', async () => {
     let onUsage = vi.fn();
     let model = new MockLanguageModelV4({
-      doStream: async () => response({ consistent: false, issues: [{ section: 'scores' }] })
+      doStream: async () => response({ consistent: false })
     });
 
     await expect(run(model, { onUsage })).rejects.toThrow('Verdict must contain');
