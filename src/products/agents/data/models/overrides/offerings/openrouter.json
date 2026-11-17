@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-13"
   },
+  "bytedance/seedance-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "ByteDance's Seedance 2.5 Flash is a distinct faster/cheaper tier of Seedance 2.5 (analogous to Seedance 2.0 Fast), announced 2026-11-12; the index has no seedance-2.5-flash entry yet, and linking to bytedance/seedance-2.5 would conflate two separate models.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "bytedance/ui-tars-1.5-7b": {
     "decision": "defer",
     "until": "2026-12-12",
