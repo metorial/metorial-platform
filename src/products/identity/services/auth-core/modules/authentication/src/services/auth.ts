@@ -6,7 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { generateCode, generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
-import { isBuilt } from '@metorial/editions';
+import { checkEdition, isBuilt } from '@metorial/editions';
 import { addMinutes, subMinutes } from 'date-fns';
 import type {
   Account,
@@ -41,7 +41,11 @@ import { authBlockService } from './authBlock';
 import { deviceService } from '@mtsrc/auth-core-module-session';
 import { ssoDomainPolicyService } from '@mtsrc/auth-core-module-account';
 import { userService } from '@mtsrc/auth-core-module-user';
-import { userPasswordService } from '@mtsrc/auth-core-module-user';
+import {
+  isValidPassword,
+  passwordPolicyMessage,
+  userPasswordService
+} from '@mtsrc/auth-core-module-user';
 import { userTwoFactorService } from '@mtsrc/auth-core-module-user';
 
 let sendSuccessfulLoginEmail = async (d: {
@@ -78,6 +82,8 @@ let resolveAuthIntentLoginMethod = async (authIntent: AuthIntent) => {
 
   return 'Social Login';
 };
+
+let emailCodesEnabled = () => checkEdition('cloud');
 
 class AuthServiceImpl {
   async ensureEmailAuthEnabled(d: {
@@ -437,6 +443,8 @@ class AuthServiceImpl {
       !!(await db.userPassword.findUnique({ where: { userOid: user.oid } })) &&
       (await userPasswordService.canManagePassword(user));
 
+    let isSignup = !usePassword && !emailCodesEnabled() && !user;
+
     return await withTransaction(async tdb => {
       if (user) {
         let isLoggedIn = await deviceService.checkIfUserIsLoggedIn({
@@ -458,12 +466,21 @@ class AuthServiceImpl {
         }
       }
 
+      if (!usePassword && !emailCodesEnabled() && user) {
+        throw new ServiceError(
+          forbiddenError({
+            message:
+              'No password is set for this account. Please ask your administrator to set one.'
+          })
+        );
+      }
+
       let authIntent = await tdb.authIntent.create({
         data: {
           ...getId('authIntent'),
           clientSecret: generateCustomId('ait_sec_'),
 
-          type: usePassword ? 'password' : 'email_code',
+          type: usePassword || isSignup ? 'password' : 'email_code',
 
           redirectUrl: d.redirectUrl,
 
@@ -475,6 +492,7 @@ class AuthServiceImpl {
           appOid: d.app.oid,
           accountOid: account?.oid ?? null,
 
+          verifiedAt: isSignup ? new Date() : null,
           expiresAt: addMinutes(new Date(), 30),
 
           ip: d.context.ip,
@@ -482,12 +500,14 @@ class AuthServiceImpl {
         }
       });
 
-      await this.createAuthIntentStep({
-        type: usePassword ? 'password' : 'email_code',
-        email,
-        authIntent,
-        index: 0
-      });
+      if (!isSignup) {
+        await this.createAuthIntentStep({
+          type: usePassword ? 'password' : 'email_code',
+          email,
+          authIntent,
+          index: 0
+        });
+      }
 
       return {
         type: 'auth_intent' as const,
@@ -663,6 +683,13 @@ class AuthServiceImpl {
     }
 
     let requiresEmailVerification = !userIdentity.userOid && socialRes.emailVerified !== true;
+    if (requiresEmailVerification && !emailCodesEnabled()) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'The email address of this social account is not verified.'
+        })
+      );
+    }
 
     let user = userIdentity.userOid
       ? await db.user.findUnique({ where: { oid: userIdentity.userOid } })
@@ -872,6 +899,10 @@ class AuthServiceImpl {
     authIntent: AuthIntent;
     index: number;
   }) {
+    if (i.type == 'email_code' && !emailCodesEnabled()) {
+      throw new ServiceError(forbiddenError({ message: 'Email codes are not available.' }));
+    }
+
     await this.ensureEmailAuthEnabled({
       appOid: i.authIntent.appOid,
       accountOid: i.authIntent.accountOid
@@ -947,6 +978,10 @@ class AuthServiceImpl {
   }
 
   async resendAuthIntentCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
+    if (!emailCodesEnabled()) {
+      throw new ServiceError(forbiddenError({ message: 'Email codes are not available.' }));
+    }
+
     if (
       d.step.type != 'email_code' ||
       d.step.verifiedAt ||
@@ -986,6 +1021,10 @@ class AuthServiceImpl {
   }
 
   async requestAuthIntentEmailCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
+    if (!emailCodesEnabled()) {
+      throw new ServiceError(forbiddenError({ message: 'Email codes are not available.' }));
+    }
+
     if (!d.authIntent.userOid)
       throw new ServiceError(forbiddenError({ message: 'Invalid authentication step.' }));
 
@@ -1039,6 +1078,10 @@ class AuthServiceImpl {
         stepId: d.step.id,
         password: d.input.password
       });
+    }
+
+    if (!emailCodesEnabled()) {
+      throw new ServiceError(forbiddenError({ message: 'Email codes are not available.' }));
     }
 
     let authIntent = await db.authIntent.findUnique({
@@ -1148,6 +1191,7 @@ class AuthServiceImpl {
       firstName: string;
       lastName: string;
       acceptedTerms: boolean;
+      password?: string;
     };
     app: App;
   }) {
@@ -1165,8 +1209,27 @@ class AuthServiceImpl {
       });
     }
 
-    if (d.authIntent.type == 'password' || !d.authIntent.verifiedAt || d.authIntent.userOid) {
+    let isPasswordSignup =
+      d.authIntent.type == 'password' && !emailCodesEnabled() && !d.authIntent.userOid;
+
+    if (
+      (d.authIntent.type == 'password' && !isPasswordSignup) ||
+      !d.authIntent.verifiedAt ||
+      d.authIntent.userOid
+    ) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
+    }
+
+    if (isPasswordSignup) {
+      if (!d.input.password || !isValidPassword(d.input.password)) {
+        throw new ServiceError(badRequestError({ message: passwordPolicyMessage }));
+      }
+
+      if (await userService.findByEmailSafe({ email: d.authIntent.identifier, app: d.app })) {
+        throw new ServiceError(
+          forbiddenError({ message: 'An account with this email already exists.' })
+        );
+      }
     }
 
     if (!d.input.acceptedTerms) {
@@ -1200,6 +1263,21 @@ class AuthServiceImpl {
       app: d.app
     });
 
+    if (isPasswordSignup) {
+      if (!created) {
+        throw new ServiceError(
+          forbiddenError({ message: 'An account with this email already exists.' })
+        );
+      }
+
+      await userPasswordService.set({
+        appId: d.app.id,
+        userId: user.id,
+        password: d.input.password!,
+        context
+      });
+    }
+
     return await withTransaction(async tdb => {
       if (!created) {
         user = await userService.linkToAccount({ user });
@@ -1213,9 +1291,13 @@ class AuthServiceImpl {
         });
       }
 
+      let credential = isPasswordSignup
+        ? await tdb.userPassword.findUnique({ where: { userOid: user.oid } })
+        : null;
+
       await tdb.authIntent.update({
         where: { oid: d.authIntent.oid },
-        data: { userOid: user.oid }
+        data: { userOid: user.oid, passwordVersion: credential?.version ?? undefined }
       });
 
       return user;

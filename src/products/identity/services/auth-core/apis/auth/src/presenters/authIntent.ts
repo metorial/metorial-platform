@@ -37,6 +37,7 @@ export let authIntentPresenter = (
     status: getStatus(authIntent),
 
     type: authIntent.type,
+    emailCodesAllowed: checkEdition('cloud'),
     redirectUrl: authIntent.redirectUrl,
 
     identifier: {

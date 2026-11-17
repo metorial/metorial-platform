@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, userService, passwordService, emails, successfulLogin, device, captcha } =
   vi.hoisted(() => ({
@@ -20,11 +20,16 @@ let { db, userService, passwordService, emails, successfulLogin, device, captcha
       authIntentCode: { create: vi.fn() },
       authAttempt: { create: vi.fn() }
     },
-    userService: { findByEmailSafe: vi.fn(), linkToAccount: vi.fn() },
+    userService: {
+      findByEmailSafe: vi.fn(),
+      linkToAccount: vi.fn(),
+      resolveOrCreateUser: vi.fn()
+    },
     passwordService: {
       canManagePassword: vi.fn(),
       verify: vi.fn(),
-      assertVerifiedPassword: vi.fn()
+      assertVerifiedPassword: vi.fn(),
+      set: vi.fn()
     },
     emails: { send: vi.fn() },
     successfulLogin: { send: vi.fn() },
@@ -58,7 +63,9 @@ vi.mock('@mtsrc/auth-core-identity-utils/src/socials', () => ({ socials: {} }));
 vi.mock('@mtsrc/auth-core-module-sync', () => ({ markAresUserChanged: vi.fn() }));
 vi.mock('@mtsrc/auth-core-module-user/src/services/user', () => ({ userService }));
 vi.mock('@mtsrc/auth-core-module-user/src/services/userPassword', () => ({
-  userPasswordService: passwordService
+  userPasswordService: passwordService,
+  isValidPassword: (password: string) => password.length >= 12,
+  passwordPolicyMessage: 'Password policy'
 }));
 vi.mock('@mtsrc/auth-core-module-session/src/services/device', () => ({
   deviceService: device
@@ -115,7 +122,7 @@ beforeEach(() => {
   passwordService.assertVerifiedPassword.mockResolvedValue(undefined);
   db.userPassword.findUnique.mockResolvedValue({ hash: 'never_exposed' });
   db.authIntent.create.mockImplementation(async ({ data }) => {
-    intent = { ...data, steps: [], userIdentity: null, verifiedAt: null, consumedAt: null };
+    intent = { steps: [], userIdentity: null, verifiedAt: null, consumedAt: null, ...data };
     return intent;
   });
   db.authIntent.findUnique.mockImplementation(async ({ where }) => {
@@ -306,5 +313,109 @@ describe('password-first Ares email flow', () => {
         input: { firstName: 'Test', lastName: 'User', acceptedTerms: true }
       })
     ).rejects.toHaveProperty('data');
+  });
+});
+
+describe('on-prem password-only flow', () => {
+  beforeEach(() => {
+    vi.stubEnv('METORIAL_EDITION', 'on-prem');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  let signup = async () => {
+    userService.findByEmailSafe.mockResolvedValue(null);
+    await authService.authWithEmail(input);
+  };
+
+  it('keeps the password challenge for users with a password', async () => {
+    await authService.authWithEmail(input);
+    expect(intent.type).toBe('password');
+    expect(step.type).toBe('password');
+    expect(emails.send).not.toHaveBeenCalled();
+  });
+
+  it('starts a signup without sending a code or creating a step', async () => {
+    await signup();
+    expect(intent).toMatchObject({ type: 'password', userOid: null });
+    expect(intent.verifiedAt).toBeInstanceOf(Date);
+    expect(db.authIntentStep.create).not.toHaveBeenCalled();
+    expect(emails.send).not.toHaveBeenCalled();
+  });
+
+  it('rejects existing users without a password', async () => {
+    db.userPassword.findUnique.mockResolvedValue(null);
+    await expect(authService.authWithEmail(input)).rejects.toHaveProperty('data');
+    expect(emails.send).not.toHaveBeenCalled();
+  });
+
+  it('rejects code requests, resends and code verification', async () => {
+    await authService.authWithEmail(input);
+    await expect(
+      authService.requestAuthIntentEmailCode({ authIntent: intent, step })
+    ).rejects.toHaveProperty('data');
+    await expect(
+      authService.resendAuthIntentCode({ authIntent: intent, step })
+    ).rejects.toHaveProperty('data');
+    await expect(
+      authService.verifyAuthIntentStep({ step, input: { type: 'email_code', code: '111111' } })
+    ).rejects.toHaveProperty('data');
+    await expect(
+      authService.createAuthIntentStep({
+        type: 'email_code',
+        email: input.email,
+        authIntent: intent,
+        index: 0
+      })
+    ).rejects.toHaveProperty('data');
+    expect(emails.send).not.toHaveBeenCalled();
+  });
+
+  it('creates the user with the chosen password on signup', async () => {
+    await signup();
+    let created = { oid: 9n, id: 'user_9', appOid: app.oid };
+    userService.resolveOrCreateUser.mockResolvedValue({ user: created, created: true });
+    db.userPassword.findUnique.mockResolvedValue({ version: 'upv_1' });
+
+    await authService.createUserForAuthIntent({
+      authIntent: intent,
+      app,
+      input: {
+        firstName: 'Test',
+        lastName: 'User',
+        acceptedTerms: true,
+        password: 'CorrectHorse1!Battery'
+      }
+    });
+
+    expect(passwordService.set).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user_9', password: 'CorrectHorse1!Battery' })
+    );
+    expect(intent).toMatchObject({ userOid: 9n, passwordVersion: 'upv_1' });
+  });
+
+  it('rejects signup without a valid password or for an existing email', async () => {
+    await signup();
+    let base = { authIntent: intent, app };
+    let profile = { firstName: 'Test', lastName: 'User', acceptedTerms: true };
+
+    await expect(
+      authService.createUserForAuthIntent({ ...base, input: profile })
+    ).rejects.toHaveProperty('data');
+    await expect(
+      authService.createUserForAuthIntent({ ...base, input: { ...profile, password: 'short' } })
+    ).rejects.toHaveProperty('data');
+
+    userService.findByEmailSafe.mockResolvedValue(user);
+    await expect(
+      authService.createUserForAuthIntent({
+        ...base,
+        input: { ...profile, password: 'CorrectHorse1!Battery' }
+      })
+    ).rejects.toHaveProperty('data');
+    expect(userService.resolveOrCreateUser).not.toHaveBeenCalled();
+    expect(passwordService.set).not.toHaveBeenCalled();
   });
 });

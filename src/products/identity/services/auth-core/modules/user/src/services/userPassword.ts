@@ -5,6 +5,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { checkEdition } from '@metorial/editions';
 import { generateCustomId } from '@lowerdeck/id';
 import { addMinutes, subMinutes } from 'date-fns';
 import type { User } from '@mtsrc/auth-core-db';
@@ -249,7 +250,9 @@ class UserPasswordServiceImpl {
       if (intentFailures >= intentFailureLimit || userFailures >= userFailureLimit) {
         throw new ServiceError(
           forbiddenError({
-            message: 'Too many password attempts. Please use an email code or try again later.'
+            message: checkEdition('cloud')
+              ? 'Too many password attempts. Please use an email code or try again later.'
+              : 'Too many password attempts. Please try again later.'
           })
         );
       }
