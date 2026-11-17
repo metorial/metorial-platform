@@ -52,7 +52,7 @@
     "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
     "@mtsrc/mcp-runtime-module-retention": "workspace:*",
     "@mtsrc/mcp-runtime-module-servers": "workspace:*",
-    "@sentry/bun": "^11.11.0",
+    "@sentry/bun": "^11.12.0",
     "@sentry/cli": "^3.8.2"
   }
 }
