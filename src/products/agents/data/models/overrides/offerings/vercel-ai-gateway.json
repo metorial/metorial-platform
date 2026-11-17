@@ -356,6 +356,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "liquid/d1.2": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Liquid AI's d1.2 decision model, released 2026-11-16 per Liquid AI's blog; the index only has liquid/d1, so this new generation is not in the catalog yet",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "liquid/d1.2-ultra": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Liquid AI's d1.2-ultra decision model, released 2026-11-16 per Liquid AI's blog; the index has no d1.2-ultra entry, only liquid/d1",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "liquid/lfm2.5-24b-a2b": {
     "decision": "defer",
     "until": "2026-12-12",
