@@ -390,6 +390,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-6.2-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-astra",
+    "reason": "OpenRouter's listing states it is the same underlying model as GPT-6.2 Astra, served with reasoning.mode set to pro; pro mode only spends more reasoning tokens.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "openai/gpt-6.2-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-sol",
+    "reason": "OpenRouter's listing states it is the same underlying model as GPT-6.2 Sol, served with reasoning.mode set to pro; pro mode only spends more reasoning tokens.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "openai/gpt-image-2.6-flare": {
     "decision": "defer",
     "until": "2026-12-12",
