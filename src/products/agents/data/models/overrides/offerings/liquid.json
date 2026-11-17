@@ -1,0 +1,9 @@
+{
+  "deepseek-v4.1-flash-1017": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Web search (LM Studio, Modal, DeepSeek model card) confirms the offering is the Oct 17, 2026 snapshot of DeepSeek V4.1 Flash (1M context, image input), matching deepseek/deepseek-v4.1-flash-1017 exactly. The link is correct; Liquid AI just prices it below the median across vendors.",
+    "by": "agent",
+    "at": "2026-11-17"
+  }
+}
