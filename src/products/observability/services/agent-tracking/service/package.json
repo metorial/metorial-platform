@@ -61,7 +61,7 @@
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.45.0",
-    "mongoose": "^9.11.4",
+    "mongoose": "^9.12.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
   }

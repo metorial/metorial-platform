@@ -21,7 +21,7 @@
     "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
     "@mtsrc/mcp-runtime-network": "workspace:*",
     "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
-    "axios": "^1.21.0",
+    "axios": "^1.21.1",
     "p-queue": "^10.0.0",
     "vitest": "5.0.4"
   },
