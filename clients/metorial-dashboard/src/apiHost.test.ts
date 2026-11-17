@@ -5,7 +5,7 @@ import { sdkBuilder as consumerBuilder } from '../../metorial-consumer/src/build
 import { sdkBuilder as dashboardBuilder } from './builder';
 
 let token: string = JSON.parse(
-  readFileSync(join(__dirname, '../../metorial-node/testdata/api-key-hosts.json'), 'utf8')
+  readFileSync(join(__dirname, '../testdata/api-key-hosts.json'), 'utf8')
 )[0].token;
 
 let dashboard = dashboardBuilder.build((config: { apiHost?: string; apiKey?: string }) => ({
