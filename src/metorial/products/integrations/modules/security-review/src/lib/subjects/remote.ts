@@ -91,6 +91,7 @@ export let buildRemoteEvidence = (from: Extract<CustomProviderFrom, { type: 'rem
   }
 
   return {
+    httpsEnabled: remote?.httpsEnabled ?? null,
     files: {
       'remote.json': JSON.stringify(
         {

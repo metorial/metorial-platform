@@ -30,6 +30,7 @@ import {
   getReviewStages,
   getReviewSubject,
   isAiReviewScheduled,
+  isDeterministicRevision,
   isSkillReview,
   isSkillRevision,
   levelLabels,
@@ -186,17 +187,32 @@ export let SecurityReviewVerdict = ({
   let scores = revision.scores;
   let isSkill = isSkillRevision(revision);
   let summary = revision.report.summary;
-  let isProvisional = !!scores && revision.status != 'completed';
-  let [verdict, reason] = isProvisional ? ['Partial assessment'] : (scores?.headline ?? []);
+  let isBasic = !!scores && isDeterministicRevision(revision);
+  let isProvisional = !!scores && !isBasic && revision.status != 'completed';
+  let scoreLabel = isBasic
+    ? 'Basic Checks'
+    : isProvisional
+      ? 'Provisional'
+      : scores
+        ? bandLabels[scores.band]
+        : undefined;
+  let [verdict, reason] = isBasic
+    ? [
+        'Basic checks only',
+        `No AI review ran for this ${getReviewSubject(revision)}. The score reflects rule-based scanners only.`
+      ]
+    : isProvisional
+      ? ['Partial assessment']
+      : (scores?.headline ?? []);
 
   return (
     <>
       <VerdictRow>
         <ScoreRing
           score={scores?.securityScore}
-          color={scores && !isProvisional ? bandColors[scores.band] : 'gray'}
+          color={scores && !isProvisional && !isBasic ? bandColors[scores.band] : 'gray'}
           caption="Security / 100"
-          label={isProvisional ? 'Provisional' : scores ? bandLabels[scores.band] : undefined}
+          label={scoreLabel}
           placeholder={
             <PlaceholderIcon>
               <RiShieldCheckLine size={28} />
@@ -207,7 +223,9 @@ export let SecurityReviewVerdict = ({
         <VerdictCopy>
           {scores && (
             <BadgeRow>
-              {(!isProvisional || scores.risk == 'high' || scores.risk == 'critical') && (
+              {((!isProvisional && !isBasic) ||
+                scores.risk == 'high' ||
+                scores.risk == 'critical') && (
                 <LevelBadge level={scores.risk}>{levelLabels[scores.risk]} Risk</LevelBadge>
               )}
               {(detailed || scores.confidence == 'low') && (
@@ -257,16 +275,17 @@ export let SecurityReviewVerdict = ({
                 Security Quality
                 {scores && (
                   <AxisStatus>
-                    {isProvisional ? 'Provisional' : bandLabels[scores.band]} ·{' '}
-                    {scores.securityScore}/100
+                    {scoreLabel} · {scores.securityScore}/100
                   </AxisStatus>
                 )}
               </AxisTitle>
               {summary && (
                 <Text size="1" color="gray700" style={{ marginTop: 4 }}>
-                  {isProvisional
-                    ? 'This score reflects the available evidence.'
-                    : summary.trustNote}
+                  {isBasic
+                    ? 'Only rule-based checks ran, so this is not a full assessment.'
+                    : isProvisional
+                      ? 'This score reflects the available evidence.'
+                      : summary.trustNote}
                 </Text>
               )}
             </div>

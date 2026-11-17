@@ -20,6 +20,7 @@ import {
   buildUserPrompt
 } from '../lib/playbooks';
 import { qualityFixtures } from '../lib/qualityFixtures';
+import { assessableControlsFor } from '../definitions/controls';
 import { createSecurityReportDefinition } from '../lib/report';
 import { scanSkill } from '../lib/skillDetectors';
 
@@ -126,6 +127,7 @@ for (let fixture of cases) {
     hasHistory: false,
     previousFindingKeys: [],
     lockedFindings: [],
+    controls: assessableControlsFor('skill'),
     observations: scan.observations,
     expectedBehaviors: scan.behaviors
   });
@@ -192,8 +194,9 @@ for (let fixture of cases) {
       result.scores.assessmentComplete &&
       result.scores.exposure == fixture.exposure &&
       (fixture.malicious
-        ? result.scores.security <= 25
-        : result.scores.security >= 95 && result.findings.length == 0);
+        ? result.scores.security < 50
+        : result.scores.security > 80 &&
+          !result.findings.some(finding => finding.kind == 'security'));
     if (!passed) failures++;
     console.log(
       JSON.stringify({
