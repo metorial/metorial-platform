@@ -973,6 +973,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "kitani/clover-2": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Kitani's Clover 2 is a real model per the vendor's site and Hugging Face (Kitani's Clover line), but the model index contains no Kitani or Clover entries, so there is nothing to link yet.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "kitani/clover-2:thinking": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "A thinking serving of Kitani's Clover 2, so it maps to the same base model; the index has no Kitani/Clover entry to link, so defer both.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "lightonai/LightOnOCR-2-1B": {
     "decision": "defer",
     "until": "2026-12-12",

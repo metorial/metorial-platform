@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "glm-5-3-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "VeniceStats and search results describe GLM 5.3 Flash Uncensored as Z.ai's GLM-5.3-Flash with refusal behavior removed in the weights; an abliterated weight-edited derivative is not zhipu/glm-5.3-flash.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "minimax-m3-preview": {
     "decision": "defer",
     "until": "2026-12-12",

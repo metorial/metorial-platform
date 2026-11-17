@@ -165,6 +165,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "UltraSpeed is Xiaomi's high-speed serving tier of the same MiMo-V2.6-Pro checkpoint: launch coverage calls it a faster serving mode of Pro built from the same 1T checkpoint, with the same 1M context and release date. The index has no separate ultraspeed entry, so it stays xiaomi/mimo-v2.6-pro; the 4.35 input price is the 10x speed-tier premium, which explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "zai/glm-4-32b-0414-128k": {
     "decision": "defer",
     "until": "2026-12-12",

@@ -118,6 +118,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance/seedance-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "Seedance 2.5 Flash is ByteDance's faster, cheaper variant of Seedance 2.5 (announced Nov 12, 2026), analogous to Seedance 2.0 Fast vs Seedance 2.0 which the catalog models separately. The index has no seedance-2.5-flash entry yet, so defer rather than mis-link it to bytedance/seedance-2.5.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "bytedance/seedance-v1.0-pro": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -250,6 +257,20 @@
     "reason": "Vercel's own page: the GA '-001' release of Veo 3.1 Lite, 'the cost-optimized tier of the Veo 3.1 family'; the index records that tier as google/veo-3.1-lite-generate-preview, so the GA serving is the same model at $0.05/s.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "heygen/heygen-decision-1": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "HeyGen's docs list heygen-decision-1 as a separate decision model released 2026-11-13; the index has HeyGen Video and Voice but no HeyGen decision model, so defer rather than link another lab's decision model.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
+  "heygen/heygen-decision-1-turbo": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "HeyGen's docs list heygen-decision-1-turbo as a lower-cost preview variant of HeyGen Decision 1, released 2026-11-13; the index has no HeyGen decision entries, so defer rather than link the base or another lab's model.",
+    "by": "agent",
+    "at": "2026-11-16"
   },
   "humansand/ampersand-v0.1": {
     "decision": "defer",

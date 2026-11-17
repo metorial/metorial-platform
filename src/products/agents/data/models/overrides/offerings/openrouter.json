@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-13"
   },
+  "bytedance/seedance-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "ByteDance's Seedance 2.5 Flash is a distinct faster/cheaper tier of Seedance 2.5 (analogous to Seedance 2.0 Fast), announced 2026-11-12; the index has no seedance-2.5-flash entry yet, and linking to bytedance/seedance-2.5 would conflate two separate models.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "bytedance/ui-tars-1.5-7b": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -110,6 +117,13 @@
     "reason": "The :batch suffix is OpenRouter's batch pricing for the October 17, 2026 snapshot (deepseek-ai/DeepSeek-V4.1-Flash-1017 on Hugging Face); same model as deepseek/deepseek-v4.1-flash-1017, with batch rates (0.011/0.2) discounted vs the median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash:batch": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "The ':batch' suffix is OpenRouter's batch-pricing tier of the same model, so the link is correct. HF repo deepseek-ai/DeepSeek-V4.1-Flash (created 2026-09-10) and listing slug deepseek-v4.1-flash-20260910 match the index entry deepseek/deepseek-v4.1-flash (released 2026-09-10); the lower input price (0.023 vs median 0.223) is the discounted batch rate.",
+    "by": "agent",
+    "at": "2026-11-16"
   },
   "dots-studio/dots-3-note-preview:free": {
     "decision": "defer",
@@ -590,6 +604,13 @@
     "reason": "Z.ai's GLM-5.3 (zai-org/GLM-5.3 on Hugging Face, launched 2026-08-14, same base model as GLM-5.2 with post-training gains) matches zhipu/glm-5.3; OpenRouter's 0.0699/1.4 rate is a discount off the model's median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash:batch": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "The `:batch` suffix is OpenRouter's batch-tier serving of GLM-5.3-Flash (Hugging Face card zai-org/GLM-5.3-Flash, image-text-to-text, released 2026-08-26 matches zhipu/glm-5.3-flash). Batch pricing is discounted, which explains the lower input price.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "z-ai/glm-5.3-flashx-legal": {
     "decision": "defer",
