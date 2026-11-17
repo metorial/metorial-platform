@@ -5534,6 +5534,7 @@ model Project {
 
   autoAddOrganizationMembersToPortals    Boolean @default(false)
   allowConsumerSkillEditing              Boolean @default(true)
+  allowConsumerSkillSelection            Boolean @default(true)
   allowOrganizationMemberFullSkillAccess Boolean @default(false)
 
   reducedSubprocessors   Boolean @default(false)

@@ -143,14 +143,18 @@ let configurations: ConfigurationCase[] = [
     object: 'organization.project.workforce_configuration',
     update: {
       auto_add_organization_members_to_portals: true,
+      allow_consumer_skill_selection: false,
       allow_organization_member_full_skill_access: false
     },
     expected: {
       auto_add_organization_members_to_portals: true,
+      allow_consumer_skill_editing: true,
+      allow_consumer_skill_selection: false,
       allow_organization_member_full_skill_access: false
     },
     invalid: [
       { auto_add_organization_members_to_portals: 'sure' },
+      { allow_consumer_skill_selection: 'never' },
       { allow_organization_member_full_skill_access: 'always' }
     ],
     emptyBodyCode: 'bad_request'

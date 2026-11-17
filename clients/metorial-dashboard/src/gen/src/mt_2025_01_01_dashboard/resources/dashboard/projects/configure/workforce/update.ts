@@ -5,6 +5,7 @@ export type DashboardProjectsConfigureWorkforceUpdateOutput = {
   projectId: string;
   autoAddOrganizationMembersToPortals: boolean;
   allowConsumerSkillEditing: boolean;
+  allowConsumerSkillSelection: boolean;
   allowOrganizationMemberFullSkillAccess: boolean;
   updatedAt: Date;
 };
@@ -15,6 +16,7 @@ export let mapDashboardProjectsConfigureWorkforceUpdateOutput =
       'project_id',
       'auto_add_organization_members_to_portals',
       'allow_consumer_skill_editing',
+      'allow_consumer_skill_selection',
       'allow_organization_member_full_skill_access',
       'updated_at'
     ],
@@ -24,6 +26,7 @@ export let mapDashboardProjectsConfigureWorkforceUpdateOutput =
 export type DashboardProjectsConfigureWorkforceUpdateBody = {
   autoAddOrganizationMembersToPortals?: boolean | undefined;
   allowConsumerSkillEditing?: boolean | undefined;
+  allowConsumerSkillSelection?: boolean | undefined;
   allowOrganizationMemberFullSkillAccess?: boolean | undefined;
 };
 
@@ -31,5 +34,6 @@ export let mapDashboardProjectsConfigureWorkforceUpdateBody =
   /* @__PURE__ */ mapObject<DashboardProjectsConfigureWorkforceUpdateBody>([
     'auto_add_organization_members_to_portals',
     'allow_consumer_skill_editing',
+    'allow_consumer_skill_selection',
     'allow_organization_member_full_skill_access'
   ]);
