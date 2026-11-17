@@ -1,6 +1,11 @@
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.hoisted(() => {
+  vi.stubEnv('PORTAL_HOST_TEMPLATE', 'https://{portalId}.metorial.app');
+  vi.stubEnv('PORTAL_REDIRECT_DOMAINS', 'metorial.app');
+});
+
 let mocks = vi.hoisted(() => ({
   db: {
     instance: { findUniqueOrThrow: vi.fn() },
@@ -16,7 +21,8 @@ let mocks = vi.hoisted(() => ({
   listSkillFiles: vi.fn(),
   readSkillFileText: vi.fn(),
   applySkillFileChange: vi.fn(),
-  createConsumerSkill: vi.fn()
+  createConsumerSkill: vi.fn(),
+  getPrimaryPortalUrl: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({ db: mocks.db }));
@@ -41,6 +47,15 @@ vi.mock('@metorial/module-skill', () => ({
     readSkillFileText: mocks.readSkillFileText,
     applySkillFileChange: mocks.applySkillFileChange
   }
+}));
+
+vi.mock('@metorial/config', () => ({ getConfig: vi.fn() }));
+
+vi.mock('@metorial/module-organization', () => ({ namespaceService: {} }));
+
+vi.mock('@metorial/portal-url', async () => ({
+  ...(await vi.importActual<typeof import('@metorial/portal-url')>('@metorial/portal-url')),
+  getPrimaryPortalUrl: mocks.getPrimaryPortalUrl
 }));
 
 vi.mock('../src/services/consumerSkill', () => ({
@@ -84,12 +99,15 @@ let auditScope = {
   context
 };
 
+let portal = { oid: 11n, id: 'ptl_1', slug: 'acme' };
+let portalUrl = 'https://the.metorial.com/p/acme';
+
 let consumerProfile = {
   oid: 5n,
   id: 'cpf_1',
   instanceOid: instance.oid,
   resourceActors: [resourceActor],
-  surface: { allowConsumerSkillAuthoring: true }
+  surface: { allowConsumerSkillAuthoring: true, portal }
 };
 
 let consumerProfileStatus = (
@@ -143,6 +161,7 @@ beforeEach(() => {
     auditScope
   });
   mocks.createResourceAuthorization.mockReturnValue(authorization);
+  mocks.getPrimaryPortalUrl.mockResolvedValue(portalUrl);
   mocks.getSkillById.mockResolvedValue(skill);
   mocks.listSkills.mockResolvedValue({
     run: vi.fn().mockResolvedValue({ items: [{ id: skill.id }] })
@@ -413,7 +432,8 @@ describe('skill editing tool calls', () => {
         id: 'skill_1',
         name: 'Writing',
         slug: 'writing',
-        description: 'Helps with writing'
+        description: 'Helps with writing',
+        url: 'https://the.metorial.com/p/acme/skill/skill_1'
       },
       files: [{ path: '/SKILL.md', kind: 'document', size: 12, etag: 'etag_1' }]
     });
@@ -469,7 +489,8 @@ describe('skill editing tool calls', () => {
       type: 'put',
       path: '/SKILL.md',
       previous_path: null,
-      file: { path: '/SKILL.md', kind: 'document', size: 12, etag: 'etag_1' }
+      file: { path: '/SKILL.md', kind: 'document', size: 12, etag: 'etag_1' },
+      url: 'https://the.metorial.com/p/acme/skill/skill_1'
     });
     expect(mocks.applySkillFileChange).toHaveBeenCalledWith({
       project,
@@ -600,7 +621,13 @@ describe('skill editing tool calls', () => {
 
     expect(result).toEqual({
       skills: [
-        { id: 'skill_1', name: 'Writing', slug: 'writing', description: 'Helps with writing' }
+        {
+          id: 'skill_1',
+          name: 'Writing',
+          slug: 'writing',
+          description: 'Helps with writing',
+          url: 'https://the.metorial.com/p/acme/skill/skill_1'
+        }
       ]
     });
     expect(mocks.listSkills).toHaveBeenCalledWith({
@@ -621,7 +648,13 @@ describe('skill editing tool calls', () => {
       description: 'A new skill'
     });
 
-    expect(result).toMatchObject({ id: 'skill_2', name: 'New' });
+    expect(result).toEqual({
+      id: 'skill_2',
+      name: 'New',
+      slug: 'writing',
+      description: 'Helps with writing',
+      url: 'https://the.metorial.com/p/acme/skill/skill_2'
+    });
     expect(mocks.createConsumerSkill).toHaveBeenCalledWith(
       expect.objectContaining({
         organization,
@@ -634,6 +667,96 @@ describe('skill editing tool calls', () => {
         input: { name: 'New', description: 'A new skill', templateId: undefined }
       })
     );
+  });
+});
+
+describe('skill editing tool portal links', () => {
+  it('returns no url when the surface has no portal', async () => {
+    mocks.db.consumerProfile.findUnique.mockResolvedValue(
+      consumerProfileStatus({ portal: null })
+    );
+    mocks.db.consumerProfile.findUniqueOrThrow.mockResolvedValue({
+      ...consumerProfile,
+      surface: { ...consumerProfile.surface, portal: null }
+    });
+    let tools = await requireTools();
+
+    let got = await tools.call('metorial_skill_get', { skill: 'skill_1' });
+    let written = await tools.call('metorial_skill_write_file', {
+      skill: 'skill_1',
+      path: '/SKILL.md',
+      content: '# Updated'
+    });
+    let listed = await tools.call('metorial_skill_list', {});
+
+    expect(got.skill.url).toBeNull();
+    expect(written.url).toBeNull();
+    expect(listed.skills[0].url).toBeNull();
+    expect(mocks.getPrimaryPortalUrl).not.toHaveBeenCalled();
+  });
+
+  it('links to the root of a portal served on its own host', async () => {
+    mocks.getPrimaryPortalUrl.mockResolvedValue('https://acme.metorial.app');
+    let tools = await requireTools();
+
+    let result = await tools.call('metorial_skill_get', { skill: 'skill_1' });
+
+    expect(result.skill.url).toBe('https://acme.metorial.app/skill/skill_1');
+    expect(mocks.getPrimaryPortalUrl).toHaveBeenCalledWith({ portal });
+  });
+
+  it('looks up the portal url once per request', async () => {
+    mocks.createConsumerSkill.mockResolvedValue({ ...skill, id: 'skill_2', name: 'New' });
+    let tools = await requireTools();
+
+    await tools.call('metorial_skill_list', {});
+    await tools.call('metorial_skill_get', { skill: 'skill_1' });
+    await tools.call('metorial_skill_write_file', {
+      skill: 'skill_1',
+      path: '/SKILL.md',
+      content: '# Updated'
+    });
+    await tools.call('metorial_skill_create', { name: 'New' });
+
+    expect(mocks.getPrimaryPortalUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('looks up the portal url once for a list of several skills', async () => {
+    mocks.listSkills.mockResolvedValue({
+      run: vi.fn().mockResolvedValue({ items: [{ id: 'skill_1' }, { id: 'skill_2' }] })
+    });
+    mocks.db.skill.findMany.mockResolvedValue([skill, { ...skill, id: 'skill_2' }]);
+    let tools = await requireTools();
+
+    let result = await tools.call('metorial_skill_list', {});
+
+    expect(result.skills.map((entry: { url: string }) => entry.url)).toEqual([
+      'https://the.metorial.com/p/acme/skill/skill_1',
+      'https://the.metorial.com/p/acme/skill/skill_2'
+    ]);
+    expect(mocks.getPrimaryPortalUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not create a skill when the portal lookup fails', async () => {
+    mocks.getPrimaryPortalUrl.mockRejectedValue(new Error('namespace lookup failed'));
+    let tools = await requireTools();
+
+    await expect(tools.call('metorial_skill_create', { name: 'New' })).rejects.toThrow(
+      'namespace lookup failed'
+    );
+    expect(mocks.createConsumerSkill).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['metorial_skill_write_file', { skill: 'skill_1', path: '/SKILL.md', content: '# New' }],
+    ['metorial_skill_delete_file', { skill: 'skill_1', path: '/notes.md' }],
+    ['metorial_skill_move_file', { skill: 'skill_1', path: '/a.md', to_path: '/b.md' }]
+  ])('does not change files with %s when the portal lookup fails', async (key, input) => {
+    mocks.getPrimaryPortalUrl.mockRejectedValue(new Error('namespace lookup failed'));
+    let tools = await requireTools();
+
+    await expect(tools.call(key, input)).rejects.toThrow('namespace lookup failed');
+    expect(mocks.applySkillFileChange).not.toHaveBeenCalled();
   });
 });
 
