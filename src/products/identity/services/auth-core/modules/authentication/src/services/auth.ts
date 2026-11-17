@@ -39,7 +39,10 @@ import { accessGroupService } from '@mtsrc/auth-core-module-app';
 import { auditLogService } from '@mtsrc/auth-core-module-audit';
 import { authBlockService } from './authBlock';
 import { deviceService } from '@mtsrc/auth-core-module-session';
-import { ssoDomainPolicyService } from '@mtsrc/auth-core-module-account';
+import {
+  registeredDomainPolicyService,
+  ssoDomainPolicyService
+} from '@mtsrc/auth-core-module-account';
 import { userService } from '@mtsrc/auth-core-module-user';
 import {
   isValidPassword,
@@ -394,6 +397,13 @@ class AuthServiceImpl {
       includeHidden: true
     });
     let user = await userService.findByEmailSafe({ email, app: d.app });
+    if (!user) {
+      await registeredDomainPolicyService.assertSignupAllowed({
+        app: d.app,
+        email,
+        context: d.context
+      });
+    }
     let canUseEmail =
       !d.app.disableEmailAuth &&
       user?.status === 'active' &&
@@ -718,6 +728,14 @@ class AuthServiceImpl {
       };
     }
 
+    if (!user && !matchedUser) {
+      await registeredDomainPolicyService.assertSignupAllowed({
+        app: d.app,
+        email: socialRes.email,
+        context: d.context
+      });
+    }
+
     if (requiresEmailVerification) {
       await authBlockService.registerBlock({ email: socialRes.email, context: d.context });
     }
@@ -842,6 +860,12 @@ class AuthServiceImpl {
     }
 
     if (!userIdentity.userOid) {
+      await registeredDomainPolicyService.assertSignupAllowed({
+        app: d.app,
+        email: d.ssoUser.email,
+        context: d.context
+      });
+
       let { user } = await userService.resolveOrCreateUser({
         email: d.ssoUser.email,
         firstName: d.ssoUser.firstName,
@@ -1249,6 +1273,12 @@ class AuthServiceImpl {
     }
 
     let context = { ip: d.authIntent.ip, ua: d.authIntent.ua ?? '' };
+
+    await registeredDomainPolicyService.assertSignupAllowed({
+      app: d.app,
+      email: d.authIntent.identifier,
+      context
+    });
 
     // Resolved ahead of the transaction below so that losing the create race
     // can be recovered from -- see userService.resolveOrCreateUser.
