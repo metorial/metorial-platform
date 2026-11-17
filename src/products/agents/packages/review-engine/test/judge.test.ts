@@ -105,6 +105,61 @@ describe('consistency judge', () => {
     expect(onUsage).toHaveBeenCalledTimes(3);
   });
 
+  it('retries a check that spent its output budget reasoning with brevity feedback', async () => {
+    let onLog = vi.fn();
+    let onUsage = vi.fn();
+    let calls = 0;
+    let truncated = () => ({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue({ type: 'stream-start', warnings: [] });
+          controller.enqueue({ type: 'reasoning-start', id: 'reasoning' });
+          controller.enqueue({
+            type: 'reasoning-delta',
+            id: 'reasoning',
+            delta: 'Re-reading every finding again.'
+          });
+          controller.enqueue({ type: 'reasoning-end', id: 'reasoning' });
+          controller.enqueue({
+            type: 'finish',
+            finishReason: { unified: 'length', raw: 'length' },
+            usage: {
+              inputTokens: { total: 1000, noCache: 1000, cacheRead: 0, cacheWrite: 0 },
+              outputTokens: { total: 32_768, text: 0, reasoning: 32_768 }
+            }
+          });
+          controller.close();
+        }
+      })
+    });
+    let model = new MockLanguageModelV4({
+      doStream: async () => (++calls == 1 ? truncated() : response())
+    });
+
+    let result = await run(model, { onLog, onUsage });
+
+    expect(result.verdict).toEqual({ consistent: true, issues: [] });
+    expect(model.doStreamCalls).toHaveLength(2);
+    expect(onUsage).toHaveBeenCalledTimes(2);
+    let retryPrompt = JSON.stringify(model.doStreamCalls[1]!.prompt);
+    expect(retryPrompt).toContain('entire 32768-token output budget');
+    expect(retryPrompt).not.toContain('did not satisfy the verdict schema');
+    expect(onLog.mock.calls.flat().join('\n')).toContain('ran out of output tokens');
+  });
+
+  it('lowers reasoning effort only for reasoning models', async () => {
+    let reasoningModel = new MockLanguageModelV4({ doStream: response() });
+    let plainModel = new MockLanguageModelV4({ doStream: response() });
+
+    await run(reasoningModel, {
+      model: { slug: 'judge', model: reasoningModel, pricing, reasoningEffort: 'medium' }
+    });
+    await run(plainModel);
+
+    expect(reasoningModel.doStreamCalls[0]!.reasoning).toBe('low');
+    expect(plainModel.doStreamCalls[0]!.reasoning).toBeUndefined();
+  });
+
   it('returns concrete corrections for editable sections', async () => {
     let verdict = {
       consistent: false,
@@ -273,7 +328,7 @@ describe('consistency judge', () => {
     expect((await result).verdict.consistent).toBe(true);
     expect(model.doStreamCalls).toHaveLength(1);
     expect(model.doStreamCalls[0]!.abortSignal?.aborted).toBe(false);
-    expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(8192);
+    expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(32_768);
     expect(onLog.mock.calls.flat().join('\n')).toContain('Checking another claim.');
     expect(vi.getTimerCount()).toBe(0);
   });

@@ -1,7 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import {
   createGateway,
-  defaultSettingsMiddleware,
   wrapLanguageModel,
   type LanguageModel,
   type LanguageModelUsage
@@ -20,8 +19,11 @@ export type ReviewModel = {
   pricing: ReviewModelPricing;
   contextWindow?: number;
   requestsPerMinute?: number;
+  reasoningEffort?: ReviewReasoningEffort;
   fallback?: ReviewModel;
 };
+
+export type ReviewReasoningEffort = 'low' | 'medium' | 'high';
 
 export type ReviewModelProvider = 'cloudflare' | 'vercel';
 
@@ -48,17 +50,20 @@ let GATED_MODEL_REQUESTS_PER_MINUTE = 18;
 let LARGE_CLOUDFLARE_CONTEXT_WINDOW = 256_000;
 let GATEWAY_CONTEXT_WINDOW = 200_000;
 
-// Reasoning models spend most of their time thinking, so the effort is pinned per model.
-let withReasoningEffort = (
-  model: LanguageModel,
-  effort: 'low' | 'medium' | 'high'
-): LanguageModel =>
-  wrapLanguageModel({
+// Reasoning models spend most of their time thinking, so the effort is pinned per model. A call
+// can still pass its own `reasoning` to override the pinned default.
+let withReasoningEffort = (model: LanguageModel, effort: ReviewReasoningEffort) => ({
+  model: wrapLanguageModel({
     model: model as Parameters<typeof wrapLanguageModel>[0]['model'],
-    middleware: defaultSettingsMiddleware({
-      settings: { providerOptions: { 'cloudflare-workers-ai': { reasoningEffort: effort } } }
-    })
-  });
+    middleware: {
+      transformParams: async ({ params }) => ({
+        ...params,
+        reasoning: params.reasoning ?? effort
+      })
+    }
+  }),
+  reasoningEffort: effort
+});
 
 let createCloudflareModels = (
   config: NonNullable<ReviewModelProviderConfig['cloudflare']>
@@ -72,10 +77,7 @@ let createCloudflareModels = (
 
   let fallback: ReviewModel = {
     slug: 'nemotron-3-120b',
-    model: withReasoningEffort(
-      workersAi.chatModel('@cf/nvidia/nemotron-3-120b-a12b'),
-      'medium'
-    ),
+    ...withReasoningEffort(workersAi.chatModel('@cf/nvidia/nemotron-3-120b-a12b'), 'medium'),
     contextWindow: LARGE_CLOUDFLARE_CONTEXT_WINDOW,
     pricing: {
       inputPerMillion: 0.5,
@@ -87,7 +89,7 @@ let createCloudflareModels = (
 
   let deepseek: ReviewModel = {
     slug: 'deepseek-v4-1-flash',
-    model: withReasoningEffort(
+    ...withReasoningEffort(
       workersAi.chatModel('@cf/deepseek-ai/deepseek-v4.1-flash-1017'),
       'medium'
     ),

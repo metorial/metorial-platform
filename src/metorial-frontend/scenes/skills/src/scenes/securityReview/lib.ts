@@ -331,3 +331,16 @@ export let hasReportContent = (revision: AnySecurityReviewRevision) => {
     revision.findings.length
   );
 };
+
+let NEAR_DUPLICATE_WORD_OVERLAP = 0.8;
+
+let wordsOf = (text: string) => new Set(text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
+
+export let isNearDuplicateText = (a: string, b: string) => {
+  let left = wordsOf(a);
+  let right = wordsOf(b);
+  if (!left.size || !right.size) return false;
+
+  let shared = [...left].filter(word => right.has(word)).length;
+  return shared / Math.max(left.size, right.size) >= NEAR_DUPLICATE_WORD_OVERLAP;
+};

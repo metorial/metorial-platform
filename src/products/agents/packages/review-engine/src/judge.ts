@@ -1,7 +1,13 @@
 import { v } from '@lowerdeck/validation';
 import { jsonSchema, NoObjectGeneratedError, Output, streamText } from 'ai';
 import { setTimeout as delay } from 'node:timers/promises';
-import { addUsage, emptyUsage, type ReviewModel, type ReviewUsage } from './model';
+import {
+  addUsage,
+  emptyUsage,
+  type ReviewModel,
+  type ReviewReasoningEffort,
+  type ReviewUsage
+} from './model';
 import { formatModelActivity, formatStepLog } from './stepLog';
 import { acquireReviewModel, type ReviewModelAccess } from './rateLimit';
 
@@ -9,7 +15,9 @@ let JUDGE_TIMEOUT_MS = 10 * 60 * 1000;
 let JUDGE_IDLE_TIMEOUT_MS = 90 * 1000;
 let JUDGE_PROGRESS_INTERVAL_MS = 15 * 1000;
 let JUDGE_LOG_INTERVAL_MS = 5 * 1000;
-let JUDGE_MAX_OUTPUT_TOKENS = 8192;
+// Reasoning tokens count against this limit, so it leaves room for thinking before the verdict.
+let JUDGE_MAX_OUTPUT_TOKENS = 32_768;
+let JUDGE_REASONING_EFFORT: ReviewReasoningEffort = 'low';
 let JUDGE_MAX_ACTIVITY_CHARS = 12_000;
 let JUDGE_MAX_ATTEMPTS = 3;
 let JUDGE_RETRY_DELAY_MS = 1000;
@@ -169,8 +177,9 @@ ${d.reviewInstructions ?? ''}
 </review_criteria>
 
 Editable report sections: ${sectionNames.join(', ')}.`;
+      let reasoning = model.reasoningEffort ? JUDGE_REASONING_EFFORT : undefined;
       await log(
-        `consistency check request: ${instructions.length + prompt.length + feedback.length} prompt characters · ${JUDGE_MAX_OUTPUT_TOKENS} output token limit · ${JUDGE_IDLE_TIMEOUT_MS / 1000}s idle / ${JUDGE_TIMEOUT_MS / 1000}s total limit · no tools`
+        `consistency check request: ${instructions.length + prompt.length + feedback.length} prompt characters · ${JUDGE_MAX_OUTPUT_TOKENS} output token limit${reasoning ? ` · ${reasoning} reasoning effort` : ''} · ${JUDGE_IDLE_TIMEOUT_MS / 1000}s idle / ${JUDGE_TIMEOUT_MS / 1000}s total limit · no tools`
       );
       let result = streamText({
         model: model.model,
@@ -178,6 +187,7 @@ Editable report sections: ${sectionNames.join(', ')}.`;
         prompt: prompt + feedback,
         abortSignal: AbortSignal.any([idle.signal, ...(d.abortSignal ? [d.abortSignal] : [])]),
         maxOutputTokens: JUDGE_MAX_OUTPUT_TOKENS,
+        reasoning,
         onError: () => {},
         onChunk: async ({ chunk }) => {
           if (chunk.type != 'reasoning-delta' && chunk.type != 'text-delta') return;
@@ -265,6 +275,8 @@ Editable report sections: ${sectionNames.join(', ')}.`;
       let invalidOutput =
         error instanceof InvalidConsistencyVerdictError ||
         NoObjectGeneratedError.isInstance(error);
+      let truncated =
+        NoObjectGeneratedError.isInstance(error) && error.finishReason == 'length';
       if (!accounted && NoObjectGeneratedError.isInstance(error) && error.usage) {
         let attemptUsage = addUsage(emptyUsage(), error.usage, model.pricing);
         usage = addReviewUsage(usage, attemptUsage);
@@ -286,13 +298,15 @@ Editable report sections: ${sectionNames.join(', ')}.`;
       clearInterval(progress);
       clearTimeout(idleTimeout);
       clearTimeout(deadline);
-      if (invalidOutput) {
+      if (truncated) {
+        feedback = `\n\nYour previous attempt spent its entire ${JUDGE_MAX_OUTPUT_TOKENS}-token output budget before returning a verdict. Reason briefly: check each editable section once against the evidence, then return the verdict JSON immediately. Return consistent: true with issues: [] if there is no concrete report defect.`;
+      } else if (invalidOutput) {
         feedback =
           '\n\nYour previous response did not satisfy the verdict schema. Return consistent: true with issues: [] if there is no concrete report defect. Otherwise every issue needs an editable section and a message explaining the evidence and correction. Do not return issues about computed scores.';
       }
       let delayMs = JUDGE_RETRY_DELAY_MS * 2 ** (attempt - 1);
       await d.onLog?.(
-        `consistency check attempt ${attempt}/${JUDGE_MAX_ATTEMPTS} ${invalidOutput ? 'returned an invalid verdict' : `timed out (${JUDGE_IDLE_TIMEOUT_MS / 1000}s idle / ${JUDGE_TIMEOUT_MS / 1000}s total limit)`}; retrying in ${delayMs / 1000}s`
+        `consistency check attempt ${attempt}/${JUDGE_MAX_ATTEMPTS} ${truncated ? `ran out of output tokens (${JUDGE_MAX_OUTPUT_TOKENS} limit) before returning a verdict` : invalidOutput ? 'returned an invalid verdict' : `timed out (${JUDGE_IDLE_TIMEOUT_MS / 1000}s idle / ${JUDGE_TIMEOUT_MS / 1000}s total limit)`}; retrying in ${delayMs / 1000}s`
       );
       await delay(delayMs, undefined, { signal: d.abortSignal });
     } finally {
