@@ -48,6 +48,22 @@
         "vitest": "^5.0.4",
       },
     },
+    "clients/metorial-node/packages/util-endpoint": {
+      "name": "@metorial/util-endpoint",
+      "version": "3.0.0",
+      "dependencies": {
+        "@metorial/util-async-iterator": "^3.0.0",
+        "@types/qs": "^6.15.1",
+        "cross-fetch": "^4.1.0",
+        "qs": "^6.16.0",
+      },
+      "devDependencies": {
+        "@types/ws": "^8.18.2",
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "scripts/dev-tools": {
       "name": "metorial-dev-tools",
       "version": "1.0.0",
@@ -918,6 +934,7 @@
         "@metorial/data-list": "^1.0.0",
         "@metorial/details-layout": "^1.0.0",
         "@metorial/dynamic-component": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/editor-tabs": "^1.0.0",
         "@metorial/empty-state": "^1.0.0",
         "@metorial/explainer": "^1.0.0",
@@ -1053,6 +1070,7 @@
       "name": "@metorial/access-ui",
       "version": "1.0.0",
       "dependencies": {
+        "@metorial/frontend-config": "workspace:*",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
         "@remixicon/react": "^4.9.0",
@@ -1069,6 +1087,7 @@
       "name": "@metorial/avatar-uploader",
       "version": "1.0.0",
       "dependencies": {
+        "@metorial/frontend-config": "workspace:*",
         "@metorial/ui": "^1.0.0",
         "@remixicon/react": "^4.9.0",
         "clsx": "^2.1.1",
@@ -1162,6 +1181,9 @@
     "src/metorial-frontend/packages/config": {
       "name": "@metorial/frontend-config",
       "version": "1.0.0",
+      "dependencies": {
+        "@metorial/editions": "workspace:*",
+      },
       "devDependencies": {
         "@lowerdeck/join-paths": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
@@ -1647,6 +1669,7 @@
       "name": "@metorial/tool-selection",
       "version": "1.0.0",
       "dependencies": {
+        "@metorial/frontend-config": "workspace:*",
         "@metorial/ui": "^1.0.0",
         "@remixicon/react": "^4.9.0",
         "react": "19.3.0",
@@ -1668,6 +1691,7 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@looped/hooks": "^0.1.3",
         "@lowerdeck/memo": "workspace:2.0.0",
+        "@metorial/frontend-config": "workspace:*",
         "@radix-ui/react-accordion": "^1.3.1",
         "@radix-ui/react-alert-dialog": "^1.2.1",
         "@radix-ui/react-checkbox": "^1.4.1",
@@ -1713,6 +1737,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@metorial/filter-bar": "^1.0.0",
+        "@metorial/frontend-config": "workspace:*",
         "@metorial/ui": "^1.0.0",
         "@radix-ui/react-popover": "^1.3.1",
         "@remixicon/react": "^4.9.0",
@@ -10627,7 +10652,7 @@
 
     "@metorial/util-async-iterator": ["@metorial/util-async-iterator@3.0.0", "", {}, "sha512-XaPNjifR7u0TAboXy0Axw8nrCNV5gU7i+TVFRXiBqR5zzz8+mu0FWqaTB9yw2VrjP4FKkHC+2GI8Vxg/CgH5Og=="],
 
-    "@metorial/util-endpoint": ["@metorial/util-endpoint@3.0.0", "", { "dependencies": { "@metorial/util-async-iterator": "^3.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-uw+yw1xwa56jzG0H6iERK/FcuHhhz4n3sEWqyCG9bXhCGeMZSygls39mZB4qU+/Kb69N8deYnP0wSqoqvsO98Q=="],
+    "@metorial/util-endpoint": ["@metorial/util-endpoint@workspace:clients/metorial-node/packages/util-endpoint"],
 
     "@metorial/util-resource-mapper": ["@metorial/util-resource-mapper@3.2.0", "", {}, "sha512-gHeExU+5RsjFsUKybLjzw1vaNjgapQ/8nIgc5oL7WeS3iIIMZi8vdHohtG+h61vMvjQkZDU9MMiMr54QTWe6nQ=="],
 
@@ -14699,9 +14724,13 @@
 
     "@metorial-outpost/trust-proxy/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
 
+    "@metorial/generated/@metorial/util-endpoint": ["@metorial/util-endpoint@3.0.0", "", { "dependencies": { "@metorial/util-async-iterator": "^3.0.0", "@types/qs": "^6.14.0", "cross-fetch": "^4.1.0", "qs": "^6.13.1" } }, "sha512-uw+yw1xwa56jzG0H6iERK/FcuHhhz4n3sEWqyCG9bXhCGeMZSygls39mZB4qU+/Kb69N8deYnP0wSqoqvsO98Q=="],
+
     "@metorial/generated/jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
 
     "@metorial/mcp-proxy/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
+
+    "@metorial/util-endpoint/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
 
     "@mtsrc/agent-tracking-db/prisma-json-types-generator": ["prisma-json-types-generator@5.2.0", "", { "dependencies": { "@prisma/generator-helper": "^7.10.0", "semver": "^7.8.5", "try": "^1.0.3", "tslib": "^2.8.1", "typescript": "npm:typescript@^6.0.3" }, "peerDependencies": { "@prisma/client": "^7.8.0", "pg": "^8.0.0", "prisma": "^7.8.0" }, "optionalPeers": ["pg"], "bin": { "prisma-json-types-generator": "index.js" } }, "sha512-Tc1XzT325dYupjAC3y9wj/7n9uV0/jMS/GJhtyR6zZprjAvF+zUoMGo4log7++Vz8VmRRFQJHkGeJ332MYXb6A=="],
 
@@ -15873,6 +15902,18 @@
 
     "@metorial/mcp-proxy/vitest/why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
 
+    "@metorial/util-endpoint/vitest/@vitest/mocker": ["@vitest/mocker@4.1.12", "", { "dependencies": { "@vitest/spy": "4.1.12", "estree-walker": "^3.0.3", "magic-string": "^0.30.21" }, "peerDependencies": { "msw": "^2.4.9", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0" }, "optionalPeers": ["msw", "vite"] }, "sha512-fKShNpKZzupWZuY0z7egydvL0sqW4INEZBEExMBMAa6izlENEVHwoXgdaTCaBZ5fwlr4xf2o1wXC83n9RpO+NA=="],
+
+    "@metorial/util-endpoint/vitest/magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
+
+    "@metorial/util-endpoint/vitest/obug": ["obug@2.2.1", "", {}, "sha512-XrsrhT5sybtKI6wakr2SPOlGZWWYbUXZ7a0jT8/QOeAPau+1X/bSegNe5YR75oJmEZQbKningirmGOEJCIk61Q=="],
+
+    "@metorial/util-endpoint/vitest/tinybench": ["tinybench@2.9.0", "", {}, "sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg=="],
+
+    "@metorial/util-endpoint/vitest/tinyexec": ["tinyexec@1.3.1", "", {}, "sha512-GCvB3aoys96IuDFBMcTB46JOR6mdMtAToqwiW8JlWhsoh1mhHi/xn9ss/Dg7N555GiJyEt2qzoG/NHCwM6h1EA=="],
+
+    "@metorial/util-endpoint/vitest/why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
+
     "@mtsrc/agent-tracking-db/prisma-json-types-generator/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
     "@mtsrc/agent-tracking-db/prisma-json-types-generator/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
@@ -16623,6 +16664,8 @@
 
     "@metorial/mcp-proxy/vitest/@vitest/mocker/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
 
+    "@metorial/util-endpoint/vitest/@vitest/mocker/estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
+
     "@opentelemetry/exporter-metrics-otlp-grpc/@opentelemetry/otlp-transformer/@opentelemetry/sdk-logs/@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
     "@opentelemetry/exporter-metrics-otlp-http/@opentelemetry/otlp-transformer/@opentelemetry/sdk-logs/@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
@@ -16754,6 +16797,8 @@
     "@metorial-outpost/trust-proxy/vitest/@vitest/mocker/estree-walker/@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
 
     "@metorial/mcp-proxy/vitest/@vitest/mocker/estree-walker/@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
+
+    "@metorial/util-endpoint/vitest/@vitest/mocker/estree-walker/@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
 
     "@prisma/studio-core/@radix-ui/react-toggle/@radix-ui/react-primitive/@radix-ui/react-slot/@radix-ui/react-compose-refs": ["@radix-ui/react-compose-refs@1.1.2", "", { "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-z4eqJvfiNnFMHIIvXP3CY57y2WJs5g2v3X0zm9mEJkrkNv4rDxu+sg9Jh8EkXyeqBkB7SOcboo9dMVqhyrACIg=="],
 
