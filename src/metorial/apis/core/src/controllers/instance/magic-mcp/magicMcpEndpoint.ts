@@ -92,7 +92,7 @@ let skillSelectionValidator = v.optional(
     ],
     {
       description:
-        'Which skills the endpoint exposes, both as skill resources and through the skill editing tools. Defaults to all skills the consumer has access to.'
+        'Which skills the endpoint exposes, both as skill resources and through the skill editing tools. Defaults to all skills the consumer has access to. A `selected` selection on a consumer-owned endpoint requires the project to allow skill selection.'
     }
   )
 );

@@ -26,6 +26,7 @@ class ProjectWorkforceConfigurationService {
     input: {
       autoAddOrganizationMembersToPortals?: boolean;
       allowConsumerSkillEditing?: boolean;
+      allowConsumerSkillSelection?: boolean;
       allowOrganizationMemberFullSkillAccess?: boolean;
     };
   }) {
@@ -37,6 +38,7 @@ class ProjectWorkforceConfigurationService {
       data: {
         autoAddOrganizationMembersToPortals: d.input.autoAddOrganizationMembersToPortals,
         allowConsumerSkillEditing: d.input.allowConsumerSkillEditing,
+        allowConsumerSkillSelection: d.input.allowConsumerSkillSelection,
         allowOrganizationMemberFullSkillAccess: d.input.allowOrganizationMemberFullSkillAccess
       }
     });
