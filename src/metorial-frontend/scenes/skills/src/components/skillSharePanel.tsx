@@ -1,3 +1,4 @@
+import { getAvatarUrl } from '@metorial/frontend-config';
 import {
   useAllPortalConsumerAccess,
   useCreatePortalConsumerAccess,
@@ -558,7 +559,7 @@ export let SkillSharePanelContent = (p: {
         id: group.id,
         name: group.name,
         description: group.description || 'Access Group',
-        imageUrl: `https://avatar.metorial-cdn.com/${group.id}`
+        imageUrl: getAvatarUrl(group.id)
       });
     }
 
@@ -1045,7 +1046,7 @@ export let SkillSharePanelContent = (p: {
                         <Avatar
                           entity={{
                             name: access.consumerGroup.name,
-                            imageUrl: `https://avatar.metorial-cdn.com/${access.consumerGroup.id}`
+                            imageUrl: getAvatarUrl(access.consumerGroup.id)
                           }}
                           size={36}
                         />
@@ -1084,7 +1085,7 @@ export let SkillSharePanelContent = (p: {
                         <Avatar
                           entity={{
                             name: access.consumerGroup.name,
-                            imageUrl: `https://avatar.metorial-cdn.com/${access.consumerGroup.id}`
+                            imageUrl: getAvatarUrl(access.consumerGroup.id)
                           }}
                           size={36}
                         />

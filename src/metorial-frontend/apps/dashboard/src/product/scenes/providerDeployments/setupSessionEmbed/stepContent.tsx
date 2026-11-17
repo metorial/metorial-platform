@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import {
   Avatar,
   Badge,
@@ -36,8 +37,7 @@ import type { SetupSessionState } from './types';
 type AnyForm = any;
 
 type CredentialSelectItem =
-  | { type: 'separator' }
-  | { id: string; label: string; disabled?: boolean };
+  { type: 'separator' } | { id: string; label: string; disabled?: boolean };
 
 export type SetupStep = {
   title: string;
@@ -248,7 +248,7 @@ let ManagedCredentialsPreviewPanel = (p: {
             <ManagedCredentialsPreviewBrand>
               {p.projectBrandImageUrl ? (
                 <ManagedCredentialsPreviewBrandImage
-                  src={p.projectBrandImageUrl}
+                  src={resolveImageUrl(p.projectBrandImageUrl)}
                   alt={p.projectBrandName}
                 />
               ) : (

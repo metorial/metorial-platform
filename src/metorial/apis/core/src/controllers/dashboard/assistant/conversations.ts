@@ -3,13 +3,18 @@ import { v } from '@lowerdeck/validation';
 import { productAssistantConversationService } from '@metorial/module-product-assistant';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { assistantConversationPresenter } from '@metorial/presenters';
-import { assistantConversationGroup, getAssistantAccess, getAssistantScope } from './context';
+import {
+  assistantConversationGroup,
+  assistantInstanceGroup,
+  getAssistantAccess,
+  getAssistantScope
+} from './context';
 
 export let assistantConversationHandlers = {
-  listConversations: instanceGroup
+  listConversations: assistantInstanceGroup
     .get(instancePath('conversations', 'conversations.list'), {
       name: 'List assistant conversations',
       description: 'List assistant conversations in an instance.'
@@ -49,7 +54,7 @@ export let assistantConversationHandlers = {
       );
     }),
 
-  createConversation: instanceGroup
+  createConversation: assistantInstanceGroup
     .post(instancePath('conversations', 'conversations.create'), {
       name: 'Create assistant conversation',
       description: 'Create a new assistant conversation in an instance.'

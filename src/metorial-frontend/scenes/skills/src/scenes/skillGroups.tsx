@@ -1,3 +1,4 @@
+import { getAvatarUrl } from '@metorial/frontend-config';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
   refetchSkillGroupMembershipLoaders,
@@ -294,7 +295,7 @@ let getSkillTableRow = (p: {
         <Avatar
           entity={{
             name: p.skill.name,
-            imageUrl: `https://avatar-cdn.metorial.com/${p.skill.id}`
+            imageUrl: getAvatarUrl(p.skill.id)
           }}
           size={32}
           radius={999}
@@ -494,7 +495,7 @@ export let SkillGroupsForSkillScene = (p: {
                   <Avatar
                     entity={{
                       name: group.name,
-                      imageUrl: `https://avatar-cdn.metorial.com/${group.id}`
+                      imageUrl: getAvatarUrl(group.id)
                     }}
                     size={32}
                     radius={999}
