@@ -79,4 +79,48 @@ describe('AwsKmsKeyProviderAdapter', () => {
       accountId: '999999999999'
     });
   });
+  describe('verifySystemKeyAccess', () => {
+    let keyInfo = {
+      region: 'us-east-1',
+      keyArn: 'arn:aws:kms:us-east-1:123456789012:key/metorial-key-id'
+    };
+
+    it('passes when generate and decrypt round trip', async () => {
+      let plaintext = new Uint8Array([1, 2, 3]);
+      aws.send
+        .mockResolvedValueOnce({ Plaintext: plaintext, CiphertextBlob: new Uint8Array([9]) })
+        .mockResolvedValueOnce({ Plaintext: plaintext });
+
+      await expect(
+        new AwsKmsKeyProviderAdapter().verifySystemKeyAccess(keyInfo)
+      ).resolves.toBeUndefined();
+      expect(aws.send).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails when decrypt is denied', async () => {
+      aws.send
+        .mockResolvedValueOnce({
+          Plaintext: new Uint8Array([1]),
+          CiphertextBlob: new Uint8Array([9])
+        })
+        .mockRejectedValueOnce(new Error('AccessDeniedException'));
+
+      await expect(
+        new AwsKmsKeyProviderAdapter().verifySystemKeyAccess(keyInfo)
+      ).rejects.toBeDefined();
+    });
+
+    it('fails when decrypt returns different plaintext', async () => {
+      aws.send
+        .mockResolvedValueOnce({
+          Plaintext: new Uint8Array([1]),
+          CiphertextBlob: new Uint8Array([9])
+        })
+        .mockResolvedValueOnce({ Plaintext: new Uint8Array([2]) });
+
+      await expect(
+        new AwsKmsKeyProviderAdapter().verifySystemKeyAccess(keyInfo)
+      ).rejects.toMatchObject({ code: 'kms_validation_failed' });
+    });
+  });
 });
