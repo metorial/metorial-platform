@@ -1,3 +1,4 @@
+import { getAvatarUrl } from '@metorial/frontend-config';
 import {
   ResourcePicker,
   showResourcePicker,
@@ -240,7 +241,7 @@ let getSkillTableRow = (p: {
         <Avatar
           entity={{
             name: title,
-            imageUrl: `https://avatar-cdn.metorial.com/${p.pluginSkill.skillId}`
+            imageUrl: getAvatarUrl(p.pluginSkill.skillId)
           }}
           size={32}
           radius={999}

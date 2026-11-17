@@ -1,3 +1,4 @@
+import { getMetorialLogoUrl } from '@metorial/frontend-config';
 import { MergeEditor } from '@metorial/code-editor';
 import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
@@ -562,8 +563,7 @@ let EventActor = ({ actor, size = 24 }: { actor: EventActor | null; size?: numbe
           ? { name: actorName(actor), imageUrl: actor.imageUrl }
           : {
               name: 'Metorial',
-              imageUrl:
-                'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'
+              imageUrl: getMetorialLogoUrl()
             }
       }
       size={size}

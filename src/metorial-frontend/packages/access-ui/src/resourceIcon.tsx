@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import {
   RiFlashlightLine,
   RiFolderLine,
@@ -130,7 +131,7 @@ export let SubjectAvatar = (p: {
   let size = p.size ?? 32;
 
   if (p.kind == 'person') {
-    if (p.imageUrl) return <Photo $size={size} src={p.imageUrl} alt="" />;
+    if (p.imageUrl) return <Photo $size={size} src={resolveImageUrl(p.imageUrl)} alt="" />;
 
     return (
       <Round $hue={hueOf(p.id)} $size={size} aria-hidden>

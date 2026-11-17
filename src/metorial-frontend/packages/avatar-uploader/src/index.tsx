@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import { Button, CenteredSpinner, Dialog, Spacer, Spinner, theme } from '@metorial/ui';
 import {
   RiCheckLine,
@@ -249,7 +250,7 @@ export let AvatarUploader = (d: {
   return (
     <Wrapper>
       <Image onClick={() => d.setIsOpen(true)}>
-        <img src={d.imageUrl} alt="Current avatar" />
+        <img src={resolveImageUrl(d.imageUrl)} alt="Current avatar" />
         {d.isLoading && (
           <div className="loading">
             <CenteredSpinner />
@@ -311,7 +312,7 @@ export let AvatarUploader = (d: {
               style={{ width: avatarSize, height: avatarSize }}
               className={clsx({ loading: d.isLoading })}
             >
-              <img src={cachedImageUrl} alt="Current avatar" />
+              <img src={resolveImageUrl(cachedImageUrl)} alt="Current avatar" />
               {d.isLoading && (
                 <SpinnerWrapper>
                   <Spinner size={30} />

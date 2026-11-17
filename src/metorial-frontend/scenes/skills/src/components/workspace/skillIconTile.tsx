@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import {
   DEFAULT_SKILL_ICON_COLOR,
   isSkillIconColor,
@@ -106,7 +107,7 @@ export let SkillIconTile = (p: {
   }
 
   if ((p.image?.type == 'file' || p.image?.type == 'url') && p.imageUrl) {
-    return <Image $size={p.size} src={p.imageUrl} alt="" />;
+    return <Image $size={p.size} src={resolveImageUrl(p.imageUrl)} alt="" />;
   }
 
   return (

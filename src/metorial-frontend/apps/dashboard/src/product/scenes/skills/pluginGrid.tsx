@@ -1,10 +1,10 @@
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import type {
   DashboardInstanceSkillsPluginsListOutput,
   DashboardInstanceSkillsPluginsListQuery
 } from '@metorial/dashboard-sdk';
 import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
-import { Paths } from '@metorial/frontend-config';
 import { useSkillPlugins } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
@@ -110,7 +110,7 @@ export let SkillPluginsList = createDataList<{
         entity={{
           name: plugin.name,
           photoUrl: plugin.imageUrl ?? undefined,
-          imageUrl: `https://avatar-cdn.metorial.com/${plugin.id}`
+          imageUrl: getAvatarUrl(plugin.id)
         }}
         size={30}
         imageFit="contain"

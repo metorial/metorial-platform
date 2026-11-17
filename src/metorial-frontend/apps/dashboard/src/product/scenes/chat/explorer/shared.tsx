@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import type { ChatChannelPreview, ChatMessageAuthor } from '@metorial/state';
 import { theme } from '@metorial/ui';
 import styled from 'styled-components';
@@ -48,7 +49,7 @@ export let AuthorAvatar = (p: {
   return (
     <AvatarBox $size={size} style={{ fontSize: Math.round(size / 2.8) }} title={name}>
       {p.author?.imageUrl ? (
-        <img src={p.author.imageUrl} alt={name} loading="lazy" />
+        <img src={resolveImageUrl(p.author.imageUrl)} alt={name} loading="lazy" />
       ) : (
         <span>{initialsOf(name)}</span>
       )}

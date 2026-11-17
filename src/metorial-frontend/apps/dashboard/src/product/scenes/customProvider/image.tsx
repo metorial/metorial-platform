@@ -1,3 +1,4 @@
+import { getAvatarUrl } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderListing } from '@metorial/state';
 import { Avatar } from '@metorial/ui';
 import { ProviderImage } from '@metorial/ui-product';
@@ -15,7 +16,7 @@ export let CustomProviderImage = ({
 }) => {
   let instance = useCurrentInstance();
   let listing = useProviderListing(instance.data?.id, providerId);
-  let imageUrl = listing.data?.imageUrl ?? `https://avatar-cdn.metorial.com/${providerId}`;
+  let imageUrl = listing.data?.imageUrl ?? getAvatarUrl(providerId);
 
   if (!imageUrl && (!providerId || !listing.isLoading)) {
     return <ProviderImage alt={name} size={size} radius={radius} />;

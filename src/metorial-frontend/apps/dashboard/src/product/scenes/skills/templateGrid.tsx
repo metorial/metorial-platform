@@ -1,3 +1,4 @@
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import type {
   DashboardInstanceSkillsTemplatesListOutput,
   DashboardInstanceSkillsTemplatesListQuery
@@ -12,7 +13,6 @@ import {
   type DataListLayoutRenderArgs
 } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
-import { Paths } from '@metorial/frontend-config';
 import { SkillPreviewCard } from '@metorial/scene-skills';
 import { useCreateSkill, useSkillContentPreviews, useSkillTemplates } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
@@ -73,7 +73,7 @@ export let SkillTemplateGridCard = (p: {
       <Avatar
         entity={{
           name: p.skillTemplate.name,
-          imageUrl: `https://avatar-cdn.metorial.com/${p.skillTemplate.id}`
+          imageUrl: getAvatarUrl(p.skillTemplate.id)
         }}
         size={30}
       />

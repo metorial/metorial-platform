@@ -1,3 +1,5 @@
+import { checkEdition } from '@metorial/editions';
+import { Button } from '@metorial/ui';
 import { useMemo } from 'react';
 import styled from 'styled-components';
 
@@ -10,21 +12,23 @@ let Iframe = styled.iframe`
   border: 1px solid #555;
 `;
 
-export let CodeViewer = ({
-  repo,
-  owner,
-  path,
-  title,
-  initialFile,
-  replacements
-}: {
+type CodeViewerProps = {
   repo: string;
   owner: string;
   path: string;
   title?: string;
   initialFile?: string;
   replacements?: Record<string, string | undefined>;
-}) => {
+};
+
+let CloudCodeViewer = ({
+  repo,
+  owner,
+  path,
+  title,
+  initialFile,
+  replacements
+}: CodeViewerProps) => {
   let url = useMemo(() => {
     let url = new URL('https://code-viewer.metorial.com');
     url.searchParams.set('repo', repo);
@@ -44,4 +48,24 @@ export let CodeViewer = ({
   }, [repo, owner, path, title]);
 
   return <Iframe src={url} title={title || 'Code Viewer'} />;
+};
+
+export let CodeViewer = (props: CodeViewerProps) => {
+  let { owner, repo, path } = props;
+
+  if (checkEdition('on-prem')) {
+    return (
+      <a
+        href={`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tree/HEAD/${path.split('/').map(encodeURIComponent).join('/')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Button as="span" variant="outline">
+          View Source on GitHub
+        </Button>
+      </a>
+    );
+  }
+
+  return <CloudCodeViewer {...props} />;
 };

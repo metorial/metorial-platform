@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import { Text, theme } from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
@@ -46,7 +47,7 @@ export let ProviderImage = ({
 
   return (
     <Wrapper $size={size} $radius={resolvedRadius}>
-      <Img src={imageUrl} alt={alt} />
+      <Img src={resolveImageUrl(imageUrl)} alt={alt} />
     </Wrapper>
   );
 };

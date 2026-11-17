@@ -1,7 +1,7 @@
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import type { DashboardInstanceSkillsGroupsListOutput } from '@metorial/dashboard-sdk';
 import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
-import { Paths } from '@metorial/frontend-config';
 import { useSkillGroups } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
@@ -44,7 +44,7 @@ export let SkillGroupGridCard = (p: {
       <Avatar
         entity={{
           name: p.skillGroup.name,
-          imageUrl: `https://avatar-cdn.metorial.com/${p.skillGroup.id}`
+          imageUrl: getAvatarUrl(p.skillGroup.id)
         }}
         size={30}
       />
@@ -122,7 +122,7 @@ export let SkillGroupsList = createDataList('skill-groups')
       <Avatar
         entity={{
           name: group.name,
-          imageUrl: `https://avatar-cdn.metorial.com/${group.id}`
+          imageUrl: getAvatarUrl(group.id)
         }}
         size={30}
       />

@@ -1,3 +1,4 @@
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import type { DashboardInstanceCallbacksListQuery } from '@metorial/dashboard-sdk';
 import {
   col,
@@ -7,7 +8,6 @@ import {
   lifecycleStatus,
   withDefaults
 } from '@metorial/data-list';
-import { Paths } from '@metorial/frontend-config';
 import { useCallbacks } from '@metorial/state';
 import { Avatar, RenderDate, Text } from '@metorial/ui';
 import type { ComponentProps } from 'react';
@@ -74,12 +74,7 @@ export let CallbacksList = createDataList<{
   )
   .item(row => ({
     title: row.name,
-    icon: (
-      <Avatar
-        entity={{ name: row.name, imageUrl: `https://avatar-cdn.metorial.com/${row.id}` }}
-        size={30}
-      />
-    ),
+    icon: <Avatar entity={{ name: row.name, imageUrl: getAvatarUrl(row.id) }} size={30} />,
     footer: <Text size="1">{row.provider.name}</Text>,
     height: 200
   }))

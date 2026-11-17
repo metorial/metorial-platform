@@ -16,7 +16,8 @@
     "react-avatar-editor": "^16.0.0",
     "react-dropzone": "^20.1.4",
     "react-use": "^17.6.1",
-    "styled-components": "^6.6.0"
+    "styled-components": "^6.6.0",
+    "@metorial/frontend-config": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import { Button, Callout, Checkbox, Flex, OptionToggle, Text, theme } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { useState, type ReactNode } from 'react';
@@ -377,7 +378,12 @@ export let ToolCategoryImage = ({
   return (
     <ImageTile aria-hidden="true">
       {imageUrl && !failed ? (
-        <img src={imageUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
+        <img
+          src={resolveImageUrl(imageUrl)}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
       ) : (
         name.trim().charAt(0).toUpperCase()
       )}

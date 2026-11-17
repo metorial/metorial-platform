@@ -1,3 +1,4 @@
+import { getFaviconUrl, getProviderLogoUrl } from '@metorial/frontend-config';
 import { JSONSchema7 } from 'json-schema';
 
 let createEmptySchema = (): JSONSchema7 => ({
@@ -88,7 +89,7 @@ export let remoteServerTemplates = [
 
   return {
     ...t,
-    imageUrl: `https://favicons.metorial-cdn.com/?url=${encodeURIComponent(rootOrigin)}`
+    imageUrl: getFaviconUrl(rootOrigin)
   };
 });
 
@@ -460,7 +461,7 @@ export default server;
     name: 'Slack',
     category: 'Productivity',
     description: 'List channels, post messages, and search Slack.',
-    imageUrl: 'https://provider-logos.metorial-cdn.com/slack.svg',
+    imageUrl: getProviderLogoUrl('slack.svg'),
     files: templateFiles(
       'slack-workspace-mcp-server',
       `
@@ -563,7 +564,7 @@ export default server;
     name: 'Gmail',
     category: 'Productivity',
     description: 'Search Gmail and create drafts.',
-    imageUrl: 'https://provider-logos.metorial-cdn.com/gmail.svg',
+    imageUrl: getProviderLogoUrl('gmail.svg'),
     files: templateFiles(
       'gmail-assistant-mcp-server',
       `
@@ -682,7 +683,7 @@ export default server;
     name: 'GitHub',
     category: 'Developer',
     description: 'List, create, and comment on GitHub issues.',
-    imageUrl: 'https://provider-logos.metorial-cdn.com/github.png',
+    imageUrl: getProviderLogoUrl('github.png'),
     files: templateFiles(
       'github-issues-mcp-server',
       `
@@ -756,7 +757,7 @@ export default server;
     name: 'Notion',
     category: 'Productivity',
     description: 'Query databases and create pages in Notion.',
-    imageUrl: 'https://provider-logos.metorial-cdn.com/notion.svg',
+    imageUrl: getProviderLogoUrl('notion.svg'),
     files: templateFiles(
       'notion-database-mcp-server',
       `
@@ -849,7 +850,7 @@ export default server;
     name: 'Linear',
     category: 'Productivity',
     description: 'Manage Linear issues with GraphQL.',
-    imageUrl: 'https://provider-logos.metorial-cdn.com/linear.png',
+    imageUrl: getProviderLogoUrl('linear.png'),
     files: templateFiles(
       'linear-project-helper-mcp-server',
       `
