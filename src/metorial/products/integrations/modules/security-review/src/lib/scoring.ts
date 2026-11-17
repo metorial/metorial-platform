@@ -2,15 +2,19 @@ import type {
   SecurityBand,
   SecurityCapabilityTag,
   SecurityConfidenceLevel,
+  SecurityControlDisposition,
+  SecurityFindingCategoryKey,
   SecurityFindingSeverityLevel,
   SecurityLevel,
   SecurityProvenanceClass,
   SecurityReportBehavior,
   SecurityReportFinding,
   SecurityReportTool,
+  SecurityReportControl,
   SecuritySkillCapabilityTag,
   SecurityReviewComputedScores
 } from '@metorial-subspace/db';
+import { controlWeight } from '../definitions/controls';
 import { SECURITY_REVIEW_RULES_VERSION } from '../definitions/versions';
 import { isMutatingTag } from './evidence';
 import { actionExposure, actionsExposure, highestExposure } from './actionRules';
@@ -45,25 +49,149 @@ let skillTagTiers: Record<SecuritySkillCapabilityTag, KnownLevel> = {
   financial: 'critical'
 };
 
+let SEVERITY_WEIGHTS: Record<SecurityFindingSeverityLevel, number> = {
+  info: 0,
+  low: 0.015,
+  medium: 0.05,
+  high: 0.55,
+  critical: 0.8
+};
+let REPEAT_DECAY = 0.85;
+let DECEPTION_WEIGHT = 0.95;
+let IMPERSONATION_WEIGHT = 0.97;
+let OPERATOR_TRUST: Partial<
+  Record<SecurityProvenanceClass, { scale: number; exponent: number }>
+> = { metorial_built: { scale: 0.1, exponent: 0.5 } };
+let HARDENING_HEADROOM = 0.12;
+let REACH_FACTORS: Record<SecurityLevel, number> = {
+  unknown: 1,
+  low: 0.5,
+  moderate: 0.75,
+  high: 1,
+  critical: 1.25
+};
+let GAP_SIZES: Record<SecurityControlDisposition, number> = {
+  met: 0,
+  partial: 0.5,
+  not_met: 1,
+  not_applicable: 0
+};
+let ASSURANCE_LOSS = {
+  incomplete: 0.06,
+  unresolvedObservation: 0.02,
+  unclassifiedActions: 0.03
+};
+let PROVENANCE_ASSURANCE_LOSS: Partial<Record<SecurityProvenanceClass, number>> = {
+  tenant_remote_unverifiable: 0.04,
+  tenant_image: 0.03,
+  tenant_remote_third_party: 0.02,
+  tenant_remote_vendor_plausible: 0.01
+};
+
+let deceptiveCategories: SecurityFindingCategoryKey[] = [
+  'impersonation',
+  'tool_poisoning',
+  'reviewer_targeting'
+];
+
+let severityRank: Record<SecurityFindingSeverityLevel, number> = {
+  info: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4
+};
+
 let levelIndex = (level: KnownLevel) => LEVELS.indexOf(level);
 let raise = (level: KnownLevel) => LEVELS[Math.min(levelIndex(level) + 1, LEVELS.length - 1)]!;
+
+let isDeception = (finding: Pick<SecurityReportFinding, 'category' | 'severity'>) =>
+  (deceptiveCategories.includes(finding.category) &&
+    severityRank[finding.severity] >= severityRank.medium) ||
+  (finding.category == 'exfiltration' && severityRank[finding.severity] >= severityRank.high);
+
+// Every factor is the share of trust that survives one source of residual risk. Multiplying
+// them lets several serious defects compound towards zero without caps, while a clean subject
+// keeps nearly all of its score.
+export let findingsFactor = (d: {
+  provenance: SecurityProvenanceClass;
+  findings: Pick<SecurityReportFinding, 'kind' | 'severity' | 'category'>[];
+}) => {
+  let repeats: Partial<Record<SecurityFindingSeverityLevel, number>> = {};
+  let factor = d.provenance == 'impersonation_suspected' ? 1 - IMPERSONATION_WEIGHT : 1;
+
+  let ordered = d.findings
+    .filter(finding => finding.kind == 'security')
+    .sort((a, b) => severityRank[b.severity] - severityRank[a.severity]);
+  for (let finding of ordered) {
+    if (isDeception(finding)) {
+      factor *= 1 - DECEPTION_WEIGHT;
+      continue;
+    }
+
+    let seen = repeats[finding.severity] ?? 0;
+    repeats[finding.severity] = seen + 1;
+    let decay =
+      finding.severity == 'low' || finding.severity == 'medium' ? REPEAT_DECAY ** seen : 1;
+    factor *= 1 - SEVERITY_WEIGHTS[finding.severity] * decay;
+  }
+
+  return factor;
+};
+
+export let hardeningFactor = (d: {
+  controls: Pick<SecurityReportControl, 'key' | 'disposition'>[];
+  exposure: SecurityLevel;
+}) => {
+  let applicable = d.controls.filter(control => control.disposition != 'not_applicable');
+  let total = applicable.reduce((sum, control) => sum + controlWeight(control.key), 0);
+  if (!total) return 1;
+
+  let gap =
+    applicable.reduce(
+      (sum, control) => sum + controlWeight(control.key) * GAP_SIZES[control.disposition],
+      0
+    ) / total;
+
+  return 1 - HARDENING_HEADROOM * REACH_FACTORS[d.exposure] * gap;
+};
+
+export let assuranceFactor = (d: {
+  provenance: SecurityProvenanceClass;
+  complete: boolean;
+  unresolvedObservations: number;
+  unclassifiedActions: boolean;
+}) => {
+  if (d.provenance == 'metorial_built') return 1;
+
+  return (
+    (d.complete ? 1 : 1 - ASSURANCE_LOSS.incomplete) *
+    (1 - ASSURANCE_LOSS.unresolvedObservation) ** d.unresolvedObservations *
+    (d.unclassifiedActions ? 1 - ASSURANCE_LOSS.unclassifiedActions : 1) *
+    (1 - (PROVENANCE_ASSURANCE_LOSS[d.provenance] ?? 0))
+  );
+};
+
+// Metorial operates and remediates its own integrations through its release pipeline, so their
+// overall deficiency is compressed: findings and gaps still order them, but nothing short of a
+// complete collapse moves them out of the top of the scale.
+let operatorTrusted = (provenance: SecurityProvenanceClass, factor: number) => {
+  let trust = OPERATOR_TRUST[provenance];
+  return trust ? 1 - trust.scale * (1 - factor) ** trust.exponent : factor;
+};
+
 export let computeSecurityScore = (d: {
   provenance: SecurityProvenanceClass;
-  findings: Pick<SecurityReportFinding, 'kind' | 'severity'>[];
+  findings: Pick<SecurityReportFinding, 'kind' | 'severity' | 'category'>[];
+  controls?: Pick<SecurityReportControl, 'key' | 'disposition'>[];
+  exposure?: SecurityLevel;
+  assurance?: number;
 }) => {
-  let security = d.findings.filter(finding => finding.kind == 'security');
-  let count = (severity: SecurityFindingSeverityLevel) =>
-    security.filter(finding => finding.severity == severity).length;
-
-  let score = d.provenance == 'impersonation_suspected' ? 10 : 95;
-
-  score -= count('high') * 15;
-  score -= Math.min(count('medium') * 6, 24);
-  score -= Math.min(count('low') * 2, 8);
-
-  if (count('high') > 0) score = Math.min(score, 55);
-  if (count('critical') > 0) score = Math.min(score, 25);
-  if (d.provenance == 'impersonation_suspected') score = Math.min(score, 10);
+  let factor =
+    findingsFactor(d) *
+    hardeningFactor({ controls: d.controls ?? [], exposure: d.exposure ?? 'unknown' }) *
+    (d.assurance ?? 1);
+  let score = 100 * operatorTrusted(d.provenance, factor);
 
   return Math.max(0, Math.min(100, Math.round(score)));
 };
@@ -80,7 +208,7 @@ export let bandForScore = (score: number): SecurityBand =>
           : 'poor';
 
 export let postureRiskForScore = (score: number): KnownLevel =>
-  score >= 85 ? 'low' : score >= 70 ? 'moderate' : score >= 50 ? 'high' : 'critical';
+  score >= 80 ? 'low' : score >= 60 ? 'moderate' : score >= 35 ? 'high' : 'critical';
 
 export let computeExposure = (
   tools:
@@ -231,11 +359,10 @@ export let computeScores = (d: {
   tools: SecurityReportTool[] | null;
   behaviors?: SecurityReportBehavior[];
   findings: SecurityReportFinding[];
+  controls?: SecurityReportControl[];
   coverage: ScoringCoverage;
   previous?: { security: number; risk: SecurityLevel };
 }): SecurityReviewComputedScores => {
-  let security = computeSecurityScore({ provenance: d.provenance, findings: d.findings });
-  let band = bandForScore(security);
   let { exposure, trifecta } = computeExposure(d.tools, d.behaviors);
   if (
     d.findings.some(
@@ -246,22 +373,38 @@ export let computeScores = (d: {
     )
   )
     exposure = 'critical';
+  let unclassifiedActions =
+    exposure == 'unknown' ||
+    [
+      ...(d.tools ?? []).flatMap(tool => tool.actions ?? []),
+      ...(d.behaviors ?? []).flatMap(behavior => behavior.actions ?? [])
+    ].some(action => actionExposure(action) == 'unknown');
+
+  let controls = d.controls ?? [];
+  let security = computeSecurityScore({
+    provenance: d.provenance,
+    findings: d.findings,
+    controls,
+    exposure,
+    assurance: assuranceFactor({
+      provenance: d.provenance,
+      complete: isCoverageComplete(d.coverage),
+      unresolvedObservations: d.coverage.unresolvedObservations ?? 0,
+      unclassifiedActions
+    })
+  });
+  let band = bandForScore(security);
   let postureRisk = postureRiskForScore(security);
   let risk = computeRisk({ postureRisk, exposure, provenance: d.provenance });
 
   let securityFindings = d.findings.filter(finding => finding.kind == 'security');
   let countSeverity = (severity: SecurityFindingSeverityLevel) =>
     securityFindings.filter(finding => finding.severity == severity).length;
+  let countControls = (disposition: SecurityControlDisposition) =>
+    controls.filter(control => control.disposition == disposition).length;
   let tools = d.tools ?? [];
   let confidence = computeConfidence({ provenance: d.provenance, coverage: d.coverage });
-  if (
-    exposure == 'unknown' ||
-    [
-      ...(d.tools ?? []).flatMap(tool => tool.actions ?? []),
-      ...(d.behaviors ?? []).flatMap(behavior => behavior.actions ?? [])
-    ].some(action => actionExposure(action) == 'unknown')
-  )
-    confidence = 'low';
+  if (unclassifiedActions) confidence = 'low';
 
   let assessmentComplete = isCoverageComplete(d.coverage);
   let headline = headlineFor({
@@ -301,7 +444,13 @@ export let computeScores = (d: {
         high: countSeverity('high'),
         critical: countSeverity('critical')
       },
-      positives: d.findings.filter(finding => finding.kind == 'positive').length
+      positives: d.findings.filter(finding => finding.kind == 'positive').length,
+      controls: {
+        met: countControls('met'),
+        partial: countControls('partial'),
+        not_met: countControls('not_met'),
+        not_applicable: countControls('not_applicable')
+      }
     },
     delta: d.previous
       ? { previousSecurity: d.previous.security, previousRisk: d.previous.risk }

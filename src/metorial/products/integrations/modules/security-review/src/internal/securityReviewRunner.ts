@@ -56,6 +56,7 @@ import {
   buildUserPrompt
 } from '../lib/playbooks';
 import { createSecurityReportDefinition } from '../lib/report';
+import { assessableControlsFor } from '../definitions/controls';
 import { workspaceKeyFor, workspaceStore } from '../lib/storage';
 import {
   buildEvidenceFiles,
@@ -267,7 +268,8 @@ class InternalSecurityReviewRunnerServiceImpl {
         isSkill: d.evidence.kind == 'skill',
         hasHistory: !!d.previous?.report,
         previousFindingKeys: [...keepFindingKeys],
-        lockedFindings: d.lockedFindings
+        lockedFindings: d.lockedFindings,
+        controls: assessableControlsFor(d.evidence.kind)
       });
       let draft = new ReportDraft(definition, initialReport);
 

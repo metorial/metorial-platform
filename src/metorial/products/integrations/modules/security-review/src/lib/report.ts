@@ -12,6 +12,7 @@ import {
   type ReportValidationContext,
   type SectionValidationResult
 } from '@metorial/review-engine';
+import { securityControls, type SecurityControlDefinition } from '../definitions/controls';
 
 export let SUMMARY_MAX = 320;
 export let NOTE_MAX = 220;
@@ -77,6 +78,8 @@ let skillCapabilityTags = [
 ] as const;
 
 let severities = ['info', 'low', 'medium', 'high', 'critical'] as const;
+
+let controlKeys = [...new Set(securityControls.map(control => control.key))];
 
 let provenanceClasses = [
   'metorial_built',
@@ -303,6 +306,7 @@ export type SecurityReportSubjectContext = {
   hasHistory: boolean;
   previousFindingKeys: string[];
   lockedFindings: SecurityReportFinding[];
+  controls: SecurityControlDefinition[];
 };
 
 let lockedSignature = (finding: SecurityReportFinding) =>
@@ -523,6 +527,48 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
         )
       },
 
+      controls: {
+        description:
+          'Assess every control listed below exactly once against what the evidence shows. ' +
+          'met: the safeguard is in place for every relevant tool or behavior. partial: it is in ' +
+          'place for some, or only weakly. not_met: it is missing where it matters. ' +
+          'not_applicable: the subject has nothing the control covers (say why). reason is one ' +
+          'short sentence; cite the files, tools or facts that show the safeguard or its absence. ' +
+          'Never mark a control met because the subject claims it; a control is met only when ' +
+          'the evidence shows it. A gap is not a finding by itself: record a security finding ' +
+          'only for a concrete defect, as before.\n\n' +
+          subject.controls
+            .map(control => `- ${control.key}: ${control.title}. ${control.description}`)
+            .join('\n'),
+        shape:
+          "{ key: ControlKey; disposition: 'met' | 'partial' | 'not_met' | 'not_applicable'; reason: string; evidence: LedgerRef[] }[]\n" +
+          `type ControlKey = ${subject.controls.map(control => `'${control.key}'`).join(' | ') || 'never'}`,
+        validate: section(
+          v.array(
+            v.object({
+              key: v.enumOf(controlKeys),
+              disposition: v.enumOf(['met', 'partial', 'not_met', 'not_applicable']),
+              reason: text(BODY_MAX),
+              evidence
+            })
+          ),
+          (value, ctx) => {
+            let keys = new Set<string>();
+            return value.flatMap(control => {
+              let errors = checkEvidence(control.evidence, ctx, `controls.${control.key}`);
+              if (!subject.controls.some(known => known.key == control.key))
+                errors.push(`controls: unknown control ${control.key}`);
+              if (keys.has(control.key))
+                errors.push(`controls: ${control.key} appears more than once`);
+              if (control.disposition != 'not_applicable' && !control.evidence.length)
+                errors.push(`controls: ${control.key} needs evidence`);
+              keys.add(control.key);
+              return errors;
+            });
+          }
+        )
+      },
+
       findings: {
         description:
           'Security findings (with severity), capability findings (severity info, they describe ' +
@@ -632,6 +678,13 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
         if (!report.capabilities?.behaviors?.some(behavior => behavior.tag == tag))
           errors.push(`capabilities: classify observed behavior ${tag}`);
       }
+      let missingControls = subject.controls.filter(
+        control => !report.controls?.some(item => item.key == control.key)
+      );
+      if (missingControls.length)
+        errors.push(
+          `controls: assess ${missingControls.map(control => control.key).join(', ')}`
+        );
       if (subject.requiresImplementation && !report.implementation) {
         errors.push('implementation: section is required for source code reviews');
       }
