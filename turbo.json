@@ -77,8 +77,8 @@
         "!README*",
         "!control/**"
       ],
-      "outputs": ["dist/**", "frontend/*/dist/**"],
-      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
+      "outputs": ["dist/**", "frontend/*/dist/**", "../frontends/*/dist/**"],
+      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "METORIAL_EDITION", "VITE_*"]
     },
     "_frontend:build": {
       "dependsOn": ["^build", "^_frontend:build"],
