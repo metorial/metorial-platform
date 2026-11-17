@@ -598,6 +598,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "z-ai/glm-5.3-flash:batch": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "The `:batch` suffix is OpenRouter's batch-tier serving of GLM-5.3-Flash (Hugging Face card zai-org/GLM-5.3-Flash, image-text-to-text, released 2026-08-26 matches zhipu/glm-5.3-flash). Batch pricing is discounted, which explains the lower input price.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "z-ai/glm-5.3-flashx-legal": {
     "decision": "defer",
     "until": "2026-12-12",
