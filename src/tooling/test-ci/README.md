@@ -57,9 +57,11 @@ seconds; unmeasured packages count as the median. A stack runs one test package 
 (packages sharing a stack's worker starve each other's fixtures), so a package longer than
 an even share of the total is split by test file into Vitest shards placed in different
 groups. Each job passes its packages as control filters, followed by
-`-- --package-shard=<pkg>=<i>/<n>`, which `metorial-e2e` turns into `--shard=<i>/<n>` for
-that package only. To make a suite faster, raise `groups` rather than the stack's
-`--concurrency`.
+`-- --package-shard=<pkg>=<i>/<n>`. The e2e runner hands those to `metorial-e2e` in
+`METORIAL_E2E_PACKAGE_SHARDS` rather than as Turbo arguments (Turbo hashes arguments into
+dependency builds too, which would rebuild them inside every sharded stack), and
+`metorial-e2e` turns its own entry into `--shard=<i>/<n>`. To make a suite faster, raise
+`groups` rather than the stack's `--concurrency`.
 
 Durations come from two places. `.github/e2e-durations.json` is the committed baseline.
 On top of it, every successful push run records what its groups measured: `control-e2e`
