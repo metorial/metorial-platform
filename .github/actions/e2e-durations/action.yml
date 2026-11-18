@@ -1,0 +1,44 @@
+name: E2E package durations
+description: Restore the durations measured by the latest complete run, or merge and save those of this run
+inputs:
+  mode:
+    description: '`restore` before planning e2e groups, `save` after every e2e group passed'
+    default: restore
+  tooling-directory:
+    description: Directory of the test-ci tooling, relative to the repository root
+    default: src/tooling/test-ci
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache/restore@v4
+      continue-on-error: true
+      with:
+        path: .github/e2e-durations.measured.json
+        key: e2e-durations-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: e2e-durations-
+    - uses: actions/download-artifact@v4
+      if: inputs.mode == 'save'
+      with:
+        pattern: e2e-durations-*
+        path: ${{ runner.temp }}/e2e-durations
+    - name: Merge measured durations
+      id: merge
+      if: inputs.mode == 'save'
+      shell: bash
+      env:
+        TOOLING_DIRECTORY: ${{ inputs.tooling-directory }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        files=("$RUNNER_TEMP"/e2e-durations/*/durations.json)
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "No e2e durations were recorded in this run"
+          exit 0
+        fi
+        bun "$TOOLING_DIRECTORY/e2e-groups.ts" merge .github/e2e-durations.measured.json "${files[@]}"
+        echo "merged=true" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache/save@v4
+      if: inputs.mode == 'save' && steps.merge.outputs.merged == 'true'
+      with:
+        path: .github/e2e-durations.measured.json
+        key: e2e-durations-${{ github.run_id }}-${{ github.run_attempt }}

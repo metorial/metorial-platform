@@ -204,3 +204,6 @@ src/tooling/control/target/
 
 !src/lib/rpc/go/interop/generated/
 !src/lib/rpc/go/interop/generated/bucket.ts
+
+# E2E durations restored from the Actions cache in CI
+.github/e2e-durations.measured.json

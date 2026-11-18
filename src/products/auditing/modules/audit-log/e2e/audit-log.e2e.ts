@@ -1,4 +1,4 @@
-import { eventually, firstPage, useOrganization } from '@metorial/e2e';
+import { eventuallyAudited, firstPage, useOrganization } from '@metorial/e2e';
 import { loadOrganizationFixture } from '@metorial/e2e/db';
 import { describe, expect, it } from 'vitest';
 import { auditLogRetentionService, auditLogService } from '../src';
@@ -7,18 +7,13 @@ describe('module-audit-log', () => {
   let org = useOrganization();
 
   it('lists and hydrates the audit logs recorded while bootstrapping the organization', async () => {
-    let auditLogs = await eventually(
-      async () => {
-        let items = await firstPage(
-          await auditLogService.listAuditLogs({ organizationId: org.ids.organizationId })
-        );
-        expect(items.map(item => `${item.resource}.${item.action}`)).toContain(
-          'project.create'
-        );
-        return items;
-      },
-      { timeoutMs: 150_000, intervalMs: 2_000 }
-    );
+    let auditLogs = await eventuallyAudited(async () => {
+      let items = await firstPage(
+        await auditLogService.listAuditLogs({ organizationId: org.ids.organizationId })
+      );
+      expect(items.map(item => `${item.resource}.${item.action}`)).toContain('project.create');
+      return items;
+    });
     expect(auditLogs.every(item => item.organizationId == org.ids.organizationId)).toBe(true);
 
     let projectLog = auditLogs.find(

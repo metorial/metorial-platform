@@ -1,5 +1,5 @@
 import {
-  eventually,
+  eventuallyWithCron,
   expectServiceError,
   firstPage,
   uniqueId,
@@ -10,6 +10,7 @@ import { subspaceDb } from '@metorial/e2e/db';
 import { addMinutes } from 'date-fns';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { providerOAuthSetupInternalService, providerOAuthSetupService } from '../src';
+import { expireOAuthSetupCron } from '../src/queues/cron/expireOAuthSetup';
 import {
   type AuthProvider,
   type AuthScope,
@@ -175,14 +176,15 @@ describe('module-auth provider OAuth setups', () => {
         data: { status: 'completed' }
       });
 
-      await eventually(
+      await eventuallyWithCron(
+        expireOAuthSetupCron,
         async () => {
           let rows = await subspaceDb.providerOAuthSetup.findMany({
             where: { oid: { in: [unused.oid, opened.oid] } }
           });
           expect(rows.map(row => row.status)).toEqual(['expired', 'expired']);
         },
-        { timeoutMs: 150_000, intervalMs: 1_000 }
+        { timeoutMs: 150_000, intervalMs: 500 }
       );
 
       let others = await subspaceDb.providerOAuthSetup.findMany({

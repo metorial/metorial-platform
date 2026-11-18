@@ -7,7 +7,7 @@
   "scripts": {
     "introspect": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect.ts",
     "introspect:configs": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect-configs.ts",
-    "test:e2e": "metorial-e2e"
+    "test:e2e": "metorial-e2e --no-isolate"
   },
   "dependencies": {
     "@lowerdeck/delay": "workspace:2.0.0",
