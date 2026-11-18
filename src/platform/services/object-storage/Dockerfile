@@ -4,7 +4,7 @@
 FROM rust:1.91.1-slim AS chef
 
 RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
-RUN cargo install cargo-chef --locked --version 0.1.71
+RUN cargo install cargo-chef --locked --version 0.1.71 && cargo install cargo-auditable --locked --version 0.7.7
 
 WORKDIR /app/src/platform/services/object-storage
 
@@ -30,7 +30,7 @@ COPY src/platform/services/object-storage/object-store ./object-store
 COPY src/platform/services/object-storage/object-store-backends ./object-store-backends
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git \
-    cargo build --release --bin object-store-service
+    cargo auditable build --release --bin object-store-service
 
 FROM debian:trixie-slim AS runner
 

@@ -370,6 +370,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3.7-flash": {
+    "decision": "link",
+    "model": "alibaba/qwen3.7-flash",
+    "reason": "Offering name, 1M context, and text+image+video input match Qwen3.7 Flash (a vision-language model per web search). The 0.2 input price is a Kilo Gateway markup over Alibaba's ~$0.03 base price, which aggregators routinely apply.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "ricursiveai/ripple-65b-preview": {
     "decision": "defer",
     "until": "2026-12-12",

@@ -15,7 +15,7 @@ COPY --from=pruner /app/out/ /
 
 FROM base AS dependencies
 COPY --from=pruned /json/ ./
-RUN --mount=type=cache,target=/root/.bun/install/cache bun install --linker=hoisted
+RUN --mount=type=cache,target=/root/.bun/install/cache for attempt in 1 2 3; do bun install --linker=hoisted && break; [ "$attempt" = 3 ] && exit 1; sleep 10; done
 
 FROM dependencies AS builder
 ARG TURBO_API

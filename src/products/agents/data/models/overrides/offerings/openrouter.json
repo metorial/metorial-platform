@@ -146,6 +146,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "heygen/heygen-avatar-6": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "HeyGen launched Avatar 6, an audio-driven avatar video model, on 2026-11-17. The index has no entry for it (only Avatar IV, HeyGen Video, HeyGen Voice); a real new model to defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "heygen/heygen-avatar-6-turbo": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Avatar 6 Turbo is the faster, lower-cost variant of HeyGen's Avatar 6 (launched 2026-11-17). The index has no entry for it; defer until the catalog adds the Avatar 6 family.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "inclusionai/ling-3.0-tiny": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -236,6 +250,20 @@
     "reason": "OpenRouter lists Meta's Muse Wonder (canonical slug meta/muse-wonder-20261012), the frontier agentic model released 2026-10-12; matches meta/muse-wonder-1.0 (1M context, 4/20 list price). Muse Wonder Full is a separate index entry, meta/muse-wonder-full.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "microsoft/mai-image-2.7": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "MAI-Image-2.7 entered public preview on 2026-10-27. The index only goes up to MAI-Image-2.6/2.6-Flash; a real new model to defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "microsoft/mai-image-2.7-flash": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "MAI-Image-2.7 Flash is the lower-latency, lower-cost member of the MAI-Image-2.7 family (public preview since late Oct 2026). The index has no 2.7 entries; defer until the catalog adds the family.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "microsoft/phi-4": {
     "decision": "defer",
@@ -390,6 +418,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-6.2-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-astra",
+    "reason": "OpenRouter's listing states it is the same underlying model as GPT-6.2 Astra, served with reasoning.mode set to pro; pro mode only spends more reasoning tokens.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "openai/gpt-6.2-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-sol",
+    "reason": "OpenRouter's listing states it is the same underlying model as GPT-6.2 Sol, served with reasoning.mode set to pro; pro mode only spends more reasoning tokens.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "openai/gpt-image-2.6-flare": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -485,6 +527,13 @@
     "reason": "OpenRouter's Qwen3.5 9B offering is the Qwen/Qwen3.5-9B instruct checkpoint (HF image-text-to-text, Apache 2.0, 262K context, Feb 2026), distinct from the separately-indexed alibaba/qwen3.5-9b-base repo. The 0.019 input price is OpenRouter's aggregator discount on a small dense model, not a different model.",
     "by": "agent",
     "at": "2026-11-15"
+  },
+  "qwen/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Listing, HF repo Qwen/Qwen3.8-27B (2026-08-05, Apache 2.0, image-text-to-text) and the 2026-08-14 release all match alibaba/qwen3.8-27b; the 1M context is the 262k native window with YaRN scaling, and no dated variant exists in the index. The 0.06 input price is an OpenRouter provider outlier, not a different model.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "recraft/recraft-v4.1-flash-v2": {
     "decision": "defer",

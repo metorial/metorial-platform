@@ -59,7 +59,7 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
 
     refreshTimer = setTimeout(() => {
       refreshTimer = null;
-      void ensureFreshToken();
+      ensureFreshToken().catch(() => {});
     }, delay);
   };
 
@@ -81,7 +81,7 @@ export let createNebulaClient = (o: NebulaClientOpts): AuthenticatedNebulaClient
     return registerInFlight;
   };
 
-  void register();
+  register().catch(() => {});
 
   let refresh = async () => {
     if (!current) return await register();

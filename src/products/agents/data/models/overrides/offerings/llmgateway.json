@@ -48,6 +48,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "gpt-oss-120b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Offering name and 131072 context match GPT OSS 120B exactly. Input price 0.0291 is far below the 0.15 median because it is an Apache-2.0 open-weight model that many providers host cheaply (e.g. Vercel lists $0.10); aggregator pricing varies widely for this model.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "grok-4": {
     "decision": "defer",
     "until": "2026-12-12",
