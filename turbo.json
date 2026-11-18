@@ -2,7 +2,12 @@
   "$schema": "https://turborepo.com/schema.json",
   "agentGuidance": false,
   "ui": "tui",
-  "globalEnv": ["METORIAL_EDITION", "METORIAL_RELEASE_CHANNEL", "METORIAL_BUILD_ARCH"],
+  "globalEnv": [
+    "METORIAL_EDITION",
+    "METORIAL_RELEASE_CHANNEL",
+    "METORIAL_BUILD_ARCH",
+    "METORIAL_BUNDLE_MANIFEST"
+  ],
   "tasks": {
     "enterprise:dev": {
       "cache": false,
