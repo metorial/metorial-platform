@@ -327,7 +327,7 @@ jobs:
   e2e-durations:
     name: Record E2E durations
     needs: [e2e]
-    if: needs.e2e.result == 'success'
+    if: github.event_name == 'push' && needs.e2e.result == 'success'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
