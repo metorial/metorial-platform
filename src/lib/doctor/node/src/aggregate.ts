@@ -15,6 +15,7 @@ import {
 
 let defaultCollectTimeoutMs = 15_000;
 let defaultPath = '/doctor';
+let maxBodyExcerpt = 200;
 
 let severityRank: Record<CheckSeverity, number> = { critical: 0, warning: 1, info: 2 };
 
@@ -144,8 +145,25 @@ let fetchReplica = async (
     return replica('unsupported', null, 'The component does not serve a doctor report.');
   }
 
+  let text: string;
+  let body: { error?: unknown } | null;
   try {
-    let body = (await response.json()) as { error?: unknown } | null;
+    text = await response.text();
+  } catch (error) {
+    return replica('invalid_response', null, describeError(error).message);
+  }
+
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return replica(
+      'invalid_response',
+      null,
+      `HTTP ${response.status} without a doctor report: ${text.trim().slice(0, maxBodyExcerpt)}`
+    );
+  }
+
+  try {
     if (!response.ok) {
       let message = typeof body?.error == 'string' ? body.error : `HTTP ${response.status}`;
       return replica('invalid_response', null, message);
