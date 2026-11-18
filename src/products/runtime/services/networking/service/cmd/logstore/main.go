@@ -187,7 +187,11 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	add(cfg.rpcAddr, rpcHandler)
+	clinic, err := newDoctor(cfg, store, auth)
+	if err != nil {
+		return err
+	}
+	add(cfg.rpcAddr, withDoctor(clinic, rpcHandler))
 	add(cfg.legacyIngestAddr, logstore.LegacyIngestHandler(store, logger))
 	add(cfg.legacyQueryAddr, logstore.LegacyQueryHandler(store, logger))
 
