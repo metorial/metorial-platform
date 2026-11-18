@@ -1,5 +1,6 @@
 import {
   eventually,
+  eventuallyWithCron,
   expectServiceError,
   firstPage,
   uniqueId,
@@ -17,6 +18,7 @@ import {
   identityDelegationService,
   identityService
 } from '../src';
+import { expireIdentityDelegationsCron } from '../src/queues/expire/delegation';
 import {
   createActor,
   createIdentity,
@@ -458,14 +460,15 @@ describe('module-identity delegations', () => {
       expiresAt: new Date(Date.now() + 5_000)
     });
 
-    await eventually(
+    await eventuallyWithCron(
+      expireIdentityDelegationsCron,
       async () => {
         let row = await subspaceDb.identityDelegation.findUniqueOrThrow({
           where: { id: delegation.id }
         });
         expect(row.status).toBe('expired');
       },
-      { timeoutMs: 100_000, intervalMs: 1_000 }
+      { timeoutMs: 100_000, intervalMs: 500 }
     );
 
     await eventually(async () => {

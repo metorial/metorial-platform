@@ -1,8 +1,10 @@
-import { eventually, uniqueId, useOrganization } from '@metorial/e2e';
+import { eventually, eventuallyWithCron, uniqueId, useOrganization } from '@metorial/e2e';
 import { db } from '@metorial/e2e/db';
 import { ID } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { describe, expect, it } from 'vitest';
+import { deactivateCron } from '../src/cron/deactivateInstances';
+import { expireCron } from '../src/cron/expireCredentials';
 import { registerOutpostCacheInvalidation } from '../src/listeners/cacheInvalidation';
 import { outpostCredentialService, outpostInstanceService } from '../src/services';
 import {
@@ -76,7 +78,8 @@ describe('module-outpost crons', () => {
         data: { expiresAt: new Date(Date.now() - 1_000) }
       });
 
-      let expired = await eventually(
+      let expired = await eventuallyWithCron(
+        expireCron,
         async () => {
           let row = await db.outpostCredential.findUniqueOrThrow({
             where: { oid: credential.oid }
@@ -84,7 +87,7 @@ describe('module-outpost crons', () => {
           expect(row.status).toBe('expired');
           return row;
         },
-        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 1_000 }
+        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 500 }
       );
 
       await eventually(async () => {
@@ -132,13 +135,14 @@ describe('module-outpost crons', () => {
         data: { expiresAt: new Date(Date.now() - 1_000) }
       });
 
-      await eventually(
+      await eventuallyWithCron(
+        deactivateCron,
         async () => {
           expect(await instanceRow(outpost.oid, stale.instanceId)).toMatchObject({
             status: 'inactive'
           });
         },
-        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 1_000 }
+        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 500 }
       );
 
       expect(await instanceRow(outpost.oid, live.instanceId)).toMatchObject({
@@ -210,7 +214,7 @@ describe('module-outpost crons', () => {
           expect(await instanceRow(outpost.oid, expiredLongAgo!.instanceId)).toBeNull();
           expect(await instanceRow(outpost.oid, neverIssued!.instanceId)).toBeNull();
         },
-        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 1_000 }
+        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 250 }
       );
 
       expect(await instanceRow(outpost.oid, recentlyInactive!.instanceId)).toMatchObject({
@@ -274,7 +278,7 @@ describe('module-outpost crons', () => {
             await db.outpostInstanceKeyRotation.findUnique({ where: { oid: oldRotation.oid } })
           ).toBeNull();
         },
-        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 1_000 }
+        { timeoutMs: CRON_TIMEOUT_MS, intervalMs: 250 }
       );
 
       expect(

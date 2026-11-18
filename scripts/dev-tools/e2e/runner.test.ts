@@ -11,6 +11,7 @@ import {
   stopProcesses,
   tail,
   turboArgs,
+  turboEnv,
   waitHealthy,
   type Plan,
   type RunningProcess,
@@ -97,6 +98,16 @@ describe('command arguments', () => {
       'creates'
     ]);
     expect(turboArgs(stack, 1, [])).not.toContain('--');
+  });
+
+  test('package shards travel in the environment instead of the turbo arguments', () => {
+    let stack = { name: 'api', tests: ['@x/a', '@x/b'], services: [], env: {} };
+    let testArgs = ['--package-shard=@x/a=1/2', '-t', 'creates', '--package-shard=@x/b=2/3'];
+
+    expect(turboArgs(stack, 1, testArgs).slice(-3)).toEqual(['--', '-t', 'creates']);
+    expect(turboArgs(stack, 1, ['--package-shard=@x/a=1/2'])).not.toContain('--');
+    expect(turboEnv(testArgs)).toEqual({ METORIAL_E2E_PACKAGE_SHARDS: '@x/a=1/2 @x/b=2/3' });
+    expect(turboEnv(['-t', 'creates'])).toEqual({});
   });
 });
 

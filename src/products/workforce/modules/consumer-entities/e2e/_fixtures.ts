@@ -28,13 +28,16 @@ export let createSurface = async (
     }
   });
 
-export let createPortalSurface = async (fixture: OrganizationFixture) => {
+export let createPortalSurface = async (
+  fixture: OrganizationFixture,
+  input: { allowConsumerSkillAuthoring?: boolean } = {}
+) => {
   let portal = await portalService.createPortal({
     organization: fixture.organization,
     instance: fixture.instance,
     context: fixture.context,
     auditScope: fixture.auditScope,
-    input: { name: uniqueId('Entities Portal') }
+    input: { name: uniqueId('Entities Portal'), ...input }
   });
 
   return await db.consumerSurface.findUniqueOrThrow({ where: { oid: portal.surfaceOid } });

@@ -24,7 +24,7 @@ vi.mock('./env', () => ({
   env: { portal: { PORTAL_HOST_TEMPLATE: 'http://gateway.localhost:8080/p/{portalId}' } }
 }));
 
-import { getPortalConnectUrl, getPortalUrls } from './urls';
+import { buildPortalPageUrl, getPortalConnectUrl, getPortalUrls } from './urls';
 
 let portal = { slug: 'test3' };
 
@@ -70,5 +70,32 @@ describe('portal URLs', () => {
     expect(getPortalConnectUrl({ portal, namespaces })).toBe(
       'https://test3-portal.gateway.localhost/connect/portal/test3'
     );
+  });
+});
+
+describe('portal page URLs', () => {
+  it.each([
+    [
+      'a shared host portal',
+      'https://the.metorial.com/p/metorial-internal',
+      'https://the.metorial.com/p/metorial-internal/skill/skl_1'
+    ],
+    [
+      'a single portal host',
+      'https://test3-portal.metorial.app',
+      'https://test3-portal.metorial.app/skill/skl_1'
+    ],
+    [
+      'a base with a trailing slash',
+      'https://the.metorial.com/p/metorial-internal/',
+      'https://the.metorial.com/p/metorial-internal/skill/skl_1'
+    ],
+    [
+      'a base with a query and hash',
+      'https://the.metorial.com/p/metorial-internal?tab=skills#top',
+      'https://the.metorial.com/p/metorial-internal/skill/skl_1'
+    ]
+  ])('builds page URLs for %s', (_name, portalUrl, expected) => {
+    expect(buildPortalPageUrl({ portalUrl, path: 'skill/skl_1' })).toBe(expected);
   });
 });
