@@ -457,7 +457,7 @@ export class MemFS implements vscode.FileSystemProvider {
     }
 
     let fullUrl = new URL(this.remoteConfig.apiUrl);
-    fullUrl.pathname = url;
+    fullUrl.pathname = fullUrl.pathname.replace(/\/+$/, '') + url;
     fullUrl.searchParams.set('metorial-code-bucket-id', this.remoteConfig.id!);
     fullUrl.searchParams.set('metorial-code-bucket-token', this.remoteConfig.token!);
 
