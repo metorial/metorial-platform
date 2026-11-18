@@ -31,9 +31,18 @@ export let CONTROL_E2E_CONCURRENCY = 1;
 export let readE2EDurations = (path: string): E2EDurations =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
 
+let readMeasuredE2EDurations = (): E2EDurations => {
+  try {
+    return readE2EDurations(E2E_MEASURED_DURATIONS_PATH);
+  } catch (error) {
+    console.warn(`Ignoring unreadable ${E2E_MEASURED_DURATIONS_PATH}:`, error);
+    return {};
+  }
+};
+
 export let readPlanningE2EDurations = (): E2EDurations => ({
   ...readE2EDurations(E2E_DURATIONS_PATH),
-  ...readE2EDurations(E2E_MEASURED_DURATIONS_PATH)
+  ...readMeasuredE2EDurations()
 });
 
 let median = (values: number[]) => {
