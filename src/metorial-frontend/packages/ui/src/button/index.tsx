@@ -201,6 +201,7 @@ export let Button = React.forwardRef(
       <Wrapper
         as={as}
         ref={ref as any}
+        data-ui-button=""
         {...props}
         style={buttonStyle}
         disabled={props.disabled || loading || skeleton}

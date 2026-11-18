@@ -61,7 +61,7 @@ let CellInner = styled.div`
   display: flex;
   align-items: center;
 
-  a {
+  a:not(:has([data-ui-button])) {
     color: ${theme.colors.gray700};
     text-decoration: none;
     border-bottom: 1px dashed ${theme.colors.gray400};
@@ -77,6 +77,11 @@ let CellInner = styled.div`
       color: ${theme.colors.foreground};
       border-bottom: 1px dashed ${theme.colors.foreground};
     }
+  }
+
+  a:has([data-ui-button]) {
+    text-decoration: none;
+    border-bottom: none;
   }
 `;
 

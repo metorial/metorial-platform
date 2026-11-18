@@ -95,7 +95,19 @@ export class BuildContext {
       where: { oid: this.run.oid, status: 'pending' },
       data: {
         status: 'running',
-        startedAt: d.startedAt ?? new Date()
+        startedAt: d.startedAt ?? new Date(),
+        pendingReason: null,
+        pendingReasonUpdatedAt: new Date()
+      }
+    });
+  }
+
+  async setPendingReason(d: { pendingReason: string | null }) {
+    await db.workflowRun.updateMany({
+      where: { oid: this.run.oid, status: 'pending' },
+      data: {
+        pendingReason: d.pendingReason,
+        pendingReasonUpdatedAt: new Date()
       }
     });
   }

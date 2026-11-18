@@ -145,6 +145,7 @@ export type Build = {
   status: BuildStatus;
   exitCode: number | null;
   failureReason: string | null;
+  pendingReason: string | null;
   uploadedSteps: string[];
   startedAt: Date | null;
   finishedAt: Date | null;

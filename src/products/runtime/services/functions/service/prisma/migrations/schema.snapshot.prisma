@@ -184,8 +184,9 @@ model FunctionDeployment {
   /// [FunctionConfiguration]
   configuration Json
 
-  errorCode    String?
-  errorMessage String?
+  errorCode     String?
+  errorMessage  String?
+  pendingReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

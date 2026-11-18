@@ -4,10 +4,10 @@ import { runtimeEnv } from './runtime';
 let avatarHosts = new Set(['avatar-cdn.metorial.com', 'avatar.metorial-cdn.com']);
 let imageHosts = new Set([
   ...avatarHosts,
-  'provider-logos.metorial-cdn.com',
   'favicons.metorial-cdn.com',
   'cdn.metorial.com'
 ]);
+let directHosts = new Set(['provider-logos.metorial-cdn.com']);
 let metorialLogo =
   'data:image/svg+xml,' +
   encodeURIComponent(
@@ -35,6 +35,25 @@ export let isGeneratedAvatarUrl = (value: string | null | undefined) => {
   }
 };
 
+let proxyExternalImage = (value: string, url: URL) => {
+  let base = runtimeEnv('VITE_CAMO_BASE_URL');
+  if (!base || (url.protocol != 'http:' && url.protocol != 'https:')) return value;
+
+  let proxy: URL;
+  try {
+    proxy = new URL(base, typeof location == 'undefined' ? undefined : location.href);
+  } catch {
+    return value;
+  }
+
+  if (url.origin == proxy.origin) return value;
+  if (directHosts.has(url.hostname)) return value;
+
+  proxy.search = '';
+  proxy.searchParams.set('url', value);
+  return proxy.toString();
+};
+
 export let resolveImageUrl = <T extends string | null | undefined>(value: T): T => {
   if (!value || !checkEdition('on-prem')) return value;
 
@@ -45,7 +64,7 @@ export let resolveImageUrl = <T extends string | null | undefined>(value: T): T 
     return value;
   }
 
-  if (!imageHosts.has(url.hostname)) return value;
+  if (!imageHosts.has(url.hostname)) return proxyExternalImage(value, url) as T;
   if (avatarHosts.has(url.hostname) && /^[A-Za-z0-9_-]{1,128}$/.test(url.pathname.slice(1))) {
     return getAvatarUrl(url.pathname.slice(1)) as T;
   }

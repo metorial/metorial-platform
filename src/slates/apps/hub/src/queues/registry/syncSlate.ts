@@ -176,9 +176,38 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
       // The registry is authoritative for the current version, including pins to an older
       // one, so any other version still waiting to become current is superseded.
       if (followsRegistry && isCurrentVersion) {
-        await db.slateVersion.updateMany({
+        let supersededVersions = await db.slateVersion.findMany({
           where: { slateOid: slate.oid, oid: { not: version.oid }, willBeCurrent: true },
+          select: { oid: true }
+        });
+        let supersededVersionOids = supersededVersions.map(v => v.oid);
+
+        await db.slateVersion.updateMany({
+          where: { oid: { in: supersededVersionOids } },
           data: { willBeCurrent: false }
+        });
+
+        // A superseded version still building would compete with the new current version for
+        // build capacity, and its result would never be used.
+        await db.slateDeployment.updateMany({
+          where: {
+            slateVersionOid: { in: supersededVersionOids },
+            status: { in: ['pending', 'running'] }
+          },
+          data: {
+            isCancelledByRedeploy: true,
+            status: 'failed',
+            endedAt: new Date(),
+            errorCode: 'superseded',
+            errorMessage: `Cancelled because version ${version.version} became current`
+          }
+        });
+        await db.slateVersion.updateMany({
+          where: {
+            oid: { in: supersededVersionOids },
+            status: { in: ['pending', 'deploying'] }
+          },
+          data: { status: 'unavailable' }
         });
       }
 
@@ -187,6 +216,13 @@ export let syncSlateQueueProcessor = syncSlateQueue.process(data =>
         ['unavailable', 'pending', 'deployment_failed', 'discovery_failed'].includes(
           version.status
         );
+
+      if (shouldDeploy && version.status === 'unavailable') {
+        version = await db.slateVersion.update({
+          where: { oid: version.oid },
+          data: { status: 'pending' }
+        });
+      }
 
       if (newVersionId === version.id) {
         await db.slateEvent.create({

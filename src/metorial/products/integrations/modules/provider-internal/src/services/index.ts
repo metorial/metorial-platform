@@ -7,3 +7,4 @@ export * from './providerSpecification';
 export * from './providerVersion';
 export * from './providerVersionSpecificationMerge';
 export * from './publisher';
+export * from './slatePublishState';

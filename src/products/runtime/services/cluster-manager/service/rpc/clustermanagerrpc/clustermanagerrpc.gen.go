@@ -200,6 +200,7 @@ type Build struct {
 	Status        BuildStatus `json:"status"`
 	ExitCode      *int64      `json:"exitCode"`
 	FailureReason *string     `json:"failureReason"`
+	PendingReason *string     `json:"pendingReason"`
 	UploadedSteps []string    `json:"uploadedSteps" ldrpc:"nonnil"`
 	StartedAt     *time.Time  `json:"startedAt"`
 	FinishedAt    *time.Time  `json:"finishedAt"`

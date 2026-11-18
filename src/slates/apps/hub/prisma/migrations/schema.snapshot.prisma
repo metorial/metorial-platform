@@ -1303,8 +1303,9 @@ model SlateDeployment {
   id     String                @unique
   status SlateDeploymentStatus
 
-  errorCode    String?
-  errorMessage String?
+  errorCode     String?
+  errorMessage  String?
+  pendingReason String?
 
   isCancelledByRedeploy Boolean @default(false)
 
@@ -1322,12 +1323,15 @@ model SlateDeployment {
 
   internalLogs String[]
 
-  createdAt DateTime @default(now())
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
 
   slateInvocations SlateInvocation[]
   slateVersions    SlateVersion[]    @relation("activeDeployment")
 
   @@index([slateOid, createdAt])
+  @@index([status, createdAt])
 }
 
 model Tenant {

@@ -171,7 +171,9 @@ export let installationSessionHtml = (d: {
     <h1>Connect Repository Provider</h1>
     <p class="subtitle">Choose a provider to connect your repositories</p>
 
-    <div class="backends">
+    ${
+      d.backends.length > 0
+        ? `<div class="backends">
       ${d.backends
         .map(
           backend => `
@@ -195,7 +197,9 @@ export let installationSessionHtml = (d: {
         .join('')}
     </div>
 
-    <div class="divider"></div>
+    <div class="divider"></div>`
+        : ''
+    }
 
     <a href="/origin/scm/installation-session/${d.sessionId}/setup-backend" class="create-backend-button">
       + Add Custom Provider

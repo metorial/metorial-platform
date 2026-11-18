@@ -52,12 +52,14 @@ describe('frontend assets', () => {
     ).toMatch(/^data:image\/svg\+xml,/);
 
     expect(getMetorialLogoUrl()).toMatch(/^data:image\/svg\+xml,/);
-    expect(getProviderLogoUrl('slack.svg')).toMatch(/^\/assets\/avatars\/image_/);
+    expect(getProviderLogoUrl('slack.svg')).toBe(
+      'https://provider-logos.metorial-cdn.com/slack.svg'
+    );
     expect(getFaviconUrl('https://example.com')).toMatch(/^\/assets\/avatars\/image_/);
 
     let images = [
-      'https://provider-logos.metorial-cdn.com/slack.svg',
-      'https://favicons.metorial-cdn.com/?url=https%3A%2F%2Fexample.com'
+      'https://favicons.metorial-cdn.com/?url=https%3A%2F%2Fexample.com',
+      'https://favicons.metorial-cdn.com/?url=https%3A%2F%2Fexample.org'
     ];
     let resolved = images.map(resolveImageUrl);
     expect(resolved.every(url => url.startsWith('/assets/avatars/image_'))).toBe(true);
@@ -112,5 +114,34 @@ describe('frontend assets', () => {
     expect(resolveImageUrl('https://avatar.metorial-cdn.com/ptl_123')).toBe(
       'https://install.example/assets/avatars/ptl_123'
     );
+  });
+
+  it('proxies external images through the gateway when enabled', async () => {
+    vi.stubEnv('METORIAL_EDITION', 'on-prem');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({ VITE_CAMO_BASE_URL: 'https://install.example/assets/camo' })
+      )
+    );
+    await loadRuntimeConfig();
+
+    expect(resolveImageUrl('https://customer.example/logo.png')).toBe(
+      'https://install.example/assets/camo?url=https%3A%2F%2Fcustomer.example%2Flogo.png'
+    );
+    expect(resolveImageUrl('https://provider-logos.metorial-cdn.com/slack.svg')).toBe(
+      'https://provider-logos.metorial-cdn.com/slack.svg'
+    );
+
+    for (let value of [
+      null,
+      '',
+      '/object-storage/upload.png',
+      'blob:local-upload',
+      'data:image/png;base64,abc',
+      'https://install.example/object-storage/upload.png'
+    ]) {
+      expect(resolveImageUrl(value)).toBe(value);
+    }
   });
 });
