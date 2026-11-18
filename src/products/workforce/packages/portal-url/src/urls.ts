@@ -96,6 +96,15 @@ export let getPrimaryPortalUrl = async (d: { portal: Pick<Portal, 'oid' | 'slug'
   return urls.get(d.portal.oid) ?? getPortalHost({ portal: d.portal }).host;
 };
 
+export let buildPortalPageUrl = (d: { portalUrl: string; path: string }) => {
+  let url = new URL(d.portalUrl);
+  url.pathname = `${url.pathname}/${d.path}`.replace(/\/{2,}/g, '/');
+  url.search = '';
+  url.hash = '';
+
+  return url.toString();
+};
+
 export let getPortalConnectUrl = (d: {
   portal: Pick<Portal, 'slug'>;
   namespaces: NamespacePropertyWithNamespace[];
