@@ -19,7 +19,7 @@ export interface CheckNatsHealthOpts {
   timeoutMs?: number;
 }
 
-let getNatsConnection = async () => {
+export let getNatsConnection = async () => {
   let { broadcastNats } = await import('../lib/nats');
   return broadcastNats;
 };
