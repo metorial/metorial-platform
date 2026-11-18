@@ -1,0 +1,32 @@
+{
+  "doctor": 1,
+  "component": "cluster-manager",
+  "instance": "cluster-manager-7f6d5-zz9xk",
+  "releaseVersion": "1.4.0-2026-11-14-3c1f9a2b7d-release",
+  "buildVersion": null,
+  "channel": "release",
+  "publicUrl": null,
+  "fingerprints": { "installationSecret": "3f9a1c0b2e7d" },
+  "processStartedAt": "2026-11-17T09:12:03.000Z",
+  "startedAt": "2026-11-17T10:00:00.000Z",
+  "generatedAt": "2026-11-17T10:00:01.250Z",
+  "durationMs": 1250,
+  "runId": "aa11bb22cc33",
+  "cached": true,
+  "ageMs": 17400,
+  "checks": [
+    {
+      "id": "preflight.netpol-probe",
+      "title": "NetworkPolicies are enforced",
+      "category": "security",
+      "target": null,
+      "status": "pass",
+      "severity": "critical",
+      "durationMs": 0,
+      "message": "The probe Job was blocked as expected.",
+      "resolution": null,
+      "details": null,
+      "cachedAt": "2026-11-17T09:50:00.000Z"
+    }
+  ]
+}

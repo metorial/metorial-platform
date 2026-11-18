@@ -272,6 +272,8 @@
         "!**/*.Dockerfile",
         "!.dockerignore",
         "!**/control/**",
+        "$TURBO_ROOT$/src/lib/doctor/go/**/*.go",
+        "$TURBO_ROOT$/src/lib/doctor/go/go.mod",
         "$TURBO_ROOT$/src/lib/rpc/go/**/*.go",
         "$TURBO_ROOT$/src/lib/rpc/go/**/go.mod",
         "$TURBO_ROOT$/src/lib/rpc/go/**/go.sum",

@@ -15,6 +15,12 @@ let log = (...any: any[]) => console.log('[CRON MANAGER]:', ...any);
 
 let seenNames = new Set<string>();
 
+export type CronSchedule = { pattern: string; nextRunAt: number | null };
+
+export let cronObserver = {
+  schedules: new Map<string, () => Promise<CronSchedule>>()
+};
+
 export let createCron = (
   opts: {
     name: string;
@@ -73,6 +79,11 @@ export let createCron = (
         throw error;
       }
 
+      cronObserver.schedules.set(opts.name, async () => {
+        let scheduler = await queue.getJobScheduler('cron');
+        return { pattern, nextRunAt: scheduler?.next ?? null };
+      });
+
       let worker = new Worker(
         queue.name,
         async () => {
@@ -112,6 +123,7 @@ export let createCron = (
       try {
         await worker.waitUntilReady();
       } catch (error) {
+        cronObserver.schedules.delete(opts.name);
         await Promise.allSettled([worker.close(true), queue.close()]);
         throw error;
       }
@@ -127,6 +139,7 @@ export let createCron = (
 
       return {
         close: async () => {
+          cronObserver.schedules.delete(opts.name);
           await worker.close();
           await queue.close();
         }

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://metorial.com/schemas/doctor/report-v1.json",
+  "title": "Doctor report v1",
+  "type": "object",
+  "required": [
+    "doctor",
+    "component",
+    "instance",
+    "releaseVersion",
+    "channel",
+    "fingerprints",
+    "processStartedAt",
+    "startedAt",
+    "generatedAt",
+    "durationMs",
+    "runId",
+    "cached",
+    "ageMs",
+    "checks"
+  ],
+  "properties": {
+    "doctor": { "const": 1 },
+    "component": { "type": "string", "minLength": 1 },
+    "instance": { "type": "string", "minLength": 1 },
+    "releaseVersion": { "type": ["string", "null"] },
+    "buildVersion": { "type": ["string", "null"] },
+    "channel": { "type": ["string", "null"] },
+    "publicUrl": { "type": ["string", "null"] },
+    "fingerprints": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "processStartedAt": { "$ref": "#/$defs/timestamp" },
+    "startedAt": { "$ref": "#/$defs/timestamp" },
+    "generatedAt": { "$ref": "#/$defs/timestamp" },
+    "durationMs": { "$ref": "#/$defs/duration" },
+    "runId": { "type": "string", "minLength": 1 },
+    "cached": { "type": "boolean" },
+    "ageMs": { "$ref": "#/$defs/duration" },
+    "checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/check" }
+    }
+  },
+  "$defs": {
+    "timestamp": { "type": "string", "format": "date-time" },
+    "duration": { "type": "integer", "minimum": 0 },
+    "status": { "enum": ["pass", "warn", "fail", "skip", "error", "timeout"] },
+    "severity": { "enum": ["critical", "warning", "info"] },
+    "category": {
+      "enum": [
+        "database",
+        "cache",
+        "messaging",
+        "storage",
+        "dependency",
+        "external",
+        "configuration",
+        "runtime",
+        "security"
+      ]
+    },
+    "resolution": {
+      "type": "object",
+      "required": ["summary"],
+      "properties": {
+        "summary": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "docs": { "type": ["string", "null"] }
+      }
+    },
+    "check": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "category",
+        "status",
+        "severity",
+        "durationMs",
+        "message",
+        "cachedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)*$"
+        },
+        "title": { "type": "string" },
+        "category": { "$ref": "#/$defs/category" },
+        "target": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/status" },
+        "severity": { "$ref": "#/$defs/severity" },
+        "durationMs": { "$ref": "#/$defs/duration" },
+        "message": { "type": "string" },
+        "resolution": {
+          "oneOf": [{ "$ref": "#/$defs/resolution" }, { "type": "null" }]
+        },
+        "details": {
+          "type": ["object", "null"]
+        },
+        "cachedAt": {
+          "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }]
+        }
+      }
+    }
+  }
+}

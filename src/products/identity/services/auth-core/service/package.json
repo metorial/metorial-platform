@@ -36,9 +36,11 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
+    "@lowerdeck/doctor": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial/doctor": "workspace:*",
     "@metorial/editions": "workspace:*",
     "@mtsrc/auth-core-api-admin": "workspace:*",
     "@mtsrc/auth-core-api-auth": "workspace:*",

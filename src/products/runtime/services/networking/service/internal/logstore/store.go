@@ -392,6 +392,34 @@ func (s *Store) CleanupBefore(ctx context.Context, cutoff time.Time) (int64, err
 	return deleted, err
 }
 
+var schemaTables = []string{"ingest_batches", "network_observations"}
+
+func (s *Store) MissingTables(ctx context.Context) ([]string, error) {
+	missing := []string{}
+	for _, table := range schemaTables {
+		var name *string
+		if err := s.pool.QueryRow(ctx, `SELECT to_regclass($1)::text`, table).Scan(&name); err != nil {
+			return nil, err
+		}
+		if name == nil {
+			missing = append(missing, table)
+		}
+	}
+	return missing, nil
+}
+
+// OldestObservation returns the zero time when nothing is stored.
+func (s *Store) OldestObservation(ctx context.Context) (time.Time, error) {
+	var oldest *int64
+	if err := s.pool.QueryRow(ctx, `SELECT MIN(bucket_start) FROM network_observations`).Scan(&oldest); err != nil {
+		return time.Time{}, err
+	}
+	if oldest == nil {
+		return time.Time{}, nil
+	}
+	return time.Unix(*oldest, 0), nil
+}
+
 func nonEmpty(values []string) []string {
 	out := make([]string, 0, len(values))
 	for _, value := range values {

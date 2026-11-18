@@ -98,7 +98,12 @@ func run(logger *slog.Logger) error {
 	}
 	background.Go(func() { pruneMemory(ctx, memory) })
 
-	servers, err := newServers(cfg, core, metrics)
+	clinic, err := newDoctor(cfg, core.Resolver, os.Getenv)
+	if err != nil {
+		return err
+	}
+
+	servers, err := newServers(cfg, core, metrics, clinic.Handler())
 	if err != nil {
 		return err
 	}
@@ -140,7 +145,7 @@ type namedServer struct {
 	name string
 }
 
-func newServers(cfg *config, core *gateway.Core, metrics *gateway.Metrics) ([]namedServer, error) {
+func newServers(cfg *config, core *gateway.Core, metrics *gateway.Metrics, doctor http.Handler) ([]namedServer, error) {
 	var servers []namedServer
 
 	if cfg.tunnelAddr != listenerOff {
@@ -178,6 +183,7 @@ func newServers(cfg *config, core *gateway.Core, metrics *gateway.Metrics) ([]na
 	if cfg.metricsAddr != listenerOff {
 		mux := http.NewServeMux()
 		mux.Handle("GET /metrics", metrics.Handler())
+		mux.Handle("GET /doctor", doctor)
 		mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 			_, _ = w.Write([]byte("ok"))
 		})

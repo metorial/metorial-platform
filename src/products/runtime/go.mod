@@ -3,6 +3,7 @@ module github.com/metorial/metorial-platform/src/products/runtime
 go 1.26.0
 
 require (
+	github.com/metorial/metorial-platform/src/lib/doctor/go v0.0.0
 	github.com/metorial/metorial-platform/src/lib/rpc/go v0.0.0
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 )
@@ -79,6 +80,8 @@ require (
 	k8s.io/client-go v0.36.6
 	sigs.k8s.io/yaml v1.6.0
 )
+
+replace github.com/metorial/metorial-platform/src/lib/doctor/go => ../../lib/doctor/go
 
 replace github.com/metorial/metorial-platform/src/lib/rpc/go => ../../lib/rpc/go
 

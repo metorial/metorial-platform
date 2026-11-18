@@ -14,3 +14,10 @@ export type RpcMethod<I, O> = ((input: I, opts?: ClientRequestOpts) => Promise<O
 };
 
 export let createClient = clientBuilder(request);
+
+export let rpcPingMethod = 'rpc:ping';
+
+// Every lowerdeck RPC server (Node and Go) answers rpc:ping, so any client built with
+// createClient can call it; generated client types don't list it.
+export let pingRpc = (client: object, opts?: ClientRequestOpts) =>
+  (client as { rpc: { ping: RpcMethod<{}, { ok: true }> } }).rpc.ping({}, opts);

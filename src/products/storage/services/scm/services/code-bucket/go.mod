@@ -10,6 +10,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.3
 	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
+	github.com/metorial/metorial-platform/src/lib/doctor/go v0.0.0
 	github.com/metorial/object-storage/clients/go v1.4.0
 	golang.org/x/text v0.39.0
 	google.golang.org/grpc v1.83.1
@@ -42,3 +43,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
+
+replace github.com/metorial/metorial-platform/src/lib/doctor/go => ../../../../../../lib/doctor/go

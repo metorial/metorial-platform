@@ -41,6 +41,7 @@ async fn main() -> anyhow::Result<()> {
     let backend: Arc<dyn Backend> = config.backend.clone().build(uploader).await?;
 
     backend.init().await?;
+    let doctor = object_store::doctor::create_doctor(&config, backend.clone());
 
     let metadata = Arc::new(MetadataStore::new(backend.clone()).await?);
     let public_signer = config.public.signer()?.map(Arc::new);
@@ -114,7 +115,8 @@ async fn main() -> anyhow::Result<()> {
             .route(
                 "/health",
                 axum::routing::get(object_store::api::health_check),
-            );
+            )
+            .merge(lowerdeck_doctor::axum::router(doctor));
         let health_addr = format!("{}:{}", config.server.host, config.server.health_port);
         let health_listener = tokio::net::TcpListener::bind(&health_addr).await?;
 
