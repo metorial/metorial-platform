@@ -528,6 +528,13 @@
     "by": "agent",
     "at": "2026-11-15"
   },
+  "qwen/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Listing, HF repo Qwen/Qwen3.8-27B (2026-08-05, Apache 2.0, image-text-to-text) and the 2026-08-14 release all match alibaba/qwen3.8-27b; the 1M context is the 262k native window with YaRN scaling, and no dated variant exists in the index. The 0.06 input price is an OpenRouter provider outlier, not a different model.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "recraft/recraft-v4.1-flash-v2": {
     "decision": "defer",
     "until": "2026-12-12",
