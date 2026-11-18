@@ -16,8 +16,25 @@ export interface E2EGroup {
 
 export let DEFAULT_E2E_DURATION_SECONDS = 60;
 
+/** Committed per-package baseline of the checkout this runs in; refreshed with `update`. */
+export let E2E_DURATIONS_PATH = '.github/e2e-durations.json';
+
+/**
+ * Durations measured by the latest complete run on the default branch, restored from the
+ * Actions cache before planning. They take precedence over the committed baseline.
+ */
+export let E2E_MEASURED_DURATIONS_PATH = '.github/e2e-durations.measured.json';
+
+/** Test packages a stack runs at once; the `control-e2e` action passes it as `--concurrency`. */
+export let CONTROL_E2E_CONCURRENCY = 1;
+
 export let readE2EDurations = (path: string): E2EDurations =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+
+export let readPlanningE2EDurations = (): E2EDurations => ({
+  ...readE2EDurations(E2E_DURATIONS_PATH),
+  ...readE2EDurations(E2E_MEASURED_DURATIONS_PATH)
+});
 
 let median = (values: number[]) => {
   if (!values.length) return DEFAULT_E2E_DURATION_SECONDS;
@@ -118,14 +135,30 @@ export let parseE2EDurations = (logs: string[]): E2EDurations => {
   return durations;
 };
 
+/** Adds up the durations each group of one run measured; a sharded package appears in several. */
+export let sumE2EDurations = (groups: E2EDurations[]): E2EDurations => {
+  let durations: E2EDurations = {};
+  for (let group of groups) {
+    for (let [name, seconds] of Object.entries(group))
+      durations[name] = (durations[name] ?? 0) + seconds;
+  }
+  return durations;
+};
+
 if (import.meta.main) {
-  let [command, output, ...logPaths] = process.argv.slice(2);
-  if (command !== 'update' || !output || !logPaths.length) {
-    console.error('Usage: bun e2e-groups.ts update <durations.json> <log> [log...]');
+  let [command, output, ...inputPaths] = process.argv.slice(2);
+  if ((command !== 'update' && command !== 'merge') || !output || !inputPaths.length) {
+    console.error(
+      'Usage: bun e2e-groups.ts update <durations.json> <log> [log...]\n' +
+        '       bun e2e-groups.ts merge <durations.json> <group-durations.json> [...]'
+    );
     process.exit(1);
   }
 
-  let measured = parseE2EDurations(logPaths.map(path => readFileSync(path, 'utf8')));
+  let measured =
+    command === 'update'
+      ? parseE2EDurations(inputPaths.map(path => readFileSync(path, 'utf8')))
+      : sumE2EDurations(inputPaths.map(readE2EDurations));
   let merged = { ...readE2EDurations(output) };
   for (let [name, seconds] of Object.entries(measured)) merged[name] = Math.round(seconds);
   let sorted = Object.fromEntries(

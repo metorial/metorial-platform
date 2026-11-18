@@ -1,5 +1,5 @@
 import {
-  eventually,
+  eventuallyAudited,
   expectError,
   expectOk,
   expectPresented,
@@ -31,8 +31,6 @@ import {
   seedPlugin,
   skillClients
 } from './_shared';
-
-let auditIngestTimeout = { timeoutMs: 150_000, intervalMs: 2_000 };
 
 describe('api-core skill marketplaces and plugins', () => {
   let org = useOrganization();
@@ -769,7 +767,7 @@ describe('api-core skill marketplaces and plugins', () => {
           await db.skillDestinationSync.findUniqueOrThrow({ where: { id: forced.id } })
         ).toMatchObject({ allowMassDelete: true, trigger: 'manual' });
 
-        await eventually(async () => {
+        await eventuallyAudited(async () => {
           let auditLogs = await listAll(org.clients.management, '/organization/audit-logs');
           expect(
             auditLogs.find(
@@ -779,7 +777,7 @@ describe('api-core skill marketplaces and plugins', () => {
                 item.payload?.skillDestinationSyncId == forced.id
             )?.payload
           ).toMatchObject({ allowMassDelete: true });
-        }, auditIngestTimeout);
+        });
 
         let plain = expectOk(await dashboard.post(`/skill-syncs/${failedSync.id}/force`, {}));
         expect(

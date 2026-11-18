@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import {
   authClients,
   eventually,
+  eventuallyAudited,
   expectAuthMatrix,
   expectError,
   expectOk,
@@ -179,20 +180,17 @@ describe('api-core management: event destinations', () => {
       )
     );
 
-    let entry = await eventually(
-      async () => {
-        let auditLogs = await listAll(org.clients.management, '/organization/audit-logs');
-        let entry = auditLogs.find(
-          item =>
-            item.resource == 'event_destination' &&
-            item.action == 'rotate_secret' &&
-            item.payload?.id == created.id
-        );
-        expect(entry).toBeDefined();
-        return entry!;
-      },
-      { timeoutMs: 150_000, intervalMs: 2_000 }
-    );
+    let entry = await eventuallyAudited(async () => {
+      let auditLogs = await listAll(org.clients.management, '/organization/audit-logs');
+      let entry = auditLogs.find(
+        item =>
+          item.resource == 'event_destination' &&
+          item.action == 'rotate_secret' &&
+          item.payload?.id == created.id
+      );
+      expect(entry).toBeDefined();
+      return entry!;
+    });
 
     expect(entry.payload).toMatchObject({ id: created.id, name: created.name });
     let stored = JSON.stringify(entry);

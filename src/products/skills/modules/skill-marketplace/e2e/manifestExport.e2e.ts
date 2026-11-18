@@ -18,7 +18,7 @@ import {
 } from './_fixtures';
 import { readZipArchive } from './_zip';
 
-let exportTimeout = { timeoutMs: 120_000, intervalMs: 1000 };
+let exportTimeout = { timeoutMs: 120_000, intervalMs: 250 };
 
 describe('manifest-mode zip exports', () => {
   let origin = useFakeOrigin();

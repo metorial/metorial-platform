@@ -2,9 +2,10 @@ import { readInventory } from './inventory';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { dirname, normalize, join, relative, basename } from 'node:path';
 import {
+  CONTROL_E2E_CONCURRENCY,
   e2eGroupArgs,
   planE2EGroups,
-  readE2EDurations,
+  readPlanningE2EDurations,
   type E2EDurations
 } from './e2e-groups';
 
@@ -30,12 +31,6 @@ export let controlSuites = (inventory?.suites ?? [])
     tests: suite.tests.map(test => test.directory),
     groups: suite.groups
   }));
-
-/** Per-package e2e durations of the checkout this runs in; refreshed with `e2e-groups.ts update`. */
-export let E2E_DURATIONS_PATH = '.github/e2e-durations.json';
-
-/** `control test:e2e`'s default number of test packages Turbo runs at once inside a stack. */
-let CONTROL_E2E_CONCURRENCY = 4;
 
 export type ControlSuite = (typeof controlSuites)[number];
 
@@ -307,7 +302,7 @@ if (import.meta.main) {
       args: ''
     })),
     ...selectedControl.flatMap(suite =>
-      controlMatrix(suite, packages, readE2EDurations(E2E_DURATIONS_PATH))
+      controlMatrix(suite, packages, readPlanningE2EDurations())
     )
   ];
   let conduit = affected(

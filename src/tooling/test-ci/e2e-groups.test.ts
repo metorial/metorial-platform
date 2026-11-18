@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { e2eGroupArgs, parseE2EDurations, planE2EGroups } from './e2e-groups';
+import { e2eGroupArgs, parseE2EDurations, planE2EGroups, sumE2EDurations } from './e2e-groups';
 
 let names = (count: number) => Array.from({ length: count }, (_, index) => `@x/p${index}`);
 
@@ -99,4 +99,14 @@ test('reads durations from control output and sums shards of one package', () =>
     '@metorial/api-core': 600,
     '@metorial/module-user': 0.85
   });
+});
+
+test('adds up the shards of a package measured by different groups of one run', () => {
+  expect(
+    sumE2EDurations([
+      { '@metorial/api-core': 300, '@metorial/module-user': 20 },
+      { '@metorial/api-core': 310 },
+      {}
+    ])
+  ).toEqual({ '@metorial/api-core': 610, '@metorial/module-user': 20 });
 });
