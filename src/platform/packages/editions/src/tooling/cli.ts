@@ -10,6 +10,7 @@ import { readWorkspace } from './workspace';
 
 let usage = `Usage:
   metorial-editions build <entry> --edition <edition> (--outdir <dir> | --outfile <file>) [--channel dev|release] [--external a,b] [--minify] [--splitting]
+                           [--bundle-manifest <file>]
   metorial-editions verify --edition <edition> --entry <package|dir> [--entry ...]
                            [--sourcemaps <dir|file.map> ...] [--deny-package <name> ...]
                            [--egress <dir|file> ...] [--policy <policy.json>] [--root <dir>]`;
@@ -35,7 +36,8 @@ let runBuild = async (args: string[]) => {
       outfile: { type: 'string' },
       external: { type: 'string' },
       minify: { type: 'boolean' },
-      splitting: { type: 'boolean' }
+      splitting: { type: 'boolean' },
+      'bundle-manifest': { type: 'string' }
     }
   });
 
@@ -50,7 +52,8 @@ let runBuild = async (args: string[]) => {
     outfile: values.outfile,
     external: values.external?.split(',').filter(Boolean),
     minify: values.minify,
-    splitting: values.splitting
+    splitting: values.splitting,
+    bundleManifest: values['bundle-manifest']
   });
 
   for (let output of outputs) console.log(output);

@@ -213,8 +213,13 @@ let passportCallbackCheck = (listeners: () => Promise<{ callbackUrl: string }[]>
       let unreachable: string[] = [];
       for (let url of urls) {
         let { host, port } = tcpAddress(url);
-        let outcome = await probes.tcp({ host, port })(ctx);
-        if (outcome && 'status' in outcome && outcome.status != 'pass') unreachable.push(url);
+
+        // The probe throws when it can't connect; a slow connect only warns and is still reachable.
+        try {
+          await probes.tcp({ host, port })(ctx);
+        } catch {
+          unreachable.push(url);
+        }
       }
 
       if (unreachable.length) {

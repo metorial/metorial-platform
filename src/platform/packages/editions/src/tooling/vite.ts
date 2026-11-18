@@ -1,5 +1,7 @@
+import { join } from 'node:path';
 import { resolveReleaseChannel, type ReleaseChannel } from '../channel.ts';
 import { defaultEdition, isEdition, type Edition } from '../edition.ts';
+import { rollupBundleContents, writeBundleManifest } from './bundleManifest.ts';
 import { transformEditionSource } from './transform.ts';
 
 let sourceFilter = /\.[cm]?[jt]sx?$/;
@@ -35,5 +37,18 @@ export let editionsVitePlugin = (
     if (transformed == null) return null;
 
     return { code: transformed, map: null };
+  },
+
+  // Turbo hashes METORIAL_BUNDLE_MANIFEST (globalEnv), so cached builds without a manifest are not reused.
+  writeBundle: async (
+    options: { dir?: string },
+    bundle: Parameters<typeof rollupBundleContents>[0]
+  ) => {
+    if (!process.env.METORIAL_BUNDLE_MANIFEST || !options.dir) return;
+
+    await writeBundleManifest(
+      join(options.dir, 'bundle-manifest', 'vite.json'),
+      rollupBundleContents(bundle)
+    );
   }
 });

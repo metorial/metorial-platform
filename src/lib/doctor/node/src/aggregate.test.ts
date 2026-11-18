@@ -95,6 +95,20 @@ describe('collectReports', () => {
     expect(replicas[7]!.error).toBe('getaddrinfo ENOTFOUND gone-doctor');
   });
 
+  it('shows what answered instead of a doctor report', async () => {
+    let [result] = await collectReports([{ name: 'proxied', host: '10.0.0.8', port: 12121 }], {
+      fetch: (async () =>
+        new Response('upstream connect error or disconnect/reset before headers', {
+          status: 503
+        })) as unknown as typeof fetch
+    });
+
+    expect(result!.outcome).toBe('invalid_response');
+    expect(result!.error).toBe(
+      'HTTP 503 without a doctor report: upstream connect error or disconnect/reset before headers'
+    );
+  });
+
   it('reports timeouts', async () => {
     let [result] = await collectReports([{ name: 'slow', host: '10.0.0.9', port: 1 }], {
       timeoutMs: 10,
