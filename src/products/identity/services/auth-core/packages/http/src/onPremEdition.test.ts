@@ -69,7 +69,7 @@ describe('ares editions', () => {
     );
     let csp = response.headers.get('content-security-policy')!;
 
-    expect(csp).toContain("img-src 'self' data: https://metorial.example.com");
+    expect(csp).toContain("img-src 'self' data: https://provider-logos.metorial-cdn.com https://metorial.example.com");
     expect(csp).toContain('https://avatars.example.net');
   });
 });
