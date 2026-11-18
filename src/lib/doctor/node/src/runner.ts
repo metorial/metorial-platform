@@ -195,16 +195,22 @@ export let createDoctor = (options: DoctorOptions) => {
   let last: { report: Report; finishedAt: number } | null = null;
 
   let register = (...definitions: CheckDefinition[]) => {
+    let pending = new Map<string, CheckDefinition>();
+
     for (let definition of definitions) {
       if (!checkIdPattern.test(definition.id)) {
         throw new Error(`Invalid doctor check id "${definition.id}"`);
       }
 
-      if (checks.has(definition.id)) {
+      if (checks.has(definition.id) || pending.has(definition.id)) {
         throw new Error(`Duplicate doctor check id "${definition.id}"`);
       }
 
-      checks.set(definition.id, defineCheck(definition));
+      pending.set(definition.id, defineCheck(definition));
+    }
+
+    for (let [id, definition] of pending) {
+      checks.set(id, definition);
     }
   };
 

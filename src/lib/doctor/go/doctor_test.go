@@ -385,6 +385,44 @@ func TestRegisterValidation(t *testing.T) {
 	}
 }
 
+func TestRegisterRejectsEntireBatch(t *testing.T) {
+	cases := []struct {
+		name   string
+		checks []Check
+	}{
+		{name: "invalid id", checks: []Check{passing("new"), passing("Bad_ID")}},
+		{name: "existing duplicate", checks: []Check{passing("new"), passing("existing")}},
+		{name: "batch duplicate", checks: []Check{passing("new"), passing("new")}},
+		{name: "missing Run", checks: []Check{passing("new"), {ID: "other"}}},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			clock := newFakeClock()
+			doctor := newTestDoctor(t, Options{Now: clock.Now}, passing("existing"))
+
+			if err := doctor.Register(test.checks...); err == nil {
+				t.Fatal("expected registration error")
+			}
+
+			report := run(t, doctor, false)
+			if len(report.Checks) != 1 || report.Checks[0].ID != "existing" {
+				t.Fatalf("checks after rejected batch: %+v", report.Checks)
+			}
+
+			if err := doctor.Register(passing("new"), passing("other")); err != nil {
+				t.Fatalf("retry registration: %v", err)
+			}
+
+			clock.Advance(time.Minute)
+			report = run(t, doctor, true)
+			if len(report.Checks) != 3 || report.Checks[0].ID != "existing" || report.Checks[1].ID != "new" || report.Checks[2].ID != "other" {
+				t.Fatalf("checks after retry: %+v", report.Checks)
+			}
+		})
+	}
+}
+
 type gatedCheck struct {
 	calls   atomic.Int32
 	release chan struct{}

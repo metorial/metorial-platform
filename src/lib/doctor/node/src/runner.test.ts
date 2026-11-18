@@ -320,6 +320,27 @@ describe('report', () => {
     doctor.register(valid);
     expect(() => doctor.register(valid)).toThrow('Duplicate doctor check id');
   });
+
+  it.each([
+    ['invalid id', 'Bad.Id', 'Invalid doctor check id'],
+    ['existing duplicate', 'existing', 'Duplicate doctor check id'],
+    ['batch duplicate', 'new', 'Duplicate doctor check id']
+  ])('rejects the entire batch for %s', async (_, rejectedId, message) => {
+    let definition = check({ ...base, id: 'existing', title: 'Existing', run: () => {} });
+    let doctor = doctorWith([definition], { cacheTtlMs: 0, freshMinIntervalMs: 0 });
+    let first = { ...definition, id: 'new' };
+
+    expect(() => doctor.register(first, { ...definition, id: rejectedId })).toThrow(message);
+    expect((await doctor.run()).checks.map(item => item.id)).toEqual(['existing']);
+
+    doctor.register(first, { ...definition, id: 'other' });
+
+    expect((await doctor.run()).checks.map(item => item.id)).toEqual([
+      'existing',
+      'new',
+      'other'
+    ]);
+  });
 });
 
 describe('debouncing', () => {

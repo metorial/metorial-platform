@@ -192,18 +192,25 @@ func (d *Doctor) Register(checks ...Check) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	for index := range checks {
-		check := checks[index]
+	seen := make(map[string]struct{}, len(checks))
+	for _, check := range checks {
 		if !checkIDPattern.MatchString(check.ID) {
 			return fmt.Errorf("invalid doctor check id %q", check.ID)
 		}
 		if _, exists := d.byID[check.ID]; exists {
 			return fmt.Errorf("duplicate doctor check id %q", check.ID)
 		}
+		if _, exists := seen[check.ID]; exists {
+			return fmt.Errorf("duplicate doctor check id %q", check.ID)
+		}
 		if check.Run == nil {
 			return fmt.Errorf("doctor check %q has no Run function", check.ID)
 		}
 
+		seen[check.ID] = struct{}{}
+	}
+
+	for _, check := range checks {
 		d.checks = append(d.checks, &check)
 		d.byID[check.ID] = &check
 	}
