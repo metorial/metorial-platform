@@ -11,9 +11,11 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
+	codeBucketDoctor "github.com/metorial/metorial/services/code-bucket/internal/doctor"
 	"github.com/metorial/metorial/services/code-bucket/internal/service"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	sentryUtil "github.com/metorial/metorial/services/code-bucket/pkg/sentry-util"
+	"github.com/metorial/metorial/services/code-bucket/pkg/workspace"
 )
 
 func main() {
@@ -69,8 +71,23 @@ func main() {
 		fs.WithRedisURL(redisURL),
 	).WithManifestSourceBuckets(splitList(os.Getenv("ORIGIN_MANIFEST_SOURCE_BUCKETS")))
 
+	doctor, err := codeBucketDoctor.New(codeBucketDoctor.Config{
+		Redis:         service.FileSystem().Redis(),
+		ObjectStorage: service.FileSystem().ObjectStorage(),
+		Bucket:        objectStorageBucket,
+		JWTSecret:     jwtSecret,
+		EditorAPIURL:  editorApiUrl,
+		PublicURL:     os.Getenv("METORIAL_PUBLIC_URL"),
+		RPCAddress:    rpcAddress,
+		WorkspaceFS:   workspace.GetDistFS,
+		WorkspaceDir:  os.TempDir(),
+	})
+	if err != nil {
+		log.Fatalf("Doctor setup failed: %v", err)
+	}
+
 	healthAddress := getEnvOrDefault("CODE_BUCKET_HEALTH_ADDRESS", ":12121")
-	go serveHealth(healthAddress)
+	go serveHealth(healthAddress, doctor.Handler())
 
 	service.Start(httpAddress, rpcAddress, workspaceAddress)
 
@@ -86,8 +103,9 @@ func main() {
 	}
 }
 
-func serveHealth(address string) {
+func serveHealth(address string, doctor http.Handler) {
 	mux := http.NewServeMux()
+	mux.Handle("/doctor", doctor)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

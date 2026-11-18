@@ -5,12 +5,17 @@ import (
 	"io"
 	"strings"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/metorial/metorial/services/code-bucket/pkg/manifest"
 	objectstorage "github.com/metorial/object-storage/clients/go"
 )
 
 func (fsm *FileSystemManager) ObjectStorage() *objectstorage.Client {
 	return fsm.objectStorage
+}
+
+func (fsm *FileSystemManager) Redis() *redis.Client {
+	return fsm.redis
 }
 
 // BucketName is the object-storage bucket that holds every code bucket's files.
