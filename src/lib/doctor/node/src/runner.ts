@@ -270,11 +270,13 @@ export let createDoctor = (options: DoctorOptions) => {
       }, timeoutMs);
     });
 
+    // After a timeout the check keeps running until it notices the abort; its late rejection is
+    // already reported as the timeout.
+    let running = Promise.resolve().then(() => definition.run(ctx));
+    running.catch(() => {});
+
     try {
-      let returned = await Promise.race([
-        Promise.resolve().then(() => definition.run(ctx)),
-        timeout
-      ]);
+      let returned = await Promise.race([running, timeout]);
       let outcome = returned ?? recorded() ?? { status: 'pass', message: 'OK' };
 
       return result(definition, outcome, now() - started);

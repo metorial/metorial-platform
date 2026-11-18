@@ -137,6 +137,34 @@ describe('report', () => {
     expect(aborted).toBe(true);
   });
 
+  it('does not leak a rejection from a check that fails after its timeout', async () => {
+    let unhandled: unknown[] = [];
+    let onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+
+    try {
+      let report = await doctorWith([
+        check({
+          ...base,
+          id: 'slow',
+          title: 'Slow',
+          timeoutMs: 10,
+          run: ctx =>
+            new Promise((_, reject) =>
+              ctx.signal.addEventListener('abort', () => reject(new Error('aborted')))
+            )
+        })
+      ]).run();
+
+      await delay(30);
+
+      expect(report.checks[0]).toMatchObject({ status: 'timeout' });
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+
   it('enforces the run budget across checks', async () => {
     let started = Date.now();
     let report = await doctorWith(

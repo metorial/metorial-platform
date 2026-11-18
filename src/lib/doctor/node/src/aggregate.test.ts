@@ -106,6 +106,28 @@ describe('collectReports', () => {
 
     expect(result!.outcome).toBe('timeout');
   });
+
+  it('does not wait forever for a hostname that never resolves', async () => {
+    let started = Date.now();
+    let replicas = await collectReports(
+      [
+        { name: 'hung', host: 'hung-doctor', port: 1 },
+        { name: 'core-api', host: '10.0.0.1', port: 12121 }
+      ],
+      {
+        timeoutMs: 20,
+        resolve: async host =>
+          host == 'hung-doctor' ? new Promise<string[]>(() => {}) : [host],
+        fetch: (async () => Response.json(allPass)) as unknown as typeof fetch
+      }
+    );
+
+    expect(replicas.map(item => [item.component, item.outcome])).toEqual([
+      ['hung', 'timeout'],
+      ['core-api', 'ok']
+    ]);
+    expect(Date.now() - started).toBeLessThan(500);
+  });
 });
 
 describe('mergeReports', () => {

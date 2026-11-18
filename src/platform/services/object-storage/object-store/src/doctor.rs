@@ -423,6 +423,8 @@ fn local_disk_check(root: PathBuf) -> Check {
     .target("local")
 }
 
+// statvfs field widths differ per platform, so the casts are needed off Linux.
+#[allow(clippy::unnecessary_cast)]
 fn disk_space(path: &Path) -> Result<(u64, u64), CheckError> {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
@@ -520,11 +522,13 @@ mod tests {
 
     #[tokio::test]
     async fn every_check_is_registered() {
-        let mut config = Config::default();
-        config.backend = BackendConfig::Local {
-            root_path: std::env::temp_dir(),
-            physical_bucket: "test".into(),
-            public_url: None,
+        let config = Config {
+            backend: BackendConfig::Local {
+                root_path: std::env::temp_dir(),
+                physical_bucket: "test".into(),
+                public_url: None,
+            },
+            ..Default::default()
         };
         let root = tempfile::tempdir().unwrap();
         let backend: Arc<dyn Backend> = Arc::new(object_store_backends::local::LocalBackend::new(

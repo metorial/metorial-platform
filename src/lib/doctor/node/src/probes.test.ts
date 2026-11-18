@@ -66,4 +66,14 @@ describe('probes', () => {
     let outcome = await probes.dns({ hostname: 'localhost' })(ctx());
     expect(outcome.status).toBe('pass');
   });
+
+  it('stops waiting for a hostname once the check is aborted', async () => {
+    let controller = new AbortController();
+    let { ctx: abortedCtx } = createCheckContext(controller.signal, () => undefined);
+    controller.abort(new Error('timed out'));
+
+    await expect(probes.dns({ hostname: 'localhost' })(abortedCtx)).rejects.toThrow(
+      'timed out'
+    );
+  });
 });

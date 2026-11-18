@@ -1,5 +1,6 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import { abortable } from './abortable';
 import { describeError } from './errors';
 import { parseReport } from './parse';
 import {
@@ -144,7 +145,7 @@ let fetchReplica = async (
   }
 
   try {
-    let body = await response.json();
+    let body = (await response.json()) as { error?: unknown } | null;
     if (!response.ok) {
       let message = typeof body?.error == 'string' ? body.error : `HTTP ${response.status}`;
       return replica('invalid_response', null, message);
@@ -167,15 +168,17 @@ export let collectReports = async (
     targets.map(async target => {
       let addresses: string[];
       try {
-        addresses = await resolve(target.host);
+        addresses = await abortable(resolve(target.host), AbortSignal.timeout(opts.timeoutMs));
       } catch (error) {
+        let info = describeError(error);
+
         return [
           {
             component: target.name,
             address: target.host,
-            outcome: 'unreachable' as const,
+            outcome: info.kind == 'timeout' ? ('timeout' as const) : ('unreachable' as const),
             report: null,
-            error: describeError(error).message,
+            error: info.message,
             durationMs: 0
           }
         ];

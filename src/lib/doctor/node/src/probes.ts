@@ -1,6 +1,7 @@
 import { lookup } from 'node:dns/promises';
 import { connect as connectTcp } from 'node:net';
 import { connect as connectTls, type PeerCertificate } from 'node:tls';
+import { abortable } from './abortable';
 import type { CheckContext, CheckOutcome } from './check';
 import { httpStatusKinds } from './errors';
 
@@ -148,8 +149,8 @@ let tcp =
 
 let dns =
   (opts: { hostname: string }): ProbeRun =>
-  async () => {
-    let addresses = await lookup(opts.hostname, { all: true });
+  async ctx => {
+    let addresses = await abortable(lookup(opts.hostname, { all: true }), ctx.signal);
 
     return {
       status: 'pass',

@@ -191,11 +191,16 @@
         "@lowerdeck/validation": "workspace:2.0.0",
       },
       "devDependencies": {
+        "@lowerdeck/doctor-spec": "workspace:2.0.0",
         "@lowerdeck/tsconfig": "workspace:2.0.0",
         "@types/bun": "1.4.3",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
       },
+    },
+    "src/lib/doctor/spec": {
+      "name": "@lowerdeck/doctor-spec",
+      "version": "2.0.0",
     },
     "src/lib/email/email-domain-check": {
       "name": "@lowerdeck/email-domain-check",
@@ -10104,6 +10109,7 @@
     "@lowerdeck/delay": ["@lowerdeck/delay@workspace:src/lib/utils/delay"],
 
     "@lowerdeck/doctor": ["@lowerdeck/doctor@workspace:src/lib/doctor/node"],
+    "@lowerdeck/doctor-spec": ["@lowerdeck/doctor-spec@workspace:src/lib/doctor/spec"],
 
     "@lowerdeck/email-domain-check": ["@lowerdeck/email-domain-check@workspace:src/lib/email/email-domain-check"],
 
