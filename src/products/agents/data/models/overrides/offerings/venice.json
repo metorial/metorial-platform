@@ -90,6 +90,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai-gpt-62-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-astra",
+    "reason": "GPT-6.2 Astra Pro is GPT-6.2 Astra served with reasoning.mode=pro, a serving mode not a different checkpoint; same 2026-11-17 release, 1.05M context, and $8/$40 pricing as the base model (OpenRouter and vendor listings)",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "openai-gpt-62-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-sol",
+    "reason": "GPT-6.2 Sol Pro is GPT-6.2 Sol served with reasoning.mode=pro, a serving mode not a different checkpoint; same 2026-11-17 release, 1.05M context, and $2/$10 pricing as the base model (OpenRouter and vendor listings)",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "venice-uncensored-1-2": {
     "decision": "defer",
     "until": "2026-12-12",
