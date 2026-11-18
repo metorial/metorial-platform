@@ -111,6 +111,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "tidepool-alpha-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode lists Tidepool Alpha Free (added 2026-11-18) as a 'stealth reasoning model, free for a limited time': an undisclosed model served under a codename. No lab has claimed it, the catalog index and models.dev have no Tidepool entry, and the web search finds no model, so like Big Pickle/Cat Jam/Iceman Free there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "x-preview-f-free": {
     "decision": "exclude",
     "category": "other",
