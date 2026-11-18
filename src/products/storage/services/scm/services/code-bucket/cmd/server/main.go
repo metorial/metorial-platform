@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	codeBucketDoctor "github.com/metorial/metorial/services/code-bucket/internal/doctor"
@@ -16,6 +17,7 @@ import (
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	sentryUtil "github.com/metorial/metorial/services/code-bucket/pkg/sentry-util"
 	"github.com/metorial/metorial/services/code-bucket/pkg/workspace"
+	objectstorage "github.com/metorial/object-storage/clients/go"
 )
 
 func main() {
@@ -86,6 +88,8 @@ func main() {
 		log.Fatalf("Doctor setup failed: %v", err)
 	}
 
+	go ensureBucket(service.FileSystem().ObjectStorage(), objectStorageBucket)
+
 	healthAddress := getEnvOrDefault("CODE_BUCKET_HEALTH_ADDRESS", ":12121")
 	go serveHealth(healthAddress, doctor.Handler())
 
@@ -114,6 +118,22 @@ func serveHealth(address string, doctor http.Handler) {
 	log.Printf("Health server starting on %s\n", address)
 	if err := http.ListenAndServe(address, mux); err != nil {
 		log.Fatalf("Health server failed: %v", err)
+	}
+}
+
+// The SCM API also creates the bucket when it starts, but code-bucket can start (and run its
+// object-storage doctor check) first, so it doesn't wait for that.
+func ensureBucket(client *objectstorage.Client, bucket string) {
+	for attempt := 1; ; attempt++ {
+		_, err := client.UpsertBucket(bucket)
+		if err == nil {
+			return
+		}
+
+		if attempt == 1 || attempt%30 == 0 {
+			log.Printf("Creating object storage bucket %s failed, retrying: %v", bucket, err)
+		}
+		time.Sleep(2 * time.Second)
 	}
 }
 
