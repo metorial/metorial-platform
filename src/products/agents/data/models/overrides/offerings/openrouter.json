@@ -146,6 +146,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-4-neon": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Gemini 4 Neon is a new, distinct Google model (fast reasoning, builds on Hydrogen with deeper reasoning). The index has no gemini-4-neon entry; linking to Argon, Carbon or Hydrogen would be wrong.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "heygen/heygen-avatar-6": {
     "decision": "defer",
     "until": "2026-12-17",

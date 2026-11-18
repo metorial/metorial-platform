@@ -244,6 +244,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-4-neon": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Same new Google model (Gemini 4 Neon) as the OpenRouter issue; no matching entry in the model index yet, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",
     "model": "google/veo-3.1-fast-generate-preview",
