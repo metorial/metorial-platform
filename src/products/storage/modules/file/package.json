@@ -7,7 +7,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "_test": "vitest run --passWithNoTests",
-    "test:e2e": "metorial-e2e"
+    "test:e2e": "metorial-e2e --no-isolate"
   },
   "devDependencies": {
     "@types/bun": "latest",

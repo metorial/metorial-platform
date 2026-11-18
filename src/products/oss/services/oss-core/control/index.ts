@@ -116,6 +116,6 @@ export default project({
         })
       })
     ],
-    suite: ciSuite({ name: 'metorial', groups: 4 })
+    suite: ciSuite({ name: 'metorial', groups: 8 })
   }
 });

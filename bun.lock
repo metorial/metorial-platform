@@ -3894,6 +3894,7 @@
         "@metorial-subspace/db": "^1.0.0",
         "@metorial/audit-scope": "^1.0.0",
         "@metorial/consumer-sdk": "1.0.0-internal",
+        "@metorial/cron": "^1.0.0",
         "@metorial/dashboard-sdk": "1.0.0-internal",
         "@metorial/db": "^1.0.0",
         "vitest": "^5.0.4",

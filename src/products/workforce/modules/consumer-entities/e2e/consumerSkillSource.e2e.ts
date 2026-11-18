@@ -13,6 +13,7 @@ import type { ConsumerSurface } from '@metorial/db';
 import { magicMcpEndpointService, magicMcpTokenService } from '@metorial/module-magic';
 import { parseSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 import { skillGroupItemService, skillGroupService } from '@metorial/module-skill-groups';
+import { getPrimaryPortalUrl } from '@metorial/portal-url';
 import {
   createSkillMcpCatalog,
   type SkillMcpCatalog
@@ -25,7 +26,7 @@ import {
   createConsumerSkillSource,
   createSkillEditingTools
 } from '../src';
-import { createProfile, createSurface } from './_fixtures';
+import { createPortalSurface, createProfile, createSurface } from './_fixtures';
 
 type Profile = Awaited<ReturnType<typeof createProfile>>;
 
@@ -459,6 +460,57 @@ describe('module-consumer-entities skills over MCP', () => {
       tools.result?.tools?.some((tool: any) => tool.name.startsWith('metorial_skill_'))
     ).toBe(false);
   }, 180_000);
+
+  it('links skills to their portal page from the editing tools', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createPortalSurface(fixture, { allowConsumerSkillAuthoring: true });
+    let portal = await db.portal.findFirstOrThrow({ where: { surfaceOid: surface.oid } });
+    let author = await createProfile(fixture, surface);
+    let tools = await editingTools(fixture, author);
+
+    let created = await tools!.call('metorial_skill_create', {
+      name: uniqueId('Linked'),
+      description: 'Linked description'
+    });
+    let url = `${await getPrimaryPortalUrl({ portal })}/skill/${created.id}`;
+
+    expect(created.url).toBe(url);
+    expect((await tools!.call('metorial_skill_get', { skill: created.id })).skill.url).toBe(
+      url
+    );
+    expect(
+      await tools!.call('metorial_skill_write_file', {
+        skill: created.id,
+        path: '/notes.md',
+        content: 'linked\n'
+      })
+    ).toMatchObject({ type: 'put', path: '/notes.md', url });
+    expect((await tools!.call('metorial_skill_list', {})).skills).toEqual([
+      expect.objectContaining({ id: created.id, url })
+    ]);
+  });
+
+  it('returns no portal link when the surface has no portal', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { surface, author } = await setup(fixture);
+
+    let skill = await authorSkill(fixture, surface, author, uniqueId('Unlinked'));
+    let tools = await editingTools(fixture, author);
+
+    let created = await tools!.call('metorial_skill_create', { name: uniqueId('Unlinked') });
+    expect(created.url).toBeNull();
+
+    expect(
+      (await tools!.call('metorial_skill_get', { skill: skill.id })).skill.url
+    ).toBeNull();
+    expect(
+      await tools!.call('metorial_skill_write_file', {
+        skill: skill.id,
+        path: '/notes.md',
+        content: 'unlinked\n'
+      })
+    ).toMatchObject({ type: 'put', url: null });
+  });
 
   it('serves nothing to inactive consumers', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

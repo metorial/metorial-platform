@@ -38,7 +38,7 @@ import {
   useSkillsManifestSyncFlag
 } from './_fixtures';
 
-let syncTimeout = { timeoutMs: 120_000, intervalMs: 1000 };
+let syncTimeout = { timeoutMs: 120_000, intervalMs: 250 };
 let testTimeout = { timeout: 180_000 };
 let authorization = createResourceAuthorization({ restricted: false });
 

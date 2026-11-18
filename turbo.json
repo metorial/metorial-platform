@@ -389,7 +389,7 @@
     },
     "test:e2e": {
       "dependsOn": ["^build", "prisma:generate", "^prisma:generate"],
-      "env": ["CONTROL_E2E_STACK_KEY"],
+      "env": ["CONTROL_E2E_STACK_KEY", "METORIAL_E2E_PACKAGE_SHARDS"],
       "passThroughEnv": ["*"],
       "outputs": []
     },

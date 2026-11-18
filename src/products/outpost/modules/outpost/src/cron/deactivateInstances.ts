@@ -3,7 +3,7 @@ import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 import { outpostInstanceService } from '../services/outpostInstance';
 
-let deactivateCron = createCron(
+export let deactivateCron = createCron(
   { name: 'outp/instance/deactivate', cron: '* * * * *' },
   async () => {
     let instancesToDeactivate = await db.outpostInstance.findMany({

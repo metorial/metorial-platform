@@ -83,17 +83,40 @@ export let rsyncArgs = (from: string, to: string) => [
   `${to.replace(/\/$/, '')}/`
 ];
 
-export let turboArgs = (stack: Stack, concurrency: number, testArgs: string[] = []) => [
-  'x',
-  'turbo',
-  'run',
-  'test:e2e',
-  '--ui=stream',
-  '--continue',
-  `--concurrency=${concurrency}`,
-  ...stack.tests.flatMap(test => ['--filter', test]),
-  ...(testArgs.length > 0 ? ['--', ...testArgs] : [])
-];
+let packageShardPrefix = '--package-shard=';
+
+/**
+ * Turbo hashes pass-through arguments into every task of a run, dependency builds included, so
+ * a new shard selection would rebuild them all inside the stack. Shards therefore reach
+ * `metorial-e2e` through the environment, which only `test:e2e` hashes.
+ */
+export let splitPackageShards = (testArgs: string[]) => ({
+  args: testArgs.filter(arg => !arg.startsWith(packageShardPrefix)),
+  shards: testArgs
+    .filter(arg => arg.startsWith(packageShardPrefix))
+    .map(arg => arg.slice(packageShardPrefix.length))
+});
+
+export let turboArgs = (stack: Stack, concurrency: number, testArgs: string[] = []) => {
+  let { args } = splitPackageShards(testArgs);
+
+  return [
+    'x',
+    'turbo',
+    'run',
+    'test:e2e',
+    '--ui=stream',
+    '--continue',
+    `--concurrency=${concurrency}`,
+    ...stack.tests.flatMap(test => ['--filter', test]),
+    ...(args.length > 0 ? ['--', ...args] : [])
+  ];
+};
+
+export let turboEnv = (testArgs: string[] = []): Record<string, string> => {
+  let { shards } = splitPackageShards(testArgs);
+  return shards.length > 0 ? { METORIAL_E2E_PACKAGE_SHARDS: shards.join(' ') } : {};
+};
 
 export let stackCacheKey = (stack: Stack) =>
   stack.cacheKeyInputs === undefined
@@ -409,7 +432,8 @@ let main = async (planPath: string) => {
           ...stack.env,
           CONTROL_E2E: '1',
           CONTROL_E2E_STACK_KEY: stackCacheKey(stack),
-          TURBO_GLOBAL_WARNING_DISABLED: '1'
+          TURBO_GLOBAL_WARNING_DISABLED: '1',
+          ...turboEnv(plan.testArgs)
         }
       });
       results.push({ stack: stack.name, code });

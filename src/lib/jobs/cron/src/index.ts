@@ -9,6 +9,8 @@ import { spreadCronPattern, spreadCronStartupJitterMs } from './spread';
 
 export * from './spread';
 
+let MANUAL_TRIGGER_JOB_ID = 'manual-trigger';
+
 let Sentry = getSentry();
 
 let log = (...any: any[]) => console.log('[CRON MANAGER]:', ...any);
@@ -21,6 +23,32 @@ export let cronObserver = {
   schedules: new Map<string, () => Promise<CronSchedule>>()
 };
 
+export interface ICronProcessor extends IQueueProcessor {
+  trigger: () => Promise<void>;
+}
+
+export let cronQueueName = (name: string) => `Cr0N_${name}`;
+
+/**
+ * Asks a running worker of the cron to execute its handler now, in addition to its schedule.
+ * Triggers issued while one is still waiting or running collapse into that one.
+ */
+export let triggerCron = async (opts: { name: string; redisUrl: string }) => {
+  let queue = new Queue(cronQueueName(opts.name), {
+    connection: parseRedisUrl(opts.redisUrl)
+  });
+
+  try {
+    await queue.add(
+      'trigger',
+      {},
+      { jobId: MANUAL_TRIGGER_JOB_ID, removeOnComplete: true, removeOnFail: true }
+    );
+  } finally {
+    await queue.close();
+  }
+};
+
 export let createCron = (
   opts: {
     name: string;
@@ -30,7 +58,7 @@ export let createCron = (
     startupJitterMs?: number;
   },
   handler: () => Promise<void>
-): IQueueProcessor => {
+): ICronProcessor => {
   if (seenNames.has(opts.name)) {
     throw new Error(`Cron with name ${opts.name} already exists`);
   }
@@ -42,6 +70,8 @@ export let createCron = (
     console.log('Creating cron with connection', opts.redisUrl, connection);
 
   return {
+    trigger: () => triggerCron({ name: opts.name, redisUrl: opts.redisUrl }),
+
     start: async () => {
       log(
         `Starting cron job ${opts.name} to run every ${pattern} using bullmq` +
@@ -49,7 +79,7 @@ export let createCron = (
       );
 
       // Delay Redis connection creation until startup reaches this processor.
-      let queue = new Queue(`Cr0N_${opts.name}`, {
+      let queue = new Queue(cronQueueName(opts.name), {
         connection,
         defaultJobOptions: {
           removeOnComplete: true,
