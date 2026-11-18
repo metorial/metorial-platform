@@ -8,7 +8,7 @@ import {
   useDashboardFlags,
   useUser
 } from '@metorial/state';
-import { Button, LinkTabs, Menu } from '@metorial/ui';
+import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 
@@ -37,7 +37,7 @@ export let CustomProvidersListLayout = () => {
         actionType: 'managed' as const
       };
 
-  let openCreateModal = (type: 'remote' | 'managed' | 'docker') => {
+  let openCreateModal = (type: 'remote' | 'managed') => {
     if (type === 'managed' && !user.data) return;
 
     showCustomProviderRemoteFormModal({
@@ -53,39 +53,6 @@ export let CustomProvidersListLayout = () => {
             {page.actionLabel}
           </Button>
         )
-      );
-    }
-
-    if (flags.data?.flags['paid-custom-docker-providers']) {
-      return (
-        <Menu
-          label={page.actionLabel}
-          items={[
-            {
-              id: 'docker',
-              label: 'Docker MCP Server',
-              description: 'Deploy a custom Docker image as an MCP server on Metorial.'
-            },
-            {
-              id: 'managed',
-              label: 'Custom MCP Server',
-              description:
-                'Connect a GitHub repo and deploy a custom MCP server to Metorial automatically.'
-            }
-          ]}
-          onItemClick={id => {
-            if (id === 'managed') {
-              openCreateModal(page.actionType);
-              return;
-            }
-
-            openCreateModal('docker');
-          }}
-        >
-          <Button size="2" loading={user.isLoading} disabled={!user.data && !user.isLoading}>
-            {page.actionLabel}
-          </Button>
-        </Menu>
       );
     }
 

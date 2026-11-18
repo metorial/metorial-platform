@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import type {
   CustomProvider,
   CustomProviderConfig,
@@ -129,6 +129,10 @@ export let resolveCustomProviderFromForDeployment = (d: {
 
     assertFunctionDeployable(merged, d.provider);
     return merged;
+  }
+
+  if (merged.type === 'container') {
+    throw new ServiceError(forbiddenError({ message: 'Docker MCP servers are currently disabled.' }));
   }
 
   if (merged.type === 'container') {

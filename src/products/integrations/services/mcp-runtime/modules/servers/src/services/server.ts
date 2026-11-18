@@ -139,6 +139,12 @@ class serverServiceImpl {
     }
 
     if (d.input.from.type == 'container.from_image_ref') {
+      throw new ServiceError(
+        forbiddenError({ message: 'Docker MCP servers are currently disabled.' })
+      );
+    }
+
+    if (d.input.from.type == 'container.from_image_ref') {
       return await this.createServerContainer({
         scope: d.scope,
         input: {
@@ -310,6 +316,12 @@ class serverServiceImpl {
           })
         );
       }
+    }
+
+    if (d.server.type == 'container') {
+      throw new ServiceError(
+        forbiddenError({ message: 'Docker MCP servers are currently disabled.' })
+      );
     }
 
     if (d.server.type == 'container') {
