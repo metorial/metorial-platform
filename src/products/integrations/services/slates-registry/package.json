@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bun run server:start",
     "check-types": "tsc --noEmit -p tsconfig.json",
-    "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
+    "server:build": "bun run check-types && metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-slates-registry ./dist && sentry-cli sourcemaps upload --org metorial --project mte-slates-registry ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
@@ -34,7 +34,6 @@
     "@types/bun": "latest",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vercel/ncc": "^0.45.0",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.6.2",
     "jszip": "^3.10.2",

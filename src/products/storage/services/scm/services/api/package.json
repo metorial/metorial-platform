@@ -7,7 +7,7 @@
     "enterprise:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "start": "bun run server:start",
     "check-types": "tsc --noEmit -p tsconfig.server.json",
-    "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
+    "server:build": "bun run check-types && metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-origin ./dist && sentry-cli sourcemaps upload --org metorial --project mte-origin ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
@@ -24,7 +24,6 @@
     "@metorial/e2e": "1.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.45.0",
     "@vitest/coverage-v8": "^5.1.0",
     "@vitest/ui": "^5.1.0",
     "vitest": "^5.0.4"

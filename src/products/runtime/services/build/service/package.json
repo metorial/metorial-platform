@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "bun run server:start",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
+    "server:build": "metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-forge ./dist && sentry-cli sourcemaps upload --org metorial --project mte-forge ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
@@ -32,7 +32,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@vercel/ncc": "^0.45.0",
     "vitest": "^5.0.4",
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@metorial/e2e": "1.0.0",
