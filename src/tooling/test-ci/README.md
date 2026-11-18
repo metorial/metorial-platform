@@ -61,14 +61,16 @@ groups. Each job passes its packages as control filters, followed by
 `METORIAL_E2E_PACKAGE_SHARDS` rather than as Turbo arguments (Turbo hashes arguments into
 dependency builds too, which would rebuild them inside every sharded stack), and
 `metorial-e2e` turns its own entry into `--shard=<i>/<n>`. To make a suite faster, raise
-`groups` rather than the stack's `--concurrency`.
+`groups` rather than the stack's concurrency (`CONTROL_E2E_CONCURRENCY`, which both the
+planner and the `control-e2e` action read).
 
 Durations come from two places. `.github/e2e-durations.json` is the committed baseline.
 On top of it, every successful push run records what its groups measured: `control-e2e`
 uploads each group's durations, the `Record E2E durations` job merges them into the Actions
 cache, and `detect-test-changes` restores the latest copy as
 `.github/e2e-durations.measured.json`, which takes precedence. Without a cache entry the
-baseline alone is used.
+baseline alone is used. A sharded package is only updated when every one of its shards
+reported, so a group that failed to upload cannot make it look short.
 
 Refresh the baseline from the output of a single complete run (shards of one package are
 summed across all logs given):

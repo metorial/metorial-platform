@@ -14,7 +14,7 @@ describe('eventuallyWithCron', () => {
     expect(cron.triggers).toBe(0);
   });
 
-  test('triggers every cron after each failed attempt until the check passes', async () => {
+  test('triggers every cron after a failed attempt until the check passes', async () => {
     let crons = [countingCron(), countingCron()];
     let attempts = 0;
 
@@ -24,11 +24,28 @@ describe('eventuallyWithCron', () => {
         if (++attempts < 3) throw new Error('not yet');
         return attempts;
       },
-      { intervalMs: 1 }
+      { intervalMs: 1, triggerIntervalMs: 0 }
     );
 
     expect(result).toBe(3);
     expect(crons.map(cron => cron.triggers)).toEqual([2, 2]);
+  });
+
+  test('keeps triggers apart while the cron still works on the previous one', async () => {
+    let cron = countingCron();
+    let attempts = 0;
+
+    let result = await eventuallyWithCron(
+      cron,
+      () => {
+        if (++attempts < 6) throw new Error('not yet');
+        return attempts;
+      },
+      { intervalMs: 1, triggerIntervalMs: 60_000 }
+    );
+
+    expect(result).toBe(6);
+    expect(cron.triggers).toBe(1);
   });
 
   test('keeps polling when a trigger fails and rethrows the check error on timeout', async () => {
@@ -46,7 +63,7 @@ describe('eventuallyWithCron', () => {
           if (++attempts < 2) throw new Error('not yet');
           return 'done';
         },
-        { intervalMs: 1 }
+        { intervalMs: 1, triggerIntervalMs: 0 }
       )
     ).toBe('done');
 
@@ -56,8 +73,24 @@ describe('eventuallyWithCron', () => {
         () => {
           throw new Error('never');
         },
-        { timeoutMs: 5, intervalMs: 1 }
+        { timeoutMs: 5, intervalMs: 1, triggerIntervalMs: 0 }
       )
     ).rejects.toThrow('never');
+  });
+
+  test('gives up on a trigger that hangs and keeps polling', async () => {
+    let hanging = { trigger: () => new Promise<void>(() => {}) };
+    let attempts = 0;
+
+    let result = await eventuallyWithCron(
+      hanging,
+      () => {
+        if (++attempts < 3) throw new Error('not yet');
+        return attempts;
+      },
+      { intervalMs: 1, triggerIntervalMs: 0, triggerTimeoutMs: 5 }
+    );
+
+    expect(result).toBe(3);
   });
 });

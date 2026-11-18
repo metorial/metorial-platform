@@ -51,10 +51,11 @@ runs:
         set -euo pipefail
         read -r -a args <<< "$ARGS"
         read -r -a test_args <<< "$TEST_ARGS"
+        concurrency="$(bun "$(dirname "$CONTROL_DIRECTORY")/test-ci/e2e-groups.ts" concurrency)"
         bun "$CONTROL_DIRECTORY/src/main.ts" "${args[@]}" test:e2e \
           --images "$RUNNER_TEMP/test-images" \
           --workspace "$(cd "$TEST_WORKSPACE" && pwd)" \
-          --concurrency 1 \
+          --concurrency "$concurrency" \
           "${test_args[@]}" 2>&1 | tee "$RUNNER_TEMP/control-e2e.log"
     - name: Record package durations
       if: success()
@@ -62,10 +63,11 @@ runs:
       shell: bash
       env:
         CONTROL_DIRECTORY: ${{ inputs.control-directory }}
+        E2E_TEST_ARGS: ${{ inputs.test-args }}
       run: |
         set -euo pipefail
         mkdir -p "$RUNNER_TEMP/e2e-durations"
-        bun "$(dirname "$CONTROL_DIRECTORY")/test-ci/e2e-groups.ts" update \
+        bun "$(dirname "$CONTROL_DIRECTORY")/test-ci/e2e-groups.ts" record \
           "$RUNNER_TEMP/e2e-durations/durations.json" "$RUNNER_TEMP/control-e2e.log"
     - name: Upload package durations
       if: success()

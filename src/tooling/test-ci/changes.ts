@@ -224,6 +224,7 @@ if (import.meta.main) {
       path =>
         path.startsWith(`${prefix}.github/actions/backend-e2e/`) ||
         path.startsWith(`${prefix}.github/actions/control-e2e/`) ||
+        path.startsWith(`${prefix}.github/actions/free-disk-space/`) ||
         path.startsWith(`${prefix}.github/actions/image-artifact/`) ||
         path.startsWith(`${prefix}.github/actions/image-cache/`) ||
         path === `${prefix}.dockerignore` ||
