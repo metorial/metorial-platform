@@ -153,6 +153,13 @@
     "by": "agent",
     "at": "2026-11-18"
   },
+  "google/gemini-4-neon:batch": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Gemini 4 Neon is a new Google fast-reasoning model (canonical slug google/gemini-4-neon-20261118); the index has only Argon, Carbon and Hydrogen, no Neon entry, so defer the batch serving until it is added.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "heygen/heygen-avatar-6": {
     "decision": "defer",
     "until": "2026-12-17",

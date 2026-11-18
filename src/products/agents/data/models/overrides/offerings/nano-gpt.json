@@ -973,6 +973,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "jcartu/deepseek-v4.1-flash-1017-abliterated-lossless-csf": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face lists it as a derivative of DeepSeek-V4.1-Flash-1017 and describes norm-preserving biprojection abliteration with edited tensors; a weight-edited derivative is not the DeepSeek checkpoint, and the index has no jcartu entry.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "jiunsong/supergemma4-26b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Listings describe SuperGemma4 26B Uncensored as a community uncensored fine-tune/abliterated variant of Google Gemma 4 26B A4B; a derivative is not google/gemma-4-26b-a4b-it itself and the index has no Jiunsong entry.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "kitani/clover-2": {
     "decision": "defer",
     "until": "2026-12-17",
@@ -1232,12 +1246,26 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "orca/orcacyber-glm-5.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaRouter's release says it serves Z.ai's GLM-5.3 with refusal responses relaxed through abliteration for security research; a weight-edited derivative is not zhipu/glm-5.3 itself and no OrcaCyber entry exists.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "orca/orcacyber-glm-5.3-flash": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "OrcaCyber GLM 5.3 Flash is Z.ai's GLM-5.3-Flash checkpoint with refusal behavior relaxed via abliteration for security research (per FlashLabs/PR Times coverage of the Nov 2026 release); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "orca/orcacyber-hy4": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaRouter's page and release describe Hy4 as Tencent's open-weight Hy4 with refusal behavior removed via abliteration; a weight-edited derivative is not tencent/hy4 itself and the index has no OrcaCyber entry.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "orca/orcacyber-k3.1-pro": {
     "decision": "exclude",
@@ -1266,6 +1294,20 @@
     "reason": "OrcaCyber Qwen3.8 Flash Next is Alibaba's Qwen3.8 Flash Next with the refusal response direction removed (per Newswire coverage of the Oct 2026 release); a weight-edited derivative is not alibaba/qwen3.8-flash-next itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "orca/orcacyber-ultra-1.0": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "OrcaRouter's own page describes Ultra 1.0 as the flagship of its trillion-parameter OrcaCyber cybersecurity model series, with no source tying it to an indexed base model; a real first-party model the index has no OrcaCyber entry for.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "orca/orcacyber-zero-1.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaRouter states Zero 1.0 is based on GLM-5.3 and post-trained specifically for vulnerability research and cyber workflows; a post-trained derivative is not zhipu/glm-5.3 itself and the index has no OrcaCyber entry.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "orca/orcacyber-zero-1.5": {
     "decision": "defer",
