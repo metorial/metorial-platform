@@ -71,6 +71,7 @@ let createCtx = () => ({
   })),
   completeArtifactUpload: vi.fn(async () => {}),
   storeTempOutput: vi.fn(async () => {}),
+  setPendingReason: vi.fn(async () => {}),
   completeBuild: vi.fn(async () => {}),
   getTenant: vi.fn(async () => ({ id: 'fins_1' })),
   getArtifactUploadTarget: vi.fn(async (stepId: string) => ({
@@ -108,6 +109,7 @@ let build = (status: string, extra: Record<string, any> = {}) => ({
   status,
   exitCode: null,
   failureReason: null,
+  pendingReason: null,
   uploadedSteps: [],
   startedAt: null,
   finishedAt: null,
@@ -297,6 +299,62 @@ describe('KubernetesBuildAdapter', () => {
       { delay: 2500 }
     ]);
     expect(endQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('records and logs why a pending build has not started, once per reason', async () => {
+    let { adapter, client, ctx, monitorQueue } = setup();
+    await adapter.startBuild('fwor_1');
+    let reason = 'Unschedulable: 0/1 nodes are available: 1 Insufficient memory.';
+
+    client.build.get.mockResolvedValue(build('pending', { pendingReason: reason }));
+    client.build.logs.mockResolvedValue({ lines: [], nextCursor: '' });
+
+    await monitorQueue.handler(monitorQueue.add.mock.calls[0][0]);
+    await monitorQueue.handler(monitorQueue.add.mock.calls[1][0]);
+
+    expect(ctx.setPendingReason).toHaveBeenCalledTimes(1);
+    expect(ctx.setPendingReason).toHaveBeenCalledWith({ pendingReason: reason });
+    expect(ctx.storeTempOutput).toHaveBeenCalledTimes(1);
+    expect(ctx.storeTempOutput).toHaveBeenCalledWith({
+      stepOid: 1n,
+      message: expect.stringContaining(`Waiting for cluster capacity: ${reason}`)
+    });
+    expect(monitorQueue.add.mock.calls[2][0]).toMatchObject({ pendingReason: reason });
+  });
+
+  it('clears the pending reason once the build runs', async () => {
+    let { adapter, client, ctx, monitorQueue } = setup();
+    await adapter.startBuild('fwor_1');
+    let payload = { ...monitorQueue.add.mock.calls[0][0], pendingReason: 'Unschedulable: x' };
+
+    client.build.get.mockResolvedValueOnce(build('running'));
+    client.build.logs.mockResolvedValueOnce({ lines: [], nextCursor: '' });
+
+    await monitorQueue.handler(payload);
+
+    expect(ctx.setPendingReason).toHaveBeenCalledWith({ pendingReason: null });
+    expect(ctx.storeTempOutput).not.toHaveBeenCalled();
+  });
+
+  it('explains a failure of a build that never started', async () => {
+    let { client, ctx, endQueue } = setup();
+    client.build.get.mockResolvedValueOnce(
+      build('failed', { failureReason: 'DeadlineExceeded: Job was active longer than specified' })
+    );
+
+    await endQueue.handler({
+      runId: 'fwor_1',
+      artifactData: {},
+      logStepOid: 1n,
+      pendingReason: 'Unschedulable: 0/1 nodes are available: 1 Insufficient memory.'
+    });
+
+    expect(ctx.storeTempOutput).toHaveBeenCalledWith({
+      stepOid: 1n,
+      message: expect.stringContaining(
+        'the build never started: Unschedulable: 0/1 nodes are available: 1 Insufficient memory.'
+      )
+    });
   });
 
   it('fails the build with the failure reason in the current step', async () => {
