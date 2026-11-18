@@ -43,6 +43,44 @@ describe('slateVersionDiscovery:list E2E', () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0]!.id).toBe(discovery.id);
   });
+
+  it('returns the newest discovery first when ordered descending', async () => {
+    const { slate } = await f.slateVersionDiscovery.withSlate();
+
+    const newest = await f.slateVersionDiscovery.default({
+      slateVersionOid: slate.currentVersion.oid,
+      specificationOid: slate.currentVersion.specification.oid
+    });
+
+    const result = await slatesHubClient.slateVersionDiscovery.list({
+      slateId: slate.id,
+      versionIds: [slate.currentVersion.id],
+      limit: 1,
+      order: 'desc'
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]!.id).toBe(newest.id);
+  });
+
+  it('includes discoveries of versions that are not active', async () => {
+    const { discovery, slate } = await f.slateVersionDiscovery.withSlate({
+      status: SlateVersionDiscoveryStatus.failed
+    });
+
+    await testDb.slateVersion.update({
+      where: { oid: slate.currentVersion.oid },
+      data: { status: 'discovery_failed' }
+    });
+
+    const result = await slatesHubClient.slateVersionDiscovery.list({
+      slateId: slate.id,
+      versionIds: [slate.currentVersion.id],
+      limit: 10
+    });
+
+    expect(result.items.map(item => item.id)).toEqual([discovery.id]);
+  });
 });
 
 describe('slateVersionDiscovery:get E2E', () => {

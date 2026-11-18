@@ -3943,6 +3943,19 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/platform/packages/ip-info": {
+      "name": "@metorial/ip-info",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/ip-info": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/platform/packages/list-utils": {
       "name": "@metorial/list-utils",
       "version": "1.0.0",
@@ -4914,7 +4927,6 @@
         "@lowerdeck/hash": "workspace:2.0.0",
         "@lowerdeck/hono": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/ip-info": "workspace:2.0.0",
         "@lowerdeck/once": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
@@ -4928,6 +4940,7 @@
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@lowerdeck/tokens": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/ip-info": "workspace:*",
       },
       "devDependencies": {
         "@mtsrc/auth-core-api-internal": "workspace:*",
@@ -5122,10 +5135,10 @@
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/hono": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
-        "@lowerdeck/ip-info": "workspace:2.0.0",
         "@lowerdeck/rpc-server": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/editions": "workspace:*",
+        "@metorial/ip-info": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@mtsrc/auth-core-db": "workspace:*",
         "@mtsrc/auth-core-http": "workspace:*",
@@ -5295,6 +5308,7 @@
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/queue": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
         "@mtsrc/auth-core-db": "workspace:*",
@@ -5525,9 +5539,9 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/delay": "workspace:2.0.0",
-        "@lowerdeck/ip-info": "workspace:2.0.0",
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/queue": "workspace:2.0.0",
+        "@metorial/ip-info": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
         "@mtsrc/auth-core-db": "workspace:*",
@@ -10447,6 +10461,8 @@
     "@metorial/id": ["@metorial/id@workspace:src/platform/packages/id"],
 
     "@metorial/image-url": ["@metorial/image-url@workspace:src/platform/packages/image-url"],
+
+    "@metorial/ip-info": ["@metorial/ip-info@workspace:src/platform/packages/ip-info"],
 
     "@metorial/json-viewer": ["@metorial/json-viewer@workspace:src/metorial-frontend/packages/json-viewer"],
 

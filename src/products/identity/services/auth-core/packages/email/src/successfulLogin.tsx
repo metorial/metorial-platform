@@ -1,4 +1,4 @@
-import { ipInfo } from '@lowerdeck/ip-info';
+import { ipInfo } from '@metorial/ip-info';
 import {
   createEmail,
   createTemplate,

@@ -47,6 +47,22 @@ class slateServiceImpl {
     return slate;
   }
 
+  async getSlateByRegistryId(d: { registrySlateId: string }) {
+    let slate = await db.slate.findFirst({
+      where: {
+        status: 'active',
+        OR: [
+          { slateIdOnRegistry: d.registrySlateId },
+          { slateFullIdentifierOnRegistry: d.registrySlateId }
+        ]
+      },
+      orderBy: { createdAt: 'desc' },
+      include
+    });
+    if (!slate) throw new ServiceError(notFoundError('slate'));
+    return slate;
+  }
+
   async getSlateRegistryRecord(d: { slate: Slate & { registry: Registry } }) {
     let reg = await getRegistryClient(d.slate.registry);
     let { scopeId, slateId } = getRegistrySlatePathParams(d.slate);
