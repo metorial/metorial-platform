@@ -6,10 +6,11 @@ FROM rust:1.91.1-slim AS chef
 RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef --locked --version 0.1.71
 
-WORKDIR /app
+WORKDIR /app/src/platform/services/object-storage
 
 FROM chef AS planner
 
+COPY src/lib/doctor/rust /app/src/lib/doctor/rust
 COPY src/platform/services/object-storage/Cargo.toml src/platform/services/object-storage/Cargo.lock ./
 COPY src/platform/services/object-storage/object-store ./object-store
 COPY src/platform/services/object-storage/object-store-backends ./object-store-backends
@@ -23,6 +24,7 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git \
     cargo chef cook --release --recipe-path recipe.json
 
+COPY src/lib/doctor/rust /app/src/lib/doctor/rust
 COPY src/platform/services/object-storage/Cargo.toml src/platform/services/object-storage/Cargo.lock ./
 COPY src/platform/services/object-storage/object-store ./object-store
 COPY src/platform/services/object-storage/object-store-backends ./object-store-backends
@@ -37,7 +39,7 @@ RUN groupadd --system --gid 10001 appuser && useradd -m --uid 10001 --gid appuse
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/object-store-service /app/object-store-service
+COPY --from=builder /app/src/platform/services/object-storage/target/release/object-store-service /app/object-store-service
 
 RUN mkdir -p /app/data && chown -R appuser:appuser /app
 

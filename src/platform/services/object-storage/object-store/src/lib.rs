@@ -1,5 +1,6 @@
 pub mod api;
 pub mod config;
+pub mod doctor;
 pub mod error;
 pub mod metadata;
 pub mod public;

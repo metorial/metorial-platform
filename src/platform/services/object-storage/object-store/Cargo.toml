@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 object-store-backends = { path = "../object-store-backends" }
+lowerdeck-doctor = { path = "../../../../lib/doctor/rust", features = ["axum", "aws"] }
 
 tokio = { workspace = true }
 async-trait = { workspace = true }
@@ -32,6 +33,7 @@ hmac = "0.12"
 tokio-util = { version = "0.7", features = ["rt"] }
 sha2 = { workspace = true }
 hex = { workspace = true }
+libc = "0.2"
 
 # Zip archives (pure-Rust Deflate so compressed output is deterministic)
 crc32fast = "1.4"
