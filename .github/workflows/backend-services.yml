@@ -30,6 +30,8 @@ jobs:
           fetch-depth: 0
           submodules: recursive
           token: ${{ secrets.GH_TOKEN || github.token }}
+      - uses: ./.github/actions/e2e-durations
+        continue-on-error: true
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
@@ -279,6 +281,8 @@ jobs:
         with:
           submodules: recursive
           token: ${{ secrets.GH_TOKEN || github.token }}
+      - uses: ./.github/actions/free-disk-space
+        if: ${{ matrix.service.control }}
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -319,3 +323,18 @@ jobs:
       - name: Report Warp Cache
         if: always()
         run: sh src/tooling/warp-cache/report.sh
+
+  e2e-durations:
+    name: Record E2E durations
+    needs: [e2e]
+    if: github.event_name == 'push' && needs.e2e.result == 'success'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+      - uses: ./.github/actions/e2e-durations
+        with:
+          mode: save

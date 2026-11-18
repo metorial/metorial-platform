@@ -1,4 +1,4 @@
-import { eventually, uniqueId, useOrganization } from '@metorial/e2e';
+import { eventuallyAudited, uniqueId, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture } from '@metorial/e2e/db';
 import { describe, expect, it } from 'vitest';
 import { auditTrackerService } from '../src';
@@ -32,19 +32,16 @@ describe('module-audit-tracker', () => {
       }
     ]);
 
-    let rows = await eventually(
-      async () => {
-        let rows = await db.auditLog.findMany({
-          where: {
-            organizationOid: fixture.organization.oid,
-            ua: { in: [singleUa, batchUa] }
-          }
-        });
-        expect(rows).toHaveLength(3);
-        return rows;
-      },
-      { timeoutMs: 150_000, intervalMs: 2_000 }
-    );
+    let rows = await eventuallyAudited(async () => {
+      let rows = await db.auditLog.findMany({
+        where: {
+          organizationOid: fixture.organization.oid,
+          ua: { in: [singleUa, batchUa] }
+        }
+      });
+      expect(rows).toHaveLength(3);
+      return rows;
+    });
 
     let single = rows.find(row => row.ua == singleUa)!;
     expect(single).toMatchObject({

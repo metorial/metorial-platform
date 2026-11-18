@@ -1,6 +1,6 @@
 import { parseRedisUrl } from '@lowerdeck/redis';
 import { getConfig } from '@metorial/config';
-import { eventually } from '@metorial/e2e';
+import { eventually, eventuallyAudited } from '@metorial/e2e';
 import { Queue } from 'bullmq';
 import { expect } from 'vitest';
 import { auditLogService, type AuditLog } from '../src';
@@ -36,13 +36,13 @@ export let waitForAuditLog = async (
   match: (auditLog: AuditLog) => boolean,
   timeoutMs = 150_000
 ) =>
-  await eventually(
+  await eventuallyAudited(
     async () => {
       let auditLog = (await listAllAuditLogs(organizationId)).find(match);
       expect(auditLog).toBeDefined();
       return auditLog!;
     },
-    { timeoutMs, intervalMs: 2_000 }
+    { timeoutMs }
   );
 
 /** Completed jobs are removed (`removeOnComplete`), so an `unknown` state means the job finished. */

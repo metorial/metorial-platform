@@ -2,6 +2,7 @@ import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import {
   API_VERSIONS,
   eventually,
+  eventuallyWithCron,
   expectOk,
   expectServiceError,
   firstPage,
@@ -15,6 +16,7 @@ import { db, loadOrganizationFixture } from '@metorial/e2e/db';
 import { Fabric, type FabricEvents } from '@metorial/fabric';
 import { afterEach, describe, expect, it } from 'vitest';
 import { apiKeyService, machineAccessAuthService } from '../src';
+import { expireCron } from '../src/cron/expireKeys';
 
 type SecretRequestedEvent = FabricEvents['machine_access.secret.requested:before'];
 type InstanceKeyType = 'instance_access_token_secret' | 'instance_access_token_publishable';
@@ -479,12 +481,13 @@ describe('module-machine-access api keys', () => {
     expect((await instanceApi(expired.secret.secret).get('/instance')).status).toBe(401);
     expectOk(await instanceApi(valid.secret.secret).get('/instance'));
 
-    await eventually(
+    await eventuallyWithCron(
+      expireCron,
       async () => {
         let row = await db.apiKey.findUniqueOrThrow({ where: { oid: expired.apiKey.oid } });
         expect(row.status).toBe('expired');
       },
-      { timeoutMs: 150_000, intervalMs: 2_000 }
+      { timeoutMs: 150_000, intervalMs: 500 }
     );
     expect(
       (await db.apiKey.findUniqueOrThrow({ where: { oid: valid.apiKey.oid } })).status

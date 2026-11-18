@@ -1,5 +1,5 @@
 import {
-  eventually,
+  eventuallyAudited,
   expectOk,
   expectServiceError,
   firstPage,
@@ -353,24 +353,20 @@ describe('module-audit-log-stream streams', () => {
     expect(disabled.status).toBe('inactive');
     expect(JSON.stringify([created, disabled])).not.toContain(providerData.apiKey);
 
-    let entries = await eventually(
-      async () => {
-        let page = await (
-          await auditLogService.listAuditLogs({ organizationId: org.ids.organizationId })
-        ).run({ limit: 100 });
-        let entries = page.items.filter(
-          item =>
-            item.resource == 'audit_log_stream' && (item.payload as any)?.id == created.id
-        );
-        expect(entries.map(entry => entry.action).sort()).toEqual([
-          'create',
-          'delete',
-          'update'
-        ]);
-        return entries;
-      },
-      { timeoutMs: 150_000, intervalMs: 2_000 }
-    );
+    let entries = await eventuallyAudited(async () => {
+      let page = await (
+        await auditLogService.listAuditLogs({ organizationId: org.ids.organizationId })
+      ).run({ limit: 100 });
+      let entries = page.items.filter(
+        item => item.resource == 'audit_log_stream' && (item.payload as any)?.id == created.id
+      );
+      expect(entries.map(entry => entry.action).sort()).toEqual([
+        'create',
+        'delete',
+        'update'
+      ]);
+      return entries;
+    });
 
     expect(JSON.stringify(entries)).not.toContain(providerData.apiKey);
 

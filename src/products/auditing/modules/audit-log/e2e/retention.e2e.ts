@@ -1,5 +1,11 @@
 import { getAuditEventsByIds } from '@metorial/audit-models';
-import { eventually, expectServiceError, uniqueId, useOrganization } from '@metorial/e2e';
+import {
+  eventually,
+  eventuallyAudited,
+  expectServiceError,
+  uniqueId,
+  useOrganization
+} from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { auditTrackerService } from '@metorial/module-audit-tracker';
 import { describe, expect, it } from 'vitest';
@@ -28,14 +34,11 @@ let recordEntries = async (
     }))
   );
 
-  return await eventually(
-    async () => {
-      let rows = await db.auditLog.findMany({ where: { ua }, orderBy: { recordedAt: 'asc' } });
-      expect(rows).toHaveLength(entries.length);
-      return rows;
-    },
-    { timeoutMs: 150_000, intervalMs: 2_000 }
-  );
+  return await eventuallyAudited(async () => {
+    let rows = await db.auditLog.findMany({ where: { ua }, orderBy: { recordedAt: 'asc' } });
+    expect(rows).toHaveLength(entries.length);
+    return rows;
+  });
 };
 
 let createLegacyEvent = async (fixture: OrganizationFixture, recordedAt: Date) =>
