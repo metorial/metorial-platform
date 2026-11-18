@@ -573,6 +573,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "scaledown/extract-1": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Scaledown's Extract-1, a task-specific structured-data extraction model (1M context, $0.05/M input). No Scaledown model exists in the index and no candidate matches; a real new model the catalog does not contain yet.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "scaledown/scaledown-classify-1": {
     "decision": "defer",
     "until": "2026-12-12",
