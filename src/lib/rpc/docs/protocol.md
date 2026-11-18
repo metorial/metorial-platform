@@ -40,6 +40,12 @@ A method name is a list of segments joined by `:`, e.g. `bucket:get`, `bucket:fi
 The TypeScript server derives names from the nested controller object (`{ bucket: { get } }` →
 `bucket:get`). Generated Go services use the namespace path from the spec DSL the same way.
 
+`rpc:ping` is reserved: every server answers it with `{ "ok": true }` unless the service registers
+its own handler of that name. It is authenticated like any other call (§8), so a caller can check
+reachability, the endpoint path and its credentials without calling a real method. The Go server
+also runs its middleware for it; the TypeScript server skips controller middleware. Servers that
+predate it answer `not_found` with `entity: "handler"`, which still proves the endpoint is right.
+
 ## 3. HTTP transport
 
 | Aspect                            | Rule                                                                                                                                                                              |

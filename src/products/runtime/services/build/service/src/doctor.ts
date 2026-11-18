@@ -1,43 +1,28 @@
-import { isServiceError } from '@lowerdeck/error';
 import { check, type CheckDefinition } from '@lowerdeck/doctor';
 import { createClusterManagerClient } from '@metorial-platform-systems/cluster-manager-client';
 import {
   baselineChecks,
   bunRedis,
-  dependencyCheck,
   objectStorageChecks,
   postgresChecks,
   prismaQuery,
   queueChecks,
-  redisChecks
+  redisChecks,
+  rpcDependencyCheck
 } from '@metorial/doctor';
 import type { RedisClient } from 'bun';
 import { db } from './db';
 import { env } from './env';
 import { storage } from './storage';
 
-let clusterManagerTimeoutMs = 5_000;
-
-let clusterManagerCheck = () => {
-  let client = createClusterManagerClient({
-    endpoint: env.clusterManager.CLUSTER_MANAGER_URL!,
-    tokenFile: env.clusterManager.CLUSTER_MANAGER_TOKEN_FILE,
-    timeoutMs: clusterManagerTimeoutMs
-  });
-
-  // An unknown run answers build_not_found, which proves both the route and our token work.
-  return dependencyCheck({
+let clusterManagerCheck = () =>
+  rpcDependencyCheck({
     name: 'cluster-manager',
-    run: async () => {
-      try {
-        await client.build.get({ runId: 'metorial-doctor' });
-      } catch (error) {
-        if (isServiceError(error) && error.data.code == 'build_not_found') return;
-        throw error;
-      }
-    }
+    client: createClusterManagerClient({
+      endpoint: env.clusterManager.CLUSTER_MANAGER_URL!,
+      tokenFile: env.clusterManager.CLUSTER_MANAGER_TOKEN_FILE
+    })
   });
-};
 
 let providerCheck = (): CheckDefinition =>
   check({

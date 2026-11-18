@@ -7,7 +7,8 @@ import {
   postgresChecks,
   prismaQuery,
   queueChecks,
-  redisChecks
+  redisChecks,
+  rpcDependencyCheck
 } from '@metorial/doctor';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
@@ -24,9 +25,9 @@ export let mcpRuntimeDoctorChecks = (redis: RedisClient): CheckDefinition[] => [
   ...redisChecks({ client: bunRedis(redis) }),
   ...objectStorageChecks({ client: storage, buckets: [env.storage.LOGS_BUCKET_NAME] }),
   ...queueChecks(),
-  dependencyCheck({ name: 'functions', tcp: env.functionBay.FUNCTION_BAY_API_URL }),
+  rpcDependencyCheck({ name: 'functions', endpoint: env.functionBay.FUNCTION_BAY_API_URL }),
   ...(env.secrets.SHUTTLE_DELEGATE_SECRETS_TO_NEBULA
-    ? [dependencyCheck({ name: 'secret-store', tcp: env.nebula.NEBULA_API_URL })]
+    ? [rpcDependencyCheck({ name: 'secret-store', endpoint: env.nebula.NEBULA_API_URL })]
     : []),
   ...(env.holopod.HOLOPOD_HTTP_ENDPOINT
     ? [

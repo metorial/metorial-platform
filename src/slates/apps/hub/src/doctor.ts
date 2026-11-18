@@ -7,7 +7,8 @@ import {
   postgresChecks,
   prismaQuery,
   queueChecks,
-  redisChecks
+  redisChecks,
+  rpcDependencyCheck
 } from '@metorial/doctor';
 import type { RedisClient } from 'bun';
 import { db } from './db';
@@ -24,7 +25,7 @@ export let slatesHubDoctorChecks = (redis: RedisClient): CheckDefinition[] => [
   ...redisChecks({ client: bunRedis(redis) }),
   ...objectStorageChecks({ client: storage, buckets: [env.storage.INVOCATIONS_BUCKET_NAME] }),
   ...queueChecks(),
-  dependencyCheck({ name: 'functions', tcp: env.functionBay.FUNCTION_BAY_API_URL }),
+  rpcDependencyCheck({ name: 'functions', endpoint: env.functionBay.FUNCTION_BAY_API_URL }),
   ...(env.registry.SLATES_REGISTRY_URL
     ? [
         dependencyCheck({

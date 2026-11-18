@@ -3863,11 +3863,14 @@
       "dependencies": {
         "@lowerdeck/cron": "workspace:2.0.0",
         "@lowerdeck/doctor": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "1.4.3",
         "typescript": "^5.9.3",

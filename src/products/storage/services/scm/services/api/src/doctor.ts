@@ -7,7 +7,8 @@ import {
   postgresChecks,
   prismaQuery,
   queueChecks,
-  redisChecks
+  redisChecks,
+  rpcDependencyCheck
 } from '@metorial/doctor';
 import type { RedisClient } from 'bun';
 import { db } from './db';
@@ -54,7 +55,7 @@ export let scmDoctorChecks = (redis: RedisClient): CheckDefinition[] => [
   ...queueChecks(),
   dependencyCheck({ name: 'code-bucket', tcp: env.codeBucket.CODE_BUCKET_SERVICE_URL }),
   ...(delegateSecretsToNebula
-    ? [dependencyCheck({ name: 'secret-store', tcp: env.nebula.NEBULA_API_URL })]
+    ? [rpcDependencyCheck({ name: 'secret-store', endpoint: env.nebula.NEBULA_API_URL })]
     : []),
   editorUrlCheck()
 ];

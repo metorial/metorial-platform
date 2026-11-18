@@ -22,7 +22,20 @@ const (
 	ContentType         = "application/rpc+json"
 	RequestIDHeader     = "metorial-req-id"
 	DefaultMaxBodyBytes = 32 << 20
+
+	// PingMethod is answered by every server unless a handler of that name is registered. It runs
+	// after authentication and middleware, so callers can check reachability, routing and
+	// credentials without calling a real method.
+	PingMethod = "rpc:ping"
 )
+
+type PingResult struct {
+	OK bool `json:"ok"`
+}
+
+func pingHandler(context.Context, json.RawMessage) (any, error) {
+	return PingResult{OK: true}, nil
+}
 
 // HandlerFunc serves one call. payload is plain JSON (the envelope is already removed); the
 // returned value is encoded with Marshal.
@@ -212,6 +225,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for i, call := range calls {
 		calls[i].Name = normalizeMethodName(call.Name)
 		handlers[i] = s.handlers[calls[i].Name]
+		if handlers[i] == nil && calls[i].Name == PingMethod {
+			handlers[i] = pingHandler
+		}
 		if handlers[i] == nil {
 			s.mu.RUnlock()
 			writeResponse(w, http.StatusNotFound, NotFoundError("handler", ""))

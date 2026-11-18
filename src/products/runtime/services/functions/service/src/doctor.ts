@@ -2,12 +2,12 @@ import { check, type CheckDefinition } from '@lowerdeck/doctor';
 import {
   baselineChecks,
   bunRedis,
-  dependencyCheck,
   objectStorageChecks,
   postgresChecks,
   prismaQuery,
   queueChecks,
-  redisChecks
+  redisChecks,
+  rpcDependencyCheck
 } from '@metorial/doctor';
 import type { RedisClient } from 'bun';
 import { db } from './db';
@@ -51,11 +51,6 @@ export let functionsDoctorChecks = (redis: RedisClient): CheckDefinition[] => [
   ...queueChecks(),
   providerCheck(),
   ...(env.provider.DEFAULT_PROVIDER == 'knative' && env.clusterManager.CLUSTER_MANAGER_URL
-    ? [
-        dependencyCheck({
-          name: 'cluster-manager',
-          run: () => getClusterManager().function.list({ functionId: 'metorial-doctor' })
-        })
-      ]
+    ? [rpcDependencyCheck({ name: 'cluster-manager', client: getClusterManager() })]
     : [])
 ];

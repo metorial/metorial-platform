@@ -7,7 +7,8 @@ import {
   postgresChecks,
   prismaQuery,
   queueChecks,
-  redisChecks
+  redisChecks,
+  rpcDependencyCheck
 } from '@metorial/doctor';
 import { db } from '@mtsrc/auth-core-db';
 import type { RedisClient } from 'bun';
@@ -247,7 +248,7 @@ export let authCoreDoctorChecks = (redis: RedisClient): CheckDefinition[] => [
     severity: 'warning',
     tcp: env.service.SSO_DATABASE_URL
   }),
-  dependencyCheck({ name: 'email', tcp: env.service.RELAY_URL }),
+  rpcDependencyCheck({ name: 'email', endpoint: env.service.RELAY_URL }),
   publicUrlsCheck(
     { authUrl: env.service.ARES_AUTH_URL, ssoUrl: env.service.ARES_SSO_URL },
     process.env.METORIAL_PUBLIC_URL
