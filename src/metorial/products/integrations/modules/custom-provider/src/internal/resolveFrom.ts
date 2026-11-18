@@ -108,7 +108,12 @@ export let resolveCustomProviderFromForDeployment = (d: {
   let merged = mergeCustomProviderFromUpdate(d.provider.payload.from, d.partial);
 
   if (merged.type === 'function') {
-    if (!merged.repository && !merged.files?.length && d.provider.scmRepoOid && d.provider.scmRepo) {
+    if (
+      !merged.repository &&
+      !merged.files?.length &&
+      d.provider.scmRepoOid &&
+      d.provider.scmRepo
+    ) {
       merged = {
         ...merged,
         repository: synthesizeRepositoryFromScmRepo(d.provider.scmRepo)
@@ -132,19 +137,9 @@ export let resolveCustomProviderFromForDeployment = (d: {
   }
 
   if (merged.type === 'container') {
-    throw new ServiceError(forbiddenError({ message: 'Docker MCP servers are currently disabled.' }));
-  }
-
-  if (merged.type === 'container') {
-    if (!merged.repository?.imageRef) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Container deployment requires an image reference.',
-          hint: 'Provide repository.imageRef in the request or ensure it is set on the custom provider.'
-        })
-      );
-    }
-    return merged;
+    throw new ServiceError(
+      forbiddenError({ message: 'Docker MCP servers are currently disabled.' })
+    );
   }
 
   if (merged.type === 'remote') {
