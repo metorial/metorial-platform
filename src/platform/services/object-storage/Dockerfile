@@ -19,12 +19,12 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 
-COPY --from=planner /app/recipe.json recipe.json
+COPY src/lib/doctor/rust /app/src/lib/doctor/rust
+COPY --from=planner /app/src/platform/services/object-storage/recipe.json recipe.json
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/usr/local/cargo/git \
     cargo chef cook --release --recipe-path recipe.json
 
-COPY src/lib/doctor/rust /app/src/lib/doctor/rust
 COPY src/platform/services/object-storage/Cargo.toml src/platform/services/object-storage/Cargo.lock ./
 COPY src/platform/services/object-storage/object-store ./object-store
 COPY src/platform/services/object-storage/object-store-backends ./object-store-backends

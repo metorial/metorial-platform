@@ -4,21 +4,26 @@ import { listSettingIssues } from '@metorial/settings';
 import { readFile, rm, statfs, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { monitorEventLoopDelay, type IntervalHistogram } from 'node:perf_hooks';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 
 let memoryWarnRatio = 0.9;
 let eventLoopWarnMs = 500;
 let tmpWarnFreeRatio = 0.1;
 
-let cgroupMemoryFiles = ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes'];
+let cgroupMemoryFiles = [
+  '/sys/fs/cgroup/memory.max',
+  '/sys/fs/cgroup/memory/memory.limit_in_bytes'
+];
 
 // cgroup v1 reports "no limit" as a huge number close to the 64-bit maximum.
 let unlimitedThreshold = 2 ** 60;
 
 let audienceHints: Record<string, string> = {
   customer: 'Set the value in your Helm values or compose environment.',
-  deployment: 'The deployment renders this value; re-apply the chart or check per-component env overrides.',
-  derived: 'Metorial derives this value from other settings; fix the settings it is derived from.'
+  deployment:
+    'The deployment renders this value; re-apply the chart or check per-component env overrides.',
+  derived:
+    'Metorial derives this value from other settings; fix the settings it is derived from.'
 };
 
 export let readMemoryLimit = async (files = cgroupMemoryFiles) => {
@@ -36,7 +41,7 @@ export let readMemoryLimit = async (files = cgroupMemoryFiles) => {
   return null;
 };
 
-let eventLoop: IntervalHistogram | undefined;
+let eventLoop: ReturnType<typeof monitorEventLoopDelay> | undefined;
 
 let eventLoopHistogram = () => {
   if (!eventLoop) {
@@ -69,7 +74,8 @@ let settingsCheck = (): CheckDefinition =>
         resolution: {
           summary: 'Fix the listed settings and restart the component.',
           steps: Object.keys(byAudience).map(
-            audience => `${audienceHints[audience] ?? ''} (${byAudience[audience]!.map(item => item.env).join(', ')})`
+            audience =>
+              `${audienceHints[audience] ?? ''} (${byAudience[audience]!.map(item => item.env).join(', ')})`
           ),
           docs: 'datacenter/operations/doctor#configuration'
         },
@@ -86,7 +92,8 @@ let publicUrlCheck = (publicUrl: string | undefined): CheckDefinition =>
     severity: 'critical',
     run: ctx => {
       if (!publicUrl) {
-        if (getEdition() != 'on-prem') return ctx.skip('METORIAL_PUBLIC_URL is not used here.');
+        if (getEdition() != 'on-prem')
+          return ctx.skip('METORIAL_PUBLIC_URL is not used here.');
 
         return ctx.fail({
           message: 'METORIAL_PUBLIC_URL is not set.',
@@ -129,7 +136,11 @@ let memoryCheck = (readLimit: () => Promise<number | null>): CheckDefinition =>
       if (!limit) return ctx.pass(`Using ${rssMb} MiB; no memory limit is set.`, { rssMb });
 
       let ratio = rss / limit;
-      let details = { rssMb, limitMb: Math.round(limit / 1024 / 1024), ratio: Number(ratio.toFixed(3)) };
+      let details = {
+        rssMb,
+        limitMb: Math.round(limit / 1024 / 1024),
+        ratio: Number(ratio.toFixed(3))
+      };
 
       if (ratio > memoryWarnRatio) {
         return ctx.warn({
@@ -160,7 +171,9 @@ let eventLoopCheck = (): CheckDefinition =>
       if (p99Ms > eventLoopWarnMs) {
         return ctx.warn({
           message: `The event loop was blocked for up to ${p99Ms}ms (p99).`,
-          resolution: { summary: 'The component is overloaded. Raise its CPU limit or add replicas.' },
+          resolution: {
+            summary: 'The component is overloaded. Raise its CPU limit or add replicas.'
+          },
           details: { p99Ms }
         });
       }
@@ -192,7 +205,10 @@ let tmpCheck = (directory: string): CheckDefinition =>
       if (!stats || !stats.blocks) return ctx.pass(`${directory} is writable.`);
 
       let freeRatio = stats.bavail / stats.blocks;
-      let details = { directory, freeMb: Math.round((stats.bavail * stats.bsize) / 1024 / 1024) };
+      let details = {
+        directory,
+        freeMb: Math.round((stats.bavail * stats.bsize) / 1024 / 1024)
+      };
 
       if (freeRatio < tmpWarnFreeRatio) {
         return ctx.warn({
@@ -202,7 +218,10 @@ let tmpCheck = (directory: string): CheckDefinition =>
         });
       }
 
-      return ctx.pass(`${directory} is writable with ${Math.round(freeRatio * 100)}% free.`, details);
+      return ctx.pass(
+        `${directory} is writable with ${Math.round(freeRatio * 100)}% free.`,
+        details
+      );
     }
   });
 
