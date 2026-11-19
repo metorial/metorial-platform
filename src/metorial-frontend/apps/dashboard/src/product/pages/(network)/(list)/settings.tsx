@@ -1,5 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { checkEdition } from '@metorial/editions';
+import { checkEdition, isEdition } from '@metorial/editions';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -55,33 +55,37 @@ export let NetworkSettingsPage = () => {
 
       return (
         <>
-          {gateway ? (
-            <Attributes
-              itemWidth="300px"
-              attributes={[
-                { label: 'Name', content: gateway.name },
-                ...(checkEdition('on-prem')
-                  ? []
-                  : [
-                      {
-                        label: 'Public IP',
-                        content: publicIpRestricted ? (
-                          <RestrictedPublicIp aria-label="Public IP unavailable on this plan">
-                            123.45.67.89
-                          </RestrictedPublicIp>
-                        ) : (
-                          (publicIp?.ip ?? '-')
-                        )
-                      }
-                    ]),
-                { label: 'Region', content: publicIp?.region ?? '-' }
-              ]}
-            />
-          ) : (
-            <EmptyText>No integration internet gateway found.</EmptyText>
-          )}
+          {isEdition('cloud') && (
+            <>
+              {gateway ? (
+                <Attributes
+                  itemWidth="300px"
+                  attributes={[
+                    { label: 'Name', content: gateway.name },
+                    ...(checkEdition('on-prem')
+                      ? []
+                      : [
+                          {
+                            label: 'Public IP',
+                            content: publicIpRestricted ? (
+                              <RestrictedPublicIp aria-label="Public IP unavailable on this plan">
+                                123.45.67.89
+                              </RestrictedPublicIp>
+                            ) : (
+                              (publicIp?.ip ?? '-')
+                            )
+                          }
+                        ]),
+                    { label: 'Region', content: publicIp?.region ?? '-' }
+                  ]}
+                />
+              ) : (
+                <EmptyText>No integration internet gateway found.</EmptyText>
+              )}
 
-          <Spacer size={20} />
+              <Spacer size={20} />
+            </>
+          )}
 
           <Box
             title="Applied Firewalls"
