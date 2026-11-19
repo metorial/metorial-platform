@@ -152,3 +152,124 @@ describe('storeSlateInvocation retention gating', () => {
     expect(storedPayload().requests).toHaveLength(1);
   });
 });
+
+describe('storeSlateInvocation webhook content', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.putObject.mockResolvedValue(undefined);
+    mocks.invocationUpdate.mockResolvedValue(undefined);
+  });
+
+  it('keeps registration secrets, receive keys and credentials out of stored webhook invocations', async () => {
+    storeSlateInvocation({
+      tenant: { storeContent: true } as any,
+      slateVersion,
+      participants: [],
+      record,
+      requestMessages: [
+        {
+          jsonrpc: '2.0',
+          id: 'process',
+          method: 'slates/trigger_group.webhook.process',
+          params: {
+            triggerGroupId: 'events',
+            url: 'https://hooks.example.com/receive/whk_global_urlkey?x=1',
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer shared-delivery-token',
+              'x-provider-signature': 'v0=abc',
+              'content-type': 'application/json'
+            },
+            body: { encoding: 'base64', content: 'eyJ0eXBlIjoiZXZlbnQifQ==' },
+            webhookRegistrationPayload: { signingSecret: 'registration-signing-secret' }
+          }
+        },
+        {
+          jsonrpc: '2.0',
+          id: 'register',
+          method: 'slates/trigger_group.webhook.register',
+          params: {
+            triggerGroupId: 'events',
+            webhookUrl: 'https://hooks.example.com/receive/whk_tenant_urlkey',
+            deliveryConfig: { bearerToken: 'delivery-config-token' }
+          }
+        }
+      ] as any,
+      responseMessages: [
+        {
+          jsonrpc: '2.0',
+          id: 'process',
+          result: { events: [{ payload: { type: 'event' } }] }
+        },
+        {
+          jsonrpc: '2.0',
+          id: 'register',
+          result: {
+            webhookRegistrationIdentifier: 'reg_1',
+            webhookRegistrationPayload: { signingSecret: 'fresh-signing-secret' }
+          }
+        }
+      ] as any,
+      invocationResult
+    });
+    await flush();
+
+    let serialized = mocks.putObject.mock.calls[0]![2] as string;
+    for (let secret of [
+      'registration-signing-secret',
+      'fresh-signing-secret',
+      'shared-delivery-token',
+      'delivery-config-token',
+      'whk_global_urlkey',
+      'whk_tenant_urlkey'
+    ]) {
+      expect(serialized).not.toContain(secret);
+    }
+
+    let payload = storedPayload();
+    expect(payload.requests[0].params).toMatchObject({
+      triggerGroupId: 'events',
+      url: 'https://hooks.example.com/receive/[REDACTED]?x=1',
+      method: 'POST',
+      headers: {
+        Authorization: '[REDACTED]',
+        'x-provider-signature': 'v0=abc',
+        'content-type': 'application/json'
+      },
+      body: { encoding: 'base64', content: 'eyJ0eXBlIjoiZXZlbnQifQ==' },
+      webhookRegistrationPayload: '[REDACTED]'
+    });
+    expect(payload.responses[0].result).toEqual({ events: [{ payload: { type: 'event' } }] });
+    expect(payload.responses[1].result).toEqual({
+      webhookRegistrationIdentifier: 'reg_1',
+      webhookRegistrationPayload: '[REDACTED]'
+    });
+  });
+
+  it('leaves non-webhook invocations untouched', async () => {
+    storeSlateInvocation({
+      tenant: { storeContent: true } as any,
+      slateVersion,
+      participants: [],
+      record,
+      requestMessages: [
+        {
+          jsonrpc: '2.0',
+          id: 'tool',
+          method: 'slates/action.tool.invoke',
+          params: { actionId: 'fetch', input: { url: 'https://example.com/receive/abc' } }
+        }
+      ] as any,
+      responseMessages: [
+        { jsonrpc: '2.0', id: 'tool', result: { output: { ok: true } } }
+      ] as any,
+      invocationResult
+    });
+    await flush();
+
+    expect(storedPayload().requests[0].params).toEqual({
+      actionId: 'fetch',
+      input: { url: 'https://example.com/receive/abc' }
+    });
+  });
+});
