@@ -531,6 +531,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-live-1.1": {
+    "decision": "defer",
+    "until": "2026-12-19",
+    "reason": "GPT-Live 1.1 is a new OpenAI realtime voice model checkpoint released 2026-10-15, replacing GPT-Live 1. The model index only has openai/gpt-live-1, a different checkpoint, so defer until an entry for 1.1 is added.",
+    "by": "agent",
+    "at": "2026-11-19"
+  },
   "paperinstruments/ultramarine-1-flash": {
     "decision": "defer",
     "until": "2026-12-13",
