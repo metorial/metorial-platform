@@ -53,7 +53,11 @@ export let env = defineSettings({
     SLATES_SUB_REGISTRY_ID: v.optional(v.string()),
     SUPPORTS_PREBUILT_SLATES: v.optional(v.boolean()),
     // npm registry for slate deployment installs; npm's default when unset.
-    SLATE_DEPLOYMENT_NPM_REGISTRY_URL: v.optional(v.string())
+    SLATE_DEPLOYMENT_NPM_REGISTRY_URL: v.optional(v.string()),
+    SLATES_RUNTIME_VERSION: setting(v.optional(v.string()), {
+      description:
+        'Pins the slates runtime bundled into prebuilt slate deployments; the newest compatible version from the registry when unset'
+    })
   },
 
   ares: {

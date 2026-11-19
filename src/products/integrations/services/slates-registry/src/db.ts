@@ -38,6 +38,11 @@ declare global {
       x: string;
     };
 
+    type SlateToolingMetadata = {
+      main: string;
+      exports: string[];
+    };
+
     type FilterExpression = {
       type: 'prefix' | 'scope' | 'slate';
       value: string;

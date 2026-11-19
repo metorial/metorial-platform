@@ -1,4 +1,6 @@
 import { combineQueueProcessors, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
+import { buildNpmRegistryUrl } from '../../env';
+import { npmRegistryEnv } from '../../lib/npmRegistry';
 import { BuildContext } from './buildContext';
 
 export type BuildRunStep = Awaited<ReturnType<BuildContext['listSteps']>>[number];
@@ -43,6 +45,7 @@ export abstract class ForgeBuildAdapter {
       envVars,
       runtimeEnv: {
         ...envVars,
+        ...npmRegistryEnv(buildNpmRegistryUrl),
         WORKFLOW_RUN_ID: ctx.run.id,
         WORKFLOW_VERSION_ID: version.id,
         RUNTIME: this.runtime

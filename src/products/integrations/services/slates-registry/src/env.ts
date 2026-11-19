@@ -38,6 +38,10 @@ export let env = defineSettings({
     SLATES_PACK_INCREMENTAL_RETENTION_DAYS: v.optional(v.number())
   },
 
+  tooling: {
+    SLATES_TOOLING_PUBLISHER_TENANTS: v.optional(v.string())
+  },
+
   encryption: {
     SLATES_REGISTRY_ENCRYPTION_KEY: v.optional(v.string())
   },

@@ -12,9 +12,17 @@ export type SlateVersionStatement = {
 
 export type SlateVersionSignatureInput = { kid: string; signature: string };
 
+export type SlateToolingStatement = {
+  kind: string;
+  version: string;
+  contentChecksum: string;
+};
+
 export let slateVersionSignaturePrefix = 'metorial-slate-version/v1\n';
 
 export let slatePackManifestSignaturePrefix = 'metorial-slatepack-manifest/v1\n';
+
+export let slateToolingSignaturePrefix = 'metorial-slate-tooling/v1\n';
 
 export let contentChecksumAlgorithm = 'paths-bytes-sha256/v1';
 
@@ -69,6 +77,18 @@ export let buildSlateVersionSigningInput = (statement: SlateVersionStatement) =>
       canonicalize({
         type: 'slate_version',
         identifier: normalizeSlateIdentifier(statement.identifier),
+        version: statement.version,
+        contentChecksum: statement.contentChecksum,
+        checksumAlgorithm: contentChecksumAlgorithm
+      })
+  );
+
+export let buildSlateToolingSigningInput = (statement: SlateToolingStatement) =>
+  encoder.encode(
+    slateToolingSignaturePrefix +
+      canonicalize({
+        type: 'slate_tooling',
+        kind: statement.kind,
         version: statement.version,
         contentChecksum: statement.contentChecksum,
         checksumAlgorithm: contentChecksumAlgorithm
@@ -167,6 +187,22 @@ export let findValidSlatePackManifestSignature = async (d: {
 }) =>
   findValidSignature({
     input: buildSlatePackManifestSigningInput(d.manifest),
+    signatures: d.signatures,
+    trustedKeys: d.trustedKeys
+  });
+
+export let signSlateTooling = async (d: {
+  privateKey: SigningPrivateKey;
+  statement: SlateToolingStatement;
+}) => signBytes(d.privateKey, buildSlateToolingSigningInput(d.statement));
+
+export let findValidSlateToolingSignature = async (d: {
+  statement: SlateToolingStatement;
+  signatures: SlateVersionSignatureInput[];
+  trustedKeys: Map<string, SigningPublicKey>;
+}) =>
+  findValidSignature({
+    input: buildSlateToolingSigningInput(d.statement),
     signatures: d.signatures,
     trustedKeys: d.trustedKeys
   });

@@ -16,6 +16,7 @@ import {
 } from '../lib/signature';
 import {
   getSlatePackEntryPath,
+  getSlatePackToolingPath,
   parseSlatePackManifest,
   parseSlatePackSignatures,
   serializeSlatePackSignatures,
@@ -35,6 +36,7 @@ import { mirrorService } from './mirror';
 import { mirrorImportService } from './mirrorImport';
 import { normalizePackChannelUrl, slatePackBatchService } from './slatePackBatch';
 import { signingKeyService } from './signingKey';
+import { slateToolingService } from './slateTooling';
 
 let GB = 1024 * 1024 * 1024;
 
@@ -103,6 +105,14 @@ export type PackSelection = {
     bundleArtifact: { checksum: string; bucket: string; storageKey: string };
     signatures: { kid: string; signature: string }[];
   };
+};
+
+export type PackToolingSelection = {
+  kind: string;
+  version: string;
+  checksum: string;
+  artifact: { bucket: string; storageKey: string };
+  signatures: { kid: string; signature: string }[];
 };
 
 type PackBundle = { path: string; bucket: string; storageKey: string };
@@ -214,6 +224,33 @@ class slatePackServiceImpl {
           manifestBytes,
           signatureFile: files.get(SLATE_PACK_SIGNATURE_PATH)
         });
+      }
+
+      // Tooling first, so slates that need a newer runtime find it once they deploy.
+      for (let tooling of manifest.tooling) {
+        let file = files.get(tooling.path);
+        let bundle = file ? await readBounded(file, maxEntryBytes).catch(() => null) : null;
+        let source = { type: 'pack' as const, packImport };
+
+        if (bundle) {
+          await slateToolingService.importVerified({
+            source,
+            kind: tooling.kind,
+            version: tooling.version,
+            bundle,
+            signatures: tooling.signatures
+          });
+        } else {
+          await slateToolingService.recordResult({
+            source,
+            kind: tooling.kind,
+            version: tooling.version,
+            outcome: {
+              status: 'rejected',
+              message: `The slate pack is missing ${tooling.path} or it could not be read.`
+            }
+          });
+        }
       }
 
       for (let [index, entry] of manifest.entries.entries()) {
@@ -328,6 +365,7 @@ class slatePackServiceImpl {
 
     let contents = this.buildPackContents({
       selected,
+      tooling: await slateToolingService.listNewestPerKnownKind(),
       source: {
         url: env.url.SERVICE_PUBLIC_URL,
         subRegistryId: d.subRegistry?.identifier ?? null
@@ -391,6 +429,7 @@ class slatePackServiceImpl {
 
   buildPackContents(d: {
     selected: PackSelection[];
+    tooling?: PackToolingSelection[];
     source: SlatePackManifest['source'];
     delivery: SlatePackDelivery | null;
   }) {
@@ -413,6 +452,16 @@ class slatePackServiceImpl {
           signature: signature.signature
         })),
         catalog: { name: slate.name, description: slate.description, logoUrl: slate.logoUrl }
+      })),
+      tooling: (d.tooling ?? []).map(tooling => ({
+        kind: tooling.kind,
+        version: tooling.version,
+        path: getSlatePackToolingPath(tooling),
+        contentChecksum: tooling.checksum,
+        signatures: tooling.signatures.map(signature => ({
+          kid: signature.kid,
+          signature: signature.signature
+        }))
       }))
     };
 
@@ -421,6 +470,13 @@ class slatePackServiceImpl {
       bucket: version.bundleArtifact.bucket,
       storageKey: version.bundleArtifact.storageKey
     }));
+    for (let [index, tooling] of (d.tooling ?? []).entries()) {
+      bundles.push({
+        path: manifest.tooling[index]!.path,
+        bucket: tooling.artifact.bucket,
+        storageKey: tooling.artifact.storageKey
+      });
+    }
 
     return { manifest, bundles };
   }

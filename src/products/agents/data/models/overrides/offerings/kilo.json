@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "deepseek/deepseek-v4-pro-0813": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4-pro-0813",
+    "reason": "Name and checkpoint match exactly: this is the GA release of DeepSeek V4 Pro (2026-08-13, 1.6T MoE). The output price 4.44 is Pro-tier, so it is not a mislabeled Flash model; the low input price 0.111 is an aggregator-specific (Kilo) discount, so the current link stands.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
     "decision": "link",
     "model": "deepseek/deepseek-v4.1-flash-1017",
