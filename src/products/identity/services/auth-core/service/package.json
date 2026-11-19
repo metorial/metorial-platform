@@ -59,7 +59,7 @@
     "@mtsrc/auth-core-module-sync": "workspace:*",
     "@mtsrc/auth-core-module-user": "workspace:*",
     "@mtsrc/auth-core-runtime": "workspace:*",
-    "@sentry/bun": "^11.11.0",
+    "@sentry/bun": "^11.12.0",
     "@sentry/cli": "^3.8.2"
   },
   "overrides": {

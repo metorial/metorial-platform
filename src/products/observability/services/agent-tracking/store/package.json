@@ -17,7 +17,7 @@
     "@mtsrc/agent-tracking-cost": "workspace:*",
     "@mtsrc/agent-tracking-model-resolver": "workspace:*",
     "@mtsrc/agent-tracking-spec": "workspace:*",
-    "mongoose": "^9.11.4"
+    "mongoose": "^9.12.1"
   },
   "devDependencies": {
     "@mtsrc/agent-tracking-crypto": "workspace:*",
