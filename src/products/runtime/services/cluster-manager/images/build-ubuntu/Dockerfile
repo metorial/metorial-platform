@@ -45,7 +45,7 @@ RUN cp /src/dependencies.json package.json \
     && node /src/write-manifest.mjs . \
     && rm package.json package-lock.json
 
-FROM ubuntu:25.10
+FROM ubuntu:26.04
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
