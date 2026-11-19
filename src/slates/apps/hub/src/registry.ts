@@ -12,6 +12,7 @@ import { getId } from './id';
 
 type RegistryClient = {
   slates: any;
+  tooling: any;
   'change-notifications': any;
 };
 
