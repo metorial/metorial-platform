@@ -10,6 +10,7 @@ import {
 } from './connection';
 import { BadgeStyleProps, getBadgeStyles, getIconBadgeStyles } from './constants';
 import { BadgeIndicator } from './indicator';
+import { badgeWrapStyles, canWrapBadgeLabel } from './wrapping';
 
 let indicatorSizes = { '1': 8, '2': 11, '3': 15 };
 
@@ -44,7 +45,9 @@ type IconVariantBadgeProps = {
 export type BadgeProps =
   DefaultBadgeProps | ConnectionVariantBadgeProps | IconVariantBadgeProps;
 
-let BadgeRoot = styled.span`
+let BadgeRoot = styled.span<{ $wrap: boolean }>`
+  ${badgeWrapStyles}
+
   transition:
     background-color 220ms ease,
     color 220ms ease,
@@ -80,12 +83,15 @@ export let Badge = (props: BadgeProps) => {
 
   if (props.icon) {
     let styles = getIconBadgeStyles({ color: props.color, size: props.size });
+    let wrap = canWrapBadgeLabel(props.children);
 
     return (
       <BadgeRoot
+        $wrap={wrap}
         aria-busy={props.loading || undefined}
         style={{
           ...styles.outer,
+          ...(wrap && { height: 'auto', minHeight: styles.outer.height }),
           ...props.style,
           display: 'inline-flex',
           alignItems: 'center',
@@ -128,6 +134,7 @@ export let Badge = (props: BadgeProps) => {
 
   return (
     <BadgeRoot
+      $wrap={canWrapBadgeLabel(children)}
       aria-busy={loading || undefined}
       style={{
         ...styles.outer,
