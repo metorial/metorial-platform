@@ -649,6 +649,7 @@ enum ProviderAuthCredentialsOrigin {
   tenant_created
   managed_public
   managed_backing
+  installation_template
 }
 
 enum ManagedProviderAuthCredentialsStatus {
@@ -677,6 +678,13 @@ model ProviderAuthCredentials {
   scopes Json @default("[]")
 
   needsScopeSync Boolean @default(true)
+
+  templateId String?
+
+  fixedAuthMethodKey String?
+
+  /// [ProviderAuthCredentialsFixedInput]
+  fixedAuthInput Json?
 
   tenantOid BigInt?
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
@@ -735,6 +743,7 @@ model ProviderAuthCredentials {
   @@index([needsScopeSync])
   @@index([projectOid])
   @@index([instanceOid])
+  @@unique([tenantOid, templateId])
 }
 
 model ManagedProviderAuthCredentials {

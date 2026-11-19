@@ -32,6 +32,7 @@ import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { adminSetupToolFiltersError } from '../lib/adminSetupErrors';
 import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
+import { omitFixedAuthInput } from '../lib/fixedAuthInput';
 import { sessionTypeSkipsConfig } from '../lib/setupSessionType';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
@@ -298,7 +299,10 @@ class providerSetupSessionUiServiceImpl {
     ) {
       return {
         type: 'required' as const,
-        schema: selectedAuthMethod.value.inputJsonSchema
+        schema: omitFixedAuthInput(
+          selectedAuthMethod.value.inputJsonSchema,
+          fullSession.authCredentials?.fixedAuthInput
+        )
       };
     }
 
@@ -313,7 +317,10 @@ class providerSetupSessionUiServiceImpl {
 
     return {
       type: 'required' as const,
-      schema: schema.authMethod.value.inputJsonSchema
+      schema: omitFixedAuthInput(
+        schema.authMethod.value.inputJsonSchema,
+        fullSession.authCredentials?.fixedAuthInput
+      )
     };
   }
 
@@ -944,6 +951,7 @@ class providerSetupSessionUiServiceImpl {
           }
         },
         authMethod: true,
+        authCredentials: true,
         deployment: {
           include: {
             provider: true,

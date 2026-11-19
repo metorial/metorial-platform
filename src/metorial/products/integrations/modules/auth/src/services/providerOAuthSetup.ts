@@ -188,19 +188,27 @@ class providerOAuthSetupServiceImpl {
     checkProviderMatch(d.provider, d.credentials);
     checkProviderMatch(d.provider, d.providerDeployment);
 
+    let credentials = d.credentials;
+
     if (
-      !d.credentials &&
+      !credentials &&
       d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !== 'supported'
     ) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'No provider auth credentials provided for oauth method',
-          code: 'missing_auth_credentials'
-        })
-      );
-    }
+      credentials =
+        (await providerAuthCredentialsService.getInstallationTemplateDefaultInternal({
+          tenant: d.tenant,
+          provider: d.provider
+        })) ?? undefined;
 
-    let credentials = d.credentials;
+      if (!credentials) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'No provider auth credentials provided for oauth method',
+            code: 'missing_auth_credentials'
+          })
+        );
+      }
+    }
 
     if (!credentials) {
       credentials =
@@ -257,7 +265,9 @@ class providerOAuthSetupServiceImpl {
       let clientSecret = await ID.generateId('providerOAuthSetup_clientSecret');
 
       let isManagedCredentials =
-        credentials.origin === 'managed_backing' || credentials.origin === 'managed_public';
+        credentials.origin === 'managed_backing' ||
+        credentials.origin === 'managed_public' ||
+        credentials.origin === 'installation_template';
 
       let callbackUrlOverride = isManagedCredentials
         ? null

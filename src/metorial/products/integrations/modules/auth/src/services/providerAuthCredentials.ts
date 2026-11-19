@@ -7,13 +7,14 @@ import {
   db,
   type Environment,
   getId,
-  type Prisma,
+  Prisma,
   type Provider,
   type ProviderAuthCredentials,
   type ProviderAuthCredentialsStatus,
   type ProviderType,
   type ProviderVariant,
   type Solution,
+  snowflake,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -40,6 +41,7 @@ import {
 import { getBackend } from '@metorial-subspace/provider';
 import { type AuditSubspaceProviderAuthCredentials, Fabric } from '@metorial/fabric';
 import { env } from '../env';
+import { assertProjectCredentialsAllowed } from '../lib/installationCredentialsPolicy';
 import { normalizeManagedOAuthScopeIds } from '../lib/managedOAuthScopes';
 import {
   ensureManagedProviderAuthCredentialsBacking,
@@ -112,11 +114,13 @@ interface CreateParams {
   };
 }
 
-type ProviderAuthCredentialsListOrigin = 'tenant_created' | 'managed_backing';
+type ProviderAuthCredentialsListOrigin =
+  'tenant_created' | 'managed_backing' | 'installation_template';
 
 let defaultListOrigins: ProviderAuthCredentialsListOrigin[] = [
   'tenant_created',
-  'managed_backing'
+  'managed_backing',
+  'installation_template'
 ];
 
 let getTenantOwnedWhere = (d: {
@@ -134,6 +138,12 @@ let getManagedBackingWhere = (d: { tenant: Tenant; solution: Solution }) => ({
   tenantOid: d.tenant.oid,
   solutionOid: d.solution.oid,
   origin: 'managed_backing' as const
+});
+
+let getInstallationTemplateWhere = (d: { tenant: Tenant; solution: Solution }) => ({
+  tenantOid: d.tenant.oid,
+  solutionOid: d.solution.oid,
+  origin: 'installation_template' as const
 });
 
 let getManagedBackingWhereForTenantList = (d: {
@@ -246,6 +256,10 @@ class providerAuthCredentialsServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
+    if (d.input.config.type !== 'auto_registration') {
+      await assertProjectCredentialsAllowed({ tenant: scope.tenant, provider: d.provider });
+    }
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_credentials.created:before', eventBase);
 
@@ -332,6 +346,7 @@ class providerAuthCredentialsServiceImpl {
     let origin = d.origin?.length ? d.origin : defaultListOrigins;
     let includeTenantCreated = origin.includes('tenant_created');
     let includeManagedBacking = origin.includes('managed_backing');
+    let includeInstallationTemplate = origin.includes('installation_template');
 
     let search = await buildSearchFilter<Prisma.ProviderAuthCredentialsWhereInput>({
       search: d.search,
@@ -392,6 +407,12 @@ class providerAuthCredentialsServiceImpl {
                         ids: d.ids,
                         providerAuthMethodGlobalOids: authMethodsGlobal?.oids
                       })
+                    : undefined!,
+                  includeInstallationTemplate
+                    ? {
+                        ...getInstallationTemplateWhere({ tenant: d.tenant, solution }),
+                        ...(d.ids ? { id: { in: d.ids } } : {})
+                      }
                     : undefined!
                 ].filter(Boolean)
               }
@@ -464,7 +485,8 @@ class providerAuthCredentialsServiceImpl {
             ...normalizeStatusForGet(d).noParent,
             OR: [
               getTenantOwnedWhere({ ...d, solution }),
-              getManagedBackingWhere({ tenant: d.tenant, solution })
+              getManagedBackingWhere({ tenant: d.tenant, solution }),
+              getInstallationTemplateWhere({ tenant: d.tenant, solution })
             ]
           },
           include
@@ -506,7 +528,8 @@ class providerAuthCredentialsServiceImpl {
         ...normalizeStatusForGet(d).noParent,
         OR: [
           getTenantOwnedWhere({ ...d, solution }),
-          getManagedBackingWhere({ tenant: d.tenant, solution })
+          getManagedBackingWhere({ tenant: d.tenant, solution }),
+          getInstallationTemplateWhere({ tenant: d.tenant, solution })
         ]
       },
       include
@@ -518,6 +541,16 @@ class providerAuthCredentialsServiceImpl {
 
     checkTenant(d, d.providerAuthCredentials);
     checkDeletedEdit(d.providerAuthCredentials, 'update');
+
+    if (d.providerAuthCredentials.origin === 'installation_template') {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'These credentials are managed by your enterprise administrator and cannot be changed here',
+          code: 'managed_credentials_readonly'
+        })
+      );
+    }
 
     let managedCredentials = await this.getManagedProviderAuthCredentialsContext({
       tenant: d.tenant,
@@ -738,6 +771,131 @@ class providerAuthCredentialsServiceImpl {
     });
   }
 
+  async upsertInstallationTemplateCopyInternal(d: {
+    tenant: Tenant;
+    provider: Provider & { defaultVariant: ProviderVariant | null };
+    templateId: string;
+    slateCredentials: { id: string; slateOid: bigint };
+    status: 'active' | 'archived';
+    name: string;
+    description: string | null;
+    scopes: string[];
+    fixedAuthMethodKey: string;
+    fixedAuthInput: Record<string, string> | null;
+  }) {
+    let solution = await getMetorialSolution();
+    if (!d.provider.defaultVariant) throw new Error('Provider has no default variant');
+
+    let backend = await getBackend({ entity: d.provider.defaultVariant });
+
+    return await withTransaction(async db => {
+      let slateCredentials = await db.slateOAuthCredentials.upsert({
+        where: { id: d.slateCredentials.id },
+        create: {
+          oid: snowflake.nextId(),
+          id: d.slateCredentials.id,
+          slateOid: d.slateCredentials.slateOid,
+          tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid
+        },
+        update: {}
+      });
+
+      let existing = await db.providerAuthCredentials.findUnique({
+        where: { tenantOid_templateId: { tenantOid: d.tenant.oid, templateId: d.templateId } }
+      });
+
+      let fields = {
+        status: d.status,
+        archivedAt: d.status === 'archived' ? (existing?.archivedAt ?? new Date()) : null,
+        name: d.name,
+        description: d.description,
+        scopes: d.scopes,
+        needsScopeSync: false,
+        fixedAuthMethodKey: d.fixedAuthMethodKey,
+        fixedAuthInput: d.fixedAuthInput ?? Prisma.DbNull,
+        slateCredentialsOid: slateCredentials.oid,
+        backendOid: backend.backend.oid,
+        providerOid: d.provider.oid
+      };
+
+      let providerAuthCredentials = await db.providerAuthCredentials.upsert({
+        where: { tenantOid_templateId: { tenantOid: d.tenant.oid, templateId: d.templateId } },
+        create: {
+          ...getId('providerAuthCredentials'),
+          ...fields,
+          type: 'oauth',
+          origin: 'installation_template',
+          templateId: d.templateId,
+          isAutoRegistration: false,
+          isEphemeral: false,
+          isDefault: false,
+          tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid
+        },
+        update: fields,
+        include
+      });
+
+      await addAfterTransactionHook(async () =>
+        existing
+          ? providerAuthCredentialsUpdatedQueue.add({
+              providerAuthCredentialsId: providerAuthCredentials.id
+            })
+          : providerAuthCredentialsCreatedQueue.add({
+              providerAuthCredentialsId: providerAuthCredentials.id
+            })
+      );
+
+      return providerAuthCredentials;
+    });
+  }
+
+  async countInstallationTemplateCopiesInUseInternal(d: { templateId: string }) {
+    return await db.providerAuthConfig.count({
+      where: {
+        status: { not: 'deleted' },
+        authCredentials: { origin: 'installation_template', templateId: d.templateId }
+      }
+    });
+  }
+
+  async deleteInstallationTemplateCopiesInternal(d: { templateId: string }) {
+    let copies = await db.providerAuthCredentials.findMany({
+      where: {
+        origin: 'installation_template',
+        templateId: d.templateId,
+        status: { not: 'deleted' }
+      },
+      select: { oid: true, id: true }
+    });
+    if (!copies.length) return;
+
+    await db.providerAuthCredentials.updateMany({
+      where: { oid: { in: copies.map(copy => copy.oid) } },
+      data: { status: 'deleted', isDefault: false, archivedAt: new Date() }
+    });
+
+    await providerAuthCredentialsArchivedQueue.addMany(
+      copies.map(copy => ({ providerAuthCredentialsId: copy.id }))
+    );
+  }
+
+  async getInstallationTemplateDefaultInternal(d: { tenant: Tenant; provider: Provider }) {
+    let solution = await getMetorialSolution();
+
+    return await db.providerAuthCredentials.findFirst({
+      where: {
+        ...getInstallationTemplateWhere({ tenant: d.tenant, solution }),
+        providerOid: d.provider.oid,
+        status: 'active'
+      },
+      include,
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
   async resolveReplacementProviderAuthCredentialsInternal(d: {
     tenant: Tenant;
     environment: Environment;
@@ -780,7 +938,8 @@ class providerAuthCredentialsServiceImpl {
         oid: { not: d.providerAuthCredentials.oid },
         OR: [
           getTenantOwnedWhere({ ...d, solution }),
-          getManagedBackingWhere({ tenant: d.tenant, solution })
+          getManagedBackingWhere({ tenant: d.tenant, solution }),
+          getInstallationTemplateWhere({ tenant: d.tenant, solution })
         ]
       },
       take: 2
