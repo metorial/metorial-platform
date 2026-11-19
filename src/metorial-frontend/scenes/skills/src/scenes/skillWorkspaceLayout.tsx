@@ -802,8 +802,8 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     return () => clearTimeout(timeout);
   }, [documentReady, onDocumentReady]);
 
-  let hasActivity: Record<WorkspacePanelId, boolean> = {
-    files: fileEntries.some(entry => entry.kind != 'directory' && !entry.isMain),
+  let showInAuto: Record<WorkspacePanelId, boolean> = {
+    files: true,
     mergeRequests: openMergeRequests.length + recentMergeRequests.length > 0,
     providers: linkedItems.length > 0,
     agents: agents.length > 0,
@@ -823,7 +823,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     if (id == 'security') {
       return workspacePanelIds.some(other => other != 'security' && isSectionVisible(other));
     }
-    return hasActivity[id];
+    return showInAuto[id];
   };
 
   let canWrite = !p.readOnly;
