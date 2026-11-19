@@ -73,7 +73,9 @@ describe('probes', () => {
     })(ctx());
 
     expect(pings).toBe(2);
-    expect(outcome.status).toBe('pass');
+    expect(outcome).toMatchObject({ status: 'pass' });
+    expect(outcome.details?.connectMs).toBeGreaterThanOrEqual(40);
+    expect(outcome.details?.latencyMs).toBeLessThan(40);
   });
 
   it('resolves hostnames', async () => {

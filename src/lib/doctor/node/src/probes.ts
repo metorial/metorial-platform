@@ -64,15 +64,13 @@ let sql = (opts: { query: (signal: AbortSignal) => Promise<unknown> } & LatencyP
 let redis = (
   opts: { client: { ping: () => Promise<unknown> } } & LatencyProbeOptions
 ): ProbeRun => {
-  let timed = call(
-    'Redis',
-    () => opts.client.ping(),
-    opts.warnLatencyMs ?? defaultWarnLatencyMs.redis
-  );
+  let warnLatencyMs = opts.warnLatencyMs ?? defaultWarnLatencyMs.redis;
 
   return async ctx => {
-    await opts.client.ping();
-    return timed(ctx);
+    let { latencyMs: connectMs } = await measure(() => opts.client.ping());
+    let { latencyMs } = await measure(() => opts.client.ping());
+
+    return latencyOutcome('Redis', latencyMs, warnLatencyMs, { connectMs });
   };
 };
 
