@@ -3,7 +3,6 @@ import { tmpdir } from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  describeMissingPackages,
   installVendorPackages,
   partitionDependencies,
   planDependencyInstall,
@@ -164,13 +163,5 @@ describe('installVendorPackages', () => {
     } finally {
       await fs.chmod(packageDir, 0o755);
     }
-  });
-});
-
-describe('describeMissingPackages', () => {
-  it('names the packages and points at the npm mirror setting', () => {
-    expect(describeMissingPackages(['lodash', 'axios'])).toBe(
-      'These packages are not preinstalled: lodash, axios. Air-gapped installations need an npm mirror (Helm value `runtime.builds.npmRegistry.url`).'
-    );
   });
 });

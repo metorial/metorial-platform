@@ -13,10 +13,14 @@ import { getMetorialLauncher } from './launcher';
 import { readBuildLayer } from './layer';
 import { cleanup } from './lib/cleanup';
 import { fileExistsSync, readJsonFileOptional } from './lib/fs';
+import {
+  describeInstallFailure,
+  probeRegistry,
+  resolveNpmRegistry
+} from './lib/registryProbe';
 import { commandExists } from './lib/runCommand';
 import { sanitizeLambdaBundle } from './lib/sanitizeLambdaBundle';
 import {
-  describeMissingPackages,
   installVendorPackages,
   planDependencyInstall,
   readVendorManifest,
@@ -245,7 +249,16 @@ let installKnativeDependencies = async (
   } catch (err) {
     if (!plan.missing?.length) throw err;
 
-    let message = `Dependency installation failed. ${describeMissingPackages(plan.missing)}`;
+    let registry = await resolveNpmRegistry({ env });
+    console.log(
+      `Dependency installation failed, checking whether builds can reach ${registry}...`
+    );
+    let probe = await probeRegistry({ registry, packages: plan.missing });
+
+    let description = describeInstallFailure({ probe, missing: plan.missing });
+    if (!description) throw err;
+
+    let message = `Dependency installation failed. ${description}`;
     console.error(message);
     throw new Error(message, { cause: err });
   }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds functions in the build-ubuntu image without network access: a dashboard template custom
 # provider and a prebuilt slate must build from the preinstalled packages, and a project needing
-# other packages must fail with the npm mirror hint.
+# other packages must fail saying builds cannot reach npm.
 #   ./smoke-test.sh            builds the image first (via build.sh)
 #   ./smoke-test.sh <image>    uses an existing image
 set -euo pipefail
@@ -52,7 +52,7 @@ if log="$(build custom-provider-missing-package 2>&1)"; then
   echo "FAIL: a project with packages outside the preinstalled set built offline"
   exit 1
 fi
-if ! grep -q 'These packages are not preinstalled: left-pad' <<<"$log"; then
+if ! grep -q 'Builds cannot reach https://registry.npmjs.org, and these packages are not preinstalled: left-pad' <<<"$log"; then
   echo "$log"
   echo "FAIL: the missing package error does not name left-pad"
   exit 1

@@ -5,9 +5,6 @@ import { runCommand } from './runCommand';
 
 export let defaultVendorDirectory = '/opt/function-bay/vendor';
 
-export let npmMirrorHint =
-  'Air-gapped installations need an npm mirror (Helm value `runtime.builds.npmRegistry.url`).';
-
 let dependencyFields = ['dependencies', 'devDependencies', 'optionalDependencies'] as const;
 
 let unsupportedSpecPattern =
@@ -88,9 +85,6 @@ export let planDependencyInstall = (d: {
     packages: Object.keys(d.manifest.packages).length
   };
 };
-
-export let describeMissingPackages = (missing: string[]) =>
-  `These packages are not preinstalled: ${missing.join(', ')}. ${npmMirrorHint}`;
 
 // The vendor directory is read-only, so packages are copied (not linked) and made writable for
 // build scripts that write into node_modules.
