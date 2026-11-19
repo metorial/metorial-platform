@@ -56,20 +56,26 @@ func grantKeysCheck(cfg *config) doctor.Check {
 			if cfg.publicKeysFile != "" {
 				source = cfg.publicKeysFile
 				raw, err := os.ReadFile(cfg.publicKeysFile)
+				if errors.Is(err, os.ErrNotExist) {
+					r.Fail("The grant key file does not exist yet, so every connection is refused.", doctorResolution(
+						"The functions and build services publish their keys to the egress-trust ConfigMap; check their trust-key doctor checks.",
+					), map[string]any{"source": source})
+					return nil
+				}
 				if err != nil {
 					return err
 				}
 				if keys, err = egress.ParseKeySet(raw); err != nil {
 					r.Fail("The grant key file does not parse: "+err.Error(), doctorResolution(
-						"Mount the grant public keys Secret the functions service publishes.",
-					), nil)
+						"The functions and build services publish their keys to the egress-trust ConfigMap; check their trust-key doctor checks.",
+					), map[string]any{"source": source})
 					return nil
 				}
 			}
 
 			if keys.Len() == 0 {
 				r.Fail("No grant public keys are loaded, so every connection is refused.", doctorResolution(
-					"Mount the grant public keys Secret the functions service publishes.",
+					"Set EGRESS_GRANT_PUBLIC_KEYS, or on Kubernetes check the functions and build trust-key doctor checks: they publish to the egress-trust ConfigMap.",
 				), map[string]any{"source": source})
 				return nil
 			}

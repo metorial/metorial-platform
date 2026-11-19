@@ -61,8 +61,20 @@ let call =
 let sql = (opts: { query: (signal: AbortSignal) => Promise<unknown> } & LatencyProbeOptions) =>
   call('The database', opts.query, opts.warnLatencyMs ?? defaultWarnLatencyMs.sql);
 
-let redis = (opts: { client: { ping: () => Promise<unknown> } } & LatencyProbeOptions) =>
-  call('Redis', () => opts.client.ping(), opts.warnLatencyMs ?? defaultWarnLatencyMs.redis);
+let redis = (
+  opts: { client: { ping: () => Promise<unknown> } } & LatencyProbeOptions
+): ProbeRun => {
+  let timed = call(
+    'Redis',
+    () => opts.client.ping(),
+    opts.warnLatencyMs ?? defaultWarnLatencyMs.redis
+  );
+
+  return async ctx => {
+    await opts.client.ping();
+    return timed(ctx);
+  };
+};
 
 let mongo = (
   opts: { ping: (signal: AbortSignal) => Promise<unknown> } & LatencyProbeOptions

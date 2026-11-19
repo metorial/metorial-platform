@@ -61,6 +61,11 @@ export let env = defineSettings({
     RUNTIME_SIGNING_KEY_ID: setting(v.optional(v.string()), {
       description:
         'Key id for RUNTIME_SIGNING_KEY, defaults to the id derived from its public key'
+    }),
+    TRUST_CONFIGMAPS: setting.list(v.string(), {
+      default: [],
+      description:
+        'Kubernetes ConfigMaps ("namespace/name") this service publishes the public key of RUNTIME_SIGNING_KEY to, for function pods and the egress gateway'
     })
   },
 

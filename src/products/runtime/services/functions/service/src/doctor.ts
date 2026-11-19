@@ -9,9 +9,11 @@ import {
   redisChecks,
   rpcDependencyCheck
 } from '@metorial/doctor';
+import { trustPublisherCheck } from '@metorial-platform-systems/runtime-trust-publisher';
 import type { RedisClient } from 'bun';
 import { db } from './db';
 import { env } from './env';
+import { ensureTrustPublisher } from './lib/trustPublisher';
 import { getClusterManager } from './providers/knative/clusterManager';
 import { storage } from './storage';
 
@@ -39,18 +41,23 @@ let providerCheck = (): CheckDefinition =>
     }
   });
 
-export let functionsDoctorChecks = (redis: RedisClient): CheckDefinition[] => [
-  ...baselineChecks(),
-  ...postgresChecks({
-    name: 'function_bay',
-    query: prismaQuery(db),
-    schemaProbe: () => db.tenant.count()
-  }),
-  ...redisChecks({ client: bunRedis(redis) }),
-  ...objectStorageChecks({ client: storage, buckets: [env.storage.BUNDLE_BUCKET_NAME] }),
-  ...queueChecks(),
-  providerCheck(),
-  ...(env.provider.DEFAULT_PROVIDER == 'knative' && env.clusterManager.CLUSTER_MANAGER_URL
-    ? [rpcDependencyCheck({ name: 'cluster-manager', client: getClusterManager() })]
-    : [])
-];
+export let functionsDoctorChecks = (redis: RedisClient): CheckDefinition[] => {
+  let trustPublisher = ensureTrustPublisher();
+
+  return [
+    ...baselineChecks(),
+    ...postgresChecks({
+      name: 'function_bay',
+      query: prismaQuery(db),
+      schemaProbe: () => db.tenant.count()
+    }),
+    ...redisChecks({ client: bunRedis(redis) }),
+    ...objectStorageChecks({ client: storage, buckets: [env.storage.BUNDLE_BUCKET_NAME] }),
+    ...queueChecks(),
+    providerCheck(),
+    ...(env.provider.DEFAULT_PROVIDER == 'knative' && env.clusterManager.CLUSTER_MANAGER_URL
+      ? [rpcDependencyCheck({ name: 'cluster-manager', client: getClusterManager() })]
+      : []),
+    ...(trustPublisher ? [trustPublisherCheck(trustPublisher)] : [])
+  ];
+};

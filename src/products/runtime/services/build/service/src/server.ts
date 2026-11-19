@@ -7,6 +7,7 @@ import { createRequire } from 'module';
 async function main() {
   await import('./init');
   await import('./instrument');
+  (await import('./lib/trustPublisher')).ensureTrustPublisher();
   await import('./endpoints');
   await import('./worker');
 }

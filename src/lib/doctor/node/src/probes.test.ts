@@ -62,6 +62,20 @@ describe('probes', () => {
     expect(outcome).toMatchObject({ status: 'warn', details: { thresholdMs: 1 } });
   });
 
+  it('does not count connection setup against the redis latency threshold', async () => {
+    let pings = 0;
+    let outcome = await probes.redis({
+      client: {
+        ping: () =>
+          new Promise(resolve => setTimeout(() => resolve('PONG'), pings++ == 0 ? 80 : 0))
+      },
+      warnLatencyMs: 40
+    })(ctx());
+
+    expect(pings).toBe(2);
+    expect(outcome.status).toBe('pass');
+  });
+
   it('resolves hostnames', async () => {
     let outcome = await probes.dns({ hostname: 'localhost' })(ctx());
     expect(outcome.status).toBe('pass');

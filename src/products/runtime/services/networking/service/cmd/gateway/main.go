@@ -50,9 +50,9 @@ func run(logger *slog.Logger) error {
 
 	var keys egress.Keys = cfg.publicKeys
 	if cfg.publicKeysFile != "" {
-		fileKeys, err := egress.NewFileKeySet(cfg.publicKeysFile, 10*time.Second)
-		if err != nil {
-			return fmt.Errorf("EGRESS_GRANT_PUBLIC_KEYS_FILE: %w", err)
+		fileKeys := egress.OpenFileKeySet(cfg.publicKeysFile, 10*time.Second)
+		if err := fileKeys.LastError(); err != nil {
+			logger.Warn("grant public keys are not loaded yet; refusing connections until they are", "file", cfg.publicKeysFile, "error", err)
 		}
 		keys = fileKeys
 	}

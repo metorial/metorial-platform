@@ -54,6 +54,11 @@ export let env = defineSettings({
       description:
         'Key id for BUILD_SIGNING_KEY, defaults to the id derived from its public key'
     }),
+    TRUST_CONFIGMAPS: setting.list(v.string(), {
+      default: [],
+      description:
+        'Kubernetes ConfigMaps ("namespace/name") this service publishes the public key of BUILD_SIGNING_KEY to, for the egress gateway'
+    }),
     SLATE_DEPLOYMENT_NPM_REGISTRY_URL: setting(v.optional(v.string()), {
       description:
         'npm registry slate builds install from, allowed by the default build egress'
