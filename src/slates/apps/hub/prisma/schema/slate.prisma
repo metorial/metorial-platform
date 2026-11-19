@@ -28,8 +28,8 @@ model Slate {
   slateVersions    SlateVersion[]
   slateDeployments SlateDeployment[]
 
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @default(now()) @updatedAt
+  createdAt                 DateTime                        @default(now())
+  updatedAt                 DateTime                        @default(now()) @updatedAt
   slateSpecifications       SlateSpecification[]
   slateAuthMethods          SlateAuthMethod[]
   slateConfigSchemas        SlateConfigSchema[]
@@ -38,6 +38,7 @@ model Slate {
   slateEvents               SlateEvent[]
   slateInstances            SlateInstance[]
   slateOAuthCredentials     SlateOAuthCredentials[]
+  oauthCredentialsTemplates SlateOAuthCredentialsTemplate[]
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateAuthConfigs          SlateAuthConfig[]
   slateSessions             SlateSession[]
