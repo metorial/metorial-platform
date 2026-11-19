@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
 COPY src/products/runtime/services/networking/legacy/deflector/go.mod src/products/runtime/services/networking/legacy/deflector/go.sum* ./
@@ -7,7 +7,7 @@ RUN go mod download
 COPY src/products/runtime/services/networking/legacy/deflector/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/deflector ./cmd/deflector
 
-FROM alpine:3.22
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /out/deflector /usr/local/bin/deflector
