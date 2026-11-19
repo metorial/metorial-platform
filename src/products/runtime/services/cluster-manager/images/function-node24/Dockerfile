@@ -30,9 +30,12 @@ COPY src/products/runtime/services/functions/packages/runtime-node/package.json 
 COPY src/products/runtime/services/functions/packages/runtime-node/src/ src/
 RUN bun build src/bootstrap.ts --target=node --format=cjs --outfile=/out/bootstrap.cjs
 
-FROM node:24-bookworm-slim
+FROM node:24-trixie-slim
 
-RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
       /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg \
     && userdel -r node \
     && mkdir -p /var/runtime/bundle /var/run/metorial/identity /var/run/metorial/trust \

@@ -3,6 +3,8 @@
 # The function-bay CLI and @function-bay/nodejs are bundled from this checkout.
 
 FROM node:24-bookworm-slim AS node
+RUN npm install -g npm@^11.21.3 --no-audit --no-fund
+
 FROM oven/bun:1.4.2 AS bun
 
 FROM oven/bun:1.4.2 AS tooling
