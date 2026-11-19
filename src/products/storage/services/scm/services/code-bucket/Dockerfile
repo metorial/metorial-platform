@@ -51,7 +51,7 @@ COPY --from=workspace-builder /workspace/dist ./pkg/workspace/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/code-bucket ./cmd/server
 
 # Stage 3: Final minimal image
-FROM alpine:3.22
+FROM alpine:3.24
 
 RUN apk --no-cache add ca-certificates tzdata \
  && addgroup -S -g 10001 metorial \
