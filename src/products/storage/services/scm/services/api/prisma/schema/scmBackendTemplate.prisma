@@ -1,0 +1,38 @@
+enum ScmBackendTemplateStatus {
+  active
+  archived
+}
+
+model ScmBackendTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmBackendType
+
+  name        String
+  description String?
+
+  apiUrl String
+  webUrl String
+
+  appId    String?
+  appSlug  String?
+  clientId String?
+
+  clientSecretNebulaSecretId     String?
+  appPrivateKeyNebulaSecretId    String?
+  appWebhookSecretNebulaSecretId String?
+
+  status ScmBackendTemplateStatus @default(active)
+
+  version       Int @default(1)
+  secretVersion Int @default(1)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  backends ScmBackend[]
+
+  @@index([status])
+}

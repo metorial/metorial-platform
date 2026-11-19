@@ -39,6 +39,12 @@ model ScmBackend {
 
   isDefault Boolean @default(false) // System-managed default backends (like github.com)
 
+  templateOid BigInt?
+  template    ScmBackendTemplate? @relation(fields: [templateOid], references: [oid], onDelete: Restrict)
+
+  templateVersion       Int?
+  templateSecretVersion Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -47,4 +53,7 @@ model ScmBackend {
   backendSetupSessions         ScmBackendSetupSession[]
   accounts                     ScmAccount[]
   repositories                 ScmRepository[]
+
+  @@unique([tenantOid, templateOid])
+  @@index([templateOid])
 }

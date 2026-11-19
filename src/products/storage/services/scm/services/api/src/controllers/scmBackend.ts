@@ -1,4 +1,8 @@
-import { scmSetupTypes, getScmProviderOptions } from '../lib/scmPolicy';
+import {
+  areProjectProvidersAllowed,
+  getScmProviderOptions,
+  scmSetupTypes
+} from '../lib/scmPolicy';
 import { checkEdition } from '@metorial/editions';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -22,7 +26,10 @@ export let scmBackendApp = tenantApp.use(async ctx => {
 let providerOptionsHandler = tenantApp
   .handler()
   .input(v.object({ tenantId: v.string() }))
-  .do(async () => getScmProviderOptions());
+  .do(async () => ({
+    items: getScmProviderOptions(),
+    projectProvidersAllowed: areProjectProvidersAllowed()
+  }));
 
 export let scmBackendController = app.controller({
   ...(checkEdition('on-prem')
