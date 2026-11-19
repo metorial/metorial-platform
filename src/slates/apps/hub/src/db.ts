@@ -149,6 +149,8 @@ declare global {
       [key: string]: any;
     };
 
+    type SlateOAuthCredentialsFixedInput = Record<string, string>;
+
     type SlateWebhookEventRequest = {
       method: string;
       url: string;
