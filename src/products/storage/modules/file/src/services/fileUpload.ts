@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
@@ -7,12 +7,20 @@ import type { AuditScope } from '@metorial/audit-scope';
 import { Fabric } from '@metorial/fabric';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeWritePermission } from '@metorial/module-store';
+import { createHash } from 'node:crypto';
 import { ObjectStorageError, PublicUrlPurpose } from 'object-storage-client';
 import { fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { env } from '../env';
 import { deleteCargoObjectIfUnreferenced } from '../lib/cargoObjects';
 import { requireInstanceScope } from '../lib/instanceScope';
+import {
+  getFirstMultipartPartNumbers,
+  getMultipartManifests,
+  selectMultipartPartSize,
+  supportsFileMultipartUpload,
+  withMultipartUploadLock
+} from '../lib/multipartUpload';
 import { getCloudFrontUploadUrl } from '../lib/signedUploadUrl';
 import {
   describeInvalidUploadSize,
@@ -47,6 +55,15 @@ type FileUploadAccessInput = {
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
+
+type PreparedUpload =
+  | { kind: 'single'; url: string; headers: Record<string, string> }
+  | {
+      kind: 'multipart';
+      partSize: number;
+      partCount: number;
+      parts: Awaited<ReturnType<typeof getMultipartManifests>>;
+    };
 
 let isObjectMissingError = (error: unknown) =>
   error instanceof ObjectStorageError && error.statusCode === 404;
@@ -155,6 +172,7 @@ class FileUploadServiceImpl {
     d: CargoOwnerScope & {
       auditScope?: AuditScope;
       purpose: string;
+      acceptMultipart?: boolean;
       input: {
         name: string;
         size: number;
@@ -230,44 +248,81 @@ class FileUploadServiceImpl {
 
     await Fabric.fire('file.upload.created:before', fabricOwner);
 
-    let signedUpload = await this.createSignedUploadUrl({
-      uploadId,
-      storeId,
-      size: d.input.size,
-      contentType: fileType,
-      expiresAt: uploadUrlExpiresAt
-    });
-
-    let upload = await withTransaction(async db => {
-      let created = await db.fileUpload.create({
-        data: {
-          id: uploadId,
-          ...cargoFileScope(d),
-          purposeOid: purpose.oid,
+    let expiresAt = getPendingUploadExpiresAt();
+    let partSize = d.acceptMultipart ? selectMultipartPartSize(d.input.size) : null;
+    let multipartUploadId: string | null = null;
+    try {
+      let target: PreparedUpload;
+      if (partSize) {
+        multipartUploadId = await getStorage().startMultipartUpload(
+          getCargoFilesBucketName(),
           storeId,
-          fileName,
-          fileSize: BigInt(d.input.size),
-          fileType,
-          title: d.input.title,
-          attachStoreId: d.input.store?.id,
-          attachPath: d.input.store?.path,
-          attachReplace: d.input.store?.replace ?? false,
-          createdByResourceActorOid: d.authorization.resourceActor?.oid,
-          uploadUrlExpiresAt,
-          expiresAt: getPendingUploadExpiresAt()
-        },
-        include
+          fileType
+        );
+
+        let partCount = Math.ceil(d.input.size / partSize);
+        let parts = await getMultipartManifests({
+          storeId,
+          uploadId: multipartUploadId,
+          fileSize: d.input.size,
+          partSize,
+          expiresAt,
+          numbers: getFirstMultipartPartNumbers(partCount)
+        });
+        target = { kind: 'multipart', partSize, partCount, parts };
+      } else {
+        let signed = await this.createSignedUploadUrl({
+          uploadId,
+          storeId,
+          size: d.input.size,
+          contentType: fileType,
+          expiresAt: uploadUrlExpiresAt
+        });
+        target = { kind: 'single', ...signed };
+      }
+
+      let upload = await withTransaction(async db => {
+        let created = await db.fileUpload.create({
+          data: {
+            id: uploadId,
+            ...cargoFileScope(d),
+            purposeOid: purpose.oid,
+            storeId,
+            multipartUploadId,
+            multipartPartSize: partSize,
+            fileName,
+            fileSize: BigInt(d.input.size),
+            fileType,
+            title: d.input.title,
+            attachStoreId: d.input.store?.id,
+            attachPath: d.input.store?.path,
+            attachReplace: d.input.store?.replace ?? false,
+            createdByResourceActorOid: d.authorization.resourceActor?.oid,
+            uploadUrlExpiresAt,
+            expiresAt
+          },
+          include
+        });
+
+        await Fabric.fire('file.upload.created:after', {
+          ...fabricOwner,
+          fileUpload: created
+        });
+
+        return created;
       });
 
-      await Fabric.fire('file.upload.created:after', {
-        ...fabricOwner,
-        fileUpload: created
-      });
-
-      return created;
-    });
-
-    return { upload, uploadUrl: signedUpload.url, uploadHeaders: signedUpload.headers };
+      return target.kind === 'single'
+        ? { upload, uploadUrl: target.url, uploadHeaders: target.headers, multipart: null }
+        : { upload, uploadUrl: null, uploadHeaders: {}, multipart: target };
+    } catch (error) {
+      if (multipartUploadId) {
+        await getStorage()
+          .abortMultipartUpload(getCargoFilesBucketName(), storeId, multipartUploadId)
+          .catch(abortError => console.error('Could not abort the file upload', abortError));
+      }
+      throw error;
+    }
   }
 
   async getPendingUploadById(
@@ -292,12 +347,38 @@ class FileUploadServiceImpl {
     d: CargoOwnerScope & {
       auditScope?: AuditScope;
       uploadId: string;
+      receipts?: string[];
     } & FileUploadAccessInput
   ) {
-    let { uploadId, authorization, defaultPermissions, overridePermissions, ...scope } = d;
-    let access = { authorization, defaultPermissions, overridePermissions };
+    let upload = await this.getPendingUploadById(d);
+    if (upload.multipartUploadId) {
+      this.assertMultipartUploadEnabled();
+      this.assertMultipartOwner(upload, d.authorization);
+      return await withMultipartUploadLock(upload.id, async () => {
+        let current = await this.getPendingUploadById(d);
+        return await this.finishPendingUpload(d, current);
+      });
+    }
+    return await this.finishPendingUpload(d, upload);
+  }
 
-    let upload = await this.getPendingUploadById({ ...scope, uploadId });
+  private async finishPendingUpload(
+    d: CargoOwnerScope & {
+      auditScope?: AuditScope;
+      uploadId: string;
+      receipts?: string[];
+    } & FileUploadAccessInput,
+    upload: FileUploadRecord
+  ) {
+    let {
+      uploadId,
+      receipts,
+      authorization,
+      defaultPermissions,
+      overridePermissions,
+      ...scope
+    } = d;
+    let access = { authorization, defaultPermissions, overridePermissions };
 
     if (upload.status === 'completed' && upload.file) {
       return await fileService.getFileById({
@@ -308,6 +389,19 @@ class FileUploadServiceImpl {
     }
 
     this.assertPending(upload);
+
+    if (upload.multipartUploadId && upload.multipartPartSize) {
+      await this.commitMultipartObject(
+        upload,
+        upload.multipartUploadId,
+        upload.multipartPartSize,
+        receipts
+      );
+    } else if (receipts !== undefined) {
+      throw new ServiceError(
+        badRequestError({ message: 'This upload does not accept part receipts' })
+      );
+    }
 
     let object = await this.headUploadedObject(upload);
 
@@ -363,7 +457,7 @@ class FileUploadServiceImpl {
 
         throw new ServiceError(
           badRequestError({
-            message: `File upload ${upload.id} can no longer be completed`
+            message: `File upload ${uploadId} can no longer be completed`
           })
         );
       }
@@ -410,13 +504,132 @@ class FileUploadServiceImpl {
     });
   }
 
+  private assertMultipartUploadEnabled() {
+    if (!supportsFileMultipartUpload()) {
+      throw new ServiceError(
+        badRequestError({ message: 'Multipart file uploads require the on-prem edition' })
+      );
+    }
+  }
+
+  private assertMultipartOwner(
+    upload: FileUploadRecord,
+    authorization: ResourceAuthorization
+  ) {
+    if (
+      upload.createdByResourceActorOid &&
+      upload.createdByResourceActorOid !== authorization.resourceActor?.oid
+    ) {
+      throw new ServiceError(notFoundError('fileUpload', upload.id));
+    }
+  }
+
+  async getPendingPartManifests(
+    d: CargoOwnerScope & {
+      uploadId: string;
+      numbers: number[];
+      authorization: ResourceAuthorization;
+    }
+  ) {
+    this.assertMultipartUploadEnabled();
+    let upload = await this.getPendingUploadById(d);
+    this.assertMultipartOwner(upload, d.authorization);
+    this.assertPending(upload);
+    if (
+      !upload.multipartUploadId ||
+      !upload.multipartPartSize ||
+      upload.multipartCompletionDigest
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'This upload cannot issue part manifests' })
+      );
+    }
+
+    return await getMultipartManifests({
+      storeId: upload.storeId,
+      uploadId: upload.multipartUploadId,
+      fileSize: Number(upload.fileSize),
+      partSize: upload.multipartPartSize,
+      expiresAt: upload.expiresAt,
+      numbers: d.numbers
+    });
+  }
+
+  private async commitMultipartObject(
+    upload: FileUploadRecord,
+    multipartId: string,
+    partSize: number,
+    receipts?: string[]
+  ) {
+    if (receipts?.length !== Math.ceil(Number(upload.fileSize) / partSize)) {
+      throw new ServiceError(
+        badRequestError({ message: 'Expected one receipt for every part' })
+      );
+    }
+
+    let digest = createHash('sha256').update(JSON.stringify(receipts)).digest('hex');
+    if (upload.multipartCompletionDigest && upload.multipartCompletionDigest !== digest) {
+      throw new ServiceError(
+        conflictError({ message: 'This upload is already completing with different receipts' })
+      );
+    }
+    if (!upload.multipartCompletionDigest) {
+      await db.fileUpload.update({
+        where: { oid: upload.oid },
+        data: { multipartCompletionDigest: digest }
+      });
+    }
+
+    try {
+      await getStorage().completePublicMultipartUpload(
+        getCargoFilesBucketName(),
+        upload.storeId,
+        multipartId,
+        Number(upload.fileSize),
+        partSize,
+        receipts
+      );
+    } catch (error) {
+      if (error instanceof ObjectStorageError && error.statusCode === 400) {
+        await db.fileUpload.update({
+          where: { oid: upload.oid },
+          data: { multipartCompletionDigest: null }
+        });
+        throw new ServiceError(
+          badRequestError({ message: 'The object store rejected the multipart receipts' })
+        );
+      }
+      throw error;
+    }
+  }
+
   async cancelPendingUpload(
     d: CargoOwnerScope & {
       uploadId: string;
+      multipartOnly?: boolean;
+      authorization?: ResourceAuthorization;
     }
   ) {
     let upload = await this.getPendingUploadById(d);
+    if (d.multipartOnly) {
+      this.assertMultipartUploadEnabled();
+      if (!upload.multipartUploadId || !d.authorization) {
+        throw new ServiceError(
+          badRequestError({ message: 'This file upload is not multipart' })
+        );
+      }
+      this.assertMultipartOwner(upload, d.authorization);
+    }
 
+    if (upload.multipartUploadId) {
+      return await withMultipartUploadLock(upload.id, async () => {
+        return await this.cancelUpload(await this.getPendingUploadById(d));
+      });
+    }
+    return await this.cancelUpload(upload);
+  }
+
+  private async cancelUpload(upload: FileUploadRecord) {
     this.assertPending(upload);
 
     let canceled = await db.fileUpload.updateMany({

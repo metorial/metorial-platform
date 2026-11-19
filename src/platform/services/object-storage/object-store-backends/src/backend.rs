@@ -331,6 +331,25 @@ pub trait Backend: Send + Sync {
         Err(unsupported(self.backend_name()))
     }
 
+    async fn upload_public_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        self.upload_durable_part(key, upload_id, number, data).await
+    }
+
+    async fn complete_public_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        self.complete_durable_multipart(key, upload_id, parts).await
+    }
+
     /// `parts` are numbered 1..=n in order. Completing an upload that an earlier attempt already
     /// completed either returns the object again (S3, for a while) or fails with `NotFound`.
     async fn complete_durable_multipart(

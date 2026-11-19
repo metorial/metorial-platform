@@ -53,6 +53,7 @@ async fn main() -> anyhow::Result<()> {
     let service = Arc::new(
         ObjectStoreService::new(backend, metadata)
             .with_public_signer(public_signer)
+            .with_public_multipart(config.public.multipart_uploads)
             .with_archive_uploader(archive_uploader)
             .with_max_concurrent_digests(config.digests.max_concurrent),
     );

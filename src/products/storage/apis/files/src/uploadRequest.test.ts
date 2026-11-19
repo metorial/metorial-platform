@@ -37,6 +37,24 @@ describe('upload mode', () => {
   it('rejects unknown modes', () => {
     expect(() => parseUploadMode('upload')).toThrow(/mode must be one of/);
   });
+
+  it('allows manifest renewal and multipart cancellation only when enabled', () => {
+    for (let mode of ['part_manifests', 'cancel_multipart']) {
+      expect(() => parseUploadMode(mode)).toThrow(/mode must be one of/);
+      expect(parseUploadMode(mode, true)).toBe(mode);
+    }
+
+    expect(
+      parseUploadRequest(
+        {
+          mode: 'part_manifests',
+          file_upload_id: 'fup_1',
+          part_numbers: [2, 4]
+        },
+        true
+      )
+    ).toMatchObject({ part_numbers: [2, 4] });
+  });
 });
 
 describe('get_upload_url requests', () => {
@@ -105,7 +123,11 @@ describe('complete requests', () => {
   });
 
   it('ignores get_upload_url fields', () => {
-    let body = parseUploadRequest({ mode: 'complete', file_upload_id: 'fup_1', file_size: -5 });
+    let body = parseUploadRequest({
+      mode: 'complete',
+      file_upload_id: 'fup_1',
+      file_size: -5
+    });
 
     expect(body).toMatchObject({ mode: 'complete', file_upload_id: 'fup_1' });
   });

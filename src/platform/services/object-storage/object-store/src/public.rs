@@ -21,6 +21,28 @@ pub struct PublicUrlSigner {
 }
 
 impl PublicUrlSigner {
+    pub(crate) fn multipart_key(&self) -> [u8; 32] {
+        let mut mac = HmacSha256::new_from_slice(&self.secret).expect("HMAC accepts any key size");
+        mac.update(b"metorial/object-storage/public-multipart/aes-256-gcm/v1");
+        mac.finalize().into_bytes().into()
+    }
+
+    pub(crate) fn part_url(&self) -> String {
+        format!("{}/upload-part", self.base_url)
+    }
+
+    fn object_url(&self, bucket: &str, key: &str) -> String {
+        format!(
+            "{}/{}/{}",
+            self.base_url,
+            percent_encode(bucket),
+            key.split('/')
+                .map(percent_encode)
+                .collect::<Vec<_>>()
+                .join("/")
+        )
+    }
+
     pub fn new(base_url: &str, secret: &str) -> anyhow::Result<Self> {
         let base_url = base_url.trim().trim_end_matches('/');
         if !(base_url.starts_with("http://") || base_url.starts_with("https://")) {
@@ -57,13 +79,8 @@ impl PublicUrlSigner {
         );
 
         SignedUrl::new(format!(
-            "{}/{}/{}?expires={}&purpose={}&signature={}",
-            self.base_url,
-            percent_encode(bucket),
-            key.split('/')
-                .map(percent_encode)
-                .collect::<Vec<_>>()
-                .join("/"),
+            "{}?expires={}&purpose={}&signature={}",
+            self.object_url(bucket, key),
             expires,
             purpose,
             signature
