@@ -217,6 +217,8 @@ export let mirrorSyncToolingProcessor = mirrorSyncToolingQueue.process(async dat
   }
 
   let known = items.filter(item => isKnownToolingKind(item.kind));
+  if (!known.length) return;
+
   let existing = await db.slateToolingArtifact.findMany({
     where: { OR: known.map(item => ({ kind: item.kind, version: item.version })) },
     select: { kind: true, version: true }
