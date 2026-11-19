@@ -46,6 +46,7 @@ export default project({
         BUILD_EGRESS_HOSTS: inherit(),
         BUILD_EGRESS_CIDRS: inherit(),
         KUBERNETES_BUILD_TIMEOUT_SECONDS: inherit(),
+        BUILD_NPM_REGISTRY_URL: inherit(),
         SLATE_DEPLOYMENT_NPM_REGISTRY_URL: inherit()
       },
       runtime?.buildEnv() ?? {
