@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 )
 
 const contentType = "application/vnd.git-lfs+json"
@@ -32,7 +34,7 @@ func NewClient(endpoint, username, token string, httpClient *http.Client) *Clien
 		username = DefaultUsername
 	}
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		httpClient = egress.Client
 	}
 	return &Client{
 		endpoint: strings.TrimSuffix(endpoint, "/"),

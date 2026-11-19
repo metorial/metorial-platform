@@ -87,6 +87,7 @@ export let explorerAssistantImplementation = implementation({
     return await subspaceAssistant.getInput({
       project: d.project,
       instance: d.instance,
+      actor: d.actor,
       input: d.input
     });
   },
@@ -100,6 +101,7 @@ export let explorerAssistantImplementation = implementation({
         metorial: await subspaceAssistant.createMcpServerConfig({
           project: d.project,
           instance: d.instance,
+          actor: d.actor,
           input: d.input
         })
       },

@@ -12,6 +12,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 )
 
 const (
@@ -146,7 +148,7 @@ func UploadToCloudRepo(opts CloudUploadOptions, iter FileIterator) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{Timeout: 30 * time.Minute}
+	client := egress.NewClient(30 * time.Minute)
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Bitbucket source upload failed: %w", err)

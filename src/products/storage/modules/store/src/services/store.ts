@@ -809,7 +809,12 @@ class StoreServiceImpl {
       auditScope: d.auditScope,
       store: d.store,
       operations: d.operations,
-      actor: d.actor
+      actor: d.actor,
+      targetAccess: {
+        authorization: d.authorization,
+        defaultPermissions: d.defaultPermissions,
+        overridePermissions: d.overridePermissions
+      }
     });
   }
 

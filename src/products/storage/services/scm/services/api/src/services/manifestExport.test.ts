@@ -7,7 +7,8 @@ let h = vi.hoisted(() => ({
     exportBucketToGitlab: vi.fn(),
     exportBucketToBitbucketCloud: vi.fn(),
     exportBucketToBitbucketDataCenter: vi.fn()
-  }
+  },
+  assertScmUrlsReachable: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -27,8 +28,9 @@ vi.mock('../env', () => ({
 vi.mock('../lib/codeWorkspace', () => ({ codeBucketClient: h.client }));
 vi.mock('../lib/githubApp', () => ({
   getInstallationAccessToken: async () => 'gh_token',
-  getGitHubTransferEndpoints: () => ({ githubApiUrl: 'https://api.github.com' })
+  getGitHubTransferEndpoints: async () => ({ githubApiUrl: 'https://api.github.com' })
 }));
+vi.mock('../lib/scmFetch', () => ({ assertScmUrlsReachable: h.assertScmUrlsReachable }));
 vi.mock('../lib/gitlab', () => ({
   getGitLabAccessTokenWithInstallation: async () => 'gl_token'
 }));
@@ -112,6 +114,7 @@ describe('manifest export requests', () => {
       owner: 'acme',
       repo: 'skills',
       token: 'gh_token',
+      githubApiUrl: 'https://api.github.com',
       manifest: {
         bucket: 'mte-files',
         key: 'skill-sync/manifests/a.ndjson',
@@ -187,12 +190,25 @@ describe('manifest export requests', () => {
     expect(h.client.exportBucketToGithub).not.toHaveBeenCalled();
   });
 
+  it('checks the GitLab API URL before exporting', async () => {
+    h.assertScmUrlsReachable.mockRejectedValueOnce(new Error('unreachable'));
+
+    await expect(
+      manifestExportService.exportManifestToRepoNow({ sync: sync('gitlab'), writeBudget: 30 })
+    ).rejects.toThrow('unreachable');
+    expect(h.assertScmUrlsReachable).toHaveBeenCalledWith('https://api.example');
+    expect(h.client.exportBucketToGitlab).not.toHaveBeenCalled();
+  });
+
   it('dispatches Bitbucket Data Center syncs over git', async () => {
     let dcSync = sync('bitbucket');
     dcSync.repo.installation.backend.type = 'bitbucket_data_center';
 
     await manifestExportService.exportManifestToRepoNow({ sync: dcSync, writeBudget: 30 });
 
+    expect(h.assertScmUrlsReachable).toHaveBeenCalledWith(
+      'https://bb.example/scm/acme/skills.git'
+    );
     let request = h.client.exportBucketToBitbucketDataCenter.mock.calls[0]![0];
     expect(request).toMatchObject({
       cloneUrl: 'https://bb.example/scm/acme/skills.git',

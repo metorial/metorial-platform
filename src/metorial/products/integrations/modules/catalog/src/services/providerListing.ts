@@ -113,14 +113,16 @@ type ListProviderListingsParams = {
 };
 
 class ProviderListingService {
-  async getProviderListingById(d: MetorialFacing<GetProviderListingByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async getProviderListingById(
+    d: MetorialFacing<GetProviderListingByIdParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.getProviderListingByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 
@@ -201,14 +203,16 @@ class ProviderListingService {
     return providerListing;
   }
 
-  async listProviderListings(d: MetorialFacing<ListProviderListingsParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async listProviderListings(
+    d: MetorialFacing<ListProviderListingsParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.listProviderListingsInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 

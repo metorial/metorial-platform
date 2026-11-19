@@ -190,6 +190,7 @@ export let skillGroupController = Controller.create(
           project: access.project,
           instance: access.instance,
           auditScope: access.auditScope,
+          authorization: access.authorization,
           skillGroupId: ctx.skillGroup.id,
           input: {
             name: ctx.body.name,

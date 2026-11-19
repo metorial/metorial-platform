@@ -4,7 +4,12 @@ import {
   isScmBackendAllowed
 } from '../lib/scmPolicy';
 import { checkEdition } from '@metorial/editions';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Actor, ScmBackend, ScmProvider, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
@@ -20,6 +25,7 @@ import {
   exchangeGitHubOAuthCode,
   getGitHubAuthenticatedUser,
   getGitHubInstallationForAccount,
+  gitHubUserCanAccessInstallation,
   listGitHubInstallationRequests
 } from '../lib/githubApp';
 import {
@@ -30,6 +36,8 @@ import {
 import { upsertInstallationWithTokens } from '../lib/scmCredentials';
 import { withScmProviderError } from '../lib/scmProviderError';
 import { scmInstallationSessionService } from './scmInstallationSession';
+
+let githubClockToleranceMs = 60_000;
 
 class scmAuthServiceImpl {
   async getAuthorizationUrl(i: {
@@ -141,6 +149,73 @@ class scmAuthServiceImpl {
         })
       )
     ).data;
+  }
+
+  private async gitHubCodeGrantsInstallationAccess(i: {
+    backend: ScmBackend;
+    code: string;
+    installationId: string;
+  }) {
+    try {
+      let accessToken = await exchangeGitHubOAuthCode({
+        backend: i.backend,
+        code: i.code,
+        redirectUri: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/oauth/github/callback`
+      });
+
+      return await gitHubUserCanAccessInstallation({
+        backend: i.backend,
+        accessToken,
+        installationId: i.installationId
+      });
+    } catch (error) {
+      console.warn('Could not check GitHub installation access', error);
+      return false;
+    }
+  }
+
+  private async assertGitHubInstallationBelongsToSession(i: {
+    session: { tenantOid: bigint; createdAt: Date };
+    backend: ScmBackend;
+    installation: any;
+    code?: string;
+  }) {
+    if (i.backend.tenantOid === i.session.tenantOid) return;
+
+    let installationId = String(i.installation.id);
+
+    if (
+      i.code &&
+      (await this.gitHubCodeGrantsInstallationAccess({
+        backend: i.backend,
+        code: i.code,
+        installationId
+      }))
+    ) {
+      return;
+    }
+
+    let bindings = await db.scmInstallation.findMany({
+      where: {
+        provider: 'github',
+        backendOid: i.backend.oid,
+        externalInstallationId: installationId
+      },
+      select: { tenantOid: true }
+    });
+    if (bindings.some(binding => binding.tenantOid === i.session.tenantOid)) return;
+
+    let installedAt = new Date(i.installation.created_at).getTime();
+    let installedDuringSession =
+      installedAt >= i.session.createdAt.getTime() - githubClockToleranceMs;
+    if (installedDuringSession && bindings.length === 0) return;
+
+    throw new ServiceError(
+      forbiddenError({
+        message:
+          'GitHub did not confirm that this installation belongs to your connection request. Start the connection again from Metorial.'
+      })
+    );
   }
 
   private async materializeGitHubInstallationForSession(i: {
@@ -323,7 +398,18 @@ class scmAuthServiceImpl {
       if (backend.type !== 'github' && backend.type !== 'github_enterprise') {
         throw new ServiceError(notFoundError('scm_backend.github'));
       }
+      if (session.status === 'succeeded') {
+        return { kind: 'succeeded' as const, sessionId: session.id, matched: true };
+      }
+
       let installation = await this.loadGitHubInstallation(backend, i.installationId);
+      await this.assertGitHubInstallationBelongsToSession({
+        session,
+        backend,
+        installation,
+        code: i.code
+      });
+
       await this.materializeGitHubInstallationForSession({ session, backend, installation });
       await this.completePendingGitHubSessions(backend, installation);
       return { kind: 'succeeded' as const, sessionId: session.id, matched: true };

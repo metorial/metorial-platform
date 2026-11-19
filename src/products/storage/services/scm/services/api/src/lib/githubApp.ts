@@ -5,6 +5,7 @@ import { Octokit } from '@octokit/core';
 import type { ScmBackend } from '../../prisma/generated/client';
 import { env, SCM_GITHUB_APP_PRIVATE_KEY } from '../env';
 import { readBackendSecret } from './scmCredentials';
+import { assertScmUrlsReachable, scmFetch } from './scmFetch';
 
 let GITHUB_REST_API_VERSION = '2022-11-28';
 
@@ -33,6 +34,7 @@ export let createGitHubAppClient = async (backend?: ScmBackend) => {
     },
     baseUrl,
     request: {
+      fetch: scmFetch,
       headers: {
         'X-GitHub-Api-Version': GITHUB_REST_API_VERSION
       }
@@ -53,7 +55,7 @@ export let exchangeGitHubOAuthCode = async (i: {
     throw new Error('GitHub backend is missing OAuth credentials');
   }
 
-  let response = await fetch(
+  let response = await scmFetch(
     checkEdition('on-prem')
       ? `${i.backend.webUrl.replace(/\/$/, '')}/login/oauth/access_token`
       : new URL('/login/oauth/access_token', i.backend.webUrl),
@@ -89,9 +91,39 @@ export let getGitHubAuthenticatedUser = async (backend: ScmBackend, accessToken:
   let github = new Octokit({
     auth: accessToken,
     baseUrl: backend.apiUrl,
-    request: { headers: { 'X-GitHub-Api-Version': GITHUB_REST_API_VERSION } }
+    request: {
+      fetch: scmFetch,
+      headers: { 'X-GitHub-Api-Version': GITHUB_REST_API_VERSION }
+    }
   });
   return (await github.request('GET /user')).data;
+};
+
+export let gitHubUserCanAccessInstallation = async (i: {
+  backend: ScmBackend;
+  accessToken: string;
+  installationId: string;
+}) => {
+  assertScmBackendAllowed(i.backend);
+
+  let github = new Octokit({
+    auth: i.accessToken,
+    baseUrl: i.backend.apiUrl,
+    request: {
+      fetch: scmFetch,
+      headers: { 'X-GitHub-Api-Version': GITHUB_REST_API_VERSION }
+    }
+  });
+
+  for (let page = 1; ; page++) {
+    let response = await github.request('GET /user/installations', { per_page: 100, page });
+    let installations = response.data.installations ?? [];
+
+    if (installations.some(installation => String(installation.id) === i.installationId)) {
+      return true;
+    }
+    if (installations.length < 100) return false;
+  }
 };
 
 export let listGitHubInstallationRequests = async (backend: ScmBackend) => {
@@ -159,6 +191,7 @@ export let createGitHubInstallationClient = async (
     },
     baseUrl,
     request: {
+      fetch: scmFetch,
       headers: {
         'X-GitHub-Api-Version': GITHUB_REST_API_VERSION
       }
@@ -184,9 +217,14 @@ export let getInstallationAccessToken = async (
   return response.data.token;
 };
 
-export let getGitHubTransferEndpoints = (backend: ScmBackend, owner: string, repo: string) => {
+export let getGitHubTransferEndpoints = async (
+  backend: ScmBackend,
+  owner: string,
+  repo: string
+) => {
   if (checkEdition('cloud')) return { githubApiUrl: '', githubLfsEndpoint: '' };
   assertScmBackendAllowed(backend);
+  await assertScmUrlsReachable(backend.apiUrl, backend.webUrl);
 
   return {
     githubApiUrl: backend.apiUrl,

@@ -7,6 +7,11 @@ import { v1ConsumerProfilePresenter } from '../consumer';
 import { v1ConsumerPresenter } from '../consumer/consumer';
 import { v1OrganizationActorPresenter } from '../organization/organizationActor';
 
+let isConsumerContext = (opts: PresenterContext) =>
+  opts.apiVersion == 'mt_2026_04_01_consumer' ||
+  opts.accessType == 'instance_consumer' ||
+  opts.accessType == 'instance_publishable';
+
 export let documentParticipantActorSchema = v.object({
   type: v.enumOf(['organization_actor', 'consumer', 'resource_actor']),
   name: v.string(),
@@ -48,11 +53,15 @@ export let presentDocumentParticipantActor = async (
       ? await v1ConsumerPresenter.present({ consumer: instanceConsumer }, opts).run()
       : null;
 
-  let organizationActor = actor.organizationActor
+  let presentedOrganizationActor = actor.organizationActor
     ? await v1OrganizationActorPresenter
         .present({ organizationActor: actor.organizationActor }, opts)
         .run()
     : null;
+  let organizationActor =
+    presentedOrganizationActor && isConsumerContext(opts)
+      ? { ...presentedOrganizationActor, email: null, member: null, teams: [] }
+      : presentedOrganizationActor;
 
   return {
     type: organizationActor

@@ -47,6 +47,7 @@ import { internalDocumentParticipantService } from '../internal/documentParticip
 import { internalDocumentVersioningService } from '../internal/documentVersioning';
 import type { DocumentBody } from '@metorial/docs-editor-schema';
 import { reconcileStoredDocumentBody } from '../lib/documentBody';
+import { isDocumentId } from '../lib/documentId';
 import { rewriteDocumentMarkdownTitle } from '../lib/documentMarkdown';
 import { verifyDocumentContentAnnotations } from '../queues/documentAnnotationsRepair';
 import { queueDocumentCommentAnchorSync } from '../queues/documentCommentAnchorSync';
@@ -109,7 +110,21 @@ type DocumentAccessInput = {
 
 let getTextByteSize = (content: string) => new TextEncoder().encode(content).length;
 
-let getDocumentStoreId = (documentId: string) => `document_${documentId}`;
+let assertDocumentId = (documentId: string) => {
+  if (!isDocumentId(documentId)) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Invalid document ID'
+      })
+    );
+  }
+};
+
+let getDocumentStoreId = (documentId: string) => {
+  assertDocumentId(documentId);
+
+  return `document_${documentId}`;
+};
 
 class DocumentServiceImpl {
   private async queueDocumentFlush(documentId: string, delayMs = draftFlushDelayMs) {
@@ -227,6 +242,8 @@ class DocumentServiceImpl {
       overridePermissions?: boolean;
     };
   }) {
+    if (d.input.id !== undefined) assertDocumentId(d.input.id);
+
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
 
     let actor = d.input.authorization.resourceActor;
@@ -750,6 +767,8 @@ class DocumentServiceImpl {
       overridePermissions?: boolean;
     };
   }) {
+    if (d.input.id !== undefined) assertDocumentId(d.input.id);
+
     let access = await storeAccessService.assertStoreAccessForDocument({
       project: d.project,
       instance: d.instance,

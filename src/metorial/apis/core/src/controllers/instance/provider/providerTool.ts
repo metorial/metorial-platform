@@ -7,6 +7,7 @@ import {
 } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { isPublicCatalogOnly } from '../../../lib/publicCatalogOnly';
 import { checkAccess } from '../../../middleware/checkAccess';
 import {
   integrationsGroup,
@@ -27,7 +28,8 @@ let providerToolGroup = integrationsGroup.use(async ctx => {
 
   let tool = await providerToolService.getProviderToolById({
     instance: ctx.instance,
-    providerToolId: ctx.params.providerToolId
+    providerToolId: ctx.params.providerToolId,
+    publicCatalogOnly: isPublicCatalogOnly(ctx)
   });
 
   return { tool };
@@ -64,7 +66,8 @@ export let providerToolController = Controller.create(
       .do(async ctx => {
         let providerVersion = await providerVersionService.getProviderVersionById({
           instance: ctx.instance,
-          providerVersionId: ctx.query.provider_version_id
+          providerVersionId: ctx.query.provider_version_id,
+          publicCatalogOnly: isPublicCatalogOnly(ctx)
         });
         let listInput = {
           instance: ctx.instance,

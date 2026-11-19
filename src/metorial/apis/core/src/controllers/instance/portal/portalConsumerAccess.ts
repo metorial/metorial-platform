@@ -12,6 +12,7 @@ import { magicMcpServerService, providerTemplateService } from '@metorial/module
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { getVisibleConsumerGroups } from '../../../lib/visibleConsumerGroups';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -30,7 +31,8 @@ export let consumerAccessGroup = portalGroup.use(async ctx => {
 
   let consumerAccess = await consumerAccessService.getConsumerAccessById({
     consumerSurface: ctx.portal.surface,
-    consumerAccessId: ctx.params.accessId
+    consumerAccessId: ctx.params.accessId,
+    visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
   });
 
   return { consumerAccess };
@@ -105,7 +107,8 @@ export let portalConsumerAccessController = Controller.create(
           skillPluginIds: normalizeArrayParam(ctx.query.skill_plugin_id),
           consumerAccessListingIds: normalizeArrayParam(ctx.query.consumer_access_listing_id),
           types: normalizeArrayParam(ctx.query.type),
-          search: ctx.query.search
+          search: ctx.query.search,
+          visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
         });
         let list = await paginator.run(ctx.query);
 

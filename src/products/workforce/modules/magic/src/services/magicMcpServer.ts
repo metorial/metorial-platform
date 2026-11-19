@@ -442,10 +442,11 @@ class MagicMcpServerImpl {
     instance: Instance;
     organizationActor?: OrganizationActor;
     accessTags?: AnyAccessTagSelector;
-    server: Pick<MagicMcpServer, 'ownerActorOid'>;
+    server: Pick<MagicMcpServer, 'ownerActorOid' | 'subspaceIntegrationInstanceId'>;
     integrationInstanceIds?: (string | null | undefined)[];
     providerConfigIds?: (string | null | undefined)[];
     providerAuthConfigIds?: (string | null | undefined)[];
+    inheritedProviderConfigIds?: (string | null | undefined)[];
   }) {
     if (d.accessTags) {
       let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
@@ -453,9 +454,11 @@ class MagicMcpServerImpl {
       await assertConsumerCanAttachSubspaceResources({
         tenant,
         parent: d.server,
+        parentIntegrationInstanceId: d.server.subspaceIntegrationInstanceId,
         integrationInstanceIds: d.integrationInstanceIds,
         providerConfigIds: d.providerConfigIds,
-        providerAuthConfigIds: d.providerAuthConfigIds
+        providerAuthConfigIds: d.providerAuthConfigIds,
+        inheritedProviderConfigIds: d.inheritedProviderConfigIds
       });
       return;
     }
@@ -1053,7 +1056,10 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags,
       server: d.server,
       providerConfigIds: changedProviderConfigIds,
-      providerAuthConfigIds: changedProviderAuthConfigIds
+      providerAuthConfigIds: changedProviderAuthConfigIds,
+      inheritedProviderConfigIds: [
+        existingProvider.integrationProvider.currentVersion?.config?.id
+      ]
     });
 
     return await magicMcpServerProviderService.updateMagicMcpServerProvider({

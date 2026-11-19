@@ -33,14 +33,16 @@ type GetProviderSpecificationByIdParams = {
 };
 
 class providerSpecificationServiceImpl {
-  async listProviderSpecifications(d: MetorialFacing<ListProviderSpecificationsParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async listProviderSpecifications(
+    d: MetorialFacing<ListProviderSpecificationsParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.listProviderSpecificationsInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 
@@ -127,14 +129,16 @@ class providerSpecificationServiceImpl {
     );
   }
 
-  async getProviderSpecificationById(d: MetorialFacing<GetProviderSpecificationByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async getProviderSpecificationById(
+    d: MetorialFacing<GetProviderSpecificationByIdParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.getProviderSpecificationByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 

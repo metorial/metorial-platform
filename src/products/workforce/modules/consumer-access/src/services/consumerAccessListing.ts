@@ -5,6 +5,7 @@ import type { AuditScope } from '@metorial/audit-scope';
 import {
   ConsumerAccessListing,
   ConsumerAccessTargetType,
+  ConsumerGroup,
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
   db,
@@ -237,6 +238,20 @@ class ConsumerAccessListingServiceImpl {
     };
   }
 
+  private getConsumerGroupAccessWhere(
+    consumerGroups: Pick<ConsumerGroup, 'oid'>[]
+  ): Prisma.ConsumerAccessListingWhereInput {
+    return {
+      consumerAccesses: {
+        some: {
+          consumerGroupOid: {
+            in: consumerGroups.map(group => group.oid)
+          }
+        }
+      }
+    };
+  }
+
   async list(d: {
     consumerSurface: ConsumerSurface;
     consumerSurfaceProviderGroupIds?: string[];
@@ -249,6 +264,7 @@ class ConsumerAccessListingServiceImpl {
     types?: ConsumerAccessTargetType[];
     hasAccess?: boolean;
     search?: string;
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let hasGroupFilter = !!d.consumerSurfaceProviderGroupIds?.length;
     let hasProviderTemplateFilter = !!d.providerTemplateIds?.length;
@@ -446,6 +462,10 @@ class ConsumerAccessListingServiceImpl {
           });
         }
 
+        if (d.visibleToConsumerGroups) {
+          filters.push(this.getConsumerGroupAccessWhere(d.visibleToConsumerGroups));
+        }
+
         if (search) {
           filters.push({
             OR: [
@@ -567,11 +587,18 @@ class ConsumerAccessListingServiceImpl {
     );
   }
 
-  async getById(d: { consumerSurface: ConsumerSurface; consumerAccessListingId: string }) {
+  async getById(d: {
+    consumerSurface: ConsumerSurface;
+    consumerAccessListingId: string;
+    visibleToConsumerGroups?: ConsumerGroup[];
+  }) {
     let listing = await db.consumerAccessListing.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
         id: d.consumerAccessListingId,
+        ...(d.visibleToConsumerGroups
+          ? this.getConsumerGroupAccessWhere(d.visibleToConsumerGroups)
+          : {}),
         OR: [
           {
             providerTemplate: {

@@ -79,6 +79,7 @@ describe('api-files downloads', () => {
     let htmlResponse = await download((await createLink(html.id)).url);
     expect(htmlResponse.headers.get('content-type')).toBe('application/octet-stream');
     expect(htmlResponse.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(htmlResponse.headers.get('content-security-policy')).toContain('sandbox');
     expect(htmlResponse.headers.get('cache-control')).toBe('private, no-store');
     expect(await htmlResponse.text()).toBe('<script>alert(1)</script>');
 
@@ -89,6 +90,19 @@ describe('api-files downloads', () => {
     });
     let imageResponse = await download((await createLink(image.id)).url);
     expect(imageResponse.headers.get('content-type')).toBe('image/png');
+    expect(imageResponse.headers.get('content-security-policy')).toBeNull();
+
+    let svg = await upload({
+      content: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+      fileName: 'logo.svg',
+      type: 'image/svg+xml'
+    });
+    let svgResponse = await download((await createLink(svg.id)).url);
+    expect(svgResponse.headers.get('content-type')).toBe('image/svg+xml');
+    expect(svgResponse.headers.get('content-security-policy')).toBe(
+      "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    );
+    expect(svgResponse.headers.get('x-content-type-options')).toBe('nosniff');
 
     let unicode = await upload({ content: 'résumé', fileName: 'résumé v1.bin' });
     let unicodeResponse = await download((await createLink(unicode.id)).url);
