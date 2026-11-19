@@ -638,8 +638,17 @@ class slatePackChannelServiceImpl {
       'application/zip'
     );
 
+    let size = stored.digests.size;
+    let maxReleaseBytes = env.mirror.SLATES_PACK_MAX_RELEASE_BYTES;
+    if (maxReleaseBytes !== undefined && size > maxReleaseBytes) {
+      await storage.deleteObject(bucket, storageKey).catch(() => {});
+      throw new Error(
+        `Slate pack ${d.fileName} is ${size} bytes and exceeds the ${maxReleaseBytes}-byte release limit.`
+      );
+    }
+
     await d.run?.log(
-      `Wrote ${d.fileName}: ${stored.digests.size} bytes, sha256 ${stored.digests.sha256.slice(0, 12)}.`
+      `Wrote ${d.fileName}: ${size} bytes, sha256 ${stored.digests.sha256.slice(0, 12)}.`
     );
     await d.run?.releaseWritten();
 
@@ -647,7 +656,7 @@ class slatePackChannelServiceImpl {
       ...ids,
       fileName: d.fileName,
       entryCount: contents.manifest.entries.length,
-      size: BigInt(stored.digests.size),
+      size: BigInt(size),
       sha256: stored.digests.sha256,
       bucket,
       storageKey
