@@ -31,8 +31,10 @@ export let destinationBucketIsAvailable = async (
   });
   let byId = new Map(remote.syncs.map(item => [item.id, item]));
 
+  // Origin deletes old syncs after its retention window, and a deleted sync can no
+  // longer be reading the bucket. Treating it as active would block the destination forever.
   return propagations.every(propagation => {
     let status = byId.get(propagation.originSyncId!)?.status;
-    return status && !['pending', 'creating_branch', 'syncing_contents'].includes(status);
+    return !status || !['pending', 'creating_branch', 'syncing_contents'].includes(status);
   });
 };
