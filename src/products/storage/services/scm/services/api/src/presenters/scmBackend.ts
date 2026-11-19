@@ -13,6 +13,7 @@ export let scmBackendPresenter = (backend: ScmBackend) => ({
   webUrl: backend.webUrl,
   appSlug: backend.appSlug,
   isDefault: backend.isDefault,
+  isManaged: backend.templateOid != null,
   // Don't expose sensitive credentials
   hasCredentials:
     checkEdition('on-prem') && !['github', 'github_enterprise'].includes(backend.type)
@@ -20,7 +21,10 @@ export let scmBackendPresenter = (backend: ScmBackend) => ({
       : !!(backend.appId && hasBackendSecret(backend, 'appPrivateKey')),
   ...(checkEdition('on-prem') && ['github', 'github_enterprise'].includes(backend.type)
     ? {
-        appWebhookUrl: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/github-app/${backend.id}`
+        appWebhookUrl:
+          backend.templateOid != null
+            ? undefined
+            : `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/github-app/${backend.id}`
       }
     : {}),
   createdAt: backend.createdAt,

@@ -41,7 +41,14 @@ let policy = defineSettings('originScm', {
         'Exact provider hostnames; unset allows any domain and an empty list allows none'
     }),
     validator: v.optional(v.array(v.string()))
-  }
+  },
+  allowProjectProviders: setting(v.boolean(), {
+    env: 'ORIGIN_SCM_ALLOW_PROJECT_PROVIDERS',
+    editions: ['on-prem'],
+    default: true,
+    description:
+      'Whether projects may configure their own SCM providers alongside the ones managed centrally by enterprise admins'
+  })
 });
 
 let providerLabels: Record<ScmBackendType, string> = {
@@ -115,20 +122,40 @@ let validUrl = (value: string) => {
   return url;
 };
 
+export let areProjectProvidersAllowed = () =>
+  checkEdition('cloud') || policy.allowProjectProviders !== false;
+
+export let assertProjectProvidersAllowed = () => {
+  if (!areProjectProvidersAllowed())
+    throw new ScmPolicyError(
+      'Source control providers are managed by your enterprise administrator.'
+    );
+};
+
 export let assertScmBackendAllowed = (
-  backend?: Pick<ScmBackend, 'type' | 'webUrl' | 'apiUrl' | 'isDefault' | 'tenantOid'>
+  backend?: Pick<ScmBackend, 'type' | 'webUrl' | 'apiUrl' | 'isDefault' | 'tenantOid'> & {
+    templateOid?: bigint | null;
+  }
 ) => {
   if (checkEdition('cloud')) return;
   if (!backend || backend.isDefault || backend.tenantOid === null)
     throw new ScmPolicyError(
       'Configure a source control provider in the dashboard before connecting.'
     );
-  assertScmTypeAllowed(backend.type);
+  if (backend.templateOid == null) assertProjectProvidersAllowed();
+  assertScmProviderAllowed(backend);
+};
+
+export let assertScmProviderAllowed = (
+  provider: Pick<ScmBackend, 'type' | 'webUrl' | 'apiUrl'>
+) => {
+  if (checkEdition('cloud')) return;
+  assertScmTypeAllowed(provider.type);
 
   try {
-    let web = validUrl(backend.webUrl);
-    let api = validUrl(backend.apiUrl);
-    let hosted = hostedProviderUrls[backend.type as keyof typeof hostedProviderUrls];
+    let web = validUrl(provider.webUrl);
+    let api = validUrl(provider.apiUrl);
+    let hosted = hostedProviderUrls[provider.type as keyof typeof hostedProviderUrls];
     if (
       hosted &&
       (web.toString().replace(/\/$/, '') !== hosted.webUrl ||

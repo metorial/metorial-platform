@@ -16,6 +16,7 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
     web_url: (scmProvider.webUrl ?? null) as string | null,
 
     is_default: scmProvider.isDefault,
+    is_managed: scmProvider.isManaged ?? false,
     ...(checkEdition('on-prem') ? { app_webhook_url: scmProvider.appWebhookUrl ?? null } : {}),
 
     created_at: scmProvider.createdAt,
@@ -45,6 +46,10 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
       web_url: v.nullable(v.string({ description: 'Web base URL for the SCM provider' })),
 
       is_default: v.boolean({ description: 'Whether this is the default provider' }),
+      is_managed: v.boolean({
+        description:
+          'Whether the provider is managed centrally by an enterprise admin; managed providers cannot be changed per project'
+      }),
       ...(checkEdition('on-prem')
         ? {
             app_webhook_url: v.nullable(
