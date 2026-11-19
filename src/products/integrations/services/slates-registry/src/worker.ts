@@ -6,6 +6,7 @@ import {
   mirrorImportUpstreamVersionProcessor,
   mirrorSyncAllProcessor,
   mirrorSyncCron,
+  mirrorSyncToolingProcessor,
   mirrorSyncUpstreamProcessor
 } from './queues/mirror/sync';
 import { cleanupSlatePackBatchesCron, processSlatePackProcessor } from './queues/mirror/packs';
@@ -24,6 +25,7 @@ await runQueueProcessors([
   mirrorSyncAllProcessor,
   mirrorSyncUpstreamProcessor,
   mirrorImportUpstreamVersionProcessor,
+  mirrorSyncToolingProcessor,
   processSlatePackProcessor,
   cleanupSlatePackBatchesCron,
   slatePackChannelCron,

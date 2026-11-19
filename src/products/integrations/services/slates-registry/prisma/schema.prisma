@@ -375,7 +375,54 @@ model Artifact {
 
   createdAt DateTime @default(now())
 
-  slateVersions SlateVersion[]
+  slateVersions    SlateVersion[]
+  toolingArtifacts SlateToolingArtifact[]
+}
+
+enum SlateToolingArtifactOrigin {
+  upload
+  upstream
+  pack
+}
+
+model SlateToolingArtifact {
+  oid BigInt @id
+  id  String @unique
+
+  kind     String
+  version  String
+  protocol String
+  checksum String
+  origin   SlateToolingArtifactOrigin
+
+  /// [SlateToolingMetadata]
+  metadata Json
+
+  artifactOid BigInt
+  artifact    Artifact @relation(fields: [artifactOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  signatures SlateToolingArtifactSignature[]
+
+  @@unique([kind, version])
+  @@index([kind, protocol])
+}
+
+model SlateToolingArtifactSignature {
+  oid BigInt @id
+  id  String @unique
+
+  kid       String
+  signature String
+
+  toolingArtifactOid BigInt
+  toolingArtifact    SlateToolingArtifact @relation(fields: [toolingArtifactOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([toolingArtifactOid, kid])
+  @@index([kid])
 }
 
 model AdminUser {
