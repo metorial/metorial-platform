@@ -27,12 +27,14 @@
     "typescript": "5.9.3",
     "vitest": "^5.0.4",
     "tsup": "^8.5.1",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/semver": "^7.8.0"
   },
   "dependencies": {
     "@function-bay/build": "^1.0.0",
     "@function-bay/utils": "^1.0.0",
     "@function-bay/types": "^1.0.0",
-    "@types/bun": "^1.4.3"
+    "@types/bun": "^1.4.3",
+    "semver": "^7.8.5"
   }
 }
