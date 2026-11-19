@@ -4,6 +4,10 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { createUpstreamClient, UpstreamRequestError } from '../../lib/mirror/upstreamClient';
+import {
+  enabledUpstreamSourceFilter,
+  registerLicenseUpstream
+} from '../../lib/mirror/upstreams';
 import { isMirrorMode } from '../../mode';
 import { mirrorService } from '../../services/mirror';
 import { mirrorImportService } from '../../services/mirrorImport';
@@ -39,7 +43,11 @@ export let mirrorSyncAllProcessor = mirrorSyncAllQueue.process(async data => {
   if (!(await mirrorService.canSync())) return;
 
   let upstreams = await db.mirrorUpstream.findMany({
-    where: { status: 'active', id: data.cursor ? { gt: data.cursor } : undefined },
+    where: {
+      ...enabledUpstreamSourceFilter,
+      status: 'active',
+      id: data.cursor ? { gt: data.cursor } : undefined
+    },
     orderBy: { id: 'asc' },
     take: upstreamPageSize,
     select: { id: true }
@@ -73,8 +81,10 @@ export let mirrorSyncUpstreamProcessor = mirrorSyncUpstreamQueue.process(async d
   upstreamLock.usingLock(data.upstreamId, async () => {
     if (!(await mirrorService.canSync())) return;
 
-    let upstream = await db.mirrorUpstream.findUnique({ where: { id: data.upstreamId } });
-    if (upstream?.status !== 'active') return;
+    let upstream = await db.mirrorUpstream.findUnique({
+      where: { ...enabledUpstreamSourceFilter, id: data.upstreamId, status: 'active' }
+    });
+    if (!upstream) return;
 
     let items;
     try {
@@ -148,10 +158,23 @@ export let mirrorImportUpstreamVersionQueue = createQueue<{
 
 export let mirrorImportUpstreamVersionProcessor = mirrorImportUpstreamVersionQueue.process(
   async data => {
-    if (!(await mirrorService.canSync())) return;
+    let upstream = await db.mirrorUpstream.findUnique({
+      where: { id: data.upstreamId, status: 'active' }
+    });
+    if (!upstream) return;
 
-    let upstream = await db.mirrorUpstream.findUnique({ where: { id: data.upstreamId } });
-    if (upstream?.status !== 'active') return;
+    if (!registerLicenseUpstream && upstream.source === 'license') {
+      // The feed advances when it enqueues imports. Replay it if an import is skipped.
+      await upstreamLock.usingLock(upstream.id, async () => {
+        await db.mirrorUpstream.updateMany({
+          where: { oid: upstream.oid, changeNotificationCursor: { not: null } },
+          data: { changeNotificationCursor: null }
+        });
+      });
+      return;
+    }
+
+    if (!(await mirrorService.canSync())) return;
 
     let alreadyImported = await db.slateVersion.findFirst({
       where: { version: data.version, slate: { fullIdentifier: data.identifier } },
