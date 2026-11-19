@@ -87,6 +87,7 @@ declare global {
       functionId: string;
       functionVersionId?: string;
       functionDeploymentId: string;
+      runtimeVersion?: string;
     } | null;
 
     type SlateConfigSchema = any;

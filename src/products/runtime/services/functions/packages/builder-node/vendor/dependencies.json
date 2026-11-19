@@ -1,0 +1,15 @@
+{
+  "name": "function-bay-vendor",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@lowerdeck/serialize": "1.0.4",
+    "@metorial/mcp": "1.0.0-rc.2",
+    "@metorial/mcp-server": "1.0.0-rc.12",
+    "@metorial/mcp-transport-memory": "1.0.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@slates/proto": "1.0.0-rc.30",
+    "@slates/provider-handler": "1.0.0-rc.45",
+    "zod": "4.6.7"
+  }
+}

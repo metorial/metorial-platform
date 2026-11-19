@@ -27,6 +27,13 @@ export let env = defineSettings({
     LOCAL_MAX_PENDING_RUNS: v.optional(v.number())
   },
 
+  npm: {
+    BUILD_NPM_REGISTRY_URL: setting(v.optional(v.string({ modifiers: [v.url()] })), {
+      description:
+        'npm registry (e.g. an Artifactory, Nexus or Verdaccio mirror) every build installs packages from'
+    })
+  },
+
   clusterManager: {
     CLUSTER_MANAGER_URL: setting(v.optional(v.string()), {
       description: 'Cluster-manager control endpoint, required for the kubernetes provider'
@@ -60,12 +67,14 @@ export let env = defineSettings({
         'Kubernetes ConfigMaps ("namespace/name") this service publishes the public key of BUILD_SIGNING_KEY to, for the egress gateway'
     }),
     SLATE_DEPLOYMENT_NPM_REGISTRY_URL: setting(v.optional(v.string()), {
-      description:
-        'npm registry slate builds install from, allowed by the default build egress'
+      description: 'Deprecated fallback for BUILD_NPM_REGISTRY_URL'
     }),
     BUILD_EGRESS_HOSTS: setting.list(v.string(), {
       default: resolved =>
-        defaultBuildEgressHosts(resolved.kubernetes?.SLATE_DEPLOYMENT_NPM_REGISTRY_URL),
+        defaultBuildEgressHosts(
+          resolved.npm?.BUILD_NPM_REGISTRY_URL ??
+            resolved.kubernetes?.SLATE_DEPLOYMENT_NPM_REGISTRY_URL
+        ),
       description:
         'Hosts kubernetes builds may reach through the egress gateway: "pattern" or "pattern:port", e.g. "*.example.com:443"'
     }),
@@ -111,3 +120,6 @@ if (env.provider.DEFAULT_PROVIDER === 'kubernetes') {
     throw new Error('BUILD_SIGNING_KEY is required for the kubernetes provider');
   }
 }
+
+export let buildNpmRegistryUrl =
+  env.npm.BUILD_NPM_REGISTRY_URL ?? env.kubernetes.SLATE_DEPLOYMENT_NPM_REGISTRY_URL;

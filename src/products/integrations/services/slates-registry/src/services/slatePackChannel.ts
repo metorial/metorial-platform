@@ -20,6 +20,7 @@ import { storage } from '../storage';
 import type { BuildRun } from './slatePackBuild';
 import { signingKeyService } from './signingKey';
 import { slatePackService, type PackSelection } from './slatePack';
+import { slateToolingService } from './slateTooling';
 
 let GB = 1024 * 1024 * 1024;
 
@@ -624,6 +625,7 @@ class slatePackChannelServiceImpl {
 
     let contents = slatePackService.buildPackContents({
       selected: d.selected,
+      tooling: await slateToolingService.listNewestPerKnownKind(),
       source: {
         url: env.url.SERVICE_PUBLIC_URL,
         subRegistryId: d.channel.subRegistry.identifier

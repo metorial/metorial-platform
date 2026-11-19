@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   getSlatePackEntryPath,
+  getSlatePackToolingPath,
   parseSlatePackManifest,
   parseSlatePackSignatures,
   serializeSlatePackSignatures
@@ -42,6 +43,36 @@ describe('slate pack manifest', () => {
     });
     expect(parsed.source.subRegistryId).toBe('metorial-saas-prod');
     expect(parsed.delivery).toBeNull();
+  });
+
+  it('parses manifests without tooling as an empty tooling list', () => {
+    expect(parseSlatePackManifest(JSON.stringify(manifest)).tooling).toEqual([]);
+  });
+
+  it('parses tooling entries of any kind', () => {
+    let tooling = [
+      {
+        kind: 'slates-runtime',
+        version: '1.0.0',
+        path: getSlatePackToolingPath({ kind: 'slates-runtime', version: '1.0.0' }),
+        contentChecksum: `sha256:${'b'.repeat(64)}`,
+        signatures: [{ kid: 'k'.repeat(43), signature: 's'.repeat(86) }]
+      },
+      {
+        kind: 'future-kind',
+        version: '0.1.0',
+        path: 'tooling/future-kind/0.1.0.zip',
+        contentChecksum: `sha256:${'c'.repeat(64)}`,
+        signatures: []
+      }
+    ];
+
+    let parsed = parseSlatePackManifest(
+      JSON.stringify({ ...manifest, formatVersion: 2, tooling })
+    );
+
+    expect(parsed.tooling).toEqual(tooling);
+    expect(tooling[0]!.path).toBe('tooling/slates-runtime/1.0.0.zip');
   });
 
   it('ignores delivery on version 1 manifests', () => {

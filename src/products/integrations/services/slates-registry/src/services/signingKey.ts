@@ -5,6 +5,7 @@ import { getId } from '../id';
 import {
   generateSigningKeyPair,
   signSlatePackManifest,
+  signSlateTooling,
   signSlateVersion,
   type SigningPrivateKey
 } from '../lib/signature';
@@ -20,6 +21,13 @@ type SignableSlateVersion = {
   version: string;
   slate: { fullIdentifier: string };
   bundleArtifact: { checksum: string };
+};
+
+type SignableToolingArtifact = {
+  oid: bigint;
+  kind: string;
+  version: string;
+  checksum: string;
 };
 
 class signingKeyServiceImpl {
@@ -142,6 +150,59 @@ class signingKeyServiceImpl {
     }
 
     return signatures;
+  }
+
+  async signToolingArtifacts(d: { artifacts: SignableToolingArtifact[] }) {
+    if (!isSigningEnabled()) return { signed: 0 };
+
+    let keys = await this.listActiveSigningKeys();
+    if (!keys.length || !d.artifacts.length) return { signed: 0 };
+
+    let existing = await db.slateToolingArtifactSignature.findMany({
+      where: { toolingArtifactOid: { in: d.artifacts.map(artifact => artifact.oid) } },
+      select: { toolingArtifactOid: true, kid: true }
+    });
+    let existingSet = new Set(existing.map(sig => `${sig.toolingArtifactOid}:${sig.kid}`));
+
+    let data: {
+      oid: bigint;
+      id: string;
+      kid: string;
+      signature: string;
+      toolingArtifactOid: bigint;
+    }[] = [];
+
+    for (let key of keys) {
+      let privateKey = await this.getPrivateKey(key);
+
+      for (let artifact of d.artifacts) {
+        if (existingSet.has(`${artifact.oid}:${key.kid}`)) continue;
+
+        let signature = await signSlateTooling({
+          privateKey,
+          statement: {
+            kind: artifact.kind,
+            version: artifact.version,
+            contentChecksum: artifact.checksum
+          }
+        });
+
+        data.push({
+          ...getId('slateToolingArtifactSignature'),
+          kid: key.kid,
+          signature,
+          toolingArtifactOid: artifact.oid
+        });
+      }
+    }
+
+    if (!data.length) return { signed: 0 };
+
+    let result = await db.slateToolingArtifactSignature.createMany({
+      data,
+      skipDuplicates: true
+    });
+    return { signed: result.count };
   }
 
   async trySignSlateVersion(d: { version: SignableSlateVersion }) {

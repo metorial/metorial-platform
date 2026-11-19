@@ -244,6 +244,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-4-neon": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Same new Google model (Gemini 4 Neon) as the OpenRouter issue; no matching entry in the model index yet, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",
     "model": "google/veo-3.1-fast-generate-preview",
@@ -572,6 +579,13 @@
     "reason": "Recraft's V2, its first model trained from scratch (20B image model, per Vercel's own page and CloudPrice); the index's Recraft line starts at V3, so defer rather than link a later generation.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "scaledown/extract-1": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Scaledown's Extract-1, a task-specific structured-data extraction model (1M context, $0.05/M input). No Scaledown model exists in the index and no candidate matches; a real new model the catalog does not contain yet.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "scaledown/scaledown-classify-1": {
     "decision": "defer",

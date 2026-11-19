@@ -1234,14 +1234,16 @@ let DocumentEditorLoaded = (p: {
 
   useEffect(() => {
     if (!editorInstance || !pendingComment) return;
+
     let onTransaction = () => {
-      if (!getPendingCommentRange(editorInstance.state)) cancelPendingComment();
+      if (!getPendingCommentRange(editorInstance.state)) setPendingComment(false);
     };
     editorInstance.on('transaction', onTransaction);
+
     return () => {
       editorInstance.off('transaction', onTransaction);
     };
-  }, [cancelPendingComment, editorInstance, pendingComment]);
+  }, [editorInstance, pendingComment]);
 
   let handleRequestComment = useCallback((range: { from: number; to: number }) => {
     let editor = editorInstanceRef.current;

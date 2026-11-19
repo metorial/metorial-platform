@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import {
   findValidSlatePackManifestSignature,
+  findValidSlateToolingSignature,
   findValidSlateVersionSignature,
   generateSigningKeyPair,
   getSigningKeyId,
   parseSigningPublicKey,
   signSlatePackManifest,
+  signSlateTooling,
   signSlateVersion,
   verifySlateVersionSignature
 } from './index';
@@ -151,6 +153,65 @@ describe('slate pack manifest signatures', () => {
     expect(
       await findValidSlatePackManifestSignature({
         manifest,
+        signatures: [{ kid: pair.kid, signature }],
+        trustedKeys: new Map([[pair.kid, pair.publicKey]])
+      })
+    ).toBeNull();
+  });
+});
+
+describe('slate tooling signatures', () => {
+  let toolingStatement = {
+    kind: 'slates-runtime',
+    version: '1.0.0',
+    contentChecksum: statement.contentChecksum
+  };
+
+  it('verifies tooling signatures and rejects changed statements', async () => {
+    let pair = await generateSigningKeyPair();
+    let signature = await signSlateTooling({
+      privateKey: pair.privateKey,
+      statement: toolingStatement
+    });
+    let trustedKeys = new Map([[pair.kid, pair.publicKey]]);
+
+    expect(
+      await findValidSlateToolingSignature({
+        statement: toolingStatement,
+        signatures: [{ kid: pair.kid, signature }],
+        trustedKeys
+      })
+    ).toBe(pair.kid);
+
+    for (let changed of [
+      { ...toolingStatement, version: '1.0.1' },
+      { ...toolingStatement, kind: 'other' },
+      { ...toolingStatement, contentChecksum: `sha256:${'b'.repeat(64)}` }
+    ]) {
+      expect(
+        await findValidSlateToolingSignature({
+          statement: changed,
+          signatures: [{ kid: pair.kid, signature }],
+          trustedKeys
+        })
+      ).toBeNull();
+    }
+  });
+
+  it('does not accept a slate version signature as a tooling signature', async () => {
+    let pair = await generateSigningKeyPair();
+    let signature = await signSlateVersion({
+      privateKey: pair.privateKey,
+      statement: {
+        identifier: 'slates-runtime',
+        version: '1.0.0',
+        contentChecksum: statement.contentChecksum
+      }
+    });
+
+    expect(
+      await findValidSlateToolingSignature({
+        statement: toolingStatement,
         signatures: [{ kid: pair.kid, signature }],
         trustedKeys: new Map([[pair.kid, pair.publicKey]])
       })

@@ -114,4 +114,69 @@ describe('getFunctionFs', () => {
     expect(entrypoint).toContain("typeof instance.close === 'function'");
     expect(entrypoint).not.toContain('server as mcpServer');
   });
+
+  it('declares the MCP server package the entrypoint imports', () => {
+    let res = getFunctionFs({
+      payload: payload([
+        {
+          filename: 'package.json',
+          content: JSON.stringify({
+            name: 'custom-provider',
+            main: 'index.ts',
+            dependencies: { zod: 'latest' }
+          })
+        },
+        { filename: 'index.ts', content: 'export default {};' }
+      ])
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('Expected function fs to be valid');
+
+    expect(JSON.parse(getFile(res, 'package.json')!.content).dependencies).toEqual({
+      zod: 'latest',
+      '@metorial/mcp-server': 'latest'
+    });
+  });
+
+  it('keeps a declared MCP server version and encoding untouched', () => {
+    let content = Buffer.from(
+      JSON.stringify({
+        name: 'custom-provider',
+        main: 'index.ts',
+        dependencies: { '@metorial/mcp-server': '1.0.0-rc.12' }
+      }),
+      'utf-8'
+    ).toString('base64');
+
+    let res = getFunctionFs({
+      payload: payload([
+        { filename: 'package.json', content, encoding: 'base64' },
+        { filename: 'index.ts', content: 'export default {};' }
+      ])
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('Expected function fs to be valid');
+
+    let packageFile = getFile(res, 'package.json')!;
+    expect(packageFile.content).toBe(content);
+    expect(packageFile.encoding).toBe('base64');
+  });
+
+  it('adds a minimal package json when none exists', () => {
+    let res = getFunctionFs({
+      payload: payload([{ filename: 'index.js', content: 'export default {};' }])
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('Expected function fs to be valid');
+
+    expect(JSON.parse(getFile(res, 'package.json')!.content)).toEqual({
+      name: 'function-server',
+      version: '1.0.0',
+      private: true,
+      dependencies: { '@metorial/mcp-server': 'latest' }
+    });
+  });
 });

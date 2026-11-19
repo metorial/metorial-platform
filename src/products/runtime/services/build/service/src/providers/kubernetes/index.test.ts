@@ -31,7 +31,8 @@ vi.mock('../../env', () => ({
     storage: { ARTIFACT_BUCKET_NAME: 'artifacts', LOG_BUCKET_NAME: 'logs' },
     clusterManager: {},
     kubernetes: {}
-  }
+  },
+  buildNpmRegistryUrl: undefined
 }));
 
 vi.mock('../_lib/buildContext', () => ({ BuildContext: { of: async () => mocks.ctx } }));
