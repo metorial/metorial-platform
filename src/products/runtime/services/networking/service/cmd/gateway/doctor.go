@@ -21,6 +21,8 @@ const (
 	doctorDocs          = "datacenter/operations/doctor#egress-gateway"
 	dnsProbeHost        = "example.com"
 	certificateWarnLeft = 14 * 24 * time.Hour
+	// Covers the signers' first publish plus the kubelet's ConfigMap volume sync (about a minute).
+	grantKeysStartupGrace = 2 * time.Minute
 )
 
 func doctorResolution(summary string) *doctor.Resolution {
@@ -31,7 +33,7 @@ func doctorResolution(summary string) *doctor.Resolution {
 func newDoctor(cfg *config, resolver gateway.Resolver, getenv func(string) string) (*doctor.Doctor, error) {
 	d := doctor.New(doctor.Options{Component: "egress-gateway"})
 	err := d.Register(
-		grantKeysCheck(cfg),
+		grantKeysCheck(cfg, time.Now(), time.Now),
 		dnsCheck(cfg, resolver),
 		certificateCheck(cfg),
 		networkLogsCheck(cfg),
@@ -44,7 +46,7 @@ func newDoctor(cfg *config, resolver gateway.Resolver, getenv func(string) strin
 	return d, nil
 }
 
-func grantKeysCheck(cfg *config) doctor.Check {
+func grantKeysCheck(cfg *config, startedAt time.Time, now func() time.Time) doctor.Check {
 	return doctor.Check{
 		ID:       "config.grant-keys",
 		Title:    "Grant public keys are loaded",
@@ -53,30 +55,44 @@ func grantKeysCheck(cfg *config) doctor.Check {
 		Run: func(_ context.Context, r *doctor.Result) error {
 			keys := cfg.publicKeys
 			source := "EGRESS_GRANT_PUBLIC_KEYS"
+			publishedResolution := doctorResolution(
+				"The functions and build services publish their keys to the egress-trust ConfigMap; check their trust-key doctor checks.",
+			)
+
+			// The key file is written by the signers after they start, so on a fresh install or
+			// rollout it shows up a minute or so after the gateway does.
+			fail := func(message string, details map[string]any) {
+				if cfg.publicKeysFile != "" && now().Sub(startedAt) < grantKeysStartupGrace {
+					r.Warn(message+" The gateway started recently; the keys usually appear within a minute.", publishedResolution, details)
+					return
+				}
+				r.Fail(message, publishedResolution, details)
+			}
+
 			if cfg.publicKeysFile != "" {
 				source = cfg.publicKeysFile
 				raw, err := os.ReadFile(cfg.publicKeysFile)
 				if errors.Is(err, os.ErrNotExist) {
-					r.Fail("The grant key file does not exist yet, so every connection is refused.", doctorResolution(
-						"The functions and build services publish their keys to the egress-trust ConfigMap; check their trust-key doctor checks.",
-					), map[string]any{"source": source})
+					fail("The grant key file does not exist yet, so every connection is refused.", map[string]any{"source": source})
 					return nil
 				}
 				if err != nil {
 					return err
 				}
 				if keys, err = egress.ParseKeySet(raw); err != nil {
-					r.Fail("The grant key file does not parse: "+err.Error(), doctorResolution(
-						"The functions and build services publish their keys to the egress-trust ConfigMap; check their trust-key doctor checks.",
-					), map[string]any{"source": source})
+					r.Fail("The grant key file does not parse: "+err.Error(), publishedResolution, map[string]any{"source": source})
 					return nil
 				}
 			}
 
 			if keys.Len() == 0 {
-				r.Fail("No grant public keys are loaded, so every connection is refused.", doctorResolution(
-					"Set EGRESS_GRANT_PUBLIC_KEYS, or on Kubernetes check the functions and build trust-key doctor checks: they publish to the egress-trust ConfigMap.",
-				), map[string]any{"source": source})
+				if cfg.publicKeysFile == "" {
+					r.Fail("No grant public keys are loaded, so every connection is refused.", doctorResolution(
+						"Set EGRESS_GRANT_PUBLIC_KEYS to the public keys of the functions and build signing keys.",
+					), map[string]any{"source": source})
+					return nil
+				}
+				fail("No grant public keys are loaded, so every connection is refused.", map[string]any{"source": source})
 				return nil
 			}
 
