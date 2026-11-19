@@ -147,7 +147,7 @@ async fn completes_an_upload_using_encrypted_manifests_and_receipts() {
     let (service, public, _temp) = setup().await;
     let internal = create_router(service.clone());
     let key = "archive.bin";
-    let part_size = 5 * 1024 * 1024;
+    let part_size = 75 * 1024 * 1024;
     let upload_id = service
         .start_durable_upload("files", key, PutOptions::default())
         .await

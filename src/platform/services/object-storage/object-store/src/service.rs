@@ -23,6 +23,8 @@ pub struct DeleteObjectResult {
 
 pub const DEFAULT_MAX_CONCURRENT_DIGESTS: usize = 16;
 
+const PUBLIC_PART_BUFFER_BUDGET_MIB: usize = 256;
+
 #[derive(Debug, Clone)]
 pub struct DigestedObject {
     pub metadata: ObjectMetadata,
@@ -34,7 +36,7 @@ pub struct ObjectStoreService {
     metadata: Arc<MetadataStore>,
     public_signer: Option<Arc<PublicUrlSigner>>,
     public_multipart: bool,
-    pub(crate) public_part_slots: Semaphore,
+    pub(crate) public_part_budget: Semaphore,
     archive_uploader: Option<Arc<Uploader>>,
     digests: Arc<Semaphore>,
 }
@@ -46,7 +48,7 @@ impl ObjectStoreService {
             metadata,
             public_signer: None,
             public_multipart: false,
-            public_part_slots: Semaphore::new(8),
+            public_part_budget: Semaphore::new(PUBLIC_PART_BUFFER_BUDGET_MIB),
             archive_uploader: None,
             digests: Arc::new(Semaphore::new(DEFAULT_MAX_CONCURRENT_DIGESTS)),
         }

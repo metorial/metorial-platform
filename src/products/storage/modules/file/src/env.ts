@@ -16,7 +16,7 @@ export let env = defineSettings({
     ),
     FILE_MULTIPART_PART_BYTES: v.optional(
       v.number({
-        modifiers: [v.integer(), v.minValue(5 * 1024 ** 2), v.maxValue(32 * 1024 ** 2)]
+        modifiers: [v.integer(), v.minValue(5 * 1024 ** 2), v.maxValue(75 * 1024 ** 2)]
       })
     ),
     FILE_ROUTER_SECRET: v.optional(v.string())

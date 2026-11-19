@@ -1,10 +1,13 @@
-use axum::body::{to_bytes, Body};
+use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use bytes::BytesMut;
+use futures::StreamExt;
+use object_store_backends::multipart::MIB;
 use object_store_backends::{
     BackendError, DurablePartRef, DURABLE_MAX_PARTS, DURABLE_MIN_PART_SIZE,
 };
@@ -21,7 +24,9 @@ use crate::service::validate_deletable_object_key;
 const MANIFEST_HEADER: &str = "x-metorial-upload-manifest";
 const MANIFEST_AAD: &[u8] = b"metorial/object-storage/part-manifest/v1";
 const RECEIPT_AAD: &[u8] = b"metorial/object-storage/part-receipt/v1";
-const MAX_PART_BYTES: u64 = 32 * 1024 * 1024;
+const MAX_PART_BYTES: u64 = 75 * MIB;
+// The minimum reservation also limits concurrency for short parts.
+const MIN_PART_RESERVATION_MIB: u64 = 32;
 const MAX_MANIFEST_SECS: u64 = 600;
 const MAX_BATCH: usize = 8;
 const MAX_TOKEN_LEN: usize = 4096;
@@ -178,22 +183,38 @@ pub(crate) async fn put_part(
         return StatusCode::FORBIDDEN.into_response();
     }
 
-    let Ok(_permit) = service.public_part_slots.acquire().await else {
+    let reservation = part.size.div_ceil(MIB).max(MIN_PART_RESERVATION_MIB) as u32;
+    let Ok(_permit) = service.public_part_budget.acquire_many(reservation).await else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
     if expires_at <= now() {
         return StatusCode::FORBIDDEN.into_response();
     }
 
-    let Ok(data) = to_bytes(body, part.size as usize).await else {
-        return StatusCode::BAD_REQUEST.into_response();
-    };
-    if data.len() as u64 != part.size {
+    let size = part.size as usize;
+    let mut data = BytesMut::with_capacity(size);
+    let mut stream = body.into_data_stream();
+    while let Some(chunk) = stream.next().await {
+        let Ok(chunk) = chunk else {
+            return StatusCode::BAD_REQUEST.into_response();
+        };
+        if chunk.len() > size - data.len() {
+            return StatusCode::BAD_REQUEST.into_response();
+        }
+        data.extend_from_slice(&chunk);
+    }
+    if data.len() != size {
         return StatusCode::BAD_REQUEST.into_response();
     }
 
     let result = service
-        .upload_public_part(&part.bucket, &part.key, &part.upload_id, part.number, data)
+        .upload_public_part(
+            &part.bucket,
+            &part.key,
+            &part.upload_id,
+            part.number,
+            data.freeze(),
+        )
         .await;
     let uploaded = match result {
         Ok(uploaded) if uploaded.number == part.number && uploaded.size == part.size => uploaded,

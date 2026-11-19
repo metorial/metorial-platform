@@ -6,7 +6,7 @@ import { getCargoFilesBucketName, getStorage } from '../storage';
 import { uploadUrlExpirationSecs } from './uploadPolicy';
 
 let multipartThreshold = 75 * 1024 ** 2;
-let multipartPartSize = 16 * 1024 ** 2;
+let multipartPartSize = 75 * 1024 ** 2;
 let maxManifestBatch = 8;
 
 let lock: ReturnType<typeof createLock> | undefined;
