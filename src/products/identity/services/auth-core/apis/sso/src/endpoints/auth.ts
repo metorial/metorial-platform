@@ -16,6 +16,7 @@ import {
 import { ssoIdentityService } from '@mtsrc/auth-core-module-sso';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
 import { errorHtml, ssoDomainNotAllowedHtml } from '@mtsrc/auth-core-http';
+import { normalizeSsoProviderProfile } from '../lib/providerProfile';
 
 function generateCodeVerifier(): string {
   return randomBytes(32).toString('base64url');
@@ -88,8 +89,7 @@ export let ssoAuthApp = createHono()
           authSelectConnectionHtml({
             tenant: auth.tenant,
             connections,
-            clientSecret: body.client_secret,
-            currentUrl: c.req.url
+            clientSecret: body.client_secret
           })
         );
       }
@@ -146,7 +146,7 @@ export let ssoAuthApp = createHono()
         return c.html(ssoDomainNotAllowedHtml(error), 403);
       }
 
-      console.error('SSO sign-in failed:', error);
+      console.error('SSO sign-in failed');
 
       return c.html(
         errorHtml({
@@ -202,7 +202,9 @@ export let ssoAuthApp = createHono()
         code_verifier: auth.codeVerifier
       });
 
-      let userInfo = await jackson.oauthController.userInfo(tokenRes.access_token);
+      let userInfo = normalizeSsoProviderProfile(
+        await jackson.oauthController.userInfo(tokenRes.access_token)
+      );
 
       await ssoDomainPolicyService.assertEmailAllowed({
         tenant: auth.tenant,
@@ -225,10 +227,10 @@ export let ssoAuthApp = createHono()
             email: userInfo.email,
             firstName: userInfo.firstName,
             lastName: userInfo.lastName,
-            uid: userInfo.id,
+            uid: userInfo.uid,
             sub: userInfo.sub ?? null,
-            groups: userInfo.groups ?? [],
-            roles: userInfo.roles ?? [],
+            groups: userInfo.groups,
+            roles: userInfo.roles,
             raw: userInfo.raw,
             completedAt: new Date()
           }
@@ -258,17 +260,7 @@ export let ssoAuthApp = createHono()
         tenant: auth.tenant,
         connection,
         user,
-        data: {
-          email: userInfo.email,
-          uid: userInfo.id,
-          uidHash: userInfo.idHash,
-          sub: userInfo.sub,
-          firstName: userInfo.firstName,
-          lastName: userInfo.lastName,
-          roles: userInfo.roles ?? [],
-          groups: userInfo.groups ?? [],
-          raw: userInfo.raw
-        }
+        data: userInfo
       });
 
       await db.ssoAuth.update({
@@ -293,7 +285,7 @@ export let ssoAuthApp = createHono()
         return c.html(ssoDomainNotAllowedHtml(error), 403);
       }
 
-      console.error('SSO callback failed:', error);
+      console.error('SSO callback failed');
 
       return c.html(
         errorHtml({

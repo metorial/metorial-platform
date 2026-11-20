@@ -182,7 +182,7 @@ class SsoDirectoryServiceImpl {
   }
 
   async getDirectoryByInternalId(d: { internalId: string }) {
-    let directory = await db.ssoDirectory.findFirst({
+    return await db.ssoDirectory.findFirst({
       where: {
         internalId: d.internalId,
         status: 'active',
@@ -190,8 +190,6 @@ class SsoDirectoryServiceImpl {
       },
       include: { connection: { include: { tenant: true } } }
     });
-    if (!directory) throw new ServiceError(notFoundError('sso.directory'));
-    return directory;
   }
 
   async updateDirectory(d: {

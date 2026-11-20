@@ -55,11 +55,10 @@ describe('frontend assets', () => {
     expect(getProviderLogoUrl('slack.svg')).toBe(
       'https://provider-logos.metorial-cdn.com/slack.svg'
     );
-    expect(getFaviconUrl('https://example.com')).toMatch(/^\/assets\/avatars\/image_/);
 
     let images = [
-      'https://favicons.metorial-cdn.com/?url=https%3A%2F%2Fexample.com',
-      'https://favicons.metorial-cdn.com/?url=https%3A%2F%2Fexample.org'
+      'https://cdn.metorial.com/provider-one.png',
+      'https://cdn.metorial.com/provider-two.png'
     ];
     let resolved = images.map(resolveImageUrl);
     expect(resolved.every(url => url.startsWith('/assets/avatars/image_'))).toBe(true);
@@ -120,9 +119,11 @@ describe('frontend assets', () => {
     vi.stubEnv('METORIAL_EDITION', 'on-prem');
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        Response.json({ VITE_CAMO_BASE_URL: 'https://install.example/assets/camo' })
-      )
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ VITE_CAMO_BASE_URL: 'https://install.example/assets/camo' })
+        )
     );
     await loadRuntimeConfig();
 
@@ -132,6 +133,10 @@ describe('frontend assets', () => {
     expect(resolveImageUrl('https://provider-logos.metorial-cdn.com/slack.svg')).toBe(
       'https://provider-logos.metorial-cdn.com/slack.svg'
     );
+
+    let faviconUrl = 'https://favicons.metorial-cdn.com/?url=https%3A%2F%2Fexample.com';
+    expect(getFaviconUrl('https://example.com')).toBe(faviconUrl);
+    expect(resolveImageUrl(faviconUrl)).toBe(faviconUrl);
 
     for (let value of [
       null,
