@@ -1,4 +1,3 @@
-import { formatCurrency } from '@metorial/chart';
 import { formatAmount } from './costFormat';
 
 let valuationBasis =
@@ -11,18 +10,18 @@ export let firstName = (name: string | null | undefined) =>
 
 type SessionCostInput = {
   cost: {
-    total: string | null;
-    billed: string | null;
-    estimated: string | null;
+    totalMicros: number | null;
+    billedMicros: number | null;
+    estimatedMicros: number | null;
     isEstimate: boolean;
   };
   billingModes: BillingMode[];
 };
 
 export let sessionCostKind = (d: SessionCostInput) => {
-  if (d.cost.total === null) return 'unknown';
+  if (d.cost.totalMicros === null) return 'unknown';
   if (!d.cost.isEstimate) return 'billed';
-  if (Number(d.cost.billed ?? 0) > 0 && d.cost.estimated !== null) return 'partlyBilled';
+  if ((d.cost.billedMicros ?? 0) > 0 && d.cost.estimatedMicros !== null) return 'partlyBilled';
   if (d.billingModes.length && d.billingModes.every(mode => mode == 'included')) {
     return 'subscription';
   }
@@ -46,17 +45,17 @@ export let describeSessionCost = (
   }
 
   if (kind == 'partlyBilled') {
-    return `${formatCurrency(d.cost.billed!)} of it was billed by the provider. The other ${formatAmount(d.cost.estimated!, { estimate: true })} is an estimate, not a bill, valued at ${valuationBasis}.`;
+    return `${formatAmount(d.cost.billedMicros!, { estimate: false })} of it was billed by the provider. The other ${formatAmount(d.cost.estimatedMicros!, { estimate: true })} is an estimate, not a bill, valued at ${valuationBasis}.`;
   }
 
-  let estimateLead = formatAmount(d.cost.total!, { estimate: true }).startsWith('~')
+  let estimateLead = formatAmount(d.cost.totalMicros!, { estimate: true }).startsWith('~')
     ? 'The tilde means this is an estimate'
     : 'This is an estimate';
 
   if (kind == 'subscription') {
     let owner = firstName(d.memberName);
 
-    return `${estimateLead}. ${owner ? `${owner}'s` : 'A'} Claude subscription or seat covers this usage, so nobody was charged ${formatCurrency(d.cost.total!)}; it is what the same tokens cost at ${valuationBasis}.`;
+    return `${estimateLead}. ${owner ? `${owner}'s` : 'A'} Claude subscription or seat covers this usage, so nobody was charged ${formatAmount(d.cost.totalMicros!, { estimate: false })}; it is what the same tokens cost at ${valuationBasis}.`;
   }
 
   return `${estimateLead}, not a bill, valued at ${valuationBasis}.`;

@@ -9,8 +9,7 @@ export type StoreFailureReason =
   | 'configuration'
   | 'selection_timeout';
 
-// The message names only the reason: the driver's own message can carry the host and, for a
-// malformed URL, parts of the URL itself.
+// The driver's own message can carry the host or parts of the URL.
 export class StoreUnreachableError extends Error {
   constructor(
     readonly reason: StoreFailureReason,
@@ -68,10 +67,8 @@ export let reportStoreProblem = (report: StoreProblem) =>
         extra: { attempts: report.attempts }
       });
 
-// A store that has never answered is a misconfiguration or an outage from the start, which
-// nothing else surfaces: clients only see a retryable 503. It is logged as an error and reported
-// at most once a minute. After a first connection, an outage is the expected kind and stays a
-// warning.
+// A store that never answered is a misconfiguration nothing else surfaces: reported as an
+// error, at most once a minute.
 export let createStoreUnreachableLog = (d: {
   hasConnected: () => boolean;
   now?: () => number;

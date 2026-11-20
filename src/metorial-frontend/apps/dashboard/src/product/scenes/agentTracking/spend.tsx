@@ -28,7 +28,7 @@ import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { describeCostComparison } from './costComparison';
-import { formatAmount, formatCost } from './costFormat';
+import { dollarsOf, formatAmount, formatCost } from './costFormat';
 import { AgentTrackingErrorState } from './errorState';
 import { agentTrackingFilters } from './filters';
 import { MemberIdentity } from './member';
@@ -57,6 +57,8 @@ let maxDayLabels = 14;
 let billedColor = getChartColor('blue');
 
 let estimatedColor = getChartColor('gray');
+
+let microsPerDollar = 1_000_000;
 
 let filterRangeText = 'this range';
 
@@ -154,9 +156,12 @@ let sessionsQuery = (range: AgentTrackingRangePreset, filters: SpendFilters) => 
 let noneIn = (what: string, filtered: unknown) =>
   `${what} in this range${filtered ? ' with these filters' : ''}.`;
 
-let toAmount = (value: string | null) => (value === null ? null : Number(value));
+let toDollars = (micros: number | null) =>
+  micros === null ? null : Number(dollarsOf(micros));
 
-let isZero = (value: string | null) => value === null || Number(value) == 0;
+let toMicros = (dollars: number) => Math.round(dollars * microsPerDollar);
+
+let isZero = (micros: number | null) => (micros ?? 0) == 0;
 
 let formatUnpricedRequests = (count: number) =>
   `${formatRequests(count)} without a known cost`;
@@ -204,19 +209,19 @@ let CostSplit = ({ cost }: { cost: SpendCost }) => {
       <Spacer height={12} />
 
       <Legend>
-        {!isZero(cost.billed) ? (
+        {!isZero(cost.billedMicros) ? (
           <LegendItem
             color={billedColor}
-            title={`Billed ${formatCurrency(cost.billed!)} · ${share(split.billedShare)}`}
+            title={`Billed ${formatAmount(cost.billedMicros!, { estimate: false })} · ${share(split.billedShare)}`}
           >
             From provider bills, such as API keys and Bedrock. Matches your provider's bill.
           </LegendItem>
         ) : null}
 
-        {!isZero(cost.estimated) ? (
+        {!isZero(cost.estimatedMicros) ? (
           <LegendItem
             color={estimatedColor}
-            title={`Estimated ${formatCost(cost.estimated, { estimate: true })} · ${share(split.estimatedShare)}`}
+            title={`Estimated ${formatCost(cost.estimatedMicros, { estimate: true })} · ${share(split.estimatedShare)}`}
           >
             Not a bill: usage no provider bill covers, such as what a Claude subscription or
             seat includes. Valued at your contract prices where set, else the cost Claude Code
@@ -252,8 +257,7 @@ let dayTickLabel = (timeline: Timeline) => {
     days.find(day => Math.abs(day.key - value.getTime()) < DAY / 4)?.label ?? '';
 };
 
-// Ticks every half day fall on the day boundaries and on the bar centres, and only the
-// centres are labelled, so each date sits under its own bar.
+// Half-day ticks fall on the bar centres, and only those are labelled.
 let useDailyBars = (timeline: Timeline) =>
   useMemo(() => {
     let domain = { from: timeline.range.from, to: chartDomainEnd(timeline) };
@@ -278,20 +282,20 @@ let dailyEntries = (
 
 let SpendChart = ({ timeline, filtered }: { timeline: Timeline; filtered: boolean }) => {
   let bars = useDailyBars(timeline);
-  let hasBilled = timeline.items.some(item => !isZero(item.cost?.billed ?? null));
+  let hasBilled = timeline.items.some(item => !isZero(item.cost?.billedMicros ?? null));
 
   let allSeries: ChartSeries[] = [
     {
       id: 'billed',
       name: 'Billed',
       color: 'blue',
-      entries: dailyEntries(timeline, item => toAmount(item.cost?.billed ?? null))
+      entries: dailyEntries(timeline, item => toDollars(item.cost?.billedMicros ?? null))
     },
     {
       id: 'estimated',
       name: 'Estimated (~)',
       color: 'gray',
-      entries: dailyEntries(timeline, item => toAmount(item.cost?.estimated ?? null))
+      entries: dailyEntries(timeline, item => toDollars(item.cost?.estimatedMicros ?? null))
     }
   ];
 
@@ -301,9 +305,9 @@ let SpendChart = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
       stacked
       legend={false}
       series={allSeries.filter(item => item.id != 'billed' || hasBilled)}
-      valueFormatter={value => formatAmount(value.toFixed(9), { estimate: value != 0 })}
+      valueFormatter={value => formatAmount(toMicros(value), { estimate: value != 0 })}
       seriesValueFormatter={(value, seriesIds) =>
-        formatAmount(value.toFixed(9), {
+        formatAmount(toMicros(value), {
           estimate: value != 0 && seriesIds.includes('estimated')
         })
       }
@@ -470,7 +474,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
   let change =
     !timeline.privacy.hiddenGroups && !timeline.previous.hiddenGroups
       ? describeSpendChange({
-          current: cost.total,
+          current: cost.totalMicros,
           previous: timeline.previous.total.cost,
           preset: timeline.range.preset,
           startsBeforeRetention: timeline.previous.startsBeforeRetention,
@@ -479,11 +483,11 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
       : null;
 
   let comparison = describeCostComparison({
-    reportedByClient: cost.reportedByClient,
-    listPrice: cost.listPrice,
+    reportedByClientMicros: cost.reportedByClientMicros,
+    listPriceMicros: cost.listPriceMicros,
     requests,
     requestsWithoutListPrice: cost.requestsWithoutListPrice,
-    format: amount => formatAmount(amount, { estimate: true })
+    format: micros => formatAmount(micros, { estimate: true })
   });
 
   return (
@@ -555,7 +559,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
           <Spacer height={10} />
 
           <Text size="2" weight="medium" color="orange900">
-            {cost.total === null
+            {cost.totalMicros === null
               ? `None of the ${formatNumber(requests)} requests has a known cost, so there is no total. That is not the same as zero.`
               : `${formatUnpricedRequests(unpriced)}. The total leaves them out, so the real cost may be higher.`}
           </Text>
@@ -820,8 +824,7 @@ let SpendPage = ({
   let timeline = useAgentTrackingSpendTimeline(instanceId, timelineQuery);
   let filtered = !!(selected.clientFamily || selected.modelId);
 
-  // The breakdown waits for the timeline, so a cold page runs at most four queries at once
-  // (two for the timeline, two for the header's setup status) under the service's limit of four.
+  // Waits for the timeline: the service allows four concurrent queries.
   let timelineReady =
     !!timeline.data &&
     canonicalize(timeline.input) == canonicalize({ instanceId, ...timelineQuery });

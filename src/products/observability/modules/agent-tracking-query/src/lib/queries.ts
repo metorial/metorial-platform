@@ -64,9 +64,8 @@ export let spendMeasures = [
   'tokens'
 ];
 
-// Slices with requests, tokens or cost count; the slice that only marks a session start does not,
-// so a filter does not count a session or member through it. Total tokens is not a stored field,
-// so its parts are tested one by one, and cost is tested both ways because a credit is negative.
+// A slice that only marks a session start does not count. Total tokens is not stored, so its
+// parts are tested; cost both ways, because a credit is negative.
 export let withUsage = {
   or: [
     { field: 'requests', op: 'gt', value: 0 },
@@ -200,7 +199,6 @@ export let unknownModelsQuery = (
   };
 };
 
-// The setup page explains Claude Code's options, so only Claude Code's own data counts as evidence.
 export let setupClientFamily = agentTrackingClientFamilies.claude_code.serviceFamily;
 
 let setupClient = { field: 'client.family', op: 'eq', value: setupClientFamily };
@@ -225,9 +223,8 @@ export let setupSessionsQuery = (range: { from: Date; to: Date }) => ({
   labels: false
 });
 
-// Claude Code sends a tool's parameters and input only with OTEL_LOG_TOOL_DETAILS=1, and the
-// service keeps a content entry for them (at least its length and hash) whatever the content
-// policy. Hook events carry the input too, so only calls that arrived as OpenTelemetry logs count.
+// Tool details arrive only with OTEL_LOG_TOOL_DETAILS=1. Hook events carry the input too, so
+// only OpenTelemetry log calls count.
 export let toolDetailsQuery = (range: { from: Date; to: Date }) => ({
   atq: '0',
   dataset: 'tool_calls',

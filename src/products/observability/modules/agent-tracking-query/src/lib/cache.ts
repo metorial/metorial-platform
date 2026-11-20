@@ -3,7 +3,6 @@ import { isServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { createCachedFunction } from '@metorial/cache';
 
-// A stopgap so one open page cannot spend the organization's query budget.
 export let resultTtlSeconds = 60;
 
 export let sessionTtlSeconds = 30;
@@ -37,8 +36,6 @@ export let cacheKey = async (d: {
   return `${d.organizationId}:${d.instanceId}:${d.read}:${input}`;
 };
 
-// Redis being unavailable must not fail the page, so a cache error runs the read uncached. An error
-// of the read itself (a service error, or one the load raised) is passed on as it is.
 export let cached = async <T>(d: {
   key: string;
   ttlSeconds?: number;

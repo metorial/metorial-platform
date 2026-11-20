@@ -91,8 +91,6 @@ export let resetMocks = () => {
   mocks.afterCommit = [];
 };
 
-// Like the RPC client against an unreachable service: it keeps retrying until the call's
-// deadline, two minutes unless the caller passes a shorter one.
 export let unreachable = (opts?: { timeoutMs?: number }) =>
   new Promise((_, reject) =>
     setTimeout(() => reject(new Error('Service unavailable')), opts?.timeoutMs ?? 120_000)

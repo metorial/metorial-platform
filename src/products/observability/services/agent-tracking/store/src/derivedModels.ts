@@ -265,7 +265,6 @@ export type SourceHealthDocument = {
   };
   clientVersion?: string;
   probeVersion?: string;
-  // Counts by dialect, then native event name.
   unmapped?: Record<string, Record<string, number>>;
   updatedAt: Date;
 };

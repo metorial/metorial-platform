@@ -108,8 +108,6 @@ class AgentTrackingFilterValueServiceImpl {
           )
         );
 
-        // The service leaves out usage without a member or a known model, so the option is
-        // always offered.
         let unknownName = unknownNames[d.field];
         let offerUnknown =
           !!unknownName &&
@@ -125,8 +123,6 @@ class AgentTrackingFilterValueServiceImpl {
     });
   }
 
-  // Naming the values a filter already holds reads no usage, so it does not spend the
-  // organization's query budget.
   private async describeValues(
     d: ReadScope & {
       field: FilterField;
@@ -141,7 +137,6 @@ class AgentTrackingFilterValueServiceImpl {
       value => !(withUnknown && value == unknownMemberKey) && isFilterValueOf(d.field, value)
     );
 
-    // Model names come from the catalog cache already.
     let items =
       d.field == 'member' && named.length
         ? await cached({

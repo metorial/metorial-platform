@@ -129,11 +129,11 @@ describe('agentTrackingSpendService', () => {
     expect(call!.opts).toMatchObject({ retry: false, captureErrors: false });
 
     expect(timeline.items.map(item => item.date)).toEqual(['2026-11-16', '2026-11-17']);
-    expect(timeline.items[0]!.cost.total).toBe('0');
+    expect(timeline.items[0]!.cost.totalMicros).toBe(0);
     expect(timeline.total.cost).toMatchObject({
-      total: '1.25',
+      totalMicros: 1250000,
       isEstimate: true,
-      reportedByClient: '1.25'
+      reportedByClientMicros: 1250000
     });
   });
 
@@ -177,9 +177,9 @@ describe('agentTrackingSpendService', () => {
     });
     expect(timeline.previous.startsBeforeRetention).toBe(true);
     expect(timeline.previous.total.cost).toMatchObject({
-      total: '2',
-      billed: '0.5',
-      estimated: '1.5'
+      totalMicros: 2000000,
+      billedMicros: 500000,
+      estimatedMicros: 1500000
     });
   });
 
@@ -411,15 +411,22 @@ describe('agentTrackingSpendService', () => {
     let [unpriced, partly, empty] = timeline.items;
 
     expect(unpriced!.cost).toMatchObject({
-      total: null,
-      estimated: null,
+      totalMicros: null,
+      estimatedMicros: null,
       isEstimate: false,
-      listPrice: null,
+      listPriceMicros: null,
       requestsWithoutCost: 4
     });
-    expect(partly!.cost).toMatchObject({ total: '1', listPrice: '1', requestsWithoutCost: 2 });
-    expect(empty!.cost).toMatchObject({ total: '0', requestsWithoutCost: 0 });
-    expect(timeline.total.cost).toMatchObject({ total: '1', requestsWithoutCost: 6 });
+    expect(partly!.cost).toMatchObject({
+      totalMicros: 1000000,
+      listPriceMicros: 1000000,
+      requestsWithoutCost: 2
+    });
+    expect(empty!.cost).toMatchObject({ totalMicros: 0, requestsWithoutCost: 0 });
+    expect(timeline.total.cost).toMatchObject({
+      totalMicros: 1000000,
+      requestsWithoutCost: 6
+    });
   });
 
   it('shows 0 for every amount without requests, whatever the engine fills in', async () => {
@@ -442,10 +449,10 @@ describe('agentTrackingSpendService', () => {
 
     for (let figures of [timeline.items[0]!, timeline.total]) {
       expect(figures.cost).toMatchObject({
-        total: '0',
-        estimated: '0',
-        listPrice: '0',
-        reportedByClient: null,
+        totalMicros: 0,
+        estimatedMicros: 0,
+        listPriceMicros: 0,
+        reportedByClientMicros: null,
         requestsWithoutCost: 0,
         requestsWithoutListPrice: 0
       });
@@ -466,8 +473,8 @@ describe('agentTrackingSpendService', () => {
     let timeline = await agentTrackingSpendService.getTimeline({ ...scope, range: {} });
 
     expect(timeline.total.cost).toMatchObject({
-      total: '3.74',
-      listPrice: '0.27',
+      totalMicros: 3740000,
+      listPriceMicros: 270000,
       requestsWithoutCost: 0,
       requestsWithoutListPrice: 37
     });

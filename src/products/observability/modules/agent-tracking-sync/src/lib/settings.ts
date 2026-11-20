@@ -28,8 +28,6 @@ export let minGroupUsersLimits = { min: 3, max: 100 };
 
 export let retentionDaysLimits = { min: 1, max: 3650 };
 
-// What the service stores for a retention it receives as null, so the page can show it and the
-// status check can expect it back.
 export let serviceRetentionDefaults = { recordDays: 90, contentDays: 30, usageDays: 400 };
 
 let contentModeRank: Record<AgentTrackingContentMode, number> = {
@@ -42,8 +40,8 @@ export type AgentTrackingPrivacy = AgentTrackingOrganizationSettingsValues['priv
 
 type CaptureSettings = Pick<AgentTrackingInstanceSettingsValues, 'content' | 'classification'>;
 
-// Settings decide what is captured and shown, so a request never acts on settings a replica has
-// not caught up with yet: a transaction always runs on the primary database.
+// A transaction always runs on the primary, so enforcement never reads settings from a lagging
+// replica.
 let readFromPrimary = <T>(read: (db: TransactionDB) => Promise<T>) => withTransaction(read);
 
 export let readOrganizationSettings = (organizationId: string) =>
@@ -108,7 +106,6 @@ export let instanceSettingsOf = (
   }
 });
 
-// Whether the instance settings capture less, or send less outside the region, than before.
 export let narrowsCapture = (current: CaptureSettings, next: CaptureSettings) =>
   contentModeRank[next.content.mode] < contentModeRank[current.content.mode] ||
   (current.classification.aiEnabled && !next.classification.aiEnabled);

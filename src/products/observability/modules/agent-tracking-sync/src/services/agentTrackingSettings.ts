@@ -77,7 +77,6 @@ let read = async <Row, V>(row: Promise<Row | null>, valuesOf: (row: Row | null) 
   return { settings: valuesOf(stored), stored: !!stored };
 };
 
-// The service may hold more than Metorial sends; only what Metorial sends is compared.
 let holds = (remote: unknown, expected: unknown): boolean =>
   typeof expected == 'object' && expected !== null
     ? Object.entries(expected).every(([key, value]) =>
@@ -232,8 +231,6 @@ class AgentTrackingSettingsServiceImpl {
     return await this.get(projectLevel(d));
   }
 
-  // The instance answer carries the organization's privacy, read-only, for readers who may see
-  // agent usage of the instance but not the organization's settings.
   async getInstanceSettings(d: InstanceScope) {
     let [result, privacy] = await Promise.all([
       this.get(instanceLevel(d)),
@@ -281,8 +278,6 @@ class AgentTrackingSettingsServiceImpl {
     return { settings, serviceStatus: await this.serviceStatus(level, settings, stored) };
   }
 
-  // Whether agent tracking holds what Metorial stores. A level without a stored row has never
-  // been sent, so there is nothing to compare.
   private async serviceStatus<V extends AgentTrackingSettingsValues>(
     level: Level<V>,
     settings: V,
@@ -324,10 +319,9 @@ class AgentTrackingSettingsServiceImpl {
       auditScope: d.auditScope
     });
 
-    // Capturing less goes to agent tracking before it is stored: if it does not arrive, nothing
-    // changes, and capture is never broader than what Metorial shows. Capturing more is stored
-    // first, so a push that does not arrive leaves capture narrower. A push that timed out may
-    // still have landed, so a failure queues the stored values to be sent again.
+    // Capturing less is pushed before it is stored and capturing more after, so capture is
+    // never broader than what Metorial shows. A push that timed out may have landed, so a
+    // failure queues a sync.
     let narrowing = level.narrows?.(current.settings, next) ?? false;
     if (narrowing) {
       try {
@@ -360,8 +354,7 @@ class AgentTrackingSettingsServiceImpl {
     return { settings, serviceStatus: await this.push(level) };
   }
 
-  // Sends what is stored at the time of the push, so whichever push lands last carries the latest
-  // stored values. Awaited once so the normal case applies at once; a failure goes to the queue.
+  // Sends what is stored at push time, so the last push to land carries the latest values.
   private async push<V extends AgentTrackingSettingsValues>(level: Level<V>) {
     try {
       await level.push();
@@ -372,8 +365,6 @@ class AgentTrackingSettingsServiceImpl {
     }
   }
 
-  // The sync job always sends the latest stored values and retries with backoff until they land.
-  // Never replaces the error that led to it: the nightly reconcile sends the stored values anyway.
   private async queueSync(level: Pick<Level<AgentTrackingSettingsValues>, 'syncTarget'>) {
     try {
       await syncScopeQueue.add(level.syncTarget);

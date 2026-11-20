@@ -39,7 +39,6 @@ export let getBrowserTimeZone = () => {
   }
 };
 
-// With individuals hidden the service counts whole UTC days up to yesterday only.
 export let useAgentTrackingRange = (opts: { individualsHidden?: boolean } = {}) => {
   let presets = opts.individualsHidden
     ? agentTrackingRangePresets.filter(preset => preset.id != 'today')

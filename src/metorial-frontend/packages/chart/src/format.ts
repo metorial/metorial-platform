@@ -1,7 +1,5 @@
 export type ValueFormatter = (value: number) => string;
 
-// A tooltip value with the series it belongs to: one id for a series row, every contributing id
-// for a stacked total.
 export type SeriesValueFormatter = (value: number, seriesIds: string[]) => string;
 
 export type TooltipValueFormatter = (value: number, seriesIds?: string[]) => string;
@@ -129,8 +127,7 @@ let one = BigInt(1);
 
 let groupThousands = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-// Decimal strings are rounded on their digits, so amounts with up to nine decimals are never
-// pushed through a float on the way to the screen.
+// Rounded on the digits, so a decimal string never passes through a float.
 export let formatCurrency = (
   value: string | number,
   opts: { currency?: string; precision?: number; compact?: boolean } = {}
@@ -142,7 +139,6 @@ export let formatCurrency = (
 
   let number = Number(value);
 
-  // Below a thousand, compact notation only drops cents ("$0.5"), so amounts keep them.
   if (opts.compact && Math.abs(number) >= 1000) {
     if (!Number.isFinite(number)) return invalidValue;
 

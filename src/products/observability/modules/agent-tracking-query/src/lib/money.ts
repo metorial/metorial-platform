@@ -5,12 +5,11 @@ let moneyScale = 9;
 let factor = 10n ** BigInt(moneyScale);
 let decimalPattern = /^(-)?(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d{1,3}))?$/;
 let usdUnits: Record<string, bigint> = { usd: 1n, cents: 100n };
+let nanosPerMicro = 1000n;
 
 type ReportedAmount = { unit: string; basis: string | null; amount: unknown };
 
-// Money arrives as a number rounded to 9 decimals (query results) or as a decimal string
-// (sessions), which Decimal128 writes in exponent form below 1e-6. Both are held as integer
-// nano-dollars so sums and differences never lose cents.
+// Integer nano-dollars, so sums never lose cents.
 export let toNanos = (value: unknown): bigint | null => {
   let text =
     typeof value == 'number' && Number.isFinite(value)
@@ -48,12 +47,6 @@ export let sumMoney = (values: unknown[]) => {
   return amounts.length ? formatNanos(amounts.reduce((sum, nanos) => sum + nanos, 0n)) : null;
 };
 
-export let formatMoney = (value: unknown) => {
-  let nanos = toNanos(value);
-
-  return nanos === null ? null : formatNanos(nanos);
-};
-
 let reportedUsd = (reported: unknown, basis: string) => {
   if (!Array.isArray(reported)) return null;
 
@@ -70,8 +63,14 @@ let reportedUsd = (reported: unknown, basis: string) => {
   return total;
 };
 
-// A sum over usage without any cost is 0, not null, so `unpriced` says when none of the
-// requests behind a figure had one.
+let toMicros = (nanos: bigint | null) => {
+  if (nanos === null) return null;
+
+  let micros = ((nanos < 0n ? -nanos : nanos) + nanosPerMicro / 2n) / nanosPerMicro;
+  return Number(nanos < 0n ? -micros : micros);
+};
+
+// A sum without any cost is 0, not null; `unpriced` says when no request had one.
 export let costOf = (d: {
   total: unknown;
   listPrice: unknown;
@@ -81,18 +80,19 @@ export let costOf = (d: {
 }): AgentTrackingCost => {
   let total = d.unpriced ? null : toNanos(d.total);
   let billed = reportedUsd(d.reported, 'billed');
-  let reportedByClient = reportedUsd(d.reported, 'client_estimate');
 
-  let estimated = total === null ? null : total - (billed ?? 0n);
-  if (estimated !== null && estimated < 0n) estimated = 0n;
+  let totalMicros = toMicros(total);
+  let billedMicros = toMicros(billed);
+  let estimatedMicros =
+    totalMicros === null ? null : Math.max(0, totalMicros - (billedMicros ?? 0));
 
   return {
-    total: total === null ? null : formatNanos(total),
-    billed: billed === null ? null : formatNanos(billed),
-    estimated: estimated === null ? null : formatNanos(estimated),
-    isEstimate: estimated !== null && estimated > 0n,
-    reportedByClient: reportedByClient === null ? null : formatNanos(reportedByClient),
-    listPrice: d.unpricedAtListPrice ? null : formatMoney(d.listPrice)
+    totalMicros,
+    billedMicros,
+    estimatedMicros,
+    isEstimate: estimatedMicros !== null && estimatedMicros > 0,
+    reportedByClientMicros: toMicros(reportedUsd(d.reported, 'client_estimate')),
+    listPriceMicros: d.unpricedAtListPrice ? null : toMicros(toNanos(d.listPrice))
   };
 };
 

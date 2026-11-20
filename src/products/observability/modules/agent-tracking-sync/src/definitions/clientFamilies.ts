@@ -11,8 +11,6 @@ export let agentTrackingClientFamilyKeys = Object.keys(
 let isClientFamily = (family: string): family is AgentTrackingClientFamily =>
   Object.hasOwn(agentTrackingClientFamilies, family);
 
-// Metorial names a family by its key, the service by its serviceFamily. Both take either
-// spelling, and a family Metorial does not know keeps its own.
 export let toServiceFamily = (family: string) =>
   isClientFamily(family) ? agentTrackingClientFamilies[family].serviceFamily : family;
 

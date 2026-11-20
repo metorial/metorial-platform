@@ -68,8 +68,6 @@ describe('module-agent-tracking-sync scope and entities', () => {
       intervalMs: 500
     });
 
-    // Only a backfill brings an archived entity back, so archiving the one the live sync made
-    // shows the backfill ran.
     let archived = await agentTracking().entity.archive({
       organizationId: org.ids.organizationId,
       entityId: synced.id

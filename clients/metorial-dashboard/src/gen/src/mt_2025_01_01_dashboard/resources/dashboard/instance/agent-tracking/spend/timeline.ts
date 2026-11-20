@@ -7,12 +7,12 @@ export type DashboardInstanceAgentTrackingSpendTimelineOutput = {
   total: {
     cost: {
       currency: 'usd';
-      total: string | null;
-      billed: string | null;
-      estimated: string | null;
+      totalMicros: number | null;
+      billedMicros: number | null;
+      estimatedMicros: number | null;
       isEstimate: boolean;
-      reportedByClient: string | null;
-      listPrice: string | null;
+      reportedByClientMicros: number | null;
+      listPriceMicros: number | null;
     } & { requestsWithoutCost: number; requestsWithoutListPrice: number };
     requests: number;
     tokens: {
@@ -30,12 +30,12 @@ export type DashboardInstanceAgentTrackingSpendTimelineOutput = {
     total: {
       cost: {
         currency: 'usd';
-        total: string | null;
-        billed: string | null;
-        estimated: string | null;
+        totalMicros: number | null;
+        billedMicros: number | null;
+        estimatedMicros: number | null;
         isEstimate: boolean;
-        reportedByClient: string | null;
-        listPrice: string | null;
+        reportedByClientMicros: number | null;
+        listPriceMicros: number | null;
       } & { requestsWithoutCost: number; requestsWithoutListPrice: number };
       requests: number;
       tokens: {
@@ -62,12 +62,12 @@ export type DashboardInstanceAgentTrackingSpendTimelineOutput = {
     cost:
       | ({
           currency: 'usd';
-          total: string | null;
-          billed: string | null;
-          estimated: string | null;
+          totalMicros: number | null;
+          billedMicros: number | null;
+          estimatedMicros: number | null;
           isEstimate: boolean;
-          reportedByClient: string | null;
-          listPrice: string | null;
+          reportedByClientMicros: number | null;
+          listPriceMicros: number | null;
         } & { requestsWithoutCost: number; requestsWithoutListPrice: number })
       | null;
     requests: number | null;
@@ -104,9 +104,12 @@ export let mapDashboardInstanceAgentTrackingSpendTimelineOutput =
                     [
                       1,
                       [
+                        'total_micros',
+                        'billed_micros',
+                        'estimated_micros',
                         'is_estimate',
-                        'reported_by_client',
-                        'list_price',
+                        'reported_by_client_micros',
+                        'list_price_micros',
                         'requests_without_cost',
                         'requests_without_list_price'
                       ]
@@ -143,9 +146,12 @@ export let mapDashboardInstanceAgentTrackingSpendTimelineOutput =
                           [
                             1,
                             [
+                              'total_micros',
+                              'billed_micros',
+                              'estimated_micros',
                               'is_estimate',
-                              'reported_by_client',
-                              'list_price',
+                              'reported_by_client_micros',
+                              'list_price_micros',
                               'requests_without_cost',
                               'requests_without_list_price'
                             ]
@@ -184,9 +190,12 @@ export let mapDashboardInstanceAgentTrackingSpendTimelineOutput =
                       [
                         1,
                         [
+                          'total_micros',
+                          'billed_micros',
+                          'estimated_micros',
                           'is_estimate',
-                          'reported_by_client',
-                          'list_price',
+                          'reported_by_client_micros',
+                          'list_price_micros',
                           'requests_without_cost',
                           'requests_without_list_price'
                         ]

@@ -16,8 +16,6 @@ export let isAgentTrackingEnabledForOrganization = async (d: {
     flag: agentTrackingFlag
   }));
 
-// Not found rather than forbidden: an organization without agent tracking, or a server that does
-// not run it, has none of its routes.
 export let assertAgentTrackingEnabled = async (d: {
   organization: Organization;
   project?: Project;

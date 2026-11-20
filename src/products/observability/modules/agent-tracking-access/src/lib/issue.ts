@@ -7,8 +7,7 @@ import {
   type AgentTrackingCallOpts
 } from '@metorial/module-agent-tracking-sync';
 
-// Issuing runs on a request path, so each call is bounded. A retry after a lost response would
-// issue a second key nobody holds.
+// Not retried: a retry after a lost response would issue a second key nobody holds.
 let scopeCallOpts: AgentTrackingCallOpts = { timeoutMs: 3_000 };
 export let issueCallOpts: AgentTrackingCallOpts = { timeoutMs: 5_000, retry: false };
 

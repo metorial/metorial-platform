@@ -1,8 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type { RemotePage, RemotePageInput } from './remotePaginator';
 
-// Pages a list held in memory, newest first, by the id of the item a page starts after or ends
-// before, which is what the dashboard sends back.
 export let pageByAnchor = <T extends { id: string }>(
   items: T[],
   page: RemotePageInput

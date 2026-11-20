@@ -5,10 +5,8 @@ export type ContextVersionKey = {
   publish: (version: string) => Promise<unknown>;
 };
 
-// Per process, checked against a version every process publishes to on a change, so a change
-// made in the API reaches the worker's next read. The version is read before loading, so a change
-// that commits mid-load leaves a newer version behind and the next read reloads. Without Redis
-// (`read` returns null) only the TTL bounds staleness.
+// Per process, checked against a version every process publishes on a change. The version is
+// read before loading, so a change mid-load makes the next read reload.
 export let createContextCache = <T>(d: {
   ttlMs: number;
   load: (organizationId: string) => Promise<T>;

@@ -101,7 +101,12 @@ describe('agentTrackingSessionService', () => {
       models: [{ id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5' }],
       unknownModelNames: ['claude-experimental-x'],
       billingModes: ['included', 'overage', 'unknown'],
-      cost: { total: '0.42', reportedByClient: '0.42', listPrice: '0.4', isEstimate: true },
+      cost: {
+        totalMicros: 420000,
+        reportedByClientMicros: 420000,
+        listPriceMicros: 400000,
+        isEstimate: true
+      },
       tokens: { total: 42 },
       requests: 3,
       summaryPending: false
@@ -308,7 +313,7 @@ describe('one session', () => {
     expect(session).toMatchObject({
       id: 'atse_c0ffee',
       member: { id: 'aten_ada' },
-      cost: { total: '0.42' },
+      cost: { totalMicros: 420000 },
       requests: 3
     });
     expect(session.usageByModel).toHaveLength(2);
@@ -319,7 +324,12 @@ describe('one session', () => {
       unknownModelNames: [],
       requests: 2,
       share: 0.5,
-      cost: { total: '0.3', billed: '0.15', estimated: '0.15', isEstimate: true },
+      cost: {
+        totalMicros: 300000,
+        billedMicros: 150000,
+        estimatedMicros: 150000,
+        isEstimate: true
+      },
       tokens: { input: 10, cacheRead: 20, cacheWrite: 5, output: 7, total: 42 }
     });
     expect(session.usageByModel[1]).toMatchObject({

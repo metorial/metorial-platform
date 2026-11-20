@@ -1,6 +1,5 @@
 export {
   type BaseSlice,
-  buildSessionSlices,
   isSessionlessKey,
   parseSessionlessKey,
   sessionlessKey

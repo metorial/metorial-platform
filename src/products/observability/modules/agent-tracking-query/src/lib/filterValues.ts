@@ -5,8 +5,6 @@ import type { AgentTrackingFilterValue, AgentTrackingMember, FilterField } from 
 
 export let maxFilterValueLength = 200;
 
-// What an id of each kind can look like: anything else names nothing, so it is answered without
-// asking the service or writing a cache entry.
 let valuePatterns: Record<FilterField, RegExp> = {
   member: /^aten_[A-Za-z0-9]+$/,
   model: /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:@+-]*$/,

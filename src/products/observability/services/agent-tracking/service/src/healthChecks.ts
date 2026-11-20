@@ -29,10 +29,9 @@ export let runHealthChecks = async (
   return { healthy: failures.length == 0, failures };
 };
 
-// A store outage after the first connection is left out on purpose: ingest answers it with a
-// retryable 503, and failing every task's health check at once would only restart them all. A
-// task that has never reached its store since it started is misconfigured or started into an
-// outage, and after the grace period it reports unhealthy so the deployment does not settle on it.
+// A store outage after the first connection does not fail health: ingest answers 503, and
+// failing every task would only restart them all. A task that never reached its store reports
+// unhealthy after the grace period.
 export let storeHealthCheck = (d: {
   store: { hasConnected: () => boolean; ready: () => Promise<unknown> };
   startedAt: number;

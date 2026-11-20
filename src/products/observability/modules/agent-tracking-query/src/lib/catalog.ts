@@ -8,7 +8,6 @@ import { cached, catalogTtlSeconds } from './cache';
 import { unique } from './members';
 import { readCallOptions } from './service';
 
-// Names only decorate a row, so a model the catalog cannot name keeps its id and no name.
 export let lookupModelNames = async (modelIds: (string | null | undefined)[]) => {
   let ids = unique(modelIds);
 

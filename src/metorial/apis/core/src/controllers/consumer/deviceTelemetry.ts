@@ -2,8 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import type { Organization, Project } from '@metorial/db';
 import { canIssueAgentTrackingKeys } from '@metorial/module-agent-tracking-sync';
 
-// Metorial Desktop reads a 404 here as "this server collects no agent telemetry" and leaves
-// telemetry off. An organization without agent tracking gets the same answer.
+// Metorial Desktop reads a 404 here as "no agent telemetry" and leaves it off.
 export let requireDeviceTelemetry = async (ctx: {
   organization: Organization;
   project: Project;

@@ -61,7 +61,7 @@ export let agentTrackingSessionController = Controller.create(
               v.enumOf(sessionListOrderBys, {
                 name: 'order_by',
                 description:
-                  'last_activity (the default) lists sessions by when they were last active; cost lists them by cost.total, sessions without a known cost last. order sets the direction of either, newest or most expensive first by default. Pass a range with cost: without one, each page reads every session of the instance.'
+                  'last_activity (the default) lists sessions by when they were last active; cost lists them by cost.total_micros, sessions without a known cost last. order sets the direction of either, newest or most expensive first by default. Pass a range with cost: without one, each page reads every session of the instance.'
               })
             ),
             ...sessionRangeFields

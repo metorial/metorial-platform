@@ -203,8 +203,8 @@ export let resolveRange = (range: NormalizedRange, now: Date = new Date()): Reso
   return { preset: null, from: range.from!, to: range.to!, timeZone: range.timeZone };
 };
 
-// A preset moves with the calendar, so its key carries today's date in the zone: a result cached
-// before midnight is not served as today's after it.
+// The key carries today's date in the zone, so a preset cached before midnight is not served
+// after it.
 export let rangeCacheKey = (range: NormalizedRange, now: Date = new Date()) =>
   range.preset
     ? {

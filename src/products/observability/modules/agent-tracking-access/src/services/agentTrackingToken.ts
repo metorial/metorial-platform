@@ -50,7 +50,6 @@ class AgentTrackingTokenServiceImpl {
         })
       : [];
 
-    // A rotation revokes the replaced tokens after its commit, so the newest active one wins.
     let activeTokenIds = new Map(
       tokens.map(token => [token.consumerDeviceOid!, token.serviceIngestTokenId])
     );
@@ -121,7 +120,7 @@ class AgentTrackingTokenServiceImpl {
         }
       });
 
-      // Rotation must not lose the new secret, so the old tokens are revoked after commit.
+      // Old tokens are revoked after commit, so a rotation cannot lose the new secret.
       addAfterTransactionHook(() =>
         revokeIngestTokenQueue.addManyWithOps(
           previous.map(token => ({

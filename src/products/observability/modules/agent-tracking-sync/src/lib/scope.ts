@@ -17,8 +17,8 @@ import {
   serviceProjectRetention
 } from './settings';
 
-// Without settings passed or a stored row Metorial has never set a value, so nothing is sent and
-// a value set in the service itself stays.
+// No stored row means Metorial never set a value: nothing is sent, and a value set in the
+// service stays.
 let storedOr = async <Row, Values>(
   settings: Values | undefined,
   read: () => Promise<Row | null>,

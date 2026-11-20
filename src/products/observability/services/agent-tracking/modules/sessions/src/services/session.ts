@@ -54,9 +54,8 @@ class SessionServiceImpl {
     return await refreshSessionSummary(session);
   }
 
-  // `after` and `before` take the position a page returned, which holds the anchor's last
-  // activity as it was read, so an anchor that moves since does not shift the next page. A bare
-  // session key is accepted too and is placed where that session is now.
+  // A position holds the anchor's last activity as it was read, so an anchor that moves does
+  // not shift the next page.
   async listSessions(d: {
     organization: Organization;
     filters: SessionListFilters;
@@ -125,8 +124,8 @@ class SessionServiceImpl {
     };
   }
 
-  // Scoped like the list, so a caller limited to some instances cannot probe other keys. An
-  // unknown key is an error rather than an empty page, which would read as the end of the list.
+  // Scoped like the list, so a limited caller cannot probe other keys. An unknown key is an
+  // error, not an empty page.
   private async anchorSession(
     sessions: StoreCollections['sessions'],
     d: { organization: Organization; filters: SessionListFilters },

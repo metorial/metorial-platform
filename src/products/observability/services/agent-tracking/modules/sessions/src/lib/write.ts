@@ -290,8 +290,6 @@ export let sourceHealthId = (d: { instanceId: string; actorKey: string; family: 
 
 let fieldKey = (value: string) => value.replace(/[^A-Za-z0-9_:-]/g, '_').slice(0, 64) || '_';
 
-// Unknown events are not stored as records; this count per dialect and native name is what is
-// kept of them, as the signal that a client changed what it sends.
 let unmappedCounterPath = (record: Pick<NormalizedRecord, 'source' | 'data'>) => {
   let name = typeof record.data.native_name == 'string' ? record.data.native_name : 'unknown';
 

@@ -1,6 +1,5 @@
 export { decodeOtlp } from './decode';
-export { encodeExportResponse, otlpResponse } from './response';
-export { Reader } from './reader';
+export { otlpResponse } from './response';
 export { tooManyItemsError } from './errors';
 export {
   type OtlpAttributes,

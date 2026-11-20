@@ -53,7 +53,6 @@ let contentModeRank: Record<ContentMode, number> = { basic: 0, shape: 1, full: 2
 let stricterMode = (a: ContentMode, b: ContentMode) =>
   contentModeRank[a] <= contentModeRank[b] ? a : b;
 
-// Per role the less capturing mode of the two, so neither policy can widen the other.
 export let stricterContentPolicy = (
   policy: ContentPolicy,
   other: ContentPolicy

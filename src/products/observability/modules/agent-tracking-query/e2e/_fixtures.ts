@@ -55,9 +55,6 @@ export let createSyncedConsumer = async (org: BootstrappedOrganization, email: s
   return consumer;
 };
 
-// Whether the e2e stack's agent tracking service has a model catalog is part of its
-// configuration, so the real models are either both known or both unknown; the made-up one never
-// is.
 export let loadCatalog = async (ids: { organizationId: string; instanceId: string }) => {
   let catalog = await serviceCatalogModels(ids);
   for (let raw of [sonnet, haiku, madeUpModel]) expect(catalog.has(raw), raw).toBe(true);

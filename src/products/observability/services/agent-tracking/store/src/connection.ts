@@ -31,9 +31,8 @@ import {
 let serverSelectionTimeoutMs = 5000;
 let poolHeadroom = 4;
 
-// `await` builds indexes before the store is ready (tests, scripts); `background` builds them
-// after connecting without holding up callers (the worker role); `skip` leaves them to the worker
-// (ingest and api), so concurrent role starts do not race index builds on one collection.
+// `await` builds indexes before the store is ready, `background` after connecting, `skip`
+// leaves them to the worker so role starts do not race.
 export type StoreIndexMode = 'await' | 'background' | 'skip';
 
 let indexMode: StoreIndexMode = 'await';
@@ -43,8 +42,6 @@ let indexRetryBaseMs = 5_000;
 
 let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Two workers starting together can collide on DocumentDB's index builds, so a failed build is
-// retried with backoff and jitter; only the last failure is reported.
 export let buildIndexesWithRetry = async (d: {
   build: () => Promise<void>;
   attempts?: number;

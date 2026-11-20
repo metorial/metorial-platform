@@ -21,11 +21,8 @@ export type SessionListFilters = {
 let inFilter = (values: (string | null)[] | undefined) =>
   values ? { $in: values } : undefined;
 
-// A null selects sessions with a model that is not in the catalog. Unlike a plain `$in` on the
-// array path, it does not also match sessions that have no models at all. Summaries leave out the
-// id of such a model, so the missing field is matched explicitly rather than through null, which
-// DocumentDB is not known to treat like MongoDB. Neither form has an index of its own; both narrow
-// the instance's sessions.
+// A null selects sessions with a model outside the catalog, not sessions without models. The
+// missing field is matched explicitly: DocumentDB is not known to treat null like MongoDB.
 let modelFilter = (modelIds: (string | null)[] | undefined) =>
   modelIds?.includes(null)
     ? {

@@ -26,12 +26,12 @@ export type AgentTrackingSessionsListOutput = {
     billingModes: ('included' | 'overage' | 'api' | 'unknown')[];
     cost: {
       currency: 'usd';
-      total: string | null;
-      billed: string | null;
-      estimated: string | null;
+      totalMicros: number | null;
+      billedMicros: number | null;
+      estimatedMicros: number | null;
       isEstimate: boolean;
-      reportedByClient: string | null;
-      listPrice: string | null;
+      reportedByClientMicros: number | null;
+      listPriceMicros: number | null;
     };
     tokens: {
       input: number;
@@ -60,7 +60,21 @@ export let mapAgentTrackingSessionsListOutput =
           ['member', 0, [1, ['needs_review']]],
           'unknown_model_names',
           'billing_modes',
-          ['cost', 0, [1, ['is_estimate', 'reported_by_client', 'list_price']]],
+          [
+            'cost',
+            0,
+            [
+              1,
+              [
+                'total_micros',
+                'billed_micros',
+                'estimated_micros',
+                'is_estimate',
+                'reported_by_client_micros',
+                'list_price_micros'
+              ]
+            ]
+          ],
           ['tokens', 0, [1, ['cache_read', 'cache_write']]],
           'summary_pending',
           'started_at',

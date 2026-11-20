@@ -13,8 +13,7 @@ export type Cells = Record<string, unknown>;
 
 type Labels = Record<string, { name?: string | null }>;
 
-// One rule for every figure: without requests an amount is 0; with requests it is null only when
-// none of them had that amount, and otherwise covers the requests that had one.
+// Without requests an amount is 0; with requests it is null only when none of them had one.
 export let spendFiguresOf = (cells: Cells | null | undefined): AgentTrackingSpendFigures => {
   let row = cells ?? {};
   let requests = countOf(row.requests);
@@ -46,15 +45,10 @@ export let dayCountsOf = (cells: Cells | null | undefined): AgentTrackingDayCoun
 });
 
 // Requests, tokens or a cost. A cost the client only reported is not usage here.
-export let hasUsage = (row: Cells) => {
-  let figures = spendFiguresOf(row);
-
-  return (
-    figures.requests > 0 ||
-    figures.tokens.total > 0 ||
-    (figures.cost.total !== null && toNanos(figures.cost.total) !== 0n)
-  );
-};
+export let hasUsage = (row: Cells) =>
+  countOf(row.requests) > 0 ||
+  tokensOf(row.tokens).total > 0 ||
+  (toNanos(row['cost.usd']) ?? 0n) !== 0n;
 
 export let dayItem = (row: Cells): AgentTrackingSpendDay | null => {
   let key = row['time.day'];
@@ -88,8 +82,6 @@ export let usageItem = <Kind extends string>(
   share: shareOf(row.share)
 });
 
-// A row of a query grouped by model. A row without a model is usage of models the catalog does
-// not know.
 export let modelUsageItem = (row: Cells, labels: Labels, unknownModelNames: string[]) => {
   let value = row.model;
 

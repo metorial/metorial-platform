@@ -55,9 +55,8 @@ let listByIds = async (d: { organizationId: string; ids: string[] }) => {
   return pages.flatMap(page => page.items);
 };
 
-// Usage can still point at a member that was since merged into another (usually the matched
-// Metorial member). Such a member keeps the id its usage is recorded under, so filters by it
-// still match, and shows the details of the member it was merged into.
+// A merged member keeps the id its usage is recorded under and shows the details of the member
+// it was merged into.
 let fetchRemoteMembers = async (d: { organizationId: string; ids: string[] }) => {
   let ids = unique(d.ids);
   if (!ids.length) return new Map<string, RemoteMember>();
@@ -88,8 +87,6 @@ let fetchRemoteMembers = async (d: { organizationId: string; ids: string[] }) =>
   return resolved;
 };
 
-// Matched means the member is the user the sync module wrote for a Metorial consumer, and that
-// consumer still exists in this organization.
 let presentMembers = async (d: {
   scope: Pick<ReadScope, 'organization' | 'instance'>;
   remote: RemoteMember[];

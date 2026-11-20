@@ -1,5 +1,5 @@
-// The views the services return and the presenters read. Structural types only: importing this
-// file must not pull in the services, the sync module or the RPC client.
+// Structural types only: importing this file must not pull in the services, the sync module or
+// the RPC client.
 
 export type RangePreset =
   'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month';
@@ -21,12 +21,12 @@ export type SetupOptionKey =
 export type SetupOptionStatus = 'detected' | 'not_detected' | 'undetectable';
 
 export type AgentTrackingCost = {
-  total: string | null;
-  billed: string | null;
-  estimated: string | null;
+  totalMicros: number | null;
+  billedMicros: number | null;
+  estimatedMicros: number | null;
   isEstimate: boolean;
-  reportedByClient: string | null;
-  listPrice: string | null;
+  reportedByClientMicros: number | null;
+  listPriceMicros: number | null;
 };
 
 export type AgentTrackingSpendCost = AgentTrackingCost & {

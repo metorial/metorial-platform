@@ -10,15 +10,10 @@ let previousPeriodLabels: Record<string, string> = {
   last_month: 'the month before'
 };
 
-export let costChange = (current: string | null, previous: string | null) => {
-  if (current === null || previous === null) return null;
+export let costChange = (current: number | null, previous: number | null) => {
+  if (current === null || previous === null || previous == 0) return null;
 
-  let currentAmount = Number(current);
-  let previousAmount = Number(previous);
-  if (!Number.isFinite(currentAmount) || !Number.isFinite(previousAmount)) return null;
-  if (previousAmount == 0) return null;
-
-  return (currentAmount - previousAmount) / previousAmount;
+  return (current - previous) / previous;
 };
 
 export let formatChange = (change: number) => {
@@ -31,16 +26,18 @@ export let previousPeriodLabel = (preset: string | null) =>
   (preset && previousPeriodLabels[preset]) || 'the previous period';
 
 export let describeSpendChange = (d: {
-  current: string | null;
-  previous: { total: string | null; isEstimate: boolean };
+  current: number | null;
+  previous: { totalMicros: number | null; isEstimate: boolean };
   preset: string | null;
   startsBeforeRetention: boolean;
-  format: (amount: string, opts: { estimate: boolean }) => string;
+  format: (micros: number, opts: { estimate: boolean }) => string;
 }) => {
-  if (d.startsBeforeRetention || d.current === null || d.previous.total === null) return null;
+  if (d.startsBeforeRetention || d.current === null || d.previous.totalMicros === null) {
+    return null;
+  }
 
   let label = previousPeriodLabel(d.preset);
-  let change = costChange(d.current, d.previous.total);
+  let change = costChange(d.current, d.previous.totalMicros);
 
   if (change === null) {
     return { change: null, text: `Nothing spent ${d.preset == 'today' ? '' : 'in '}${label}` };
@@ -48,7 +45,7 @@ export let describeSpendChange = (d: {
 
   return {
     change: formatChange(change),
-    text: `vs ${label} (${d.format(d.previous.total, { estimate: d.previous.isEstimate })})`
+    text: `vs ${label} (${d.format(d.previous.totalMicros, { estimate: d.previous.isEstimate })})`
   };
 };
 
@@ -58,15 +55,15 @@ export let formatCount = (count: number, capped: boolean) =>
   `${formatNumber(count)}${capped && count >= countCap ? '+' : ''}`;
 
 export let costSplit = (cost: {
-  total: string | null;
-  billed: string | null;
-  estimated: string | null;
+  totalMicros: number | null;
+  billedMicros: number | null;
+  estimatedMicros: number | null;
 }) => {
-  let billed = Math.max(0, Number(cost.billed ?? 0));
-  let estimated = Math.max(0, Number(cost.estimated ?? 0));
+  let billed = Math.max(0, cost.billedMicros ?? 0);
+  let estimated = Math.max(0, cost.estimatedMicros ?? 0);
   let sum = billed + estimated;
 
-  if (cost.total === null || !Number.isFinite(sum) || sum <= 0) return null;
+  if (cost.totalMicros === null || sum <= 0) return null;
 
   return { billedShare: billed / sum, estimatedShare: estimated / sum };
 };
@@ -74,8 +71,5 @@ export let costSplit = (cost: {
 export let hasUsage = (figures: {
   requests: number;
   tokens: { total: number };
-  cost: { total: string | null };
-}) =>
-  figures.requests > 0 ||
-  figures.tokens.total > 0 ||
-  (figures.cost.total !== null && Number(figures.cost.total) != 0);
+  cost: { totalMicros: number | null };
+}) => figures.requests > 0 || figures.tokens.total > 0 || (figures.cost.totalMicros ?? 0) != 0;

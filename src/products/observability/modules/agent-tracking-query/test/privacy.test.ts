@@ -123,10 +123,10 @@ describe('timeline with individuals hidden', () => {
       ['2026-11-19', true]
     ]);
     expect(timeline.items[1]).toMatchObject({ cost: null, requests: null, counts: null });
-    expect(timeline.total.cost.total).toBe('2');
+    expect(timeline.total.cost.totalMicros).toBe(2000000);
     expect(timeline.total.requests).toBe(4);
     expect(timeline.counts).toBeNull();
-    expect(timeline.previous.total.cost.total).toBe('3');
+    expect(timeline.previous.total.cost.totalMicros).toBe(3000000);
     expect(timeline.previous.hiddenGroups).toBe(true);
     expect(timeline.privacy).toEqual({
       hideIndividuals: true,
@@ -186,7 +186,7 @@ describe('timeline with individuals hidden', () => {
     ).toEqual(['2026-11-14', '2026-11-16', '2026-11-18']);
     expect(timeline.items.find(item => item.date == '2026-11-15')!.hidden).toBe(true);
     expect(timeline.items.find(item => item.date == '2026-11-17')!.hidden).toBe(true);
-    expect(timeline.total.cost.total).toBe('7');
+    expect(timeline.total.cost.totalMicros).toBe(7000000);
     expect(timeline.total.requests).toBe(12);
   });
 

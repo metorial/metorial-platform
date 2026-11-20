@@ -211,8 +211,7 @@ class AgentTrackingIngestSourceServiceImpl {
     }));
   }
 
-  // The time of last use is shown next to the key, never needed to act on it: reading and
-  // revoking keys must keep working while the service cannot answer.
+  // Last use is display only: listing and revoking must work while the service cannot answer.
   private async fetchLastUse(ingestSource: IngestSourceRecord): Promise<IngestSourceLastUse> {
     let unknown = { lastUsedAt: null, lastUsedStatus: 'unknown' } as const;
 
@@ -236,8 +235,6 @@ class AgentTrackingIngestSourceServiceImpl {
     }
   }
 
-  // The secret of a key without a mirror row is never returned, so nobody can use the key;
-  // revoking it is housekeeping and must not hide the error that caused it.
   private async revokeUnmirroredIngestSource(d: {
     agentTracking: AgentTracking;
     organization: Organization;

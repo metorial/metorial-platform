@@ -8,10 +8,16 @@ let session = (d: Partial<Omit<Input, 'cost'>> & { cost?: Partial<Input['cost']>
   requests: 3,
   memberName: null,
   ...d,
-  cost: { total: '18.42', billed: '0', estimated: '18.42', isEstimate: true, ...d.cost }
+  cost: {
+    totalMicros: 18420000,
+    billedMicros: 0,
+    estimatedMicros: 18420000,
+    isEstimate: true,
+    ...d.cost
+  }
 });
 
-let unknownCost = { total: null, billed: null, estimated: null };
+let unknownCost = { totalMicros: null, billedMicros: null, estimatedMicros: null };
 
 describe('describeSessionCost', () => {
   it('names the member whose subscription covers an estimated session', () => {
@@ -28,7 +34,7 @@ describe('describeSessionCost', () => {
     expect(
       describeSessionCost(
         session({
-          cost: { total: '10', billed: '4', estimated: '6' },
+          cost: { totalMicros: 10000000, billedMicros: 4000000, estimatedMicros: 6000000 },
           billingModes: ['api', 'included'],
           requests: 12
         })
@@ -40,7 +46,7 @@ describe('describeSessionCost', () => {
     expect(
       describeSessionCost(
         session({
-          cost: { billed: '18.42', estimated: '0', isEstimate: false },
+          cost: { billedMicros: 18420000, estimatedMicros: 0, isEstimate: false },
           billingModes: ['api']
         })
       )
@@ -57,7 +63,7 @@ describe('describeSessionCost', () => {
     expect(
       describeSessionCost(
         session({
-          cost: { total: '0.004672', estimated: '0.004672' },
+          cost: { totalMicros: 4672, estimatedMicros: 4672 },
           billingModes: ['included']
         })
       )
@@ -78,9 +84,9 @@ describe('sessionCostKind', () => {
   it('tells the cost bases apart', () => {
     expect(sessionCostKind(session({ cost: unknownCost }))).toBe('unknown');
     expect(sessionCostKind(session({ cost: { isEstimate: false } }))).toBe('billed');
-    expect(sessionCostKind(session({ cost: { billed: '4', estimated: '6' } }))).toBe(
-      'partlyBilled'
-    );
+    expect(
+      sessionCostKind(session({ cost: { billedMicros: 4000000, estimatedMicros: 6000000 } }))
+    ).toBe('partlyBilled');
     expect(sessionCostKind(session({ billingModes: ['included'] }))).toBe('subscription');
     expect(sessionCostKind(session())).toBe('estimated');
   });

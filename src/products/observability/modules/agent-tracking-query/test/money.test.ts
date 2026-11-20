@@ -1,23 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { costOf, formatMoney, toNanos, tokensOf } from '../src/lib/money';
+import { costOf, sumMoney, toNanos, tokensOf } from '../src/lib/money';
 
 describe('money', () => {
   it('keeps sub-cent amounts and never goes through cents', () => {
-    expect(formatMoney(0.000315)).toBe('0.000315');
-    expect(formatMoney(12.34)).toBe('12.34');
-    expect(formatMoney(0.1 + 0.2)).toBe('0.3');
-    expect(formatMoney('1.23456789012345')).toBe('1.23456789');
-    expect(formatMoney('0.0000000005')).toBe('0.000000001');
-    expect(formatMoney(0)).toBe('0');
+    expect(toNanos(0.000315)).toBe(315000n);
+    expect(toNanos(12.34)).toBe(12340000000n);
+    expect(toNanos(0.1 + 0.2)).toBe(300000000n);
+    expect(toNanos('1.23456789012345')).toBe(1234567890n);
+    expect(toNanos('0.0000000005')).toBe(1n);
+    expect(toNanos(0)).toBe(0n);
   });
 
   it('reads the exponent form Decimal128 writes below a millionth', () => {
-    expect(formatMoney('1.23E-7')).toBe('0.000000123');
-    expect(formatMoney('1.230000000E-7')).toBe('0.000000123');
-    expect(formatMoney('5E-10')).toBe('0.000000001');
-    expect(formatMoney('4E-10')).toBe('0');
-    expect(formatMoney('1.5E+2')).toBe('150');
-    expect(formatMoney('-2.5e-3')).toBe('-0.0025');
+    expect(toNanos('1.23E-7')).toBe(123n);
+    expect(toNanos('1.230000000E-7')).toBe(123n);
+    expect(toNanos('5E-10')).toBe(1n);
+    expect(toNanos('4E-10')).toBe(0n);
+    expect(toNanos('1.5E+2')).toBe(150000000000n);
+    expect(toNanos('-2.5e-3')).toBe(-2500000n);
+  });
+
+  it('sums decimal strings without rounding them', () => {
+    expect(sumMoney(['0.000000123', 0.1, '1.23E-7'])).toBe('0.100000246');
+    expect(sumMoney([null, 'abc'])).toBeNull();
   });
 
   it('treats missing and malformed amounts as unknown, not zero', () => {
@@ -43,13 +48,37 @@ describe('cost with its basis', () => {
     });
 
     expect(cost).toEqual({
-      total: '10.5',
-      billed: '4.5',
-      estimated: '6',
+      totalMicros: 10500000,
+      billedMicros: 4500000,
+      estimatedMicros: 6000000,
       isEstimate: true,
-      reportedByClient: '9.9',
-      listPrice: '11'
+      reportedByClientMicros: 9900000,
+      listPriceMicros: 11000000
     });
+  });
+
+  it('rounds to micro-dollars half away from zero', () => {
+    let cost = costOf({
+      total: '0.0000015',
+      listPrice: '-0.0000025',
+      reported: [{ unit: 'usd', basis: 'client_estimate', amount: '0.0000014994' }]
+    });
+
+    expect(cost).toMatchObject({
+      totalMicros: 2,
+      reportedByClientMicros: 1,
+      listPriceMicros: -3
+    });
+  });
+
+  it('keeps billed plus estimated equal to total after rounding', () => {
+    let cost = costOf({
+      total: '0.0000034',
+      listPrice: null,
+      reported: [{ unit: 'usd', basis: 'billed', amount: '0.0000016' }]
+    });
+
+    expect(cost).toMatchObject({ totalMicros: 3, billedMicros: 2, estimatedMicros: 1 });
   });
 
   it('marks a fully billed total as no estimate', () => {
@@ -59,7 +88,7 @@ describe('cost with its basis', () => {
       reported: [{ unit: 'usd', basis: 'billed', amount: '2.25' }]
     });
 
-    expect(cost.estimated).toBe('0');
+    expect(cost.estimatedMicros).toBe(0);
     expect(cost.isEstimate).toBe(false);
   });
 
@@ -73,19 +102,19 @@ describe('cost with its basis', () => {
       ]
     });
 
-    expect(cost.billed).toBeNull();
-    expect(cost.estimated).toBe('3');
-    expect(cost.reportedByClient).toBe('3');
+    expect(cost.billedMicros).toBeNull();
+    expect(cost.estimatedMicros).toBe(3000000);
+    expect(cost.reportedByClientMicros).toBe(3000000);
   });
 
   it('has no estimate when there is no total', () => {
     expect(costOf({ total: null, listPrice: null, reported: [] })).toEqual({
-      total: null,
-      billed: null,
-      estimated: null,
+      totalMicros: null,
+      billedMicros: null,
+      estimatedMicros: null,
       isEstimate: false,
-      reportedByClient: null,
-      listPrice: null
+      reportedByClientMicros: null,
+      listPriceMicros: null
     });
   });
 });
@@ -101,10 +130,10 @@ describe('unpriced usage', () => {
     });
 
     expect(cost).toMatchObject({
-      total: null,
-      estimated: null,
+      totalMicros: null,
+      estimatedMicros: null,
       isEstimate: false,
-      listPrice: null
+      listPriceMicros: null
     });
   });
 });

@@ -7,8 +7,7 @@ import {
 } from '@metorial/module-agent-tracking-sync';
 import { revokeDeviceIngestTokensQueue } from '../queues/revokeTokens';
 
-// Device end fires inside the writing transaction; the jobs must read the committed row, and a
-// rollback must enqueue nothing. Tokens are revoked whatever the flag says.
+// Fires inside the writing transaction, so jobs are enqueued after commit.
 Fabric.listen('consumer.device.ended:after', async ({ consumerDevice }) => {
   if (!isAgentTrackingEnabled()) return;
 

@@ -1,8 +1,12 @@
 import { Text } from '@metorial/ui';
 import { formatCost } from './costFormat';
 
-export let CostValue = ({ cost }: { cost: { total: string | null; isEstimate: boolean } }) => {
-  let formatted = formatCost(cost.total, { estimate: cost.isEstimate });
+export let CostValue = ({
+  cost
+}: {
+  cost: { totalMicros: number | null; isEstimate: boolean };
+}) => {
+  let formatted = formatCost(cost.totalMicros, { estimate: cost.isEstimate });
 
   if (formatted === null) {
     return (

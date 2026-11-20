@@ -6,8 +6,8 @@ import { backfillOrganizationQueue } from '../queues/backfill';
 import { reconcileSingleQueue } from '../queues/reconcile';
 import { syncEntityQueue, type EntitySyncTarget } from '../queues/syncEntity';
 
-// Other processes keep an organization's flags for up to 35 seconds after a change, and one that
-// read the old value just before the change can put it back into the shared cache for 5 minutes.
+// A process caches flags for up to 35 seconds, and a stale read can sit in the shared cache
+// for 5 minutes.
 let flagChangeReconcileDelays = {
   settled: 60_000,
   cache_expired: 6 * 60_000

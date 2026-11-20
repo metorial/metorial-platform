@@ -220,8 +220,6 @@ export let ingestFirstUsage = async (
   return source;
 };
 
-// Whether a raw model name is in the service's model catalog depends on the database the suite
-// runs against, so expectations about model names are built from what the service settled.
 export let serviceCatalogModels = async (ids: TrackedIds) => {
   let models = new Map<string, CatalogModel | null>();
 

@@ -28,16 +28,16 @@ export let clientVersion = (client: { version: string | null }) =>
   client.version ? `v${client.version}` : null;
 
 export let costIsSettling = (session: {
-  cost: { total: string | null };
+  cost: { totalMicros: number | null };
   summaryPending: boolean;
-}) => session.summaryPending && session.cost.total == null;
+}) => session.summaryPending && session.cost.totalMicros == null;
 
 type SessionSummary = {
   state: 'active' | 'idle' | 'ended';
   lastActivityAt: Date;
   models: { id: string; name: string | null }[];
   unknownModelNames: string[];
-  cost: { total: string | null; isEstimate: boolean };
+  cost: { totalMicros: number | null; isEstimate: boolean };
   requests: number;
   summaryPending: boolean;
 };

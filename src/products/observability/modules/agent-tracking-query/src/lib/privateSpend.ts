@@ -47,7 +47,6 @@ export let assertPrivateRead = (d: {
   }
 };
 
-// Null when the preset holds no complete day yet, such as month to date on the first.
 export let privateRange = (
   preset: RangeInput['preset'],
   now: Date = new Date()
@@ -97,9 +96,8 @@ let hasReportedCost = (reported: unknown) =>
     return amount !== null && amount !== 0n;
   });
 
-// Metorial applies the group minimum itself, whatever the engine's own setting: a day is shown
-// only when as many people as the minimum had usage on it. Usage the people count does not see,
-// such as a cost the client reported without a request, still counts as usage.
+// Metorial applies the group minimum itself, whatever the engine's setting. A reported cost
+// without a request still counts as usage.
 let isShownGroup = (privacy: AgentTrackingPrivacy, row: Cells) =>
   !(hasUsage(row) || hasReportedCost(row['cost.reported'])) ||
   countOf(row[memberCountColumn]) >= privacy.minGroupUsers;
@@ -124,8 +122,6 @@ let addObjects = (a: unknown, b: unknown) => {
   return sum;
 };
 
-// The figures of the days a response shows, added up, so a total never covers a day it does not
-// show.
 export let sumSpendCells = (rows: Cells[]): Cells => {
   let total: Cells = {
     'cost.usd': sumMoney(rows.map(row => row['cost.usd'])),

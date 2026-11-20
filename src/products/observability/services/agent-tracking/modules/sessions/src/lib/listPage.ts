@@ -52,8 +52,7 @@ let readCursor = (value: string): Record<string, any> | undefined => {
   }
 };
 
-// Sessions are listed by one field with the key as tie-break. `before` pages are read
-// nearest-first, so their sort runs against the list order and the caller reverses the page.
+// `before` pages are read nearest-first, so the caller reverses them.
 let sortOn =
   (path: string) =>
   (order: SessionListOrder, side: SessionListSide = 'after') => {
@@ -76,7 +75,6 @@ let readLastActivityPosition = (value: string): SessionListPosition | undefined 
     : undefined;
 };
 
-// The range on lastActivityAt bounds the index scan; the `$or` only settles ties on it.
 let lastActivityFilter = (d: PositionFilterInput<SessionListPosition>) => {
   let later = (d.side == 'after') == (d.order == 'asc');
   let strict = later ? '$gt' : '$lt';

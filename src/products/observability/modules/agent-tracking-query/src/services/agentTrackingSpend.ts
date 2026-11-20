@@ -230,7 +230,6 @@ class AgentTrackingSpendServiceImpl {
     });
   }
 
-  // The names explain the unknown item; when they cannot be read, the item is still shown.
   private async unknownModelNames(d: {
     scope: ReadScope;
     instanceId: string;

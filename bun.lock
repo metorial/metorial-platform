@@ -6719,38 +6719,6 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/products/observability/services/agent-tracking/dev": {
-      "name": "@mtsrc/agent-tracking-dev",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/module-agent-tracking-query": "workspace:*",
-        "@mtsrc/agent-tracking-api-ingest": "workspace:*",
-        "@mtsrc/agent-tracking-api-internal": "workspace:*",
-        "@mtsrc/agent-tracking-client-internal": "workspace:*",
-        "@mtsrc/agent-tracking-cost": "workspace:*",
-        "@mtsrc/agent-tracking-crypto": "workspace:*",
-        "@mtsrc/agent-tracking-layers": "workspace:*",
-        "@mtsrc/agent-tracking-module-ingest": "workspace:*",
-        "@mtsrc/agent-tracking-module-query": "workspace:*",
-        "@mtsrc/agent-tracking-module-records": "workspace:*",
-        "@mtsrc/agent-tracking-module-scope": "workspace:*",
-        "@mtsrc/agent-tracking-module-sessions": "workspace:*",
-        "@mtsrc/agent-tracking-module-usage": "workspace:*",
-        "@mtsrc/agent-tracking-otlp": "workspace:*",
-        "@mtsrc/agent-tracking-records-model": "workspace:*",
-        "@mtsrc/agent-tracking-spec": "workspace:*",
-        "@mtsrc/agent-tracking-store": "workspace:*",
-        "@mtsrc/agent-tracking-testing": "workspace:*",
-        "mongoose": "^9.11.4",
-      },
-      "devDependencies": {
-        "@mtsrc/agent-tracking-query-spec": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
     "src/products/observability/services/agent-tracking/modules/attribution": {
       "name": "@mtsrc/agent-tracking-module-attribution",
       "version": "1.0.0",
@@ -10843,8 +10811,6 @@
     "@mtsrc/agent-tracking-crypto": ["@mtsrc/agent-tracking-crypto@workspace:src/products/observability/services/agent-tracking/packages/crypto"],
 
     "@mtsrc/agent-tracking-db": ["@mtsrc/agent-tracking-db@workspace:src/products/observability/services/agent-tracking/db"],
-
-    "@mtsrc/agent-tracking-dev": ["@mtsrc/agent-tracking-dev@workspace:src/products/observability/services/agent-tracking/dev"],
 
     "@mtsrc/agent-tracking-dialects": ["@mtsrc/agent-tracking-dialects@workspace:src/products/observability/services/agent-tracking/packages/dialects"],
 

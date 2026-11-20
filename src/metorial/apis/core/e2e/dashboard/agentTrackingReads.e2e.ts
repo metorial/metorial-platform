@@ -88,10 +88,10 @@ describe('api-core dashboard: agent tracking reads', () => {
     expect(timeline.items).toHaveLength(7);
     expect(timeline.items[0].cost).toMatchObject({
       currency: 'usd',
-      total: '0',
-      list_price: '0',
+      total_micros: 0,
+      list_price_micros: 0,
       is_estimate: false,
-      billed: null,
+      billed_micros: null,
       requests_without_cost: 0,
       requests_without_list_price: 0
     });
@@ -335,7 +335,7 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
 
     expect(sessions[2]).toMatchObject({
       tokens: { input: 2000, cache_read: 6000, cache_write: 800, output: 400, total: 9200 },
-      cost: { currency: 'usd', total: '0.025', reported_by_client: '0.025' },
+      cost: { currency: 'usd', total_micros: 25000, reported_by_client_micros: 25000 },
       member: { matched: true, email: emails.matched, consumer: { email: emails.matched } }
     });
     expect(sessions[1].member).toMatchObject({ matched: false, consumer: null });
@@ -450,7 +450,7 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     expect(session.usage_by_model[0]).toMatchObject({
       share: 1,
       requests: 1,
-      cost: { currency: 'usd', total: '0.001', is_estimate: true }
+      cost: { currency: 'usd', total_micros: 1000, is_estimate: true }
     });
 
     expectError(
@@ -500,7 +500,7 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
       privacy: { hide_individuals: false, hidden_groups: false },
       total: {
         requests: 4,
-        cost: { currency: 'usd', total: '0.028', requests_without_cost: 0 },
+        cost: { currency: 'usd', total_micros: 28000, requests_without_cost: 0 },
         tokens: { input: 4000, cache_read: 12000, cache_write: 1600, output: 800 }
       }
     });
@@ -516,7 +516,7 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     ]);
     expect(members.items[0]).toMatchObject({
       member: { email: emails.matched, consumer: { email: emails.matched } },
-      cost: { total: '0.025' }
+      cost: { total_micros: 25000 }
     });
     expect(members.items[0].share).toBeCloseTo(0.025 / 0.028, 6);
     expect(members.items[1].share).toBeCloseTo(0.002 / 0.028, 6);

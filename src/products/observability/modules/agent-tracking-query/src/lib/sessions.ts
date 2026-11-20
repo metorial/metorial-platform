@@ -23,8 +23,6 @@ export type RemoteSession = Awaited<
 
 export let sessionIdOf = (sessionKey: string) => `${sessionIdPrefix}${sessionKey}`;
 
-// The dashboard pages by item id, while the service takes its own position cursor or a bare
-// session key.
 export let sessionAnchorOf = (anchor: string | undefined) =>
   anchor?.startsWith(sessionIdPrefix) ? anchor.slice(sessionIdPrefix.length) : anchor;
 

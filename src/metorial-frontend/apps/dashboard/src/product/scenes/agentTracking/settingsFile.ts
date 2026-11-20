@@ -24,9 +24,8 @@ type ClaudeCodeManagedSettings = {
 export let claudeCodeLogsEndpoint = (ingestUrl: string) =>
   `${ingestUrl.trim().replace(/\/+$/, '')}/v1/logs`;
 
-// Claude Code sends usage and cost as OTLP log events, which is what the agent tracking
-// dialect reads, so only the logs signal is pointed at ingest. Every exporter variable is the
-// per-signal one: metrics or traces a developer exports elsewhere never receive the key.
+// Only the logs signal goes to ingest, through per-signal variables, so metrics or traces
+// exported elsewhere never receive the key.
 export let buildClaudeCodeManagedSettings = (d: {
   ingestUrl: string;
   secret: string | null | undefined;
@@ -99,9 +98,8 @@ export let detectManagedSettingsOs = (
   return 'macos';
 };
 
-// The install command is one compound command with the file in a here-document, so the shell
-// reads all of it before sudo asks for a password; pasted lines are never taken as the password.
-// PowerShell writes through WriteAllText because Set-Content in Windows PowerShell 5.1 adds a BOM.
+// One compound command with a here-document, so pasted lines are never read as the sudo
+// password. WriteAllText, because Set-Content in Windows PowerShell 5.1 adds a BOM.
 export let buildManagedSettingsCommands = (d: { os: ManagedSettingsOs; json: string }) => {
   let location = managedSettingsLocations.find(location => location.id == d.os)!;
 

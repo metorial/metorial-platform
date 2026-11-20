@@ -88,8 +88,6 @@ let useFilterOptions = (
 
 type FilterScope = { range: AgentTrackingRangePreset; rangeText: string };
 
-// Labels for values a filter already holds come from value=…, which reads no usage, so a page
-// opened with filters in its URL does not spend the organization's query budget on them.
 let agentTrackingFilter = (
   instanceId: string | undefined,
   field: AgentTrackingFilterField,

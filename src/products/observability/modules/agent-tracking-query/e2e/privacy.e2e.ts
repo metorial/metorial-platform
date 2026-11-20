@@ -35,8 +35,6 @@ let days = {
   alone: isoDate(today - hourMs)
 };
 
-// Three people on one day and one person on the next: with a minimum of three, only the second
-// day is too small to show.
 let seed = async (org: BootstrappedOrganization) => {
   await ingestFirstUsage(org, [
     ...[1, 2, 3].map(index =>
@@ -228,10 +226,10 @@ describe('module-agent-tracking-query with individuals hidden: small days', () =
     expect(timeline.items.find(item => item.date == days.crowded)).toMatchObject({
       hidden: false,
       requests: 3,
-      cost: { total: '0.0375' },
+      cost: { totalMicros: 37500 },
       counts: { sessions: 3, members: 3 }
     });
-    expect(timeline.total).toMatchObject({ requests: 3, cost: { total: '0.0375' } });
+    expect(timeline.total).toMatchObject({ requests: 3, cost: { totalMicros: 37500 } });
     expect(timeline.counts).toBeNull();
     expect(timeline.previous.total.requests).toBe(0);
     expect(timeline.previous.hiddenGroups).toBe(false);

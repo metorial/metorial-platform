@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { describeCostComparison } from './costComparison';
+import { formatAmount } from './costFormat';
 
-let format = (amount: string) => `~$${Number(amount).toFixed(2)}`;
+let format = (micros: number) => formatAmount(micros, { estimate: true });
 
 describe('describeCostComparison', () => {
   it('says the list price covers every request when it does', () => {
     expect(
       describeCostComparison({
-        reportedByClient: '3.74',
-        listPrice: '3.70',
+        reportedByClientMicros: 3740000,
+        listPriceMicros: 3700000,
         requests: 73,
         requestsWithoutListPrice: 0,
         format
@@ -21,8 +22,8 @@ describe('describeCostComparison', () => {
   it('names the single request a full list price covers', () => {
     expect(
       describeCostComparison({
-        reportedByClient: null,
-        listPrice: '0.5',
+        reportedByClientMicros: null,
+        listPriceMicros: 500000,
         requests: 1,
         requestsWithoutListPrice: 0,
         format
@@ -35,8 +36,8 @@ describe('describeCostComparison', () => {
   it('says how much of the usage a partial list price covers', () => {
     expect(
       describeCostComparison({
-        reportedByClient: '3.74',
-        listPrice: '0.27',
+        reportedByClientMicros: 3740000,
+        listPriceMicros: 270000,
         requests: 73,
         requestsWithoutListPrice: 56,
         format
@@ -49,8 +50,8 @@ describe('describeCostComparison', () => {
   it('uses the singular for one request without a list price', () => {
     expect(
       describeCostComparison({
-        reportedByClient: null,
-        listPrice: '1.5',
+        reportedByClientMicros: null,
+        listPriceMicros: 1500000,
         requests: 3,
         requestsWithoutListPrice: 1,
         format
@@ -63,8 +64,8 @@ describe('describeCostComparison', () => {
   it('gives no list-price figure when no request has one', () => {
     expect(
       describeCostComparison({
-        reportedByClient: '0.12',
-        listPrice: null,
+        reportedByClientMicros: 120000,
+        listPriceMicros: null,
         requests: 4,
         requestsWithoutListPrice: 4,
         format
@@ -75,8 +76,8 @@ describe('describeCostComparison', () => {
 
     expect(
       describeCostComparison({
-        reportedByClient: null,
-        listPrice: null,
+        reportedByClientMicros: null,
+        listPriceMicros: null,
         requests: 1,
         requestsWithoutListPrice: 1,
         format
@@ -89,8 +90,8 @@ describe('describeCostComparison', () => {
   it('has nothing to compare without requests', () => {
     expect(
       describeCostComparison({
-        reportedByClient: '0',
-        listPrice: '0',
+        reportedByClientMicros: 0,
+        listPriceMicros: 0,
         requests: 0,
         requestsWithoutListPrice: 0,
         format

@@ -13,9 +13,8 @@ export let isAgentTrackingEnabled = () => !!agentTrackingSettings.url;
 export let getAgentTrackingIngestPublicUrl = () =>
   agentTrackingSettings.ingestPublicUrl ?? null;
 
-// The client is an RPC proxy that answers every property, `then` included, so it is a thenable:
-// returning it from an async function or a Service method sends an RPC named `then` and never
-// settles. Hand it out synchronously only.
+// The RPC proxy answers every property, `then` included: returned from an async function it
+// sends an RPC named `then` and never settles.
 export let getAgentTracking = () => {
   let endpoint = agentTrackingSettings.url;
   if (!endpoint) return null;
@@ -42,7 +41,6 @@ export let requireIngestUrl = () => {
   return ingestUrl;
 };
 
-// Archiving something the service no longer has (or already archived) is the goal state.
 export let ignoreNotFound = async <T>(promise: Promise<T>) => {
   try {
     return await promise;

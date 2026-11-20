@@ -13,8 +13,7 @@ export type ReadScope = {
   instance: Pick<Instance, 'oid' | 'id' | 'name'>;
 };
 
-// Sessions are stored under the service's own instance id, not Metorial's. The scope is only
-// created when the service does not know the instance yet, so a read does not write each time.
+// Only when the service does not know the instance, so a read does not write each time.
 export let resolveServiceInstanceId = async (d: ReadScope) =>
   await cached({
     key: `scope:${d.organization.id}:${d.instance.id}`,

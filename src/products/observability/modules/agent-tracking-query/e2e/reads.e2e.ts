@@ -37,10 +37,10 @@ type Scope = Awaited<ReturnType<typeof readScope>>;
 let lastWeek = { preset: 'last_7_days' as const };
 
 let zeroCost = {
-  total: '0',
-  listPrice: '0',
+  totalMicros: 0,
+  listPriceMicros: 0,
   isEstimate: false,
-  billed: null,
+  billedMicros: null,
   requestsWithoutCost: 0,
   requestsWithoutListPrice: 0
 };
@@ -83,7 +83,7 @@ describe('module-agent-tracking-query reads of an instance without usage', () =>
     expect(timeline.counts).toEqual({ sessions: 0, members: 0, capped: false });
     expect(timeline.previous).toMatchObject({
       range: { preset: null, to: timeline.range.from, timeZone: 'Europe/Berlin' },
-      total: { requests: 0, cost: { total: '0', billed: null } },
+      total: { requests: 0, cost: { totalMicros: 0, billedMicros: null } },
       startsBeforeRetention: false
     });
     expect(timeline.previous.range.to.getTime() - timeline.previous.range.from.getTime()).toBe(
@@ -243,19 +243,19 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     expect(matched).toMatchObject({
       requests: 2,
       tokens: { input: 2000, cacheRead: 6000, cacheWrite: 800, output: 400, total: 9200 },
-      cost: { total: '0.025', reportedByClient: '0.025' },
+      cost: { totalMicros: 25000, reportedByClientMicros: 25000 },
       member: { matched: true, email: matchedEmail, consumer: { email: matchedEmail } }
     });
     expect(unmatched).toMatchObject({
       requests: 1,
       tokens: { input: 500, output: 50, total: 550 },
-      cost: { total: '0.002' },
+      cost: { totalMicros: 2000 },
       member: { matched: false, email: unmatchedEmail, consumer: null }
     });
     expect(anonymous).toMatchObject({
       requests: 1,
       tokens: { input: 300, output: 30, total: 330 },
-      cost: { total: '0.001' },
+      cost: { totalMicros: 1000 },
       member: null
     });
   });
@@ -267,10 +267,10 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     });
 
     let descending = (await paginator.run({ limit: 10 })).items;
-    expect(descending.map(session => session.cost.total)).toEqual(['0.025', '0.002', '0.001']);
+    expect(descending.map(session => session.cost.totalMicros)).toEqual([25000, 2000, 1000]);
 
     let ascending = (await paginator.run({ limit: 10, order: 'asc' })).items;
-    expect(ascending.map(session => session.cost.total)).toEqual(['0.001', '0.002', '0.025']);
+    expect(ascending.map(session => session.cost.totalMicros)).toEqual([1000, 2000, 25000]);
   });
 
   it('lists only sessions last active in a range', async () => {
@@ -347,9 +347,9 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
       requests: 2,
       tokens: { input: 2000, cacheRead: 6000, cacheWrite: 800, output: 400, total: 9200 },
       cost: {
-        total: '0.025',
-        billed: null,
-        estimated: '0.025',
+        totalMicros: 25000,
+        billedMicros: null,
+        estimatedMicros: 25000,
         isEstimate: true,
         requestsWithoutCost: 0
       }
@@ -368,16 +368,16 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
 
     expect(timeline.total).toMatchObject({
       requests: 4,
-      cost: { total: '0.028', reportedByClient: '0.028', requestsWithoutCost: 0 },
+      cost: { totalMicros: 28000, reportedByClientMicros: 28000, requestsWithoutCost: 0 },
       tokens: { input: 2800, cacheRead: 6000, cacheWrite: 800, output: 480, total: 10080 }
     });
     if (catalog.present) {
       expect(timeline.total.cost.requestsWithoutListPrice).toBe(1);
-      expect(timeline.total.cost.listPrice).not.toBeNull();
+      expect(timeline.total.cost.listPriceMicros).not.toBeNull();
     } else {
       expect(timeline.total.cost).toMatchObject({
         requestsWithoutListPrice: 4,
-        listPrice: null
+        listPriceMicros: null
       });
     }
 
@@ -407,7 +407,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
         groupBy,
         range: lastWeek
       });
-      expect(breakdown.total).toMatchObject({ requests: 4, cost: { total: '0.028' } });
+      expect(breakdown.total).toMatchObject({ requests: 4, cost: { totalMicros: 28000 } });
       expect(sumOf(breakdown.items, item => item.requests)).toBe(4);
     }
   });
@@ -417,7 +417,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
 
     expect(timeline.counts).toEqual({ sessions: 3, members: 2, capped: false });
     expect(timeline.previous.range.to).toEqual(timeline.range.from);
-    expect(timeline.previous.total).toMatchObject({ requests: 0, cost: { total: '0' } });
+    expect(timeline.previous.total).toMatchObject({ requests: 0, cost: { totalMicros: 0 } });
 
     let later = await agentTrackingSpendService.getTimeline({
       ...scope,
@@ -428,7 +428,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     });
     expect(later.counts).toEqual({ sessions: 0, members: 0, capped: false });
     expect(later.previous.range.to).toEqual(timeline.range.to);
-    expect(later.previous.total).toMatchObject({ requests: 4, cost: { total: '0.028' } });
+    expect(later.previous.total).toMatchObject({ requests: 4, cost: { totalMicros: 28000 } });
   });
 
   it('applies client and model filters to every spend figure', async () => {
@@ -449,13 +449,13 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
       groupBy: 'model',
       range: lastWeek
     });
-    let expected: [string, number, string][] = catalog.present
+    let expected: [string, number, number][] = catalog.present
       ? [
-          [catalog.sonnet.id, 2, '0.025'],
-          [catalog.haiku.id, 1, '0.002'],
-          ['unknown', 1, '0.001']
+          [catalog.sonnet.id, 2, 25000],
+          [catalog.haiku.id, 1, 2000],
+          ['unknown', 1, 1000]
         ]
-      : [['unknown', 4, '0.028']];
+      : [['unknown', 4, 28000]];
     expect(models.items.map(item => item.key).sort()).toEqual(
       expected.map(([key]) => key).sort()
     );
@@ -464,7 +464,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
       let byModel = await read({ clientFamilies: ['claude_code'], modelIds: [key] });
 
       expect(byModel.total.requests).toBe(requests);
-      expect(byModel.total.cost.total).toBe(cost);
+      expect(byModel.total.cost.totalMicros).toBe(cost);
       expect(byModel.counts!.sessions).toBe(requests == 4 ? 3 : 1);
       let item = models.items.find(item => item.key == key)!;
       expect(byModel.total).toEqual({
@@ -479,7 +479,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
       { clientFamilies: ['claude_code'], modelIds: ['no-such-model'] }
     ]) {
       let none = await read(filters);
-      expect(none.total).toMatchObject({ requests: 0, cost: { total: '0' } });
+      expect(none.total).toMatchObject({ requests: 0, cost: { totalMicros: 0 } });
       expect(none.counts).toEqual({ sessions: 0, members: 0, capped: false });
       expect(none.items.every(item => item.counts!.sessions == 0)).toBe(true);
 
@@ -506,19 +506,19 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     let [matched, unmatched, unknown] = breakdown.items;
     expect(matched).toMatchObject({
       requests: 2,
-      cost: { total: '0.025' },
+      cost: { totalMicros: 25000 },
       member: { matched: true, email: matchedEmail }
     });
     expect(unmatched).toMatchObject({
       requests: 1,
-      cost: { total: '0.002' },
+      cost: { totalMicros: 2000 },
       member: { matched: false, email: unmatchedEmail }
     });
     expect(unknown).toMatchObject({
       key: 'unknown',
       member: null,
       requests: 1,
-      cost: { total: '0.001' }
+      cost: { totalMicros: 1000 }
     });
     expect(matched!.share).toBeGreaterThan(unmatched!.share!);
     expect(unmatched!.share).toBeGreaterThan(unknown!.share!);
@@ -745,8 +745,8 @@ describe('module-agent-tracking-query spend over several days', () => {
   });
 
   it('applies model and client filters to the range, the period before, the breakdown and the sessions', async () => {
-    type Figures = [requests: number, cost: string, output: number];
-    let none: Figures = [0, '0', 0];
+    type Figures = [requests: number, cost: number, output: number];
+    let none: Figures = [0, 0, 0];
     let cases: {
       filters: AgentTrackingSpendFilters;
       current: Figures;
@@ -757,7 +757,7 @@ describe('module-agent-tracking-query spend over several days', () => {
       ? [
           {
             filters: { modelIds: [catalog.haiku.id] },
-            current: [1, '0.002', 50],
+            current: [1, 2000, 50],
             previous: none,
             members: { [once]: 1 },
             sessions: [1]
@@ -765,21 +765,21 @@ describe('module-agent-tracking-query spend over several days', () => {
           {
             filters: { modelIds: ['unknown'] },
             current: none,
-            previous: [1, '0.0125', 200],
+            previous: [1, 12500, 200],
             members: {},
             sessions: []
           },
           {
             filters: { clientFamilies: ['claude_code'], modelIds: [catalog.sonnet.id] },
-            current: [2, '0.025', 400],
+            current: [2, 25000, 400],
             previous: none,
             members: { [both]: 2 },
             sessions: [2]
           },
           {
             filters: { modelIds: ['unknown', catalog.sonnet.id] },
-            current: [2, '0.025', 400],
-            previous: [1, '0.0125', 200],
+            current: [2, 25000, 400],
+            previous: [1, 12500, 200],
             members: { [both]: 2 },
             sessions: [2]
           }
@@ -787,8 +787,8 @@ describe('module-agent-tracking-query spend over several days', () => {
       : [
           {
             filters: { modelIds: ['unknown'] },
-            current: [3, '0.027', 450],
-            previous: [1, '0.0125', 200],
+            current: [3, 27000, 450],
+            previous: [1, 12500, 200],
             members: { [both]: 2, [once]: 1 },
             sessions: [1, 2]
           },
@@ -813,9 +813,11 @@ describe('module-agent-tracking-query spend over several days', () => {
         [timeline.total, expected.current],
         [timeline.previous.total, expected.previous]
       ] as const) {
-        expect([presented.requests, presented.cost.total, presented.tokens.output]).toEqual(
-          figures
-        );
+        expect([
+          presented.requests,
+          presented.cost.totalMicros,
+          presented.tokens.output
+        ]).toEqual(figures);
       }
 
       let breakdown = await agentTrackingSpendService.getBreakdown({

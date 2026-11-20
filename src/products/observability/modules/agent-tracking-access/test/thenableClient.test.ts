@@ -7,7 +7,6 @@ let mocks = vi.hoisted(() => {
 
   let calls: string[] = [];
 
-  // Same trap as the RPC client's proxy: every property, `then` included, is a callable path.
   let rpcProxy = (path: string[]): any =>
     new Proxy(() => {}, {
       get: (_, prop) => rpcProxy([...path, String(prop)]),

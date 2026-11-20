@@ -5,8 +5,6 @@ import {
   tooManyRequestsError
 } from '@lowerdeck/error';
 
-// Requests from a dashboard page fail fast instead of riding the client's two-minute retry
-// deadline. Queries scan usage, so they get longer than point reads.
 export let queryCallOptions = { timeoutMs: 15_000, retry: false, captureErrors: false };
 
 export let readCallOptions = { timeoutMs: 5_000, retry: false, captureErrors: false };
@@ -29,7 +27,6 @@ let isConcurrencyLimited = (error: unknown) =>
   statusOf(error) == 429 &&
   (error as ServiceError<any>).data.reason == 'query_concurrency_limit';
 
-// The service counts queries per organization per calendar minute.
 export let retryAfterSeconds = (now: Date = new Date()) =>
   Math.max(1, 60 - now.getUTCSeconds());
 

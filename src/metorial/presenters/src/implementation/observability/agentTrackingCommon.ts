@@ -7,50 +7,50 @@ import type {
 } from '@metorial/module-agent-tracking-query';
 
 let moneyDescription =
-  'A decimal string in US dollars with up to 9 decimal places, never rounded to cents.';
+  'An integer in micro-dollars: millionths of a US dollar, so 12345678 is $12.345678.';
 
 let money = (name: string, description: string) =>
   v.nullable(
-    v.string({
+    v.number({
       name,
       description: `${description} ${moneyDescription}`,
-      examples: ['12.345678']
+      examples: [12345678]
     })
   );
 
 export let agentTrackingCostSchema = v.object(
   {
     currency: v.literal('usd', { description: 'The currency of every amount. Always usd.' }),
-    total: money(
-      'total',
+    total_micros: money(
+      'total_micros',
       "The best figure for the cost. Agent tracking picks one basis per session: billed where a provider bill exists, else contract prices where a price override applies, else the agent's own estimate, else list prices computed by Metorial. It covers only the requests with a known cost (see requests_without_cost on spend figures). On spend figures: 0 when there were no requests, null when there were requests and none had a known cost. On a session: null while none of its requests has a known cost."
     ),
-    billed: money(
-      'billed',
-      'The part of total that comes from provider bills. Not an estimate. Null when no bill covers this usage.'
+    billed_micros: money(
+      'billed_micros',
+      'The part of total_micros that comes from provider bills. Not an estimate. Null when no bill covers this usage.'
     ),
-    estimated: money(
-      'estimated',
-      "The part of total that is an estimate: total minus billed. It mixes the agent's own estimates, contract prices and list prices, and how much of each is not recorded. Null when total is null."
+    estimated_micros: money(
+      'estimated_micros',
+      "The part of total_micros that is an estimate: total_micros minus billed_micros, never below 0. It mixes the agent's own estimates, contract prices and list prices, and how much of each is not recorded. Null when total_micros is null."
     ),
     is_estimate: v.boolean({
       name: 'is_estimate',
       description:
-        'Whether any part of total is an estimate. Show the total as approximate when true.'
+        'Whether any part of total_micros is an estimate. Show the total as approximate when true.'
     }),
-    reported_by_client: money(
-      'reported_by_client',
-      'The costs the agent reported itself (for Claude Code, its own estimate at list prices), summed over all usage covered here, including usage whose total uses another basis. A comparison figure, not a part of total. Null when the agent reported no cost.'
+    reported_by_client_micros: money(
+      'reported_by_client_micros',
+      'The costs the agent reported itself (for Claude Code, its own estimate at list prices), summed over all usage covered here, including usage whose total uses another basis. A comparison figure, not a part of total_micros. Null when the agent reported no cost.'
     ),
-    list_price: money(
-      'list_price',
-      'The usage covered here, priced by Metorial at list prices whatever basis total uses. A comparison figure, not a part of total. It covers only the requests whose model has a list price (see requests_without_list_price on spend figures), so it can cover less usage than total or reported_by_client. On spend figures: 0 when there were no requests, null when there were requests and none had a list price. On a session: null while none of its requests has a list price.'
+    list_price_micros: money(
+      'list_price_micros',
+      'The usage covered here, priced by Metorial at list prices whatever basis total_micros uses. A comparison figure, not a part of total_micros. It covers only the requests whose model has a list price (see requests_without_list_price on spend figures), so it can cover less usage than total_micros or reported_by_client_micros. On spend figures: 0 when there were no requests, null when there were requests and none had a list price. On a session: null while none of its requests has a list price.'
     )
   },
   {
     name: 'cost',
     description:
-      'A cost with its basis. billed plus estimated is total; reported_by_client and list_price describe the same usage for comparison and are not parts of total.'
+      'A cost with its basis. billed_micros plus estimated_micros is total_micros; reported_by_client_micros and list_price_micros describe the same usage for comparison and are not parts of total_micros.'
   }
 );
 
@@ -60,24 +60,24 @@ let agentTrackingSpendCostSchema = v.intersection([
     requests_without_cost: v.number({
       name: 'requests_without_cost',
       description:
-        'Model requests whose cost is not known: neither the agent nor the price list gave one. Counted per usage slice (the requests of one session to one model in 15 minutes), so requests in a slice that has any cost count as priced. When above 0, total covers only the other requests.'
+        'Model requests whose cost is not known: neither the agent nor the price list gave one. Counted per usage slice (the requests of one session to one model in 15 minutes), so requests in a slice that has any cost count as priced. When above 0, total_micros covers only the other requests.'
     }),
     requests_without_list_price: v.number({
       name: 'requests_without_list_price',
       description:
-        'Model requests that list_price does not cover, because Metorial has no list price for their model (usually a model the catalog does not have yet, or usage recorded before the catalog knew its model). Counted per usage slice like requests_without_cost. When above 0, list_price covers only requests minus this many, and is not comparable with total or reported_by_client.'
+        'Model requests that list_price_micros does not cover, because Metorial has no list price for their model (usually a model the catalog does not have yet, or usage recorded before the catalog knew its model). Counted per usage slice like requests_without_cost. When above 0, list_price_micros covers only requests minus this many, and is not comparable with total_micros or reported_by_client_micros.'
     })
   })
 ]);
 
 export let presentAgentTrackingCost = (cost: AgentTrackingCost) => ({
   currency: 'usd' as const,
-  total: cost.total,
-  billed: cost.billed,
-  estimated: cost.estimated,
+  total_micros: cost.totalMicros,
+  billed_micros: cost.billedMicros,
+  estimated_micros: cost.estimatedMicros,
   is_estimate: cost.isEstimate,
-  reported_by_client: cost.reportedByClient,
-  list_price: cost.listPrice
+  reported_by_client_micros: cost.reportedByClientMicros,
+  list_price_micros: cost.listPriceMicros
 });
 
 export let presentAgentTrackingSpendCost = (cost: AgentTrackingSpendCost) => ({
