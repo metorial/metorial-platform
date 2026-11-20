@@ -13,7 +13,8 @@ import {
 import {
   HttpResponseError,
   toConnectionError,
-  type ConnectionErrorPayload
+  type ConnectionErrorPayload,
+  type EgressContext
 } from '@mtsrc/mcp-runtime-network';
 import type { ConnectionMessage } from '../../utils/messenger';
 import {
@@ -67,7 +68,7 @@ type ExchangeOutcome =
 
 export interface StatelessMcpBridgeOptions {
   url: string;
-  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
+  egress: EgressContext;
   getHeaders: () => Promise<Record<string, string>>;
   emit: (message: ConnectionMessage) => Promise<void>;
   log: (type: 'debug.info' | 'debug.warning' | 'debug.error', message: string) => void;
@@ -592,7 +593,7 @@ export class StatelessMcpBridge {
       request: this.#withMeta(request),
       headers,
       signal: AbortSignal.any([signal, this.#abortController.signal]),
-      egressPolicy: this.opts.egressPolicy,
+      egress: this.opts.egress,
       onMessage
     });
   }

@@ -6,8 +6,12 @@ import {
   STATELESS_PROTOCOL_VERSION
 } from '@mtsrc/mcp-runtime-remote-protocol';
 import { getStandardHeaders } from '@mtsrc/mcp-runtime-remote-protocol';
-import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
-import { axiosWithoutSse } from '@mtsrc/mcp-runtime-network';
+import {
+  axiosWithoutSse,
+  getAxiosEgressOptions,
+  systemEgressContext,
+  type EgressContext
+} from '@mtsrc/mcp-runtime-network';
 import type { OAuthConfiguration } from './types';
 
 export class OAuthDiscovery {
@@ -69,9 +73,12 @@ export class OAuthDiscovery {
 
   static async checkIfManualAuthIsNeeded(
     url: string,
-    opts: { protocol?: ServerRemoteProtocol } = {}
+    opts: { protocol?: ServerRemoteProtocol; egress?: EgressContext } = {}
   ) {
-    if (opts.protocol == 'stateless') return this.checkIfStatelessManualAuthIsNeeded(url);
+    let egress = opts.egress ?? systemEgressContext;
+    if (opts.protocol == 'stateless') {
+      return this.checkIfStatelessManualAuthIsNeeded(url, egress);
+    }
 
     try {
       let response = await axiosWithoutSse(url, {
@@ -83,7 +90,7 @@ export class OAuthDiscovery {
         validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
         maxRedirects: 5,
         timeout: 2000,
-        ...getAxiosSsrfFilter(url)
+        ...getAxiosEgressOptions(url, egress)
       });
 
       return response.status === 401;
@@ -92,7 +99,7 @@ export class OAuthDiscovery {
     }
   }
 
-  private static async checkIfStatelessManualAuthIsNeeded(url: string) {
+  private static async checkIfStatelessManualAuthIsNeeded(url: string, egress: EgressContext) {
     let request = {
       jsonrpc: '2.0',
       id: 'metorial-auth-probe',
@@ -119,7 +126,7 @@ export class OAuthDiscovery {
         validateStatus: status => status >= 200 && status < 500,
         maxRedirects: 5,
         timeout: 2000,
-        ...getAxiosSsrfFilter(url)
+        ...getAxiosEgressOptions(url, egress)
       });
 
       return response.status === 401;
@@ -171,7 +178,7 @@ export class OAuthDiscovery {
         validateStatus: status => status >= 200 && status < 500, // allow 4xx to fall through
         maxRedirects: 5,
         timeout: 2000,
-        ...getAxiosSsrfFilter(url)
+        ...getAxiosEgressOptions(url, systemEgressContext)
       });
 
       if (response.status >= 400) {
@@ -243,7 +250,7 @@ export class OAuthDiscovery {
         validateStatus: () => true, // allow all statuses to be processed
         maxRedirects: 5,
         timeout: 2000,
-        ...getAxiosSsrfFilter(baseUrl)
+        ...getAxiosEgressOptions(baseUrl, systemEgressContext)
       });
 
       clearTimeout(timeoutId);

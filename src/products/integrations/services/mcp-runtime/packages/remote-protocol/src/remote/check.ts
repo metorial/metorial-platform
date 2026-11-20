@@ -1,22 +1,31 @@
-import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
-import { forceHttpsRedirect } from '@mtsrc/mcp-runtime-network';
-import { axiosWithoutSse } from '@mtsrc/mcp-runtime-network';
+import {
+  axiosWithoutSse,
+  forceHttpsRedirect,
+  getAxiosEgressOptions,
+  type EgressContext
+} from '@mtsrc/mcp-runtime-network';
 
-export let checkRemote = async (remoteUrl: string) => {
+export let checkRemote = async (remoteUrl: string, egress: EgressContext) => {
   let getRes = await checkRemoteInner({
     remoteUrl,
+    egress,
     method: 'GET'
   });
   if (getRes.ok) return getRes;
 
   let postRes = await checkRemoteInner({
     remoteUrl,
+    egress,
     method: 'POST'
   });
   return postRes;
 };
 
-let checkRemoteInner = async (d: { remoteUrl: string; method: 'GET' | 'POST' }) => {
+let checkRemoteInner = async (d: {
+  remoteUrl: string;
+  egress: EgressContext;
+  method: 'GET' | 'POST';
+}) => {
   try {
     await axiosWithoutSse(d.remoteUrl, {
       method: d.method,
@@ -28,7 +37,7 @@ let checkRemoteInner = async (d: { remoteUrl: string; method: 'GET' | 'POST' }) 
       maxRedirects: 5,
       ignoreSse: true,
       ...forceHttpsRedirect(d.remoteUrl),
-      ...getAxiosSsrfFilter(d.remoteUrl)
+      ...getAxiosEgressOptions(d.remoteUrl, d.egress)
     });
 
     return { ok: true as const };

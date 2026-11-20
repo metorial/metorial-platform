@@ -39,6 +39,7 @@
     "@lowerdeck/rpc-server": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/telemetry": "workspace:2.0.0",
+    "@metorial-platform-systems/runtime-trust-publisher": "workspace:*",
     "@metorial/doctor": "workspace:*",
     "@metorial/editions": "workspace:*",
     "@mtsrc/mcp-runtime-api-connection": "workspace:*",
@@ -53,6 +54,7 @@
     "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
     "@mtsrc/mcp-runtime-module-retention": "workspace:*",
     "@mtsrc/mcp-runtime-module-servers": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
     "@mtsrc/mcp-runtime-storage": "workspace:*",
     "@sentry/bun": "^11.12.0",
     "@sentry/cli": "^3.8.2"

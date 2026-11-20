@@ -6,6 +6,7 @@ import type {
   ServerConnection,
   ServerInstanceConfiguration
 } from '@mtsrc/mcp-runtime-db';
+import { createEgressContext } from '@mtsrc/mcp-runtime-network';
 import type { McpConnectionBackendAdapter } from '../../connection/adapter';
 import { ConnectionManager } from '../../utils/connection';
 import { reportRemoteConnectionIssue } from '../../utils/connectionIssues';
@@ -47,8 +48,10 @@ export class StatelessRemoteConnection implements McpConnectionBackendAdapter {
 
     this.#bridge = new StatelessMcpBridge({
       url: version.remoteUrl,
-      egressPolicy: connection.serverInstanceConfiguration
-        ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
+      egress: createEgressContext({
+        tenant,
+        serverInstanceConfiguration: connection.serverInstanceConfiguration
+      }),
       getHeaders: () => this.#authManager.getHeaders(),
       emit: message => this.messenger.sendToListeners(message),
       log: (type, message) => this.logger.log(type, message),

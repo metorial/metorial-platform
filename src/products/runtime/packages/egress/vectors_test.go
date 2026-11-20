@@ -329,6 +329,7 @@ func generateVectors(t *testing.T) vectorFile {
 	b.addKey("function-bay", "", true)
 	b.addKey("function-bay-explicit-kid", "function-bay-2026-11", true)
 	b.addKey("forge", "", true)
+	b.addKey("mcp-runtime", "", true)
 	b.addKey("untrusted", "", false)
 
 	trustSet := map[string]ed25519.PublicKey{}
@@ -481,6 +482,31 @@ func (b *vectorBuilder) grantVectors() {
 	}
 	b.addGrant("build-grant", b.mintable("forge", "Build grant signed by forge's key.", withAud(build)), valid)
 
+	mcp := Grant{
+		Issuer:            "mcp-runtime",
+		ID:                "mcpe_01JD8X6666GGGG",
+		TenantID:          "sten_01JD8X7777HHHH",
+		EnclaveID:         "enc_01JD8X4444EEEE",
+		EnclaveIdentifier: "enc_01JD8X4444EEEE",
+		Source:            SourceMCP,
+		Policy:            &policy.Policy{Entries: []policy.Entry{{CIDR: "10.20.0.0/16", PortRange: &policy.PortRange{From: 443, To: 443}}, {CIDR: "0.0.0.0/0"}}},
+		IssuedAt:          now - 5,
+		NotBefore:         now - 5,
+		ExpiresAt:         now + 360,
+	}
+	b.addGrant("mcp-grant", b.mintable("mcp-runtime", "Remote MCP connection grant signed by the MCP runtime's key, with the enclave's compiled firewall policy.", withAud(mcp)), valid)
+
+	mcpPublic := Grant{
+		Issuer:    "mcp-runtime",
+		ID:        "mcpe_public",
+		TenantID:  "sten_1",
+		Source:    SourceMCP,
+		IssuedAt:  now,
+		NotBefore: now,
+		ExpiresAt: now + 60,
+	}
+	b.addGrant("mcp-grant-public-only", b.mintable("mcp-runtime", "MCP grant for a connection without an enclave: no policy, public internet only.", withAud(mcpPublic)), valid)
+
 	explicitKid := minimal
 	explicitKid.ID = "inv_explicit_kid"
 	b.addGrant("explicit-kid", b.mintable("function-bay-explicit-kid", "Signed with a key whose kid is configured explicitly instead of derived.", withAud(explicitKid)), valid)
@@ -569,6 +595,15 @@ func (b *vectorBuilder) grantVectors() {
 	noRun := build
 	noRun.BuildRunID = ""
 	b.addGrant("build-grant-missing-run", b.mintable("forge", "Build grant without buildRunId.", withAud(noRun)), invalid(ErrMissingClaims))
+
+	mcpNoTenant := Grant{
+		Issuer:    "mcp-runtime",
+		ID:        "mcpe_no_tenant",
+		Source:    SourceMCP,
+		IssuedAt:  now,
+		ExpiresAt: now + 60,
+	}
+	b.addGrant("mcp-grant-missing-tenant", b.mintable("mcp-runtime", "MCP grant without tenantId.", withAud(mcpNoTenant)), invalid(ErrMissingClaims))
 
 	badCIDR := minimal
 	badCIDR.ID = "inv_bad_cidr"
