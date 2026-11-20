@@ -6,7 +6,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "outDir": "dist",
-    "lib": ["es2021", "DOM", "WebWorker"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
     "target": "ESNext",
     "module": "ESNext"
   }

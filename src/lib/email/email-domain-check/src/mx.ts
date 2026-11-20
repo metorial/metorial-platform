@@ -8,7 +8,7 @@ let DNS_RECORD_TYPE_MX = 15;
 export class MxLookupError extends Error {
   constructor(
     message: string,
-    readonly cause?: unknown
+    override readonly cause?: unknown
   ) {
     super(message);
     this.name = 'MxLookupError';

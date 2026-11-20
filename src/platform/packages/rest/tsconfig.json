@@ -4,7 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "outDir": "dist",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext"
   }
 }

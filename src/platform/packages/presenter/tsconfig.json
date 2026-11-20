@@ -4,7 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "outDir": "dist",
-    "lib": ["ES2019"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ES2023"
   }
 }
