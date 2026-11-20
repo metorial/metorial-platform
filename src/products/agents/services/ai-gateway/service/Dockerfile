@@ -51,21 +51,21 @@ FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
 COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/service/dist ./dist
-COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/db/prisma/schema/ ./prisma/synthesis/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/db/prisma/migrations/ ./prisma/synthesis/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/db/prisma/schema/ ./prisma/ai-gateway/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/agents/services/ai-gateway/db/prisma/migrations/ ./prisma/ai-gateway/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
     {
-      "name": "synthesis",
+      "name": "ai-gateway",
       "env": [
-        "SYNTHESIS_DATABASE_URL",
+        "AI_GATEWAY_DATABASE_URL",
         "DATABASE_URL"
       ],
       "parts": "DATABASE",
       "query": "schema=public&sslmode=no-verify&connection_limit=20",
       "precedence": "parts",
-      "schema": "prisma/synthesis/schema"
+      "schema": "prisma/ai-gateway/schema"
     }
   ]
 }
@@ -76,4 +76,4 @@ EXPOSE 52160
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:52160/ping && curl -fsS http://127.0.0.1:12121/ || exit 1
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate synthesis && [ -z \"$stop\" ] && exec bun ./dist/index.js"]
+CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate ai-gateway && [ -z \"$stop\" ] && exec bun ./dist/index.js"]

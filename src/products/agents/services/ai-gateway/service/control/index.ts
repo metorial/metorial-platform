@@ -21,8 +21,8 @@ export default project({
   },
   group: 'oss',
   endpoints: {
-    api: endpoint(52160).health('/ping').listenEnv('SYNTHESIS_API_PORT'),
-    health: endpoint(12121).listenEnv('SYNTHESIS_HEALTH_PORT')
+    api: endpoint(52160).health('/ping').listenEnv('AI_GATEWAY_API_PORT'),
+    health: endpoint(12121).listenEnv('AI_GATEWAY_HEALTH_PORT')
   },
   resources: [redis({ REDIS_URL: 'redis://{{HOSTNAME}}:{{PORT}}/0' })],
   dev: dev({
@@ -35,8 +35,8 @@ export default project({
     databases: {
       main: postgres({
         package: '@mtsrc/ai-gateway-db',
-        name: 'synthesis',
-        env: 'SYNTHESIS_DATABASE_URL'
+        name: 'ai-gateway',
+        env: 'AI_GATEWAY_DATABASE_URL'
       })
     }
   }),
@@ -57,7 +57,7 @@ export default project({
             { port: 12121, path: '/' }
           ],
           migrations: [
-            ownMigration('synthesis', '@mtsrc/ai-gateway-db', { prefix: 'SYNTHESIS' })
+            ownMigration('ai-gateway', '@mtsrc/ai-gateway-db', { prefix: 'AI_GATEWAY' })
           ]
         })
       })

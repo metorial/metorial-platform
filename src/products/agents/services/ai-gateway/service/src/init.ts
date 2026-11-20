@@ -1,8 +1,8 @@
-if (!process.env.DATABASE_URL && process.env.SYNTHESIS_DATABASE_URL) {
-  process.env.DATABASE_URL = process.env.SYNTHESIS_DATABASE_URL;
+if (!process.env.DATABASE_URL && process.env.AI_GATEWAY_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.AI_GATEWAY_DATABASE_URL;
 }
 
-if (!process.env.DATABASE_URL && !process.env.SYNTHESIS_DATABASE_URL) {
+if (!process.env.DATABASE_URL && !process.env.AI_GATEWAY_DATABASE_URL) {
   if (
     !process.env.DATABASE_USERNAME ||
     !process.env.DATABASE_PASSWORD ||
@@ -16,8 +16,8 @@ if (!process.env.DATABASE_URL && !process.env.SYNTHESIS_DATABASE_URL) {
   process.env.DATABASE_URL = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
 }
 
-process.env.SYNTHESIS_API_PORT ??= '52160';
-process.env.SYNTHESIS_HEALTH_PORT ??= '12121';
+process.env.AI_GATEWAY_API_PORT ??= '52160';
+process.env.AI_GATEWAY_HEALTH_PORT ??= '12121';
 
 if (!process.env.REDIS_URL) {
   if (!process.env.REDIS_AUTH_TOKEN || !process.env.REDIS_HOST || !process.env.REDIS_PORT) {

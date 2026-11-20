@@ -8,7 +8,7 @@ declare global {
 }
 
 initTelemetry({
-  serviceName: 'mte-synthesis',
+  serviceName: 'mte-ai-gateway',
   allowRootSpans: false
 });
 

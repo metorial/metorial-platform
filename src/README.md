@@ -159,7 +159,7 @@ Runtime Build and Functions use `@mtsrc/{build,functions}-service` and
 `@mtsrc/{build,functions}-client-internal`. Canonical GHCR images use `build` and `functions`;
 AI Gateway uses `ai-gateway`. SaaS image names add the `mte-` prefix: `mte-build`, `mte-functions`,
 and `mte-ai-gateway`. Public `function-bay` and `@function-bay/*` packages retain their names.
-Existing Forge, Function Bay, and Synthesis RPC paths, environment variables, database identifiers,
+Existing Forge and Function Bay RPC paths, environment variables, database identifiers,
 signing identifiers, and deployment hostnames remain compatible.
 On-prem component names and image override keys remain `forge` and `function-bay`, while their
 image repositories use `build` and `functions`.

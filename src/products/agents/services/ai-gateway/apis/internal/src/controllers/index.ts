@@ -6,7 +6,7 @@ export let rootController = app.controller({});
 
 export let AiGatewayRPC = createServer({})(rootController);
 export let aiGatewayRpcApi = apiMux([
-  { endpoint: rpcMux({ path: '/metorial-synthesis' }, [AiGatewayRPC]) }
+  { endpoint: rpcMux({ path: '/metorial-ai-gateway' }, [AiGatewayRPC]) }
 ]);
 
 export type AiGatewayClient = InferClient<typeof rootController>;

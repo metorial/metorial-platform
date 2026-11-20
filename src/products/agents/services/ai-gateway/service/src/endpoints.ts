@@ -5,7 +5,7 @@ import { env } from './env';
 
 let apiServer = Bun.serve({
   fetch: aiGatewayApi,
-  port: env.service.SYNTHESIS_API_PORT
+  port: env.service.AI_GATEWAY_API_PORT
 });
 
 console.log(`AI Gateway API running on http://localhost:${apiServer.port}`);
@@ -26,6 +26,6 @@ if (process.env.NODE_ENV === 'production') {
         return new Response('Service Unavailable', { status: 503 });
       }
     },
-    port: env.service.SYNTHESIS_HEALTH_PORT
+    port: env.service.AI_GATEWAY_HEALTH_PORT
   });
 }

@@ -11,7 +11,7 @@ import { PrismaClient } from '../prisma/generated/client';
 export * from '../prisma/generated/client';
 
 let mainAdapter = new PrismaPg({
-  connectionString: process.env.SYNTHESIS_DATABASE_URL ?? process.env.DATABASE_URL
+  connectionString: process.env.AI_GATEWAY_DATABASE_URL ?? process.env.DATABASE_URL
 });
 
 let replicaAdapter = process.env.DATABASE_URL_READER
