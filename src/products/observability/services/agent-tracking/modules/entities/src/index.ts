@@ -10,6 +10,7 @@ export {
   type KindDefinition,
   mergeKindDefinitions
 } from './lib/kinds';
+export { entitySearchWhere } from './lib/listWhere';
 export { ensureEntityStub } from './lib/stubs';
 export * from './services';
 export {

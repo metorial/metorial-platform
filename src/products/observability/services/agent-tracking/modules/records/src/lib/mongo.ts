@@ -64,9 +64,7 @@ export let createMongoSink = (d: {
   let admission = d.admission ?? createAdmission();
   let onWrite = d.onWrite ?? reportRejections;
 
-  d.store
-    .ready()
-    .catch(error => console.error('Agent tracking store is not reachable', error));
+  d.store.ready().catch(error => d.store.logUnreachable(error));
 
   return {
     write: async batch => {
@@ -76,7 +74,7 @@ export let createMongoSink = (d: {
         try {
           await d.store.ready();
         } catch (error) {
-          console.warn('Agent tracking store is not reachable', error);
+          d.store.logUnreachable(error);
           throw new ServiceError(sinkBusyError());
         }
 

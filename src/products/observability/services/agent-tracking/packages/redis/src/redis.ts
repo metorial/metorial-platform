@@ -5,7 +5,7 @@ let cacheCommandTimeoutMs = 1000;
 
 let clients: { cache?: Redis; coordination?: Redis } = {};
 
-export let redisKey = (...parts: string[]) => ['gs', ...parts].join(':');
+export let redisKey = (...parts: string[]) => ['at', ...parts].join(':');
 
 // Fails fast: everything it holds can be rebuilt from the stores, so callers fall back instead
 // of waiting on Redis.

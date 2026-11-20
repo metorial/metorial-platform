@@ -29,6 +29,7 @@ export {
   createStore,
   getStore,
   isStoreConfigured,
+  setStoreIndexMode,
   type Store,
   type StoreCollections
 } from './connection';
@@ -41,7 +42,7 @@ export {
   type StoragePolicy
 } from './sink';
 export { type Admission, createAdmission } from './admission';
-export { writeDocuments, type WriteResult } from './writer';
+export { isTransientStoreError, writeDocuments, type WriteResult } from './writer';
 export {
   minimumQueryMajorVersion,
   parseMajorVersion,

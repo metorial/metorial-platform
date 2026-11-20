@@ -125,6 +125,8 @@ model Organization {
   eventDeliveryIntents                   EventDeliveryIntent[]
   eventDeliveryAttempts                  EventDeliveryAttempt[]
 
+  agentTrackingSettings AgentTrackingOrganizationSettings?
+
   @@index([authVersion])
   @@index([previousSlugs])
 }

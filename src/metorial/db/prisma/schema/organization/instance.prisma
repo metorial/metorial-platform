@@ -183,7 +183,9 @@ model Instance {
   systemEvents              SystemEvent[]
   eventDeliveryIntents      EventDeliveryIntent[]
 
-  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+  agentTrackingIngestTokens  AgentTrackingIngestToken[]
+  agentTrackingIngestSources AgentTrackingIngestSource[]
+  agentTrackingSettings      AgentTrackingInstanceSettings?
 
   @@index([previousSlugs])
   @@index([oldSlug])

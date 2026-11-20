@@ -265,6 +265,8 @@ export type SourceHealthDocument = {
   };
   clientVersion?: string;
   probeVersion?: string;
+  // Counts by dialect, then native event name.
+  unmapped?: Record<string, Record<string, number>>;
   updatedAt: Date;
 };
 
@@ -280,6 +282,9 @@ SessionSchema.index({ organizationId: 1, 'attribution.dimIds': 1, startedAt: -1 
 SessionSchema.index({ organizationId: 1, rootSessionKey: 1 });
 SessionSchema.index({ organizationId: 1, 'observed.userId': 1, startedAt: -1 });
 SessionSchema.index({ organizationId: 1, 'observed.agentId': 1, startedAt: -1 });
+SessionSchema.index({ organizationId: 1, lastActivityAt: -1, _id: -1 });
+SessionSchema.index({ organizationId: 1, instanceId: 1, lastActivityAt: -1, _id: -1 });
+SessionSchema.index({ organizationId: 1, 'observed.userId': 1, lastActivityAt: -1, _id: -1 });
 SessionSchema.index({ organizationId: 1, state: 1, lastActivityAt: 1 });
 SessionSchema.index({ state: 1, lastActivityAt: 1 });
 SessionSchema.index(

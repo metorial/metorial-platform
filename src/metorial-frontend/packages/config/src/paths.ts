@@ -1185,6 +1185,57 @@ let InstancePaths = Object.assign(
       }
     },
 
+    agentTracking: {
+      spend: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'agent-usage', 'spend', ...subPages),
+
+      sessions: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'agent-usage', 'sessions', ...subPages),
+
+      session: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        sessionId?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!sessionId) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'agent-usage',
+          'sessions',
+          sessionId,
+          ...subPages
+        );
+      },
+
+      setup: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'agent-usage', 'setup', ...subPages),
+
+      settings: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'agent-usage', 'settings', ...subPages)
+    },
+
     identity: instanceIdentityPaths,
 
     portalIdentity: (portalId: string | null | undefined) =>

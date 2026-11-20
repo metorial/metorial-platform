@@ -55,6 +55,32 @@ export type BoundMeasure =
   | { kind: 'reported'; name: string; hidden: boolean; path: string; where?: BoundFilter }
   | { kind: 'derived'; name: string; hidden: boolean; expr: Expr; format?: DerivedFormat };
 
+// Date measures are held as epoch milliseconds while groups are merged, filtered and sorted, and
+// leave the engine as timestamps in the query's time zone, like date dimensions.
+export let isDateMeasure = (measure: BoundMeasure) =>
+  measure.kind == 'aggregate' && measure.type == 'date';
+
+export let compareColumns = (name: string) => ({
+  previous: `${name}@previous`,
+  delta: `${name}@delta`,
+  change: `${name}@change`
+});
+
+// A date measure is compared by the time between the two dates, with no change in percent.
+export let measureColumns = (measure: BoundMeasure, compare: boolean) => {
+  if (!compare) return [measure.name];
+
+  let columns = compareColumns(measure.name);
+  return isDateMeasure(measure)
+    ? [measure.name, columns.previous, columns.delta]
+    : [measure.name, columns.previous, columns.delta, columns.change];
+};
+
+export let dateColumns = (measures: BoundMeasure[]) =>
+  measures
+    .filter(measure => !measure.hidden && isDateMeasure(measure))
+    .flatMap(measure => [measure.name, compareColumns(measure.name).previous]);
+
 export type QueryWarning = { code: string; message: string };
 
 export type PrivacySettings = { hideIndividuals: boolean; minGroupUsers: number };

@@ -112,6 +112,11 @@ let purposeOf = (querySource: string | undefined) => {
   return name ? { purpose: 'subagent', agent_name: name } : {};
 };
 
+// What Claude Code sends in place of a prompt or response while OTEL_LOG_USER_PROMPTS or
+// OTEL_LOG_ASSISTANT_RESPONSES is off (seen on 2.1.328), on top of the engine's default list.
+// Tool inputs are left out instead.
+let claudeCodeRedactionMarkers = ['<REDACTED>'];
+
 let contentFrom = (
   fields: FieldReader,
   role: ContentInput['role'],
@@ -133,7 +138,8 @@ let contentFrom = (
       ...(truncated && originalLength !== undefined
         ? { clientTruncated: { originalLength } }
         : {}),
-      ...(options.hints ? { hints: options.hints } : {})
+      ...(options.hints ? { hints: options.hints } : {}),
+      redactionMarkers: claudeCodeRedactionMarkers
     } as ContentInput
   ];
 };

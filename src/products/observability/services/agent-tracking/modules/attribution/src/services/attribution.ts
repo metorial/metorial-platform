@@ -84,8 +84,8 @@ class AttributionServiceImpl {
     return await getAttributionContext(d.organizationId);
   }
 
-  invalidate(d: { organizationId: string }) {
-    invalidateAttributionContext(d.organizationId);
+  async invalidate(d: { organizationId: string }) {
+    await invalidateAttributionContext(d.organizationId);
   }
 
   private async computeSessionAttribution(session: SessionDocument) {

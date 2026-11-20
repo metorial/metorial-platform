@@ -145,6 +145,28 @@ describe('fillTimeBuckets', () => {
     ]);
   });
 
+  it('keeps an explicit null apart from a missing bucket', () => {
+    let filled = fillTimeBuckets(
+      [
+        {
+          id: 'a',
+          name: 'A',
+          entries: [
+            { key: at(0), value: null },
+            { key: at(2), value: 4 }
+          ]
+        }
+      ],
+      MINUTE
+    );
+
+    expect(values(filled)).toEqual([
+      [at(0), null],
+      [at(1), 0],
+      [at(2), 4]
+    ]);
+  });
+
   it('leaves series untouched when points are not on the step grid', () => {
     let series = [
       {

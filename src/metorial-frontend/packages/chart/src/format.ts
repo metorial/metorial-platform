@@ -1,5 +1,11 @@
 export type ValueFormatter = (value: number) => string;
 
+// A tooltip value with the series it belongs to: one id for a series row, every contributing id
+// for a stacked total.
+export type SeriesValueFormatter = (value: number, seriesIds: string[]) => string;
+
+export type TooltipValueFormatter = (value: number, seriesIds?: string[]) => string;
+
 let binaryByteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
 let decimalByteUnits = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
 
@@ -11,6 +17,10 @@ let durationUnits = [
 ];
 
 let invalidValue = '—';
+
+let currencySymbols: Record<string, string> = { usd: '$' };
+
+let decimalPattern = /^([+-])?(\d*)(?:\.(\d*))?$/;
 
 let roundTo = (value: number, precision: number) => {
   let factor = 10 ** precision;
@@ -104,4 +114,71 @@ export let formatDuration = (
   }
 
   return `${sign}${parts.join(' ')}`;
+};
+
+let toDecimalString = (value: string | number) => {
+  if (typeof value == 'string') return value.trim();
+  if (!Number.isFinite(value) || Math.abs(value) >= 1e21) return undefined;
+
+  return value.toFixed(12);
+};
+
+let zero = BigInt(0);
+
+let one = BigInt(1);
+
+let groupThousands = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+// Decimal strings are rounded on their digits, so amounts with up to nine decimals are never
+// pushed through a float on the way to the screen.
+export let formatCurrency = (
+  value: string | number,
+  opts: { currency?: string; precision?: number; compact?: boolean } = {}
+) => {
+  let currency = (opts.currency ?? 'usd').toLowerCase();
+  let symbol = currencySymbols[currency];
+  let decorate = (sign: string, amount: string) =>
+    symbol ? `${sign}${symbol}${amount}` : `${sign}${amount} ${currency.toUpperCase()}`;
+
+  let number = Number(value);
+
+  // Below a thousand, compact notation only drops cents ("$0.5"), so amounts keep them.
+  if (opts.compact && Math.abs(number) >= 1000) {
+    if (!Number.isFinite(number)) return invalidValue;
+
+    let formatted = new Intl.NumberFormat('en', {
+      notation: 'compact',
+      maximumFractionDigits: 2
+    }).format(Math.abs(number));
+
+    return decorate(number < 0 ? '-' : '', formatted);
+  }
+
+  let decimal = toDecimalString(value);
+  let match = decimal ? decimalPattern.exec(decimal) : null;
+  if (!match || (!match[2] && !match[3])) return invalidValue;
+
+  let precision = Math.max(0, Math.floor(opts.precision ?? 2));
+  let negative = match[1] == '-';
+  let whole = match[2] || '0';
+  let fraction = match[3] ?? '';
+
+  let scaled = BigInt(whole + fraction.padEnd(precision, '0').slice(0, precision));
+  if ((fraction[precision] ?? '0') >= '5') scaled += one;
+
+  let isNonZero = /[1-9]/.test(whole + fraction);
+
+  if (scaled == zero && isNonZero) {
+    let smallest = precision > 0 ? `0.${'0'.repeat(precision - 1)}1` : '1';
+    return negative ? `>${decorate('-', smallest)}` : `<${decorate('', smallest)}`;
+  }
+
+  let digits = scaled.toString().padStart(precision + 1, '0');
+  let integerPart = precision > 0 ? digits.slice(0, -precision) : digits;
+  let fractionPart = precision > 0 ? `.${digits.slice(-precision)}` : '';
+
+  return decorate(
+    negative && scaled != zero ? '-' : '',
+    groupThousands(integerPart) + fractionPart
+  );
 };

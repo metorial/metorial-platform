@@ -1,0 +1,50 @@
+enum AgentTrackingContentMode {
+  basic
+  shape
+  full
+}
+
+model AgentTrackingOrganizationSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  hideIndividuals Boolean @default(false)
+  minGroupUsers   Int     @default(5)
+
+  organizationOid BigInt       @unique
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AgentTrackingProjectSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  recordDays  Int?
+  contentDays Int?
+  usageDays   Int?
+
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AgentTrackingInstanceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  mode AgentTrackingContentMode @default(basic)
+
+  deterministicEnabled Boolean @default(true)
+  aiEnabled            Boolean @default(false)
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

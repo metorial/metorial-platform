@@ -24,6 +24,7 @@ export type ConsumerDevicesSignOutOutput = {
   revokedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  telemetry: { enabled: boolean; tokenId: string | null };
 };
 
 export let mapConsumerDevicesSignOutOutput =
@@ -49,7 +50,8 @@ export let mapConsumerDevicesSignOutOutput =
       'last_seen_at',
       'revoked_at',
       'created_at',
-      'updated_at'
+      'updated_at',
+      ['telemetry', 0, [1, ['token_id']]]
     ],
     1
   );

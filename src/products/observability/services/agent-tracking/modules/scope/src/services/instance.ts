@@ -4,7 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { Instance, Organization, Project } from '@mtsrc/agent-tracking-db';
 import { db } from '@mtsrc/agent-tracking-db';
 import { getId } from '@mtsrc/agent-tracking-db';
-import { mergeSettings } from '../lib/settings';
+import { mergeClassification, mergeSettings } from '../lib/settings';
 import { Events } from '@mtsrc/agent-tracking-events';
 import type { InstanceSettings } from '@mtsrc/agent-tracking-spec';
 
@@ -25,7 +25,13 @@ class InstanceServiceImpl {
     let existing = await db.instance.findUnique({ where: { ref: d.input.ref } });
     if (existing) this.assertInstanceChangeable(existing, d);
 
-    let settings = mergeSettings(existing?.settings, d.input.settings);
+    let settings = mergeSettings(existing?.settings, {
+      ...d.input.settings,
+      classification: mergeClassification(
+        existing?.settings.classification,
+        d.input.settings?.classification
+      )
+    });
 
     let instance = await db.instance.upsert({
       where: { ref: d.input.ref },

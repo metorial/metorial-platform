@@ -1,0 +1,587 @@
+import {
+  eventually,
+  expectAuthMatrix,
+  expectError,
+  expectOk,
+  expectPresented,
+  listAll,
+  metorialEndpoints,
+  rest,
+  uniqueEmail,
+  uniqueId,
+  useMember,
+  useOrganization,
+  type RestQuery
+} from '@metorial/e2e';
+import {
+  agentTrackingPath,
+  claudeRequest,
+  ingestFirstUsage,
+  trackedConsumer
+} from '@metorial/agent-tracking-e2e';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { adminOnly, adminOnlyClients } from '../_agentTracking';
+import { db } from '@metorial/e2e/db';
+import { createConsumerProfile, createPortal, ids } from '../consumer/_shared';
+
+let minuteMs = 60 * 1000;
+
+let madeUpModel = 'claude-e2e-unreleased-model';
+
+describe('api-core dashboard: agent tracking reads', () => {
+  let org = useOrganization();
+  let otherOrg = useOrganization();
+  let member = useMember(org);
+
+  let reads: [string, Record<string, string>][] = [
+    ['/spend/timeline', {}],
+    ['/spend/breakdown', { group_by: 'member' }],
+    ['/sessions', {}],
+    ['/filter-values', { field: 'member' }],
+    ['/members', {}],
+    ['/setup-status', {}]
+  ];
+
+  it('lets only admins read', async () => {
+    for (let [path, query] of reads) {
+      await expectAuthMatrix(
+        adminOnlyClients(org, member, otherOrg),
+        client => client.get(agentTrackingPath(org, path), { query }),
+        adminOnly
+      );
+    }
+  });
+
+  it('lets only admins read one session', async () => {
+    await expectAuthMatrix(
+      adminOnlyClients(org, member, otherOrg),
+      client => client.get(agentTrackingPath(org, `/sessions/atse_${uniqueId('missing')}`)),
+      { ...adminOnly, session: 404 }
+    );
+  });
+
+  it('answers 404 for an instance of another organization', async () => {
+    for (let [path, query] of reads) {
+      expectError(
+        await org.clients.rest.get(agentTrackingPath(otherOrg, path), { query }),
+        404
+      );
+    }
+  });
+
+  it('presents a timeline of one zero day per calendar day', async () => {
+    let timeline = expectPresented(
+      expectOk(
+        await org.clients.rest.get(agentTrackingPath(org, '/spend/timeline'), {
+          query: { range: 'last_7_days', time_zone: 'Europe/Berlin' }
+        })
+      ),
+      'agent_tracking.spend_timeline'
+    );
+
+    expect(timeline).toMatchObject({
+      range: { preset: 'last_7_days', time_zone: 'Europe/Berlin' },
+      interval: 'day',
+      counts: { sessions: 0, members: 0, capped: false },
+      previous: { range: { preset: null, to: timeline.range.from } }
+    });
+    expect(timeline.items).toHaveLength(7);
+    expect(timeline.items[0].cost).toMatchObject({
+      currency: 'usd',
+      total: '0',
+      list_price: '0',
+      is_estimate: false,
+      billed: null,
+      requests_without_cost: 0,
+      requests_without_list_price: 0
+    });
+  });
+
+  it('validates ranges, groupings and filter fields', async () => {
+    let timeline = (query: Record<string, string>) =>
+      org.clients.rest.get(agentTrackingPath(org, '/spend/timeline'), { query });
+
+    expectError(await timeline({ range: 'last_year' }), 400, 'invalid_data');
+    expectError(await timeline({ from: '2026-11-01T00:00:00.000Z' }), 400);
+    expectError(
+      await timeline({ from: '2026-11-02T00:00:00.000Z', to: '2026-11-01T00:00:00.000Z' }),
+      400
+    );
+    expectError(
+      await timeline({ from: '2024-01-01T00:00:00.000Z', to: '2026-01-01T00:00:00.000Z' }),
+      400
+    );
+    expectError(
+      await timeline({
+        range: 'today',
+        from: '2026-11-01T00:00:00.000Z',
+        to: '2026-11-02T00:00:00.000Z'
+      }),
+      400
+    );
+    expectError(await timeline({ time_zone: 'Mars/Olympus' }), 400);
+
+    let sessions = (query: Record<string, string>) =>
+      org.clients.rest.get(agentTrackingPath(org, '/sessions'), { query });
+
+    expectError(await sessions({ order_by: 'tokens' }), 400, 'invalid_data');
+    expectError(await sessions({ range: 'last_year' }), 400, 'invalid_data');
+    expectError(await sessions({ from: '2026-11-01T00:00:00.000Z' }), 400);
+    expectError(
+      await sessions({
+        range: 'today',
+        from: '2026-11-01T00:00:00.000Z',
+        to: '2026-11-02T00:00:00.000Z'
+      }),
+      400
+    );
+
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, '/spend/breakdown')),
+      400,
+      'invalid_data'
+    );
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, '/spend/breakdown'), {
+        query: { group_by: 'team' }
+      }),
+      400,
+      'invalid_data'
+    );
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, '/filter-values'), {
+        query: { field: 'repo' }
+      }),
+      400,
+      'invalid_data'
+    );
+
+    let overLong = 'x'.repeat(201);
+    for (let [path, query] of [
+      ['/filter-values', { field: 'model', value: overLong }],
+      ['/spend/timeline', { client_family: overLong }],
+      ['/spend/breakdown', { group_by: 'model', model_id: overLong }],
+      ['/sessions', { client_family: overLong }]
+    ] as const) {
+      expectError(
+        await org.clients.rest.get(agentTrackingPath(org, path), { query }),
+        400,
+        'invalid_data'
+      );
+    }
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, '/filter-values'), {
+        query: { field: 'model', search: 'sonnet', value: 'claude-sonnet-4-5' }
+      }),
+      400
+    );
+  });
+
+  it('presents an empty breakdown with its total', async () => {
+    for (let group_by of ['member', 'model']) {
+      let breakdown = expectPresented(
+        expectOk(
+          await org.clients.rest.get(agentTrackingPath(org, '/spend/breakdown'), {
+            query: { group_by, range: 'month_to_date' }
+          })
+        ),
+        'agent_tracking.spend_breakdown'
+      );
+
+      expect(breakdown.group_by).toBe(group_by);
+      expect(breakdown.items).toEqual([]);
+      expect(breakdown.total.cost.currency).toBe('usd');
+    }
+  });
+
+  it('lists no sessions for a fresh instance, with member and model filters', async () => {
+    let path = agentTrackingPath(org, '/sessions');
+
+    expect(await listAll(org.clients.rest, path, { limit: 1 })).toEqual([]);
+    expect(
+      await listAll(org.clients.rest, path, {
+        limit: 1,
+        query: { order_by: 'cost', range: 'last_30_days' }
+      })
+    ).toEqual([]);
+
+    for (let member_id of ['unknown', 'aten_missing']) {
+      let filtered = expectOk(
+        await org.clients.rest.get(path, {
+          query: { member_id, model_id: ['claude-sonnet-4-5', 'unknown'] }
+        })
+      );
+      expect(filtered).toMatchObject({ object: 'list', items: [] });
+    }
+  });
+
+  it('presents the filter values with Unknown Member', async () => {
+    let values = expectPresented(
+      expectOk(
+        await org.clients.rest.get(agentTrackingPath(org, '/filter-values'), {
+          query: { field: 'member' }
+        })
+      ),
+      'agent_tracking.filter_values'
+    );
+
+    expect(values.items.at(-1)).toEqual({
+      value: 'unknown',
+      kind: 'unknown',
+      member: null,
+      model: null,
+      client: null,
+      requests: null
+    });
+  });
+
+  it('lists only members that have sent data to this instance', async () => {
+    let members = await listAll(org.clients.rest, agentTrackingPath(org, '/members'), {
+      limit: 1
+    });
+    expect(members).toEqual([]);
+
+    let page = expectOk(await org.clients.rest.get(agentTrackingPath(org, '/members')));
+    expect(page).toMatchObject({
+      object: 'list',
+      items: [],
+      pagination: { has_more_after: false, has_more_before: false }
+    });
+
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, '/members'), {
+        query: { after: 'aten_missing' }
+      }),
+      400
+    );
+  });
+
+  it('presents the setup status', async () => {
+    let status = expectPresented(
+      expectOk(await org.clients.rest.get(agentTrackingPath(org, '/setup-status'))),
+      'agent_tracking.setup_status'
+    );
+
+    expect(status).toMatchObject({
+      last_received_at: null,
+      options: { usage_and_cost: 'not_detected', keep_local_history: 'undetectable' }
+    });
+  });
+});
+
+describe('api-core dashboard: agent tracking reads of ingested usage', () => {
+  let org = useOrganization();
+
+  let sessionsPath = () => agentTrackingPath(org, '/sessions');
+
+  let read = async (path: string, query: RestQuery = {}) =>
+    expectOk(await org.clients.rest.get(agentTrackingPath(org, path), { query }));
+
+  let emails = {
+    matched: uniqueEmail('agent-tracking'),
+    other: uniqueEmail('agent-tracking')
+  };
+
+  beforeAll(async () => {
+    let portal = await createPortal(org);
+    let profile = await createConsumerProfile(org, portal.id, { email: emails.matched });
+    let { consumer } = await db.consumerProfile.findUniqueOrThrow({
+      where: { id: profile.id },
+      include: { consumer: true }
+    });
+    await eventually(() => trackedConsumer(org.ids, consumer.id), {
+      timeoutMs: 60_000,
+      intervalMs: 500
+    });
+
+    let now = Date.now();
+    let sessions = [uniqueId('session'), uniqueId('session'), uniqueId('session')];
+
+    await ingestFirstUsage(org, [
+      claudeRequest({
+        sessionId: sessions[0],
+        email: emails.matched,
+        at: new Date(now - 20 * minuteMs)
+      }),
+      claudeRequest({
+        sessionId: sessions[0],
+        email: emails.matched,
+        at: new Date(now - 19 * minuteMs)
+      }),
+      claudeRequest({
+        sessionId: sessions[1],
+        email: emails.other,
+        at: new Date(now - 15 * minuteMs),
+        costUsd: 0.002
+      }),
+      claudeRequest({
+        sessionId: sessions[2],
+        at: new Date(now - 10 * minuteMs),
+        model: madeUpModel,
+        costUsd: 0.001
+      })
+    ]);
+  }, 240_000);
+
+  it('presents sessions with member, client, tokens and cost', async () => {
+    let sessions = await listAll(org.clients.rest, sessionsPath());
+    expect(sessions.map(session => session.requests)).toEqual([1, 1, 2]);
+
+    for (let session of sessions) {
+      expectPresented(session, 'agent_tracking.session');
+      expect(session.id.startsWith('atse_')).toBe(true);
+      expect(session.client).toMatchObject({ family: 'claude_code', name: 'Claude Code' });
+    }
+
+    expect(sessions[2]).toMatchObject({
+      tokens: { input: 2000, cache_read: 6000, cache_write: 800, output: 400, total: 9200 },
+      cost: { currency: 'usd', total: '0.025', reported_by_client: '0.025' },
+      member: { matched: true, email: emails.matched, consumer: { email: emails.matched } }
+    });
+    expect(sessions[1].member).toMatchObject({ matched: false, consumer: null });
+    expect(sessions[0]).toMatchObject({
+      member: null,
+      models: [],
+      unknown_model_names: [madeUpModel],
+      billing_modes: ['unknown'],
+      summary_pending: false
+    });
+    let lastActivity = new Date(sessions[0].last_activity_at).getTime();
+    expect(new Date(sessions[0].started_at).getTime()).toBeLessThanOrEqual(lastActivity);
+    expect(lastActivity).toBeLessThanOrEqual(Date.now());
+    expect(sessions[0].last_activity_at).toBe(new Date(lastActivity).toISOString());
+  });
+
+  it('refuses machine keys on the session routes', async () => {
+    let [session] = await listAll(org.clients.rest, sessionsPath());
+    let instanceKey = rest(metorialEndpoints().api, { apiKey: org.keys.instanceSecret });
+    let managementPath = `/instances/${org.ids.instanceId}/agent-tracking/sessions`;
+
+    for (let response of [
+      await instanceKey.get('/agent-tracking/sessions'),
+      await instanceKey.get(`/agent-tracking/sessions/${session.id}`),
+      await org.clients.management.get(managementPath),
+      await org.clients.management.get(`${managementPath}/${session.id}`)
+    ]) {
+      let error = expectError(response, 403, 'forbidden');
+      expect(error.message).toBe('This endpoint is only for the dashboard for now.');
+      expect(response.text).not.toMatch(/member|cost|requests/);
+    }
+
+    for (let path of ['/agent-tracking/sessions', `/agent-tracking/sessions/${session.id}`]) {
+      let response = await org.clients.instance.get(path);
+      expect(expectError(response, 404, 'not_found').entity).toBe('endpoint');
+    }
+  });
+
+  it('pages sessions by item id in both directions', async () => {
+    let all = ids(await listAll(org.clients.rest, sessionsPath(), { limit: 1 }));
+    expect(all).toHaveLength(3);
+    expect(new Set(all).size).toBe(3);
+
+    let [first, second, third] = all;
+
+    let next = await read('/sessions', { limit: 1, after: first! });
+    expect(ids(next.items)).toEqual([second]);
+    expect(next.pagination).toMatchObject({ has_more_after: true, has_more_before: true });
+
+    let back = await read('/sessions', { limit: 1, before: second! });
+    expect(ids(back.items)).toEqual([first]);
+    expect(back.pagination).toMatchObject({ has_more_after: true, has_more_before: false });
+
+    let rest = await read('/sessions', { limit: 2, after: first! });
+    expect(ids(rest.items)).toEqual([second, third]);
+    expect(rest.pagination).toMatchObject({ has_more_after: false, has_more_before: true });
+
+    expectError(
+      await org.clients.rest.get(sessionsPath(), {
+        query: { after: `atse_${uniqueId('missing')}` }
+      }),
+      400
+    );
+  });
+
+  it('pages sessions ordered by cost by item id in both directions', async () => {
+    let paged = ids(
+      await listAll(org.clients.rest, sessionsPath(), {
+        limit: 1,
+        query: { order_by: 'cost', range: 'last_7_days' }
+      })
+    );
+    expect(paged).toHaveLength(3);
+
+    let [first, second, third] = paged;
+
+    let next = await read('/sessions', { order_by: 'cost', limit: 1, after: first! });
+    expect(ids(next.items)).toEqual([second]);
+    expect(next.pagination).toMatchObject({ has_more_after: true, has_more_before: true });
+
+    let back = await read('/sessions', { order_by: 'cost', limit: 1, before: third! });
+    expect(ids(back.items)).toEqual([second]);
+
+    let cheapest = await read('/sessions', { order_by: 'cost', order: 'asc', limit: 2 });
+    expect(ids(cheapest.items)).toEqual([third, second]);
+  });
+
+  it('accepts repeated filter values', async () => {
+    let sessions = await listAll(org.clients.rest, sessionsPath());
+
+    let filtered = await listAll(org.clients.rest, sessionsPath(), {
+      query: { member_id: [sessions[2].member.id, 'unknown'] }
+    });
+    expect(ids(filtered).sort()).toEqual(ids([sessions[0], sessions[2]]).sort());
+
+    let timeline = await read('/spend/timeline', {
+      range: 'last_7_days',
+      client_family: ['claude_code', 'cursor']
+    });
+    expect(timeline.total.requests).toBe(4);
+  });
+
+  it('presents one session with its usage per model', async () => {
+    let [row] = await listAll(org.clients.rest, sessionsPath());
+
+    let session = expectPresented(
+      await read(`/sessions/${row.id}`),
+      'agent_tracking.session_detail'
+    );
+    expect(session).toMatchObject({ id: row.id, requests: 1, cost: row.cost });
+    expect(session.usage_by_model).toHaveLength(1);
+    expect(session.usage_by_model[0]).toMatchObject({
+      share: 1,
+      requests: 1,
+      cost: { currency: 'usd', total: '0.001', is_estimate: true }
+    });
+
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, `/sessions/atse_${uniqueId('x')}`)),
+      404
+    );
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, `/sessions/${uniqueId('ses')}`)),
+      404
+    );
+  });
+
+  it('answers 404 for a session of another instance of the same organization', async () => {
+    let sessions = await listAll(org.clients.rest, sessionsPath());
+    let base = `/dashboard/organizations/${org.ids.organizationId}`;
+    let project = expectOk(
+      await org.clients.rest.post(`${base}/projects`, { name: uniqueId('Other Project') })
+    );
+    let instances = expectOk(
+      await org.clients.rest.get(`${base}/instances`, { query: { project_id: project.id } })
+    );
+    let otherInstanceId = instances.items[0].id;
+    expect(otherInstanceId).not.toBe(org.ids.instanceId);
+
+    for (let session of sessions) {
+      expectOk(await org.clients.rest.get(agentTrackingPath(org, `/sessions/${session.id}`)));
+      expectError(
+        await org.clients.rest.get(
+          agentTrackingPath(otherInstanceId, `/sessions/${session.id}`)
+        ),
+        404
+      );
+    }
+    expect(
+      await listAll(org.clients.rest, agentTrackingPath(otherInstanceId, '/sessions'))
+    ).toEqual([]);
+  });
+
+  it('presents the spend timeline and breakdowns with their totals', async () => {
+    let timeline = expectPresented(
+      await read('/spend/timeline', { range: 'last_7_days' }),
+      'agent_tracking.spend_timeline'
+    );
+    expect(timeline).toMatchObject({
+      counts: { sessions: 3, members: 2, capped: false },
+      previous: { starts_before_retention: false, hidden_groups: false },
+      privacy: { hide_individuals: false, hidden_groups: false },
+      total: {
+        requests: 4,
+        cost: { currency: 'usd', total: '0.028', requests_without_cost: 0 },
+        tokens: { input: 4000, cache_read: 12000, cache_write: 1600, output: 800 }
+      }
+    });
+
+    let members = expectPresented(
+      await read('/spend/breakdown', { group_by: 'member', range: 'last_7_days' }),
+      'agent_tracking.spend_breakdown'
+    );
+    expect(members.items.map((item: any) => [item.kind, item.requests])).toEqual([
+      ['member', 2],
+      ['member', 1],
+      ['unknown', 1]
+    ]);
+    expect(members.items[0]).toMatchObject({
+      member: { email: emails.matched, consumer: { email: emails.matched } },
+      cost: { total: '0.025' }
+    });
+    expect(members.items[0].share).toBeCloseTo(0.025 / 0.028, 6);
+    expect(members.items[1].share).toBeCloseTo(0.002 / 0.028, 6);
+    expect(members.items[2].share).toBeCloseTo(0.001 / 0.028, 6);
+
+    let models = expectPresented(
+      await read('/spend/breakdown', { group_by: 'model', range: 'last_7_days' }),
+      'agent_tracking.spend_breakdown'
+    );
+    let unknown = models.items.find((item: any) => item.kind == 'unknown');
+    expect(unknown).toMatchObject({ key: 'unknown', member: null, model: null });
+    expect(unknown.unknown_model_names).toContain(madeUpModel);
+    expect(models.items.reduce((sum: number, item: any) => sum + item.requests, 0)).toBe(4);
+    for (let item of models.items.filter((item: any) => item.kind == 'model')) {
+      expect(item).toMatchObject({ key: item.model.id, unknown_model_names: [] });
+    }
+  });
+
+  it('presents the client filter values', async () => {
+    let clients = expectPresented(
+      await read('/filter-values', { field: 'client', range: 'last_7_days' }),
+      'agent_tracking.filter_values'
+    );
+    expect(clients.items).toEqual([
+      {
+        value: 'claude_code',
+        kind: 'client',
+        member: null,
+        model: null,
+        client: { family: 'claude_code', name: 'Claude Code' },
+        requests: 4
+      }
+    ]);
+  });
+
+  it('lists the members who sent usage', async () => {
+    let members = await listAll(org.clients.rest, agentTrackingPath(org, '/members'), {
+      limit: 1
+    });
+
+    expect(members.map(member => member.email)).toEqual([emails.other, emails.matched]);
+    expect(members[0]).toMatchObject({
+      object: 'agent_tracking.member',
+      matched: false,
+      consumer: null,
+      sessions: 1
+    });
+    expect(members[1]).toMatchObject({
+      matched: true,
+      consumer: { email: emails.matched },
+      sessions: 1
+    });
+    for (let member of members) expect(member.last_seen_at).not.toBeNull();
+
+    let [newest, oldest] = ids(members);
+
+    let next = await read('/members', { limit: 1, after: newest! });
+    expect(ids(next.items)).toEqual([oldest]);
+    expect(next).toMatchObject({
+      items: [{ list_truncated: false }],
+      pagination: { has_more_after: false, has_more_before: true }
+    });
+
+    let back = await read('/members', { limit: 1, before: oldest! });
+    expect(ids(back.items)).toEqual([newest]);
+    expect(back.pagination).toMatchObject({ has_more_after: true, has_more_before: false });
+  });
+});

@@ -26,6 +26,14 @@ import {
   consumerSessionController
 } from './consumer';
 import {
+  dashboardAgentTrackingFilterValueController,
+  dashboardAgentTrackingIngestSourceController,
+  dashboardAgentTrackingMemberController,
+  dashboardAgentTrackingOrganizationSettingsController,
+  dashboardAgentTrackingProjectSettingsController,
+  dashboardAgentTrackingSettingsController,
+  dashboardAgentTrackingSetupStatusController,
+  dashboardAgentTrackingSpendController,
   dashboardAiAnalysisConfigurationController,
   dashboardAssistantController,
   dashboardAuditLogRetentionController,
@@ -55,6 +63,7 @@ import {
   scopesController
 } from './dashboard';
 import {
+  agentTrackingSessionController,
   agentController,
   callbackController,
   callbackEventController,
@@ -719,6 +728,15 @@ export let dashboardController = Controller.create<any>(
     testHelperConsumerOAuthController,
     dashboardUsageController,
     dashboardInstanceUsageController,
+    dashboardAgentTrackingIngestSourceController,
+    dashboardAgentTrackingSpendController,
+    agentTrackingSessionController,
+    dashboardAgentTrackingFilterValueController,
+    dashboardAgentTrackingMemberController,
+    dashboardAgentTrackingOrganizationSettingsController,
+    dashboardAgentTrackingProjectSettingsController,
+    dashboardAgentTrackingSettingsController,
+    dashboardAgentTrackingSetupStatusController,
     dashboardAssistantController,
     dashboardWorkforceConfigurationController,
     flagsController,

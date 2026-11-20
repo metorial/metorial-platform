@@ -17,6 +17,8 @@ let sensitiveScopes = [
   'organization.access_policy:write',
   'instance.network:write',
   'instance.monitor:manage',
+  'instance.agent_tracking:read',
+  'instance.agent_tracking:write',
   'instance.portal:write',
   'instance.portal.auth:write',
   'instance.ssoTenant:write',

@@ -87,6 +87,8 @@ model Project {
   brand                ProjectBrand?
   teams                TeamProject[]
 
+  agentTrackingSettings AgentTrackingProjectSettings?
+
   resourceActors        ResourceActor[]
   fileLinks             FileLink[]
   fileReferences        FileReference[]

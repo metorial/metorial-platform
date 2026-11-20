@@ -8,6 +8,7 @@ export {
 
 export {
   deploySlice,
+  productAgentTrackingSlice,
   productCallbacksSlice,
   productChatSlice,
   productDocumentSlice,

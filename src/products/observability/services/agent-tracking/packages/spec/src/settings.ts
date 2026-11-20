@@ -1,3 +1,5 @@
+import type { ContentPolicy } from './contentPolicy';
+
 export type TagOrigin = 'source' | 'repo' | 'environment';
 
 export type IngestTag = { key: string; value: string };
@@ -25,6 +27,7 @@ export type InstanceSettings = {
   ephemeralDeviceIdleDays?: number;
   inferredSessionGapMinutes?: number;
   classification?: ClassificationSettings;
+  contentPolicy?: ContentPolicy;
 };
 
 export type EntityKindAttributes = {

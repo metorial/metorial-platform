@@ -21,6 +21,8 @@ export type ContentInput = {
 
   clientTruncated?: { originalLength: number };
   hints?: ShapeHints;
+
+  redactionMarkers?: string[];
 };
 
 let textOf = (value: unknown): string | null => {
@@ -77,7 +79,10 @@ export let buildContentEntry = (
     };
   }
 
-  let markers = context.redactionMarkers ?? defaultRedactionMarkers;
+  let markers = [
+    ...(context.redactionMarkers ?? defaultRedactionMarkers),
+    ...(input.redactionMarkers ?? [])
+  ];
 
   if (typeof input.value == 'string' && markers.includes(input.value)) {
     return { role: input.role, mode, state: 'redacted_by_client' };

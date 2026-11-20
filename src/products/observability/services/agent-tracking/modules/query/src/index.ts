@@ -17,5 +17,6 @@ export {
   type ExportUpload
 } from './lib/exportStore';
 export { csvCell, gzipMember, serializeRows, type ExportFormat } from './lib/exportFormat';
+export { maxConcurrentQueries, maxQueriesPerMinute } from './lib/limits';
 export { queryQueueProcessor } from './queues';
 export * from './services';

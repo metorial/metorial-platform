@@ -99,7 +99,8 @@ export let entityController = organizationApp.controller({
           statuses: v.optional(v.array(v.enumOf(statuses))),
           scope: v.optional(scopeSchema),
           search: v.optional(v.string()),
-          needsReview: v.optional(v.boolean())
+          needsReview: v.optional(v.boolean()),
+          ids: v.optional(v.array(v.string(), { modifiers: [v.maxLength(100)] }))
         })
       )
     )
@@ -110,7 +111,8 @@ export let entityController = organizationApp.controller({
         statuses: ctx.input.statuses,
         scope: ctx.input.scope,
         search: ctx.input.search,
-        needsReview: ctx.input.needsReview
+        needsReview: ctx.input.needsReview,
+        ids: ctx.input.ids
       });
 
       let list = await paginator.run(ctx.input);

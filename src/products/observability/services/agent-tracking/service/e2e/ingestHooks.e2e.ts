@@ -1,5 +1,6 @@
 import { gzipSync, zstdCompressSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import { getStore, setStoreIndexMode } from '@mtsrc/agent-tracking-store';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createToken,
   errorCode,
@@ -10,6 +11,8 @@ import {
 } from './support';
 
 let sentinel = 'SENTINEL-e2e-hook-5d2c';
+
+beforeAll(() => setStoreIndexMode('skip'));
 
 let promptHook = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -164,7 +167,7 @@ describe('hook ingest', () => {
     expect(await errorCode(response)).toBe('invalid_client');
   });
 
-  it('handles unknown clients with the generic dialect', async () => {
+  it('accepts unknown clients and does not store their unknown events', async () => {
     let { instance, secret } = await createToken();
 
     let response = await ingest('/v1/ingest/hooks/my-agent', {
@@ -173,9 +176,14 @@ describe('hook ingest', () => {
     });
 
     expect(response.status).toBe(200);
-    expect((await instanceRecords(instance))[0]!.record.source.dialect).toBe(
-      'generic.hooks.v1'
-    );
+    expect(await instanceRecords(instance)).toHaveLength(0);
+
+    let store = getStore();
+    await store.ready();
+    let health = await store
+      .collections()
+      .sourceHealth.findOne({ instanceId: instance.id, family: 'my-agent' });
+    expect(health?.unmapped).toEqual({ generic_hooks_v1: { Custom: 1 } });
   });
 
   it('enforces the allowed clients of the token', async () => {

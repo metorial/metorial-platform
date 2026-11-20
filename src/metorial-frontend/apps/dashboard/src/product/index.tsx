@@ -497,6 +497,30 @@ let ChatEventPage = dynamicPage(() =>
 let ChatExplorerPage = dynamicPage(() =>
   import('./pages/(chat)/chat-explorer/index').then(c => c.ChatExplorerPage)
 );
+let AgentTrackingGateLayout = dynamicPage(() =>
+  import('./pages/(agent-tracking)/_layout').then(c => c.AgentTrackingGateLayout)
+);
+let AgentTrackingListLayout = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/_layout').then(c => c.AgentTrackingListLayout)
+);
+let AgentTrackingSpendPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/spend').then(c => c.AgentTrackingSpendPage)
+);
+let AgentTrackingSessionsPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/sessions').then(c => c.AgentTrackingSessionsPage)
+);
+let AgentTrackingSessionPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/session').then(c => c.AgentTrackingSessionPage)
+);
+let AgentTrackingSetupPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/setup').then(c => c.AgentTrackingSetupPage)
+);
+let AgentTrackingSettingsPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/settings').then(c => c.AgentTrackingSettingsPage)
+);
+let AgentTrackingDefaultTab = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/defaultTab').then(c => c.AgentTrackingDefaultTab)
+);
 let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string }) => {
   let flags = useDashboardFlags();
 
@@ -593,6 +617,40 @@ export let productLogsSlice = createSlice([
                 path: '',
                 element: <ProviderIssuesPage />
               }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productAgentTrackingSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'agent-usage',
+            element: <AgentTrackingGateLayout />,
+
+            children: [
+              {
+                element: <AgentTrackingListLayout />,
+
+                children: [
+                  { path: '', element: <AgentTrackingDefaultTab /> },
+                  { path: 'sessions', element: <AgentTrackingSessionsPage /> },
+                  { path: 'spend', element: <AgentTrackingSpendPage /> },
+                  { path: 'setup', element: <AgentTrackingSetupPage /> },
+                  { path: 'settings', element: <AgentTrackingSettingsPage /> }
+                ]
+              },
+              { path: 'sessions/:sessionId', element: <AgentTrackingSessionPage /> }
             ]
           }
         ]
@@ -1712,6 +1770,7 @@ export let productSlice = createSlice([
 
     children: [
       ...productLogsSlice.routes,
+      ...productAgentTrackingSlice.routes,
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
       ...productDocumentSlice.routes,
