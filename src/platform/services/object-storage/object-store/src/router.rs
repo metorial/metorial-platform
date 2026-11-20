@@ -14,6 +14,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::api::*;
 use crate::error::RequestBodyError;
+use crate::public_multipart::{complete_public_upload, sign_parts};
 use crate::service::ObjectStoreService;
 use crate::zip::{ZipJobManager, ZipSettings};
 
@@ -108,6 +109,7 @@ pub fn create_app_router(
         .route("/buckets/:bucket/objects/delete", post(delete_objects))
         .route("/buckets/:bucket/object-info/*key", get(get_object_info))
         .route("/buckets/:bucket/public-url/*key", get(get_public_url))
+        .route("/buckets/:bucket/part-manifests/*key", post(sign_parts))
         .route("/buckets/:bucket/uploads/*key", post(start_upload))
         .route("/buckets/:bucket/uploads/*key", delete(abort_upload))
         .route("/buckets/:bucket/uploads", get(list_uploads))
@@ -130,6 +132,10 @@ pub fn create_app_router(
 
     let guard = options.body_guard();
     let streaming = Router::new()
+        .route(
+            "/buckets/:bucket/public-upload-complete/*key",
+            post(complete_public_upload),
+        )
         .route("/buckets/:bucket/objects/*key", put(put_object))
         .route("/buckets/:bucket/copy-object/*key", post(copy_object))
         .route("/buckets/:bucket/upload-parts/*key", put(upload_part))

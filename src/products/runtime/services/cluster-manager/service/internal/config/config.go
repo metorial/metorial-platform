@@ -98,6 +98,7 @@ type Config struct {
 	PodClusterManagerService    string
 	PodClusterManagerServerName string
 	PodEgressGatewayAddr        string
+	NetworkLogsAddr             string
 	PodEgressGatewayServerName  string
 	BuildEgressProxyAddr        string
 	EgressGatewayService        string
@@ -311,6 +312,7 @@ func Load() (*Config, error) {
 		PodClusterManagerService:    l.str("CLUSTER_MANAGER_POD_SERVICE", ""),
 		PodClusterManagerServerName: l.str("CLUSTER_MANAGER_POD_SERVER_NAME", ""),
 		PodEgressGatewayAddr:        l.str("CLUSTER_MANAGER_POD_EGRESS_GATEWAY_ADDR", ""),
+		NetworkLogsAddr:             l.str("CLUSTER_MANAGER_NETWORK_LOGS_ADDR", ""),
 		PodEgressGatewayServerName:  l.str("CLUSTER_MANAGER_POD_EGRESS_GATEWAY_SERVER_NAME", ""),
 		BuildEgressProxyAddr:        l.str("CLUSTER_MANAGER_BUILD_EGRESS_PROXY_ADDR", ""),
 		EgressGatewayService:        l.str("CLUSTER_MANAGER_EGRESS_GATEWAY_SERVICE", ""),

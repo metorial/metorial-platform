@@ -1,0 +1,8 @@
+{
+  "name": "@lowerdeck/doctor-spec",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Doctor protocol spec, JSON schema and conformance fixtures shared by the Node, Go and Rust implementations.",
+  "author": "Tobias Herber",
+  "license": "Apache 2"
+}

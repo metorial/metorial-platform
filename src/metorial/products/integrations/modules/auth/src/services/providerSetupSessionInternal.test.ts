@@ -9,6 +9,7 @@ let mocks = vi.hoisted(() => ({
   defaultCredentialsFindFirst: vi.fn(),
   getVersionAndAuthMethod: vi.fn(),
   createProviderOAuthSetupInternal: vi.fn(),
+  getInstallationTemplateDefaultInternal: vi.fn(async (): Promise<unknown> => null),
   createIdentityCredentialInternal: vi.fn(),
   createProviderConfigInternal: vi.fn(),
   queueAdd: vi.fn()
@@ -102,6 +103,12 @@ vi.mock('./providerOAuthSetup', () => ({
   }
 }));
 
+vi.mock('./providerAuthCredentials', () => ({
+  providerAuthCredentialsService: {
+    getInstallationTemplateDefaultInternal: mocks.getInstallationTemplateDefaultInternal
+  }
+}));
+
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
 
 let context = { ip: '127.0.0.1', ua: 'test-agent' };
@@ -128,12 +135,15 @@ let provider = {
   }
 };
 
-let initialize = (input: Record<string, any> = {}) =>
+let initialize = (
+  input: Record<string, any> = {},
+  credentials: Record<string, any> | null = { oid: 70n }
+) =>
   providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
     tenant: { oid: 10n } as any,
     environment: { oid: 30n, instanceOid: 40n } as any,
     provider: provider as any,
-    credentials: { oid: 70n } as any,
+    credentials: (credentials ?? undefined) as any,
     expiresAt: sessionExpiresAt,
     input: { type: 'admin', ...input },
     import: { ip: undefined, ua: undefined }
@@ -212,6 +222,39 @@ describe('initializeProviderSetupSessionProvider for admin sessions', () => {
     expect(mocks.createProviderConfigInternal).not.toHaveBeenCalled();
     expect(res.inner).toMatchObject({ oauthSetupOid: 200n, authMethodOid: 60n });
     expect(res.inner.configOid).toBeUndefined();
+  });
+});
+
+describe('installation template credentials', () => {
+  it('falls back to the installation template copy without project defaults', async () => {
+    let templateCredentials = { oid: 80n, fixedAuthMethodKey: 'ghe' };
+    mocks.getVersionAndAuthMethod.mockResolvedValue({
+      authMethod: { ...adminAuthMethod(), key: 'ghe' }
+    });
+    mocks.defaultCredentialsFindFirst.mockResolvedValue(null);
+    mocks.getInstallationTemplateDefaultInternal.mockResolvedValue(templateCredentials as any);
+
+    await initialize({ authConfigInput: {} }, null);
+
+    expect(mocks.createProviderOAuthSetupInternal).toHaveBeenCalledWith(
+      expect.objectContaining({ credentials: templateCredentials })
+    );
+  });
+
+  it('ignores a template copy pinned to another auth method', async () => {
+    mocks.getVersionAndAuthMethod.mockResolvedValue({
+      authMethod: { ...adminAuthMethod(), key: 'github' }
+    });
+    mocks.defaultCredentialsFindFirst.mockResolvedValue(null);
+    mocks.getInstallationTemplateDefaultInternal.mockResolvedValue({
+      oid: 80n,
+      fixedAuthMethodKey: 'ghe'
+    } as any);
+
+    await expect(initialize({ authConfigInput: {} }, null)).rejects.toMatchObject({
+      data: expect.objectContaining({ code: 'missing_auth_credentials' })
+    });
+    expect(mocks.createProviderOAuthSetupInternal).not.toHaveBeenCalled();
   });
 });
 

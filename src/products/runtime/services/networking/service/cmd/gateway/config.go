@@ -11,6 +11,7 @@ import (
 
 	"github.com/metorial/metorial-platform/src/products/runtime/packages/egress"
 	"github.com/metorial/metorial-platform/src/products/runtime/packages/egress/policy"
+	"github.com/metorial/metorial-platform/src/products/runtime/services/networking/service/internal/gateway"
 )
 
 const listenerOff = "off"
@@ -31,6 +32,7 @@ type config struct {
 	hardDeny                  []netip.Prefix
 	denyOwnAddresses          bool
 	dnsServers                []string
+	platformRoutes            *gateway.PlatformRoutes
 
 	dialTimeout time.Duration
 	idleTimeout time.Duration
@@ -93,6 +95,14 @@ func loadConfig(getenv func(string) string) (*config, error) {
 		return nil, fmt.Errorf("HARD_DENY_CIDRS: %w", err)
 	}
 	cfg.hardDeny = hardDeny
+
+	// Route upstreams are cluster Services, so they resolve through the pod's own DNS even when
+	// EGRESS_DNS_SERVERS points integration traffic at other resolvers.
+	platformRoutes, err := gateway.ParsePlatformRoutes(splitList(getenv("EGRESS_PLATFORM_ROUTES")), net.DefaultResolver)
+	if err != nil {
+		return nil, fmt.Errorf("EGRESS_PLATFORM_ROUTES: %w", err)
+	}
+	cfg.platformRoutes = platformRoutes
 
 	for _, server := range cfg.dnsServers {
 		if _, err := normalizeDNSServer(server); err != nil {

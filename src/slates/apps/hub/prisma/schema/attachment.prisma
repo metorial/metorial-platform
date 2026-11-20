@@ -65,7 +65,11 @@ model SlateAttachmentUpload {
   mimeType String?
   filename String?
 
-  sizeBytes Int?
+  sizeBytes         Int?
+  declaredSizeBytes Int?
+
+  multipartUploadId String?
+  partSizeBytes     Int?
 
   status String @default("pending")
 

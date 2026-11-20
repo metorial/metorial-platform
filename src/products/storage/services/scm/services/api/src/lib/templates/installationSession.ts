@@ -8,6 +8,7 @@ export let installationSessionHtml = (d: {
     description: string | null;
     isDefault: boolean;
   }>;
+  canAddProvider: boolean;
 }) => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,9 +202,15 @@ export let installationSessionHtml = (d: {
         : ''
     }
 
-    <a href="/origin/scm/installation-session/${d.sessionId}/setup-backend" class="create-backend-button">
+    ${
+      d.canAddProvider
+        ? `<a href="/origin/scm/installation-session/${d.sessionId}/setup-backend" class="create-backend-button">
       + Add Custom Provider
-    </a>
+    </a>`
+        : d.backends.length === 0
+          ? `<p class="subtitle">No source control providers are available yet. Ask your enterprise administrator to configure one.</p>`
+          : ''
+    }
   </div>
 
   <script>

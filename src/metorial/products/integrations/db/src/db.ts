@@ -183,6 +183,8 @@ declare global {
 
     type ProviderAuthScopes = string[];
 
+    type ProviderAuthCredentialsFixedInput = globalThis.Record<string, string>;
+
     type ToolFilter =
       | {
           type: 'v1.allow_all';

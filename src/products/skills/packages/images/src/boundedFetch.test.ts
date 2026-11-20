@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ImageTooLargeError, readBoundedResponse } from './boundedFetch';
 
-let responseOf = (body: Uint8Array, headers: Record<string, string> = {}) =>
+let responseOf = (body: Uint8Array<ArrayBuffer>, headers: Record<string, string> = {}) =>
   new Response(body, { headers });
 
 describe('readBoundedResponse', () => {

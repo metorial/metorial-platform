@@ -1,4 +1,5 @@
 import {
+  GetIdentityVerificationAttributesCommand,
   GetSendQuotaCommand,
   SendEmailCommand,
   SendRawEmailCommand,
@@ -44,6 +45,44 @@ let transport = emailSettings.sesRegion
         }
       })
     };
+
+export let emailTransportType = transport.type;
+
+export let verifyEmailTransport = async () => {
+  if (transport.type == 'ses') {
+    await transport.client.send(new GetSendQuotaCommand({}));
+    return;
+  }
+
+  await transport.client.verify();
+};
+
+let sesClient = () => {
+  if (transport.type != 'ses') throw new Error('Email is not sent through SES.');
+  return transport.client;
+};
+
+export let getSesSendQuota = async () => {
+  let quota = await sesClient().send(new GetSendQuotaCommand({}));
+
+  return {
+    max24HourSend: quota.Max24HourSend ?? 0,
+    sentLast24Hours: quota.SentLast24Hours ?? 0
+  };
+};
+
+export let getSesVerificationStatuses = async (identities: string[]) => {
+  let result = await sesClient().send(
+    new GetIdentityVerificationAttributesCommand({ Identities: identities })
+  );
+
+  return Object.fromEntries(
+    identities.map(identity => [
+      identity,
+      result.VerificationAttributes?.[identity]?.VerificationStatus ?? 'NotStarted'
+    ])
+  );
+};
 
 export let checkSesAccess = async () => {
   if (transport.type !== 'ses') return;

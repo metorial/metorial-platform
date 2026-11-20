@@ -1143,7 +1143,7 @@ exfiltrated during the build is useless outside the cluster, and dies with the p
 | NetworkPolicies (fixed, never per function) | Default deny both directions. Functions: ingress only from `knative-serving` (activator, autoscaler) and the Kourier gateway namespace (or the Istio ingress in Istio mode), on queue-proxy ports 8012, 8022, 9090, 9091 (8112 with internal TLS); egress only to the cluster-manager's pod-facing port and the gateway's tunnel port. Builds: no ingress; egress only to the cluster-manager's pod-facing port and the gateway's proxy port. No DNS egress for either. |
 | ResourceQuota, LimitRange | Per namespace, from Helm values |
 | ServiceAccounts | `metorial-functions`, `metorial-build`, `metorial-egress-gateway`, `metorial-network-logs` (platform namespace); `function-runtime`, `build-runtime` (runtime namespaces). All with `automountServiceAccountToken: false`. Only the cluster-manager and the log store have bindings (below). |
-| ConfigMaps `runtime-trust`, `egress-trust` | `runtime-trust` in the functions namespace: function-bay's public keys (`kid` → key). `egress-trust` in the platform namespace: function-bay's and forge's public keys, for the gateway. Written only by the key-publishing hook (section 12.3). |
+| ConfigMaps `runtime-trust`, `egress-trust` | `runtime-trust` in the functions namespace: function-bay's public keys (`kid` → key). `egress-trust` in the platform namespace: function-bay's and forge's public keys, for the gateway. Written only by the key holders: function-bay and forge each publish their own public key (section 12.3). |
 | ConfigMap `runtime-ca` | Kourier TLS mode: the CA bundle for our own TLS hops, synced into the runtime namespaces (section 11) |
 | Cluster-manager RBAC | Namespaced Roles in both runtime namespaces: Knative Services, Secrets, Jobs, pods (read), pods/log, events. No access to `runtime-trust`, `egress-trust` or `runtime-ca`. Read-only on `config-*` ConfigMaps in `knative-serving`. Cluster read on RuntimeClasses. ClusterRoleBinding to `system:auth-delegator` for TokenReview. A Lease in its own namespace. |
 | Log store RBAC | ClusterRoleBinding to `system:auth-delegator` for TokenReview. Nothing else. |
@@ -1260,16 +1260,22 @@ runtime:
 - **Signing keys.** Like every other internal secret on-prem, the Ed25519 private keys are derived
   from the master secret in `on-prem-settings` (`deriveSecret(master, 'runtime-signing:function-bay')`
   as the seed, likewise for forge), so no new Secret is stored. Helm can't compute an Ed25519 public
-  key, so a small `post-install`/`post-upgrade` hook Job (`runtime-keys`) runs the same derivation and
-  writes only the public keys into `runtime-trust` and `egress-trust`. Its Roles are limited by
-  `resourceNames` to those two ConfigMaps. The derivation is deterministic, so the hook is idempotent.
-  Rotation bumps the purpose suffix (`:v2`) and publishes both keys until the old one is unused.
+  key, so each key holder publishes its own: function-bay and forge write their public key into the
+  ConfigMaps named in `TRUST_CONFIGMAPS` (`runtime-trust` and `egress-trust` for function-bay,
+  `egress-trust` for forge) at startup and every minute (`runtime-trust-publisher`). Each owns a
+  `signer-<name>.json` entry that is merged into `keys.json` with resourceVersion-checked writes, so
+  the two never overwrite each other and a lost key comes back within a minute. Their Roles allow only
+  `get` and `update`, limited by `resourceNames` to those ConfigMaps; the chart renders them without
+  data so Helm and GitOps syncs never reset the keys. (A post-install hook Job did this first; a failed
+  `helm --wait` skipped it and left the gateway with no keys.) The egress gateway starts without the
+  file and trusts nothing until it appears. Rotation bumps the purpose suffix (`:v2`) and publishes
+  both keys until the old one is unused.
 - **New templates:**
   - runtime namespaces with Pod Security labels;
   - the six ServiceAccounts;
   - cluster-manager and log store RBAC, including their `system:auth-delegator` bindings;
   - the fixed runtime NetworkPolicies;
-  - the `runtime-keys` hook Job and its RBAC;
+  - the trust ConfigMaps and the Roles that let function-bay and forge publish their keys to them;
   - the ValidatingAdmissionPolicy and its binding, with the pinned digests as parameters;
   - cert-manager Certificates, the CA issuer and the trust-manager `Bundle` for Kourier TLS mode;
   - an AuthorizationPolicy on the cluster-manager control port in Istio mode.
@@ -1411,7 +1417,7 @@ confirmed.
 **M5 – Hardening, local dev and on-prem.**
 gVisor CI jobs; preflight including NetworkPolicy, TokenReview and dry-run probing; both TLS modes
 with `runtime-ca` distribution; `control` local-cluster setup with token minting; Helm components,
-values and templates, including the `runtime-keys` hook and the admission policy; the
+values and templates, including the trust-key publishing and the admission policy; the
 `metorial-runtime-prereqs` chart; the re-home queue with `enveloped` bundles; slate coverage nightly.
 Exit: Helm installs on kind (Kourier mode) and on a cluster with Istio ambient pass the smoke and
 slate coverage suites; an existing `local` install upgrades and re-homes without failed invocations.

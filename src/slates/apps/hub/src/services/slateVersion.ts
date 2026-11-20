@@ -1,7 +1,13 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Registry, Slate, SlateVersion } from '../../prisma/generated/client';
+import { subMinutes } from 'date-fns';
+import type {
+  Registry,
+  Slate,
+  SlateVersion,
+  SlateVersionStatus
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getRegistrySlatePathParams } from '../lib/registrySlatePath';
 import { getRegistryClient, getRegistryQuery } from '../registry';
@@ -18,8 +24,15 @@ let include = {
       slateAdapter: { include: { adapter: true } },
       slateVersionAdapterCapabilities: { include: { adapterCapability: true } }
     }
+  },
+  slateDeployments: {
+    orderBy: [{ createdAt: 'desc' as const }, { oid: 'desc' as const }],
+    take: 1
   }
 };
+
+let STALLED_VERSION_STATUSES: SlateVersionStatus[] = ['pending', 'deploying', 'discovering'];
+let FAILED_VERSION_STATUSES: SlateVersionStatus[] = ['deployment_failed', 'discovery_failed'];
 
 class slateVersionServiceImpl {
   async getSlateVersionById(d: { slate: Slate; id: string }) {
@@ -58,14 +71,53 @@ class slateVersionServiceImpl {
     return await res.json();
   }
 
-  async listSlateVersions(d: { slate: Slate }) {
+  async listSlateVersions(d: {
+    slate: Slate;
+    registryVersionIds?: string[];
+    status?: SlateVersionStatus[];
+  }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.slateVersion.findMany({
             ...opts,
             where: {
-              slateOid: d.slate.oid
+              slateOid: d.slate.oid,
+              versionIdOnRegistry: d.registryVersionIds
+                ? { in: d.registryVersionIds }
+                : undefined,
+              status: d.status ? { in: d.status } : undefined
+            },
+            orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
+            include
+          })
+      )
+    );
+  }
+
+  async listSlateVersionIssues(d: { slate?: Slate; stalledAfterMinutes: number }) {
+    let stalledBefore = subMinutes(new Date(), d.stalledAfterMinutes);
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.slateVersion.findMany({
+            ...opts,
+            where: {
+              slateOid: d.slate?.oid,
+              slate: { status: 'active' },
+              AND: [
+                { OR: [{ isCurrent: true }, { willBeCurrent: true }] },
+                {
+                  OR: [
+                    { status: { in: FAILED_VERSION_STATUSES } },
+                    {
+                      status: { in: STALLED_VERSION_STATUSES },
+                      updatedAt: { lt: stalledBefore }
+                    }
+                  ]
+                }
+              ]
             },
             orderBy: [{ createdAt: 'desc' }, { oid: 'desc' }],
             include

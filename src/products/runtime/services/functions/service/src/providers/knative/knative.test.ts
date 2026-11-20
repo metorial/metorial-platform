@@ -82,7 +82,10 @@ let providerData = {
   encryptedEnvironmentVariables: 'encrypted-env'
 };
 
-let invoke = (payload: Record<string, any> = { message: 'héllo' }) =>
+let invoke = (
+  payload: Record<string, any> = { message: 'héllo' },
+  platformRoutes?: string[]
+) =>
   invokeFunction({
     invocationId: 'functionInvocation_1',
     tenantId: 'tenant_1',
@@ -90,7 +93,8 @@ let invoke = (payload: Record<string, any> = { message: 'héllo' }) =>
     sourceFunction: func,
     functionVersion: { id: 'functionVersion_1', configuration } as any,
     payload,
-    providerData
+    providerData,
+    platformRoutes
   });
 
 let successOutput = {
@@ -278,7 +282,16 @@ describe('knative invoke', () => {
       tenantId: 'tenant_1',
       functionId: 'function_1'
     });
+    expect(grant).not.toHaveProperty('platformRoutes');
     expect(mocks.clusterManager.function.ensure).not.toHaveBeenCalled();
+  });
+
+  it('names requested platform routes in the egress grant', async () => {
+    await invoke(undefined, ['slates-live', 'object-upload']);
+
+    let [input] = mocks.clusterManager.function.invoke.mock.calls[0]!;
+    let grant = await verify(input.egressGrant, 'metorial-egress');
+    expect(grant.platformRoutes).toEqual(['slates-live', 'object-upload']);
   });
 
   it('materializes on demand and retries once with fresh tokens', async () => {

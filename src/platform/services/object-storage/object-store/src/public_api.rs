@@ -2,7 +2,7 @@ use axum::body::Body;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::get;
+use axum::routing::{get, put};
 use axum::{Json, Router};
 use object_store_backends::PublicUrlPurpose;
 use serde::Deserialize;
@@ -15,6 +15,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::api::{self, SharedService};
 use crate::public::{purpose_name, PublicUrlError};
+use crate::public_multipart;
 
 #[derive(Debug, Deserialize)]
 pub struct SignedQuery {
@@ -23,16 +24,19 @@ pub struct SignedQuery {
     pub signature: Option<String>,
 }
 
-/// The listener that serves signed public URLs in proxy mode. It only exposes reading and
-/// uploading single objects, and only with a valid signature; the management API stays on the
-/// internal listener.
+/// The proxy listener serves signed object URLs and optional encrypted part manifests.
+/// The management API stays on the internal listener.
 pub fn create_public_router(service: SharedService, request_timeout: Duration) -> Router {
-    Router::new()
+    let mut router = Router::new()
         .route("/health", get(api::health_check))
         .route(
             "/:bucket/*key",
             get(public_get).head(public_head).put(public_put),
-        )
+        );
+    if service.multipart_signer().is_ok() {
+        router = router.route("/upload-part", put(public_multipart::put_part));
+    }
+    router
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())

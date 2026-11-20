@@ -61,12 +61,22 @@ export let env = defineSettings({
     RUNTIME_SIGNING_KEY_ID: setting(v.optional(v.string()), {
       description:
         'Key id for RUNTIME_SIGNING_KEY, defaults to the id derived from its public key'
+    }),
+    TRUST_CONFIGMAPS: setting.list(v.string(), {
+      default: [],
+      description:
+        'Kubernetes ConfigMaps ("namespace/name") this service publishes the public key of RUNTIME_SIGNING_KEY to, for function pods and the egress gateway'
     })
   },
 
   egressGateway: {
     EGRESS_GATEWAY_PROXY_URL: setting(v.optional(v.string()), {
       description: 'Egress gateway proxy that Lambda functions send outbound traffic through'
+    }),
+    GRANTABLE_PLATFORM_ROUTES: setting.list(v.string(), {
+      default: [],
+      description:
+        'Egress gateway platform routes that invocations of knative functions may request in their egress grant; requests for any other route are dropped'
     })
   },
 

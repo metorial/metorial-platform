@@ -711,6 +711,32 @@ export class ObjectStorageClient {
     return response.upload_id;
   }
 
+  async getPartManifests(
+    bucket: string,
+    key: string,
+    uploadId: string,
+    expiresIn: number,
+    parts: { number: number; size: number }[]
+  ): Promise<{ number: number; url: string; manifest: string }[]> {
+    return await this.requestJson('POST', `/buckets/${bucket}/part-manifests/${key}`, {
+      json: { upload_id: uploadId, expires_in: expiresIn, parts }
+    });
+  }
+
+  async completePublicMultipartUpload(
+    bucket: string,
+    key: string,
+    uploadId: string,
+    totalSize: number,
+    partSize: number,
+    receipts: string[]
+  ): Promise<ObjectMetadata> {
+    return await this.requestJson('POST', `/buckets/${bucket}/public-upload-complete/${key}`, {
+      json: { upload_id: uploadId, total_size: totalSize, part_size: partSize, receipts },
+      timeoutMs: Math.max(this.timeout, 5 * 60 * 1000)
+    });
+  }
+
   /** Uploads (or replaces) one part. Part numbers start at 1. */
   async uploadPart(
     bucket: string,

@@ -1,5 +1,6 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
+import { checkEdition, isBuilt } from '@metorial/editions';
 import { app } from './_app';
 import { callbackController } from './callback';
 import { callbackInstanceController } from './callbackInstance';
@@ -17,6 +18,7 @@ import { slateInstanceController } from './slateInstance';
 import { slateInstanceConfigurationController } from './slateInstanceConfiguration';
 import { slateInvocationController } from './slateInvocation';
 import { slateOAuthCredentialsController } from './slateOAuthCredentials';
+import type { slateOAuthCredentialsTemplateController as SlateOAuthCredentialsTemplateController } from './slateOAuthCredentialsTemplate';
 import { slateOAuthSetupController } from './slateOAuthSetup';
 import { slateOAuthSetupEventController } from './slateOAuthSetupEvent';
 import { slatePublicToolCallController } from './slatePublicToolCall';
@@ -33,6 +35,12 @@ import { tenantIsolationController } from './tenantIsolation';
 import { triggerEventController } from './triggerEvent';
 import { triggerEventInvocationController } from './triggerEventInvocation';
 import { triggerRegistrationController } from './triggerRegistration';
+
+let slateOAuthCredentialsTemplateController = (
+  checkEdition('on-prem') || !isBuilt()
+    ? (await import('./slateOAuthCredentialsTemplate')).slateOAuthCredentialsTemplateController
+    : app.controller({})
+) as typeof SlateOAuthCredentialsTemplateController;
 
 export let rootController = app.controller({
   tenant: tenantController,
@@ -54,6 +62,7 @@ export let rootController = app.controller({
   slateInstance: slateInstanceController,
   slateInstanceConfiguration: slateInstanceConfigurationController,
   slateOAuthCredentials: slateOAuthCredentialsController,
+  slateOAuthCredentialsTemplate: slateOAuthCredentialsTemplateController,
   slateOAuthSetup: slateOAuthSetupController,
   slateOAuthSetupEvent: slateOAuthSetupEventController,
   slateAuthConfig: slateAuthConfigController,

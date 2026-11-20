@@ -89,9 +89,8 @@ export let renderDockerfile = (
     components.dependencies(context),
     components.builder(context),
     ...(build.modules === 'production' ? [components.productionDependencies(context)] : []),
-    ...(build.migrations.length
-      ? [components.controlRuntime(context), components.prismaCli()]
-      : []),
+    ...(build.migrations.length ? [components.controlRuntime(context)] : []),
+    ...(build.migrations.length || build.prisma ? [components.prismaCli()] : []),
     components.runnerBase(context),
     ...(build.migrations.length ? [components.tools()] : []),
     components.runner(context)

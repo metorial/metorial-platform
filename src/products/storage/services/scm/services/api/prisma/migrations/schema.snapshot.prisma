@@ -516,6 +516,12 @@ model ScmBackend {
 
   isDefault Boolean @default(false) // System-managed default backends (like github.com)
 
+  templateOid BigInt?
+  template    ScmBackendTemplate? @relation(fields: [templateOid], references: [oid], onDelete: Restrict)
+
+  templateVersion       Int?
+  templateSecretVersion Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -524,6 +530,48 @@ model ScmBackend {
   backendSetupSessions         ScmBackendSetupSession[]
   accounts                     ScmAccount[]
   repositories                 ScmRepository[]
+
+  @@unique([tenantOid, templateOid])
+  @@index([templateOid])
+}
+
+enum ScmBackendTemplateStatus {
+  active
+  archived
+}
+
+model ScmBackendTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type ScmBackendType
+
+  name        String
+  description String?
+
+  apiUrl String
+  webUrl String
+
+  appId    String?
+  appSlug  String?
+  clientId String?
+
+  clientSecretNebulaSecretId     String?
+  appPrivateKeyNebulaSecretId    String?
+  appWebhookSecretNebulaSecretId String?
+
+  status ScmBackendTemplateStatus @default(active)
+
+  version       Int @default(1)
+  secretVersion Int @default(1)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  backends ScmBackend[]
+
+  @@index([status])
 }
 
 enum ScmInstallationSessionStatus {

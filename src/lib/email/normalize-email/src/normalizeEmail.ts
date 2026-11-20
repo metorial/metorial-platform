@@ -1,7 +1,7 @@
 export let normalizeEmail = (email: string) => {
   email = email.toLowerCase().trim();
 
-  let [local, domain] = email.split('@');
+  let [local = '', domain] = email.split('@');
 
   if (domain === 'googlemail.com') domain = 'gmail.com';
 
@@ -10,7 +10,7 @@ export let normalizeEmail = (email: string) => {
     local = local.replaceAll('.', '');
   }
 
-  local = local.split('+')[0];
+  local = local.split('+')[0] ?? '';
 
   return `${local}@${domain}`;
 };

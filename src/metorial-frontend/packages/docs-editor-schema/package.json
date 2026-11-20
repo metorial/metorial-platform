@@ -45,7 +45,7 @@
     "lowlight": "^3.3.0",
     "markdown-it": "15.0.3",
     "markdown-it-task-lists": "2.1.1",
-    "parse5": "8.1.0",
+    "parse5": "8.1.1",
     "tiptap-markdown": "^0.9.0",
     "yjs": "^13.6.33"
   },

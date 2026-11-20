@@ -49,6 +49,7 @@ type Build struct {
 	Status        Status
 	ExitCode      *int
 	FailureReason *string
+	PendingReason *string
 	UploadedSteps []string
 	StartedAt     *time.Time
 	FinishedAt    *time.Time
@@ -220,6 +221,9 @@ func (m *Manager) view(job *batchv1.Job) *Build {
 		if pod.Status.Phase == corev1.PodRunning {
 			b.Status = StatusRunning
 		}
+		if pod.Status.Phase == corev1.PodPending {
+			b.PendingReason = podPendingReason(pod)
+		}
 	}
 
 	finished, succeeded := kube.JobFinished(job)
@@ -244,6 +248,22 @@ func (m *Manager) view(job *batchv1.Job) *Build {
 		}
 	}
 	return b
+}
+
+// podPendingReason explains why a build pod has not started: the scheduler could not place it
+// (e.g. insufficient memory) or its container is stuck waiting (e.g. an image pull failure).
+func podPendingReason(pod *corev1.Pod) *string {
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && c.Reason != "" {
+			return ptr.To(strings.TrimSpace(c.Reason + ": " + c.Message))
+		}
+	}
+	for _, cs := range pod.Status.ContainerStatuses {
+		if w := cs.State.Waiting; w != nil && w.Reason != "" && w.Reason != "ContainerCreating" && w.Reason != "PodInitializing" {
+			return ptr.To(strings.TrimSpace(w.Reason + ": " + w.Message))
+		}
+	}
+	return nil
 }
 
 type uploadRecord struct {

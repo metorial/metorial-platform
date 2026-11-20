@@ -1,7 +1,9 @@
+import { startHealthServer } from '@metorial/doctor';
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
 import { originApi } from './controllers';
 import { db } from './db';
+import { scmDoctorChecks } from './doctor';
 import { env } from './env';
 import { scmController } from './public/scm';
 import { scmBackendService } from './services';
@@ -27,20 +29,19 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
   tls: process.env.REDIS_URL?.startsWith('rediss://')
 });
 
-if (process.env.NODE_ENV === 'production') {
-  Bun.serve({
-    fetch: async _ =>
-      withTracingSuppressed(async () => {
-        try {
-          await db.tenant.count();
+startHealthServer({
+  component: 'scm',
+  checks: scmDoctorChecks(redis),
+  liveness: async _ =>
+    withTracingSuppressed(async () => {
+      try {
+        await db.tenant.count();
 
-          await redis.ping();
+        await redis.ping();
 
-          return new Response('OK');
-        } catch (e) {
-          return new Response('Service Unavailable', { status: 503 });
-        }
-      }),
-    port: 12121
-  });
-}
+        return new Response('OK');
+      } catch (e) {
+        return new Response('Service Unavailable', { status: 503 });
+      }
+    })
+});

@@ -14,7 +14,7 @@ let replicaAdapter = process.env.DATABASE_URL_READER
 
 let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;
 
-let baseClient = new PrismaClient({
+export let primaryDb = new PrismaClient({
   adapter: mainAdapter,
   transactionOptions: {
     maxWait: 10000,
@@ -22,10 +22,6 @@ let baseClient = new PrismaClient({
   }
 });
 
-if (replicaClient) {
-  baseClient = baseClient.$extends(
-    readReplicas({ replicas: [replicaClient] })
-  ) as any as PrismaClient;
-}
-
-export let db = baseClient;
+export let db = replicaClient
+  ? (primaryDb.$extends(readReplicas({ replicas: [replicaClient] })) as any as PrismaClient)
+  : primaryDb;

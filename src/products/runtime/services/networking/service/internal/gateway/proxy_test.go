@@ -162,6 +162,35 @@ func TestProxyErrorsMatchDeflector(t *testing.T) {
 	}
 }
 
+func TestProxyMarksGatewayErrors(t *testing.T) {
+	env := newTestEnv(t, envOptions{})
+	auth := "Proxy-Authorization: " + basicAuth(env.grant()) + "\r\n"
+
+	cases := []struct {
+		name    string
+		request string
+		marker  string
+	}{
+		{"auth failure", "CONNECT example.test:443 HTTP/1.1\r\nHost: example.test:443\r\n\r\n", egressErrorUnauthorized},
+		{"denied connect", "CONNECT internal.test:443 HTTP/1.1\r\nHost: internal.test:443\r\n" + auth + "\r\n", egressErrorDenied},
+		{"denied absolute form", "GET http://169.254.169.254/ HTTP/1.1\r\nHost: 169.254.169.254\r\n" + auth + "\r\n", egressErrorDenied},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			conn, reader := env.proxyConn()
+			_, _ = conn.Write([]byte(tc.request))
+			response, err := http.ReadResponse(reader, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := response.Header.Get(EgressErrorHeader); got != tc.marker {
+				t.Fatalf("%s = %q, want %q", EgressErrorHeader, got, tc.marker)
+			}
+		})
+	}
+}
+
 func TestProxyUpstreamReadFailure(t *testing.T) {
 	env := newTestEnv(t, envOptions{})
 	listener, err := net.Listen("tcp", "127.0.0.1:0")

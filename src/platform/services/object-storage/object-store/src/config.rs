@@ -45,6 +45,8 @@ pub struct PublicConfig {
     pub mode: PublicUrlMode,
     pub base_url: Option<String>,
     pub signing_secret: Option<String>,
+    #[serde(default)]
+    pub multipart_uploads: bool,
     #[serde(default = "default_public_host")]
     pub host: String,
     #[serde(default = "default_public_port")]
@@ -59,6 +61,7 @@ impl Default for PublicConfig {
             mode: PublicUrlMode::Backend,
             base_url: None,
             signing_secret: None,
+            multipart_uploads: false,
             host: default_public_host(),
             port: default_public_port(),
             request_timeout_secs: default_public_request_timeout_secs(),
@@ -76,6 +79,7 @@ impl std::fmt::Debug for PublicConfig {
                 &self.signing_secret.as_ref().map(|_| "<redacted>"),
             )
             .field("host", &self.host)
+            .field("multipart_uploads", &self.multipart_uploads)
             .field("port", &self.port)
             .field("request_timeout_secs", &self.request_timeout_secs)
             .finish()

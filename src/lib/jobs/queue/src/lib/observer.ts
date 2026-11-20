@@ -13,10 +13,12 @@ export type QueueStats = {
 
 type QueueObserver = {
   onJob?: (event: QueueJobEvent) => void;
+  listeners: Set<(event: QueueJobEvent) => void>;
   stats: Map<string, () => Promise<QueueStats>>;
 };
 
 export let queueObserver: QueueObserver = {
   onJob: undefined,
+  listeners: new Set(),
   stats: new Map()
 };

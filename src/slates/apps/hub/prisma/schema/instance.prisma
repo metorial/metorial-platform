@@ -117,8 +117,19 @@ model SlateOAuthCredentials {
   clientId String
   scopes   String[]
 
+  authMethodKey String?
+
+  /// [SlateOAuthCredentialsFixedInput]
+  fixedInput Json?
+
   secretOid BigInt
   secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  templateOid BigInt?
+  template    SlateOAuthCredentialsTemplate? @relation(fields: [templateOid], references: [oid], onDelete: Restrict)
+
+  templateVersion       Int?
+  templateSecretVersion Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -126,6 +137,49 @@ model SlateOAuthCredentials {
   authConfigs          SlateAuthConfig[]
   oAuthSetups          SlateInstanceOAuthSetup[]
   webhookRegistrations SlateWebhookRegistrationOAuthCredentials[]
+
+  @@unique([tenantOid, templateOid])
+  @@index([templateOid])
+}
+
+enum SlateOAuthCredentialsTemplateStatus {
+  active
+  archived
+}
+
+model SlateOAuthCredentialsTemplate {
+  oid BigInt @id
+  id  String @unique
+
+  status SlateOAuthCredentialsTemplateStatus @default(active)
+
+  name        String
+  description String?
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  authMethodKey String
+
+  /// [SlateOAuthCredentialsFixedInput]
+  fixedInput Json?
+
+  clientId String
+  scopes   String[]
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  version       Int @default(1)
+  secretVersion Int @default(1)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  copies SlateOAuthCredentials[]
+
+  @@index([status])
 }
 
 enum SlateAuthConfigType {
