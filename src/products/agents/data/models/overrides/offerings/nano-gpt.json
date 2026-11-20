@@ -1589,6 +1589,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "unsloth/gemma-3-4b-it": {
+    "decision": "link",
+    "model": "google/gemma-3-4b-it",
+    "reason": "Unsloth's gemma-3-4b-it repo is a faithful mirror of Google's Gemma 3 4B IT checkpoint (same 2025-03-12 release date, image-text-to-text pipeline, gemma license per its Hugging Face metadata), not a fine-tune, so the current link is right; NanoGPT's flat 0.2006 input/output rate is its own aggregator markup over the model's 0.04 median, not a different model.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "venice-uncensored": {
     "decision": "link",
     "model": "cognitivecomputations/dolphin-mistral-24b-venice-edition",
