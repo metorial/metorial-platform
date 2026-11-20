@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
-  getId,
+  snowflake,
   type Instance,
   type Organization,
   type Project
@@ -37,7 +37,8 @@ class InstanceServiceImpl {
     let instance = await db.instance.upsert({
       where: { ref: d.input.ref },
       create: {
-        ...getId('instance'),
+        oid: snowflake.nextId(),
+        id: d.input.ref,
         ref: d.input.ref,
         name: d.input.name,
         logRetentionDays: d.input.logRetentionDays,

@@ -36,22 +36,22 @@ export let principalWith = (
   } = {}
 ): GatewayPrincipal => ({
   token: {
-    id: d.tokenId ?? 'gwtk_1',
+    id: d.tokenId ?? 'agtk_1',
     consumerRef: null,
     allowedModels: [],
     limits: d.token ?? [],
     metadata: {}
   },
-  organization: { id: 'gwor_1', ref: 'org' },
+  organization: { id: 'agor_1', ref: 'org' },
   project: {
-    id: d.projectId ?? 'gwpr_1',
+    id: d.projectId ?? 'agpr_1',
     ref: 'project',
     platformLimits: d.platform ?? [],
     disabled: null,
     billingRestriction: null
   },
   instance: {
-    id: d.instanceId ?? 'gwin_1',
+    id: d.instanceId ?? 'agin_1',
     ref: 'instance',
     logRetentionDays: 30,
     limits: d.instance ?? [],

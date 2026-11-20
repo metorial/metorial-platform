@@ -15,7 +15,7 @@ vi.mock('@mtsrc/ai-gateway-db', () => ({
 let { createBillingWindowWriter } = await import('../src/lib/writer');
 
 let uniqueViolation = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
-let charge = { projectId: 'gwpr_1', costNanoUsd: 1500n, requestCount: 1 };
+let charge = { projectId: 'agpr_1', costNanoUsd: 1500n, requestCount: 1 };
 
 let at = (iso: string) => {
   let time = new Date(iso);
@@ -28,7 +28,7 @@ let at = (iso: string) => {
 beforeEach(() => {
   vi.clearAllMocks();
   db.project.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
-    where.id.startsWith('gwpr_') ? { oid: 42n } : null
+    where.id.startsWith('agpr_') ? { oid: 42n } : null
   );
   db.billingWindow.updateMany.mockResolvedValue({ count: 0 });
   db.billingWindow.create.mockResolvedValue({});
@@ -133,11 +133,11 @@ describe('createBillingWindowWriter', () => {
     db.billingWindow.updateMany.mockResolvedValue({ count: 1 });
     let write = createBillingWindowWriter();
 
-    await write({ ...charge, projectId: 'gwpr_cached' });
-    await write({ ...charge, projectId: 'gwpr_cached' });
+    await write({ ...charge, projectId: 'agpr_cached' });
+    await write({ ...charge, projectId: 'agpr_cached' });
 
     expect(
-      db.project.findUnique.mock.calls.filter(call => call[0].where.id == 'gwpr_cached')
+      db.project.findUnique.mock.calls.filter(call => call[0].where.id == 'agpr_cached')
     ).toHaveLength(1);
   });
 });

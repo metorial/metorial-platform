@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, fire } = vi.hoisted(() => ({
   db: {
-    project: { update: vi.fn() },
+    project: { update: vi.fn(), findUnique: vi.fn(), upsert: vi.fn() },
     instance: { findMany: vi.fn() }
   },
   fire: vi.fn()
 }));
 
-vi.mock('@mtsrc/ai-gateway-db', () => ({ db, getId: vi.fn() }));
+vi.mock('@mtsrc/ai-gateway-db', () => ({ db, snowflake: { nextId: () => 99n } }));
 vi.mock('@mtsrc/ai-gateway-events', () => ({ Events: { fire } }));
 
 let { projectService } = await import('../src/services/project');
@@ -18,10 +18,10 @@ let restrictedSince = new Date('2026-11-01T00:00:00Z');
 let project = (overrides: Record<string, unknown> = {}) =>
   ({
     oid: 7n,
-    id: 'gwpr_1',
+    id: 'agpr_1',
     ref: 'prj_1',
     organizationOid: 1n,
-    organization: { oid: 1n, id: 'gwor_1', ref: 'org_1' },
+    organization: { oid: 1n, id: 'agor_1', ref: 'org_1' },
     platformLimits: [],
     platformLimitsSyncedAt: null,
     disabledAt: null,
@@ -39,7 +39,29 @@ beforeEach(() => {
   db.project.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
     project(data)
   );
-  db.instance.findMany.mockResolvedValue([{ id: 'gwin_1' }]);
+  db.instance.findMany.mockResolvedValue([{ id: 'agin_1' }]);
+});
+
+describe('upsertProject', () => {
+  it('gives a new project its ref as id', async () => {
+    db.project.findUnique.mockResolvedValue(null);
+    db.project.upsert.mockImplementation(async ({ create }: { create: object }) =>
+      project(create)
+    );
+
+    await projectService.upsertProject({
+      organization: project().organization,
+      input: { ref: 'prj_core', name: 'Production' }
+    });
+
+    expect(db.project.upsert.mock.calls[0]![0].create).toEqual({
+      oid: 99n,
+      id: 'prj_core',
+      ref: 'prj_core',
+      name: 'Production',
+      organizationOid: 1n
+    });
+  });
 });
 
 describe('setBillingRestriction', () => {
@@ -54,9 +76,9 @@ describe('setBillingRestriction', () => {
       billingRestrictionReason: 'Out of credits.'
     });
     expect(fire).toHaveBeenCalledWith('scope.project.changed:after', {
-      organizationId: 'gwor_1',
-      projectId: 'gwpr_1',
-      instanceIds: ['gwin_1'],
+      organizationId: 'agor_1',
+      projectId: 'agpr_1',
+      instanceIds: ['agin_1'],
       change: 'restrictions_changed'
     });
   });

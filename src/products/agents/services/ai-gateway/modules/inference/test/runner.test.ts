@@ -67,7 +67,7 @@ describe('successful requests', () => {
     let result = expectJson(await run({ dialect: 'openai_chat', body: bodies.openai_chat() }));
 
     expect(result.body).toMatchObject({
-      id: 'chatcmpl-gwlg_1',
+      id: 'chatcmpl-aglg_1',
       object: 'chat.completion',
       model: 'openai/gpt-test',
       choices: [
@@ -76,7 +76,7 @@ describe('successful requests', () => {
       usage: { prompt_tokens: 12, completion_tokens: 7, total_tokens: 19 }
     });
     expect(result.headers).toEqual({
-      'x-metorial-request-id': 'gwlg_1',
+      'x-metorial-request-id': 'aglg_1',
       'x-metorial-model': 'openai/gpt-test',
       'x-metorial-provider': 'openai'
     });
@@ -86,11 +86,11 @@ describe('successful requests', () => {
     expect(retentionDays).toBe(30);
     expect(content).toBeUndefined();
     expect(log).toMatchObject({
-      _id: 'gwlg_1',
-      organizationId: 'gwor_1',
-      projectId: 'gwpr_1',
-      instanceId: 'gwin_1',
-      tokenId: 'gwtk_1',
+      _id: 'aglg_1',
+      organizationId: 'agor_1',
+      projectId: 'agpr_1',
+      instanceId: 'agin_1',
+      tokenId: 'agtk_1',
       consumerRef: 'consumer_1',
       dialect: 'openai_chat',
       operation: 'generate',
@@ -138,7 +138,7 @@ describe('successful requests', () => {
         body: bodies.openai_chat({ stream: true, stream_options: { include_usage: true } })
       })
     );
-    expect(result.headers['x-metorial-request-id']).toBe('gwlg_1');
+    expect(result.headers['x-metorial-request-id']).toBe('aglg_1');
     expect(logs).toHaveLength(0);
 
     let data = eventData(await readEvents(result.events));
@@ -229,7 +229,7 @@ describe('successful requests', () => {
     );
 
     expect(result.headers['x-metorial-provider']).toBe('metorial');
-    expect(result.body).toMatchObject({ id: 'msg_gwlg_1', model: 'anthropic/claude-test' });
+    expect(result.body).toMatchObject({ id: 'msg_aglg_1', model: 'anthropic/claude-test' });
     expect(logs[0]!.log.route).toEqual({
       connectionOwner: 'platform',
       platformConnectionSlug: 'anthropic-main',
@@ -276,9 +276,9 @@ describe('successful requests', () => {
       route: routeOf([customerCandidate(1)], {
         overrides: { maxOutputTokens: 50, temperature: 0.3, reasoningEffort: 'low' },
         virtualModel: {
-          id: 'gwvm_1',
+          id: 'agvm_1',
           slug: 'cheap',
-          versionId: 'gwvv_1',
+          versionId: 'agvv_1',
           versionNumber: 2,
           ruleId: null,
           reason: 'default',
@@ -373,7 +373,7 @@ describe('rejections', () => {
     );
 
     expect(result.error).toMatchObject({ status: 400, param: 'n' });
-    expect(result.headers).toEqual({ 'x-metorial-request-id': 'gwlg_1' });
+    expect(result.headers).toEqual({ 'x-metorial-request-id': 'aglg_1' });
     expect(deps.route).not.toHaveBeenCalled();
     expect(logs[0]!.log).toMatchObject({
       status: 'rejected',
@@ -733,7 +733,7 @@ describe('fallback', () => {
     let events = await readEvents(result.events);
 
     expect(events.map(event => event.event).at(-1)).toBe('message_stop');
-    expect(result.headers['x-metorial-request-id']).toBe('gwlg_1');
+    expect(result.headers['x-metorial-request-id']).toBe('aglg_1');
     expect(logs[0]!.log).toMatchObject({
       status: 'succeeded',
       route: { connectionId: 'conn_2' }
@@ -1226,7 +1226,7 @@ describe('billing', () => {
     let billed = logs[0]!.log.billedCost!.totalUsd;
     expect(billed).toBeGreaterThan(0);
     expect(deps.chargeBilledUsage).toHaveBeenCalledExactlyOnceWith({
-      projectId: 'gwpr_1',
+      projectId: 'agpr_1',
       costUsd: billed,
       requests: 1
     });

@@ -51,7 +51,7 @@ describe('requests over Metorial keys are billed at their cost', () => {
         let billedUsd = billedUsdOf(gateway);
         expect(billedUsd).toBeGreaterThan(0);
         expect(await gateway.billed()).toEqual([
-          { projectId: 'gwpr_e2e', costNanoUsd: toNanoUsd(billedUsd), requestCount: 1 }
+          { projectId: 'agpr_e2e', costNanoUsd: toNanoUsd(billedUsd), requestCount: 1 }
         ]);
       });
     }
@@ -65,7 +65,7 @@ describe('requests over Metorial keys are billed at their cost', () => {
       await ask(gateway, 'openai_chat', { prompt: 'hi' }, { stream: true });
 
       let [charge] = await gateway.billed();
-      expect(charge).toMatchObject({ projectId: 'gwpr_e2e', requestCount: 1 });
+      expect(charge).toMatchObject({ projectId: 'agpr_e2e', requestCount: 1 });
       expect(charge!.costNanoUsd).toBeGreaterThan(0n);
     }
   );
@@ -82,7 +82,7 @@ describe('requests over Metorial keys are billed at their cost', () => {
 
     expect(await gateway.billed()).toEqual([
       {
-        projectId: 'gwpr_e2e',
+        projectId: 'agpr_e2e',
         costNanoUsd: toNanoUsd(billedUsdOf(gateway)),
         requestCount: 3
       }

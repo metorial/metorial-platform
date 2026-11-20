@@ -34,8 +34,8 @@ beforeEach(() => {
 
 describe('billingService.charge', () => {
   it('converts dollars and adds requests to the next flush', async () => {
-    billingService.charge({ projectId: 'gwpr_1', costUsd: 0.0021, requests: 1 });
-    billingService.charge({ projectId: 'gwpr_1', costUsd: 0.000018 });
+    billingService.charge({ projectId: 'agpr_1', costUsd: 0.0021, requests: 1 });
+    billingService.charge({ projectId: 'agpr_1', costUsd: 0.000018 });
     await billingService.flush();
 
     expect(db.billingWindow.updateMany).toHaveBeenCalledOnce();
@@ -64,16 +64,16 @@ describe('billingService.listWindows', () => {
 
   it('continues after the cursor window', async () => {
     let cursorStart = new Date('2026-11-20T15:05:00Z');
-    db.billingWindow.findUnique.mockResolvedValue({ id: 'gwbw_5', windowStart: cursorStart });
+    db.billingWindow.findUnique.mockResolvedValue({ id: 'agbw_5', windowStart: cursorStart });
 
-    await billingService.listWindows({ from, to, after: 'gwbw_5' });
+    await billingService.listWindows({ from, to, after: 'agbw_5' });
 
     expect(db.billingWindow.findMany.mock.calls[0]![0].where).toEqual({
       windowStart: { gte: from, lt: to },
       status: undefined,
       OR: [
         { windowStart: { gt: cursorStart } },
-        { windowStart: cursorStart, id: { gt: 'gwbw_5' } }
+        { windowStart: cursorStart, id: { gt: 'agbw_5' } }
       ]
     });
   });
@@ -111,12 +111,12 @@ describe('billingService.sealWindows', () => {
 
 describe('billingService.setRestriction', () => {
   it('sets the restriction on the project', async () => {
-    let project = { id: 'gwpr_1' };
+    let project = { id: 'agpr_1' };
     projectService.getProjectWithOrganization.mockResolvedValue(project);
     projectService.setBillingRestriction.mockResolvedValue(project);
 
     await billingService.setRestriction({
-      projectId: 'gwpr_1',
+      projectId: 'agpr_1',
       restriction: { reason: 'Out of credits.' }
     });
 

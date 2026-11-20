@@ -32,7 +32,7 @@ let instance = {
   oid: 3n,
   id: 'inst_1',
   name: 'Default',
-  aiGatewayInstanceId: 'gwin_1',
+  aiGatewayInstanceId: 'agin_1',
   organization: { oid: 1n, id: 'org_1', name: 'Acme' },
   project: { oid: 2n, id: 'proj_1', name: 'Production' }
 } as any;
@@ -40,13 +40,13 @@ let instance = {
 let scope = { organizationId: 'org_1', instanceId: 'inst_1' };
 
 let token = (overrides: Record<string, unknown> = {}) => ({
-  id: 'gwtk_1',
+  id: 'agtk_1',
   name: 'Backend',
   consumerRef: null,
   allowedModels: [],
   expiresAt: null,
   revokedAt: null,
-  instance: { id: 'gwin_1', ref: 'inst_1', projectId: 'gwpr_1' },
+  instance: { id: 'agin_1', ref: 'inst_1', projectId: 'agpr_1' },
   ...overrides
 });
 
@@ -57,7 +57,7 @@ describe('ai gateway services', () => {
 
   it('pages gateway lists through item-id cursors', async () => {
     mocks.gateway.gatewayToken.list.mockResolvedValue({
-      items: [token({ id: 'gwtk_1' }), token({ id: 'gwtk_2' })],
+      items: [token({ id: 'agtk_1' }), token({ id: 'agtk_2' })],
       pagination: { has_more_after: true, has_more_before: false }
     });
 
@@ -76,17 +76,17 @@ describe('ai gateway services', () => {
       .run({ limit: 2, after: first.pagination.after });
 
     expect(mocks.gateway.gatewayToken.list).toHaveBeenLastCalledWith(
-      expect.objectContaining({ after: 'gwtk_2' })
+      expect.objectContaining({ after: 'agtk_2' })
     );
   });
 
   it('hides tokens that belong to another instance', async () => {
     mocks.gateway.gatewayToken.get.mockResolvedValue(
-      token({ instance: { id: 'gwin_2', ref: 'inst_2', projectId: 'gwpr_1' } })
+      token({ instance: { id: 'agin_2', ref: 'inst_2', projectId: 'agpr_1' } })
     );
 
     await expect(
-      aiGatewayTokenService.get({ instance, gatewayTokenId: 'gwtk_1' })
+      aiGatewayTokenService.get({ instance, gatewayTokenId: 'agtk_1' })
     ).rejects.toThrow();
   });
 
@@ -107,7 +107,7 @@ describe('ai gateway services', () => {
       auditScope,
       instance,
       token: {
-        id: 'gwtk_1',
+        id: 'agtk_1',
         name: 'Backend',
         consumerRef: null,
         allowedModels: [],
@@ -119,7 +119,7 @@ describe('ai gateway services', () => {
 
   it('records the previous state when a connection is disabled', async () => {
     let connection = {
-      id: 'gwpc_1',
+      id: 'agpc_1',
       name: 'OpenAI',
       provider: { slug: 'openai' },
       status: 'valid',
@@ -180,9 +180,9 @@ describe('ai gateway services', () => {
 
   it('pages inference logs towards older entries only', async () => {
     mocks.gateway.inferenceLog.list.mockResolvedValue({
-      items: [{ id: 'gwlg_2' }],
+      items: [{ id: 'aglg_2' }],
       hasMore: true,
-      nextCursor: 'gwlg_2'
+      nextCursor: 'aglg_2'
     });
 
     let first = await aiGatewayInferenceLogService.list({ instance }).run({ limit: 1 });
@@ -191,18 +191,18 @@ describe('ai gateway services', () => {
       .run({ limit: 1, after: first.pagination.after });
 
     expect(mocks.gateway.inferenceLog.list).toHaveBeenLastCalledWith(
-      expect.objectContaining({ ...scope, limit: 1, before: 'gwlg_2' })
+      expect.objectContaining({ ...scope, limit: 1, before: 'aglg_2' })
     );
     await expect(
-      aiGatewayInferenceLogService.list({ instance }).run({ limit: 1, before: 'gwlg_2' })
+      aiGatewayInferenceLogService.list({ instance }).run({ limit: 1, before: 'aglg_2' })
     ).rejects.toThrow(/forward/);
   });
 
   it('hides inference logs recorded for another gateway instance', async () => {
-    mocks.gateway.inferenceLog.get.mockResolvedValue({ id: 'gwlg_1', instanceId: 'gwin_2' });
+    mocks.gateway.inferenceLog.get.mockResolvedValue({ id: 'aglg_1', instanceId: 'agin_2' });
 
     await expect(
-      aiGatewayInferenceLogService.get({ instance, inferenceLogId: 'gwlg_1' })
+      aiGatewayInferenceLogService.get({ instance, inferenceLogId: 'aglg_1' })
     ).rejects.toThrow();
   });
 });

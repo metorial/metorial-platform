@@ -53,7 +53,7 @@ describe('upstream errors reach clients in their own error format', () => {
     expect(apiError.message).toContain(
       'Anthropic rejected the request: max_tokens: too large'
     );
-    expect(apiError.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(apiError.headers.get('x-metorial-request-id')).toBe('aglg_1');
   });
 
   it('shows an invalid request to Anthropic clients with their error type', async () => {
@@ -214,8 +214,8 @@ describe('fallback across providers', () => {
       .create(chatRequest({ prompt: 'hi' }))
       .withResponse();
 
-    expect(data.id).toBe('chatcmpl-gwlg_1');
-    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(data.id).toBe('chatcmpl-aglg_1');
+    expect(response.headers.get('x-metorial-request-id')).toBe('aglg_1');
     expect(response.headers.get('x-metorial-provider')).toBe('anthropic');
     expect(response.headers.get('x-metorial-model')).toBe('lab/test-model');
   });

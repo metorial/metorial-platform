@@ -1,6 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, getId, type Organization } from '@mtsrc/ai-gateway-db';
+import { db, snowflake, type Organization } from '@mtsrc/ai-gateway-db';
 import { Events } from '@mtsrc/ai-gateway-events';
 
 class OrganizationServiceImpl {
@@ -8,7 +8,8 @@ class OrganizationServiceImpl {
     let organization = await db.organization.upsert({
       where: { ref: d.input.ref },
       create: {
-        ...getId('organization'),
+        oid: snowflake.nextId(),
+        id: d.input.ref,
         ref: d.input.ref,
         name: d.input.name
       },

@@ -18,9 +18,9 @@ describe('limitRules', () => {
     );
 
     expect(rules.map(rule => [rule.scope, rule.scopeId, rule.amount])).toEqual([
-      ['token', 'gwtk_1', 10],
-      ['instance', 'gwin_1', 100],
-      ['project', 'gwpr_1', 1000]
+      ['token', 'agtk_1', 10],
+      ['instance', 'agin_1', 100],
+      ['project', 'agpr_1', 1000]
     ]);
     expect(new Set(rules.map(rule => rule.key)).size).toBe(3);
   });

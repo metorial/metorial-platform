@@ -1,6 +1,6 @@
 import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, getId, type Organization, type Project } from '@mtsrc/ai-gateway-db';
+import { db, snowflake, type Organization, type Project } from '@mtsrc/ai-gateway-db';
 import { Events, type ScopeChange } from '@mtsrc/ai-gateway-events';
 import type { PlatformLimit, ProjectRestriction } from '@mtsrc/ai-gateway-spec';
 
@@ -29,7 +29,8 @@ class ProjectServiceImpl {
     let project = await db.project.upsert({
       where: { ref: d.input.ref },
       create: {
-        ...getId('project'),
+        oid: snowflake.nextId(),
+        id: d.input.ref,
         ref: d.input.ref,
         name: d.input.name,
         organizationOid: d.organization.oid

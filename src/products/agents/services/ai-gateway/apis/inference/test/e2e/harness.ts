@@ -67,17 +67,17 @@ let pricing: Pricing = {
 };
 
 export let principal: GatewayPrincipal = {
-  token: { id: 'gwtk_e2e', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
-  organization: { id: 'gwor_e2e', ref: 'org' },
+  token: { id: 'agtk_e2e', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
+  organization: { id: 'agor_e2e', ref: 'org' },
   project: {
-    id: 'gwpr_e2e',
+    id: 'agpr_e2e',
     ref: 'project',
     platformLimits: [],
     disabled: null,
     billingRestriction: null
   },
   instance: {
-    id: 'gwin_e2e',
+    id: 'agin_e2e',
     ref: 'instance',
     logRetentionDays: 30,
     limits: [],
@@ -195,7 +195,7 @@ export let createGateway = (d: {
         : null,
     reportAuthFailure,
     recordLog: record => void logs.push(record),
-    newLogId: () => `gwlg_${++logCount}`,
+    newLogId: () => `aglg_${++logCount}`,
     limiter: d.limiter ?? unlimitedLimiter,
     chargeBilledUsage: usage =>
       billing.add({

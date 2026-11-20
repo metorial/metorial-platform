@@ -2,7 +2,7 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Organization, Project } from '@mtsrc/agent-tracking-db';
 import { db, withTransaction } from '@mtsrc/agent-tracking-db';
-import { getId } from '@mtsrc/agent-tracking-db';
+import { snowflake } from '@mtsrc/agent-tracking-db';
 import { Events } from '@mtsrc/agent-tracking-events';
 
 class ProjectServiceImpl {
@@ -29,7 +29,8 @@ class ProjectServiceImpl {
       let project = await db.project.upsert({
         where: { ref: d.input.ref },
         create: {
-          ...getId('project'),
+          oid: snowflake.nextId(),
+          id: d.input.ref,
           ref: d.input.ref,
           name: d.input.name,
           ...retention,

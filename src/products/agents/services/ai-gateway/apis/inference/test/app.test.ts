@@ -6,17 +6,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { createInferenceApp, type InferenceDependencies } from '../src/app';
 
 let principal: GatewayPrincipal = {
-  token: { id: 'gwtk_1', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
-  organization: { id: 'gwor_1', ref: 'org' },
+  token: { id: 'agtk_1', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
+  organization: { id: 'agor_1', ref: 'org' },
   project: {
-    id: 'gwpr_1',
+    id: 'agpr_1',
     ref: 'project',
     platformLimits: [],
     disabled: null,
     billingRestriction: null
   },
   instance: {
-    id: 'gwin_1',
+    id: 'agin_1',
     ref: 'instance',
     logRetentionDays: 90,
     limits: [],
@@ -180,7 +180,7 @@ describe('inference endpoints', () => {
       run: async () => ({
         type: 'json',
         body: { id: 'x' },
-        headers: { 'x-metorial-request-id': 'gwlg_1', 'x-metorial-provider': 'metorial' }
+        headers: { 'x-metorial-request-id': 'aglg_1', 'x-metorial-provider': 'metorial' }
       })
     });
 
@@ -190,7 +190,7 @@ describe('inference endpoints', () => {
       json: { model: 'x' }
     });
 
-    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(response.headers.get('x-metorial-request-id')).toBe('aglg_1');
     expect(response.headers.get('x-metorial-provider')).toBe('metorial');
   });
 
@@ -199,7 +199,7 @@ describe('inference endpoints', () => {
       run: async () => ({
         type: 'error',
         error: { status: 429, code: 'upstream_rate_limited', message: 'Slow down.' },
-        headers: { 'retry-after': '3', 'x-metorial-request-id': 'gwlg_1' }
+        headers: { 'retry-after': '3', 'x-metorial-request-id': 'aglg_1' }
       })
     });
 
@@ -211,7 +211,7 @@ describe('inference endpoints', () => {
 
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('3');
-    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(response.headers.get('x-metorial-request-id')).toBe('aglg_1');
     expect(await response.json()).toEqual({
       type: 'error',
       error: { type: 'rate_limit_error', message: 'Slow down.' }
@@ -232,7 +232,7 @@ describe('inference endpoints', () => {
             controller.close();
           }
         }),
-        headers: { 'x-metorial-request-id': 'gwlg_1' }
+        headers: { 'x-metorial-request-id': 'aglg_1' }
       })
     });
 
@@ -245,7 +245,7 @@ describe('inference endpoints', () => {
     expect(response.headers.get('content-type')).toBe('text/event-stream; charset=utf-8');
     expect(response.headers.get('cache-control')).toBe('no-cache');
     expect(response.headers.get('x-accel-buffering')).toBe('no');
-    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(response.headers.get('x-metorial-request-id')).toBe('aglg_1');
     expect(await response.text()).toBe(
       'event: message_start\ndata: {"type":"message_start"}\n\ndata: [DONE]\n\n'
     );

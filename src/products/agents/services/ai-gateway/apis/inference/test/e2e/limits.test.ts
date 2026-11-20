@@ -136,7 +136,7 @@ describe('request limits reach clients as their own rate limit errors', () => {
       upstream: hello,
       principal: {
         ...limited({ instance: instanceLimit }),
-        token: { ...principal.token, id: 'gwtk_a' }
+        token: { ...principal.token, id: 'agtk_a' }
       },
       limiter
     });
@@ -145,7 +145,7 @@ describe('request limits reach clients as their own rate limit errors', () => {
       upstream: hello,
       principal: {
         ...limited({ instance: instanceLimit }),
-        token: { ...principal.token, id: 'gwtk_b' }
+        token: { ...principal.token, id: 'agtk_b' }
       },
       limiter
     });

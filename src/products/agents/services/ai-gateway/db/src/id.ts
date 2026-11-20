@@ -1,23 +1,21 @@
 import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
+// New organizations, projects and instances take their core Metorial id (the ref) as id.
 export let ID = createIdGenerator({
-  organization: idType.sorted('gwor_'),
-  project: idType.sorted('gwpr_'),
-  instance: idType.sorted('gwin_'),
-  gatewayToken: idType.sorted('gwtk_'),
-  catalogSync: idType.sorted('gwcs_'),
-  lab: idType.sorted('gwlb_'),
-  provider: idType.sorted('gwpv_'),
-  model: idType.sorted('gwmd_'),
-  modelOffering: idType.sorted('gwof_'),
-  modelAlias: idType.sorted('gwma_'),
-  providerConnection: idType.sorted('gwpc_'),
-  inferenceLog: idType.sorted('gwlg_'),
-  connectionCheck: idType.sorted('gwcc_'),
-  virtualModel: idType.sorted('gwvm_'),
-  virtualModelVersion: idType.sorted('gwvv_'),
-  billingWindow: idType.sorted('gwbw_')
+  gatewayToken: idType.sorted('agtk_'),
+  catalogSync: idType.sorted('agcs_'),
+  lab: idType.sorted('aglb_'),
+  provider: idType.sorted('agpv_'),
+  model: idType.sorted('agmd_'),
+  modelOffering: idType.sorted('agof_'),
+  modelAlias: idType.sorted('agma_'),
+  providerConnection: idType.sorted('agpc_'),
+  inferenceLog: idType.sorted('aglg_'),
+  connectionCheck: idType.sorted('agcc_'),
+  virtualModel: idType.sorted('agvm_'),
+  virtualModelVersion: idType.sorted('agvv_'),
+  billingWindow: idType.sorted('agbw_')
 });
 
 let workerIdBits = 12;

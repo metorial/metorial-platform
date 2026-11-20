@@ -52,7 +52,7 @@ let instance = {
 };
 
 let gatewayProject = (platformLimitsSyncedAt: Date | null) => ({
-  id: 'gwpr_1',
+  id: 'agpr_1',
   ref: 'proj_1',
   platformLimitsSyncedAt
 });
@@ -62,7 +62,7 @@ describe('ai-gateway/sync/scope', () => {
     vi.clearAllMocks();
     mocks.enabled.value = true;
     mocks.gateway.project.upsert.mockResolvedValue(gatewayProject(new Date()));
-    mocks.gateway.instance.upsert.mockResolvedValue({ id: 'gwin_1' });
+    mocks.gateway.instance.upsert.mockResolvedValue({ id: 'agin_1' });
   });
 
   it('does nothing while the gateway is not configured', async () => {
@@ -134,7 +134,7 @@ describe('ai-gateway/sync/scope', () => {
     expect(mocks.fire).toHaveBeenCalledWith('ai_gateway.project.created:after', {
       organization,
       project,
-      gatewayProjectId: 'gwpr_1'
+      gatewayProjectId: 'agpr_1'
     });
   });
 
@@ -167,20 +167,20 @@ describe('ai-gateway/sync/scope', () => {
 
     expect(mocks.gateway.instance.upsert).toHaveBeenCalledWith({
       organizationId: 'org_1',
-      projectId: 'gwpr_1',
+      projectId: 'agpr_1',
       ref: 'inst_1',
       name: 'Default'
     });
     expect(db.instance.update).toHaveBeenCalledWith({
       where: { oid: 3n },
-      data: { aiGatewayInstanceId: 'gwin_1' }
+      data: { aiGatewayInstanceId: 'agin_1' }
     });
   });
 
   it('leaves the setup marker alone when it is already current', async () => {
     vi.mocked(db.instance.findUnique).mockResolvedValue({
       ...instance,
-      aiGatewayInstanceId: 'gwin_1'
+      aiGatewayInstanceId: 'agin_1'
     } as any);
 
     await run({ type: 'instance', id: 'inst_1' });

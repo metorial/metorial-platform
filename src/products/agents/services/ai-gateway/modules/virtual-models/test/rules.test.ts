@@ -60,7 +60,7 @@ let signals: SignalValues = {
 let context = (body: unknown, metadata: Record<string, string> = {}): RuleContext => ({
   summary: summarizeRequest('openai_chat', body),
   metadata,
-  token: { id: 'gwtk_1', consumerRef: 'user-7' },
+  token: { id: 'agtk_1', consumerRef: 'user-7' },
   now: new Date('2026-11-20T10:00:00Z')
 });
 

@@ -51,22 +51,22 @@ export let principalWith = (
   settings: Partial<ResolvedInstanceSettings> = {}
 ): GatewayPrincipal => ({
   token: {
-    id: 'gwtk_1',
+    id: 'agtk_1',
     consumerRef: 'consumer_1',
     allowedModels: [],
     limits: [],
     metadata: {}
   },
-  organization: { id: 'gwor_1', ref: 'org' },
+  organization: { id: 'agor_1', ref: 'org' },
   project: {
-    id: 'gwpr_1',
+    id: 'agpr_1',
     ref: 'project',
     platformLimits: [],
     disabled: null,
     billingRestriction: null
   },
   instance: {
-    id: 'gwin_1',
+    id: 'agin_1',
     ref: 'instance',
     logRetentionDays: 30,
     limits: [],
@@ -280,7 +280,7 @@ export let setupRunner = (d: {
     countTokens: vi.fn(d.countTokens ?? (async () => null)),
     reportAuthFailure: vi.fn(),
     recordLog: vi.fn(d.recordLog ?? ((record: InferenceLogRecord) => void logs.push(record))),
-    newLogId: vi.fn(() => `gwlg_${++logCount}`),
+    newLogId: vi.fn(() => `aglg_${++logCount}`),
     limiter: d.limiter ?? unlimitedLimiter,
     chargeBilledUsage: vi.fn(),
     now: () => new Date((time += 5)),

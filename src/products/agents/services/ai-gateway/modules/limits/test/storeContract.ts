@@ -158,13 +158,13 @@ export let storeContract: StoreContractCase[] = [
     run: async (store, ns) => {
       let events = createLimitEventRecorder({ store, namespace: ns });
 
-      await events.used({ projectId: 'gwpr_a', amounts: { requests: 1, tokens: 120 } });
+      await events.used({ projectId: 'agpr_a', amounts: { requests: 1, tokens: 120 } });
       await events.used({
-        projectId: 'gwpr_a',
+        projectId: 'agpr_a',
         amounts: { requests: 1, tokens: 30, metorial_spend_usd: 250_000 }
       });
-      await events.denied({ projectId: 'gwpr_a', metric: 'tokens' });
-      await events.denied({ projectId: 'gwpr_a', metric: 'tokens' });
+      await events.denied({ projectId: 'agpr_a', metric: 'tokens' });
+      await events.denied({ projectId: 'agpr_a', metric: 'tokens' });
 
       let drained = await events.drain({
         tripsBefore: Number.MAX_SAFE_INTEGER,
@@ -183,13 +183,13 @@ export let storeContract: StoreContractCase[] = [
         drained.usage[0]!.entries.map(entry => [entry.metric, entry])
       );
       assert.deepEqual(usage.requests, {
-        projectId: 'gwpr_a',
+        projectId: 'agpr_a',
         metric: 'requests',
         used: 2,
         denied: 0
       });
       assert.deepEqual(usage.tokens, {
-        projectId: 'gwpr_a',
+        projectId: 'agpr_a',
         metric: 'tokens',
         used: 150,
         denied: 2

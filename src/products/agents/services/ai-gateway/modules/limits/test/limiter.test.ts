@@ -83,7 +83,7 @@ describe('request limits', () => {
     for (let i = 0; i < 3; i++) await acquire(principal);
     for (let i = 0; i < 5; i++) expectDenied(await acquire(principal));
 
-    let [rule] = await store.read([`aigw:lim:c:token:gwtk_1:requests:1m:${noon}`]);
+    let [rule] = await store.read([`aigw:lim:c:token:agtk_1:requests:1m:${noon}`]);
     expect(rule).toBe(3);
   });
 
@@ -102,12 +102,12 @@ describe('request limits', () => {
   it('counts tokens and instances separately but shares the instance limit across tokens', async () => {
     let { acquire } = setupLimiter();
     let tokenA = principalWith({
-      tokenId: 'gwtk_a',
+      tokenId: 'agtk_a',
       token: [{ metric: 'requests', amount: 10, interval: '1m' }],
       instance: [{ metric: 'requests', amount: 3, interval: '1m' }]
     });
     let tokenB = principalWith({
-      tokenId: 'gwtk_b',
+      tokenId: 'agtk_b',
       token: [{ metric: 'requests', amount: 10, interval: '1m' }],
       instance: [{ metric: 'requests', amount: 3, interval: '1m' }]
     });
@@ -130,7 +130,7 @@ describe('request limits', () => {
     expectAllowed(await acquire(both));
     for (let i = 0; i < 4; i++) expectDenied(await acquire(both));
 
-    let [instance] = await store.read([`aigw:lim:c:instance:gwin_1:requests:1m:${noon}`]);
+    let [instance] = await store.read([`aigw:lim:c:instance:agin_1:requests:1m:${noon}`]);
     expect(instance).toBe(1);
   });
 
@@ -251,7 +251,7 @@ describe('token limits', () => {
     await settle(both, { input: 100 });
     expectDenied(await acquire(both));
 
-    let [requests] = await store.read([`aigw:lim:c:token:gwtk_1:requests:1m:${noon}`]);
+    let [requests] = await store.read([`aigw:lim:c:token:agtk_1:requests:1m:${noon}`]);
     expect(requests).toBe(0);
   });
 
@@ -391,7 +391,7 @@ describe('platform limits', () => {
         bucketStart: noon,
         entries: [
           {
-            projectId: 'gwpr_1',
+            projectId: 'agpr_1',
             metric: 'requests',
             count: 2,
             firstTrippedAt: noon + 1000,
@@ -404,9 +404,9 @@ describe('platform limits', () => {
     expect(drained.usage[0]!.hourStart).toBe(noon);
     expect(drained.usage[0]!.entries).toEqual(
       expect.arrayContaining([
-        { projectId: 'gwpr_1', metric: 'requests', used: 2, denied: 2 },
-        { projectId: 'gwpr_1', metric: 'tokens', used: 165, denied: 0 },
-        { projectId: 'gwpr_1', metric: 'metorial_spend_usd', used: 0.25, denied: 0 }
+        { projectId: 'agpr_1', metric: 'requests', used: 2, denied: 2 },
+        { projectId: 'agpr_1', metric: 'tokens', used: 165, denied: 0 },
+        { projectId: 'agpr_1', metric: 'metorial_spend_usd', used: 0.25, denied: 0 }
       ])
     );
   });
@@ -489,7 +489,7 @@ describe('Metorial-billed allowance', () => {
       entry => entry.metric == 'metorial_spend_usd'
     );
     expect(usage).toEqual({
-      projectId: 'gwpr_1',
+      projectId: 'agpr_1',
       metric: 'metorial_spend_usd',
       used: 1.5,
       denied: 1
@@ -546,7 +546,7 @@ describe('settle', () => {
     let principal = principalWith({
       token: [{ metric: 'tokens', amount: 100, interval: '1m' }]
     });
-    let key = `aigw:lim:c:token:gwtk_1:tokens:1m:${noon}`;
+    let key = `aigw:lim:c:token:agtk_1:tokens:1m:${noon}`;
 
     await limiter.settle({
       principal,

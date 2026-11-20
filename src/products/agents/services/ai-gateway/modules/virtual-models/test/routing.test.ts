@@ -70,7 +70,7 @@ vi.mock('../src/lib/memo', () => ({
 let { virtualModelRoutingService } = await import('../src/services/virtualModelRouting');
 
 let principal = (allowedModels: string[] = []): GatewayPrincipal => ({
-  token: { id: 'gwtk_1', consumerRef: null, allowedModels, limits: [], metadata: {} },
+  token: { id: 'agtk_1', consumerRef: null, allowedModels, limits: [], metadata: {} },
   organization: { id: 'org', ref: 'org' },
   project: {
     id: 'prj',
@@ -116,11 +116,11 @@ let definition: VirtualModelDefinition = {
 };
 
 let virtualModel = (overrides: Partial<VirtualModelDefinition> = {}): ActiveVirtualModel => ({
-  id: 'gwvm_1',
+  id: 'agvm_1',
   slug: 'smart',
   name: 'Smart',
   description: null,
-  versionId: `gwvv_${JSON.stringify(overrides).length}_${Math.random()}`,
+  versionId: `agvv_${JSON.stringify(overrides).length}_${Math.random()}`,
   versionNumber: 1,
   definition: { ...definition, ...overrides },
   createdAt: new Date()
@@ -402,7 +402,7 @@ describe('decision billing', () => {
     mocks.resolveDecisionBackend.mockResolvedValue({
       ...platformBackend,
       source: 'customer',
-      connectionId: 'gwpc_1'
+      connectionId: 'agpc_1'
     });
     mocks.runDecision.mockResolvedValue(decisionResult(2));
 

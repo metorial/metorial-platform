@@ -46,21 +46,21 @@ describe('aiGatewayTenantService.ensure', () => {
     vi.clearAllMocks();
     mocks.enabled.value = true;
     mocks.gateway.project.upsert.mockResolvedValue({
-      id: 'gwpr_1',
+      id: 'agpr_1',
       platformLimitsSyncedAt: null
     });
-    mocks.gateway.instance.upsert.mockResolvedValue({ id: 'gwin_1' });
+    mocks.gateway.instance.upsert.mockResolvedValue({ id: 'agin_1' });
   });
 
   it('skips the gateway entirely for an instance that is already set up', async () => {
-    let result = await ensure({ aiGatewayInstanceId: 'gwin_1' });
+    let result = await ensure({ aiGatewayInstanceId: 'agin_1' });
 
     expect(mocks.gateway.organization.upsert).not.toHaveBeenCalled();
     expect(mocks.gateway.instance.upsert).not.toHaveBeenCalled();
     expect(db.instance.update).not.toHaveBeenCalled();
     expect(result).toEqual({
       gateway: mocks.gateway,
-      gatewayInstanceId: 'gwin_1',
+      gatewayInstanceId: 'agin_1',
       scope: { organizationId: 'org_1', instanceId: 'inst_1' }
     });
   });
@@ -74,15 +74,15 @@ describe('aiGatewayTenantService.ensure', () => {
     });
     expect(mocks.gateway.instance.upsert).toHaveBeenCalledWith({
       organizationId: 'org_1',
-      projectId: 'gwpr_1',
+      projectId: 'agpr_1',
       ref: 'inst_1',
       name: 'Default'
     });
     expect(db.instance.update).toHaveBeenCalledWith({
       where: { oid: 3n },
-      data: { aiGatewayInstanceId: 'gwin_1' }
+      data: { aiGatewayInstanceId: 'agin_1' }
     });
-    expect(result.gatewayInstanceId).toBe('gwin_1');
+    expect(result.gatewayInstanceId).toBe('agin_1');
   });
 
   it('announces a project the first time it is provisioned', async () => {
@@ -91,13 +91,13 @@ describe('aiGatewayTenantService.ensure', () => {
     expect(mocks.fire).toHaveBeenCalledWith('ai_gateway.project.created:after', {
       organization,
       project,
-      gatewayProjectId: 'gwpr_1'
+      gatewayProjectId: 'agpr_1'
     });
   });
 
   it('fails clearly while the gateway is not configured', async () => {
     mocks.enabled.value = false;
 
-    await expect(ensure({ aiGatewayInstanceId: 'gwin_1' })).rejects.toThrow(/not configured/);
+    await expect(ensure({ aiGatewayInstanceId: 'agin_1' })).rejects.toThrow(/not configured/);
   });
 });
