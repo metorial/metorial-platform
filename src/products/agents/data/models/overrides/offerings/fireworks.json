@@ -1,4 +1,11 @@
 {
+  "accounts/fireworks/models/qwen3-embedding-8b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-embedding-8b",
+    "reason": "Fireworks' own listing confirms this is Alibaba's Qwen3 Embedding 8B (8B embedding model, 32k context, 2025-06-05 release). The $0.1 input price is Fireworks' premium markup over the model's $0.015 median, not a different model.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "accounts/fireworks/routers/deepseek-v4p1-flash-1017-ultrafast": {
     "decision": "link",
     "model": "deepseek/deepseek-v4.1-flash-1017",
