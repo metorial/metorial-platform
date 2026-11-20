@@ -468,6 +468,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "modaic/mo": {
+    "decision": "defer",
+    "until": "2026-12-20",
+    "reason": "Mo is Modaic's specialized decision model built from Qwen/Qwen3.6-35B-A3B (per the modaic-ai/mo GitHub repo), so it is a derivative, not the Qwen checkpoint itself; the model index has no modaic entry, so defer until the catalog adds it.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "nace-ai/drex-max-finance": {
     "decision": "defer",
     "until": "2026-12-12",
