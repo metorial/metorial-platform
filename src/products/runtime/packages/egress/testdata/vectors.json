@@ -35,6 +35,13 @@
       "trusted": true
     },
     {
+      "name": "mcp-runtime",
+      "kid": "0381904f42d3f624",
+      "seed": "aroLigQA7jV-pIlh42w6clclSFJ3ieEqCAzHWgXagdA",
+      "publicKey": "frsjmQuflZg9sC_lRxzJPXODbPQkWxZAb3BNsH4JWZ4",
+      "trusted": true
+    },
+    {
       "name": "untrusted",
       "kid": "b657b836776c95b1",
       "seed": "p9p7f5AGmVY2vQx0hUv_Te5dsOGcz87djSUIpd-Ky4M",
@@ -44,6 +51,7 @@
   ],
   "keySet": {
     "keys": {
+      "0381904f42d3f624": "frsjmQuflZg9sC_lRxzJPXODbPQkWxZAb3BNsH4JWZ4",
       "7051698284ad9f3d": "EWEyu8UMk8Kb9qouH3RUJHJsFCAr10Uob6j5QU8MPdQ",
       "c1facaa9927914a9": "7pxCkiayOQjmRbz8C9yTH2mQ-9lNPQ48PsT2qye7Dtg",
       "function-bay-2026-11": "mhFVnksFmlcgPnOFxv3agguJ4Dy1esxjoWqJNUwSfcs"
@@ -219,6 +227,66 @@
         "exp": 1794003900
       },
       "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6IjcwNTE2OTgyODRhZDlmM2QifQ.eyJpc3MiOiJmb3JnZSIsImF1ZCI6Im1ldG9yaWFsLWVncmVzcyIsImp0aSI6ImJydW5fMDFKRDhYNTU1NUZGRkYiLCJ0ZW5hbnRJZCI6InRlbl8xIiwiYnVpbGRSdW5JZCI6ImJydW5fMDFKRDhYNTU1NUZGRkYiLCJzb3VyY2UiOiJidWlsZCIsInBvbGljeSI6eyJlbnRyaWVzIjpbXSwiaG9zdHMiOlt7InBhdHRlcm4iOiJyZWdpc3RyeS5ucG1qcy5vcmciLCJwb3J0cyI6WzQ0M119XX0sImlhdCI6MTc5Mzk5OTk5NSwibmJmIjoxNzkzOTk5OTk1LCJleHAiOjE3OTQwMDM5MDB9.wHPsPrWPMevtC_G1xvvqtsdgzrNCh5gH8KMVsS0rDioqY-XzjLO6EPMAlsDsxfkWISxRFu0mPvXgg4MTIE35Cw",
+      "expect": {
+        "valid": true
+      }
+    },
+    {
+      "name": "mcp-grant",
+      "description": "Remote MCP connection grant signed by the MCP runtime's key, with the enclave's compiled firewall policy.",
+      "signer": "mcp-runtime",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"0381904f42d3f624\"}",
+      "claimsJson": "{\"iss\":\"mcp-runtime\",\"aud\":\"metorial-egress\",\"jti\":\"mcpe_01JD8X6666GGGG\",\"tenantId\":\"sten_01JD8X7777HHHH\",\"enclaveId\":\"enc_01JD8X4444EEEE\",\"enclaveIdentifier\":\"enc_01JD8X4444EEEE\",\"source\":\"mcp\",\"policy\":{\"entries\":[{\"cidr\":\"10.20.0.0/16\",\"portRange\":{\"from\":443,\"to\":443}},{\"cidr\":\"0.0.0.0/0\"}]},\"iat\":1793999995,\"nbf\":1793999995,\"exp\":1794000360}",
+      "claims": {
+        "iss": "mcp-runtime",
+        "aud": "metorial-egress",
+        "jti": "mcpe_01JD8X6666GGGG",
+        "tenantId": "sten_01JD8X7777HHHH",
+        "enclaveId": "enc_01JD8X4444EEEE",
+        "enclaveIdentifier": "enc_01JD8X4444EEEE",
+        "source": "mcp",
+        "policy": {
+          "entries": [
+            {
+              "cidr": "10.20.0.0/16",
+              "portRange": {
+                "from": 443,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "0.0.0.0/0"
+            }
+          ]
+        },
+        "iat": 1793999995,
+        "nbf": 1793999995,
+        "exp": 1794000360
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6IjAzODE5MDRmNDJkM2Y2MjQifQ.eyJpc3MiOiJtY3AtcnVudGltZSIsImF1ZCI6Im1ldG9yaWFsLWVncmVzcyIsImp0aSI6Im1jcGVfMDFKRDhYNjY2NkdHR0ciLCJ0ZW5hbnRJZCI6InN0ZW5fMDFKRDhYNzc3N0hISEgiLCJlbmNsYXZlSWQiOiJlbmNfMDFKRDhYNDQ0NEVFRUUiLCJlbmNsYXZlSWRlbnRpZmllciI6ImVuY18wMUpEOFg0NDQ0RUVFRSIsInNvdXJjZSI6Im1jcCIsInBvbGljeSI6eyJlbnRyaWVzIjpbeyJjaWRyIjoiMTAuMjAuMC4wLzE2IiwicG9ydFJhbmdlIjp7ImZyb20iOjQ0MywidG8iOjQ0M319LHsiY2lkciI6IjAuMC4wLjAvMCJ9XX0sImlhdCI6MTc5Mzk5OTk5NSwibmJmIjoxNzkzOTk5OTk1LCJleHAiOjE3OTQwMDAzNjB9.swXzpiEboN_Q4--U4UgQlDb9sLLz7sRNKeFv6HLIzMTRUAjlHG7PTDRibP-X9RPgURpYzU8DptxXOAbWEZqeAg",
+      "expect": {
+        "valid": true
+      }
+    },
+    {
+      "name": "mcp-grant-public-only",
+      "description": "MCP grant for a connection without an enclave: no policy, public internet only.",
+      "signer": "mcp-runtime",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"0381904f42d3f624\"}",
+      "claimsJson": "{\"iss\":\"mcp-runtime\",\"aud\":\"metorial-egress\",\"jti\":\"mcpe_public\",\"tenantId\":\"sten_1\",\"source\":\"mcp\",\"iat\":1794000000,\"nbf\":1794000000,\"exp\":1794000060}",
+      "claims": {
+        "iss": "mcp-runtime",
+        "aud": "metorial-egress",
+        "jti": "mcpe_public",
+        "tenantId": "sten_1",
+        "source": "mcp",
+        "iat": 1794000000,
+        "nbf": 1794000000,
+        "exp": 1794000060
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6IjAzODE5MDRmNDJkM2Y2MjQifQ.eyJpc3MiOiJtY3AtcnVudGltZSIsImF1ZCI6Im1ldG9yaWFsLWVncmVzcyIsImp0aSI6Im1jcGVfcHVibGljIiwidGVuYW50SWQiOiJzdGVuXzEiLCJzb3VyY2UiOiJtY3AiLCJpYXQiOjE3OTQwMDAwMDAsIm5iZiI6MTc5NDAwMDAwMCwiZXhwIjoxNzk0MDAwMDYwfQ.fziyV9FBozD6sBFWhuEfYhPdSYy5HcDtMxcJDrFUM1505gV6CuBOgcPW0ndwL4BykF3fUML35BKPh3r5zXOrDw",
       "expect": {
         "valid": true
       }
@@ -599,6 +667,27 @@
         "exp": 1794003900
       },
       "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6IjcwNTE2OTgyODRhZDlmM2QifQ.eyJpc3MiOiJmb3JnZSIsImF1ZCI6Im1ldG9yaWFsLWVncmVzcyIsImp0aSI6ImJydW5fMDFKRDhYNTU1NUZGRkYiLCJ0ZW5hbnRJZCI6InRlbl8xIiwic291cmNlIjoiYnVpbGQiLCJwb2xpY3kiOnsiZW50cmllcyI6W10sImhvc3RzIjpbeyJwYXR0ZXJuIjoicmVnaXN0cnkubnBtanMub3JnIiwicG9ydHMiOls0NDNdfV19LCJpYXQiOjE3OTM5OTk5OTUsIm5iZiI6MTc5Mzk5OTk5NSwiZXhwIjoxNzk0MDAzOTAwfQ.tJeO1-7IK19MfMfdD5V7cT5UEwV6YCxfgIL1sMbxrFN6Am7AK43LIzezYqxcH6JIU79y4zi6_o-arjvENeXkCw",
+      "expect": {
+        "valid": false,
+        "error": "missing_claims"
+      }
+    },
+    {
+      "name": "mcp-grant-missing-tenant",
+      "description": "MCP grant without tenantId.",
+      "signer": "mcp-runtime",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"0381904f42d3f624\"}",
+      "claimsJson": "{\"iss\":\"mcp-runtime\",\"aud\":\"metorial-egress\",\"jti\":\"mcpe_no_tenant\",\"source\":\"mcp\",\"iat\":1794000000,\"exp\":1794000060}",
+      "claims": {
+        "iss": "mcp-runtime",
+        "aud": "metorial-egress",
+        "jti": "mcpe_no_tenant",
+        "source": "mcp",
+        "iat": 1794000000,
+        "exp": 1794000060
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6IjAzODE5MDRmNDJkM2Y2MjQifQ.eyJpc3MiOiJtY3AtcnVudGltZSIsImF1ZCI6Im1ldG9yaWFsLWVncmVzcyIsImp0aSI6Im1jcGVfbm9fdGVuYW50Iiwic291cmNlIjoibWNwIiwiaWF0IjoxNzk0MDAwMDAwLCJleHAiOjE3OTQwMDAwNjB9.CtSKpkePv9NY_DZ8eYXk-8QL8qXpgmjJKsPMqJLtKT3M_8CnjQu44BOB_F_7JtPN3-y3_piLKU0POtUEn1cbCA",
       "expect": {
         "valid": false,
         "error": "missing_claims"
