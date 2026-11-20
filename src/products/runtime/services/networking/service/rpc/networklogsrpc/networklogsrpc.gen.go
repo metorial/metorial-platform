@@ -48,6 +48,7 @@ const (
 	SourceLambda  Source = "lambda"
 	SourceKnative Source = "knative"
 	SourceBuild   Source = "build"
+	SourceMCP     Source = "mcp"
 )
 
 type ObservationIngestManyOutput struct {
@@ -74,7 +75,7 @@ var schemas = ldrpc.MustParseSchemas(`{
   "ObservationIngestManyInput": {"kind":"object","fields":[{"name":"batchId","type":{"kind":"string","minLength":1}},{"name":"gatewayInstanceId","type":{"kind":"string","minLength":1}},{"name":"observations","type":{"kind":"array","items":{"kind":"ref","name":"Observation"},"maxLength":10000}}]},
   "Observation": {"kind":"object","fields":[{"name":"bucketStart","type":{"kind":"datetime"}},{"name":"tenantId","type":{"kind":"string"}},{"name":"functionId","type":{"kind":"string"}},{"name":"effectiveFunctionId","type":{"kind":"string"},"optional":true},{"name":"enclaveId","type":{"kind":"string"},"optional":true},{"name":"buildRunId","type":{"kind":"string"},"optional":true},{"name":"hostname","type":{"kind":"string"}},{"name":"ip","type":{"kind":"string"}},{"name":"port","type":{"kind":"int","min":0,"max":65535}},{"name":"decision","type":{"kind":"ref","name":"Decision"}},{"name":"source","type":{"kind":"ref","name":"Source"}},{"name":"count","type":{"kind":"int","min":1}},{"name":"firstSeenAt","type":{"kind":"datetime"}},{"name":"lastSeenAt","type":{"kind":"datetime"}}]},
   "Decision": {"kind":"enum","values":["allowed","denied"]},
-  "Source": {"kind":"enum","values":["lambda","knative","build"]},
+  "Source": {"kind":"enum","values":["lambda","knative","build","mcp"]},
   "ObservationListInput": {"kind":"object","fields":[{"name":"tenantId","type":{"kind":"string","minLength":1}},{"name":"enclaveIds","type":{"kind":"array","items":{"kind":"string"}},"optional":true},{"name":"functionIds","type":{"kind":"array","items":{"kind":"string"}},"optional":true},{"name":"hostnames","type":{"kind":"array","items":{"kind":"string"}},"optional":true},{"name":"ips","type":{"kind":"array","items":{"kind":"string"}},"optional":true},{"name":"decision","type":{"kind":"ref","name":"Decision"},"optional":true},{"name":"from","type":{"kind":"datetime"},"optional":true},{"name":"to","type":{"kind":"datetime"},"optional":true},{"name":"intervalMinutes","type":{"kind":"int","min":30},"optional":true}]}
 }`)
 

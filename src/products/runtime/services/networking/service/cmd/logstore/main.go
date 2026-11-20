@@ -65,12 +65,13 @@ type config struct {
 func loadConfig(getenv func(string) string) (*config, error) {
 	cfg := &config{
 		database: logstore.Config{
-			Host:     getenv("DATABASE_HOST"),
-			Port:     getenv("DATABASE_PORT"),
-			Name:     getenv("DATABASE_NAME"),
-			Username: getenv("DATABASE_USERNAME"),
-			Password: getenv("DATABASE_PASSWORD"),
-			SSLMode:  envOr(getenv, "DATABASE_SSLMODE", defaultDatabaseSSLMode),
+			ServerURL: getenv("DATABASE_SERVER_URL"),
+			Host:      getenv("DATABASE_HOST"),
+			Port:      getenv("DATABASE_PORT"),
+			Name:      getenv("DATABASE_NAME"),
+			Username:  getenv("DATABASE_USERNAME"),
+			Password:  getenv("DATABASE_PASSWORD"),
+			SSLMode:   envOr(getenv, "DATABASE_SSLMODE", defaultDatabaseSSLMode),
 		},
 		rpcAddr:          envOr(getenv, "NETWORK_LOGS_RPC_ADDR", defaultRPCAddr),
 		legacyIngestAddr: envOr(getenv, "OBSERVER_INGEST_ADDR", defaultLegacyIngestAddr),
@@ -90,8 +91,8 @@ func loadConfig(getenv func(string) string) (*config, error) {
 		return nil, err
 	}
 
-	if cfg.database.Host == "" || cfg.database.Port == "" || cfg.database.Name == "" || cfg.database.Username == "" {
-		return nil, errors.New("DATABASE_HOST, DATABASE_PORT, DATABASE_NAME and DATABASE_USERNAME are required")
+	if err := cfg.database.Validate(); err != nil {
+		return nil, fmt.Errorf("DATABASE_NAME and either DATABASE_SERVER_URL or DATABASE_HOST, DATABASE_PORT and DATABASE_USERNAME are required: %w", err)
 	}
 
 	if cfg.authMode == "" {
