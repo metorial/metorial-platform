@@ -72,8 +72,8 @@ COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 EOF
 ENV PRISMA_BIN=/opt/prisma/node_modules/.bin/prisma
 USER 10001:10001
-EXPOSE 52160
+EXPOSE 52160 52161
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:52160/ping && curl -fsS http://127.0.0.1:12121/ || exit 1
+  CMD curl -fsS http://127.0.0.1:52160/ping && curl -fsS http://127.0.0.1:52161/ping && curl -fsS http://127.0.0.1:12121/ || exit 1
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate ai-gateway && [ -z \"$stop\" ] && exec bun ./dist/index.js"]
