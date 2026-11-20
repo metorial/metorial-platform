@@ -4506,6 +4506,23 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/products/agents/services/ai-gateway/apis/inference": {
+      "name": "@mtsrc/ai-gateway-api-inference",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hono": "workspace:2.0.0",
+        "@mtsrc/ai-gateway-module-access": "workspace:*",
+        "@mtsrc/ai-gateway-module-routing": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+        "hono": "^4.13.16",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/products/agents/services/ai-gateway/apis/internal": {
       "name": "@mtsrc/ai-gateway-api-internal",
       "version": "1.0.0",
@@ -4513,7 +4530,19 @@
         "@lowerdeck/api-mux": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/hono": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-module-access": "workspace:*",
+        "@mtsrc/ai-gateway-module-catalog": "workspace:*",
+        "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+        "@mtsrc/ai-gateway-module-logs": "workspace:*",
+        "@mtsrc/ai-gateway-module-routing": "workspace:*",
+        "@mtsrc/ai-gateway-module-scope": "workspace:*",
+        "@mtsrc/ai-gateway-providers": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+        "@mtsrc/ai-gateway-store": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -4528,6 +4557,7 @@
         "@lowerdeck/execution-context": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -4542,6 +4572,178 @@
         "typescript": "5.9.3",
       },
     },
+    "src/products/agents/services/ai-gateway/modules/access": {
+      "name": "@mtsrc/ai-gateway-module-access",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/base62": "workspace:2.0.0",
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/modules/catalog": {
+      "name": "@mtsrc/ai-gateway-module-catalog",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/model-catalog": "workspace:*",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-providers": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/modules/credentials": {
+      "name": "@mtsrc/ai-gateway-module-credentials",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-providers": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+        "@mtsrc/ai-gateway-store": "workspace:*",
+        "@mtsrc/secret-store-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/modules/logs": {
+      "name": "@mtsrc/ai-gateway-module-logs",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+        "@mtsrc/ai-gateway-store": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/modules/routing": {
+      "name": "@mtsrc/ai-gateway-module-routing",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/model-catalog": "workspace:*",
+        "@mtsrc/ai-gateway-cost": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-module-catalog": "workspace:*",
+        "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+        "@mtsrc/ai-gateway-providers": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/modules/scope": {
+      "name": "@mtsrc/ai-gateway-module-scope",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/packages/cost": {
+      "name": "@mtsrc/ai-gateway-cost",
+      "version": "1.0.0",
+      "dependencies": {
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/packages/events": {
+      "name": "@mtsrc/ai-gateway-events",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/packages/providers": {
+      "name": "@mtsrc/ai-gateway-providers",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/packages/spec": {
+      "name": "@mtsrc/ai-gateway-spec",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/model-catalog": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/products/agents/services/ai-gateway/service": {
       "name": "@mtsrc/ai-gateway-service",
       "version": "1.0.0",
@@ -4552,8 +4754,13 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/ai-gateway-api-inference": "workspace:*",
         "@mtsrc/ai-gateway-api-internal": "workspace:*",
         "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-module-access": "workspace:*",
+        "@mtsrc/ai-gateway-module-catalog": "workspace:*",
+        "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+        "@mtsrc/ai-gateway-module-logs": "workspace:*",
         "@sentry/bun": "^11.11.0",
       },
       "devDependencies": {
@@ -4561,6 +4768,21 @@
         "@types/node": "^25.9.9",
         "@vercel/ncc": "^0.45.0",
         "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/store": {
+      "name": "@mtsrc/ai-gateway-store",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+        "mongoose": "^9.11.4",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
         "vitest": "^5.0.4",
       },
     },
@@ -10773,13 +10995,37 @@
 
     "@mtsrc/agent-tracking-testing": ["@mtsrc/agent-tracking-testing@workspace:src/products/observability/services/agent-tracking/packages/testing"],
 
+    "@mtsrc/ai-gateway-api-inference": ["@mtsrc/ai-gateway-api-inference@workspace:src/products/agents/services/ai-gateway/apis/inference"],
+
     "@mtsrc/ai-gateway-api-internal": ["@mtsrc/ai-gateway-api-internal@workspace:src/products/agents/services/ai-gateway/apis/internal"],
 
     "@mtsrc/ai-gateway-client-internal": ["@mtsrc/ai-gateway-client-internal@workspace:src/products/agents/clients/ai-gateway"],
 
+    "@mtsrc/ai-gateway-cost": ["@mtsrc/ai-gateway-cost@workspace:src/products/agents/services/ai-gateway/packages/cost"],
+
     "@mtsrc/ai-gateway-db": ["@mtsrc/ai-gateway-db@workspace:src/products/agents/services/ai-gateway/db"],
 
+    "@mtsrc/ai-gateway-events": ["@mtsrc/ai-gateway-events@workspace:src/products/agents/services/ai-gateway/packages/events"],
+
+    "@mtsrc/ai-gateway-module-access": ["@mtsrc/ai-gateway-module-access@workspace:src/products/agents/services/ai-gateway/modules/access"],
+
+    "@mtsrc/ai-gateway-module-catalog": ["@mtsrc/ai-gateway-module-catalog@workspace:src/products/agents/services/ai-gateway/modules/catalog"],
+
+    "@mtsrc/ai-gateway-module-credentials": ["@mtsrc/ai-gateway-module-credentials@workspace:src/products/agents/services/ai-gateway/modules/credentials"],
+
+    "@mtsrc/ai-gateway-module-logs": ["@mtsrc/ai-gateway-module-logs@workspace:src/products/agents/services/ai-gateway/modules/logs"],
+
+    "@mtsrc/ai-gateway-module-routing": ["@mtsrc/ai-gateway-module-routing@workspace:src/products/agents/services/ai-gateway/modules/routing"],
+
+    "@mtsrc/ai-gateway-module-scope": ["@mtsrc/ai-gateway-module-scope@workspace:src/products/agents/services/ai-gateway/modules/scope"],
+
+    "@mtsrc/ai-gateway-providers": ["@mtsrc/ai-gateway-providers@workspace:src/products/agents/services/ai-gateway/packages/providers"],
+
     "@mtsrc/ai-gateway-service": ["@mtsrc/ai-gateway-service@workspace:src/products/agents/services/ai-gateway/service"],
+
+    "@mtsrc/ai-gateway-spec": ["@mtsrc/ai-gateway-spec@workspace:src/products/agents/services/ai-gateway/packages/spec"],
+
+    "@mtsrc/ai-gateway-store": ["@mtsrc/ai-gateway-store@workspace:src/products/agents/services/ai-gateway/store"],
 
     "@mtsrc/auth-core-api-admin": ["@mtsrc/auth-core-api-admin@workspace:src/products/identity/services/auth-core/apis/admin"],
 

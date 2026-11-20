@@ -62,6 +62,7 @@ export let services = {
   horizonKeeperAdmin: service(52148),
   horizonCustomerFirehose: service(52146),
   aiGateway: service(52160),
+  aiGatewayInference: service(52161),
   nebula: service(52170),
   agentTracking: service(52180),
   agentTrackingIngest: service(52181)
