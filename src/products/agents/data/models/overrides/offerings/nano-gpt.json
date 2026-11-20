@@ -1484,6 +1484,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "radixark/daisyrose-27b": {
+    "decision": "defer",
+    "until": "2026-12-20",
+    "reason": "RadixArk DaisyRose-27B is an RL-only fine-tune of Qwen3.8-27B (HF card: 'built on Qwen3.8-27B with reinforcement learning'), so it is not the Qwen checkpoint itself; the index has no RadixArk/DaisyRose entry. Released 2026-11-18, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "ricursiveai/ripple-65b-preview": {
     "decision": "defer",
     "until": "2026-12-12",
