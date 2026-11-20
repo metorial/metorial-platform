@@ -51,6 +51,7 @@ declare global {
     type ProviderConnectionConfig = Spec.ProviderConnectionConfig;
     type ProviderFeatures = Spec.ProviderFeatures;
     type ConnectionPricingOverride = Spec.ConnectionPricingOverride;
+    type VirtualModelDefinition = Spec.VirtualModelDefinition;
   }
 }
 

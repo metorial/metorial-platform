@@ -229,6 +229,26 @@ describe('projectCatalog', () => {
     expect(projection.providers[1]!.kind).toBe('first_party');
   });
 
+  it('adds decision providers as their own kind, ahead of colliding vendors', () => {
+    let withDecisions = projectCatalog({
+      catalog,
+      supportedProviderSlugs: ['anthropic', 'openai'],
+      decisionProviders: [
+        { slug: 'typesafe', name: 'TypeSafe', website: 'https://typesafe.ai' },
+        { slug: 'openai', name: 'Not OpenAI' }
+      ]
+    });
+
+    expect(
+      withDecisions.providers.map(provider => [provider.slug, provider.kind, provider.name])
+    ).toEqual([
+      ['metorial', 'metorial', 'Metorial'],
+      ['typesafe', 'decision', 'TypeSafe'],
+      ['openai', 'decision', 'Not OpenAI'],
+      ['anthropic', 'first_party', 'ANTHROPIC']
+    ]);
+  });
+
   it('drops models whose lab is missing and only keeps labs with models', () => {
     expect(projection.models.map(model => model.slug)).toEqual([
       'anthropic/claude-sonnet-5',

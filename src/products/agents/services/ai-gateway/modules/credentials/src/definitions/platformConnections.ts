@@ -1,3 +1,4 @@
+import { decisionProviderSlugs } from '@mtsrc/ai-gateway-spec';
 import { env } from '../env';
 import { platformConnection } from '../lib/definitions/platformConnection';
 
@@ -50,6 +51,21 @@ export let platformConnections = {
     name: 'Azure AI Foundry',
     credentials: { apiKey: env.platform.azureApiKey },
     config: { resourceName: env.platform.azureResourceName }
+  }),
+
+  cloudflareDecisions: platformConnection({
+    slug: decisionProviderSlugs.cloudflare,
+    provider: decisionProviderSlugs.cloudflare,
+    name: 'Cloudflare Workers AI decision models',
+    credentials: { apiToken: env.platform.cloudflareApiToken },
+    config: { accountId: env.platform.cloudflareAccountId }
+  }),
+
+  typesafe: platformConnection({
+    slug: decisionProviderSlugs.typesafe,
+    provider: decisionProviderSlugs.typesafe,
+    name: 'TypeSafe',
+    credentials: { apiKey: env.platform.typesafeApiKey }
   })
 };
 

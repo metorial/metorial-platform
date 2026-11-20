@@ -1,27 +1,12 @@
 import { v } from '@lowerdeck/validation';
-import { routeService, type RouteCandidate } from '@mtsrc/ai-gateway-module-routing';
+import { routeService } from '@mtsrc/ai-gateway-module-routing';
 import {
   providerFeatureSlugs,
   resolveInstanceSettings,
   type GatewayPrincipal
 } from '@mtsrc/ai-gateway-spec';
+import { previewCandidate } from '../presenters/route';
 import { app, instanceApp } from './_app';
-
-let previewCandidate = (candidate: RouteCandidate) =>
-  candidate.connectionOwner == 'platform'
-    ? {
-        provider: candidate.billedProviderSlug,
-        connectionOwner: candidate.connectionOwner,
-        pricing: candidate.billedPricing
-      }
-    : {
-        provider: candidate.providerSlug,
-        connectionOwner: candidate.connectionOwner,
-        connectionId: candidate.connectionId,
-        vendorModelId: candidate.vendorModelId,
-        pricing: candidate.billedPricing,
-        pricingSource: candidate.billedPricingSource
-      };
 
 // Lets operators see how a model name would route for an instance without sending a request.
 // Token restrictions are not applied: the preview answers "what can this instance reach".

@@ -115,21 +115,67 @@ describe('authentication', () => {
 
 describe('inference endpoints', () => {
   it.each([
-    ['/v1/chat/completions', 'OpenAI Chat Completions'],
-    ['/v1/responses', 'Open Responses'],
-    ['/v1/messages', 'Anthropic Messages']
-  ])('%s routes the model and answers 501 for now', async (path, name) => {
+    ['/v1/chat/completions', 'OpenAI Chat Completions', 'openai_chat'],
+    ['/v1/responses', 'Open Responses', 'open_responses'],
+    ['/v1/messages', 'Anthropic Messages', 'anthropic_messages']
+  ])('%s routes the model and answers 501 for now', async (path, name, dialect) => {
     let { request, deps } = setup();
+    let body = { model: 'anthropic/claude-sonnet-5', messages: [] };
 
     let response = await request(path, {
       method: 'POST',
       headers: { authorization: 'Bearer good' },
-      json: { model: 'anthropic/claude-sonnet-5', messages: [] }
+      json: body
     });
 
     expect(response.status).toBe(501);
     expect(JSON.stringify(await response.json())).toContain(name);
-    expect(deps.route).toHaveBeenCalledWith({ principal, model: 'anthropic/claude-sonnet-5' });
+    expect(deps.route).toHaveBeenCalledWith({
+      principal,
+      model: 'anthropic/claude-sonnet-5',
+      dialect,
+      body,
+      metadata: {}
+    });
+  });
+
+  it('passes request metadata to routing', async () => {
+    let { request, deps } = setup();
+
+    await request('/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer good',
+        'x-metorial-metadata': JSON.stringify({ session: 'abc', tier: 'free' })
+      },
+      json: { model: 'smart', messages: [] }
+    });
+
+    expect(deps.route).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'smart', metadata: { session: 'abc', tier: 'free' } })
+    );
+  });
+
+  it.each([
+    ['not json', '{nope'],
+    ['an array', '["a"]'],
+    ['a non-string value', '{"count": 3}'],
+    [
+      'too many entries',
+      JSON.stringify(Object.fromEntries(Array.from({ length: 21 }, (_, i) => [`k${i}`, 'v'])))
+    ]
+  ])('rejects metadata that is %s', async (_, header) => {
+    let { request, deps } = setup();
+
+    let response = await request('/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer good', 'x-metorial-metadata': header },
+      json: { model: 'smart', messages: [] }
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: 'invalid_metadata' } });
+    expect(deps.route).not.toHaveBeenCalled();
   });
 
   it('requires a model', async () => {

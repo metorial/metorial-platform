@@ -46,6 +46,24 @@ let platformSettings = defineSettings('platform', {
     env: 'AI_GATEWAY_PLATFORM_AZURE_RESOURCE_NAME',
     audience: 'deployment',
     description: 'Azure AI Foundry resource that AI_GATEWAY_PLATFORM_AZURE_API_KEY belongs to.'
+  }),
+  cloudflareApiToken: setting(v.optional(v.string()), {
+    env: 'AI_GATEWAY_PLATFORM_CLOUDFLARE_API_TOKEN',
+    audience: 'deployment',
+    secret: true,
+    description:
+      'Workers AI token behind the platform Clef decision models that virtual models use to classify requests.'
+  }),
+  cloudflareAccountId: setting(v.optional(v.string()), {
+    env: 'AI_GATEWAY_PLATFORM_CLOUDFLARE_ACCOUNT_ID',
+    audience: 'deployment',
+    description: 'Cloudflare account that AI_GATEWAY_PLATFORM_CLOUDFLARE_API_TOKEN belongs to.'
+  }),
+  typesafeApiKey: setting(v.optional(v.string()), {
+    env: 'AI_GATEWAY_PLATFORM_TYPESAFE_API_KEY',
+    audience: 'deployment',
+    secret: true,
+    description: 'TypeSafe key behind the platform Jev decision model.'
   })
 });
 

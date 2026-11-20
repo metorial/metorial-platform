@@ -94,21 +94,25 @@ export let createPlatformConnectionRegistry = (d: {
     if (previous != entry.status) d.onStatusChange?.(stateOf(entry));
   };
 
+  let configured = (slug: string) => {
+    let entry = entries.get(slug);
+    if (!entry) throw new Error(`Platform connection "${slug}" is not defined.`);
+    if (!entry.resolved.configured) {
+      throw new Error(`Platform connection "${slug}": ${entry.resolved.reason}`);
+    }
+
+    return entry.resolved;
+  };
+
   return {
     status: (slug: string): PlatformConnectionStatus | null => {
       let entry = entries.get(slug);
       return entry?.resolved.configured ? entry.status : null;
     },
 
-    credentials: (slug: string) => {
-      let entry = entries.get(slug);
-      if (!entry) throw new Error(`Platform connection "${slug}" is not defined.`);
-      if (!entry.resolved.configured) {
-        throw new Error(`Platform connection "${slug}": ${entry.resolved.reason}`);
-      }
+    credentials: (slug: string) => configured(slug).credentials,
 
-      return entry.resolved.credentials;
-    },
+    config: (slug: string) => configured(slug).config,
 
     check,
 

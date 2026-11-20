@@ -39,6 +39,30 @@ export type InferenceAttempt = ConnectionRef & {
   error?: InferenceError;
 };
 
+export type InferenceDecisionLog = {
+  model: string;
+  source: 'customer' | 'platform' | null;
+  cached: boolean;
+  latencyMs: number;
+  inputTokens: number;
+  costUsd: number;
+  signals: Record<string, unknown> | null;
+  error: { code: string; message: string } | null;
+};
+
+export type InferenceVirtualModelLog = {
+  id: string;
+  slug: string;
+  versionId: string;
+  versionNumber: number;
+  ruleId: string | null;
+  reason: 'rule' | 'default' | 'sticky';
+  trace: { ruleId: string; outcome: string; error?: string }[];
+  targets: string[];
+  skippedTargets: { model: string; reason: string }[];
+  decision: InferenceDecisionLog | null;
+};
+
 export type InferenceLogDocument = {
   _id: string;
   organizationId: string;
@@ -53,6 +77,8 @@ export type InferenceLogDocument = {
 
   requestedModel: string;
   model?: { id: string; slug: string; labSlug: string };
+  virtualModel?: InferenceVirtualModelLog;
+  metadata?: Record<string, string>;
 
   route?: ConnectionRef & {
     providerSlug: string;
@@ -144,6 +170,8 @@ export let InferenceLogSchema = new mongoose.Schema<InferenceLogDocument>(
 
     requestedModel: String,
     model: Mixed,
+    virtualModel: Mixed,
+    metadata: Mixed,
     route: Mixed,
     attempts: Mixed,
 
@@ -168,6 +196,7 @@ InferenceLogSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 InferenceLogSchema.index({ organizationId: 1, 'timing.receivedAt': -1 });
 InferenceLogSchema.index({ instanceId: 1, 'timing.receivedAt': -1 });
 InferenceLogSchema.index({ instanceId: 1, 'model.slug': 1, 'timing.receivedAt': -1 });
+InferenceLogSchema.index({ instanceId: 1, 'virtualModel.id': 1, 'timing.receivedAt': -1 });
 InferenceLogSchema.index({ tokenId: 1, 'timing.receivedAt': -1 });
 InferenceLogSchema.index({ 'route.connectionId': 1, 'timing.receivedAt': -1 });
 

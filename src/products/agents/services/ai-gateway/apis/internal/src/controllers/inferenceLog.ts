@@ -13,6 +13,7 @@ export let inferenceLogController = app.controller({
         gatewayTokenId: v.optional(v.string()),
         consumerRef: v.optional(v.string()),
         modelSlug: v.optional(v.string()),
+        virtualModelId: v.optional(v.string()),
         status: v.optional(v.enumOf(['succeeded', 'failed', 'cancelled'])),
         before: v.optional(v.string()),
         limit: v.optional(
@@ -27,6 +28,7 @@ export let inferenceLogController = app.controller({
         tokenId: ctx.input.gatewayTokenId,
         consumerRef: ctx.input.consumerRef,
         modelSlug: ctx.input.modelSlug,
+        virtualModelId: ctx.input.virtualModelId,
         status: ctx.input.status,
         before: ctx.input.before,
         limit: ctx.input.limit

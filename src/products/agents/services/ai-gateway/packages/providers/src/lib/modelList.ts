@@ -6,7 +6,7 @@ let modelListLength = (body: unknown) => {
   if (Array.isArray(body)) return body.length;
   if (!body || typeof body != 'object') return undefined;
 
-  for (let key of ['data', 'models']) {
+  for (let key of ['data', 'models', 'result']) {
     let value = (body as Record<string, unknown>)[key];
     if (Array.isArray(value)) return value.length;
   }

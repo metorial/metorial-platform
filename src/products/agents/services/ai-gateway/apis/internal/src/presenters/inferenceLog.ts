@@ -50,6 +50,8 @@ export let inferenceLogPresenter = (
 
   requestedModel: log.requestedModel,
   model: log.model ?? null,
+  virtualModel: log.virtualModel ?? null,
+  metadata: log.metadata ?? {},
   route: log.route ? presentRoute(log.route) : null,
   attempts: log.attempts.map(presentAttempt),
 

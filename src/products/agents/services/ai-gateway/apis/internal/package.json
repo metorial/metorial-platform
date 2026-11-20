@@ -22,7 +22,9 @@
     "@mtsrc/ai-gateway-module-logs": "workspace:*",
     "@mtsrc/ai-gateway-module-routing": "workspace:*",
     "@mtsrc/ai-gateway-module-scope": "workspace:*",
+    "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
     "@mtsrc/ai-gateway-providers": "workspace:*",
+    "@mtsrc/ai-gateway-request-features": "workspace:*",
     "@mtsrc/ai-gateway-spec": "workspace:*",
     "@mtsrc/ai-gateway-store": "workspace:*"
   },

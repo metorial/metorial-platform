@@ -15,6 +15,7 @@
     "@lowerdeck/hono": "workspace:2.0.0",
     "@mtsrc/ai-gateway-module-access": "workspace:*",
     "@mtsrc/ai-gateway-module-routing": "workspace:*",
+    "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
     "@mtsrc/ai-gateway-spec": "workspace:*",
     "hono": "^4.13.16"
   },

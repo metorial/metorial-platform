@@ -7,6 +7,7 @@ import { inferenceLogController } from './inferenceLog';
 import { providerConnectionController } from './providerConnection';
 import { routingController } from './routing';
 import { instanceController, organizationController, projectController } from './scope';
+import { virtualModelController } from './virtualModel';
 
 export let rootController = app.controller({
   organization: organizationController,
@@ -15,6 +16,7 @@ export let rootController = app.controller({
   gatewayToken: gatewayTokenController,
   providerConnection: providerConnectionController,
   routing: routingController,
+  virtualModel: virtualModelController,
   catalog: catalogController,
   inferenceLog: inferenceLogController
 });

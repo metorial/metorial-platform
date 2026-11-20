@@ -4514,6 +4514,7 @@
         "@lowerdeck/hono": "workspace:2.0.0",
         "@mtsrc/ai-gateway-module-access": "workspace:*",
         "@mtsrc/ai-gateway-module-routing": "workspace:*",
+        "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
         "@mtsrc/ai-gateway-spec": "workspace:*",
         "hono": "^4.13.16",
       },
@@ -4540,7 +4541,9 @@
         "@mtsrc/ai-gateway-module-logs": "workspace:*",
         "@mtsrc/ai-gateway-module-routing": "workspace:*",
         "@mtsrc/ai-gateway-module-scope": "workspace:*",
+        "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
         "@mtsrc/ai-gateway-providers": "workspace:*",
+        "@mtsrc/ai-gateway-request-features": "workspace:*",
         "@mtsrc/ai-gateway-spec": "workspace:*",
         "@mtsrc/ai-gateway-store": "workspace:*",
       },
@@ -4696,10 +4699,50 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/products/agents/services/ai-gateway/modules/virtual-models": {
+      "name": "@mtsrc/ai-gateway-module-virtual-models",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@marcbachmann/cel-js": "8.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/ai-gateway-cost": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-decisions": "workspace:*",
+        "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+        "@mtsrc/ai-gateway-module-routing": "workspace:*",
+        "@mtsrc/ai-gateway-request-features": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+        "@mtsrc/ai-gateway-store": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/products/agents/services/ai-gateway/packages/cost": {
       "name": "@mtsrc/ai-gateway-cost",
       "version": "1.0.0",
       "dependencies": {
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/packages/decisions": {
+      "name": "@mtsrc/ai-gateway-decisions",
+      "version": "1.0.0",
+      "dependencies": {
+        "@mtsrc/ai-gateway-request-features": "workspace:*",
         "@mtsrc/ai-gateway-spec": "workspace:*",
       },
       "devDependencies": {
@@ -4725,6 +4768,15 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@mtsrc/ai-gateway-spec": "workspace:*",
       },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/packages/request-features": {
+      "name": "@mtsrc/ai-gateway-request-features",
+      "version": "1.0.0",
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -10399,6 +10451,8 @@
 
     "@mapbox/node-pre-gyp": ["@mapbox/node-pre-gyp@2.0.3", "", { "dependencies": { "consola": "^3.2.3", "detect-libc": "^2.0.0", "https-proxy-agent": "^7.0.5", "node-fetch": "^2.6.7", "nopt": "^8.0.0", "semver": "^7.5.3", "tar": "^7.4.0" }, "bin": { "node-pre-gyp": "bin/node-pre-gyp" } }, "sha512-uwPAhccfFJlsfCxMYTwOdVfOz3xqyj8xYL3zJj8f0pb30tLohnnFPhLuqp4/qoEz8sNxe4SESZedcBojRefIzg=="],
 
+    "@marcbachmann/cel-js": ["@marcbachmann/cel-js@8.0.0", "", { "bin": { "cel-evaluate": "bin/cel-evaluate.js" } }, "sha512-oaTrAziGr3zDLFiMt/yLU3nZuRMawyWQB5X1a0I7s9eGy3JYzX9l8ZXXHyMd64nzbeVFZTewuUShwsZQdK6UCA=="],
+
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.2", "", {}, "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="],
 
     "@marsidev/react-turnstile": ["@marsidev/react-turnstile@1.6.3", "", { "peerDependencies": { "react": "^17.0.2 || ^18.0.0 || ^19.0", "react-dom": "^17.0.2 || ^18.0.0 || ^19.0" } }, "sha512-JdMMArjEVDMs5jnGMBeXl3y6dkMuIXPG4Tu88Uo2Rkf8ujEw/iJ2Yp/3n4kDF3BjJ+bJB9WC19LPWc5a7/4srA=="],
@@ -11005,6 +11059,8 @@
 
     "@mtsrc/ai-gateway-db": ["@mtsrc/ai-gateway-db@workspace:src/products/agents/services/ai-gateway/db"],
 
+    "@mtsrc/ai-gateway-decisions": ["@mtsrc/ai-gateway-decisions@workspace:src/products/agents/services/ai-gateway/packages/decisions"],
+
     "@mtsrc/ai-gateway-events": ["@mtsrc/ai-gateway-events@workspace:src/products/agents/services/ai-gateway/packages/events"],
 
     "@mtsrc/ai-gateway-module-access": ["@mtsrc/ai-gateway-module-access@workspace:src/products/agents/services/ai-gateway/modules/access"],
@@ -11019,7 +11075,11 @@
 
     "@mtsrc/ai-gateway-module-scope": ["@mtsrc/ai-gateway-module-scope@workspace:src/products/agents/services/ai-gateway/modules/scope"],
 
+    "@mtsrc/ai-gateway-module-virtual-models": ["@mtsrc/ai-gateway-module-virtual-models@workspace:src/products/agents/services/ai-gateway/modules/virtual-models"],
+
     "@mtsrc/ai-gateway-providers": ["@mtsrc/ai-gateway-providers@workspace:src/products/agents/services/ai-gateway/packages/providers"],
+
+    "@mtsrc/ai-gateway-request-features": ["@mtsrc/ai-gateway-request-features@workspace:src/products/agents/services/ai-gateway/packages/request-features"],
 
     "@mtsrc/ai-gateway-service": ["@mtsrc/ai-gateway-service@workspace:src/products/agents/services/ai-gateway/service"],
 

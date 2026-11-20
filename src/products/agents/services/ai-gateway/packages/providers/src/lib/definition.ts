@@ -13,12 +13,17 @@ export type ProviderCheckContext<Credentials, Config> = {
   fetch: typeof fetch;
 };
 
+export type ProviderKind = 'inference' | 'decision';
+
 export type ProviderDefinition<
   Credentials extends ProviderCredentials = ProviderCredentials,
   Config extends ProviderConnectionConfig = ProviderConnectionConfig
 > = {
   slug: string;
   name: string;
+  kind?: ProviderKind;
+  website?: string;
+  docs?: string;
 
   credentials: ValidationType<Credentials>;
   config: ValidationType<Config>;

@@ -5,9 +5,11 @@ export {
   type ConnectionRef,
   type InferenceAttempt,
   type InferenceContentDocument,
+  type InferenceDecisionLog,
   type InferenceDialect,
   type InferenceError,
   type InferenceLogDocument,
   type InferenceOperation,
-  type InferenceStatus
+  type InferenceStatus,
+  type InferenceVirtualModelLog
 } from './models';

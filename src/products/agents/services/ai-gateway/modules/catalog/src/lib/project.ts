@@ -14,7 +14,20 @@ import { stableStringify } from './stable';
 type CatalogEntryStatus = 'active' | 'retired';
 type ModelStatus = 'preview' | 'active' | 'deprecated' | 'retired';
 type ProviderKind =
-  'metorial' | 'first_party' | 'cloud' | 'inference' | 'aggregator' | 'subscription';
+  | 'metorial'
+  | 'first_party'
+  | 'cloud'
+  | 'inference'
+  | 'aggregator'
+  | 'subscription'
+  | 'decision';
+
+export type BuiltinProvider = {
+  slug: string;
+  name: string;
+  website?: string;
+  docs?: string;
+};
 
 export type LabRow = {
   slug: string;
@@ -125,6 +138,7 @@ export let pricingHash = (pricing: Pricing | null) =>
 export let projectCatalog = (d: {
   catalog: Catalog;
   supportedProviderSlugs: string[];
+  decisionProviders?: BuiltinProvider[];
 }): CatalogProjection => {
   let { catalog } = d;
   let supported = new Set(d.supportedProviderSlugs);
@@ -182,9 +196,23 @@ export let projectCatalog = (d: {
       status: organization.status
     }));
 
+  let decisionSlugs = new Set((d.decisionProviders ?? []).map(provider => provider.slug));
+
+  // Decision providers aren't catalog vendors, but customer keys for them are provider
+  // connections, so they need rows that the sync doesn't mark as removed.
   let providers = [
     metorialProvider,
+    ...(d.decisionProviders ?? []).map((provider): ProviderRow => ({
+      slug: provider.slug,
+      name: provider.name,
+      kind: 'decision',
+      website: provider.website ?? null,
+      docs: provider.docs ?? null,
+      logo: null,
+      status: 'active'
+    })),
     ...catalog.vendors
+      .filter(vendor => !decisionSlugs.has(vendor.id))
       .filter(vendor => supported.has(vendor.id) && vendor.id != metorialProviderSlug)
       .map((vendor): ProviderRow => ({
         slug: vendor.id,

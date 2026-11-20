@@ -1,5 +1,10 @@
 import { cors, createHono } from '@lowerdeck/hono';
-import type { GatewayPrincipal } from '@mtsrc/ai-gateway-spec';
+import {
+  parseRequestMetadata,
+  requestMetadataHeader,
+  type GatewayPrincipal,
+  type RequestMetadata
+} from '@mtsrc/ai-gateway-spec';
 import type { Context } from 'hono';
 import { errorResponse, toGatewayError, type Dialect, type GatewayError } from './lib/errors';
 import {
@@ -13,7 +18,13 @@ import {
 export type InferenceDependencies = {
   authenticate: (token: string | undefined) => Promise<GatewayPrincipal>;
   extractToken: (headers: { authorization?: string; apiKey?: string }) => string | undefined;
-  route: (d: { principal: GatewayPrincipal; model: string }) => Promise<unknown>;
+  route: (d: {
+    principal: GatewayPrincipal;
+    model: string;
+    dialect: Dialect;
+    body: unknown;
+    metadata: RequestMetadata;
+  }) => Promise<unknown>;
   listModels: (d: { principal: GatewayPrincipal }) => Promise<ListedModel[]>;
 };
 
@@ -53,7 +64,8 @@ export let createInferenceApp = (deps: InferenceDependencies) => {
         'anthropic-version',
         'anthropic-beta',
         'OpenAI-Organization',
-        'OpenAI-Project'
+        'OpenAI-Project',
+        requestMetadataHeader
       ],
       maxAge: 86400
     })
@@ -86,9 +98,16 @@ export let createInferenceApp = (deps: InferenceDependencies) => {
       await next();
     };
 
-  let readModel = async (
+  let readRequest = async (
     c: Context<{ Variables: Variables }>
-  ): Promise<{ model: string } | { error: GatewayError }> => {
+  ): Promise<
+    { model: string; body: unknown; metadata: RequestMetadata } | { error: GatewayError }
+  > => {
+    let metadata = parseRequestMetadata(c.req.header(requestMetadataHeader));
+    if ('error' in metadata) {
+      return { error: { status: 400, code: 'invalid_metadata', message: metadata.error } };
+    }
+
     let declared = Number(c.req.header('content-length') ?? 0);
     if (declared > maxBodyBytes) {
       return {
@@ -125,14 +144,14 @@ export let createInferenceApp = (deps: InferenceDependencies) => {
       };
     }
 
-    return { model };
+    return { model, body, metadata: metadata.metadata };
   };
 
   let inference = (dialect: Dialect) => async (c: Context<{ Variables: Variables }>) => {
-    let parsed = await readModel(c);
+    let parsed = await readRequest(c);
     if ('error' in parsed) return errorResponse(dialect, parsed.error);
 
-    await deps.route({ principal: c.get('principal'), model: parsed.model });
+    await deps.route({ principal: c.get('principal'), dialect, ...parsed });
 
     return errorResponse(dialect, notImplemented(dialect));
   };

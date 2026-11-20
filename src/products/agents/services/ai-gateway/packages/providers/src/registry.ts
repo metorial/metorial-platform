@@ -11,6 +11,7 @@ import {
 } from '@mtsrc/ai-gateway-spec';
 import { anthropicProvider } from './definitions/anthropic';
 import { azureProvider } from './definitions/azure';
+import { cloudflareDecisionsProvider, typesafeProvider } from './definitions/decision';
 import {
   cerebrasProvider,
   cohereProvider,
@@ -24,7 +25,7 @@ import {
   xaiProvider
 } from './definitions/openaiCompatible';
 import { googleAiStudioProvider } from './definitions/google';
-import type { ProviderDefinition } from './lib/definition';
+import type { ProviderDefinition, ProviderKind } from './lib/definition';
 
 let checkTimeoutMs = 10_000;
 
@@ -41,14 +42,30 @@ export let providerDefinitions: ProviderDefinition[] = [
   togetherProvider,
   fireworksProvider,
   deepinfraProvider,
-  cohereProvider
+  cohereProvider,
+  cloudflareDecisionsProvider,
+  typesafeProvider
 ];
 
 let bySlug = new Map(providerDefinitions.map(definition => [definition.slug, definition]));
 
-export let supportedProviderSlugs = providerDefinitions.map(definition => definition.slug);
+export let providerKindOf = (definition: ProviderDefinition): ProviderKind =>
+  definition.kind ?? 'inference';
+
+export let decisionProviderDefinitions = providerDefinitions.filter(
+  definition => providerKindOf(definition) == 'decision'
+);
+
+export let supportedProviderSlugs = providerDefinitions
+  .filter(definition => providerKindOf(definition) == 'inference')
+  .map(definition => definition.slug);
 
 export let isSupportedProvider = (slug: string) => bySlug.has(slug);
+
+export let isDecisionProvider = (slug: string) => {
+  let definition = bySlug.get(slug);
+  return !!definition && providerKindOf(definition) == 'decision';
+};
 
 export let getProviderDefinition = (slug: string) => {
   let definition = bySlug.get(slug);

@@ -90,11 +90,13 @@ class RouteServiceImpl {
     model: string;
     requiredFeatures?: ProviderFeature[];
     random?: () => number;
+    allowedModelsChecked?: boolean;
   }) {
     let { request, model, via } = await this.resolveModel({ model: d.model });
     let requiredFeatures = requiredFeaturesFor(d);
 
     if (
+      !d.allowedModelsChecked &&
       !isModelAllowed({
         allowedModels: d.principal.token.allowedModels,
         requested: d.model,

@@ -98,7 +98,7 @@ let groupByProvider = (offerings: OfferingOption[]) => {
 
 // Weighted shuffle (Efraimidis–Spirakis): sorting by u^(1/w) draws rules in proportion to their
 // weight while still producing a full fallback order.
-let weightedOrder = <T extends { weight: number }>(items: T[], random: () => number) =>
+export let weightedOrder = <T extends { weight: number }>(items: T[], random: () => number) =>
   items
     .map(item => ({ item, key: random() ** (1 / Math.max(1, item.weight)) }))
     .sort((a, b) => b.key - a.key)

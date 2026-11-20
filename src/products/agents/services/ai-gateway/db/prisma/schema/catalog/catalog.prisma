@@ -50,6 +50,7 @@ enum ProviderKind {
   inference
   aggregator
   subscription
+  decision
 }
 
 model Provider {

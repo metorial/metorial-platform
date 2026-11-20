@@ -1,0 +1,36 @@
+{
+  "name": "@mtsrc/ai-gateway-module-virtual-models",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/cache": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@marcbachmann/cel-js": "8.0.0",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@mtsrc/ai-gateway-cost": "workspace:*",
+    "@mtsrc/ai-gateway-db": "workspace:*",
+    "@mtsrc/ai-gateway-decisions": "workspace:*",
+    "@mtsrc/ai-gateway-events": "workspace:*",
+    "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+    "@mtsrc/ai-gateway-module-routing": "workspace:*",
+    "@mtsrc/ai-gateway-request-features": "workspace:*",
+    "@mtsrc/ai-gateway-spec": "workspace:*",
+    "@mtsrc/ai-gateway-store": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

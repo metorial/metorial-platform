@@ -22,5 +22,11 @@ export type AiGatewayEvents = {
     change: ConnectionChange;
   };
 
+  'virtualModels.virtualModel.changed:after': {
+    virtualModelId: string;
+    instanceId: string;
+    change: ScopeChange;
+  };
+
   'catalog.synced:after': { fingerprint: string };
 };

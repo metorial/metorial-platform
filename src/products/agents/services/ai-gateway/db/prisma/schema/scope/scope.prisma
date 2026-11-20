@@ -15,6 +15,7 @@ model Organization {
   instances           Instance[]
   gatewayTokens       GatewayToken[]
   providerConnections ProviderConnection[]
+  virtualModels       VirtualModel[]
 }
 
 model Project {
@@ -60,6 +61,7 @@ model Instance {
 
   gatewayTokens       GatewayToken[]
   providerConnections ProviderConnection[]
+  virtualModels       VirtualModel[]
 
   @@index([organizationOid])
   @@index([projectOid])

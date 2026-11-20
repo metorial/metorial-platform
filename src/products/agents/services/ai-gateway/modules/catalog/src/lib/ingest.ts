@@ -1,6 +1,9 @@
 import { db, getId } from '@mtsrc/ai-gateway-db';
 import { Events } from '@mtsrc/ai-gateway-events';
-import { supportedProviderSlugs } from '@mtsrc/ai-gateway-providers';
+import {
+  decisionProviderDefinitions,
+  supportedProviderSlugs
+} from '@mtsrc/ai-gateway-providers';
 import type { CatalogSyncCounts } from '@mtsrc/ai-gateway-spec';
 import { env } from '../env';
 import { applyProjection } from './apply';
@@ -52,7 +55,11 @@ export let syncCatalog = async (
 
   try {
     let catalog = await parseArchive(await fetchArchive(url));
-    let projection = projectCatalog({ catalog, supportedProviderSlugs });
+    let projection = projectCatalog({
+      catalog,
+      supportedProviderSlugs,
+      decisionProviders: decisionProviderDefinitions
+    });
     let counts = await applyProjection(projection);
 
     await db.catalogSync.update({
