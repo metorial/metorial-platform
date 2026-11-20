@@ -17,6 +17,7 @@ import {
   isFileRouterRequest,
   purposeSlugs,
   resolveCargoAccess,
+  supportsFileMultipartUpload,
   uploadCargoFile,
   type FileRouterResolution
 } from '@metorial/module-file';
@@ -105,8 +106,13 @@ let presentFileUpload = (
     createdAt: Date;
     updatedAt: Date;
   },
-  uploadUrl: string,
-  uploadHeaders: Record<string, string> = {}
+  target:
+    | { url: string; headers: Record<string, string> }
+    | {
+        partSize: number;
+        partCount: number;
+        parts: { number: number; url: string; manifest: string }[];
+      }
 ) => ({
   object: 'file_upload',
 
@@ -124,12 +130,20 @@ let presentFileUpload = (
     identifier: upload.purpose.slug
   },
 
-  upload: {
-    url: uploadUrl,
-    method: 'PUT',
-    headers: uploadHeaders,
-    expires_at: upload.uploadUrlExpiresAt
-  },
+  upload:
+    'url' in target
+      ? {
+          url: target.url,
+          method: 'PUT',
+          headers: target.headers,
+          expires_at: upload.uploadUrlExpiresAt
+        }
+      : {
+          method: 'multipart',
+          part_size: target.partSize,
+          part_count: target.partCount,
+          parts: target.parts
+        },
 
   expires_at: upload.expiresAt,
   created_at: upload.createdAt,
@@ -257,7 +271,7 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContex
     );
   }
 
-  let body = parseUploadRequest(raw);
+  let body = parseUploadRequest(raw, supportsFileMultipartUpload());
 
   let target = await resolveUploadTarget({
     auth,
@@ -276,12 +290,34 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContex
       ...access.scope,
       auditScope: requireUploadAuditScope(target),
       uploadId: body.file_upload_id,
+      receipts: body.receipts,
       authorization: access.authorization,
       defaultPermissions: access.defaultPermissions,
       overridePermissions: access.overridePermissions
     });
 
     return c.json(presentFile(file));
+  }
+
+  if (body.mode === 'part_manifests') {
+    let parts = await fileUploadService.getPendingPartManifests({
+      ...access.scope,
+      uploadId: body.file_upload_id,
+      numbers: body.part_numbers,
+      authorization: access.authorization
+    });
+    c.header('Cache-Control', 'no-store');
+    return c.json({ parts });
+  }
+
+  if (body.mode === 'cancel_multipart') {
+    await fileUploadService.cancelPendingUpload({
+      ...access.scope,
+      uploadId: body.file_upload_id,
+      multipartOnly: true,
+      authorization: access.authorization
+    });
+    return c.body(null, 204);
   }
 
   if (body.store_id && !target.isInstanceOwner) {
@@ -292,10 +328,11 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContex
     );
   }
 
-  let { upload, uploadUrl, uploadHeaders } = await fileUploadService.createPendingUpload({
+  let result = await fileUploadService.createPendingUpload({
     ...access.scope,
     auditScope: requireUploadAuditScope(target),
     purpose: body.purpose,
+    acceptMultipart: body.accept_multipart,
     authorization: access.authorization,
     defaultPermissions: access.defaultPermissions,
     overridePermissions: access.overridePermissions,
@@ -315,7 +352,15 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContex
     }
   });
 
-  return c.json(presentFileUpload(upload, uploadUrl, uploadHeaders));
+  if (result.multipart) c.header('Cache-Control', 'no-store');
+  return c.json(
+    presentFileUpload(
+      result.upload,
+      result.multipart
+        ? result.multipart
+        : { url: result.uploadUrl, headers: result.uploadHeaders }
+    )
+  );
 };
 
 let createFileUploadHandler =

@@ -13,6 +13,7 @@ const (
 	SourceLambda  Source = "lambda"
 	SourceKnative Source = "knative"
 	SourceBuild   Source = "build"
+	SourceMCP     Source = "mcp"
 )
 
 // Grant is the claim set of an egress grant. Field order is the canonical claim order
@@ -74,8 +75,12 @@ func VerifyGrant(token string, keys Keys, now time.Time) (*Grant, error) {
 		if g.TenantID == "" || g.FunctionID == "" || g.FunctionVersionID == "" {
 			return nil, newError(ErrMissingClaims, "tenantId, functionId and functionVersionId are required")
 		}
+	case SourceMCP:
+		if g.TenantID == "" {
+			return nil, newError(ErrMissingClaims, "tenantId is required for mcp grants")
+		}
 	default:
-		return nil, newError(ErrMissingClaims, "source must be lambda, knative or build")
+		return nil, newError(ErrMissingClaims, "source must be lambda, knative, build or mcp")
 	}
 
 	rules, err := policy.Compile(g.Policy, g.AllowAll)

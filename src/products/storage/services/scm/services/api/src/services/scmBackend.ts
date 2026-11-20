@@ -154,11 +154,32 @@ class scmBackendServiceImpl {
             ...opts,
             where: {
               OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }],
+              AND: [{ OR: [{ templateOid: null }, { template: { status: 'active' } }] }],
               oid: allowed ? { in: allowed } : undefined
             }
           })
       )
     );
+  }
+
+  async getSelectableScmBackendById(d: { tenant: Tenant; backendId: string }) {
+    let backend = await this.getScmBackendById(d);
+
+    if (backend.templateOid != null) {
+      let template = await db.scmBackendTemplate.findUnique({
+        where: { oid: backend.templateOid }
+      });
+
+      if (template?.status !== 'active') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'This source control provider has been retired by your administrator.'
+          })
+        );
+      }
+    }
+
+    return backend;
   }
 
   async createScmBackend(d: {
@@ -270,6 +291,15 @@ class scmBackendServiceImpl {
   }) {
     assertScmBackendAllowed(d.backend);
 
+    if (d.backend.templateOid != null) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'This source control provider is managed by your enterprise administrator and cannot be changed here.'
+        })
+      );
+    }
+
     if (d.backend.isDefault) {
       throw new ServiceError(
         badRequestError({
@@ -313,6 +343,15 @@ class scmBackendServiceImpl {
 
   async deleteScmBackend(d: { backend: ScmBackend }) {
     assertScmBackendAllowed(d.backend);
+
+    if (d.backend.templateOid != null) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            'This source control provider is managed by your enterprise administrator and cannot be changed here.'
+        })
+      );
+    }
 
     if (d.backend.isDefault) {
       throw new ServiceError(

@@ -23,7 +23,7 @@
     "@mtsrc/agent-tracking-module-knowledge": "workspace:*",
     "@mtsrc/agent-tracking-spec": "workspace:*",
     "@mtsrc/agent-tracking-store": "workspace:*",
-    "mongoose": "^9.11.4"
+    "mongoose": "^9.12.1"
   },
   "devDependencies": {
     "@metorial/model-catalog": "workspace:*",

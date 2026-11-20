@@ -1,5 +1,5 @@
 import type { JSONRPCMessage, JSONRPCRequest } from '@modelcontextprotocol/sdk/types.js';
-import { safeFetch } from '@mtsrc/mcp-runtime-network';
+import { safeFetch, type EgressContext } from '@mtsrc/mcp-runtime-network';
 import { parseJsonRpcError } from '@mtsrc/mcp-runtime-remote-protocol';
 import { safeParse } from '@mtsrc/mcp-runtime-remote-protocol';
 import { getBytes, getLines, getMessages } from '@mtsrc/mcp-runtime-network';
@@ -13,7 +13,7 @@ export interface StatelessPostOptions {
   request: JSONRPCRequest;
   headers: Record<string, string>;
   signal: AbortSignal;
-  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
+  egress: EgressContext;
   onMessage: (message: JSONRPCMessage) => unknown;
 }
 
@@ -28,7 +28,8 @@ export let postStatelessRequest = async (
   try {
     let response = await safeFetch(opts.url, {
       method: 'POST',
-      egressPolicy: opts.egressPolicy,
+      egress: opts.egress,
+      egressLifetime: 'stream',
       signal: opts.signal,
       headers: {
         ...opts.headers,

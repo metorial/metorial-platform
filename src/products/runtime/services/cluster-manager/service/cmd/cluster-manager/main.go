@@ -18,6 +18,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/metorial/metorial-platform/src/lib/rpc/go"
 	"github.com/metorial/metorial-platform/src/lib/rpc/go/kubeauth"
@@ -27,6 +28,7 @@ import (
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/builds"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/bundles"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/config"
+	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/doctorchecks"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/functions"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/gc"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/kube"
@@ -224,6 +226,7 @@ func run(log *slog.Logger) error {
 	controlAuth := auth.NewControlAuth(controlAuthn, cfg.PlatformNamespace, cfg.FunctionsCallerSA, cfg.BuildCallerSA, cfg.InsecureDisableControlAuth)
 
 	status := &statusHolder{}
+	var preflightSource *doctorchecks.Preflight
 	if cfg.Preflight != config.PreflightOff {
 		runner := &preflight.Runner{
 			Config:         cfg,
@@ -238,13 +241,15 @@ func run(log *slog.Logger) error {
 		}
 		report := runner.Run(ctx)
 		status.set(report)
+		preflightSource = doctorchecks.NewPreflight(report, runner.Run, status.set)
 		if failed := report.Failed(); len(failed) > 0 {
 			messages := make([]string, len(failed))
 			for i, f := range failed {
 				messages[i] = f.Check + ": " + f.Message
 			}
 			if cfg.Preflight == config.PreflightEnforce {
-				return fmt.Errorf("preflight failed (set CLUSTER_MANAGER_PREFLIGHT=warn to start anyway in development):\n  %s", strings.Join(messages, "\n  "))
+				failure := fmt.Errorf("preflight failed (set CLUSTER_MANAGER_PREFLIGHT=warn to start anyway in development):\n  %s", strings.Join(messages, "\n  "))
+				return serveRefusal(ctx, cfg, log, m, preflightSource, failure)
 			}
 			log.Warn("preflight failed; starting anyway because CLUSTER_MANAGER_PREFLIGHT=warn", "failures", len(failed))
 		}
@@ -286,7 +291,30 @@ func run(log *slog.Logger) error {
 		Log:            log,
 	}
 
+	clinic, err := doctorchecks.New(doctorchecks.Options{
+		Preflight:        preflightSource,
+		ObjectStorageURL: cfg.ObjectStorageURL,
+		EgressGateway:    cfg.PodEgressGatewayAddr,
+		NetworkLogs:      cfg.NetworkLogsAddr,
+		TLSCertFile:      cfg.TLSCertFile,
+		QuotaNamespaces: map[string]kubernetes.Interface{
+			cfg.FunctionsNamespace: fnCluster.Kube,
+			cfg.BuildsNamespace:    platform.Kube,
+		},
+		Permissions: runtimePermissions(cfg, platform, fnCluster),
+		EventNamespaces: map[string]kubernetes.Interface{
+			cfg.FunctionsNamespace: fnCluster.Kube,
+			cfg.BuildsNamespace:    platform.Kube,
+		},
+		Counts:          fnManager.Counts,
+		MaxMaterialized: cfg.MaxMaterialized,
+	})
+	if err != nil {
+		return fmt.Errorf("doctor: %w", err)
+	}
+
 	opsMux := http.NewServeMux()
+	opsMux.Handle("GET /doctor", clinic.Handler())
 	opsMux.Handle("GET /metrics", m.Handler())
 	opsMux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	opsMux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
@@ -338,6 +366,31 @@ func run(log *slog.Logger) error {
 	}
 	wg.Wait()
 	return err
+}
+
+// serveRefusal keeps the ops listener up after preflight refuses to start, so /doctor can say why
+// until the failing startup probe restarts the pod.
+func serveRefusal(ctx context.Context, cfg *config.Config, log *slog.Logger, m *metrics.Metrics, source *doctorchecks.Preflight, failure error) error {
+	log.Error("not starting: preflight failed; serving /doctor only", "error", failure)
+
+	clinic, err := doctorchecks.NewPreflightOnly(source)
+	if err != nil {
+		return failure
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("GET /doctor", clinic.Handler())
+	mux.Handle("GET /metrics", m.Handler())
+	refuse := func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "preflight failed", http.StatusServiceUnavailable)
+	}
+	mux.HandleFunc("GET /healthz", refuse)
+	mux.HandleFunc("GET /readyz", refuse)
+
+	if err := api.Serve(ctx, cfg.MetricsAddr, mux, "", ""); err != nil {
+		log.Error("ops listener failed", "error", err)
+	}
+	return failure
 }
 
 func podFacingAddr(ctx context.Context, cfg *config.Config, platform *kube.Cluster) (string, error) {
@@ -396,6 +449,23 @@ func resolveEgressGateway(ctx context.Context, cfg *config.Config, platform *kub
 		cfg.BuildEgressProxyAddr = net.JoinHostPort(svc.Spec.ClusterIP, strconv.Itoa(ports["proxy"]))
 	}
 	return nil
+}
+
+func runtimePermissions(cfg *config.Config, platform, functions *kube.Cluster) []doctorchecks.Permission {
+	permissions := []doctorchecks.Permission{}
+	for _, verb := range []string{"create", "patch", "delete"} {
+		permissions = append(permissions,
+			doctorchecks.Permission{Cluster: functions.Kube, Namespace: cfg.FunctionsNamespace, Group: "serving.knative.dev", Resource: "services", Verb: verb},
+			doctorchecks.Permission{Cluster: functions.Kube, Namespace: cfg.FunctionsNamespace, Resource: "secrets", Verb: verb},
+		)
+	}
+	for _, verb := range []string{"create", "delete"} {
+		permissions = append(permissions,
+			doctorchecks.Permission{Cluster: platform.Kube, Namespace: cfg.BuildsNamespace, Group: "batch", Resource: "jobs", Verb: verb},
+			doctorchecks.Permission{Cluster: platform.Kube, Namespace: cfg.BuildsNamespace, Resource: "secrets", Verb: verb},
+		)
+	}
+	return permissions
 }
 
 type statusHolder struct {

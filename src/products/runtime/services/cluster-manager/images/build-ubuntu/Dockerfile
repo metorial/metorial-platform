@@ -3,6 +3,8 @@
 # The function-bay CLI and @function-bay/nodejs are bundled from this checkout.
 
 FROM node:24-bookworm-slim AS node
+RUN npm install -g npm@^11.21.3 --no-audit --no-fund
+
 FROM oven/bun:1.4.2 AS bun
 
 FROM oven/bun:1.4.2 AS tooling
@@ -43,7 +45,7 @@ RUN cp /src/dependencies.json package.json \
     && node /src/write-manifest.mjs . \
     && rm package.json package-lock.json
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

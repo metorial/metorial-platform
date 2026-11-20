@@ -1,0 +1,69 @@
+{
+  "doctor": 1,
+  "component": "worker",
+  "instance": "worker-6b9f4-q8w2e",
+  "releaseVersion": "1.4.0-2026-11-14-3c1f9a2b7d-release",
+  "buildVersion": "1.4.0-2026-11-14-3c1f9a2b7d-release",
+  "channel": "release",
+  "publicUrl": "https://metorial.example.com",
+  "fingerprints": {},
+  "processStartedAt": "2026-11-17T09:12:03.000Z",
+  "startedAt": "2026-11-17T10:00:00.000Z",
+  "generatedAt": "2026-11-17T10:00:05.003Z",
+  "durationMs": 5003,
+  "runId": "0f1e2d3c4b5a",
+  "cached": false,
+  "ageMs": 0,
+  "checks": [
+    {
+      "id": "postgres.core.connect",
+      "title": "Worker can reach PostgreSQL",
+      "category": "database",
+      "target": "postgres:metorial_core@db.internal:5432",
+      "status": "timeout",
+      "severity": "critical",
+      "durationMs": 5000,
+      "message": "Timed out after 5000ms.",
+      "resolution": {
+        "summary": "Check that PostgreSQL is reachable from the cluster.",
+        "steps": ["Check network policies and security groups between the cluster and db.internal:5432."],
+        "docs": "datacenter/operations/doctor#postgres"
+      },
+      "details": null,
+      "cachedAt": null
+    },
+    {
+      "id": "postgres.core.schema",
+      "title": "Core database schema is migrated",
+      "category": "database",
+      "target": "postgres:metorial_core@db.internal:5432",
+      "status": "skip",
+      "severity": "critical",
+      "durationMs": 0,
+      "message": "Skipped because postgres.core.connect did not pass.",
+      "resolution": null,
+      "details": { "dependsOn": ["postgres.core.connect"] },
+      "cachedAt": null
+    },
+    {
+      "id": "queues.backlog",
+      "title": "Queues are draining",
+      "category": "runtime",
+      "target": null,
+      "status": "error",
+      "severity": "warning",
+      "durationMs": 3,
+      "message": "connect ECONNREFUSED 10.0.0.12:6379",
+      "resolution": null,
+      "details": {
+        "error": {
+          "kind": "connection_refused",
+          "code": "ECONNREFUSED",
+          "message": "connect ECONNREFUSED 10.0.0.12:6379",
+          "hint": "Nothing is listening at that address. Check the host, the port and that the service is running."
+        }
+      },
+      "cachedAt": null
+    }
+  ]
+}

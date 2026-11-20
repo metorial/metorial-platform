@@ -29,7 +29,13 @@ export let env = defineSettings({
     FUNCTION_BAY_TENANT_IDENTIFIER: v.string(),
 
     FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
-    FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number()
+    FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number(),
+
+    SLATE_DEPLOYMENT_TIMEOUT_MINUTES: setting(v.number(), {
+      default: 75,
+      description:
+        'Minutes after which a pending or running slate deployment is marked failed; keep it above the build timeout of the runtime'
+    })
   },
 
   storage: {

@@ -223,6 +223,18 @@ export let mirrorController = app.controller({
       catalogSlatePresenter(await activationService.getCatalogSlate(ctx.input))
     ),
 
+  getCatalogVersion: app
+    .handler()
+    .input(v.object({ slateId: v.string(), versionId: v.string() }))
+    .do(async ctx => {
+      let { slate, version } = await activationService.getCatalogVersion(ctx.input);
+
+      return catalogSlateVersionPresenter(version, {
+        pinnedVersionOid:
+          slate.activation?.mode === 'pinned' ? slate.activation.pinnedVersionOid : null
+      });
+    }),
+
   listCatalogVersions: app
     .handler()
     .input(Paginator.validate(v.object({ slateId: v.string() })))

@@ -1,7 +1,6 @@
-import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { flagService, isFlagEnabled } from '@metorial/module-flags';
 import {
   customProviderService,
   customProviderVersionService
@@ -195,17 +194,9 @@ export let customProviderVersionController = Controller.create(
       .output(subspaceCustomProviderVersionPresenter)
       .do(async ctx => {
         if (ctx.body.from.type === 'container') {
-          let flags = await flagService.getFlags({
-            organization: ctx.organization,
-            project: ctx.project
-          });
-          if (!isFlagEnabled(flags['paid-custom-docker-providers'])) {
-            throw new ServiceError(
-              paymentRequiredError({
-                message: 'Please upgrade to a different plan to access this feature'
-              })
-            );
-          }
+          throw new ServiceError(
+            forbiddenError({ message: 'Docker MCP servers are currently disabled.' })
+          );
         }
 
         let customProvider = await customProviderService.getCustomProviderById({

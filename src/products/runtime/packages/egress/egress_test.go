@@ -203,3 +203,35 @@ func TestFileKeySetReloads(t *testing.T) {
 		t.Fatal("missing file accepted")
 	}
 }
+
+func TestOpenFileKeySetWaitsForMissingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "keys.json")
+	key := testKey(t, "late")
+
+	set := OpenFileKeySet(path, time.Second)
+	clock := time.Now()
+	set.now = func() time.Time { return clock }
+
+	if _, ok := set.PublicKey("late"); ok {
+		t.Fatal("trusted a key before the file existed")
+	}
+	if set.LastError() == nil {
+		t.Fatal("expected the missing file to be reported")
+	}
+
+	data, err := NewKeySet(map[string]ed25519.PublicKey{"late": key.PublicKey()}).MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	clock = clock.Add(2 * time.Second)
+
+	if _, ok := set.PublicKey("late"); !ok {
+		t.Fatal("key not picked up once the file appeared")
+	}
+	if set.LastError() != nil {
+		t.Fatalf("unexpected error: %v", set.LastError())
+	}
+}

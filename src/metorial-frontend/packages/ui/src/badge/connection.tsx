@@ -2,6 +2,7 @@ import React from 'react';
 import { keyframes, styled } from 'styled-components';
 import { theme } from '../theme';
 import { BadgeIndicator } from './indicator';
+import { badgeWrapStyles, canWrapBadgeLabel } from './wrapping';
 
 export type ConnectionStatusTone = 'connected' | 'available' | 'review';
 
@@ -30,7 +31,10 @@ export let getConnectionStatusDotColor = (tone: ConnectionStatusTone) => {
 let ConnectionBadgeRoot = styled.span<{
   $tone: ConnectionStatusTone;
   $size: ConnectionBadgeSize;
+  $wrap: boolean;
 }>`
+  ${badgeWrapStyles}
+
   transition:
     background-color 220ms ease,
     color 220ms ease,
@@ -41,14 +45,15 @@ let ConnectionBadgeRoot = styled.span<{
   }
 
   min-width: ${({ $size }) => ($size == '1' ? '0' : '64px')};
-  height: ${({ $size }) => ($size == '1' ? '20px' : '24px')};
+  ${({ $wrap }) => ($wrap ? 'min-height' : 'height')}: ${({ $size }) =>
+    $size == '1' ? '20px' : '24px'};
   padding: ${({ $size }) => ($size == '1' ? '0 7px' : '0 9px')};
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: ${({ $size }) => ($size == '1' ? '5px' : '7px')};
-  flex-shrink: 0;
+  flex-shrink: ${({ $wrap }) => ($wrap ? 1 : 0)};
   align-self: flex-start;
   border: 1px solid
     ${({ $tone }) =>
@@ -116,6 +121,7 @@ export let ConnectionBadge = ({
   <ConnectionBadgeRoot
     $tone={tone}
     $size={size}
+    $wrap={canWrapBadgeLabel(children)}
     style={style}
     aria-busy={loading || undefined}
   >

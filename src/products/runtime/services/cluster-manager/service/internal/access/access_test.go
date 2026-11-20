@@ -52,6 +52,9 @@ func TestMethodAllowed(t *testing.T) {
 		{CallerBuild, "function:invoke", false},
 		{CallerBuild, "bundle:import", false},
 		{CallerInsecure, "build:start", true},
+		{CallerFunctions, "rpc:ping", true},
+		{CallerBuild, "rpc:ping", true},
+		{Caller(""), "rpc:ping", false},
 		{Caller(""), "function:list", false},
 		{CallerFunctions, "functionx:list", false},
 	}

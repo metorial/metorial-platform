@@ -1,9 +1,11 @@
 pub mod api;
 pub mod config;
+pub mod doctor;
 pub mod error;
 pub mod metadata;
 pub mod public;
 pub mod public_api;
+mod public_multipart;
 pub mod router;
 pub mod server;
 pub mod service;

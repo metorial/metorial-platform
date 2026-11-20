@@ -1,6 +1,6 @@
 import { getSentry } from '@lowerdeck/sentry';
 import axios from 'axios';
-import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
+import { getAxiosEgressOptions, systemEgressContext } from '@mtsrc/mcp-runtime-network';
 import { fetchBearerToken, parseBearerChallenge } from './connection';
 import type { ParsedImageRef } from './parseImageRef';
 import { withRetry } from './retry';
@@ -39,7 +39,7 @@ export let checkImageAccess = async ({
       }
 
       let response = await axios.head(url, {
-        ...getAxiosSsrfFilter(url),
+        ...getAxiosEgressOptions(url, systemEgressContext),
         headers: baseHeaders,
         timeout: REQUEST_TIMEOUT_MS,
         validateStatus: () => true
@@ -90,7 +90,7 @@ export let checkImageAccess = async ({
       };
 
       let retryResp = await axios.head(url, {
-        ...getAxiosSsrfFilter(url),
+        ...getAxiosEgressOptions(url, systemEgressContext),
         headers: authHeaders,
         timeout: REQUEST_TIMEOUT_MS,
         validateStatus: () => true

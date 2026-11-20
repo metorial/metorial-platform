@@ -21,6 +21,7 @@ const (
 	SourceLambda  = "lambda"
 	SourceKnative = "knative"
 	SourceBuild   = "build"
+	SourceMCP     = "mcp"
 
 	bucketSeconds = 30 * 60
 	queryLimit    = 1000
@@ -32,15 +33,44 @@ var (
 )
 
 type Config struct {
-	Host     string
-	Port     string
-	Name     string
-	Username string
-	Password string
-	SSLMode  string
+	// ServerURL is a complete server URL (postgres://user:pass@host:5432/?sslmode=...) used instead
+	// of the separate connection parts; its path is replaced by the database name.
+	ServerURL string
+	Host      string
+	Port      string
+	Name      string
+	Username  string
+	Password  string
+	SSLMode   string
+}
+
+func (c Config) Validate() error {
+	if c.Name == "" {
+		return errors.New("database name is required")
+	}
+	if c.ServerURL != "" {
+		parsed, err := url.Parse(c.ServerURL)
+		if err != nil || parsed.Host == "" || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") {
+			return errors.New("database server URL must be a postgres:// URL")
+		}
+		return nil
+	}
+	if c.Host == "" || c.Port == "" || c.Username == "" {
+		return errors.New("database host, port, name and username are required")
+	}
+	return nil
 }
 
 func (c Config) DSN(database string) string {
+	if c.ServerURL != "" {
+		parsed, err := url.Parse(c.ServerURL)
+		if err == nil {
+			parsed.Path = "/" + database
+			parsed.RawPath = ""
+			return parsed.String()
+		}
+	}
+
 	sslMode := c.SSLMode
 	if sslMode == "" {
 		sslMode = "require"
@@ -95,8 +125,8 @@ type Store struct {
 
 // Open creates the database if it doesn't exist, connects and migrates the schema.
 func Open(ctx context.Context, cfg Config) (*Store, error) {
-	if cfg.Host == "" || cfg.Port == "" || cfg.Name == "" || cfg.Username == "" {
-		return nil, errors.New("database host, port, name and username are required")
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 	if err := ensureDatabase(ctx, cfg); err != nil {
 		return nil, err
@@ -288,6 +318,10 @@ func validateRecord(record *Record) error {
 		if record.BuildRunID == "" {
 			return errors.New("build observation is missing buildRunId")
 		}
+	case SourceMCP:
+		if record.TenantID == "" {
+			return errors.New("mcp observation is missing tenantId")
+		}
 	default:
 		return fmt.Errorf("unknown source %q", record.Source)
 	}
@@ -390,6 +424,34 @@ func (s *Store) CleanupBefore(ctx context.Context, cutoff time.Time) (int64, err
 		return err
 	})
 	return deleted, err
+}
+
+var schemaTables = []string{"ingest_batches", "network_observations"}
+
+func (s *Store) MissingTables(ctx context.Context) ([]string, error) {
+	missing := []string{}
+	for _, table := range schemaTables {
+		var name *string
+		if err := s.pool.QueryRow(ctx, `SELECT to_regclass($1)::text`, table).Scan(&name); err != nil {
+			return nil, err
+		}
+		if name == nil {
+			missing = append(missing, table)
+		}
+	}
+	return missing, nil
+}
+
+// OldestObservation returns the zero time when nothing is stored.
+func (s *Store) OldestObservation(ctx context.Context) (time.Time, error) {
+	var oldest *int64
+	if err := s.pool.QueryRow(ctx, `SELECT MIN(bucket_start) FROM network_observations`).Scan(&oldest); err != nil {
+		return time.Time{}, err
+	}
+	if oldest == nil {
+		return time.Time{}, nil
+	}
+	return time.Unix(*oldest, 0), nil
 }
 
 func nonEmpty(values []string) []string {

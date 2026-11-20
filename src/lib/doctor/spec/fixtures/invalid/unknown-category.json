@@ -1,0 +1,32 @@
+{
+  "doctor": 1,
+  "component": "network-logs",
+  "instance": "network-logs-0",
+  "releaseVersion": null,
+  "buildVersion": null,
+  "channel": null,
+  "publicUrl": null,
+  "fingerprints": {},
+  "processStartedAt": "2026-11-17T09:12:03.000Z",
+  "startedAt": "2026-11-17T10:00:00.000Z",
+  "generatedAt": "2026-11-17T10:00:00.000Z",
+  "durationMs": 0,
+  "runId": "000000000001",
+  "cached": false,
+  "ageMs": 0,
+  "checks": [
+    {
+      "id": "x.y",
+      "title": "X",
+      "category": "vibes",
+      "target": null,
+      "status": "pass",
+      "severity": "info",
+      "durationMs": 0,
+      "message": "",
+      "resolution": null,
+      "details": null,
+      "cachedAt": null
+    }
+  ]
+}

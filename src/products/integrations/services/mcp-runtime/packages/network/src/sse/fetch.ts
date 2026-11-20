@@ -1,8 +1,8 @@
-import type {} from '@mtsrc/mcp-runtime-db';
 // Original source: https://github.com/Azure/fetch-event-source/blob/main/src/fetch.ts
 // License: https://github.com/Azure/fetch-event-source/blob/main/LICENSE
 
 import { HttpResponseError } from '../connectionError';
+import type { EgressContext } from '../egress/context';
 import { safeFetch } from '../http/fetchSsrf';
 import { type EventSourceMessage, getBytes, getLines, getMessages } from './parse';
 
@@ -10,7 +10,7 @@ export let EventStreamContentType = 'text/event-stream';
 
 export interface FetchEventSourceInit extends RequestInit {
   headers?: Record<string, string>;
-  egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
+  egress: EgressContext;
   onopen?: (response: Response) => Promise<void>;
   onmessage?: (ev: EventSourceMessage) => void;
   onclose?: () => void;
@@ -30,7 +30,7 @@ export let fetchEventSource = async (
     onerror,
     openWhenHidden,
     handleNonStreamResponses,
-    egressPolicy,
+    egress,
     ...rest
   }: FetchEventSourceInit
 ) => {
@@ -42,7 +42,8 @@ export let fetchEventSource = async (
 
   let response = await safeFetch(input, {
     ...rest,
-    egressPolicy,
+    egress,
+    egressLifetime: 'stream',
     headers
   });
 

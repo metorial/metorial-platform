@@ -1,3 +1,4 @@
+import { handleBootFailure } from '@metorial/doctor';
 import { createRequire } from 'module';
 
 (globalThis as any).require = createRequire(import.meta.url);
@@ -9,10 +10,7 @@ async function main() {
   await import('./worker');
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+main().catch(error => handleBootFailure('secret-store', error));
 
 if (process.env.HEARTBEAT_URL) {
   setInterval(() => {

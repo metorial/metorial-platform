@@ -200,6 +200,40 @@ func TestHMACAuth(t *testing.T) {
 	}
 }
 
+func TestPing(t *testing.T) {
+	_, hs := newTestServer(t, ServerOptions{
+		Path:         "/rpc",
+		Authenticate: HMACAuth(func(r *http.Request) (string, error) { return "secret", nil }),
+	})
+	ctx := context.Background()
+
+	for _, direct := range []bool{false, true} {
+		ok := newTestClient(t, hs.URL+"/rpc", ClientOptions{HMACToken: "secret", DirectRoute: direct})
+		out, err := Call[PingResult](ctx, ok, PingMethod, struct{}{})
+		if err != nil || !out.OK {
+			t.Fatalf("ping: %#v %v", out, err)
+		}
+	}
+
+	bad := newTestClient(t, hs.URL+"/rpc", ClientOptions{HMACToken: "wrong"})
+	if _, err := Call[PingResult](ctx, bad, PingMethod, struct{}{}); !isStatus(err, 401) {
+		t.Fatalf("expected 401, got %#v", err)
+	}
+}
+
+func TestPingOverride(t *testing.T) {
+	srv, hs := newTestServer(t, ServerOptions{Path: "/rpc"})
+	srv.Handle(PingMethod, func(context.Context, json.RawMessage) (any, error) {
+		return map[string]string{"custom": "yes"}, nil
+	})
+
+	c := newTestClient(t, hs.URL+"/rpc", ClientOptions{})
+	out, err := Call[map[string]string](context.Background(), c, PingMethod, struct{}{})
+	if err != nil || (*out)["custom"] != "yes" {
+		t.Fatalf("override: %#v %v", out, err)
+	}
+}
+
 func TestEd25519Auth(t *testing.T) {
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
 	_, hs := newTestServer(t, ServerOptions{

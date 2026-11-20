@@ -179,6 +179,7 @@ func buildOutput(b *builds.Build) *cm.Build {
 		Name:          b.Name,
 		Status:        cm.BuildStatus(b.Status),
 		FailureReason: b.FailureReason,
+		PendingReason: b.PendingReason,
 		UploadedSteps: b.UploadedSteps,
 		StartedAt:     b.StartedAt,
 		FinishedAt:    b.FinishedAt,

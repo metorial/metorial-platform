@@ -45,7 +45,7 @@
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
-    "@lowerdeck/ip-info": "workspace:2.0.0",
+    "@metorial/ip-info": "workspace:*",
     "@lowerdeck/once": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/programmable-promise": "workspace:2.0.0",

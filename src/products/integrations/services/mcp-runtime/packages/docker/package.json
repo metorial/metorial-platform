@@ -11,7 +11,7 @@
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@mtsrc/mcp-runtime-network": "workspace:*",
-    "axios": "^1.21.0",
+    "axios": "^1.21.1",
     "vitest": "5.0.4"
   },
   "devDependencies": {

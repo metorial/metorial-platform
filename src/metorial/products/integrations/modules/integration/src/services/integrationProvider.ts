@@ -144,6 +144,7 @@ let resolveAuthMethod = async (d: {
   provider: Provider & { type: ProviderType; defaultVariant: ProviderVariant | null };
   deployment: ProviderDeployment & { currentVersion: ProviderDeploymentVersion | null };
   hasAuthCredentials: boolean;
+  fixedAuthMethodKey?: string | null;
 }) => {
   let version = await providerDeploymentInternalService.getCurrentVersion({
     environment: d.environment,
@@ -160,6 +161,11 @@ let resolveAuthMethod = async (d: {
   });
   let authMethods = await paginator.run({ limit: 100 });
   if (!authMethods.items.length) return null;
+
+  if (d.fixedAuthMethodKey) {
+    let fixed = authMethods.items.find(m => m.key === d.fixedAuthMethodKey);
+    if (fixed) return fixed;
+  }
 
   if (!d.hasAuthCredentials && !d.provider.type.supportsOAuthAutoRegistration) {
     let nonOAuth = authMethods.items.find(m => m.type !== 'oauth');
@@ -239,13 +245,35 @@ let validateMaterialInput = async (d: {
   let authMethod = explicitAuthMethod;
   let authCredentials = explicitAuthCredentials;
 
+  if (
+    !authCredentials &&
+    d.provider.type.supportsAuth &&
+    !d.provider.type.supportsOAuthAutoRegistration &&
+    (!authMethod || authMethod.type === 'oauth')
+  ) {
+    let templateCredentials =
+      await providerAuthCredentialsService.getInstallationTemplateDefaultInternal({
+        tenant: d.tenant,
+        provider: d.provider
+      });
+    if (
+      templateCredentials &&
+      (!authMethod ||
+        !templateCredentials.fixedAuthMethodKey ||
+        templateCredentials.fixedAuthMethodKey === authMethod.key)
+    ) {
+      authCredentials = templateCredentials;
+    }
+  }
+
   if (!authMethod && d.provider.type.supportsAuth) {
     authMethod = await resolveAuthMethod({
       tenant: d.tenant,
       environment: d.environment,
       provider: d.provider,
       deployment,
-      hasAuthCredentials: !!authCredentials
+      hasAuthCredentials: !!authCredentials,
+      fixedAuthMethodKey: authCredentials?.fixedAuthMethodKey
     });
   }
 
@@ -364,7 +392,8 @@ let inferReconciliationAuthMaterial = async (d: {
     environment: d.environment,
     provider,
     deployment: d.deployment,
-    hasAuthCredentials: !!authCredentials
+    hasAuthCredentials: !!authCredentials,
+    fixedAuthMethodKey: authCredentials?.fixedAuthMethodKey
   });
 
   return {

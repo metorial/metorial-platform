@@ -194,6 +194,49 @@ async fn azure_durable_uploads() {
 }
 
 #[tokio::test]
+async fn azure_public_completion_uses_the_exact_version_named_by_the_receipt() {
+    let Some(connection_string) = env("OBJECT_STORE_TEST_AZURE_CONNECTION_STRING") else {
+        skip(
+            "azure_public_completion",
+            "OBJECT_STORE_TEST_AZURE_CONNECTION_STRING",
+        );
+        return;
+    };
+    let container =
+        env("OBJECT_STORE_TEST_AZURE_CONTAINER").unwrap_or_else(|| "conformance".to_string());
+    let backend = AzureBackend::new_from_connection_string(connection_string, container).unwrap();
+    let key = unique("public-multipart-azure");
+    let upload_id = backend
+        .start_durable_multipart(&key, &PutOptions::default())
+        .await
+        .unwrap();
+
+    let first = backend
+        .upload_public_part(&key, &upload_id, 1, Bytes::from_static(b"first"))
+        .await
+        .unwrap();
+    let second = backend
+        .upload_public_part(&key, &upload_id, 1, Bytes::from_static(b"other"))
+        .await
+        .unwrap();
+    assert_ne!(first.etag, second.etag);
+
+    backend
+        .complete_public_multipart(
+            &key,
+            &upload_id,
+            &[DurablePartRef {
+                number: 1,
+                etag: first.etag,
+            }],
+        )
+        .await
+        .unwrap();
+    assert_eq!(read(&backend, &key).await, b"first");
+    backend.delete_object(&key).await.unwrap();
+}
+
+#[tokio::test]
 async fn gcs_durable_uploads_against_a_real_bucket() {
     let Some(bucket) = env("OBJECT_STORE_TEST_GCS_REAL_BUCKET") else {
         skip(

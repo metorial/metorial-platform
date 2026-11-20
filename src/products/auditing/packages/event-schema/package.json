@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "NODE_OPTIONS=--max_old_space_size=8192 tsc --noEmit"
   },
   "dependencies": {
     "@lowerdeck/validation": "workspace:*",

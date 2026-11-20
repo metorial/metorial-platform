@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { SlateDeploymentStatus } from '../../../prisma/generated/client';
-import { slateDeploymentPresenter } from '../../presenters';
+import { slateDeploymentPresenter, slateDeploymentStepPresenter } from '../../presenters';
 import { slateDeploymentService, slateService } from '../../services';
 import { app } from './_app';
 import { slateApp } from './slate';
@@ -26,7 +26,14 @@ export let slateDeploymentController = app.controller({
         v.object({
           slateId: v.optional(v.string()),
           versionIds: v.optional(v.array(v.string())),
-          status: v.optional(v.enumOf(Object.values(SlateDeploymentStatus) as [SlateDeploymentStatus, ...SlateDeploymentStatus[]]))
+          status: v.optional(
+            v.enumOf(
+              Object.values(SlateDeploymentStatus) as [
+                SlateDeploymentStatus,
+                ...SlateDeploymentStatus[]
+              ]
+            )
+          )
         })
       )
     )
@@ -65,11 +72,11 @@ export let slateDeploymentController = app.controller({
       })
     )
     .do(async ctx => {
-      let res = await slateDeploymentService.getBuildOutput({
+      let steps = await slateDeploymentService.getBuildOutput({
         slateDeployment: ctx.slateDeployment
       });
 
-      return res;
+      return steps.map(slateDeploymentStepPresenter);
     }),
 
   getInternalLogs: slateDeploymentApp

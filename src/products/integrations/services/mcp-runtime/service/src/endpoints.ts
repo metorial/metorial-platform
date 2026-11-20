@@ -1,3 +1,4 @@
+import { startHealthServer } from '@metorial/doctor';
 import { apiMux } from '@lowerdeck/api-mux';
 import { rpcMux } from '@lowerdeck/rpc-server';
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
@@ -7,6 +8,7 @@ import { ShuttleRPC } from '@mtsrc/mcp-runtime-api-internal';
 import { publicApp } from '@mtsrc/mcp-runtime-api-public';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
+import { mcpRuntimeDoctorChecks } from './doctor';
 
 let shuttleApi = apiMux(
   [{ endpoint: rpcMux({ path: '/metorial-shuttle' }, [ShuttleRPC]) }],
@@ -61,26 +63,25 @@ let checkRedis = async () => {
 //   }
 // };
 
-if (process.env.NODE_ENV === 'production') {
-  Bun.serve({
-    fetch: async req =>
-      withTracingSuppressed(async () => {
-        let step = 'initializing';
-        let path = new URL(req.url).pathname;
+startHealthServer({
+  component: 'mcp-controller',
+  checks: mcpRuntimeDoctorChecks(redis),
+  liveness: async req =>
+    withTracingSuppressed(async () => {
+      let step = 'initializing';
+      let path = new URL(req.url).pathname;
 
-        try {
-          step = 'checking database';
-          await checkDatabase();
+      try {
+        step = 'checking database';
+        await checkDatabase();
 
-          step = 'checking redis';
-          await checkRedis();
+        step = 'checking redis';
+        await checkRedis();
 
-          return new Response('OK');
-        } catch (e) {
-          console.error(`Health check failed at step: ${step}`, e);
-          return new Response('Service Unavailable', { status: 503 });
-        }
-      }),
-    port: 12121
-  });
-}
+        return new Response('OK');
+      } catch (e) {
+        console.error(`Health check failed at step: ${step}`, e);
+        return new Response('Service Unavailable', { status: 503 });
+      }
+    })
+});
