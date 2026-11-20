@@ -11,11 +11,26 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.104",
+    "@ai-sdk/azure": "4.0.125",
+    "@ai-sdk/cerebras": "3.0.92",
+    "@ai-sdk/cohere": "4.0.83",
+    "@ai-sdk/deepinfra": "3.0.92",
+    "@ai-sdk/deepseek": "3.0.86",
+    "@ai-sdk/fireworks": "3.0.95",
+    "@ai-sdk/google": "4.0.120",
+    "@ai-sdk/groq": "4.0.83",
+    "@ai-sdk/mistral": "4.0.86",
+    "@ai-sdk/openai": "4.0.117",
+    "@ai-sdk/provider": "4.0.38",
+    "@ai-sdk/togetherai": "3.0.93",
+    "@ai-sdk/xai": "5.0.45",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@mtsrc/ai-gateway-spec": "workspace:*"
   },
   "devDependencies": {
+    "@mtsrc/ai-gateway-testing": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"

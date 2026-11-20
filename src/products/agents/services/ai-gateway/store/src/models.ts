@@ -16,7 +16,11 @@ export type InferenceDialect = 'openai_chat' | 'anthropic_messages' | 'open_resp
 
 export type InferenceOperation = 'generate' | 'stream' | 'embed' | 'count_tokens';
 
-export type InferenceStatus = 'succeeded' | 'failed' | 'cancelled';
+export type InferenceStatus = 'succeeded' | 'failed' | 'cancelled' | 'rejected';
+
+// Where a request stopped: `rejected` requests never reach a provider (invalid or unsupported
+// parameters, limits, routing), `failed` ones were refused or broken off upstream.
+export type InferenceErrorStage = 'request' | 'limits' | 'routing' | 'upstream' | 'internal';
 
 export type ConnectionRef =
   | { connectionOwner: 'customer'; connectionId: string }
@@ -25,6 +29,8 @@ export type ConnectionRef =
 export type InferenceError = {
   code: string;
   message: string;
+  stage?: InferenceErrorStage;
+  param?: string;
   httpStatus?: number;
   providerCode?: string;
 };
@@ -76,7 +82,7 @@ export type InferenceLogDocument = {
   requestId?: string;
 
   requestedModel: string;
-  model?: { id: string; slug: string; labSlug: string };
+  model?: { id?: string; slug: string; labSlug: string };
   virtualModel?: InferenceVirtualModelLog;
   metadata?: Record<string, string>;
 

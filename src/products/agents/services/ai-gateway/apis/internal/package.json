@@ -19,6 +19,7 @@
     "@mtsrc/ai-gateway-module-access": "workspace:*",
     "@mtsrc/ai-gateway-module-catalog": "workspace:*",
     "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+    "@mtsrc/ai-gateway-module-limits": "workspace:*",
     "@mtsrc/ai-gateway-module-logs": "workspace:*",
     "@mtsrc/ai-gateway-module-routing": "workspace:*",
     "@mtsrc/ai-gateway-module-scope": "workspace:*",

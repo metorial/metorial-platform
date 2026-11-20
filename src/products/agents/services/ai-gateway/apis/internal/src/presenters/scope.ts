@@ -22,6 +22,9 @@ export let projectPresenter = (project: Project, organization: Organization) => 
 
   organizationId: organization.id,
 
+  platformLimits: project.platformLimits,
+  platformLimitsSyncedAt: project.platformLimitsSyncedAt,
+
   archivedAt: project.archivedAt,
   createdAt: project.createdAt,
   updatedAt: project.updatedAt
@@ -42,6 +45,7 @@ export let instancePresenter = (
 
   logRetentionDays: instance.logRetentionDays,
   settings: resolveInstanceSettings(instance.settings),
+  limits: instance.limits,
 
   archivedAt: instance.archivedAt,
   createdAt: instance.createdAt,

@@ -1,16 +1,19 @@
 import { createError, ServiceError } from '@lowerdeck/error';
+import type { SseEvent } from '@mtsrc/ai-gateway-dialects';
+import type { InferenceRequest, InferenceResult } from '@mtsrc/ai-gateway-module-inference';
 import type { GatewayPrincipal } from '@mtsrc/ai-gateway-spec';
 import { describe, expect, it, vi } from 'vitest';
 import { createInferenceApp, type InferenceDependencies } from '../src/app';
 
 let principal: GatewayPrincipal = {
-  token: { id: 'gwtk_1', consumerRef: null, allowedModels: [], limits: {}, metadata: {} },
+  token: { id: 'gwtk_1', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
   organization: { id: 'gwor_1', ref: 'org' },
-  project: { id: 'gwpr_1', ref: 'project' },
+  project: { id: 'gwpr_1', ref: 'project', platformLimits: [] },
   instance: {
     id: 'gwin_1',
     ref: 'instance',
     logRetentionDays: 90,
+    limits: [],
     settings: {
       contentLogging: { enabled: false, retentionDays: 7 },
       metorialProviderEnabled: true,
@@ -25,12 +28,6 @@ let invalidToken = createError({
   code: 'invalid_credential',
   message: 'Bad token.'
 });
-let modelNotFound = createError({
-  status: 404,
-  code: 'model_not_found',
-  message: 'No model.'
-});
-
 let models = [
   {
     slug: 'anthropic/claude-sonnet-5',
@@ -49,7 +46,11 @@ let setup = (overrides: Partial<InferenceDependencies> = {}) => {
       if (token != 'good') throw new ServiceError(invalidToken());
       return principal;
     }),
-    route: vi.fn(async () => ({})),
+    run: vi.fn<(request: InferenceRequest) => Promise<InferenceResult>>(async () => ({
+      type: 'json',
+      body: { ok: true },
+      headers: {}
+    })),
     listModels: vi.fn(async () => models),
     ...overrides
   };
@@ -115,31 +116,187 @@ describe('authentication', () => {
 
 describe('inference endpoints', () => {
   it.each([
-    ['/v1/chat/completions', 'OpenAI Chat Completions', 'openai_chat'],
-    ['/v1/responses', 'Open Responses', 'open_responses'],
-    ['/v1/messages', 'Anthropic Messages', 'anthropic_messages']
-  ])('%s routes the model and answers 501 for now', async (path, name, dialect) => {
+    ['/v1/chat/completions', 'openai_chat'],
+    ['/v1/responses', 'open_responses'],
+    ['/v1/messages', 'anthropic_messages']
+  ])('%s hands the request to the runner', async (path, dialect) => {
     let { request, deps } = setup();
     let body = { model: 'anthropic/claude-sonnet-5', messages: [] };
 
     let response = await request(path, {
       method: 'POST',
-      headers: { authorization: 'Bearer good' },
+      headers: {
+        authorization: 'Bearer good',
+        'user-agent': 'sdk/1.0',
+        'x-request-id': 'req_9'
+      },
       json: body
     });
 
-    expect(response.status).toBe(501);
-    expect(JSON.stringify(await response.json())).toContain(name);
-    expect(deps.route).toHaveBeenCalledWith({
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(deps.run).toHaveBeenCalledWith({
       principal,
-      model: 'anthropic/claude-sonnet-5',
       dialect,
       body,
-      metadata: {}
+      metadata: {},
+      countTokens: undefined,
+      requestId: 'req_9',
+      userAgent: 'sdk/1.0',
+      signal: expect.any(AbortSignal),
+      receivedAt: expect.any(Date)
     });
   });
 
-  it('passes request metadata to routing', async () => {
+  it('counts tokens through the runner', async () => {
+    let { request, deps } = setup({
+      run: vi.fn(async () => ({
+        type: 'json' as const,
+        body: { input_tokens: 5 },
+        headers: {}
+      }))
+    });
+
+    let response = await request('/v1/messages/count_tokens', {
+      method: 'POST',
+      headers: { 'x-api-key': 'good' },
+      json: { model: 'claude', messages: [] }
+    });
+
+    expect(await response.json()).toEqual({ input_tokens: 5 });
+    expect(deps.run).toHaveBeenCalledWith(
+      expect.objectContaining({ dialect: 'anthropic_messages', countTokens: true })
+    );
+  });
+
+  it('sends the runner headers with JSON responses', async () => {
+    let { request } = setup({
+      run: async () => ({
+        type: 'json',
+        body: { id: 'x' },
+        headers: { 'x-metorial-request-id': 'gwlg_1', 'x-metorial-provider': 'metorial' }
+      })
+    });
+
+    let response = await request('/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer good' },
+      json: { model: 'x' }
+    });
+
+    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(response.headers.get('x-metorial-provider')).toBe('metorial');
+  });
+
+  it('answers runner errors in the dialect shape with their headers', async () => {
+    let { request } = setup({
+      run: async () => ({
+        type: 'error',
+        error: { status: 429, code: 'upstream_rate_limited', message: 'Slow down.' },
+        headers: { 'retry-after': '3', 'x-metorial-request-id': 'gwlg_1' }
+      })
+    });
+
+    let response = await request('/v1/messages', {
+      method: 'POST',
+      headers: { authorization: 'Bearer good' },
+      json: { model: 'x' }
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('retry-after')).toBe('3');
+    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(await response.json()).toEqual({
+      type: 'error',
+      error: { type: 'rate_limit_error', message: 'Slow down.' }
+    });
+  });
+
+  it('serves streams as server-sent events', async () => {
+    let events: SseEvent[] = [
+      { event: 'message_start', data: '{"type":"message_start"}' },
+      { data: '[DONE]' }
+    ];
+    let { request } = setup({
+      run: async () => ({
+        type: 'stream',
+        events: new ReadableStream({
+          start: controller => {
+            events.forEach(event => controller.enqueue(event));
+            controller.close();
+          }
+        }),
+        headers: { 'x-metorial-request-id': 'gwlg_1' }
+      })
+    });
+
+    let response = await request('/v1/messages', {
+      method: 'POST',
+      headers: { authorization: 'Bearer good' },
+      json: { model: 'x', stream: true }
+    });
+
+    expect(response.headers.get('content-type')).toBe('text/event-stream; charset=utf-8');
+    expect(response.headers.get('cache-control')).toBe('no-cache');
+    expect(response.headers.get('x-accel-buffering')).toBe('no');
+    expect(response.headers.get('x-metorial-request-id')).toBe('gwlg_1');
+    expect(await response.text()).toBe(
+      'event: message_start\ndata: {"type":"message_start"}\n\ndata: [DONE]\n\n'
+    );
+  });
+
+  it('keeps idle streams alive with comment lines', async () => {
+    let { request } = setup({
+      keepAliveMs: 5,
+      run: async () => ({
+        type: 'stream',
+        events: new ReadableStream({
+          start: async controller => {
+            await new Promise(resolve => setTimeout(resolve, 40));
+            controller.enqueue({ data: '[DONE]' });
+            controller.close();
+          }
+        }),
+        headers: {}
+      })
+    });
+
+    let response = await request('/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer good' },
+      json: { model: 'x', stream: true }
+    });
+    let text = await response.text();
+
+    expect(text).toMatch(/^(: ping\n\n)+data: \[DONE\]\n\n$/);
+  });
+
+  it('cancels the runner stream when the client stops reading', async () => {
+    let cancelled = vi.fn();
+    let { request } = setup({
+      run: async () => ({
+        type: 'stream',
+        events: new ReadableStream<SseEvent>({
+          start: controller => controller.enqueue({ data: '{"a":1}' }),
+          cancel: cancelled
+        }),
+        headers: {}
+      })
+    });
+
+    let response = await request('/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer good' },
+      json: { model: 'x', stream: true }
+    });
+    let reader = response.body!.getReader();
+    await reader.read();
+    await reader.cancel();
+
+    expect(cancelled).toHaveBeenCalled();
+  });
+
+  it('passes request metadata to the runner', async () => {
     let { request, deps } = setup();
 
     await request('/v1/chat/completions', {
@@ -151,8 +308,8 @@ describe('inference endpoints', () => {
       json: { model: 'smart', messages: [] }
     });
 
-    expect(deps.route).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'smart', metadata: { session: 'abc', tier: 'free' } })
+    expect(deps.run).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { session: 'abc', tier: 'free' } })
     );
   });
 
@@ -175,22 +332,20 @@ describe('inference endpoints', () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: { code: 'invalid_metadata' } });
-    expect(deps.route).not.toHaveBeenCalled();
+    expect(deps.run).not.toHaveBeenCalled();
   });
 
-  it('requires a model', async () => {
-    let { request } = setup();
+  it('rejects bodies declared larger than the limit', async () => {
+    let { request, deps } = setup();
 
     let response = await request('/v1/chat/completions', {
       method: 'POST',
-      headers: { authorization: 'Bearer good' },
-      json: { messages: [] }
+      headers: { authorization: 'Bearer good', 'content-length': String(33 * 1024 * 1024) },
+      json: { model: 'x' }
     });
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: { code: 'missing_model', param: 'model', type: 'invalid_request_error' }
-    });
+    expect(response.status).toBe(413);
+    expect(deps.run).not.toHaveBeenCalled();
   });
 
   it('rejects invalid JSON', async () => {
@@ -209,29 +364,9 @@ describe('inference endpoints', () => {
     });
   });
 
-  it('passes routing errors through in the dialect shape', async () => {
-    let { request } = setup({
-      route: async () => {
-        throw new ServiceError(modelNotFound());
-      }
-    });
-
-    let response = await request('/v1/messages', {
-      method: 'POST',
-      headers: { authorization: 'Bearer good' },
-      json: { model: 'nope' }
-    });
-
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
-      type: 'error',
-      error: { type: 'not_found_error', message: 'No model.' }
-    });
-  });
-
   it('hides unexpected errors', async () => {
     let { request } = setup({
-      route: async () => {
+      run: async () => {
         throw new Error('database exploded with secrets');
       }
     });

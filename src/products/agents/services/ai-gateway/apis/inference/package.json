@@ -13,14 +13,22 @@
   "dependencies": {
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",
+    "@mtsrc/ai-gateway-dialects": "workspace:*",
     "@mtsrc/ai-gateway-module-access": "workspace:*",
+    "@mtsrc/ai-gateway-module-inference": "workspace:*",
+    "@mtsrc/ai-gateway-module-limits": "workspace:*",
     "@mtsrc/ai-gateway-module-routing": "workspace:*",
     "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
     "@mtsrc/ai-gateway-spec": "workspace:*",
     "hono": "^4.13.16"
   },
   "devDependencies": {
+    "@ai-sdk/provider": "4.0.38",
+    "@anthropic-ai/sdk": "1.8.0",
+    "@mtsrc/ai-gateway-providers": "workspace:*",
+    "@mtsrc/ai-gateway-testing": "workspace:*",
     "@types/bun": "latest",
+    "openai": "7.56.0",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
   }

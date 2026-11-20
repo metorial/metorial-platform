@@ -1,4 +1,5 @@
 import { cors, createHono } from '@lowerdeck/hono';
+import type { InferenceRequest, InferenceResult } from '@mtsrc/ai-gateway-module-inference';
 import {
   parseRequestMetadata,
   requestMetadataHeader,
@@ -14,43 +15,29 @@ import {
   openaiModelList,
   type ListedModel
 } from './lib/models';
+import { sseResponse } from './lib/sse';
 
 export type InferenceDependencies = {
   authenticate: (token: string | undefined) => Promise<GatewayPrincipal>;
   extractToken: (headers: { authorization?: string; apiKey?: string }) => string | undefined;
-  route: (d: {
-    principal: GatewayPrincipal;
-    model: string;
-    dialect: Dialect;
-    body: unknown;
-    metadata: RequestMetadata;
-  }) => Promise<unknown>;
+  run: (request: InferenceRequest) => Promise<InferenceResult>;
   listModels: (d: { principal: GatewayPrincipal }) => Promise<ListedModel[]>;
+  keepAliveMs?: number;
 };
 
 type Variables = { principal: GatewayPrincipal; dialect: Dialect };
 
 let maxBodyBytes = 32 * 1024 * 1024;
+let defaultKeepAliveMs = 15_000;
 
 // Anthropic SDKs always send `anthropic-version`; OpenAI-style clients never do. Shared
 // endpoints like /v1/models use it to answer in the shape the caller's SDK expects.
 let dialectOfRequest = (c: Context): Dialect =>
   c.req.header('anthropic-version') ? 'anthropic_messages' : 'openai_chat';
 
-let dialectNames: Record<Dialect, string> = {
-  openai_chat: 'OpenAI Chat Completions',
-  anthropic_messages: 'Anthropic Messages',
-  open_responses: 'Open Responses'
-};
-
-let notImplemented = (dialect: Dialect): GatewayError => ({
-  status: 501,
-  code: 'not_implemented',
-  message: `Inference through the ${dialectNames[dialect]} API is not available yet.`
-});
-
 export let createInferenceApp = (deps: InferenceDependencies) => {
   let app = createHono<{ Variables: Variables }>();
+  let keepAliveMs = deps.keepAliveMs ?? defaultKeepAliveMs;
 
   app.use(
     '/v1/*',
@@ -100,9 +87,7 @@ export let createInferenceApp = (deps: InferenceDependencies) => {
 
   let readRequest = async (
     c: Context<{ Variables: Variables }>
-  ): Promise<
-    { model: string; body: unknown; metadata: RequestMetadata } | { error: GatewayError }
-  > => {
+  ): Promise<{ body: unknown; metadata: RequestMetadata } | { error: GatewayError }> => {
     let metadata = parseRequestMetadata(c.req.header(requestMetadataHeader));
     if ('error' in metadata) {
       return { error: { status: 400, code: 'invalid_metadata', message: metadata.error } };
@@ -132,29 +117,35 @@ export let createInferenceApp = (deps: InferenceDependencies) => {
       };
     }
 
-    let model = (body as { model?: unknown } | null)?.model;
-    if (typeof model != 'string' || !model.trim()) {
-      return {
-        error: {
-          status: 400,
-          code: 'missing_model',
-          message: 'The "model" field is required.',
-          param: 'model'
-        }
-      };
-    }
-
-    return { model, body, metadata: metadata.metadata };
+    return { body, metadata: metadata.metadata };
   };
 
-  let inference = (dialect: Dialect) => async (c: Context<{ Variables: Variables }>) => {
-    let parsed = await readRequest(c);
-    if ('error' in parsed) return errorResponse(dialect, parsed.error);
+  let inference =
+    (dialect: Dialect, d: { countTokens?: boolean } = {}) =>
+    async (c: Context<{ Variables: Variables }>) => {
+      let receivedAt = new Date();
 
-    await deps.route({ principal: c.get('principal'), dialect, ...parsed });
+      let request = await readRequest(c);
+      if ('error' in request) return errorResponse(dialect, request.error);
 
-    return errorResponse(dialect, notImplemented(dialect));
-  };
+      let result = await deps.run({
+        principal: c.get('principal'),
+        dialect,
+        body: request.body,
+        metadata: request.metadata,
+        countTokens: d.countTokens,
+        requestId: c.req.header('x-request-id'),
+        userAgent: c.req.header('user-agent'),
+        signal: c.req.raw.signal,
+        receivedAt
+      });
+
+      if (result.type == 'error') return errorResponse(dialect, result.error, result.headers);
+      if (result.type == 'json')
+        return Response.json(result.body, { headers: result.headers });
+
+      return sseResponse({ events: result.events, headers: result.headers, keepAliveMs });
+    };
 
   app.get('/v1/models', authenticated('detect'), async c => {
     let models = await deps.listModels({ principal: c.get('principal') });
@@ -194,7 +185,7 @@ export let createInferenceApp = (deps: InferenceDependencies) => {
   app.post(
     '/v1/messages/count_tokens',
     authenticated('anthropic_messages'),
-    inference('anthropic_messages')
+    inference('anthropic_messages', { countTokens: true })
   );
 
   app.notFound(c =>

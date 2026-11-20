@@ -1,3 +1,4 @@
+import type { GatewayLimit, PlatformLimit } from './limits';
 import type { ResolvedInstanceSettings } from './settings';
 import type { GatewayTokenLimits, GatewayTokenMetadata } from './token';
 
@@ -11,11 +12,12 @@ export type GatewayPrincipal = {
   };
 
   organization: { id: string; ref: string };
-  project: { id: string; ref: string };
+  project: { id: string; ref: string; platformLimits: PlatformLimit[] };
   instance: {
     id: string;
     ref: string;
     logRetentionDays: number;
     settings: ResolvedInstanceSettings;
+    limits: GatewayLimit[];
   };
 };

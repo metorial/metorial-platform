@@ -5,7 +5,7 @@ import {
   organizationService,
   projectService
 } from '@mtsrc/ai-gateway-module-scope';
-import { instanceSettingsSchema } from '@mtsrc/ai-gateway-spec';
+import { gatewayLimitsSchema, instanceSettingsSchema } from '@mtsrc/ai-gateway-spec';
 import {
   instancePresenter,
   organizationPresenter,
@@ -109,7 +109,8 @@ export let instanceController = app.controller({
         logRetentionDays: v.optional(
           v.number({ modifiers: [v.integer(), v.minValue(1), v.maxValue(400)] })
         ),
-        settings: v.optional(instanceSettingsSchema)
+        settings: v.optional(instanceSettingsSchema),
+        limits: v.optional(gatewayLimitsSchema)
       })
     )
     .do(async ctx => {
@@ -125,7 +126,8 @@ export let instanceController = app.controller({
           ref: ctx.input.ref,
           name: ctx.input.name,
           logRetentionDays: ctx.input.logRetentionDays,
-          settings: ctx.input.settings
+          settings: ctx.input.settings,
+          limits: ctx.input.limits
         }
       });
 

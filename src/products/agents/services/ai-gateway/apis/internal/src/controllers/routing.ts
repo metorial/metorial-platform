@@ -27,16 +27,21 @@ export let routingController = app.controller({
           id: 'preview',
           consumerRef: null,
           allowedModels: [],
-          limits: {},
+          limits: [],
           metadata: {}
         },
         organization: { id: ctx.organization.id, ref: ctx.organization.ref },
-        project: { id: ctx.instance.project.id, ref: ctx.instance.project.ref },
+        project: {
+          id: ctx.instance.project.id,
+          ref: ctx.instance.project.ref,
+          platformLimits: ctx.instance.project.platformLimits
+        },
         instance: {
           id: ctx.instance.id,
           ref: ctx.instance.ref,
           logRetentionDays: ctx.instance.logRetentionDays,
-          settings: resolveInstanceSettings(ctx.instance.settings)
+          settings: resolveInstanceSettings(ctx.instance.settings),
+          limits: ctx.instance.limits
         }
       };
 

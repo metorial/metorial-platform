@@ -10,8 +10,8 @@ model GatewayToken {
 
   allowedModels String[]
 
-  /// [GatewayTokenLimits]
-  limits Json @default("{}")
+  /// [GatewayLimits]
+  limits Json @default("[]")
 
   /// [GatewayTokenMetadata]
   metadata Json @default("{}")

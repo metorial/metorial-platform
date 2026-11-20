@@ -14,7 +14,7 @@ export let inferenceLogController = app.controller({
         consumerRef: v.optional(v.string()),
         modelSlug: v.optional(v.string()),
         virtualModelId: v.optional(v.string()),
-        status: v.optional(v.enumOf(['succeeded', 'failed', 'cancelled'])),
+        status: v.optional(v.enumOf(['succeeded', 'failed', 'cancelled', 'rejected'])),
         before: v.optional(v.string()),
         limit: v.optional(
           v.number({ modifiers: [v.integer(), v.minValue(1), v.maxValue(100)] })

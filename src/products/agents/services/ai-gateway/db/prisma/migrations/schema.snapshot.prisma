@@ -23,8 +23,8 @@ model GatewayToken {
 
   allowedModels String[]
 
-  /// [GatewayTokenLimits]
-  limits Json @default("{}")
+  /// [GatewayLimits]
+  limits Json @default("[]")
 
   /// [GatewayTokenMetadata]
   metadata Json @default("{}")
@@ -308,6 +308,10 @@ model Project {
   ref  String  @unique
   name String?
 
+  /// [PlatformLimits]
+  platformLimits         Json      @default("[]")
+  platformLimitsSyncedAt DateTime?
+
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -331,6 +335,9 @@ model Instance {
 
   /// [InstanceSettings]
   settings Json @default("{}")
+
+  /// [GatewayLimits]
+  limits Json @default("[]")
 
   archivedAt DateTime?
   createdAt  DateTime  @default(now())

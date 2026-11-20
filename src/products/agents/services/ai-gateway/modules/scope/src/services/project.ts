@@ -2,6 +2,7 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, getId, type Organization, type Project } from '@mtsrc/ai-gateway-db';
 import { Events, type ScopeChange } from '@mtsrc/ai-gateway-events';
+import type { PlatformLimit } from '@mtsrc/ai-gateway-spec';
 
 class ProjectServiceImpl {
   async upsertProject(d: {
@@ -53,6 +54,52 @@ class ProjectServiceImpl {
     });
 
     await this.fireChanged(project, d.organization, 'archived');
+
+    return project;
+  }
+
+  async getProjectWithOrganization(d: { projectId: string }) {
+    let project = await db.project.findFirst({
+      where: { id: d.projectId, archivedAt: null },
+      include: { organization: true }
+    });
+    if (!project) throw new ServiceError(notFoundError('project'));
+
+    return project;
+  }
+
+  async listProjectsWithOrganization(d: { projectIds: string[] }) {
+    return await db.project.findMany({
+      where: { id: { in: d.projectIds } },
+      include: { organization: true }
+    });
+  }
+
+  async listProjectsForOrganizationRef(d: { organizationRef: string; projectRef?: string }) {
+    return await db.project.findMany({
+      where: {
+        organization: { ref: d.organizationRef, archivedAt: null },
+        ref: d.projectRef,
+        archivedAt: null
+      },
+      include: { organization: true },
+      orderBy: { oid: 'asc' }
+    });
+  }
+
+  async syncPlatformLimits(d: {
+    project: Project & { organization: Organization };
+    limits: PlatformLimit[];
+  }) {
+    let changed = JSON.stringify(d.project.platformLimits) != JSON.stringify(d.limits);
+
+    let project = await db.project.update({
+      where: { oid: d.project.oid },
+      data: { platformLimits: d.limits, platformLimitsSyncedAt: new Date() },
+      include: { organization: true }
+    });
+
+    if (changed) await this.fireChanged(project, project.organization, 'limits_changed');
 
     return project;
   }

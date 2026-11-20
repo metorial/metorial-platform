@@ -62,13 +62,14 @@ vi.mock('../src/lib/memo', () => ({
 let { virtualModelRoutingService } = await import('../src/services/virtualModelRouting');
 
 let principal = (allowedModels: string[] = []): GatewayPrincipal => ({
-  token: { id: 'gwtk_1', consumerRef: null, allowedModels, limits: {}, metadata: {} },
+  token: { id: 'gwtk_1', consumerRef: null, allowedModels, limits: [], metadata: {} },
   organization: { id: 'org', ref: 'org' },
-  project: { id: 'prj', ref: 'prj' },
+  project: { id: 'prj', ref: 'prj', platformLimits: [] },
   instance: {
     id: 'ins',
     ref: 'ins',
     logRetentionDays: 30,
+    limits: [],
     settings: {
       contentLogging: { enabled: false, retentionDays: 30 },
       metorialProviderEnabled: true,

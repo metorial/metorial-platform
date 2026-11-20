@@ -491,14 +491,19 @@ class VirtualModelToolsServiceImpl {
             limits: token.limits,
             metadata: token.metadata
           }
-        : { id: 'test', consumerRef: null, allowedModels: [], limits: {}, metadata: {} },
+        : { id: 'test', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
       organization: { id: d.scope.organization.id, ref: d.scope.organization.ref },
-      project: { id: instance.project.id, ref: instance.project.ref },
+      project: {
+        id: instance.project.id,
+        ref: instance.project.ref,
+        platformLimits: instance.project.platformLimits
+      },
       instance: {
         id: instance.id,
         ref: instance.ref,
         logRetentionDays: instance.logRetentionDays,
-        settings: resolveInstanceSettings(instance.settings)
+        settings: resolveInstanceSettings(instance.settings),
+        limits: instance.limits
       }
     };
   }

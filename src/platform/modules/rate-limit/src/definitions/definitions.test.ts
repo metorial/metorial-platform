@@ -64,6 +64,19 @@ describe('rateLimitCatalog', () => {
         .every(usage => usage.enforcement === 'synced')
     ).toBe(true);
   });
+
+  it('declares the AI gateway limits as synced rates', () => {
+    let gateway = rateLimitUsageTypes.filter(usage => usage.group === 'ai_gateway');
+
+    expect(gateway.map(usage => usage.key)).toEqual([
+      'ai_gateway.requests',
+      'ai_gateway.tokens',
+      'ai_gateway.metorial_spend'
+    ]);
+    expect(
+      gateway.every(usage => usage.kind === 'rate' && usage.enforcement === 'synced')
+    ).toBe(true);
+  });
 });
 
 describe('rateLimitService', () => {

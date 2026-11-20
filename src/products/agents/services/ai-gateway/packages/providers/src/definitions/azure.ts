@@ -1,3 +1,4 @@
+import { createAzure } from '@ai-sdk/azure';
 import { v } from '@lowerdeck/validation';
 import { defineProvider, lastFourHint } from '../lib/definition';
 import { checkModelList } from '../lib/modelList';
@@ -27,5 +28,14 @@ export let azureProvider = defineProvider({
       headers: { 'api-key': ctx.credentials.apiKey },
       signal: ctx.signal,
       fetch: ctx.fetch
-    })
+    }),
+  languageModel: ctx =>
+    createAzure({
+      resourceName: ctx.config.resourceName,
+      apiKey: ctx.credentials.apiKey,
+      fetch: ctx.fetch
+    }).responses(ctx.modelId),
+  providerOptionsKey: 'azure',
+  inheritsProviderOptions: ['openai'],
+  enforcedProviderOptions: { azure: { store: false } }
 });

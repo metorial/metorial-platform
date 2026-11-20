@@ -9,7 +9,11 @@ import {
   type Project
 } from '@mtsrc/ai-gateway-db';
 import { Events } from '@mtsrc/ai-gateway-events';
-import { mergeSettings, type InstanceSettings } from '@mtsrc/ai-gateway-spec';
+import {
+  mergeSettings,
+  type GatewayLimit,
+  type InstanceSettings
+} from '@mtsrc/ai-gateway-spec';
 
 export let instanceInclude = { project: true } as const;
 
@@ -22,6 +26,7 @@ class InstanceServiceImpl {
       name?: string | null;
       logRetentionDays?: number;
       settings?: InstanceSettings;
+      limits?: GatewayLimit[];
     };
   }) {
     let existing = await db.instance.findUnique({ where: { ref: d.input.ref } });
@@ -37,6 +42,7 @@ class InstanceServiceImpl {
         name: d.input.name,
         logRetentionDays: d.input.logRetentionDays,
         settings,
+        limits: d.input.limits,
         organizationOid: d.organization.oid,
         projectOid: d.project.oid
       },
@@ -44,6 +50,7 @@ class InstanceServiceImpl {
         name: d.input.name,
         logRetentionDays: d.input.logRetentionDays,
         settings,
+        limits: d.input.limits,
         archivedAt: null
       },
       include: instanceInclude

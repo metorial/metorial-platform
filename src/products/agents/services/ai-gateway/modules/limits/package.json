@@ -1,0 +1,27 @@
+{
+  "name": "@mtsrc/ai-gateway-module-limits",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:redis": "bun test test/redis",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@mtsrc/ai-gateway-dialects": "workspace:*",
+    "@mtsrc/ai-gateway-module-inference": "workspace:*",
+    "@mtsrc/ai-gateway-spec": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

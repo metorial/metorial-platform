@@ -309,15 +309,29 @@ class ProviderConnectionServiceImpl {
 
   // Called by the inference path when the provider answers 401/403 for a key we believe is valid.
   // The connection is re-checked out of band rather than flipped to invalid on a single response.
-  async reportAuthFailure(d: { connection: ProviderConnection }) {
+  async reportAuthFailure(d: { connectionId: string }) {
     await connectionCheckSingleQueue.add(
-      { connectionId: d.connection.id, trigger: 'inference_auth_failure' },
-      { id: `${d.connection.id}:auth-failure:${Math.floor(Date.now() / 60_000)}` }
+      { connectionId: d.connectionId, trigger: 'inference_auth_failure' },
+      { id: `${d.connectionId}:auth-failure:${Math.floor(Date.now() / 60_000)}` }
     );
   }
 
   async getCredentials(d: { connection: ConnectionWithRelations }) {
     return await loadConnectionCredentials(d.connection);
+  }
+
+  // Routing already scoped and selected the connection, so inference resolves it by id alone.
+  async getInferenceConnection(d: { connectionId: string }) {
+    let connection = await db.providerConnection.findFirst({
+      where: { id: d.connectionId, archivedAt: null },
+      include: connectionInclude
+    });
+    if (!connection) throw new ServiceError(notFoundError('provider_connection'));
+
+    return {
+      credentials: await loadConnectionCredentials(connection),
+      config: connection.config as ProviderConnectionConfig
+    };
   }
 
   async archiveConnection(d: { connection: ConnectionWithRelations }) {

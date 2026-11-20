@@ -2,11 +2,10 @@ import {
   extractGatewayToken,
   gatewayCredentialService
 } from '@mtsrc/ai-gateway-module-access';
+import { inferenceService } from '@mtsrc/ai-gateway-module-inference';
+import { limitsService } from '@mtsrc/ai-gateway-module-limits';
 import { isModelAllowed, routeService } from '@mtsrc/ai-gateway-module-routing';
-import {
-  getInstanceVirtualModels,
-  virtualModelRoutingService
-} from '@mtsrc/ai-gateway-module-virtual-models';
+import { getInstanceVirtualModels } from '@mtsrc/ai-gateway-module-virtual-models';
 import { createInferenceApp } from './app';
 import type { ListedModel } from './lib/models';
 
@@ -14,10 +13,12 @@ export { createInferenceApp, type InferenceDependencies } from './app';
 
 let virtualModelOwner = 'virtual';
 
+inferenceService.setLimiter(limitsService);
+
 export let inferenceApp = createInferenceApp({
   authenticate: token => gatewayCredentialService.verify({ token }),
   extractToken: extractGatewayToken,
-  route: d => virtualModelRoutingService.route(d),
+  run: request => inferenceService.run(request),
   listModels: async d => {
     let [catalogModels, virtualModels] = await Promise.all([
       routeService.listAvailableModels(d),

@@ -2,6 +2,7 @@ export * from './catalog';
 export * from './connection';
 export * from './decision';
 export * from './features';
+export * from './limits';
 export * from './metadata';
 export * from './pricing';
 export * from './principal';

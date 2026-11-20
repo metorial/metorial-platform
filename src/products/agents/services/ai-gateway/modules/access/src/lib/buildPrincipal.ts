@@ -19,11 +19,16 @@ export let tokenPrincipal = (gatewayToken: GatewayTokenForPrincipal): GatewayPri
   },
 
   organization: { id: gatewayToken.organization.id, ref: gatewayToken.organization.ref },
-  project: { id: gatewayToken.instance.project.id, ref: gatewayToken.instance.project.ref },
+  project: {
+    id: gatewayToken.instance.project.id,
+    ref: gatewayToken.instance.project.ref,
+    platformLimits: gatewayToken.instance.project.platformLimits
+  },
   instance: {
     id: gatewayToken.instance.id,
     ref: gatewayToken.instance.ref,
     logRetentionDays: gatewayToken.instance.logRetentionDays,
-    settings: resolveInstanceSettings(gatewayToken.instance.settings)
+    settings: resolveInstanceSettings(gatewayToken.instance.settings),
+    limits: gatewayToken.instance.limits
   }
 });

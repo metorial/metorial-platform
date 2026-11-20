@@ -4,6 +4,7 @@ import { app } from './_app';
 import { catalogController } from './catalog';
 import { gatewayTokenController } from './gatewayToken';
 import { inferenceLogController } from './inferenceLog';
+import { platformLimitController } from './platformLimit';
 import { providerConnectionController } from './providerConnection';
 import { routingController } from './routing';
 import { instanceController, organizationController, projectController } from './scope';
@@ -18,7 +19,8 @@ export let rootController = app.controller({
   routing: routingController,
   virtualModel: virtualModelController,
   catalog: catalogController,
-  inferenceLog: inferenceLogController
+  inferenceLog: inferenceLogController,
+  platformLimit: platformLimitController
 });
 
 export let AiGatewayRPC = createServer({})(rootController);

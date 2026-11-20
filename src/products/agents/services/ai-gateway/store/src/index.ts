@@ -8,6 +8,7 @@ export {
   type InferenceDecisionLog,
   type InferenceDialect,
   type InferenceError,
+  type InferenceErrorStage,
   type InferenceLogDocument,
   type InferenceOperation,
   type InferenceStatus,
