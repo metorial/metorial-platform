@@ -7,6 +7,7 @@ import { esbuildBundleContents, writeBundleManifest } from './bundleManifest';
 import { makeEsmCyclesSafe } from './esmCycles';
 import { editionsEsbuildPlugin } from './esbuild';
 import { postgresSamlPlugin } from './postgresSaml';
+import { samlJacksonImportsPlugin } from './samlJacksonImports';
 
 let defaultExternals = ['bun', 'bun:*'];
 
@@ -50,6 +51,7 @@ export let buildEdition = async (options: BuildEditionOptions) => {
       __METORIAL_RELEASE_CHANNEL__: JSON.stringify(channel)
     },
     plugins: [
+      samlJacksonImportsPlugin(),
       editionsEsbuildPlugin(options.edition, channel),
       ...(options.edition === 'on-prem' ? [postgresSamlPlugin()] : [])
     ],
