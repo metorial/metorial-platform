@@ -1,11 +1,7 @@
 import { branding } from '@metorial/branding';
 import { htmlEncode } from '../htmlEncode';
 
-export let errorHtml = (d: {
-  title: string;
-  message: string;
-  details?: string;
-}) => `<!DOCTYPE html>
+export let errorHtml = (d: { title: string; message: string }) => `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -70,15 +66,6 @@ export let errorHtml = (d: {
       text-align: center;
       margin-bottom: 20px;
     }
-
-    pre {
-      background: #f8f8f8;
-      padding: 10px;
-      border-radius: 4px;
-      overflow-x: auto;
-      font-size: 14px;
-      color: #333;
-    }
   </style>
 </head>
 
@@ -90,8 +77,6 @@ export let errorHtml = (d: {
       <h1>${htmlEncode(d.title)}</h1>
 
       <p>${htmlEncode(d.message)}</p>
-
-      ${d.details ? `<pre>${htmlEncode(d.details)}</pre>` : ''}
     </section>
   </main>
 </body>

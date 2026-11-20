@@ -29,6 +29,17 @@ import { errorHtml, ssoDomainNotAllowedHtml } from '@mtsrc/auth-core-http';
 let Sentry = getSentry();
 
 export let jxnApp = createHono()
+  .onError((error, c) => {
+    console.error('SSO provider callback failed:', error);
+
+    return c.html(
+      errorHtml({
+        title: 'Authentication Error',
+        message: 'Metorial could not authenticate you.'
+      }),
+      500
+    );
+  })
   .post('/saml/callback', async c => {
     let form = await c.req.formData();
 
@@ -62,8 +73,7 @@ export let jxnApp = createHono()
       return c.html(
         errorHtml({
           title: 'Authentication Error',
-          message: 'Metorial could not authenticate you.',
-          details: res.error
+          message: 'Metorial could not authenticate you.'
         })
       );
     }
@@ -295,8 +305,7 @@ export let jxnApp = createHono()
       return c.html(
         errorHtml({
           title: 'Authentication Error',
-          message: 'Metorial could not authenticate you.',
-          details: res.error
+          message: 'Metorial could not authenticate you.'
         })
       );
     }
