@@ -141,16 +141,17 @@ export let ssoAuthApp = createHono()
       }
 
       return c.redirect(res.redirect_url!);
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof SsoDomainNotAllowedError) {
         return c.html(ssoDomainNotAllowedHtml(error), 403);
       }
 
+      console.error('SSO sign-in failed:', error);
+
       return c.html(
         errorHtml({
           title: 'Unable to Authenticate',
-          message: 'An error occurred during authentication.',
-          details: error.message
+          message: 'An error occurred during authentication.'
         })
       );
     }
@@ -287,16 +288,17 @@ export let ssoAuthApp = createHono()
         authId: auth.id
       });
       return c.redirect(completionRedirect.url);
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof SsoDomainNotAllowedError) {
         return c.html(ssoDomainNotAllowedHtml(error), 403);
       }
 
+      console.error('SSO callback failed:', error);
+
       return c.html(
         errorHtml({
           title: 'Unable to Authenticate',
-          message: 'An error occurred during authentication.',
-          details: error.message
+          message: 'An error occurred during authentication.'
         })
       );
     }
