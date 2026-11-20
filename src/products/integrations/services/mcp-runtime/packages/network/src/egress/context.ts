@@ -12,11 +12,13 @@ export type EgressContext = {
 // attributed to this tenant and, having no policy, may only reach public destinations.
 export let systemEgressContext: EgressContext = { tenantId: 'system' };
 
+// Tenants are linked to their Function Bay tenant in gateway mode; until a tenant is linked its
+// traffic is attributed to its identifier and does not appear in its network logs.
 export let createEgressContext = (d: {
-  tenant: { identifier: string };
+  tenant: { identifier: string; functionBayTenantId: string | null };
   serverInstanceConfiguration?: { enclaveId: string; egressPolicy: unknown } | null;
 }): EgressContext => ({
-  tenantId: d.tenant.identifier,
+  tenantId: d.tenant.functionBayTenantId ?? d.tenant.identifier,
   enclaveId: d.serverInstanceConfiguration?.enclaveId,
   egressPolicy:
     (d.serverInstanceConfiguration?.egressPolicy as EgressPolicy | undefined) ?? null

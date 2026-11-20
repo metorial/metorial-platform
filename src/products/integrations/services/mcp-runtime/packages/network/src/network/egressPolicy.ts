@@ -1,5 +1,6 @@
 import type {} from '@mtsrc/mcp-runtime-db';
 import { ServiceError, badRequestError, isServiceError } from '@lowerdeck/error';
+import { egressGatewayRefusalFromHeaders } from '@metorial-platform-systems/runtime-egress-grants';
 import { isValidCIDR, parse, parseCIDR } from 'ipaddr.js';
 import { lookup } from 'node:dns/promises';
 import { isGatewayEgress } from '../egress/mode';
@@ -16,12 +17,12 @@ export let EGRESS_POLICY_BLOCKED_CODE = 'egress_policy_blocked';
 export let EGRESS_POLICY_BLOCKED_MESSAGE =
   'Metorial Magic Network: Remote URL is not allowed by the connection egress policy';
 
-export let EGRESS_GATEWAY_ERROR_HEADER = 'x-metorial-egress-error';
+export { EGRESS_GATEWAY_ERROR_HEADER } from '@metorial-platform-systems/runtime-egress-grants';
 
 let isGatewayDenialResponse = (error: unknown) => {
   let headers = (error as { response?: { headers?: Record<string, unknown> } } | null)
     ?.response?.headers;
-  return headers?.[EGRESS_GATEWAY_ERROR_HEADER] == 'denied';
+  return !!headers && egressGatewayRefusalFromHeaders(headers) == 'denied';
 };
 
 export let isEgressPolicyError = (error: unknown) =>

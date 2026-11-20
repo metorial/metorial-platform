@@ -44,7 +44,7 @@ export type EgressGrantPolicy = {
 };
 
 export type EgressGrantClaims = {
-  iss: 'function-bay' | 'forge' | 'mcp-runtime';
+  iss: 'function-bay' | 'forge' | 'mcp-runtime' | 'slates-hub';
   aud: typeof EGRESS_GRANT_AUDIENCE;
   jti: string;
   tenantId?: string;
@@ -137,3 +137,5 @@ export let signEgressGrant = (key: RuntimeSigningKey, claims: EgressGrantClaims)
       grantClaimOrder
     )
   );
+
+export * from './gateway';
