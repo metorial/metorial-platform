@@ -143,6 +143,29 @@ async fn does_not_expose_the_management_api() {
 }
 
 #[tokio::test]
+async fn validates_completion_requests_larger_than_the_default_json_limit() {
+    let (service, _, _temp) = setup().await;
+    let router = create_router(service);
+    let request = Request::post("/buckets/files/public-upload-complete/archive.bin")
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({
+                "upload_id": "upload-id",
+                "total_size": 100_u64 * 1024 * 1024 * 1024,
+                "part_size": 20 * 1024 * 1024,
+                "receipts": vec!["a".repeat(512); 5120]
+            })
+            .to_string(),
+        ))
+        .unwrap();
+
+    let response = router.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = to_bytes(response.into_body(), 1024).await.unwrap();
+    assert!(String::from_utf8_lossy(&body).contains("Invalid part receipt"));
+}
+
+#[tokio::test]
 async fn completes_an_upload_using_encrypted_manifests_and_receipts() {
     let (service, public, _temp) = setup().await;
     let internal = create_router(service.clone());

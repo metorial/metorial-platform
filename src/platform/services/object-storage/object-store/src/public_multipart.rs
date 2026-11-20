@@ -31,6 +31,9 @@ const MAX_MANIFEST_SECS: u64 = 600;
 const MAX_BATCH: usize = 8;
 const MAX_TOKEN_LEN: usize = 4096;
 
+pub(crate) const MAX_COMPLETION_BODY_BYTES: usize =
+    (DURABLE_MAX_PARTS as usize) * (MAX_TOKEN_LEN + 3) + 8192;
+
 #[derive(Deserialize, Serialize)]
 struct Part {
     bucket: String,

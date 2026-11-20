@@ -1,5 +1,5 @@
 use axum::body::{Body, BodyDataStream};
-use axum::extract::{FromRef, Request};
+use axum::extract::{DefaultBodyLimit, FromRef, Request};
 use axum::middleware;
 use axum::routing::{any, delete, get, head, post, put};
 use axum::Router;
@@ -14,7 +14,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::api::*;
 use crate::error::RequestBodyError;
-use crate::public_multipart::{complete_public_upload, sign_parts};
+use crate::public_multipart::{complete_public_upload, sign_parts, MAX_COMPLETION_BODY_BYTES};
 use crate::service::ObjectStoreService;
 use crate::zip::{ZipJobManager, ZipSettings};
 
@@ -134,7 +134,7 @@ pub fn create_app_router(
     let streaming = Router::new()
         .route(
             "/buckets/:bucket/public-upload-complete/*key",
-            post(complete_public_upload),
+            post(complete_public_upload).layer(DefaultBodyLimit::max(MAX_COMPLETION_BODY_BYTES)),
         )
         .route("/buckets/:bucket/objects/*key", put(put_object))
         .route("/buckets/:bucket/copy-object/*key", post(copy_object))
