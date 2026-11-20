@@ -21,7 +21,11 @@ export let env = defineSettings({
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
     SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),
-    SLATES_HUB_ADMIN_PORT: v.optional(v.number())
+    SLATES_HUB_ADMIN_PORT: v.optional(v.number()),
+    SLATES_HUB_LIVE_PORT: setting(v.optional(v.number()), {
+      description:
+        'Port of a listener that serves only the live invocation API, for runtimes that may reach nothing else on the hub; off when unset'
+    })
   },
 
   functionBay: {
@@ -46,6 +50,24 @@ export let env = defineSettings({
       description:
         'Lets slates upload large attachments straight to object storage during an invocation; off on-prem, where function pods cannot reach the public upload URL',
       default: perEdition({ cloud: true, 'on-prem': false })
+    }),
+    SLATES_LIVE_UPLOAD_MODE: setting(v.enumOf(['single', 'multipart']), {
+      description:
+        'How slates upload attachments during an invocation: one signed PUT per attachment, or signed parts whose sizes object storage enforces. Multipart needs object storage multipart uploads and is only offered to slates that support it',
+      default: perEdition<'single' | 'multipart'>({ cloud: 'single', 'on-prem': 'multipart' })
+    }),
+    SLATES_LIVE_INVOCATION_BASE_URL: setting(v.optional(v.string({ modifiers: [v.url()] })), {
+      description:
+        'Base URL slates call the live invocation API on; SERVICE_PUBLIC_URL when unset'
+    }),
+    SLATES_LIVE_UPLOAD_BASE_URL: setting(v.optional(v.string({ modifiers: [v.url()] })), {
+      description:
+        "Base URL that signed upload URLs handed to slates are moved onto, for runtimes that reach object storage's public listener under another address"
+    }),
+    SLATES_LIVE_INVOCATION_PLATFORM_ROUTES: setting.list(v.string(), {
+      default: [],
+      description:
+        'Function Bay platform routes requested for invocations that get a live invocation token, so the runtime can reach the live API and upload URLs'
     })
   },
 

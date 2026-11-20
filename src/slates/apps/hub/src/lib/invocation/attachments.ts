@@ -7,6 +7,7 @@ import {
   ATTACHMENT_SIGNATURE_MAX_AGE_MS,
   signedIntegrationAttachmentUrl
 } from '../attachmentSignature';
+import { claimAttachmentUpload, confirmAttachmentUpload } from './attachmentUpload';
 import { getStoredAttachmentsStorageKey } from './store';
 
 export type SlateToolCallAttachment = {
@@ -70,28 +71,13 @@ export let ensureSlateInvocationAttachment = async (d: {
   let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
 
   if (d.content.type === 'upload_reference') {
-    let upload = await db.slateAttachmentUpload.findFirst({
-      where: { id: d.content.referenceId, invocationOid: d.invocation.oid }
+    let claimed = await claimAttachmentUpload({
+      referenceId: d.content.referenceId,
+      invocation: d.invocation
     });
-    if (!upload) return null;
+    if (!claimed) return null;
 
-    let claimed = await db.slateAttachmentUpload.updateMany({
-      where: { oid: upload.oid, status: 'pending' },
-      data: { status: 'processing' }
-    });
-    if (claimed.count === 0) return null;
-
-    let info = await storage
-      .headObject(upload.storageBucket, upload.storageKey)
-      .catch(() => null);
-    if (!info) {
-      await db.slateAttachmentUpload.updateMany({
-        where: { oid: upload.oid, status: 'processing' },
-        data: { status: 'failed' }
-      });
-      return null;
-    }
-
+    let { upload, info } = claimed;
     let attachment = await db.slateAttachment.create({
       data: {
         ...getId('slateAttachment'),
@@ -103,10 +89,7 @@ export let ensureSlateInvocationAttachment = async (d: {
       }
     });
 
-    await db.slateAttachmentUpload.updateMany({
-      where: { oid: upload.oid, status: 'processing' },
-      data: { status: 'confirmed', sizeBytes: info.size }
-    });
+    await confirmAttachmentUpload(claimed);
     await linkInvocationToAttachment({ invocation: d.invocation, attachment });
 
     return presentStoredAttachment({ attachment, mimeType: attachment.mimeType ?? undefined });
