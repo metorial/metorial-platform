@@ -26,7 +26,7 @@ vi.mock('@metorial/module-consumer-entities', () => ({
   consumerActorService: { ensureDefaultConsumerActor: mocks.ensureDefaultConsumerActor }
 }));
 
-import { resolveExplorerOwner } from './ownershipActor';
+import { getOwnershipActor, resolveExplorerOwner } from './ownershipActor';
 
 let ctx = {
   instance: { id: 'ins_1' },
@@ -35,6 +35,26 @@ let ctx = {
   auth: { type: 'user', user: { name: 'Alex', email: 'alex@example.com' } },
   auditScope: {}
 } as any;
+
+describe('ownership actor', () => {
+  let machineActor = { id: 'oac_key', type: 'machine_access' } as any;
+  let profileActor = { id: 'oac_profile', type: 'consumer_profile' } as any;
+
+  it('uses the consumer profile actor for consumer sessions on a publishable key', () => {
+    expect(
+      getOwnershipActor({
+        actor: machineActor,
+        consumerProfile: { id: 'cpf_1', organizationActor: profileActor }
+      })
+    ).toBe(profileActor);
+  });
+
+  it('falls back to the caller actor without a consumer profile', () => {
+    expect(getOwnershipActor({ actor: machineActor, consumerProfile: undefined })).toBe(
+      machineActor
+    );
+  });
+});
 
 describe('explorer caller ownership', () => {
   beforeEach(() => {
