@@ -22,6 +22,7 @@ import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { getMetorialApiUrl } from '../../metorialApiUrl';
 import { invocationsBucketRecord } from '../../storage';
+import { MAX_ATTACHMENT_SIZE_BYTES } from '../attachmentLimits';
 import { retryOnOidCollision } from '../retryOnOidCollision';
 import { SLATES_PROTOCOL } from '../protocol';
 import { mintLiveInvocationToken } from './liveToken';
@@ -36,9 +37,12 @@ import type {
   SlatesResponse
 } from './types';
 
-let DEFAULT_MAX_ATTACHMENT_SIZE_BYTES = 100 * 1024 * 1024;
-
 let Sentry = getSentry();
+
+let liveInvocationPlatformRoutes = () => {
+  let routes = env.storage.SLATES_LIVE_INVOCATION_PLATFORM_ROUTES;
+  return routes.length ? routes : undefined;
+};
 
 let errorSchema = z.object({
   jsonrpc: z.literal('2.0'),
@@ -94,7 +98,9 @@ export class SlateInvocationStack {
     let capabilities = this.#capabilities?.hub;
     let supportsHubCapabilities = !!capabilities?.capabilitiesNotification;
     let supportsLiveInvocation =
-      env.storage.SLATES_LIVE_INVOCATION_ENABLED && !!capabilities?.liveInvocation;
+      env.storage.SLATES_LIVE_INVOCATION_ENABLED &&
+      !!capabilities?.liveInvocation &&
+      (env.storage.SLATES_LIVE_UPLOAD_MODE !== 'multipart' || !!capabilities?.multipartUpload);
     let metorialApiUrl = capabilities?.runtimeInfo ? getMetorialApiUrl() : undefined;
 
     let liveInvocationToken =
@@ -123,10 +129,8 @@ export class SlateInvocationStack {
                 capabilities: {
                   attachments: {
                     directUpload: {
-                      enabled: env.storage.SLATES_LIVE_INVOCATION_ENABLED,
-                      maxAttachmentSizeBytes:
-                        env.storage.MAX_ATTACHMENT_SIZE_BYTES ??
-                        DEFAULT_MAX_ATTACHMENT_SIZE_BYTES
+                      enabled: !!liveInvocationToken,
+                      maxAttachmentSizeBytes: MAX_ATTACHMENT_SIZE_BYTES
                     }
                   },
                   adapters: true,
@@ -143,7 +147,8 @@ export class SlateInvocationStack {
               method: 'slates/hub.live_invocation.set' as const,
               params: {
                 token: liveInvocationToken.token,
-                baseUrl: env.service.SERVICE_PUBLIC_URL
+                baseUrl:
+                  env.storage.SLATES_LIVE_INVOCATION_BASE_URL ?? env.service.SERVICE_PUBLIC_URL
               }
             }
           ]
@@ -197,7 +202,8 @@ export class SlateInvocationStack {
         payload: { messages, invocationId },
         enclave:
           this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
-        egressPolicy: this.#egressPolicy
+        egressPolicy: this.#egressPolicy,
+        platformRoutes: liveInvocationToken ? liveInvocationPlatformRoutes() : undefined
       });
 
       liveInvocationToken?.release().catch(e => Sentry.captureException(e));

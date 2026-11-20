@@ -72,6 +72,11 @@ export let env = defineSettings({
   egressGateway: {
     EGRESS_GATEWAY_PROXY_URL: setting(v.optional(v.string()), {
       description: 'Egress gateway proxy that Lambda functions send outbound traffic through'
+    }),
+    GRANTABLE_PLATFORM_ROUTES: setting.list(v.string(), {
+      default: [],
+      description:
+        'Egress gateway platform routes that invocations of knative functions may request in their egress grant; requests for any other route are dropped'
     })
   },
 

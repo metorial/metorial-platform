@@ -73,14 +73,15 @@ func run(logger *slog.Logger) error {
 
 	memory := gateway.NewResolveMemory()
 	core := &gateway.Core{
-		Keys:        keys,
-		Evaluator:   &policy.Evaluator{AllowInternalDestinations: cfg.allowInternalDestinations, HardDeny: hardDeny},
-		Resolver:    newResolver(cfg.dnsServers),
-		DialTimeout: cfg.dialTimeout,
-		Memory:      memory,
-		Recorder:    recorder,
-		Metrics:     metrics,
-		Logger:      logger,
+		Keys:           keys,
+		PlatformRoutes: cfg.platformRoutes,
+		Evaluator:      &policy.Evaluator{AllowInternalDestinations: cfg.allowInternalDestinations, HardDeny: hardDeny},
+		Resolver:       newResolver(cfg.dnsServers),
+		DialTimeout:    cfg.dialTimeout,
+		Memory:         memory,
+		Recorder:       recorder,
+		Metrics:        metrics,
+		Logger:         logger,
 	}
 
 	shipCtx, stopShipping := context.WithCancel(context.Background())

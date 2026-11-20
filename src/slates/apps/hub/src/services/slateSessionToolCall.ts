@@ -3,25 +3,21 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
-import type { ObjectMetadata } from 'object-storage-client';
 import type { SlateInstance, SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
-import { env } from '../env';
 import { getId } from '../id';
 import { signedIntegrationAttachmentUrl } from '../lib/attachmentSignature';
+import {
+  claimAttachmentUpload,
+  confirmAttachmentUpload
+} from '../lib/invocation/attachmentUpload';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
 import { containsSecretPlaceholder } from '../lib/secretSerializer';
-import { slateAttachmentUploadDeleteQueue } from '../queues/attachment/uploadDelete';
 import { invocationsBucketRecord, storage } from '../storage';
 import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
-
-let DEFAULT_MAX_ATTACHMENT_SIZE_BYTES = 100 * 1024 * 1024;
-let MAX_ATTACHMENT_SIZE_BYTES =
-  env.storage.MAX_ATTACHMENT_SIZE_BYTES ?? DEFAULT_MAX_ATTACHMENT_SIZE_BYTES;
-let MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION = MAX_ATTACHMENT_SIZE_BYTES * 5;
 
 let include = {
   action: true,
@@ -465,53 +461,13 @@ class slateSessionToolCallServiceImpl {
     mimeType?: string | undefined;
     invocation: SlateInvocation;
   }) {
-    let upload = await db.slateAttachmentUpload.findFirst({
-      where: { id: d.referenceId, invocationOid: d.invocation.oid }
+    let claimed = await claimAttachmentUpload({
+      referenceId: d.referenceId,
+      invocation: d.invocation
     });
-    if (!upload) return null;
+    if (!claimed) return null;
 
-    let claimed = await db.slateAttachmentUpload.updateMany({
-      where: { oid: upload.oid, status: 'pending' },
-      data: { status: 'processing' }
-    });
-    if (claimed.count === 0) return null;
-
-    let info: ObjectMetadata | null;
-    try {
-      info = await storage.headObject(upload.storageBucket, upload.storageKey);
-    } catch {
-      info = null;
-    }
-
-    if (!info) {
-      await db.slateAttachmentUpload.updateMany({
-        where: { oid: upload.oid, status: 'processing' },
-        data: { status: 'failed' }
-      });
-      return null;
-    }
-
-    let alreadyConfirmed = await db.slateAttachmentUpload.aggregate({
-      where: { invocationOid: d.invocation.oid, status: 'confirmed' },
-      _sum: { sizeBytes: true }
-    });
-    let totalConfirmedBytes = (alreadyConfirmed._sum.sizeBytes ?? 0) + info.size;
-
-    if (
-      info.size > MAX_ATTACHMENT_SIZE_BYTES ||
-      totalConfirmedBytes > MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
-    ) {
-      await db.slateAttachmentUpload.updateMany({
-        where: { oid: upload.oid, status: 'processing' },
-        data: { status: 'oversized' }
-      });
-      await slateAttachmentUploadDeleteQueue.add({
-        bucket: upload.storageBucket,
-        key: upload.storageKey
-      });
-      return null;
-    }
-
+    let { upload, info } = claimed;
     let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
     let attachment = await db.slateAttachment.create({
       data: {
@@ -523,10 +479,7 @@ class slateSessionToolCallServiceImpl {
       }
     });
 
-    await db.slateAttachmentUpload.updateMany({
-      where: { oid: upload.oid, status: 'processing' },
-      data: { status: 'confirmed', sizeBytes: info.size }
-    });
+    await confirmAttachmentUpload(claimed);
 
     await db.slateInvocationAttachment.createMany({
       data: {

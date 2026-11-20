@@ -40,6 +40,7 @@ export let mintInvocationGrant = (d: {
   functionVersion: { id: string; configuration: PrismaJson.FunctionConfiguration };
   enclave?: { id: string; identifier: string };
   egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  platformRoutes?: string[];
   source: 'lambda' | 'knative';
   allowAll?: boolean;
 }) => {
@@ -61,6 +62,7 @@ export let mintInvocationGrant = (d: {
       egressPolicy: d.egressPolicy,
       allowAll: d.allowAll
     }),
+    platformRoutes: d.platformRoutes?.length ? d.platformRoutes : undefined,
     iat,
     nbf: iat,
     exp: iat + d.functionVersion.configuration.timeoutSeconds + GRANT_EXPIRY_MARGIN_SECONDS
