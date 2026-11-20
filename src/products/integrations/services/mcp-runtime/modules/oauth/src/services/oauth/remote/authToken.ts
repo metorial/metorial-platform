@@ -12,6 +12,7 @@ import type {
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
 import { getId } from '@mtsrc/mcp-runtime-db';
+import { createEgressContext } from '@mtsrc/mcp-runtime-network';
 import { OAuthUtils } from '@mtsrc/mcp-runtime-oauth-utils';
 import type { OAuthRequestErrorDetails } from '@mtsrc/mcp-runtime-oauth-utils';
 import { addRemoteErrorCheck } from '../../../queues/oauth/remoteErrorCheck';
@@ -88,7 +89,8 @@ let refreshToken = async (d: {
     clientSecret: DANGEROUS_unencryptedCredentials.clientSecret,
     refreshToken: DANGEROUS_secretData.refreshToken,
     config: d.connection.config.config,
-    tokenEndpointAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod
+    tokenEndpointAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod,
+    egress: createEgressContext({ tenant: d.tenant })
   });
 
   if (!res.ok) {

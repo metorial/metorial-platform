@@ -17,7 +17,7 @@ vi.mock('@mtsrc/mcp-runtime-db', () => ({ db: {} }));
 
 vi.mock('@mtsrc/mcp-runtime-network', async importOriginal => ({
   ...(await importOriginal<object>()),
-  getAxiosSsrfFilter: () => ({}),
+  getAxiosEgressOptions: () => ({}),
   assertUrlAllowedByEgressPolicy: vi.fn()
 }));
 
@@ -46,7 +46,8 @@ describe('OAuthUtils.refreshAccessToken', () => {
       tokenEndpoint: config.token_endpoint,
       clientId: 'client-id',
       refreshToken: 'refresh-token',
-      config
+      config,
+      egress: { tenantId: 'tenant' }
     });
 
     expect(result).toEqual({
@@ -72,7 +73,8 @@ describe('OAuthUtils.refreshAccessToken', () => {
       tokenEndpoint: config.token_endpoint,
       clientId: 'client-id',
       refreshToken: 'refresh-token',
-      config
+      config,
+      egress: { tenantId: 'tenant' }
     });
 
     expect(result).toEqual({

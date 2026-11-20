@@ -9,7 +9,11 @@ import type {
 import { parseModernMcpError } from '@mtsrc/mcp-runtime-remote-protocol';
 import { STATELESS_PROTOCOL_DETECTED_CODE } from '@mtsrc/mcp-runtime-remote-protocol';
 import { safeParse } from '@mtsrc/mcp-runtime-remote-protocol';
-import { fetchEventSource } from '@mtsrc/mcp-runtime-network';
+import {
+  createEgressContext,
+  fetchEventSource,
+  type EgressContext
+} from '@mtsrc/mcp-runtime-network';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
 import {
@@ -31,6 +35,7 @@ let FATAL_NOTIFICATION_STREAM_CODES = new Set([
 
 export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapter {
   readonly #authManager: RemoteConnectionAuthManager;
+  readonly #egress: EgressContext;
 
   readonly logger: ConnectionLogger;
   readonly messenger: ConnectionMessenger;
@@ -61,6 +66,10 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     this.manager = new ConnectionManager(this.connection);
 
     this.#authManager = new RemoteConnectionAuthManager(this.logger, tenant, connection);
+    this.#egress = createEgressContext({
+      tenant,
+      serverInstanceConfiguration: connection.serverInstanceConfiguration
+    });
   }
 
   static async create(
@@ -87,8 +96,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
     try {
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'POST',
-        egressPolicy: this.connection.serverInstanceConfiguration
-          ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
+        egress: this.#egress,
         headers: {
           ...(await this.getHeaders()),
           'Content-Type': 'application/json'
@@ -187,8 +195,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
 
       await fetchEventSource(this.version.remoteUrl!, {
         method: 'GET',
-        egressPolicy: this.connection.serverInstanceConfiguration
-          ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
+        egress: this.#egress,
         headers: await this.getHeaders(),
         signal: this.#abortController.signal,
 

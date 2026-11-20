@@ -6075,6 +6075,7 @@
         "@mtsrc/mcp-runtime-module-functions": "workspace:*",
         "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
         "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
         "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
         "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
         "@toon-format/toon": "^4.4.0",
@@ -6149,6 +6150,7 @@
         "@mtsrc/mcp-runtime-function-bay": "workspace:*",
         "@mtsrc/mcp-runtime-module-functions": "workspace:*",
         "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
         "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
         "date-fns": "^4.4.0",
         "vitest": "5.0.4",
@@ -6311,8 +6313,14 @@
       "dependencies": {
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/ssrf": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-platform-systems/runtime-egress-grants": "workspace:*",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "@mtsrc/mcp-runtime-db": "workspace:*",
         "axios": "^1.21.1",
+        "http-proxy-agent": "^9.1.0",
+        "https-proxy-agent": "^9.1.0",
         "ipaddr.js": "^2.5.0",
         "vitest": "5.0.4",
       },
@@ -6454,6 +6462,7 @@
         "@lowerdeck/rpc-server": "workspace:2.0.0",
         "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
+        "@metorial-platform-systems/runtime-trust-publisher": "workspace:*",
         "@metorial/doctor": "workspace:*",
         "@metorial/editions": "workspace:*",
         "@mtsrc/mcp-runtime-api-connection": "workspace:*",
@@ -6468,6 +6477,7 @@
         "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
         "@mtsrc/mcp-runtime-module-retention": "workspace:*",
         "@mtsrc/mcp-runtime-module-servers": "workspace:*",
+        "@mtsrc/mcp-runtime-network": "workspace:*",
         "@mtsrc/mcp-runtime-storage": "workspace:*",
         "@sentry/bun": "^11.12.0",
         "@sentry/cli": "^3.8.2",
@@ -7974,6 +7984,15 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/products/runtime/packages/egress-grants": {
+      "name": "@metorial-platform-systems/runtime-egress-grants",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/products/runtime/packages/trust-publisher": {
       "name": "@metorial-platform-systems/runtime-trust-publisher",
       "version": "1.0.0",
@@ -8174,6 +8193,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/cluster-manager-client": "workspace:*",
         "@metorial-platform-systems/network-logs-client": "workspace:*",
+        "@metorial-platform-systems/runtime-egress-grants": "workspace:*",
         "@metorial-platform-systems/runtime-trust-publisher": "workspace:*",
         "@metorial/doctor": "workspace:*",
         "@metorial/editions": "workspace:*",
@@ -10348,6 +10368,8 @@
     "@metorial-platform-systems/network-logs-client": ["@metorial-platform-systems/network-logs-client@workspace:src/products/runtime/clients/networking"],
 
     "@metorial-platform-systems/network-logs-spec": ["@metorial-platform-systems/network-logs-spec@workspace:src/products/runtime/services/networking/spec"],
+
+    "@metorial-platform-systems/runtime-egress-grants": ["@metorial-platform-systems/runtime-egress-grants@workspace:src/products/runtime/packages/egress-grants"],
 
     "@metorial-platform-systems/runtime-trust-publisher": ["@metorial-platform-systems/runtime-trust-publisher@workspace:src/products/runtime/packages/trust-publisher"],
 
