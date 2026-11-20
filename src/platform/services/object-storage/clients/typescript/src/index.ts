@@ -677,12 +677,13 @@ export class ObjectStorageClient {
     bucket: string,
     key: string,
     expirationSecs?: number,
-    purpose?: PublicUrlPurpose
+    purpose?: PublicUrlPurpose,
+    sizeBytes?: number
   ): Promise<PublicURLResponse> {
     const response = await this.requestJson<PublicURLResponse>(
       'GET',
       `/buckets/${bucket}/public-url/${key}`,
-      { query: { expiration_secs: expirationSecs, purpose } }
+      { query: { expiration_secs: expirationSecs, purpose, size: sizeBytes } }
     );
     return { ...response, headers: response.headers ?? {} };
   }

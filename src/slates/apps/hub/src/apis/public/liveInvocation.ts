@@ -4,12 +4,11 @@ import { type Context, createHono } from '@lowerdeck/hono';
 import { v, type ValidationType } from '@lowerdeck/validation';
 import type { SlateAttachmentUpload } from '../../../prisma/generated/client';
 import { db } from '../../db';
-import { env } from '../../env';
 import { getId } from '../../id';
 import {
-  MAX_ATTACHMENT_SIZE_BYTES,
   MAX_ATTACHMENTS_PER_INVOCATION,
-  MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
+  maxTotalAttachmentBytesPerInvocation,
+  maxAttachmentSizeBytes
 } from '../../lib/attachmentLimits';
 import {
   type LiveInvocationTokenPayload,
@@ -92,16 +91,17 @@ let findPendingUpload = (c: Context<LiveInvocationEnv>) =>
     }
   });
 
+// Slates that can't upload in parts get a single URL; object storage holds it to the declared size.
 let registerUpload = async (d: {
   invocationOid: bigint;
   mimeType?: string;
   filename?: string;
   sizeBytes: number;
+  multipart: boolean;
 }) => {
   let { oid, id } = getId('slateAttachmentUpload');
   let storageKey = getUploadStorageKey(id);
-  let plan =
-    env.storage.SLATES_LIVE_UPLOAD_MODE === 'multipart' ? planUploadParts(d.sizeBytes) : null;
+  let plan = d.multipart && d.sizeBytes > 0 ? planUploadParts(d.sizeBytes) : null;
 
   let multipartUploadId = plan
     ? await storage.startMultipartUpload(
@@ -132,7 +132,7 @@ let registerUpload = async (d: {
     return {
       referenceId: id,
       uploadMethod: 'PUT' as const,
-      ...(await signSingleUpload(upload))
+      ...(await signSingleUpload({ ...upload, declaredSizeBytes: d.sizeBytes }))
     };
   }
 
@@ -185,19 +185,14 @@ export let liveInvocationApp = createHono<LiveInvocationEnv>()
       return c.json({ error: 'empty_request' }, 400);
     }
 
-    let attachments = input.attachments.map(a => ({ ...a, sizeBytes: a.sizeBytes ?? 0 }));
-    if (attachments.some(a => a.sizeBytes > MAX_ATTACHMENT_SIZE_BYTES)) {
-      return c.json({ error: 'attachment_too_large' }, 413);
-    }
-    if (
-      env.storage.SLATES_LIVE_UPLOAD_MODE === 'multipart' &&
-      attachments.some(a => a.sizeBytes === 0)
-    ) {
-      return c.json({ error: 'size_required' }, 400);
-    }
-
     let token = c.get('liveInvocationToken');
     let payload = c.get('liveInvocationPayload');
+    let multipart = !!payload.multipartUpload;
+
+    let attachments = input.attachments.map(a => ({ ...a, sizeBytes: a.sizeBytes ?? 0 }));
+    if (attachments.some(a => a.sizeBytes > maxAttachmentSizeBytes({ multipart }))) {
+      return c.json({ error: 'attachment_too_large' }, 413);
+    }
 
     let budget = {
       count: attachments.length,
@@ -207,7 +202,7 @@ export let liveInvocationApp = createHono<LiveInvocationEnv>()
 
     if (
       newCount > MAX_ATTACHMENTS_PER_INVOCATION ||
-      newSize > MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
+      newSize > maxTotalAttachmentBytesPerInvocation()
     ) {
       await releaseAttachmentBudget(token, budget);
       return c.json({ error: 'attachment_budget_exceeded' }, 429);
@@ -221,7 +216,11 @@ export let liveInvocationApp = createHono<LiveInvocationEnv>()
 
     let results = await Promise.all(
       attachments.map(attachment =>
-        registerUpload({ ...attachment, invocationOid: invocation.oid })
+        registerUpload({
+          ...attachment,
+          invocationOid: invocation.oid,
+          multipart
+        })
       )
     );
 

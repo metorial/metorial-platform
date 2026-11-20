@@ -57,12 +57,15 @@ let rerootUploadUrl = (url: string, depth: number) => {
 
 let expiresAt = (seconds: number) => new Date(Date.now() + seconds * 1000).toISOString();
 
-export let signSingleUpload = async (upload: SlateAttachmentUpload) => {
+export let signSingleUpload = async (
+  upload: SlateAttachmentUpload & { declaredSizeBytes: number }
+) => {
   let signed = await storage.getPublicURL(
     upload.storageBucket,
     upload.storageKey,
     SIGNED_URL_TTL_SECONDS,
-    PublicUrlPurpose.Upload
+    PublicUrlPurpose.Upload,
+    upload.declaredSizeBytes
   );
 
   return {

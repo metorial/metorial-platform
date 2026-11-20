@@ -112,6 +112,7 @@ pub struct DeleteObjectsResponse {
 pub struct GetPublicUrlQuery {
     pub expiration_secs: Option<u64>,
     pub purpose: Option<object_store_backends::PublicUrlPurpose>,
+    pub size: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -686,7 +687,7 @@ pub async fn get_public_url(
         .unwrap_or(object_store_backends::PublicUrlPurpose::Retrieve);
 
     let url = service
-        .get_public_url(&bucket, &key, expiration_secs, purpose)
+        .get_public_url(&bucket, &key, expiration_secs, purpose, params.size)
         .await?;
 
     Ok(Json(PublicUrlResponse {

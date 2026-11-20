@@ -213,6 +213,7 @@ describe('SlateInvocationStack live invocation', () => {
     mocks.env.storage = {
       SLATES_LIVE_INVOCATION_ENABLED: true,
       SLATES_LIVE_UPLOAD_MODE: 'multipart',
+      MAX_ATTACHMENT_SIZE_BYTES: 500 * 1024 * 1024,
       SLATES_LIVE_INVOCATION_BASE_URL: 'http://slates-live.platform.metorial.internal',
       SLATES_LIVE_INVOCATION_PLATFORM_ROUTES: ['slates-live', 'object-upload']
     };
@@ -224,6 +225,12 @@ describe('SlateInvocationStack live invocation', () => {
 
   let liveMessage = () =>
     sentMessages().find(message => message.method === 'slates/hub.live_invocation.set');
+
+  let directUpload = () =>
+    (
+      sentMessages().find(message => message.method === 'slates/hub.capabilities.set')
+        ?.params as { capabilities: { attachments: { directUpload: unknown } } } | undefined
+    )?.capabilities.attachments.directUpload;
 
   it('points slates at the live base URL and asks for the platform routes', async () => {
     await invoke(liveCapabilities, { oid: 1n });
@@ -238,21 +245,42 @@ describe('SlateInvocationStack live invocation', () => {
     ]);
   });
 
-  it('keeps slates without multipart uploads off live invocation in multipart mode', async () => {
+  it('asks for part uploads from slates that support them in multipart mode', async () => {
+    await invoke(liveCapabilities, { oid: 1n });
+
+    expect(mocks.mintLiveInvocationToken).toHaveBeenCalledWith(
+      expect.objectContaining({ multipartUpload: true })
+    );
+    expect(directUpload()).toEqual({
+      enabled: true,
+      maxAttachmentSizeBytes: 500 * 1024 * 1024
+    });
+  });
+
+  it('gives slates without part uploads single URLs in multipart mode', async () => {
     await invoke(
       { hub: { capabilitiesNotification: true, liveInvocation: true } },
       { oid: 1n }
     );
 
-    expect(liveMessage()).toBeUndefined();
-    expect(mocks.mintLiveInvocationToken).not.toHaveBeenCalled();
-    expect(mocks.invokeFunction.mock.calls[0]![0].platformRoutes).toBeUndefined();
+    expect(mocks.mintLiveInvocationToken).toHaveBeenCalledWith(
+      expect.objectContaining({ multipartUpload: false })
+    );
+    expect(liveMessage()?.params).toMatchObject({ token: 'live-token' });
+    expect(directUpload()).toEqual({
+      enabled: true,
+      maxAttachmentSizeBytes: 100 * 1024 * 1024
+    });
+    expect(mocks.invokeFunction.mock.calls[0]![0].platformRoutes).toEqual([
+      'slates-live',
+      'object-upload'
+    ]);
 
     let capabilities = sentMessages().find(
       message => message.method === 'slates/hub.capabilities.set'
     );
     expect(capabilities?.params).toMatchObject({
-      capabilities: { attachments: { directUpload: { enabled: false } } }
+      capabilities: { attachments: { directUpload: { enabled: true } } }
     });
   });
 
@@ -271,5 +299,8 @@ describe('SlateInvocationStack live invocation', () => {
       baseUrl: 'https://metorial.example'
     });
     expect(mocks.invokeFunction.mock.calls[0]![0].platformRoutes).toBeUndefined();
+    expect(mocks.mintLiveInvocationToken).toHaveBeenCalledWith(
+      expect.objectContaining({ multipartUpload: false })
+    );
   });
 });

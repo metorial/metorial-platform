@@ -485,16 +485,26 @@ impl ObjectStoreService {
         }
     }
 
+    // Only this service's own public URLs can bind a size; backend-presigned URLs ignore it, so
+    // callers that need the size enforced still compare the stored object's size.
     pub async fn get_public_url(
         &self,
         bucket: &str,
         key: &str,
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
+        size: Option<u64>,
     ) -> ServiceResult<SignedUrl> {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
+
+        if size.is_some() && !matches!(purpose, PublicUrlPurpose::Upload) {
+            return Err(object_store_backends::BackendError::InvalidRequest(
+                "Only upload URLs can bind a size".into(),
+            )
+            .into());
+        }
 
         if let Some(signer) = &self.public_signer {
             return Ok(signer.sign(
@@ -502,6 +512,7 @@ impl ObjectStoreService {
                 key,
                 purpose,
                 expiration_secs,
+                size,
                 chrono::Utc::now().timestamp(),
             ));
         }

@@ -39,7 +39,7 @@ async fn setup() -> (Arc<ObjectStoreService>, axum::Router, TempDir) {
 
 async fn public_url(service: &ObjectStoreService, key: &str, purpose: PublicUrlPurpose) -> String {
     let url = service
-        .get_public_url("files", key, 300, purpose)
+        .get_public_url("files", key, 300, purpose, None)
         .await
         .unwrap()
         .url;
@@ -126,6 +126,101 @@ async fn refuses_requests_without_a_matching_signature() {
         send(&router, "GET", &extended, "").await.0,
         StatusCode::FORBIDDEN
     );
+}
+
+async fn sized_upload_url(service: &ObjectStoreService, key: &str, size: u64) -> String {
+    let url = service
+        .get_public_url("files", key, 300, PublicUrlPurpose::Upload, Some(size))
+        .await
+        .unwrap()
+        .url;
+
+    url.strip_prefix(BASE_URL).unwrap().to_string()
+}
+
+async fn put_with_length(
+    router: &axum::Router,
+    path: &str,
+    content_length: Option<&str>,
+    body: &'static str,
+) -> StatusCode {
+    let mut request = Request::builder().method("PUT").uri(path);
+    if let Some(content_length) = content_length {
+        request = request.header("content-length", content_length);
+    }
+
+    router
+        .clone()
+        .oneshot(request.body(Body::from(body)).unwrap())
+        .await
+        .unwrap()
+        .status()
+}
+
+#[tokio::test]
+async fn accepts_exactly_the_signed_size() {
+    let (service, router, _temp_dir) = setup().await;
+
+    let upload = sized_upload_url(&service, "sized.txt", 5).await;
+    assert!(upload.contains("&size=5&"), "{upload}");
+    assert_eq!(
+        put_with_length(&router, &upload, Some("5"), "hello").await,
+        StatusCode::OK
+    );
+
+    let download = public_url(&service, "sized.txt", PublicUrlPurpose::Retrieve).await;
+    assert_eq!(send(&router, "GET", &download, "").await.1, "hello");
+}
+
+#[tokio::test]
+async fn refuses_uploads_that_differ_from_the_signed_size() {
+    let (service, router, _temp_dir) = setup().await;
+    let upload = sized_upload_url(&service, "sized.txt", 5).await;
+
+    for (content_length, body) in [
+        (None, "hello"),
+        (Some("6"), "hello!"),
+        (Some("4"), "hell"),
+        (Some("5"), "hello, this is far more than five bytes"),
+        (Some("5"), "hey"),
+    ] {
+        assert_eq!(
+            put_with_length(&router, &upload, content_length, body).await,
+            StatusCode::BAD_REQUEST,
+            "{content_length:?} {body}"
+        );
+    }
+
+    assert!(service.head_object("files", "sized.txt").await.is_err());
+}
+
+#[tokio::test]
+async fn binds_the_size_to_the_signature() {
+    let (service, router, _temp_dir) = setup().await;
+    let upload = sized_upload_url(&service, "sized.txt", 5).await;
+
+    let resized = upload.replace("&size=5&", "&size=6&");
+    assert_eq!(
+        put_with_length(&router, &resized, Some("6"), "hello!").await,
+        StatusCode::FORBIDDEN
+    );
+
+    let without_size = upload.replace("&size=5&", "&");
+    assert_eq!(
+        put_with_length(&router, &without_size, Some("6"), "hello!").await,
+        StatusCode::FORBIDDEN
+    );
+
+    assert!(service
+        .get_public_url(
+            "files",
+            "sized.txt",
+            300,
+            PublicUrlPurpose::Retrieve,
+            Some(5)
+        )
+        .await
+        .is_err());
 }
 
 #[tokio::test]

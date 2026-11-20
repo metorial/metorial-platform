@@ -4,7 +4,6 @@ let mocks = vi.hoisted(() => ({
   env: {
     storage: {
       MAX_ATTACHMENT_SIZE_BYTES: 200 * 1024 * 1024,
-      SLATES_LIVE_UPLOAD_MODE: 'multipart' as 'single' | 'multipart',
       SLATES_LIVE_UPLOAD_BASE_URL: 'http://object-upload.platform.metorial.internal' as
         string | undefined
     }
@@ -38,7 +37,11 @@ vi.mock('../../queues/attachment/uploadDelete', () => ({
 }));
 vi.mock('../../lib/invocation/liveToken', () => ({
   resolveLiveInvocationToken: vi.fn(async (token: string) =>
-    token === 'live-token' ? { invocationId: 'slateInvocation_1', tenantOid: 1n } : null
+    token === 'live-token'
+      ? { invocationId: 'slateInvocation_1', tenantOid: 1n, multipartUpload: true }
+      : token === 'single-token'
+        ? { invocationId: 'slateInvocation_1', tenantOid: 1n }
+        : null
   ),
   reserveAttachmentBudget: vi.fn(async () => ({ newCount: 1, newSize: 1 })),
   releaseAttachmentBudget: vi.fn()
@@ -48,12 +51,19 @@ let { liveInvocationApp, liveInvocationOnlyApp } = await import('./liveInvocatio
 
 let MiB = 1024 * 1024;
 
-let post = (path: string, body: unknown) =>
+let post = (path: string, body: unknown, token = 'live-token') =>
   liveInvocationApp.request(`/slates-hub/live-invocation${path}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: 'Bearer live-token' },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify(body)
   });
+
+let signSingleUrl = () =>
+  mocks.storage.getPublicURL.mockImplementation(async (bucket: string, key: string) => ({
+    url: `https://metorial.example/object-storage/${bucket}/${key}?expires=1&purpose=upload&size=12&signature=s`,
+    headers: {},
+    expires_in: 300
+  }));
 
 let multipartUpload = (overrides: Record<string, unknown> = {}) => ({
   oid: 7n,
@@ -70,7 +80,6 @@ let multipartUpload = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.env.storage.SLATES_LIVE_UPLOAD_MODE = 'multipart';
   mocks.env.storage.SLATES_LIVE_UPLOAD_BASE_URL =
     'http://object-upload.platform.metorial.internal';
 
@@ -133,12 +142,59 @@ describe('live attachment registration', () => {
     expect(attachment.parts.map((part: any) => part.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
-  it('requires a declared size in multipart mode', async () => {
-    let response = await post('/attachments', { attachments: [{ mimeType: 'text/plain' }] });
+  it('gives slates without part uploads a single URL bound to the declared size', async () => {
+    signSingleUrl();
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'size_required' });
-    expect(mocks.db.slateAttachmentUpload.create).not.toHaveBeenCalled();
+    let response = await post(
+      '/attachments',
+      { attachments: [{ sizeBytes: 12 }] },
+      'single-token'
+    );
+
+    let [attachment] = (await response.json()).attachments;
+    expect(attachment.uploadMethod).toBe('PUT');
+    expect(attachment.uploadUrl).toBe(
+      `http://object-upload.platform.metorial.internal/invocations/attachments/uploads/${attachment.referenceId}?expires=1&purpose=upload&size=12&signature=s`
+    );
+    expect(mocks.storage.getPublicURL).toHaveBeenCalledWith(
+      'invocations',
+      `attachments/uploads/${attachment.referenceId}`,
+      300,
+      'upload',
+      12
+    );
+    expect(mocks.storage.startMultipartUpload).not.toHaveBeenCalled();
+  });
+
+  it('binds a single URL to zero bytes when no size is declared', async () => {
+    signSingleUrl();
+
+    let response = await post('/attachments', { attachments: [{}] }, 'single-token');
+
+    expect(response.status).toBe(200);
+    expect(mocks.storage.getPublicURL.mock.calls[0]![4]).toBe(0);
+    expect(mocks.db.slateAttachmentUpload.create.mock.calls[0]![0].data).toMatchObject({
+      declaredSizeBytes: 0,
+      multipartUploadId: null
+    });
+  });
+
+  it('caps single URL uploads at 100 MiB', async () => {
+    signSingleUrl();
+
+    let tooLarge = await post(
+      '/attachments',
+      { attachments: [{ sizeBytes: 100 * MiB + 1 }] },
+      'single-token'
+    );
+    expect(tooLarge.status).toBe(413);
+
+    let largest = await post(
+      '/attachments',
+      { attachments: [{ sizeBytes: 100 * MiB }] },
+      'single-token'
+    );
+    expect(largest.status).toBe(200);
   });
 
   it('rejects attachments above the maximum size before reserving anything', async () => {
@@ -146,28 +202,6 @@ describe('live attachment registration', () => {
 
     expect(response.status).toBe(413);
     expect(mocks.storage.startMultipartUpload).not.toHaveBeenCalled();
-  });
-
-  it('moves single PUT URLs onto the upload route and records the declared size', async () => {
-    mocks.env.storage.SLATES_LIVE_UPLOAD_MODE = 'single';
-    mocks.storage.getPublicURL.mockImplementation(async (bucket: string, key: string) => ({
-      url: `https://metorial.example/object-storage/${bucket}/${key}?expires=1&purpose=upload&signature=s`,
-      headers: {},
-      expires_in: 300
-    }));
-
-    let response = await post('/attachments', { attachments: [{ sizeBytes: 12 }] });
-
-    let [attachment] = (await response.json()).attachments;
-    expect(attachment.uploadMethod).toBe('PUT');
-    expect(attachment.uploadUrl).toBe(
-      `http://object-upload.platform.metorial.internal/invocations/attachments/uploads/${attachment.referenceId}?expires=1&purpose=upload&signature=s`
-    );
-    expect(mocks.storage.startMultipartUpload).not.toHaveBeenCalled();
-    expect(mocks.db.slateAttachmentUpload.create.mock.calls[0]![0].data).toMatchObject({
-      declaredSizeBytes: 12,
-      multipartUploadId: null
-    });
   });
 });
 

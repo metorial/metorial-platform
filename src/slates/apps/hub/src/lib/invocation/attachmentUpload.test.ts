@@ -12,7 +12,9 @@ let mocks = vi.hoisted(() => ({
   deleteQueue: { add: vi.fn() }
 }));
 
-vi.mock('../../env', () => ({ env: { storage: { MAX_ATTACHMENT_SIZE_BYTES: 1000 } } }));
+vi.mock('../../env', () => ({
+  env: { storage: { MAX_ATTACHMENT_SIZE_BYTES: 500 * 1024 * 1024 } }
+}));
 vi.mock('../../db', () => ({ db: mocks.db }));
 vi.mock('../../storage', () => ({ storage: mocks.storage }));
 vi.mock('../../queues/attachment/uploadDelete', () => ({
@@ -20,6 +22,8 @@ vi.mock('../../queues/attachment/uploadDelete', () => ({
 }));
 
 let { claimAttachmentUpload } = await import('./attachmentUpload');
+
+let MiB = 1024 * 1024;
 
 let invocation = { oid: 3n } as any;
 
@@ -64,17 +68,26 @@ describe('claimAttachmentUpload', () => {
     });
   });
 
-  it('rejects objects above the maximum size even without a declared size', async () => {
+  it('rejects single uploads above 100 MiB even without a declared size', async () => {
     mocks.db.slateAttachmentUpload.findFirst.mockResolvedValue(
       upload({ declaredSizeBytes: null })
     );
-    mocks.storage.headObject.mockResolvedValue({ size: 1001 });
+    mocks.storage.headObject.mockResolvedValue({ size: 100 * MiB + 1 });
 
     expect(await claim()).toBeNull();
     expect(mocks.db.slateAttachmentUpload.updateMany).toHaveBeenLastCalledWith({
       where: { oid: 7n, status: 'processing' },
       data: { status: 'oversized' }
     });
+  });
+
+  it('accepts multipart uploads up to the full maximum size', async () => {
+    mocks.db.slateAttachmentUpload.findFirst.mockResolvedValue(
+      upload({ multipartUploadId: 'upload_1', declaredSizeBytes: 500 * MiB })
+    );
+    mocks.storage.headObject.mockResolvedValue({ size: 500 * MiB });
+
+    expect(await claim()).toMatchObject({ info: { size: 500 * MiB } });
   });
 
   it('only claims multipart uploads that were completed', async () => {

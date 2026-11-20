@@ -22,7 +22,7 @@ import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { getMetorialApiUrl } from '../../metorialApiUrl';
 import { invocationsBucketRecord } from '../../storage';
-import { MAX_ATTACHMENT_SIZE_BYTES } from '../attachmentLimits';
+import { maxAttachmentSizeBytes } from '../attachmentLimits';
 import { retryOnOidCollision } from '../retryOnOidCollision';
 import { SLATES_PROTOCOL } from '../protocol';
 import { mintLiveInvocationToken } from './liveToken';
@@ -98,14 +98,19 @@ export class SlateInvocationStack {
     let capabilities = this.#capabilities?.hub;
     let supportsHubCapabilities = !!capabilities?.capabilitiesNotification;
     let supportsLiveInvocation =
-      env.storage.SLATES_LIVE_INVOCATION_ENABLED &&
-      !!capabilities?.liveInvocation &&
-      (env.storage.SLATES_LIVE_UPLOAD_MODE !== 'multipart' || !!capabilities?.multipartUpload);
+      env.storage.SLATES_LIVE_INVOCATION_ENABLED && !!capabilities?.liveInvocation;
     let metorialApiUrl = capabilities?.runtimeInfo ? getMetorialApiUrl() : undefined;
+
+    let multipartUpload =
+      env.storage.SLATES_LIVE_UPLOAD_MODE === 'multipart' && !!capabilities?.multipartUpload;
 
     let liveInvocationToken =
       this.#tenant && supportsLiveInvocation
-        ? await mintLiveInvocationToken({ invocationId, tenantOid: this.#tenant.oid })
+        ? await mintLiveInvocationToken({
+            invocationId,
+            tenantOid: this.#tenant.oid,
+            multipartUpload
+          })
         : null;
 
     let messages: SlatesRequest[] = [
@@ -130,7 +135,9 @@ export class SlateInvocationStack {
                   attachments: {
                     directUpload: {
                       enabled: !!liveInvocationToken,
-                      maxAttachmentSizeBytes: MAX_ATTACHMENT_SIZE_BYTES
+                      maxAttachmentSizeBytes: maxAttachmentSizeBytes({
+                        multipart: multipartUpload
+                      })
                     }
                   },
                   adapters: true,

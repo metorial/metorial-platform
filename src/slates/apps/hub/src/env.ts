@@ -45,10 +45,13 @@ export let env = defineSettings({
   storage: {
     OBJECT_STORAGE_URL: objectStorageUrl,
     INVOCATIONS_BUCKET_NAME: v.string(),
-    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number()),
+    MAX_ATTACHMENT_SIZE_BYTES: setting(v.number({ modifiers: [v.integer(), v.minValue(0)] }), {
+      description: 'Largest attachment a slate may upload during an invocation',
+      default: perEdition({ cloud: 100 * 1024 * 1024, 'on-prem': 500 * 1024 * 1024 })
+    }),
     SLATES_LIVE_INVOCATION_ENABLED: setting(v.boolean(), {
       description:
-        'Lets slates upload large attachments straight to object storage during an invocation; off on-prem, where function pods cannot reach the public upload URL',
+        'Lets slates upload large attachments straight to object storage during an invocation; off on-prem unless the chart routes function pods to the hub and object storage through the egress gateway',
       default: perEdition({ cloud: true, 'on-prem': false })
     }),
     SLATES_LIVE_UPLOAD_MODE: setting(v.enumOf(['single', 'multipart']), {

@@ -4,8 +4,8 @@ import { db } from '../../db';
 import { slateAttachmentUploadDeleteQueue } from '../../queues/attachment/uploadDelete';
 import { storage } from '../../storage';
 import {
-  MAX_ATTACHMENT_SIZE_BYTES,
-  MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
+  maxTotalAttachmentBytesPerInvocation,
+  maxAttachmentSizeBytes
 } from '../attachmentLimits';
 
 let rejectUpload = async (
@@ -63,8 +63,8 @@ export let claimAttachmentUpload = async (d: {
   let totalConfirmedBytes = (alreadyConfirmed._sum.sizeBytes ?? 0) + info.size;
 
   if (
-    info.size > MAX_ATTACHMENT_SIZE_BYTES ||
-    totalConfirmedBytes > MAX_TOTAL_ATTACHMENT_BYTES_PER_INVOCATION
+    info.size > maxAttachmentSizeBytes({ multipart: !!upload.multipartUploadId }) ||
+    totalConfirmedBytes > maxTotalAttachmentBytesPerInvocation()
   ) {
     await rejectUpload(upload, 'oversized');
     return null;
