@@ -7,6 +7,7 @@ import {
   ATTACHMENT_SIGNATURE_MAX_AGE_MS,
   signedIntegrationAttachmentUrl
 } from '../attachmentSignature';
+import type { AttachmentEgress } from './attachmentEgress';
 import { claimAttachmentUpload, confirmAttachmentUpload } from './attachmentUpload';
 import { getStoredAttachmentsStorageKey } from './store';
 
@@ -67,6 +68,7 @@ export let ensureSlateInvocationAttachment = async (d: {
   mimeType?: string;
   invocation: SlateInvocation;
   tenantOid: bigint;
+  egress: AttachmentEgress;
 }) => {
   let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
 
@@ -99,6 +101,7 @@ export let ensureSlateInvocationAttachment = async (d: {
     let attachment = await db.slateAttachment.create({
       data: {
         ...getId('slateAttachment'),
+        ...d.egress,
         tenantOid: d.tenantOid,
         targetUrl: d.content.url,
         headers: d.content.headers,

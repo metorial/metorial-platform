@@ -8,6 +8,10 @@ import { db } from '../db';
 import { getId } from '../id';
 import { signedIntegrationAttachmentUrl } from '../lib/attachmentSignature';
 import {
+  attachmentEgressFor,
+  type AttachmentEgress
+} from '../lib/invocation/attachmentEgress';
+import {
   claimAttachmentUpload,
   confirmAttachmentUpload
 } from '../lib/invocation/attachmentUpload';
@@ -274,7 +278,11 @@ class slateSessionToolCallServiceImpl {
                 invocation: callRes.invocation,
                 tenant: session.tenant,
                 slateInstance: session.slateInstance,
-                authConfig
+                authConfig,
+                egress: attachmentEgressFor({
+                  instanceConfiguration: session.instanceConfiguration,
+                  inline: { enclaveId: d.input.enclaveId, egressPolicy: d.input.egressPolicy }
+                })
               })
             )
           )
@@ -299,6 +307,7 @@ class slateSessionToolCallServiceImpl {
     tenant: Tenant;
     slateInstance: SlateInstance;
     authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
+    egress: AttachmentEgress;
   }) {
     if (d.content.type === 'url') {
       return this.ensureProxiedUrlAttachment({
@@ -307,7 +316,8 @@ class slateSessionToolCallServiceImpl {
         invocation: d.invocation,
         tenant: d.tenant,
         slateInstance: d.slateInstance,
-        authConfig: d.authConfig
+        authConfig: d.authConfig,
+        egress: d.egress
       });
     }
 
@@ -392,6 +402,7 @@ class slateSessionToolCallServiceImpl {
     tenant: Tenant;
     slateInstance: SlateInstance;
     authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
+    egress: AttachmentEgress;
   }) {
     let needsAuthConfig =
       containsSecretPlaceholder(d.content.url) ||
@@ -429,6 +440,7 @@ class slateSessionToolCallServiceImpl {
             : null,
         slateInstanceOid:
           d.content.refreshReference !== undefined ? d.slateInstance.oid : null,
+        ...d.egress,
         targetUrl: d.content.url,
         headers: d.content.headers ?? undefined,
         query: d.content.query ?? undefined,

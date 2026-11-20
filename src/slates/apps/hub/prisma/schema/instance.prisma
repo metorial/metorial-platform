@@ -48,6 +48,7 @@ model SlateInstanceConfiguration {
 
   slateSessions            SlateSession[]
   slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+  slateAttachments         SlateAttachment[]
 }
 
 enum SlateInstanceEventType {

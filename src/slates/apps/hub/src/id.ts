@@ -79,7 +79,9 @@ export let ID = createIdGenerator({
   slateAttachmentUpload: idType.sorted('shau'),
   slateAttachmentBlob: idType.sorted('shab'),
 
-  slateError: idType.sorted('sher')
+  slateError: idType.sorted('sher'),
+
+  egressGrant: idType.sorted('sheg')
 });
 
 let workerIdBits = 12;

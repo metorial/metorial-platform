@@ -149,6 +149,16 @@ model SlateAttachment {
   slateInstanceOid BigInt?
   slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: SetNull)
 
+  // Where the hub may fetch targetUrl from: the live policy of the instance configuration the
+  // creating tool call ran under, or a copy of the policy it was given inline.
+  instanceConfigurationOid BigInt?
+  instanceConfiguration    SlateInstanceConfiguration? @relation(fields: [instanceConfigurationOid], references: [oid], onDelete: SetNull)
+
+  enclaveId String?
+
+  /// [CompiledEgressNetworkAllowList]
+  egressPolicy Json?
+
   targetUrl String?
 
   storageBucket String?
@@ -413,6 +423,7 @@ model SlateInstanceConfiguration {
 
   slateSessions            SlateSession[]
   slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+  slateAttachments         SlateAttachment[]
 }
 
 enum SlateInstanceEventType {
@@ -1523,7 +1534,7 @@ model SlatePublicToolCall {
   invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
 
   slateOid BigInt
-  slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
 
   slateVersionOid BigInt
   slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)

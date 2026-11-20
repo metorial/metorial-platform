@@ -117,5 +117,40 @@ export let env = defineSettings({
 
   subspace: {
     SUBSPACE_INTERNAL_URL: v.optional(v.string())
+  },
+
+  egress: {
+    SLATES_HUB_EGRESS_MODE: setting(v.enumOf(['direct', 'gateway']), {
+      default: 'gateway',
+      editions: ['on-prem'],
+      description:
+        'How the hub fetches integration attachments and connects to trigger gateways: "gateway" sends them through the egress gateway, "direct" connects from the hub itself'
+    }),
+    SLATES_HUB_EGRESS_GATEWAY_PROXY_URL: setting(
+      v.optional(v.string({ modifiers: [v.url()] })),
+      {
+        editions: ['on-prem'],
+        description: 'HTTP proxy endpoint of the egress gateway, required in gateway mode'
+      }
+    ),
+    SLATES_HUB_EGRESS_SIGNING_KEY: setting(v.optional(v.string()), {
+      secret: true,
+      audience: 'derived',
+      editions: ['on-prem'],
+      description:
+        'Base64url Ed25519 seed that signs the egress grants of the hub, required in gateway mode'
+    }),
+    SLATES_HUB_EGRESS_SIGNING_KEY_ID: setting(v.optional(v.string()), {
+      audience: 'derived',
+      editions: ['on-prem'],
+      description:
+        'Key id for SLATES_HUB_EGRESS_SIGNING_KEY, defaults to the id derived from its public key'
+    }),
+    TRUST_CONFIGMAPS: setting.list(v.string(), {
+      default: [],
+      editions: ['on-prem'],
+      description:
+        'Kubernetes ConfigMaps ("namespace/name") the hub publishes the public key of SLATES_HUB_EGRESS_SIGNING_KEY to, for the egress gateway'
+    })
   }
 });
