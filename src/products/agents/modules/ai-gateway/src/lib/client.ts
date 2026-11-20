@@ -1,8 +1,26 @@
-import { isServiceError } from '@lowerdeck/error';
+import { isServiceError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { createAiGatewayClient } from '@mtsrc/ai-gateway-client-internal';
 import { aiGatewaySettings } from '../env';
 
 export type AiGateway = ReturnType<typeof createAiGatewayClient>;
+
+type Output<F extends (...args: any[]) => any> = Awaited<ReturnType<F>>;
+
+// Every instance-scoped gateway call takes the core organization and instance ids as refs.
+export type AiGatewayInput<F extends (input: any) => any> = Omit<
+  Parameters<F>[0],
+  'organizationId' | 'instanceId'
+>;
+
+export type AiGatewayInstance = Output<AiGateway['instance']['get']>;
+
+export type AiGatewayToken = Output<AiGateway['gatewayToken']['get']>;
+
+export type AiGatewayProviderConnection = Output<AiGateway['providerConnection']['get']>;
+
+export type AiGatewayVirtualModel = Output<AiGateway['virtualModel']['get']>;
+
+export type AiGatewayInferenceLog = Output<AiGateway['inferenceLog']['get']>;
 
 let client: AiGateway | undefined;
 
@@ -15,6 +33,17 @@ export let getAiGateway = () => {
   client ??= createAiGatewayClient({ endpoint });
 
   return client;
+};
+
+export let requireAiGateway = () => {
+  let gateway = getAiGateway();
+  if (!gateway) {
+    throw new ServiceError(
+      preconditionFailedError({ message: 'The AI gateway is not configured.' })
+    );
+  }
+
+  return gateway;
 };
 
 // Archiving something the gateway no longer has (or already archived) is the goal state.

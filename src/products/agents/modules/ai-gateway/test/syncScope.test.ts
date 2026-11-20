@@ -23,7 +23,7 @@ vi.mock('@metorial/db', () => ({
   db: {
     organization: { findUnique: vi.fn() },
     project: { findUnique: vi.fn() },
-    instance: { findUnique: vi.fn() }
+    instance: { findUnique: vi.fn(), update: vi.fn() }
   }
 }));
 
@@ -171,6 +171,22 @@ describe('ai-gateway/sync/scope', () => {
       ref: 'inst_1',
       name: 'Default'
     });
+    expect(db.instance.update).toHaveBeenCalledWith({
+      where: { oid: 3n },
+      data: { aiGatewayInstanceId: 'gwin_1' }
+    });
+  });
+
+  it('leaves the setup marker alone when it is already current', async () => {
+    vi.mocked(db.instance.findUnique).mockResolvedValue({
+      ...instance,
+      aiGatewayInstanceId: 'gwin_1'
+    } as any);
+
+    await run({ type: 'instance', id: 'inst_1' });
+
+    expect(mocks.gateway.instance.upsert).toHaveBeenCalled();
+    expect(db.instance.update).not.toHaveBeenCalled();
   });
 
   it('archives an instance whose project is gone', async () => {

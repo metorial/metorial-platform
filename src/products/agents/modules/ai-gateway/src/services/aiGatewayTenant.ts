@@ -1,29 +1,27 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, type Instance } from '@metorial/db';
-import { getAiGateway } from '../lib/client';
-import { upsertInstanceScope } from '../lib/scope';
+import { requireAiGateway } from '../lib/client';
+import { upsertInstanceScope, type ScopedInstance } from '../lib/scope';
 
 class AiGatewayTenantServiceImpl {
-  async ensure(d: { instance: Instance }) {
-    let gateway = getAiGateway();
-    if (!gateway) {
-      throw new ServiceError(
-        preconditionFailedError({ message: 'The AI gateway is not configured.' })
-      );
-    }
+  async ensure(d: { instance: ScopedInstance }) {
+    let gateway = requireAiGateway();
 
-    let instance = await db.instance.findUniqueOrThrow({
-      where: { oid: d.instance.oid },
-      include: { organization: true, project: true }
-    });
+    let gatewayInstanceId =
+      d.instance.aiGatewayInstanceId ??
+      (
+        await upsertInstanceScope({
+          gateway,
+          organization: d.instance.organization,
+          project: d.instance.project,
+          instance: d.instance
+        })
+      ).instance.id;
 
-    return await upsertInstanceScope({
+    return {
       gateway,
-      organization: instance.organization,
-      project: instance.project,
-      instance
-    });
+      gatewayInstanceId,
+      scope: { organizationId: d.instance.organization.id, instanceId: d.instance.id }
+    };
   }
 }
 

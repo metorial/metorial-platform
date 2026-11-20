@@ -1,7 +1,8 @@
 import { v } from '@lowerdeck/validation';
-import { inferenceLogService } from '@mtsrc/ai-gateway-module-logs';
+import { inferenceLogService, usageIntervalSlugs } from '@mtsrc/ai-gateway-module-logs';
+import { instanceService } from '@mtsrc/ai-gateway-module-scope';
 import { inferenceLogPresenter } from '../presenters/inferenceLog';
-import { app, organizationApp } from './_app';
+import { app, instanceApp, organizationApp } from './_app';
 
 export let inferenceLogController = app.controller({
   list: organizationApp
@@ -22,9 +23,17 @@ export let inferenceLogController = app.controller({
       })
     )
     .do(async ctx => {
+      let instance = ctx.input.instanceId
+        ? await instanceService.getInstanceById({
+            organization: ctx.organization,
+            instanceId: ctx.input.instanceId,
+            includeArchived: true
+          })
+        : undefined;
+
       let page = await inferenceLogService.listLogs({
         organizationId: ctx.organization.id,
-        instanceId: ctx.input.instanceId,
+        instanceId: instance?.id,
         tokenId: ctx.input.gatewayTokenId,
         consumerRef: ctx.input.consumerRef,
         modelSlug: ctx.input.modelSlug,
@@ -58,5 +67,37 @@ export let inferenceLogController = app.controller({
       });
 
       return inferenceLogPresenter(log, ctx.input.includeContent ? content : undefined);
-    })
+    }),
+
+  usageTimeline: instanceApp
+    .handler()
+    .input(
+      v.object({
+        organizationId: v.string(),
+        instanceId: v.string(),
+
+        from: v.date(),
+        to: v.date(),
+        interval: v.optional(v.enumOf(usageIntervalSlugs)),
+
+        gatewayTokenId: v.optional(v.string()),
+        consumerRef: v.optional(v.string()),
+        modelSlug: v.optional(v.string()),
+        virtualModelId: v.optional(v.string())
+      })
+    )
+    .do(async ctx => ({
+      object: 'ai_gateway#usage_timeline',
+      ...(await inferenceLogService.usageTimeline({
+        organizationId: ctx.organization.id,
+        instanceId: ctx.instance.id,
+        from: ctx.input.from,
+        to: ctx.input.to,
+        interval: ctx.input.interval,
+        tokenId: ctx.input.gatewayTokenId,
+        consumerRef: ctx.input.consumerRef,
+        modelSlug: ctx.input.modelSlug,
+        virtualModelId: ctx.input.virtualModelId
+      }))
+    }))
 });

@@ -1,11 +1,14 @@
 import {
   addAfterTransactionHook,
+  db,
   type Instance,
   type Organization,
   type Project
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { AiGateway } from './client';
+
+export type ScopedInstance = Instance & { organization: Organization; project: Project };
 
 // Gateway organizations, projects and instances use the core ids as refs.
 export let upsertOrganizationScope = async (d: {
@@ -48,7 +51,7 @@ export let upsertInstanceScope = async (d: {
   gateway: AiGateway;
   organization: Organization;
   project: Project;
-  instance: Pick<Instance, 'id' | 'name'>;
+  instance: Pick<Instance, 'oid' | 'id' | 'name' | 'aiGatewayInstanceId'>;
 }) => {
   let project = await upsertProjectScope(d);
 
@@ -58,6 +61,13 @@ export let upsertInstanceScope = async (d: {
     ref: d.instance.id,
     name: d.instance.name
   });
+
+  if (d.instance.aiGatewayInstanceId != instance.id) {
+    await db.instance.update({
+      where: { oid: d.instance.oid },
+      data: { aiGatewayInstanceId: instance.id }
+    });
+  }
 
   return { project, instance };
 };

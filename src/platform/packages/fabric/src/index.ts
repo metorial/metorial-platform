@@ -1,6 +1,10 @@
 import { FabricEvents } from './types';
 
 export type {
+  AuditAiGatewayConfig,
+  AuditAiGatewayProviderConnection,
+  AuditAiGatewayToken,
+  AuditAiGatewayVirtualModel,
   AuditConsumerAccess,
   AuditConsumerAccessListing,
   AuditConsumerAccessRequest,

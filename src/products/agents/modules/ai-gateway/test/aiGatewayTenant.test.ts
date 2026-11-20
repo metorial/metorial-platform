@@ -12,13 +12,16 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@metorial/db', () => ({
   addAfterTransactionHook: async (hook: () => unknown) => await hook(),
-  db: { instance: { findUniqueOrThrow: vi.fn() } }
+  db: { instance: { update: vi.fn() } }
 }));
 
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fire } }));
 
 vi.mock('../src/lib/client', () => ({
-  getAiGateway: () => (mocks.enabled.value ? mocks.gateway : null)
+  requireAiGateway: () => {
+    if (!mocks.enabled.value) throw new Error('The AI gateway is not configured.');
+    return mocks.gateway;
+  }
 }));
 
 import { db } from '@metorial/db';
@@ -26,13 +29,22 @@ import { aiGatewayTenantService } from '../src/services/aiGatewayTenant';
 
 let organization = { oid: 1n, id: 'org_1', name: 'Acme' };
 let project = { oid: 2n, id: 'proj_1', name: 'Production' };
-let instance = { oid: 3n, id: 'inst_1', name: 'Default', organization, project };
+let instance = {
+  oid: 3n,
+  id: 'inst_1',
+  name: 'Default',
+  aiGatewayInstanceId: null as string | null,
+  organization,
+  project
+};
+
+let ensure = (overrides: Partial<typeof instance> = {}) =>
+  aiGatewayTenantService.ensure({ instance: { ...instance, ...overrides } as any });
 
 describe('aiGatewayTenantService.ensure', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.enabled.value = true;
-    vi.mocked(db.instance.findUniqueOrThrow).mockResolvedValue(instance as any);
     mocks.gateway.project.upsert.mockResolvedValue({
       id: 'gwpr_1',
       platformLimitsSyncedAt: null
@@ -40,8 +52,21 @@ describe('aiGatewayTenantService.ensure', () => {
     mocks.gateway.instance.upsert.mockResolvedValue({ id: 'gwin_1' });
   });
 
-  it('provisions the whole scope chain and returns the gateway project and instance', async () => {
-    let result = await aiGatewayTenantService.ensure({ instance: { oid: 3n } as any });
+  it('skips the gateway entirely for an instance that is already set up', async () => {
+    let result = await ensure({ aiGatewayInstanceId: 'gwin_1' });
+
+    expect(mocks.gateway.organization.upsert).not.toHaveBeenCalled();
+    expect(mocks.gateway.instance.upsert).not.toHaveBeenCalled();
+    expect(db.instance.update).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      gateway: mocks.gateway,
+      gatewayInstanceId: 'gwin_1',
+      scope: { organizationId: 'org_1', instanceId: 'inst_1' }
+    });
+  });
+
+  it('provisions the scope chain and records the marker on first use', async () => {
+    let result = await ensure();
 
     expect(mocks.gateway.organization.upsert).toHaveBeenCalledWith({
       ref: 'org_1',
@@ -53,14 +78,15 @@ describe('aiGatewayTenantService.ensure', () => {
       ref: 'inst_1',
       name: 'Default'
     });
-    expect(result).toEqual({
-      project: { id: 'gwpr_1', platformLimitsSyncedAt: null },
-      instance: { id: 'gwin_1' }
+    expect(db.instance.update).toHaveBeenCalledWith({
+      where: { oid: 3n },
+      data: { aiGatewayInstanceId: 'gwin_1' }
     });
+    expect(result.gatewayInstanceId).toBe('gwin_1');
   });
 
   it('announces a project the first time it is provisioned', async () => {
-    await aiGatewayTenantService.ensure({ instance: { oid: 3n } as any });
+    await ensure();
 
     expect(mocks.fire).toHaveBeenCalledWith('ai_gateway.project.created:after', {
       organization,
@@ -72,8 +98,6 @@ describe('aiGatewayTenantService.ensure', () => {
   it('fails clearly while the gateway is not configured', async () => {
     mocks.enabled.value = false;
 
-    await expect(
-      aiGatewayTenantService.ensure({ instance: { oid: 3n } as any })
-    ).rejects.toThrow(/not configured/);
+    await expect(ensure({ aiGatewayInstanceId: 'gwin_1' })).rejects.toThrow(/not configured/);
   });
 });
