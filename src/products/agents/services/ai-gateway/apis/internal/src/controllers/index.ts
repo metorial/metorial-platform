@@ -1,6 +1,7 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, rpcMux, type InferClient } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { billingController } from './billing';
 import { catalogController } from './catalog';
 import { gatewayTokenController } from './gatewayToken';
 import { inferenceLogController } from './inferenceLog';
@@ -20,7 +21,8 @@ export let rootController = app.controller({
   virtualModel: virtualModelController,
   catalog: catalogController,
   inferenceLog: inferenceLogController,
-  platformLimit: platformLimitController
+  platformLimit: platformLimitController,
+  billing: billingController
 });
 
 export let AiGatewayRPC = createServer({})(rootController);

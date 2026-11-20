@@ -8,7 +8,13 @@ import { createInferenceApp, type InferenceDependencies } from '../src/app';
 let principal: GatewayPrincipal = {
   token: { id: 'gwtk_1', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
   organization: { id: 'gwor_1', ref: 'org' },
-  project: { id: 'gwpr_1', ref: 'project', platformLimits: [] },
+  project: {
+    id: 'gwpr_1',
+    ref: 'project',
+    platformLimits: [],
+    disabled: null,
+    billingRestriction: null
+  },
   instance: {
     id: 'gwin_1',
     ref: 'instance',

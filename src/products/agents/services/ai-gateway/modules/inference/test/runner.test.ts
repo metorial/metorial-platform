@@ -1080,6 +1080,230 @@ describe('limits', () => {
   });
 });
 
+describe('project restrictions', () => {
+  let restricted = (
+    restriction: Partial<
+      Pick<ReturnType<typeof principalWith>['project'], 'disabled' | 'billingRestriction'>
+    >
+  ) => {
+    let principal = principalWith();
+    return { ...principal, project: { ...principal.project, ...restriction } };
+  };
+
+  it.each(dialects)('rejects every request of a disabled project (%s)', async dialect => {
+    let model = createMockModel(hello);
+    let acquire = vi.fn(async () => ({ allowed: true as const, headers: {} }));
+    let { run, logs, deps } = setupRunner({
+      route: routeOf([customerCandidate(1)]),
+      models: { off_1: model },
+      limiter: { acquire, settle: async () => {} }
+    });
+
+    let result = expectError(
+      await run(
+        { dialect, body: bodies[dialect]() },
+        restricted({ disabled: { reason: 'Upgrade to use the AI gateway.' } })
+      )
+    );
+
+    expect(result.error).toMatchObject({
+      status: 403,
+      code: 'gateway_disabled',
+      message: 'Upgrade to use the AI gateway.'
+    });
+    expect(acquire).not.toHaveBeenCalled();
+    expect(deps.route).not.toHaveBeenCalled();
+    expect(model.calls).toHaveLength(0);
+    expect(logs[0]!.log).toMatchObject({
+      status: 'rejected',
+      error: { stage: 'limits', code: 'gateway_disabled', httpStatus: 403 }
+    });
+  });
+
+  it('rejects token counting of a disabled project as well', async () => {
+    let { run, deps } = setupRunner({
+      route: routeOf([customerCandidate(1)]),
+      models: { off_1: createMockModel(hello) },
+      countTokens: async () => 42
+    });
+
+    let result = expectError(
+      await run(
+        {
+          dialect: 'anthropic_messages',
+          body: bodies.anthropic_messages({ max_tokens: undefined }),
+          countTokens: true
+        },
+        restricted({ disabled: { reason: null } })
+      )
+    );
+
+    expect(result.error).toMatchObject({
+      status: 403,
+      message: 'The AI gateway is not available for this project.'
+    });
+    expect(deps.countTokens).not.toHaveBeenCalled();
+  });
+
+  it('serves a billing-restricted project over its own connections only', async () => {
+    let platformModel = createMockModel(hello);
+    let customerModel = createMockModel(hello);
+    let { run, logs, deps } = setupRunner({
+      route: routeOf([platformCandidate(1), customerCandidate(2)]),
+      models: { off_1: platformModel, off_2: customerModel }
+    });
+
+    expectJson(
+      await run(
+        { dialect: 'openai_chat', body: bodies.openai_chat() },
+        restricted({ billingRestriction: { reason: 'Out of credits.' } })
+      )
+    );
+
+    expect(platformModel.calls).toHaveLength(0);
+    expect(customerModel.calls).toHaveLength(1);
+    expect(logs[0]!.log).toMatchObject({
+      status: 'succeeded',
+      route: { connectionOwner: 'customer', offeringId: 'off_2' }
+    });
+    expect(deps.chargeBilledUsage).not.toHaveBeenCalled();
+  });
+
+  it.each(dialects)(
+    'rejects a billing-restricted request only Metorial could serve (%s)',
+    async dialect => {
+      let model = createMockModel(hello);
+      let { run, logs } = setupRunner({
+        route: routeOf([platformCandidate(1)]),
+        models: { off_1: model }
+      });
+
+      let result = expectError(
+        await run(
+          { dialect, body: bodies[dialect]() },
+          restricted({ billingRestriction: { reason: 'Out of credits.' } })
+        )
+      );
+
+      expect(result.error).toMatchObject({ status: 402, code: 'billing_restricted' });
+      expect(result.error.message).toBe(
+        'Out of credits. Requests over your own provider connections are not affected.'
+      );
+      expect(model.calls).toHaveLength(0);
+      expect(logs[0]!.log).toMatchObject({
+        status: 'rejected',
+        error: { stage: 'limits', code: 'billing_restricted', httpStatus: 402 }
+      });
+    }
+  );
+
+  it('falls back to a generic billing message without a reason', async () => {
+    let { run } = setupRunner({
+      route: routeOf([platformCandidate(1)]),
+      models: { off_1: createMockModel(hello) }
+    });
+
+    let result = expectError(
+      await run(
+        { dialect: 'openai_chat', body: bodies.openai_chat() },
+        restricted({ billingRestriction: { reason: null } })
+      )
+    );
+
+    expect(result.error.message).toMatch(/billing status of this organization/);
+  });
+});
+
+describe('billing', () => {
+  it.each(dialects)('charges a request served over Metorial keys (%s)', async dialect => {
+    let { run, logs, deps } = setupRunner({
+      route: routeOf([platformCandidate(1)]),
+      models: { off_1: createMockModel(hello) }
+    });
+
+    expectJson(await run({ dialect, body: bodies[dialect]() }));
+
+    let billed = logs[0]!.log.billedCost!.totalUsd;
+    expect(billed).toBeGreaterThan(0);
+    expect(deps.chargeBilledUsage).toHaveBeenCalledExactlyOnceWith({
+      projectId: 'gwpr_1',
+      costUsd: billed,
+      requests: 1
+    });
+  });
+
+  it('charges a streamed request once it completed', async () => {
+    let { run, deps } = setupRunner({
+      route: routeOf([platformCandidate(1)]),
+      models: { off_1: createMockModel(hello) }
+    });
+
+    let result = expectStream(
+      await run({
+        dialect: 'anthropic_messages',
+        body: bodies.anthropic_messages({ stream: true })
+      })
+    );
+
+    expect(deps.chargeBilledUsage).not.toHaveBeenCalled();
+    await readEvents(result.events);
+
+    expect(deps.chargeBilledUsage).toHaveBeenCalledOnce();
+  });
+
+  it('never charges requests over the customer’s own connections', async () => {
+    let { run, deps } = setupRunner({
+      route: routeOf([customerCandidate(1)]),
+      models: { off_1: createMockModel(hello) }
+    });
+
+    expectJson(await run({ dialect: 'openai_chat', body: bodies.openai_chat() }));
+
+    expect(deps.chargeBilledUsage).not.toHaveBeenCalled();
+  });
+
+  it('charges only the candidate that served after a fallback', async () => {
+    let { run, deps } = setupRunner({
+      route: routeOf([platformCandidate(1), customerCandidate(2)]),
+      models: { off_1: failing(503), off_2: createMockModel(hello) }
+    });
+
+    expectJson(await run({ dialect: 'openai_chat', body: bodies.openai_chat() }));
+
+    expect(deps.chargeBilledUsage).not.toHaveBeenCalled();
+  });
+
+  it('does not charge failed requests', async () => {
+    let { run, deps } = setupRunner({
+      route: routeOf([platformCandidate(1)]),
+      models: { off_1: failing(400) }
+    });
+
+    expectError(await run({ dialect: 'openai_chat', body: bodies.openai_chat() }));
+
+    expect(deps.chargeBilledUsage).not.toHaveBeenCalled();
+  });
+
+  it('still answers when charging throws', async () => {
+    let { run, deps } = setupRunner({
+      route: routeOf([platformCandidate(1)]),
+      models: { off_1: createMockModel(hello) }
+    });
+    let error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    deps.chargeBilledUsage.mockImplementation(() => {
+      throw new Error('boom');
+    });
+
+    expectJson(await run({ dialect: 'openai_chat', body: bodies.openai_chat() }));
+
+    expect(error).toHaveBeenCalledWith(
+      '[ai-gateway] Could not charge billed usage',
+      expect.any(Error)
+    );
+    error.mockRestore();
+  });
+});
+
 describe('count tokens', () => {
   let countBody = bodies.anthropic_messages({ max_tokens: undefined });
 

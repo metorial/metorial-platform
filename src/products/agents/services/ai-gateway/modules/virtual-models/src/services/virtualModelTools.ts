@@ -496,7 +496,11 @@ class VirtualModelToolsServiceImpl {
       project: {
         id: instance.project.id,
         ref: instance.project.ref,
-        platformLimits: instance.project.platformLimits
+        platformLimits: instance.project.platformLimits,
+        disabled: null,
+        billingRestriction: instance.project.billingRestrictedAt
+          ? { reason: instance.project.billingRestrictionReason }
+          : null
       },
       instance: {
         id: instance.id,

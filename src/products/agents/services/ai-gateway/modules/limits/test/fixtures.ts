@@ -43,7 +43,13 @@ export let principalWith = (
     metadata: {}
   },
   organization: { id: 'gwor_1', ref: 'org' },
-  project: { id: d.projectId ?? 'gwpr_1', ref: 'project', platformLimits: d.platform ?? [] },
+  project: {
+    id: d.projectId ?? 'gwpr_1',
+    ref: 'project',
+    platformLimits: d.platform ?? [],
+    disabled: null,
+    billingRestriction: null
+  },
   instance: {
     id: d.instanceId ?? 'gwin_1',
     ref: 'instance',

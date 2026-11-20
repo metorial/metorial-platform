@@ -13,6 +13,15 @@ export let organizationPresenter = (organization: Organization) => ({
   updatedAt: organization.updatedAt
 });
 
+export let projectRestrictionsPresenter = (project: Project) => ({
+  disabled: project.disabledAt
+    ? { reason: project.disabledReason, since: project.disabledAt }
+    : null,
+  billingRestriction: project.billingRestrictedAt
+    ? { reason: project.billingRestrictionReason, since: project.billingRestrictedAt }
+    : null
+});
+
 export let projectPresenter = (project: Project, organization: Organization) => ({
   object: 'ai_gateway#project',
 
@@ -24,6 +33,7 @@ export let projectPresenter = (project: Project, organization: Organization) => 
 
   platformLimits: project.platformLimits,
   platformLimitsSyncedAt: project.platformLimitsSyncedAt,
+  ...projectRestrictionsPresenter(project),
 
   archivedAt: project.archivedAt,
   createdAt: project.createdAt,

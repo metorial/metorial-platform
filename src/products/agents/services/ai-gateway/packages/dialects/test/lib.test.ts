@@ -4,6 +4,7 @@ import {
   createCollector,
   decodeProviderMetadata,
   dialectAdapters,
+  dialectErrorBody,
   encodeProviderMetadata,
   type Dialect
 } from '../src';
@@ -219,4 +220,34 @@ describe('model', () => {
       ).toBe('openai/gpt-5');
     });
   }
+});
+
+describe('dialectErrorBody', () => {
+  let error = (status: number) => ({ status, code: 'some_code', message: 'Nope.' });
+
+  it.each([
+    [402, 'billing_error'],
+    [403, 'permission_error'],
+    [429, 'rate_limit_error'],
+    [529, 'overloaded_error']
+  ])('maps %s to the Anthropic %s type', (status, type) => {
+    expect(dialectErrorBody('anthropic_messages', error(status))).toEqual({
+      type: 'error',
+      error: { type, message: 'Nope.' }
+    });
+  });
+
+  it.each(['openai_chat', 'open_responses'] as const)(
+    'keeps the gateway code for billing errors in %s',
+    dialect => {
+      expect(dialectErrorBody(dialect, error(402))).toEqual({
+        error: {
+          message: 'Nope.',
+          type: 'invalid_request_error',
+          param: null,
+          code: 'some_code'
+        }
+      });
+    }
+  );
 });

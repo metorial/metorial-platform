@@ -45,6 +45,34 @@ model GatewayToken {
   @@index([instanceOid])
 }
 
+enum BillingWindowStatus {
+  open
+  complete
+}
+
+model BillingWindow {
+  oid BigInt @id
+  id  String @unique
+
+  windowStart DateTime
+  windowEnd   DateTime
+  status      BillingWindowStatus @default(open)
+
+  costNanoUsd  BigInt @default(0)
+  requestCount Int    @default(0)
+  revision     Int    @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  @@unique([projectOid, windowStart])
+  @@index([windowStart, id])
+  @@index([status, windowEnd])
+}
+
 model CatalogSync {
   oid BigInt @id
   id  String @unique
@@ -312,6 +340,12 @@ model Project {
   platformLimits         Json      @default("[]")
   platformLimitsSyncedAt DateTime?
 
+  disabledAt     DateTime?
+  disabledReason String?
+
+  billingRestrictedAt      DateTime?
+  billingRestrictionReason String?
+
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -319,7 +353,8 @@ model Project {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 
-  instances Instance[]
+  instances      Instance[]
+  billingWindows BillingWindow[]
 
   @@index([organizationOid])
 }

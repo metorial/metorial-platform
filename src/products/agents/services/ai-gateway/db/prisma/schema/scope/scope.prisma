@@ -29,6 +29,12 @@ model Project {
   platformLimits         Json      @default("[]")
   platformLimitsSyncedAt DateTime?
 
+  disabledAt     DateTime?
+  disabledReason String?
+
+  billingRestrictedAt      DateTime?
+  billingRestrictionReason String?
+
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -36,7 +42,8 @@ model Project {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid])
 
-  instances Instance[]
+  instances      Instance[]
+  billingWindows BillingWindow[]
 
   @@index([organizationOid])
 }

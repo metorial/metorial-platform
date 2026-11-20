@@ -6,7 +6,13 @@ import type { ActiveVirtualModel } from '../src/lib/lookup';
 let mocks = vi.hoisted(() => ({
   route: vi.fn(),
   runDecision: vi.fn(),
+  charge: vi.fn(),
+  resolveDecisionBackend: vi.fn(),
   memoStore: new Map<string, unknown>()
+}));
+
+vi.mock('@mtsrc/ai-gateway-module-billing', () => ({
+  billingService: { charge: mocks.charge }
 }));
 
 vi.mock('@mtsrc/ai-gateway-module-routing', async importOriginal => ({
@@ -20,13 +26,15 @@ vi.mock('@mtsrc/ai-gateway-decisions', async importOriginal => ({
 }));
 
 vi.mock('../src/lib/decisionBackend', () => ({
-  resolveDecisionBackend: async () => ({
-    source: 'platform',
-    platformConnectionSlug: 'cloudflare-decisions',
-    credentials: { apiToken: 't' },
-    config: { accountId: 'a' }
-  })
+  resolveDecisionBackend: mocks.resolveDecisionBackend
 }));
+
+let platformBackend = {
+  source: 'platform',
+  platformConnectionSlug: 'cloudflare-decisions',
+  credentials: { apiToken: 't' },
+  config: { accountId: 'a' }
+};
 
 vi.mock('../src/lib/lookup', () => ({
   findActiveVirtualModel: vi.fn(),
@@ -64,7 +72,13 @@ let { virtualModelRoutingService } = await import('../src/services/virtualModelR
 let principal = (allowedModels: string[] = []): GatewayPrincipal => ({
   token: { id: 'gwtk_1', consumerRef: null, allowedModels, limits: [], metadata: {} },
   organization: { id: 'org', ref: 'org' },
-  project: { id: 'prj', ref: 'prj', platformLimits: [] },
+  project: {
+    id: 'prj',
+    ref: 'prj',
+    platformLimits: [],
+    disabled: null,
+    billingRestriction: null
+  },
   instance: {
     id: 'ins',
     ref: 'ins',
@@ -157,6 +171,9 @@ let imageRequest = summarizeRequest('openai_chat', {
 
 beforeEach(() => {
   mocks.memoStore.clear();
+  mocks.charge.mockReset();
+  mocks.resolveDecisionBackend.mockReset();
+  mocks.resolveDecisionBackend.mockResolvedValue(platformBackend);
   mocks.runDecision.mockReset();
   mocks.route.mockReset();
   mocks.route.mockImplementation(async (d: { model: string }) => ({
@@ -340,5 +357,76 @@ describe('routeVirtual', () => {
         useCaches: true
       })
     ).resolves.toBeTruthy();
+  });
+});
+
+describe('decision billing', () => {
+  let route = (d: { model?: ActiveVirtualModel; restricted?: boolean } = {}) =>
+    virtualModelRoutingService.routeVirtual({
+      principal: {
+        ...principal(),
+        project: {
+          ...principal().project,
+          billingRestriction: d.restricted ? { reason: 'Out of credits.' } : null
+        }
+      },
+      virtualModel: d.model ?? virtualModel({ stickiness: undefined }),
+      summary: textRequest,
+      metadata: {},
+      useCaches: true
+    });
+
+  it('charges a decision that ran on Metorial keys to the project', async () => {
+    mocks.runDecision.mockResolvedValue(decisionResult(2));
+
+    await route();
+
+    expect(mocks.charge).toHaveBeenCalledExactlyOnceWith({
+      projectId: 'prj',
+      costUsd: 0.000018
+    });
+  });
+
+  it('does not charge a cached decision again', async () => {
+    mocks.runDecision.mockResolvedValue(decisionResult(2));
+    let model = virtualModel({ stickiness: undefined });
+
+    await route({ model });
+    await route({ model });
+
+    expect(mocks.runDecision).toHaveBeenCalledTimes(1);
+    expect(mocks.charge).toHaveBeenCalledTimes(1);
+  });
+
+  it('never charges decisions on the customer’s own connection', async () => {
+    mocks.resolveDecisionBackend.mockResolvedValue({
+      ...platformBackend,
+      source: 'customer',
+      connectionId: 'gwpc_1'
+    });
+    mocks.runDecision.mockResolvedValue(decisionResult(2));
+
+    let result = await route();
+
+    expect(result.virtualModel!.decision).toMatchObject({ source: 'customer' });
+    expect(mocks.charge).not.toHaveBeenCalled();
+  });
+
+  it('does not charge a decision that failed', async () => {
+    mocks.runDecision.mockRejectedValue(new Error('boom'));
+
+    await route();
+
+    expect(mocks.charge).not.toHaveBeenCalled();
+  });
+
+  it('hands the billing restriction to backend resolution', async () => {
+    mocks.runDecision.mockResolvedValue(decisionResult(2));
+
+    await route({ restricted: true });
+
+    expect(mocks.resolveDecisionBackend).toHaveBeenCalledWith(
+      expect.objectContaining({ billingRestriction: { reason: 'Out of credits.' } })
+    );
   });
 });

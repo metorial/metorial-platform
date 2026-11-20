@@ -9,6 +9,18 @@ export type GatewayTokenForPrincipal = GatewayToken & {
 export let isTokenScopeArchived = (d: GatewayTokenForPrincipal) =>
   !!(d.organization.archivedAt || d.instance.project.archivedAt || d.instance.archivedAt);
 
+export let projectRestrictions = (
+  project: Pick<
+    Project,
+    'disabledAt' | 'disabledReason' | 'billingRestrictedAt' | 'billingRestrictionReason'
+  >
+) => ({
+  disabled: project.disabledAt ? { reason: project.disabledReason } : null,
+  billingRestriction: project.billingRestrictedAt
+    ? { reason: project.billingRestrictionReason }
+    : null
+});
+
 export let tokenPrincipal = (gatewayToken: GatewayTokenForPrincipal): GatewayPrincipal => ({
   token: {
     id: gatewayToken.id,
@@ -22,7 +34,8 @@ export let tokenPrincipal = (gatewayToken: GatewayTokenForPrincipal): GatewayPri
   project: {
     id: gatewayToken.instance.project.id,
     ref: gatewayToken.instance.project.ref,
-    platformLimits: gatewayToken.instance.project.platformLimits
+    platformLimits: gatewayToken.instance.project.platformLimits,
+    ...projectRestrictions(gatewayToken.instance.project)
   },
   instance: {
     id: gatewayToken.instance.id,

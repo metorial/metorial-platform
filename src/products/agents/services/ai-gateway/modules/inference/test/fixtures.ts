@@ -58,7 +58,13 @@ export let principalWith = (
     metadata: {}
   },
   organization: { id: 'gwor_1', ref: 'org' },
-  project: { id: 'gwpr_1', ref: 'project', platformLimits: [] },
+  project: {
+    id: 'gwpr_1',
+    ref: 'project',
+    platformLimits: [],
+    disabled: null,
+    billingRestriction: null
+  },
   instance: {
     id: 'gwin_1',
     ref: 'instance',
@@ -276,6 +282,7 @@ export let setupRunner = (d: {
     recordLog: vi.fn(d.recordLog ?? ((record: InferenceLogRecord) => void logs.push(record))),
     newLogId: vi.fn(() => `gwlg_${++logCount}`),
     limiter: d.limiter ?? unlimitedLimiter,
+    chargeBilledUsage: vi.fn(),
     now: () => new Date((time += 5)),
     maxAttempts: d.maxAttempts
   } satisfies InferenceRunnerDependencies;

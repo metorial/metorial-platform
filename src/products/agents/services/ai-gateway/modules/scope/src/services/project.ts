@@ -2,7 +2,21 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, getId, type Organization, type Project } from '@mtsrc/ai-gateway-db';
 import { Events, type ScopeChange } from '@mtsrc/ai-gateway-events';
-import type { PlatformLimit } from '@mtsrc/ai-gateway-spec';
+import type { PlatformLimit, ProjectRestriction } from '@mtsrc/ai-gateway-spec';
+
+let restrictionUpdate = (d: {
+  restriction: ProjectRestriction;
+  since: Date | null;
+  reason: string | null;
+}) => {
+  let reason = d.restriction?.reason ?? null;
+
+  return {
+    since: d.restriction ? (d.since ?? new Date()) : null,
+    reason,
+    changed: !!d.restriction != !!d.since || reason != d.reason
+  };
+};
 
 class ProjectServiceImpl {
   async upsertProject(d: {
@@ -90,16 +104,57 @@ class ProjectServiceImpl {
   async syncPlatformLimits(d: {
     project: Project & { organization: Organization };
     limits: PlatformLimit[];
+    disabled?: ProjectRestriction;
   }) {
-    let changed = JSON.stringify(d.project.platformLimits) != JSON.stringify(d.limits);
+    let limitsChanged = JSON.stringify(d.project.platformLimits) != JSON.stringify(d.limits);
+    let disabled =
+      d.disabled === undefined
+        ? null
+        : restrictionUpdate({
+            restriction: d.disabled,
+            since: d.project.disabledAt,
+            reason: d.project.disabledReason
+          });
 
     let project = await db.project.update({
       where: { oid: d.project.oid },
-      data: { platformLimits: d.limits, platformLimitsSyncedAt: new Date() },
+      data: {
+        platformLimits: d.limits,
+        platformLimitsSyncedAt: new Date(),
+        ...(disabled ? { disabledAt: disabled.since, disabledReason: disabled.reason } : {})
+      },
       include: { organization: true }
     });
 
-    if (changed) await this.fireChanged(project, project.organization, 'limits_changed');
+    if (limitsChanged) {
+      await this.fireChanged(project, project.organization, 'limits_changed');
+    }
+    if (disabled?.changed) {
+      await this.fireChanged(project, project.organization, 'restrictions_changed');
+    }
+
+    return project;
+  }
+
+  async setBillingRestriction(d: {
+    project: Project & { organization: Organization };
+    restriction: ProjectRestriction;
+  }) {
+    let update = restrictionUpdate({
+      restriction: d.restriction,
+      since: d.project.billingRestrictedAt,
+      reason: d.project.billingRestrictionReason
+    });
+
+    let project = await db.project.update({
+      where: { oid: d.project.oid },
+      data: { billingRestrictedAt: update.since, billingRestrictionReason: update.reason },
+      include: { organization: true }
+    });
+
+    if (update.changed) {
+      await this.fireChanged(project, project.organization, 'restrictions_changed');
+    }
 
     return project;
   }

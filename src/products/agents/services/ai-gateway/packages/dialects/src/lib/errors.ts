@@ -42,6 +42,7 @@ let openaiType = (status: number) => {
 
 let anthropicType = (status: number) => {
   if (status == 401) return 'authentication_error';
+  if (status == 402) return 'billing_error';
   if (status == 403) return 'permission_error';
   if (status == 404) return 'not_found_error';
   if (status == 413) return 'request_too_large';

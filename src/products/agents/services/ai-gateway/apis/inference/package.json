@@ -15,6 +15,7 @@
     "@lowerdeck/hono": "workspace:2.0.0",
     "@mtsrc/ai-gateway-dialects": "workspace:*",
     "@mtsrc/ai-gateway-module-access": "workspace:*",
+    "@mtsrc/ai-gateway-module-billing": "workspace:*",
     "@mtsrc/ai-gateway-module-inference": "workspace:*",
     "@mtsrc/ai-gateway-module-limits": "workspace:*",
     "@mtsrc/ai-gateway-module-routing": "workspace:*",

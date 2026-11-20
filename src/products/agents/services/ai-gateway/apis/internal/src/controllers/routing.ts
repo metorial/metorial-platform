@@ -34,7 +34,11 @@ export let routingController = app.controller({
         project: {
           id: ctx.instance.project.id,
           ref: ctx.instance.project.ref,
-          platformLimits: ctx.instance.project.platformLimits
+          platformLimits: ctx.instance.project.platformLimits,
+          disabled: null,
+          billingRestriction: ctx.instance.project.billingRestrictedAt
+            ? { reason: ctx.instance.project.billingRestrictionReason }
+            : null
         },
         instance: {
           id: ctx.instance.id,

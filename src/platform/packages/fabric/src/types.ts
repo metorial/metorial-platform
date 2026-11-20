@@ -965,6 +965,8 @@ export type MagicMcpServerMembershipFabricChange = {
 export interface FabricEvents {
   'sandbox.tenant.created:after': { tenant: SandboxTenant };
 
+  'ai_gateway.project.created:after': { organization: Organization; project: Project; gatewayProjectId: string };
+
   'sandbox.machine.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.updated:after': { auditScope: AuditScope; machine: AuditSandboxMachine; previousMachine: AuditSandboxMachine };
   'sandbox.machine.deleted:after': { auditScope: AuditScope; machine: AuditSandboxMachine };

@@ -198,6 +198,18 @@ export let incompleteStreamError: GatewayError = {
   message: 'The model provider ended the response before it was complete.'
 };
 
+export let projectDisabledError = (reason: string | null): GatewayError => ({
+  status: 403,
+  code: 'gateway_disabled',
+  message: reason ?? 'The AI gateway is not available for this project.'
+});
+
+export let billingRestrictedError = (reason: string | null): GatewayError => ({
+  status: 402,
+  code: 'billing_restricted',
+  message: `${reason ?? 'Metorial-provided models are unavailable because of the billing status of this organization.'} Requests over your own provider connections are not affected.`
+});
+
 export let connectionUnavailableError = (candidate: FailedCandidate): UpstreamFailure => ({
   retryable: true,
   authFailure: false,

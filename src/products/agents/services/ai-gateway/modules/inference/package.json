@@ -17,6 +17,7 @@
     "@mtsrc/ai-gateway-cost": "workspace:*",
     "@mtsrc/ai-gateway-db": "workspace:*",
     "@mtsrc/ai-gateway-dialects": "workspace:*",
+    "@mtsrc/ai-gateway-module-billing": "workspace:*",
     "@mtsrc/ai-gateway-module-credentials": "workspace:*",
     "@mtsrc/ai-gateway-module-logs": "workspace:*",
     "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",

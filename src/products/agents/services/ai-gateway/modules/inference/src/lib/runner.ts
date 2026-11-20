@@ -37,10 +37,12 @@ import type {
   InferenceVirtualModelLog
 } from '@mtsrc/ai-gateway-store';
 import {
+  billingRestrictedError,
   classifyUpstreamError,
   connectionUnavailableError,
   incompleteStreamError,
   isAbortError,
+  projectDisabledError,
   toGatewayError,
   type UpstreamFailure
 } from './errors';
@@ -84,6 +86,7 @@ export type InferenceRunnerDependencies = {
   recordLog: (record: InferenceLogRecord) => void;
   newLogId: () => string;
   limiter: InferenceLimiter;
+  chargeBilledUsage: (d: { projectId: string; costUsd: number; requests: number }) => void;
   now?: () => Date;
   maxAttempts?: number;
 };
@@ -422,6 +425,9 @@ export let createInferenceRunner = (deps: InferenceRunnerDependencies) => {
       throw error;
     }
 
+    let { disabled, billingRestriction } = principal.project;
+    if (disabled) return reject(projectDisabledError(disabled.reason), 'limits', { parsed });
+
     let decision: LimitDecision = { allowed: true, headers: {} };
 
     if (!request.countTokens) {
@@ -461,6 +467,16 @@ export let createInferenceRunner = (deps: InferenceRunnerDependencies) => {
 
     let routable = route.candidates;
 
+    if (billingRestriction) {
+      routable = routable.filter(candidate => candidate.connectionOwner != 'platform');
+      if (!routable.length) {
+        return reject(billingRestrictedError(billingRestriction.reason), 'limits', {
+          parsed,
+          route
+        });
+      }
+    }
+
     let metorialBillingLimit = decision.allowed ? decision.metorialBillingLimit : undefined;
     if (metorialBillingLimit) {
       let customerBilled = routable.filter(
@@ -469,7 +485,7 @@ export let createInferenceRunner = (deps: InferenceRunnerDependencies) => {
 
       if (customerBilled.length < routable.length) metorialBillingLimit.onEnforced();
       if (!customerBilled.length)
-        return reject(metorialBillingLimit.error, 'limits', { parsed });
+        return reject(metorialBillingLimit.error, 'limits', { parsed, route });
 
       routable = customerBilled;
     }
@@ -586,6 +602,18 @@ export let createInferenceRunner = (deps: InferenceRunnerDependencies) => {
     let succeed = (collected: CollectedResponse, response: unknown) => {
       let costs = costsOf(candidate, collected.usage, options);
       settle(candidate, collected.usage, costs.billedCost.totalUsd);
+
+      if (candidate.connectionOwner == 'platform') {
+        try {
+          deps.chargeBilledUsage({
+            projectId: principal.project.id,
+            costUsd: costs.billedCost.totalUsd,
+            requests: 1
+          });
+        } catch (error) {
+          console.error('[ai-gateway] Could not charge billed usage', error);
+        }
+      }
 
       record({
         status: 'succeeded',

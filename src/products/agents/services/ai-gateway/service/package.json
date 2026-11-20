@@ -32,6 +32,7 @@
     "@mtsrc/ai-gateway-api-internal": "workspace:*",
     "@mtsrc/ai-gateway-db": "workspace:*",
     "@mtsrc/ai-gateway-module-access": "workspace:*",
+    "@mtsrc/ai-gateway-module-billing": "workspace:*",
     "@mtsrc/ai-gateway-module-catalog": "workspace:*",
     "@mtsrc/ai-gateway-module-credentials": "workspace:*",
     "@mtsrc/ai-gateway-module-logs": "workspace:*",

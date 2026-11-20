@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { limitsService } from '@mtsrc/ai-gateway-module-limits';
 import { projectService } from '@mtsrc/ai-gateway-module-scope';
-import { platformLimitsSchema } from '@mtsrc/ai-gateway-spec';
+import { platformLimitsSchema, projectRestrictionSchema } from '@mtsrc/ai-gateway-spec';
 import {
   platformLimitEventsPresenter,
   platformLimitTargetPresenter
@@ -43,7 +43,13 @@ export let platformLimitController = app.controller({
 
   sync: app
     .handler()
-    .input(v.object({ projectId: v.string(), limits: platformLimitsSchema }))
+    .input(
+      v.object({
+        projectId: v.string(),
+        limits: platformLimitsSchema,
+        disabled: v.optional(projectRestrictionSchema)
+      })
+    )
     .do(async ctx => {
       let project = await projectService.getProjectWithOrganization({
         projectId: ctx.input.projectId
@@ -51,7 +57,8 @@ export let platformLimitController = app.controller({
 
       let synced = await projectService.syncPlatformLimits({
         project,
-        limits: ctx.input.limits
+        limits: ctx.input.limits,
+        disabled: ctx.input.disabled
       });
 
       return platformLimitTargetPresenter(synced);

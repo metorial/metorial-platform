@@ -10,6 +10,7 @@ import {
   decisionModels,
   hasFeatures,
   type DecisionConfig,
+  type ProjectRestriction,
   type ProviderConnectionConfig,
   type ProviderCredentials,
   type ProviderFeature
@@ -38,6 +39,7 @@ export let resolveDecisionBackend = async (d: {
   instanceId: string;
   config: DecisionConfig;
   requiredFeatures: ProviderFeature[];
+  billingRestriction: ProjectRestriction;
 }): Promise<DecisionBackend> => {
   let model = decisionModels[d.config.model];
 
@@ -72,6 +74,13 @@ export let resolveDecisionBackend = async (d: {
       credentials: await providerConnectionService.getCredentials({ connection }),
       config: connection.config
     };
+  }
+
+  if (d.billingRestriction) {
+    throw new DecisionError(
+      'unavailable',
+      `Metorial-provided decision models are unavailable because of the billing status of this organization. Connect your own ${model.name} key.`
+    );
   }
 
   let platform = allPlatformConnections.find(

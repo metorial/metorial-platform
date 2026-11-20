@@ -1,4 +1,4 @@
-export type ScopeChange = 'upserted' | 'limits_changed' | 'archived';
+export type ScopeChange = 'upserted' | 'limits_changed' | 'restrictions_changed' | 'archived';
 
 export type ConnectionChange = 'upserted' | 'status_changed' | 'archived';
 

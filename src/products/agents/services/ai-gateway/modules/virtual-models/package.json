@@ -22,6 +22,7 @@
     "@mtsrc/ai-gateway-db": "workspace:*",
     "@mtsrc/ai-gateway-decisions": "workspace:*",
     "@mtsrc/ai-gateway-events": "workspace:*",
+    "@mtsrc/ai-gateway-module-billing": "workspace:*",
     "@mtsrc/ai-gateway-module-credentials": "workspace:*",
     "@mtsrc/ai-gateway-module-routing": "workspace:*",
     "@mtsrc/ai-gateway-request-features": "workspace:*",

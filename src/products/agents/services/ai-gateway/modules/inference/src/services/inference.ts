@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import type { CallOptions } from '@mtsrc/ai-gateway-dialects';
+import { billingService } from '@mtsrc/ai-gateway-module-billing';
 import {
   platformConnectionRegistry,
   providerConnectionService
@@ -79,7 +80,8 @@ export let createProductionRunner = (d: {
 
     recordLog: record => inferenceLogService.record(record),
     newLogId: () => inferenceLogService.newLogId(),
-    limiter: d.limiter
+    limiter: d.limiter,
+    chargeBilledUsage: usage => billingService.charge(usage)
   };
 
   return createInferenceRunner(dependencies);

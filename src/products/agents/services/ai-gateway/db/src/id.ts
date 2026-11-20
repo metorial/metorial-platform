@@ -16,7 +16,8 @@ export let ID = createIdGenerator({
   inferenceLog: idType.sorted('gwlg_'),
   connectionCheck: idType.sorted('gwcc_'),
   virtualModel: idType.sorted('gwvm_'),
-  virtualModelVersion: idType.sorted('gwvv_')
+  virtualModelVersion: idType.sorted('gwvv_'),
+  billingWindow: idType.sorted('gwbw_')
 });
 
 let workerIdBits = 12;

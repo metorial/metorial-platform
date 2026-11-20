@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import {
+  createBillingAccumulator,
+  toNanoUsd,
+  type BillingCharge
+} from '@mtsrc/ai-gateway-module-billing';
+import {
   createInferenceRunner,
   unlimitedLimiter,
   type InferenceLimiter,
@@ -64,7 +69,13 @@ let pricing: Pricing = {
 export let principal: GatewayPrincipal = {
   token: { id: 'gwtk_e2e', consumerRef: null, allowedModels: [], limits: [], metadata: {} },
   organization: { id: 'gwor_e2e', ref: 'org' },
-  project: { id: 'gwpr_e2e', ref: 'project', platformLimits: [] },
+  project: {
+    id: 'gwpr_e2e',
+    ref: 'project',
+    platformLimits: [],
+    disabled: null,
+    billingRestriction: null
+  },
   instance: {
     id: 'gwin_e2e',
     ref: 'instance',
@@ -130,6 +141,12 @@ export let createGateway = (d: {
   let reportAuthFailure = vi.fn();
   let logCount = 0;
 
+  let billedWrites: BillingCharge[] = [];
+  let billing = createBillingAccumulator({
+    flushIntervalMs: 60_000,
+    write: async charge => void billedWrites.push(charge)
+  });
+
   let providers = d.providers.map(entry =>
     typeof entry == 'string' ? providerCase(entry) : entry
   );
@@ -179,7 +196,13 @@ export let createGateway = (d: {
     reportAuthFailure,
     recordLog: record => void logs.push(record),
     newLogId: () => `gwlg_${++logCount}`,
-    limiter: d.limiter ?? unlimitedLimiter
+    limiter: d.limiter ?? unlimitedLimiter,
+    chargeBilledUsage: usage =>
+      billing.add({
+        projectId: usage.projectId,
+        costNanoUsd: toNanoUsd(usage.costUsd),
+        requestCount: usage.requests
+      })
   });
 
   let app = createInferenceApp({
@@ -196,6 +219,10 @@ export let createGateway = (d: {
     upstream,
     logs,
     reportAuthFailure,
+    billed: async () => {
+      await billing.close();
+      return billedWrites;
+    },
     openai: new OpenAI({
       apiKey: 'gateway-token',
       baseURL: 'http://gateway.test/v1',

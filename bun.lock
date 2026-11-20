@@ -4434,6 +4434,26 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/products/agents/modules/ai-gateway": {
+      "name": "@metorial/module-ai-gateway",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/ai-gateway-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/products/agents/modules/product-assistant": {
       "name": "@metorial/module-product-assistant",
       "version": "1.0.0",
@@ -4514,6 +4534,7 @@
         "@lowerdeck/hono": "workspace:2.0.0",
         "@mtsrc/ai-gateway-dialects": "workspace:*",
         "@mtsrc/ai-gateway-module-access": "workspace:*",
+        "@mtsrc/ai-gateway-module-billing": "workspace:*",
         "@mtsrc/ai-gateway-module-inference": "workspace:*",
         "@mtsrc/ai-gateway-module-limits": "workspace:*",
         "@mtsrc/ai-gateway-module-routing": "workspace:*",
@@ -4544,6 +4565,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@mtsrc/ai-gateway-db": "workspace:*",
         "@mtsrc/ai-gateway-module-access": "workspace:*",
+        "@mtsrc/ai-gateway-module-billing": "workspace:*",
         "@mtsrc/ai-gateway-module-catalog": "workspace:*",
         "@mtsrc/ai-gateway-module-credentials": "workspace:*",
         "@mtsrc/ai-gateway-module-limits": "workspace:*",
@@ -4598,6 +4620,26 @@
         "@metorial/shared-settings": "workspace:*",
         "@mtsrc/ai-gateway-db": "workspace:*",
         "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/agents/services/ai-gateway/modules/billing": {
+      "name": "@mtsrc/ai-gateway-module-billing",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
+        "@mtsrc/ai-gateway-db": "workspace:*",
+        "@mtsrc/ai-gateway-module-scope": "workspace:*",
         "@mtsrc/ai-gateway-spec": "workspace:*",
       },
       "devDependencies": {
@@ -4665,6 +4707,7 @@
         "@mtsrc/ai-gateway-cost": "workspace:*",
         "@mtsrc/ai-gateway-db": "workspace:*",
         "@mtsrc/ai-gateway-dialects": "workspace:*",
+        "@mtsrc/ai-gateway-module-billing": "workspace:*",
         "@mtsrc/ai-gateway-module-credentials": "workspace:*",
         "@mtsrc/ai-gateway-module-logs": "workspace:*",
         "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
@@ -4765,6 +4808,7 @@
         "@mtsrc/ai-gateway-db": "workspace:*",
         "@mtsrc/ai-gateway-decisions": "workspace:*",
         "@mtsrc/ai-gateway-events": "workspace:*",
+        "@mtsrc/ai-gateway-module-billing": "workspace:*",
         "@mtsrc/ai-gateway-module-credentials": "workspace:*",
         "@mtsrc/ai-gateway-module-routing": "workspace:*",
         "@mtsrc/ai-gateway-request-features": "workspace:*",
@@ -4905,6 +4949,7 @@
         "@mtsrc/ai-gateway-api-internal": "workspace:*",
         "@mtsrc/ai-gateway-db": "workspace:*",
         "@mtsrc/ai-gateway-module-access": "workspace:*",
+        "@mtsrc/ai-gateway-module-billing": "workspace:*",
         "@mtsrc/ai-gateway-module-catalog": "workspace:*",
         "@mtsrc/ai-gateway-module-credentials": "workspace:*",
         "@mtsrc/ai-gateway-module-logs": "workspace:*",
@@ -7705,6 +7750,7 @@
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
         "@metorial/module-agent-telemetry": "1.0.0",
+        "@metorial/module-ai-gateway": "1.0.0",
         "@metorial/module-audit-log": "1.0.0",
         "@metorial/module-audit-log-stream": "1.0.0",
         "@metorial/module-audit-tracker": "1.0.0",
@@ -10900,6 +10946,8 @@
 
     "@metorial/module-agent-telemetry": ["@metorial/module-agent-telemetry@workspace:src/products/workforce/modules/agent-telemetry"],
 
+    "@metorial/module-ai-gateway": ["@metorial/module-ai-gateway@workspace:src/products/agents/modules/ai-gateway"],
+
     "@metorial/module-audit-log": ["@metorial/module-audit-log@workspace:src/products/auditing/modules/audit-log"],
 
     "@metorial/module-audit-log-stream": ["@metorial/module-audit-log-stream@workspace:src/products/auditing/modules/audit-log-stream"],
@@ -11189,6 +11237,8 @@
     "@mtsrc/ai-gateway-events": ["@mtsrc/ai-gateway-events@workspace:src/products/agents/services/ai-gateway/packages/events"],
 
     "@mtsrc/ai-gateway-module-access": ["@mtsrc/ai-gateway-module-access@workspace:src/products/agents/services/ai-gateway/modules/access"],
+
+    "@mtsrc/ai-gateway-module-billing": ["@mtsrc/ai-gateway-module-billing@workspace:src/products/agents/services/ai-gateway/modules/billing"],
 
     "@mtsrc/ai-gateway-module-catalog": ["@mtsrc/ai-gateway-module-catalog@workspace:src/products/agents/services/ai-gateway/modules/catalog"],
 

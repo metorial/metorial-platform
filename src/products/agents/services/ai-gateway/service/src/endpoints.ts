@@ -2,6 +2,7 @@ import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { inferenceFetch } from '@mtsrc/ai-gateway-api-inference';
 import { aiGatewayApi } from '@mtsrc/ai-gateway-api-internal';
 import { db } from '@mtsrc/ai-gateway-db';
+import { billingService } from '@mtsrc/ai-gateway-module-billing';
 import { inferenceLogService } from '@mtsrc/ai-gateway-module-logs';
 import { RedisClient } from 'bun';
 import { env } from './env';
@@ -46,7 +47,7 @@ if (process.env.NODE_ENV === 'production') {
 
 let shutdown = async () => {
   await inferenceServer.stop();
-  await inferenceLogService.close();
+  await Promise.all([inferenceLogService.close(), billingService.close()]);
 };
 
 process.once('SIGTERM', shutdown);

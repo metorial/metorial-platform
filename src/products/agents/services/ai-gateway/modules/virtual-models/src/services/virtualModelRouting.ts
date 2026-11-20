@@ -8,6 +8,7 @@ import {
   type DecisionErrorCode,
   type DecisionResult
 } from '@mtsrc/ai-gateway-decisions';
+import { billingService } from '@mtsrc/ai-gateway-module-billing';
 import {
   isModelAllowed,
   modelNotAllowedError,
@@ -217,7 +218,8 @@ class VirtualModelRoutingServiceImpl {
         let backend = await resolveDecisionBackend({
           instanceId: principal.instance.id,
           config,
-          requiredFeatures
+          requiredFeatures,
+          billingRestriction: principal.project.billingRestriction
         });
         source = backend.source;
 
@@ -245,6 +247,13 @@ class VirtualModelRoutingServiceImpl {
           signals: value.signals,
           error: null
         };
+
+        if (source == 'platform' && decision.costUsd > 0) {
+          billingService.charge({
+            projectId: principal.project.id,
+            costUsd: decision.costUsd
+          });
+        }
 
         return value.signals;
       } catch (error) {
