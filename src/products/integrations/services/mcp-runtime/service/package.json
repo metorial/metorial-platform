@@ -54,6 +54,7 @@
     "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
     "@mtsrc/mcp-runtime-module-retention": "workspace:*",
     "@mtsrc/mcp-runtime-module-servers": "workspace:*",
+    "@mtsrc/mcp-runtime-module-tenants": "workspace:*",
     "@mtsrc/mcp-runtime-network": "workspace:*",
     "@mtsrc/mcp-runtime-storage": "workspace:*",
     "@sentry/bun": "^11.12.0",
