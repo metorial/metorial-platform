@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { checkEdition } from '@metorial/editions';
 import { createLock } from '@metorial/lock';
+import { MULTIPART_MAX_PARTS } from 'object-storage-client';
 import { env } from '../env';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { uploadUrlExpirationSecs } from './uploadPolicy';
@@ -21,7 +22,10 @@ export let supportsFileMultipartUpload = () => checkEdition('on-prem');
 export let selectMultipartPartSize = (size: number) =>
   supportsFileMultipartUpload() &&
   size > (env.service.FILE_MULTIPART_THRESHOLD_BYTES ?? multipartThreshold)
-    ? (env.service.FILE_MULTIPART_PART_BYTES ?? multipartPartSize)
+    ? Math.max(
+        env.service.FILE_MULTIPART_PART_BYTES ?? multipartPartSize,
+        Math.ceil(size / MULTIPART_MAX_PARTS)
+      )
     : null;
 
 export let getMultipartManifests = async (d: {

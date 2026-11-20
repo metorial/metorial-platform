@@ -29,8 +29,10 @@ import {
   getPurposeUploadSizeError,
   getUploadUrlExpiresAt,
   isValidUploadSize,
+  maxOnPremMultipartUploadSize,
   maxUploadSize,
-  uploadUrlExpirationSecs
+  uploadUrlExpirationSecs,
+  useUploadUrlHint
 } from '../lib/uploadPolicy';
 import { fileUploadCleanupSingleQueue } from '../queues/fileUploadCleanup';
 import { getCargoFilesBucketName, getStorage } from '../storage';
@@ -195,10 +197,19 @@ class FileUploadServiceImpl {
       );
     }
 
-    if (!isValidUploadSize(d.input.size)) {
+    let multipartEnabled = supportsFileMultipartUpload();
+    let acceptsMultipart = multipartEnabled && d.acceptMultipart;
+    let sizeLimit = acceptsMultipart ? maxOnPremMultipartUploadSize : maxUploadSize;
+    if (!isValidUploadSize(d.input.size, sizeLimit)) {
       throw new ServiceError(
         badRequestError({
-          message: describeInvalidUploadSize({ size: d.input.size, max: maxUploadSize })
+          message: describeInvalidUploadSize({ size: d.input.size, max: sizeLimit }),
+          hint:
+            multipartEnabled &&
+            !acceptsMultipart &&
+            isValidUploadSize(d.input.size, maxOnPremMultipartUploadSize)
+              ? useUploadUrlHint
+              : undefined
         })
       );
     }
@@ -249,7 +260,7 @@ class FileUploadServiceImpl {
     await Fabric.fire('file.upload.created:before', fabricOwner);
 
     let expiresAt = getPendingUploadExpiresAt();
-    let partSize = d.acceptMultipart ? selectMultipartPartSize(d.input.size) : null;
+    let partSize = acceptsMultipart ? selectMultipartPartSize(d.input.size) : null;
     let multipartUploadId: string | null = null;
     try {
       let target: PreparedUpload;

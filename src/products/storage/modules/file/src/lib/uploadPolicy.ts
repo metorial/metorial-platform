@@ -1,8 +1,12 @@
+import { perEdition } from '@metorial/editions';
+
 export let uploadUrlExpirationSecs = 10 * 60;
 
 export let pendingUploadTtlMs = 24 * 60 * 60 * 1000;
 
 export let maxUploadSize = 2 * 1024 * 1024 * 1024;
+
+export let maxOnPremMultipartUploadSize = 100 * 1024 ** 3;
 
 export let maxDirectUploadSize = 100 * 1024 * 1024;
 
@@ -26,7 +30,7 @@ let isNonNegativeInteger = (size: unknown) =>
 let isValidSize = (size: unknown, max: number) =>
   isNonNegativeInteger(size) && (size as number) <= max;
 
-export let isValidUploadSize = (size: unknown) => isValidSize(size, maxUploadSize);
+export let isValidUploadSize = (size: unknown, max = maxUploadSize) => isValidSize(size, max);
 
 export let isValidDirectUploadSize = (size: unknown) => isValidSize(size, maxDirectUploadSize);
 
@@ -52,7 +56,10 @@ export let describeInvalidUploadSize = (d: { size: unknown; max: number }) => {
   return `Files can be at most ${formatByteSize(d.max)}, but this one is ${formatByteSize(d.size as number)}.`;
 };
 
-export let useUploadUrlHint = `Set mode to "get_upload_url" to upload files of up to ${formatByteSize(maxUploadSize)} directly to object storage.`;
+export let useUploadUrlHint = perEdition({
+  cloud: `Set mode to "get_upload_url" to upload files of up to ${formatByteSize(maxUploadSize)} directly to object storage.`,
+  'on-prem': `Set mode to "get_upload_url" and accept_multipart to true to upload files of up to ${formatByteSize(maxOnPremMultipartUploadSize)}.`
+});
 
 export let doesUploadedObjectMatch = (d: { declaredSize: number; actualSize: number }) =>
   d.declaredSize === d.actualSize;

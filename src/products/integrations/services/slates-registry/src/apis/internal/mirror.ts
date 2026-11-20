@@ -13,7 +13,8 @@ import {
   activationService,
   mirrorService,
   slatePackBatchService,
-  slatePackService
+  slatePackService,
+  slatePackUploadService
 } from '../../services';
 import { app } from './_app';
 
@@ -154,6 +155,57 @@ export let mirrorController = app.controller({
       slatePackImportPresenter(
         await slatePackService.getImport({ id: ctx.input.packImportId })
       )
+    ),
+
+  startPackUpload: app
+    .handler()
+    .input(
+      v.object({
+        fileName: v.string(),
+        size: v.number(),
+        batchId: v.optional(v.string())
+      })
+    )
+    .do(async ctx => {
+      let upload = await slatePackUploadService.startUpload(ctx.input);
+
+      return {
+        packImport: slatePackImportPresenter(upload.packImport),
+        partSize: upload.partSize,
+        partCount: upload.partCount,
+        parts: upload.parts
+      };
+    }),
+
+  getPackUploadParts: app
+    .handler()
+    .input(v.object({ packImportId: v.string(), partNumbers: v.array(v.number()) }))
+    .do(async ctx => ({
+      parts: await slatePackUploadService.getPartManifests(ctx.input)
+    })),
+
+  completePackUpload: app
+    .handler()
+    .input(v.object({ packImportId: v.string(), receipts: v.array(v.string()) }))
+    .do(async ctx => {
+      let { packImport, completed } = await slatePackUploadService.completeUpload(ctx.input);
+
+      // Batched files are queued together, in file name order, once the batch is completed.
+      if (completed && !packImport.batchOid) {
+        await processSlatePackQueue.add(
+          { packImportId: packImport.id },
+          { deduplication: { id: packImport.id } }
+        );
+      }
+
+      return slatePackImportPresenter(packImport);
+    }),
+
+  cancelPackUpload: app
+    .handler()
+    .input(v.object({ packImportId: v.string() }))
+    .do(async ctx =>
+      slatePackImportPresenter(await slatePackUploadService.cancelUpload(ctx.input))
     ),
 
   createPackImportBatch: app
