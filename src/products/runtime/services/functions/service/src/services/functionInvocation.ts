@@ -5,6 +5,7 @@ import type { FunctionVersion, Runtime } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID } from '../id';
 import { ensureRehomed } from '../lib/ensureRehomed';
+import { grantablePlatformRoutes } from '../lib/platformRoutes';
 import {
   presentInvokeResponse,
   type FunctionInvokeResponse
@@ -46,6 +47,7 @@ class functionInvocationServiceImpl {
     versionId?: string;
     payload: Record<string, any>;
     egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+    platformRoutes?: string[];
     enclave?: {
       identifier: string;
     };
@@ -105,7 +107,8 @@ class functionInvocationServiceImpl {
         : undefined,
       providerData: targetVersion.providerData,
       payload: d.payload,
-      egressPolicy: d.egressPolicy
+      egressPolicy: d.egressPolicy,
+      platformRoutes: grantablePlatformRoutes(d.platformRoutes)
     });
 
     return presentInvokeResponse({

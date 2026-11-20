@@ -68,6 +68,7 @@ export interface FunctionInvocationParams {
   providerData: any;
   functionBundle?: FunctionBundle | null;
   egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  platformRoutes?: string[];
 }
 
 export abstract class ProviderAdapter {

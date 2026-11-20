@@ -26,6 +26,7 @@ let grantClaimOrder = [
   'source',
   'policy',
   'allowAll',
+  'platformRoutes',
   'iat',
   'nbf',
   'exp'
@@ -56,6 +57,7 @@ export type EgressGrantClaims = {
   source: 'lambda' | 'knative' | 'build' | 'mcp';
   policy?: EgressGrantPolicy;
   allowAll?: boolean;
+  platformRoutes?: string[];
   iat: number;
   nbf?: number;
   exp: number;

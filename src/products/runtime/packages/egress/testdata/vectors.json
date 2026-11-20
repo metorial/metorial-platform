@@ -5,8 +5,8 @@
     "Times are Unix seconds; verify every token at `now`. Verifiers allow clockSkewSeconds on exp, nbf and iat.",
     "Keys: seed is the base64url (no padding) 32-byte Ed25519 seed, publicKey the raw public key. keySet is the trust set in the egress-trust/runtime-trust format; untrusted keys are not in it.",
     "Tokens: compact JWS, header {\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":...}. For mintable vectors, signing base64url(headerJson) + '.' + base64url(claimsJson) with the signer's key must reproduce `token` byte for byte (Ed25519 is deterministic). `claims` equals claimsJson parsed; JSON.stringify(claims) === claimsJson.",
-    "Canonical claim order: grants iss, aud, jti, tenantId, functionId, effectiveFunctionId, functionVersionId, enclaveId, enclaveIdentifier, buildRunId, source, policy, allowAll, iat, nbf, exp; invocation tokens iss, aud, jti, functionVersionId, payloadSha256, iat, exp. Absent optional claims are omitted, never null.",
-    "Verification order (determines the error code): malformed (segments, base64url, JSON), unsupported_alg (alg != EdDSA), unknown_kid, bad_signature, malformed (claims not a JSON object), wrong_audience, missing_claims (iat or exp absent), expired (now > exp + skew), not_yet_valid (now + skew < nbf), issued_in_future (now + skew < iat), then per-token claims: missing_claims, invalid_policy.",
+    "Canonical claim order: grants iss, aud, jti, tenantId, functionId, effectiveFunctionId, functionVersionId, enclaveId, enclaveIdentifier, buildRunId, source, policy, allowAll, platformRoutes, iat, nbf, exp; invocation tokens iss, aud, jti, functionVersionId, payloadSha256, iat, exp. Absent optional claims are omitted, never null.",
+    "Verification order (determines the error code): malformed (segments, base64url, JSON), unsupported_alg (alg != EdDSA), unknown_kid, bad_signature, malformed (claims not a JSON object), wrong_audience, missing_claims (iat or exp absent), expired (now > exp + skew), not_yet_valid (now + skew < nbf), issued_in_future (now + skew < iat), then per-token claims: missing_claims, invalid_policy, invalid_platform_routes (only function grants, at most 8 unique names matching ^[a-z][a-z0-9-]{0,62}$).",
     "Invocation vectors may carry payloadJson (check sha256 of its UTF-8 bytes against payloadSha256, expectPayload) and bindGrant (jti and functionVersionId must equal that grant's, expectBinding). \"ok\" means the check passes.",
     "Policy cases: evaluate the destination (host is the hostname the address was resolved for, empty for IP literals) under configs[config] and grants[grant]. Reasons: allowed public|internal, denied policy|hard_deny|internal_disabled. Embedded IPv4 forms (::ffff:0:0/96, ::/96, 64:ff9b::/96, 2002::/16) are evaluated as both the IPv6 and the embedded IPv4 address, with the IPv6 form classified internal exactly when the embedded address is; the stricter verdict wins (hard_deny > internal_disabled > policy)."
   ],
@@ -789,6 +789,234 @@
       "expect": {
         "valid": false,
         "error": "invalid_policy"
+      }
+    },
+    {
+      "name": "function-grant-platform-routes",
+      "description": "Function grant naming two platform routes.",
+      "signer": "function-bay",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"c1facaa9927914a9\"}",
+      "claimsJson": "{\"iss\":\"function-bay\",\"aud\":\"metorial-egress\",\"jti\":\"inv_routes\",\"tenantId\":\"ten_01JD8X0000AAAA\",\"functionId\":\"fn_01JD8X1111BBBB\",\"effectiveFunctionId\":\"fn_01JD8X2222CCCC\",\"functionVersionId\":\"fnv_01JD8X3333DDDD\",\"enclaveId\":\"enc_01JD8X4444EEEE\",\"enclaveIdentifier\":\"production-eu\",\"source\":\"lambda\",\"policy\":{\"entries\":[{\"cidr\":\"93.184.216.0/24\",\"portRange\":{\"from\":80,\"to\":443}},{\"cidr\":\"10.20.0.0/16\",\"portRange\":{\"from\":443,\"to\":443}},{\"cidr\":\"2606:2800::/32\"}],\"hosts\":[{\"pattern\":\"*.example.com\",\"ports\":[443]},{\"pattern\":\"api.github.com\"}]},\"platformRoutes\":[\"slates-live\",\"object-upload\"],\"iat\":1793999990,\"nbf\":1793999960,\"exp\":1794000960}",
+      "claims": {
+        "iss": "function-bay",
+        "aud": "metorial-egress",
+        "jti": "inv_routes",
+        "tenantId": "ten_01JD8X0000AAAA",
+        "functionId": "fn_01JD8X1111BBBB",
+        "effectiveFunctionId": "fn_01JD8X2222CCCC",
+        "functionVersionId": "fnv_01JD8X3333DDDD",
+        "enclaveId": "enc_01JD8X4444EEEE",
+        "enclaveIdentifier": "production-eu",
+        "source": "lambda",
+        "policy": {
+          "entries": [
+            {
+              "cidr": "93.184.216.0/24",
+              "portRange": {
+                "from": 80,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "10.20.0.0/16",
+              "portRange": {
+                "from": 443,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "2606:2800::/32"
+            }
+          ],
+          "hosts": [
+            {
+              "pattern": "*.example.com",
+              "ports": [
+                443
+              ]
+            },
+            {
+              "pattern": "api.github.com"
+            }
+          ]
+        },
+        "platformRoutes": [
+          "slates-live",
+          "object-upload"
+        ],
+        "iat": 1793999990,
+        "nbf": 1793999960,
+        "exp": 1794000960
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImMxZmFjYWE5OTI3OTE0YTkifQ.eyJpc3MiOiJmdW5jdGlvbi1iYXkiLCJhdWQiOiJtZXRvcmlhbC1lZ3Jlc3MiLCJqdGkiOiJpbnZfcm91dGVzIiwidGVuYW50SWQiOiJ0ZW5fMDFKRDhYMDAwMEFBQUEiLCJmdW5jdGlvbklkIjoiZm5fMDFKRDhYMTExMUJCQkIiLCJlZmZlY3RpdmVGdW5jdGlvbklkIjoiZm5fMDFKRDhYMjIyMkNDQ0MiLCJmdW5jdGlvblZlcnNpb25JZCI6ImZudl8wMUpEOFgzMzMzRERERCIsImVuY2xhdmVJZCI6ImVuY18wMUpEOFg0NDQ0RUVFRSIsImVuY2xhdmVJZGVudGlmaWVyIjoicHJvZHVjdGlvbi1ldSIsInNvdXJjZSI6ImxhbWJkYSIsInBvbGljeSI6eyJlbnRyaWVzIjpbeyJjaWRyIjoiOTMuMTg0LjIxNi4wLzI0IiwicG9ydFJhbmdlIjp7ImZyb20iOjgwLCJ0byI6NDQzfX0seyJjaWRyIjoiMTAuMjAuMC4wLzE2IiwicG9ydFJhbmdlIjp7ImZyb20iOjQ0MywidG8iOjQ0M319LHsiY2lkciI6IjI2MDY6MjgwMDo6LzMyIn1dLCJob3N0cyI6W3sicGF0dGVybiI6IiouZXhhbXBsZS5jb20iLCJwb3J0cyI6WzQ0M119LHsicGF0dGVybiI6ImFwaS5naXRodWIuY29tIn1dfSwicGxhdGZvcm1Sb3V0ZXMiOlsic2xhdGVzLWxpdmUiLCJvYmplY3QtdXBsb2FkIl0sImlhdCI6MTc5Mzk5OTk5MCwibmJmIjoxNzkzOTk5OTYwLCJleHAiOjE3OTQwMDA5NjB9.77cLgXbppNtamoNkLClLELpJeYEFnIhfMU5n1Jmh2dXYBZR5e_cmTyG2t-Qbuq_WNCsf3Hd2hTVRFIqIXOD4Cg",
+      "expect": {
+        "valid": true
+      }
+    },
+    {
+      "name": "invalid-platform-route-name",
+      "description": "Platform route name outside the allowed pattern.",
+      "signer": "function-bay",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"c1facaa9927914a9\"}",
+      "claimsJson": "{\"iss\":\"function-bay\",\"aud\":\"metorial-egress\",\"jti\":\"inv_bad_route\",\"tenantId\":\"ten_01JD8X0000AAAA\",\"functionId\":\"fn_01JD8X1111BBBB\",\"effectiveFunctionId\":\"fn_01JD8X2222CCCC\",\"functionVersionId\":\"fnv_01JD8X3333DDDD\",\"enclaveId\":\"enc_01JD8X4444EEEE\",\"enclaveIdentifier\":\"production-eu\",\"source\":\"lambda\",\"policy\":{\"entries\":[{\"cidr\":\"93.184.216.0/24\",\"portRange\":{\"from\":80,\"to\":443}},{\"cidr\":\"10.20.0.0/16\",\"portRange\":{\"from\":443,\"to\":443}},{\"cidr\":\"2606:2800::/32\"}],\"hosts\":[{\"pattern\":\"*.example.com\",\"ports\":[443]},{\"pattern\":\"api.github.com\"}]},\"platformRoutes\":[\"Slates.Live\"],\"iat\":1793999990,\"nbf\":1793999960,\"exp\":1794000960}",
+      "claims": {
+        "iss": "function-bay",
+        "aud": "metorial-egress",
+        "jti": "inv_bad_route",
+        "tenantId": "ten_01JD8X0000AAAA",
+        "functionId": "fn_01JD8X1111BBBB",
+        "effectiveFunctionId": "fn_01JD8X2222CCCC",
+        "functionVersionId": "fnv_01JD8X3333DDDD",
+        "enclaveId": "enc_01JD8X4444EEEE",
+        "enclaveIdentifier": "production-eu",
+        "source": "lambda",
+        "policy": {
+          "entries": [
+            {
+              "cidr": "93.184.216.0/24",
+              "portRange": {
+                "from": 80,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "10.20.0.0/16",
+              "portRange": {
+                "from": 443,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "2606:2800::/32"
+            }
+          ],
+          "hosts": [
+            {
+              "pattern": "*.example.com",
+              "ports": [
+                443
+              ]
+            },
+            {
+              "pattern": "api.github.com"
+            }
+          ]
+        },
+        "platformRoutes": [
+          "Slates.Live"
+        ],
+        "iat": 1793999990,
+        "nbf": 1793999960,
+        "exp": 1794000960
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImMxZmFjYWE5OTI3OTE0YTkifQ.eyJpc3MiOiJmdW5jdGlvbi1iYXkiLCJhdWQiOiJtZXRvcmlhbC1lZ3Jlc3MiLCJqdGkiOiJpbnZfYmFkX3JvdXRlIiwidGVuYW50SWQiOiJ0ZW5fMDFKRDhYMDAwMEFBQUEiLCJmdW5jdGlvbklkIjoiZm5fMDFKRDhYMTExMUJCQkIiLCJlZmZlY3RpdmVGdW5jdGlvbklkIjoiZm5fMDFKRDhYMjIyMkNDQ0MiLCJmdW5jdGlvblZlcnNpb25JZCI6ImZudl8wMUpEOFgzMzMzRERERCIsImVuY2xhdmVJZCI6ImVuY18wMUpEOFg0NDQ0RUVFRSIsImVuY2xhdmVJZGVudGlmaWVyIjoicHJvZHVjdGlvbi1ldSIsInNvdXJjZSI6ImxhbWJkYSIsInBvbGljeSI6eyJlbnRyaWVzIjpbeyJjaWRyIjoiOTMuMTg0LjIxNi4wLzI0IiwicG9ydFJhbmdlIjp7ImZyb20iOjgwLCJ0byI6NDQzfX0seyJjaWRyIjoiMTAuMjAuMC4wLzE2IiwicG9ydFJhbmdlIjp7ImZyb20iOjQ0MywidG8iOjQ0M319LHsiY2lkciI6IjI2MDY6MjgwMDo6LzMyIn1dLCJob3N0cyI6W3sicGF0dGVybiI6IiouZXhhbXBsZS5jb20iLCJwb3J0cyI6WzQ0M119LHsicGF0dGVybiI6ImFwaS5naXRodWIuY29tIn1dfSwicGxhdGZvcm1Sb3V0ZXMiOlsiU2xhdGVzLkxpdmUiXSwiaWF0IjoxNzkzOTk5OTkwLCJuYmYiOjE3OTM5OTk5NjAsImV4cCI6MTc5NDAwMDk2MH0.yA9R7SmUfRL_qAul5PGB4JfQ20zJIb5ntzIp8sRU7OH54WEj_R67jiYy7AqoZJkNML_esU0PQ56_heiMjvJMDA",
+      "expect": {
+        "valid": false,
+        "error": "invalid_platform_routes"
+      }
+    },
+    {
+      "name": "duplicate-platform-route",
+      "description": "The same platform route twice.",
+      "signer": "function-bay",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"c1facaa9927914a9\"}",
+      "claimsJson": "{\"iss\":\"function-bay\",\"aud\":\"metorial-egress\",\"jti\":\"inv_duplicate_route\",\"tenantId\":\"ten_01JD8X0000AAAA\",\"functionId\":\"fn_01JD8X1111BBBB\",\"effectiveFunctionId\":\"fn_01JD8X2222CCCC\",\"functionVersionId\":\"fnv_01JD8X3333DDDD\",\"enclaveId\":\"enc_01JD8X4444EEEE\",\"enclaveIdentifier\":\"production-eu\",\"source\":\"lambda\",\"policy\":{\"entries\":[{\"cidr\":\"93.184.216.0/24\",\"portRange\":{\"from\":80,\"to\":443}},{\"cidr\":\"10.20.0.0/16\",\"portRange\":{\"from\":443,\"to\":443}},{\"cidr\":\"2606:2800::/32\"}],\"hosts\":[{\"pattern\":\"*.example.com\",\"ports\":[443]},{\"pattern\":\"api.github.com\"}]},\"platformRoutes\":[\"slates-live\",\"slates-live\"],\"iat\":1793999990,\"nbf\":1793999960,\"exp\":1794000960}",
+      "claims": {
+        "iss": "function-bay",
+        "aud": "metorial-egress",
+        "jti": "inv_duplicate_route",
+        "tenantId": "ten_01JD8X0000AAAA",
+        "functionId": "fn_01JD8X1111BBBB",
+        "effectiveFunctionId": "fn_01JD8X2222CCCC",
+        "functionVersionId": "fnv_01JD8X3333DDDD",
+        "enclaveId": "enc_01JD8X4444EEEE",
+        "enclaveIdentifier": "production-eu",
+        "source": "lambda",
+        "policy": {
+          "entries": [
+            {
+              "cidr": "93.184.216.0/24",
+              "portRange": {
+                "from": 80,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "10.20.0.0/16",
+              "portRange": {
+                "from": 443,
+                "to": 443
+              }
+            },
+            {
+              "cidr": "2606:2800::/32"
+            }
+          ],
+          "hosts": [
+            {
+              "pattern": "*.example.com",
+              "ports": [
+                443
+              ]
+            },
+            {
+              "pattern": "api.github.com"
+            }
+          ]
+        },
+        "platformRoutes": [
+          "slates-live",
+          "slates-live"
+        ],
+        "iat": 1793999990,
+        "nbf": 1793999960,
+        "exp": 1794000960
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImMxZmFjYWE5OTI3OTE0YTkifQ.eyJpc3MiOiJmdW5jdGlvbi1iYXkiLCJhdWQiOiJtZXRvcmlhbC1lZ3Jlc3MiLCJqdGkiOiJpbnZfZHVwbGljYXRlX3JvdXRlIiwidGVuYW50SWQiOiJ0ZW5fMDFKRDhYMDAwMEFBQUEiLCJmdW5jdGlvbklkIjoiZm5fMDFKRDhYMTExMUJCQkIiLCJlZmZlY3RpdmVGdW5jdGlvbklkIjoiZm5fMDFKRDhYMjIyMkNDQ0MiLCJmdW5jdGlvblZlcnNpb25JZCI6ImZudl8wMUpEOFgzMzMzRERERCIsImVuY2xhdmVJZCI6ImVuY18wMUpEOFg0NDQ0RUVFRSIsImVuY2xhdmVJZGVudGlmaWVyIjoicHJvZHVjdGlvbi1ldSIsInNvdXJjZSI6ImxhbWJkYSIsInBvbGljeSI6eyJlbnRyaWVzIjpbeyJjaWRyIjoiOTMuMTg0LjIxNi4wLzI0IiwicG9ydFJhbmdlIjp7ImZyb20iOjgwLCJ0byI6NDQzfX0seyJjaWRyIjoiMTAuMjAuMC4wLzE2IiwicG9ydFJhbmdlIjp7ImZyb20iOjQ0MywidG8iOjQ0M319LHsiY2lkciI6IjI2MDY6MjgwMDo6LzMyIn1dLCJob3N0cyI6W3sicGF0dGVybiI6IiouZXhhbXBsZS5jb20iLCJwb3J0cyI6WzQ0M119LHsicGF0dGVybiI6ImFwaS5naXRodWIuY29tIn1dfSwicGxhdGZvcm1Sb3V0ZXMiOlsic2xhdGVzLWxpdmUiLCJzbGF0ZXMtbGl2ZSJdLCJpYXQiOjE3OTM5OTk5OTAsIm5iZiI6MTc5Mzk5OTk2MCwiZXhwIjoxNzk0MDAwOTYwfQ.pEWVV31H1EeWLfdvp-r4kZ57O_GH6scFluiniW68FV64KMMFjzhOS3FYXZbgLHIKVWbR24pHy5ybzwPT-PIPBw",
+      "expect": {
+        "valid": false,
+        "error": "invalid_platform_routes"
+      }
+    },
+    {
+      "name": "build-grant-platform-routes",
+      "description": "Build grants may not name platform routes.",
+      "signer": "forge",
+      "mintable": true,
+      "headerJson": "{\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":\"7051698284ad9f3d\"}",
+      "claimsJson": "{\"iss\":\"forge\",\"aud\":\"metorial-egress\",\"jti\":\"brun_01JD8X5555FFFF\",\"tenantId\":\"ten_1\",\"buildRunId\":\"brun_routes\",\"source\":\"build\",\"policy\":{\"entries\":[],\"hosts\":[{\"pattern\":\"registry.npmjs.org\",\"ports\":[443]}]},\"platformRoutes\":[\"slates-live\"],\"iat\":1793999995,\"nbf\":1793999995,\"exp\":1794003900}",
+      "claims": {
+        "iss": "forge",
+        "aud": "metorial-egress",
+        "jti": "brun_01JD8X5555FFFF",
+        "tenantId": "ten_1",
+        "buildRunId": "brun_routes",
+        "source": "build",
+        "policy": {
+          "entries": [],
+          "hosts": [
+            {
+              "pattern": "registry.npmjs.org",
+              "ports": [
+                443
+              ]
+            }
+          ]
+        },
+        "platformRoutes": [
+          "slates-live"
+        ],
+        "iat": 1793999995,
+        "nbf": 1793999995,
+        "exp": 1794003900
+      },
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6IjcwNTE2OTgyODRhZDlmM2QifQ.eyJpc3MiOiJmb3JnZSIsImF1ZCI6Im1ldG9yaWFsLWVncmVzcyIsImp0aSI6ImJydW5fMDFKRDhYNTU1NUZGRkYiLCJ0ZW5hbnRJZCI6InRlbl8xIiwiYnVpbGRSdW5JZCI6ImJydW5fcm91dGVzIiwic291cmNlIjoiYnVpbGQiLCJwb2xpY3kiOnsiZW50cmllcyI6W10sImhvc3RzIjpbeyJwYXR0ZXJuIjoicmVnaXN0cnkubnBtanMub3JnIiwicG9ydHMiOls0NDNdfV19LCJwbGF0Zm9ybVJvdXRlcyI6WyJzbGF0ZXMtbGl2ZSJdLCJpYXQiOjE3OTM5OTk5OTUsIm5iZiI6MTc5Mzk5OTk5NSwiZXhwIjoxNzk0MDAzOTAwfQ.mqP7Ah3pIwXyqo5SGmmGR_5WSqOa6HAUVZROSaWKhGvxpLhRGXAhdprwoBJJwXaa6dCHyIMdIj6VZCcvkrtgAw",
+      "expect": {
+        "valid": false,
+        "error": "invalid_platform_routes"
       }
     },
     {
