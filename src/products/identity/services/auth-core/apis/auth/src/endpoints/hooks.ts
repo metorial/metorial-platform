@@ -153,7 +153,7 @@ let renderSsoError = (ctx: HonoContext, error: unknown) => {
     return ctx.html(ssoDomainNotAllowedHtml(error), 403);
   }
 
-  console.error('SSO hook failed:', error);
+  console.error('SSO hook failed');
 
   return ctx.html(
     errorHtml({
