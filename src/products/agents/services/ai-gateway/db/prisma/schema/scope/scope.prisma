@@ -1,0 +1,66 @@
+model Organization {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  nebulaTenantId String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  projects            Project[]
+  instances           Instance[]
+  gatewayTokens       GatewayToken[]
+  providerConnections ProviderConnection[]
+}
+
+model Project {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instances Instance[]
+
+  @@index([organizationOid])
+}
+
+model Instance {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  logRetentionDays Int @default(90)
+
+  /// [InstanceSettings]
+  settings Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  gatewayTokens       GatewayToken[]
+  providerConnections ProviderConnection[]
+
+  @@index([organizationOid])
+  @@index([projectOid])
+}

@@ -11,463 +11,338 @@ datasource db {
   provider = "postgresql"
 }
 
-model AssistantImplementation {
+model GatewayToken {
   oid BigInt @id
   id  String @unique
 
-  name String
+  prefix     String @unique
+  secretHash String
+
+  name        String
+  consumerRef String?
+
+  allowedModels String[]
+
+  /// [GatewayTokenLimits]
+  limits Json @default("{}")
+
+  /// [GatewayTokenMetadata]
+  metadata Json @default("{}")
+
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+}
+
+model CatalogSync {
+  oid BigInt @id
+  id  String @unique
+
+  url String @unique
+
+  etag        String?
+  fingerprint String?
+  lastError   String?
+
+  /// [CatalogSyncCounts]
+  counts Json?
+
+  generatedAt   DateTime?
+  lastCheckedAt DateTime?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum CatalogEntryStatus {
+  active
+  retired
+}
+
+model Lab {
+  oid BigInt @id
+  id  String @unique
+
   slug String @unique
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  name        String
+  description String?
+  website     String?
+  logo        String?
 
-  assistants Assistant[]
+  status CatalogEntryStatus
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  models Model[]
 }
 
-enum AssistantOwner {
+enum ProviderKind {
   metorial
-  tenant
+  first_party
+  cloud
+  inference
+  aggregator
+  subscription
 }
 
-model Assistant {
+model Provider {
   oid BigInt @id
   id  String @unique
 
-  ownerType AssistantOwner
+  slug String @unique
 
-  tenantOid BigInt?
-  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+  name    String
+  kind    ProviderKind
+  website String?
+  docs    String?
+  logo    String?
 
-  implementationOid BigInt
-  implementation    AssistantImplementation @relation(fields: [implementationOid], references: [oid], onDelete: Cascade)
+  status CatalogEntryStatus
 
-  name             String
-  slug             String  @unique
-  systemIdentifier String? @unique
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  assistantInstances     AssistantInstance[]
-  assistantConversations AssistantConversation[]
-  assistantRequests      AssistantRequest[]
-  assistantMessages      AssistantMessage[]
-  modelRuns              ModelRun[]
-
-  @@index([tenantOid])
-  @@index([implementationOid])
+  offerings   ModelOffering[]
+  connections ProviderConnection[]
 }
 
-model AssistantConfig {
-  oid BigInt @id
-  id  String @unique
-
-  tenantOid BigInt @unique
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-model AssistantInstance {
-  oid BigInt @id
-  id  String @unique
-
-  assistantOid BigInt
-  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  assistantConversations AssistantConversation[]
-  assistantRequests      AssistantRequest[]
-  assistantMessages      AssistantMessage[]
-  modelRuns              ModelRun[]
-
-  @@unique([assistantOid, tenantOid])
-  @@index([tenantOid])
-}
-
-model AssistantConversation {
-  oid BigInt @id
-  id  String @unique
-
-  title String?
-
-  /// [AssistantConversationInput]
-  input Json?
-
-  assistantInstanceOid BigInt
-  assistantInstance    AssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
-
-  assistantOid BigInt
-  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  environmentOid BigInt
-  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
-
-  createdByTenantActorOid BigInt
-  createdByTenantActor    TenantActor @relation("AssistantConversationCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: Cascade)
-
-  rootMessageOid BigInt
-  rootMessage    AssistantMessage @relation(fields: [rootMessageOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  runs                              ModelRun[]
-  items                             AssistantConversationItem[]
-  assistantRequests                 AssistantRequest[]
-  assistantConversationParticipants AssistantConversationParticipant[]
-
-  @@index([tenantOid, environmentOid])
-  @@index([assistantOid, assistantInstanceOid])
-  @@index([createdByTenantActorOid])
-}
-
-model AssistantConversationParticipant {
-  oid BigInt @id
-  id  String @unique
-
-  conversationOid BigInt
-  conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
-
-  tenantActorOid BigInt
-  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([conversationOid, tenantActorOid])
-  @@index([conversationOid])
-  @@index([tenantActorOid])
-}
-
-enum AssistantRequestStatus {
-  pending
-  waiting_for_user
-  completed
-  cancelled
-  failed
-}
-
-model AssistantRequest {
-  oid BigInt @id
-  id  String @unique
-
-  status AssistantRequestStatus
-
-  conversationOid BigInt
-  conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
-
-  assistantInstanceOid BigInt
-  assistantInstance    AssistantInstance @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
-
-  assistantOid BigInt
-  assistant    Assistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
-
-  modelOid BigInt
-  model    Model  @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
-
-  messageOid BigInt
-  message    AssistantMessage @relation("AssistantRequestParentMessage", fields: [messageOid], references: [oid], onDelete: Cascade)
-
-  historySize Int?
-
-  tenantActorOid BigInt?
-  tenantActor    TenantActor? @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  messages AssistantMessage[]
-  runs     ModelRun[]
-
-  @@index([conversationOid, status])
-  @@index([assistantInstanceOid])
-  @@index([tenantActorOid])
-}
-
-enum AssistantMessageType {
-  root
-  user
-  assistant
-}
-
-enum AssistantMessageStatus {
-  pending
-  waiting_for_user
-  completed
-}
-
-model AssistantMessage {
-  oid BigInt @id
-  id  String @unique
-
-  type AssistantMessageType
-  status AssistantMessageStatus @default(completed)
-
-  runOid BigInt?
-  run    ModelRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)
-
-  requestOid BigInt?
-  request    AssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
-
-  assistantInstanceOid BigInt?
-  assistantInstance    AssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
-
-  assistantOid BigInt?
-  assistant    Assistant? @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
-
-  parentMessageOid BigInt?
-  parentMessage    AssistantMessage? @relation("ParentMessage", fields: [parentMessageOid], references: [oid], onDelete: Cascade)
-
-  modelOid BigInt?
-  model    Model?  @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
-
-  /// [AssistantMessageStateContent]
-  state Json
-
-  /// [AssistantMessageSerializedContent]
-  serialized Json
-
-  createdAt DateTime @default(now())
-
-  childMessages  AssistantMessage[]          @relation("ParentMessage")
-  childRequests  AssistantRequest[]          @relation("AssistantRequestParentMessage")
-  conversations  AssistantConversationItem[]
-  rootMessageFor AssistantConversation[]
-
-  @@index([runOid])
-  @@index([requestOid])
-  @@index([assistantInstanceOid])
-  @@index([assistantOid])
-  @@index([parentMessageOid])
-}
-
-model AssistantConversationItem {
-  oid BigInt @id
-  id  String @unique
-
-  conversationOid BigInt
-  conversation    AssistantConversation @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
-
-  messageOid BigInt
-  message    AssistantMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@index([conversationOid])
-  @@index([messageOid])
+enum ModelStatus {
+  preview
+  active
+  deprecated
+  retired
 }
 
 model Model {
   oid BigInt @id
   id  String @unique
 
-  name String
-  slug String
+  slug       String  @unique
+  familySlug String?
 
-  contextWindow              Int
-  inputCostPerMillionTokens  Float
-  outputCostPerMillionTokens Float
+  name        String
+  description String?
+  kind        String
+
+  status      ModelStatus
+  releaseDate DateTime?   @db.Date
+  openWeights Boolean
+
+  contextTokens    Int?
+  outputTokens     Int?
+  inputModalities  String[]
+  outputModalities String[]
+
+  /// [ModelCapabilities]
+  capabilities Json
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  labOid BigInt
+  lab    Lab    @relation(fields: [labOid], references: [oid])
+
+  offerings ModelOffering[]
+  aliases   ModelAlias[]
+
+  @@index([labOid])
+  @@index([status])
+}
+
+model ModelOffering {
+  oid BigInt @id
+  id  String @unique
+
+  catalogId     String @unique
+  vendorModelId String
+
+  name   String
+  status ModelStatus
+  apis   String[]
+
+  /// [Pricing]
+  pricing     Json?
+  pricingHash String?
+
+  contextTokens    Int?
+  outputTokens     Int?
+  inputModalities  String[]
+  outputModalities String[]
+
+  /// [ModelCapabilities]
+  capabilities Json
+
+  /// [OfferingVariant]
+  variant Json
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   providerOid BigInt
-  provider    ModelProvider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+  provider    Provider @relation(fields: [providerOid], references: [oid])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  modelOid BigInt?
+  model    Model?  @relation(fields: [modelOid], references: [oid])
 
-  messages          AssistantMessage[]
-  assistantRequests AssistantRequest[]
-  modelRuns         ModelRun[]
-
-  @@unique([slug, providerOid])
-  @@index([providerOid])
+  @@index([providerOid, vendorModelId])
+  @@index([modelOid])
 }
 
-model ModelProvider {
+model ModelAlias {
   oid BigInt @id
   id  String @unique
 
-  slug     String @unique
-  name     String
-  imageUrl String
+  catalogId String @unique
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  namespace String
+  raw       String
+  key       String
 
-  models Model[]
-}
-
-enum AssistantRunStatus {
-  pending
-  running
-  waiting_for_user
-  completed
-  cancelled
-  failed
-}
-
-model ModelRun {
-  oid BigInt @id
-  id  String @unique
-
-  status AssistantRunStatus
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  requestOid BigInt?
-  request    AssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
-
-  conversationOid BigInt?
-  conversation    AssistantConversation? @relation(fields: [conversationOid], references: [oid], onDelete: Cascade)
-
-  assistantInstanceOid BigInt?
-  assistantInstance    AssistantInstance? @relation(fields: [assistantInstanceOid], references: [oid], onDelete: Cascade)
-
-  assistantOid BigInt?
-  assistant    Assistant? @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   modelOid BigInt
-  model    Model  @relation(fields: [modelOid], references: [oid], onDelete: Cascade)
+  model    Model  @relation(fields: [modelOid], references: [oid])
 
-  /// [AssistantRunCost]
-  cost Json
-
-  /// [AssistantRunMetadata]
-  metadata Json
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  messages AssistantMessage[]
-
-  @@index([requestOid])
-  @@index([conversationOid, status])
-  @@index([assistantInstanceOid])
+  @@index([raw])
+  @@index([key])
+  @@index([modelOid])
 }
 
-model SubspaceMcpConnection {
+enum ProviderConnectionStatus {
+  pending
+  valid
+  invalid
+  disabled
+}
+
+model ProviderConnection {
   oid BigInt @id
   id  String @unique
 
-  sessionId       String
-  solutionId      String
-  subspaceTenantId String
-  connectionId    String @unique
-  connectionToken String
-  lastUsedAt      DateTime
+  name        String
+  description String?
+  priority    Int     @default(0)
 
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+  /// [ProviderConnectionConfig]
+  config Json @default("{}")
 
-  environmentOid BigInt
-  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+  /// [ProviderFeatures]
+  features Json @default("{}")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  /// [ConnectionPricingOverride]
+  pricingOverride Json?
 
-  @@unique([tenantOid, environmentOid, sessionId])
-  @@index([tenantOid, environmentOid])
-  @@index([lastUsedAt])
-  @@index([createdAt])
+  nebulaSecretId String
+  credentialHint String?
+
+  status              ProviderConnectionStatus @default(pending)
+  statusMessage       String?
+  consecutiveFailures Int                      @default(0)
+
+  lastCheckedAt DateTime?
+  lastValidAt   DateTime?
+  nextCheckAt   DateTime?
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  @@index([instanceOid, status])
+  @@index([organizationOid])
+  @@index([providerOid])
+  @@index([nextCheckAt])
 }
 
-model SubspaceMcpToolCache {
+model Organization {
   oid BigInt @id
   id  String @unique
 
-  connectionId String @unique
+  ref  String  @unique
+  name String?
 
-  /// [SubspaceMcpToolList]
-  tools Json
+  nebulaTenantId String?
 
-  cachedAt  DateTime
-  expiresAt DateTime
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@index([expiresAt])
+  projects            Project[]
+  instances           Instance[]
+  gatewayTokens       GatewayToken[]
+  providerConnections ProviderConnection[]
 }
 
-enum EnvironmentType {
-  development
-  production
-}
-
-model Tenant {
+model Project {
   oid BigInt @id
   id  String @unique
 
-  identifier String @unique
-  name       String
+  ref  String  @unique
+  name String?
 
-  createdAt DateTime @default(now())
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  environments           Environment[]
-  tenantActors           TenantActor[]
-  assistants             Assistant[]
-  assistantConfig        AssistantConfig?
-  assistantInstances     AssistantInstance[]
-  assistantConversations AssistantConversation[]
-  subspaceMcpConnections SubspaceMcpConnection[]
-  modelRuns              ModelRun[]
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instances Instance[]
+
+  @@index([organizationOid])
 }
 
-model Environment {
+model Instance {
   oid BigInt @id
   id  String @unique
 
-  type EnvironmentType
+  ref  String  @unique
+  name String?
 
-  identifier String
-  name       String
+  logRetentionDays Int @default(90)
 
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+  /// [InstanceSettings]
+  settings Json @default("{}")
 
-  createdAt DateTime @default(now())
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  assistantConversations AssistantConversation[]
-  subspaceMcpConnections SubspaceMcpConnection[]
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
 
-  @@unique([tenantOid, identifier])
-  @@index([tenantOid])
-}
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
 
-enum TenantActorType {
-  external
-  system
-}
+  gatewayTokens       GatewayToken[]
+  providerConnections ProviderConnection[]
 
-model TenantActor {
-  oid BigInt @id
-  id  String @unique
-
-  type TenantActorType
-
-  identifier          String
-  name                String
-  organizationActorId String?
-  consumerId          String?
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  createdAssistantConversations     AssistantConversation[]            @relation("AssistantConversationCreator")
-  assistantRequests                 AssistantRequest[]
-  assistantConversationParticipants AssistantConversationParticipant[]
-
-  @@unique([tenantOid, identifier])
-  @@index([tenantOid])
+  @@index([organizationOid])
+  @@index([projectOid])
 }

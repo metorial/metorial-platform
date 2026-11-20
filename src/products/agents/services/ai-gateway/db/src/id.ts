@@ -1,7 +1,21 @@
-import { createIdGenerator } from '@lowerdeck/id';
+import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
-export let ID = createIdGenerator({});
+export let ID = createIdGenerator({
+  organization: idType.sorted('gwor_'),
+  project: idType.sorted('gwpr_'),
+  instance: idType.sorted('gwin_'),
+  gatewayToken: idType.sorted('gwtk_'),
+  catalogSync: idType.sorted('gwcs_'),
+  lab: idType.sorted('gwlb_'),
+  provider: idType.sorted('gwpv_'),
+  model: idType.sorted('gwmd_'),
+  modelOffering: idType.sorted('gwof_'),
+  modelAlias: idType.sorted('gwma_'),
+  providerConnection: idType.sorted('gwpc_'),
+  inferenceLog: idType.sorted('gwlg_'),
+  connectionCheck: idType.sorted('gwcc_')
+});
 
 let workerIdBits = 12;
 let workerIdMask = (1 << workerIdBits) - 1;
