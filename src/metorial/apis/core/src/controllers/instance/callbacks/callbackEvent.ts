@@ -18,7 +18,7 @@ export let callbackEventController = Controller.create(
   {
     name: 'Callback Events',
     description:
-      'A callback event is recorded every time a provider trigger behind one of your callbacks fires. Listing returns the events themselves; fetch a single event to enrich it with the payload the provider produced, and the inbound webhook behind it, if any.'
+      'A callback event is recorded every time a provider trigger behind one of your callbacks fires.'
   },
   {
     list: instanceGroup
@@ -33,32 +33,33 @@ export let callbackEventController = Controller.create(
         Paginator.validate(
           v.object({
             callback_id: v.optional(stringOrArray(), {
-              description: 'Filter by callback ID(s)'
+              description: 'Only return events for one of these callbacks.'
             }),
             callback_instance_id: v.optional(stringOrArray(), {
-              description: 'Filter by callback instance ID(s)'
+              description: 'Only return events for one of these callback instances.'
             }),
             integration_id: v.optional(stringOrArray(), {
-              description: 'Filter by the integration the callback belongs to'
+              description: 'Only return events for callbacks belonging to one of these integrations.'
             }),
             integration_provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by the integration provider the callback belongs to'
+              description:
+                'Only return events for callbacks belonging to one of these integration providers.'
             }),
             provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by the provider the callback belongs to'
+              description: 'Only return events for callbacks belonging to one of these providers.'
             }),
             provider_trigger_key: v.optional(stringOrArray(), {
-              description: 'Filter by the provider trigger key that produced the event'
+              description: 'Only return events produced by one of these provider triggers.'
             }),
             status: v.optional(
               v.union([callbackEventStatusValidator, v.array(callbackEventStatusValidator)]),
-              { description: 'Filter by callback event processing status' }
+              { description: 'Only return events with one of these statuses.' }
             ),
             source: v.optional(
               v.union([callbackEventSourceValidator, v.array(callbackEventSourceValidator)]),
-              { description: 'Filter by callback event source' }
+              { description: 'Only return events from one of these sources.' }
             ),
-            occurred_at: dateFilterValidator('when the underlying provider event occurred'),
+            occurred_at: dateFilterValidator('provider event time'),
             created_at: dateFilterValidator('callback event creation time')
           })
         )
@@ -87,7 +88,7 @@ export let callbackEventController = Controller.create(
       .get(instancePath('callback-events/:callbackEventId', 'callbackEvents.get'), {
         name: 'Get callback event',
         description:
-          'Retrieves a specific callback event by ID, enriched with the payload the provider produced for it and, if it came from a webhook, the inbound request behind it.'
+          'Retrieves a callback event, with the payload the provider produced and the inbound webhook behind it when there is one. The inbound request is `null` once it is past its retention period.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(callbackEventPresenter)

@@ -38,23 +38,27 @@ export let callbackInstanceController = Controller.create(
         Paginator.validate(
           v.object({
             id: v.optional(stringOrArray(), {
-              description: 'Filter by callback instance ID(s)'
+              description: 'Only return callback instances with one of these IDs.'
             }),
             callback_id: v.optional(stringOrArray(), {
-              description: 'Filter by callback ID(s)'
+              description: 'Only return instances of one of these callbacks.'
             }),
             integration_id: v.optional(stringOrArray(), {
-              description: 'Filter by the integration the callback belongs to'
+              description: 'Only return instances of callbacks belonging to one of these integrations.'
             }),
             integration_instance_id: v.optional(stringOrArray(), {
-              description: 'Filter by integration instance ID(s)'
+              description: 'Only return instances listening for one of these integration instances.'
             }),
             integration_instance_provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by integration instance provider ID(s)'
+              description:
+                'Only return instances registered on one of these integration instance providers.'
             }),
             status: v.optional(
               v.union([callbackStatusValidator, v.array(callbackStatusValidator)]),
-              { description: 'Filter by callback instance lifecycle status' }
+              {
+                description:
+                  'Only return callback instances with one of these statuses. `deleted` instances are never listed.'
+              }
             ),
             search: v.optional(v.string(), {
               description: 'Match a callback instance by its exact ID'
@@ -89,7 +93,7 @@ export let callbackInstanceController = Controller.create(
     get: callbackInstanceGroup
       .get(instancePath('callback-instances/:callbackInstanceId', 'callbackInstances.get'), {
         name: 'Get callback instance',
-        description: 'Retrieves a specific callback instance by ID.'
+        description: 'Retrieves a callback instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(callbackInstancePresenter)
