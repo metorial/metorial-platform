@@ -17,12 +17,16 @@ import {
 } from './codegen';
 import { type MappedContext, mapValue } from './mapped';
 import type { QueryPlan } from './plan';
-import type {
-  AggregateMeasure,
-  BoundDimension,
-  BoundMeasure,
-  BoundQuery,
-  QueryWarning
+import {
+  type AggregateMeasure,
+  type BoundDimension,
+  type BoundMeasure,
+  type BoundQuery,
+  compareColumns,
+  dateColumns,
+  isDateMeasure,
+  measureColumns,
+  type QueryWarning
 } from './types';
 
 export let otherValue = '$other';
@@ -85,7 +89,7 @@ type Group = {
   values: Map<string, CellValue>;
 };
 
-let round = (value: number) => Math.round(value * 1e9) / 1e9;
+let round = (value: number) => Number(value.toFixed(9));
 
 let isTime = (dimension: BoundDimension) => dimension.field.source.kind == 'time';
 
@@ -152,7 +156,10 @@ let stateOf = (
       };
     case 'min':
     case 'max':
-      return { t: measure.fn, v: typeof value == 'number' ? value : null };
+      return {
+        t: measure.fn,
+        v: value instanceof Date ? value.getTime() : typeof value == 'number' ? value : null
+      };
     case 'countDistinct': {
       let items = (Array.isArray(value) ? value : []).flat();
       let values = new Set(
@@ -528,12 +535,6 @@ let fillGroups = (ctx: Context, groups: Map<string, Group>, values: string[] | u
   }
 };
 
-let previousColumns = (name: string) => ({
-  previous: `${name}@previous`,
-  delta: `${name}@delta`,
-  change: `${name}@change`
-});
-
 let joinCompare = (ctx: Context, groups: Group[], compared: Group[]) => {
   let { query } = ctx;
   let offset = new Map<number, number>();
@@ -564,7 +565,7 @@ let joinCompare = (ctx: Context, groups: Group[], compared: Group[]) => {
     let previous = byKey.get(identity(group.dims));
 
     for (let measure of visible) {
-      let columns = previousColumns(measure.name);
+      let columns = compareColumns(measure.name);
       let before =
         previous?.values.get(measure.name) ?? (measure.kind == 'reported' ? [] : null);
       let current = numberOf(group.values.get(measure.name));
@@ -573,7 +574,12 @@ let joinCompare = (ctx: Context, groups: Group[], compared: Group[]) => {
 
       group.values.set(columns.previous, before);
       group.values.set(columns.delta, delta);
-      group.values.set(columns.change, delta !== null && prior ? round(delta / prior) : null);
+      if (!isDateMeasure(measure)) {
+        group.values.set(
+          columns.change,
+          delta !== null && prior ? round(delta / prior) : null
+        );
+      }
     }
   }
 };
@@ -586,14 +592,17 @@ let cellOf = (ctx: Context, group: Group, column: string): unknown => {
   return group.values.get(column);
 };
 
+let havingNumber = (value: unknown) =>
+  typeof value == 'string' ? Date.parse(value) : Number(value);
+
 let matchesHaving = (ctx: Context, filter: Filter, group: Group): boolean => {
   if ('and' in filter) return filter.and.every(item => matchesHaving(ctx, item, group));
   if ('or' in filter) return filter.or.some(item => matchesHaving(ctx, item, group));
   if ('not' in filter) return !matchesHaving(ctx, filter.not, group);
 
   let value = numberOf(cellOf(ctx, group, filter.field));
-  let list = Array.isArray(filter.value) ? filter.value : [filter.value];
-  let target = Number(list[0]);
+  let list = (Array.isArray(filter.value) ? filter.value : [filter.value]).map(havingNumber);
+  let target = list[0]!;
 
   switch (filter.op) {
     case 'isNull':
@@ -605,9 +614,9 @@ let matchesHaving = (ctx: Context, filter: Filter, group: Group): boolean => {
     case 'neq':
       return value !== target;
     case 'in':
-      return value !== null && list.map(Number).includes(value);
+      return value !== null && list.includes(value);
     case 'notIn':
-      return value === null || !list.map(Number).includes(value);
+      return value === null || !list.includes(value);
     case 'gt':
       return value !== null && value > target;
     case 'gte':
@@ -617,7 +626,7 @@ let matchesHaving = (ctx: Context, filter: Filter, group: Group): boolean => {
     case 'lte':
       return value !== null && value <= target;
     case 'between':
-      return value !== null && value >= target && value <= Number(list[1]);
+      return value !== null && value >= target && value <= list[1]!;
     default:
       return false;
   }
@@ -775,15 +784,15 @@ let formatDim = (ctx: Context, dimension: BoundDimension, value: unknown): CellV
   return String(value);
 };
 
-let outputColumns = (query: BoundQuery) => {
-  let visible = query.measures.filter(measure => !measure.hidden);
-  return visible.flatMap(measure => {
-    if (!query.compare) return [measure.name];
+let outputColumns = (query: BoundQuery) =>
+  query.measures
+    .filter(measure => !measure.hidden)
+    .flatMap(measure => measureColumns(measure, !!query.compare));
 
-    let columns = previousColumns(measure.name);
-    return [measure.name, columns.previous, columns.delta, columns.change];
-  });
-};
+let presentCell = (ctx: Context, dates: Set<string>, column: string, value: unknown) =>
+  dates.has(column) && typeof value == 'number'
+    ? formatInZone(new Date(value), ctx.query.timeZone)
+    : ((value ?? null) as CellValue);
 
 let measureType = (measure: BoundMeasure) => {
   if (measure.kind == 'aggregate') return measure.type;
@@ -822,19 +831,20 @@ export let columnsOf = (query: BoundQuery): Column[] => [
             }
           : {})
       };
-      if (!query.compare) return [column];
-
-      let columns = previousColumns(measure.name);
-      return [
+      let columns = compareColumns(measure.name);
+      let names = measureColumns(measure, !!query.compare);
+      let candidates: Column[] = [
         column,
-        { ...column, name: columns.previous, role: 'compare' as const },
+        { ...column, name: columns.previous, role: 'compare' },
         {
           name: columns.delta,
-          role: 'compare' as const,
-          type: type == 'composite' ? 'number' : type
+          role: 'compare',
+          type: type == 'composite' ? 'number' : type == 'date' ? 'duration' : type
         },
-        { name: columns.change, role: 'compare' as const, type: 'number', format: 'percent' }
+        { name: columns.change, role: 'compare', type: 'number', format: 'percent' }
       ];
+
+      return candidates.filter(candidate => names.includes(candidate.name));
     })
 ];
 
@@ -871,9 +881,17 @@ let totalsOf = (ctx: Context, input: FinalizeInput, groups: Group[]) => {
     );
   }
 
+  let dates = new Set(dateColumns(ctx.query.measures));
   let result: Record<string, CellValue> = {};
   for (let measure of ctx.query.measures) {
-    if (!measure.hidden) result[measure.name] = total.values.get(measure.name) ?? null;
+    if (!measure.hidden) {
+      result[measure.name] = presentCell(
+        ctx,
+        dates,
+        measure.name,
+        total.values.get(measure.name)
+      );
+    }
   }
 
   return result;
@@ -927,12 +945,15 @@ export let finalize = (input: FinalizeInput): FinalResult => {
   truncated ||= limited.truncated;
 
   let outputs = outputColumns(query);
+  let dates = new Set(dateColumns(query.measures));
   let rows = limited.groups.map(group => {
     let row: Record<string, CellValue> = {};
     query.dimensions.forEach((dimension, index) => {
       row[dimension.name] = formatDim(ctx, dimension, group.dims[index]);
     });
-    for (let column of outputs) row[column] = (group.values.get(column) ?? null) as CellValue;
+    for (let column of outputs) {
+      row[column] = presentCell(ctx, dates, column, group.values.get(column));
+    }
 
     return row;
   });

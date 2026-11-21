@@ -15,6 +15,7 @@ import {
   normalizeSlug,
   type IdentifierInput
 } from '../lib/normalize';
+import { entityListWhere } from '../lib/listWhere';
 import { applyPendingMemberships } from '../lib/pending';
 import { followMerged, isUniqueViolation } from '../lib/resolve';
 import { getId } from '@mtsrc/agent-tracking-db';
@@ -207,45 +208,23 @@ class EntityServiceImpl {
     scope?: { projectId?: string; instanceId?: string };
     search?: string;
     needsReview?: boolean;
+    ids?: string[];
   }) {
     let scope = d.scope
       ? await this.resolveScope({ organization: d.organization, scope: d.scope })
       : undefined;
     let search = d.search?.trim();
 
-    let where: Prisma.EntityWhereInput = {
+    let where = entityListWhere({
       organizationOid: d.organization.oid,
-      kind: d.kinds ? { in: d.kinds } : undefined,
-      status: { in: d.statuses ?? liveStatuses },
+      kinds: d.kinds,
+      statuses: d.statuses ?? liveStatuses,
       needsReview: d.needsReview,
-      AND: [
-        ...(scope?.scopeProjectOid
-          ? [{ OR: [{ scopeProjectOid: null }, { scopeProjectOid: scope.scopeProjectOid }] }]
-          : []),
-        ...(scope?.scopeInstanceOid
-          ? [
-              {
-                OR: [{ scopeInstanceOid: null }, { scopeInstanceOid: scope.scopeInstanceOid }]
-              }
-            ]
-          : []),
-        ...(search
-          ? [
-              {
-                OR: [
-                  { name: { contains: search, mode: 'insensitive' as const } },
-                  { slug: { contains: search.toLowerCase() } },
-                  {
-                    identifiers: {
-                      some: { value: { contains: search, mode: 'insensitive' as const } }
-                    }
-                  }
-                ]
-              }
-            ]
-          : [])
-      ]
-    };
+      ids: d.ids,
+      scopeProjectOid: scope?.scopeProjectOid,
+      scopeInstanceOid: scope?.scopeInstanceOid,
+      search
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {

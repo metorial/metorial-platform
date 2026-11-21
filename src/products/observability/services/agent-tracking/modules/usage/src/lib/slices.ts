@@ -97,13 +97,21 @@ export let attributionFields = (attribution: SliceAttribution) => ({
   attributionVersion: attribution.version
 });
 
+// Usage expires on whole UTC days, so a day never loses its figures one bucket at a time.
+export let wholeDayExpiry = (expiry: Date) =>
+  new Date(Math.ceil(expiry.getTime() / dayMs) * dayMs);
+
 let sessionSliceExpiry = (
   session: Pick<SessionDocument, 'startedAt' | 'expiresAt'>,
   bucket: Date
 ) =>
-  session.expiresAt
-    ? new Date(session.expiresAt.getTime() + (bucket.getTime() - session.startedAt.getTime()))
-    : new Date(bucket.getTime() + 400 * dayMs);
+  wholeDayExpiry(
+    session.expiresAt
+      ? new Date(
+          session.expiresAt.getTime() + (bucket.getTime() - session.startedAt.getTime())
+        )
+      : new Date(bucket.getTime() + 400 * dayMs)
+  );
 
 export let buildSessionSlices = (d: {
   session: SessionDocument;
@@ -169,7 +177,7 @@ export let buildSessionlessSlices = (d: {
 
     factsVersion: FACTS_VERSION,
     computedAt: d.now,
-    expiresAt: new Date(slice.bucket.getTime() + d.usageRetentionDays * dayMs)
+    expiresAt: wholeDayExpiry(new Date(slice.bucket.getTime() + d.usageRetentionDays * dayMs))
   }));
 
 export type BaseSlice = {

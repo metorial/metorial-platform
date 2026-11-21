@@ -195,7 +195,7 @@
       "dependsOn": ["^build", "@mtsrc/mcp-runtime-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/agent-tracking-client#build": {
+    "@mtsrc/agent-tracking-client-internal#build": {
       "dependsOn": ["^build", "@mtsrc/agent-tracking-db#prisma:generate"],
       "outputs": ["dist/**"]
     },

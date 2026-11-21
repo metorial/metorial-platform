@@ -2024,7 +2024,9 @@
         "@metorial/db": "^1.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/module-access": "^1.0.0",
-        "@metorial/module-agent-telemetry": "^1.0.0",
+        "@metorial/module-agent-tracking-access": "^1.0.0",
+        "@metorial/module-agent-tracking-query": "^1.0.0",
+        "@metorial/module-agent-tracking-sync": "workspace:*",
         "@metorial/module-ai-gateway": "^1.0.0",
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-audit-log-stream": "workspace:*",
@@ -2063,8 +2065,10 @@
         "@slates/adapter-chat": "1.0.0-rc.16",
       },
       "devDependencies": {
+        "@metorial/agent-tracking-e2e": "1.0.0",
         "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
+        "@mtsrc/agent-tracking-client-internal": "workspace:*",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -2113,8 +2117,11 @@
         "@metorial/consumer-oauth-utils": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/editions": "workspace:*",
+        "@metorial/fabric": "workspace:*",
         "@metorial/genesis-client": "workspace:*",
         "@metorial/module-access": "^1.0.0",
+        "@metorial/module-agent-tracking-query": "workspace:*",
+        "@metorial/module-agent-tracking-sync": "workspace:*",
         "@metorial/module-ai-gateway": "^1.0.0",
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-consumer-core": "^1.0.0",
@@ -5279,6 +5286,7 @@
         "@metorial/audit-resources-subspace": "workspace:*",
         "@metorial/audit-stash": "workspace:*",
         "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "workspace:*",
         "@metorial/module-organization": "workspace:*",
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
@@ -6998,6 +7006,134 @@
         "typescript": "^5",
       },
     },
+    "src/products/observability/clients/agent-tracking": {
+      "name": "@mtsrc/agent-tracking-client-internal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/rpc-server": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@mtsrc/agent-tracking-api-internal": "workspace:*",
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/observability/modules/agent-tracking-access": {
+      "name": "@metorial/module-agent-tracking-access",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/api-keys": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/module-agent-tracking-sync": "workspace:*",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/agent-tracking-e2e": "1.0.0",
+        "@metorial/e2e": "1.0.0",
+        "@metorial/module-consumer-core": "^1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/observability/modules/agent-tracking-alerts": {
+      "name": "@metorial/module-agent-tracking-alerts",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/module-agent-tracking-sync": "workspace:*",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/observability/modules/agent-tracking-attribution": {
+      "name": "@metorial/module-agent-tracking-attribution",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/module-agent-tracking-sync": "workspace:*",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/observability/modules/agent-tracking-query": {
+      "name": "@metorial/module-agent-tracking-query",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/module-agent-tracking-sync": "workspace:*",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/agent-tracking-e2e": "1.0.0",
+        "@metorial/e2e": "1.0.0",
+        "@metorial/module-consumer-core": "^1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/observability/modules/agent-tracking-sync": {
+      "name": "@metorial/module-agent-tracking-sync",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/queue-checkpoint": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/audit-scope": "workspace:*",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/module-flags": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+        "@mtsrc/agent-tracking-client-internal": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/agent-tracking-e2e": "1.0.0",
+        "@metorial/e2e": "1.0.0",
+        "@metorial/module-consumer-core": "^1.0.0",
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/products/observability/packages/agent-tracking-e2e": {
+      "name": "@metorial/agent-tracking-e2e",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@mtsrc/agent-tracking-client-internal": "workspace:*",
+        "vitest": "^5.0.4",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+      },
+    },
     "src/products/observability/services/agent-tracking/apis/ingest": {
       "name": "@mtsrc/agent-tracking-api-ingest",
       "version": "1.0.0",
@@ -7067,21 +7203,6 @@
         "vitest": "^5.0.4",
       },
     },
-    "src/products/observability/services/agent-tracking/clients/agent-tracking": {
-      "name": "@metorial-platform-systems/agent-tracking-client",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-      },
-      "devDependencies": {
-        "@mtsrc/agent-tracking-api-internal": "workspace:*",
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
     "src/products/observability/services/agent-tracking/db": {
       "name": "@mtsrc/agent-tracking-db",
       "version": "1.0.0",
@@ -7116,6 +7237,7 @@
         "@mtsrc/agent-tracking-events": "workspace:*",
         "@mtsrc/agent-tracking-layers": "workspace:*",
         "@mtsrc/agent-tracking-module-entities": "workspace:*",
+        "@mtsrc/agent-tracking-redis": "workspace:*",
         "@mtsrc/agent-tracking-rule-match": "workspace:*",
         "@mtsrc/agent-tracking-spec": "workspace:*",
         "@mtsrc/agent-tracking-store": "workspace:*",
@@ -7760,6 +7882,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
         "@mtsrc/agent-tracking-cost": "workspace:*",
@@ -7832,7 +7955,8 @@
         "@metorial/editions": "workspace:*",
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
-        "@metorial/module-agent-telemetry": "1.0.0",
+        "@metorial/module-agent-tracking-access": "1.0.0",
+        "@metorial/module-agent-tracking-sync": "1.0.0",
         "@metorial/module-ai-gateway": "1.0.0",
         "@metorial/module-audit-log": "1.0.0",
         "@metorial/module-audit-log-stream": "1.0.0",
@@ -9356,27 +9480,6 @@
         "typescript": "^5.9.3",
       },
     },
-    "src/products/workforce/modules/agent-telemetry": {
-      "name": "@metorial/module-agent-telemetry",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/agent-tracking-client": "workspace:*",
-        "@metorial/audit-scope": "workspace:*",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/fabric": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
-        "@metorial/settings": "workspace:*",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.9.3",
-        "vitest": "^5.0.4",
-      },
-    },
     "src/products/workforce/modules/consumer-access": {
       "name": "@metorial/module-consumer-access",
       "version": "1.0.0",
@@ -10816,8 +10919,6 @@
 
     "@metorial-platform-products/runtime": ["@metorial-platform-products/runtime@workspace:src/products/runtime"],
 
-    "@metorial-platform-systems/agent-tracking-client": ["@metorial-platform-systems/agent-tracking-client@workspace:src/products/observability/services/agent-tracking/clients/agent-tracking"],
-
     "@metorial-platform-systems/cluster-manager-client": ["@metorial-platform-systems/cluster-manager-client@workspace:src/products/runtime/clients/cluster-manager"],
 
     "@metorial-platform-systems/cluster-manager-spec": ["@metorial-platform-systems/cluster-manager-spec@workspace:src/products/runtime/services/cluster-manager/spec"],
@@ -10923,6 +11024,8 @@
     "@metorial-subspace/tsconfig": ["@metorial-subspace/tsconfig@workspace:src/metorial/products/integrations/packages/tsconfig"],
 
     "@metorial/access-ui": ["@metorial/access-ui@workspace:src/metorial-frontend/packages/access-ui"],
+
+    "@metorial/agent-tracking-e2e": ["@metorial/agent-tracking-e2e@workspace:src/products/observability/packages/agent-tracking-e2e"],
 
     "@metorial/api-auth": ["@metorial/api-auth@workspace:src/products/oss/apis/oss-auth"],
 
@@ -11080,7 +11183,15 @@
 
     "@metorial/module-access": ["@metorial/module-access@workspace:src/products/identity/modules/access"],
 
-    "@metorial/module-agent-telemetry": ["@metorial/module-agent-telemetry@workspace:src/products/workforce/modules/agent-telemetry"],
+    "@metorial/module-agent-tracking-access": ["@metorial/module-agent-tracking-access@workspace:src/products/observability/modules/agent-tracking-access"],
+
+    "@metorial/module-agent-tracking-alerts": ["@metorial/module-agent-tracking-alerts@workspace:src/products/observability/modules/agent-tracking-alerts"],
+
+    "@metorial/module-agent-tracking-attribution": ["@metorial/module-agent-tracking-attribution@workspace:src/products/observability/modules/agent-tracking-attribution"],
+
+    "@metorial/module-agent-tracking-query": ["@metorial/module-agent-tracking-query@workspace:src/products/observability/modules/agent-tracking-query"],
+
+    "@metorial/module-agent-tracking-sync": ["@metorial/module-agent-tracking-sync@workspace:src/products/observability/modules/agent-tracking-sync"],
 
     "@metorial/module-ai-gateway": ["@metorial/module-ai-gateway@workspace:src/products/agents/modules/ai-gateway"],
 
@@ -11289,6 +11400,8 @@
     "@mtsrc/agent-tracking-api-ingest": ["@mtsrc/agent-tracking-api-ingest@workspace:src/products/observability/services/agent-tracking/apis/ingest"],
 
     "@mtsrc/agent-tracking-api-internal": ["@mtsrc/agent-tracking-api-internal@workspace:src/products/observability/services/agent-tracking/apis/internal"],
+
+    "@mtsrc/agent-tracking-client-internal": ["@mtsrc/agent-tracking-client-internal@workspace:src/products/observability/clients/agent-tracking"],
 
     "@mtsrc/agent-tracking-content": ["@mtsrc/agent-tracking-content@workspace:src/products/observability/services/agent-tracking/packages/content"],
 

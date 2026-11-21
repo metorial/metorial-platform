@@ -1,11 +1,6 @@
-import {
-  getFilterPayload,
-  type FilterPayload,
-  type TableFilter,
-  type TableFilterState
-} from '@metorial/filter-bar';
+import { getFilterPayload, type FilterPayload, type TableFilter } from '@metorial/filter-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { useFilterQuery } from '../lib/query';
+import { useFilterQuery, useInitialFilterState } from '../lib/query';
 
 let noFilters: TableFilter<any>[] = [];
 
@@ -14,7 +9,9 @@ export let useFilterState = (opts: {
   debounce?: number;
   syncUrl?: boolean;
 }) => {
-  let filterState = useState([] as TableFilterState[]);
+  let filters = opts.filters ?? noFilters;
+  let urlFilters = opts.syncUrl === false ? noFilters : filters;
+  let filterState = useInitialFilterState(urlFilters);
   let [search, setSearch] = useState('');
   let [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -23,10 +20,8 @@ export let useFilterState = (opts: {
     return () => clearTimeout(to);
   }, [search, opts.debounce]);
 
-  let filters = opts.filters ?? noFilters;
-
   useFilterQuery({
-    filters: opts.syncUrl === false ? noFilters : filters,
+    filters: urlFilters,
     filterState,
     searchState: [search, setSearch],
     debouncedSearch

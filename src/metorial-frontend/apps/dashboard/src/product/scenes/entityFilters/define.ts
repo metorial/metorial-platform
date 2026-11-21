@@ -37,6 +37,7 @@ export type EntityDefinition = {
   mode: 'search' | 'recent';
   useList: (query: EntityListQuery | null) => EntityList;
   blockedMessage?: (filters: TableFilterPayloadMap) => string | undefined;
+  emptyMessage?: (search: string) => string;
 };
 
 let RECENT_LIMIT = 100;
@@ -92,7 +93,8 @@ let uniqueById = (items: TableFilterEntityOption[]) => {
 };
 
 let emptyMessage = (def: EntityDefinition, search: string) =>
-  search ? `No matching ${def.noun} found.` : `No ${def.noun} available.`;
+  def.emptyMessage?.(search) ??
+  (search ? `No matching ${def.noun} found.` : `No ${def.noun} available.`);
 
 let createSearchOptions =
   (def: EntityDefinition) =>

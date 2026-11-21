@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapConsumerDevicesTelemetryTokenIssueOutput,
@@ -37,7 +34,7 @@ export class MetorialConsumerDevicesTelemetryTokenEndpoint {
 
   /**
    * @name Issue device telemetry token
-   * @description Issues the ingest token the device sends agent telemetry with, bound to the consumer that enrolled this device. Every call rotates: the new token replaces the previous tokens of the device, which are revoked. The secret is only returned here. Returns 404 when this server does not collect agent telemetry, and 412 when the device is no longer signed in.
+   * @description Issues the ingest token the device sends agent telemetry with, bound to the consumer that enrolled this device. Every call rotates: the new token replaces the previous tokens of the device, which are revoked. The secret is only returned here. Returns 404 when agent telemetry is not collected for this organization, and 412 when the device is no longer signed in.
    *
    * @param `consumerDeviceId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -49,7 +46,7 @@ export class MetorialConsumerDevicesTelemetryTokenEndpoint {
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerDevicesTelemetryTokenIssueOutput> {
-    let path = `consumer/devices/${encodeURIComponent(consumerDeviceId)}/telemetry-token`;
+    let path = `consumer/devices/${consumerDeviceId}/telemetry-token`;
 
     let request = {
       path,
@@ -57,8 +54,6 @@ export class MetorialConsumerDevicesTelemetryTokenEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapConsumerDevicesTelemetryTokenIssueOutput
-    );
+    return this._post(request).transform(mapConsumerDevicesTelemetryTokenIssueOutput);
   }
 }

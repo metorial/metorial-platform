@@ -1,5 +1,6 @@
 import { declarePresenter } from '@metorial/presenter';
 import {
+  consumerConsumerDevicePresenter,
   consumerMagicMcpEndpointPresenter,
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
@@ -49,6 +50,17 @@ import {
   v1AccessRoleVersionPresenter,
   v1AgentInstancePresenter,
   v1AgentPresenter,
+  v1AgentTrackingFilterValuesPresenter,
+  v1AgentTrackingIngestSourcePresenter,
+  v1AgentTrackingMemberPresenter,
+  v1AgentTrackingSessionDetailPresenter,
+  v1AgentTrackingSessionPresenter,
+  v1AgentTrackingInstanceSettingsPresenter,
+  v1AgentTrackingOrganizationSettingsPresenter,
+  v1AgentTrackingProjectSettingsPresenter,
+  v1AgentTrackingSetupStatusPresenter,
+  v1AgentTrackingSpendBreakdownPresenter,
+  v1AgentTrackingSpendTimelinePresenter,
   v1ApiKeyPresenter,
   v1AssistantConversationPresenter,
   v1AssistantMessagePresenter,
@@ -376,6 +388,17 @@ import {
   accessRoleType,
   accessRoleVersionType,
   agentInstanceType,
+  agentTrackingFilterValuesType,
+  agentTrackingIngestSourceType,
+  agentTrackingMemberType,
+  agentTrackingSessionDetailType,
+  agentTrackingSessionType,
+  agentTrackingInstanceSettingsType,
+  agentTrackingOrganizationSettingsType,
+  agentTrackingProjectSettingsType,
+  agentTrackingSetupStatusType,
+  agentTrackingSpendBreakdownType,
+  agentTrackingSpendTimelineType,
   agentType,
   apiKeyType,
   assistantConversationType,
@@ -1495,7 +1518,7 @@ export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
 export let consumerDevicePresenter = declarePresenter(consumerDeviceType, {
   mt_2025_01_01_dashboard: v1ConsumerDevicePresenter,
   mt_2026_01_01_magnetar: v1ConsumerDevicePresenter,
-  mt_2026_04_01_consumer: v1ConsumerDevicePresenter
+  mt_2026_04_01_consumer: consumerConsumerDevicePresenter
 });
 
 export let consumerDeviceTelemetryTokenPresenter = declarePresenter(
@@ -1506,6 +1529,85 @@ export let consumerDeviceTelemetryTokenPresenter = declarePresenter(
     mt_2026_04_01_consumer: v1ConsumerDeviceTelemetryTokenPresenter
   }
 );
+
+export let agentTrackingIngestSourcePresenter = declarePresenter(
+  agentTrackingIngestSourceType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingIngestSourcePresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingIngestSourcePresenter
+  }
+);
+
+export let agentTrackingSpendTimelinePresenter = declarePresenter(
+  agentTrackingSpendTimelineType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSpendTimelinePresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSpendTimelinePresenter
+  }
+);
+
+export let agentTrackingSpendBreakdownPresenter = declarePresenter(
+  agentTrackingSpendBreakdownType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSpendBreakdownPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSpendBreakdownPresenter
+  }
+);
+
+export let agentTrackingSessionPresenter = declarePresenter(agentTrackingSessionType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSessionPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSessionPresenter
+});
+
+export let agentTrackingSessionDetailPresenter = declarePresenter(
+  agentTrackingSessionDetailType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSessionDetailPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSessionDetailPresenter
+  }
+);
+
+export let agentTrackingFilterValuesPresenter = declarePresenter(
+  agentTrackingFilterValuesType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingFilterValuesPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingFilterValuesPresenter
+  }
+);
+
+export let agentTrackingMemberPresenter = declarePresenter(agentTrackingMemberType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingMemberPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingMemberPresenter
+});
+
+export let agentTrackingOrganizationSettingsPresenter = declarePresenter(
+  agentTrackingOrganizationSettingsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingOrganizationSettingsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingOrganizationSettingsPresenter
+  }
+);
+
+export let agentTrackingProjectSettingsPresenter = declarePresenter(
+  agentTrackingProjectSettingsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingProjectSettingsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingProjectSettingsPresenter
+  }
+);
+
+export let agentTrackingInstanceSettingsPresenter = declarePresenter(
+  agentTrackingInstanceSettingsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingInstanceSettingsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingInstanceSettingsPresenter
+  }
+);
+
+export let agentTrackingSetupStatusPresenter = declarePresenter(agentTrackingSetupStatusType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSetupStatusPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSetupStatusPresenter
+});
 
 export let consumerOAuthAuthorizationPresenter = declarePresenter(
   consumerOAuthAuthorizationType,

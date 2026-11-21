@@ -36,9 +36,11 @@ export interface RestResponse<T = any> {
   text: string;
 }
 
+export type RestQuery = Record<string, string | number | boolean | string[] | undefined>;
+
 export interface RestRequestOptions {
   body?: unknown;
-  query?: Record<string, string | number | boolean | undefined>;
+  query?: RestQuery;
   headers?: Record<string, string>;
 }
 
@@ -79,7 +81,9 @@ export let rest = (baseUrl: string, auth: RestAuth = {}) => {
       relativePath ? `${baseUrl.replace(/\/+$/, '')}/${relativePath}` : baseUrl
     );
     for (let [key, value] of Object.entries(options.query ?? {})) {
-      if (value !== undefined) url.searchParams.set(key, String(value));
+      for (let item of value === undefined ? [] : [value].flat()) {
+        url.searchParams.append(key, String(item));
+      }
     }
 
     let hasBody = options.body !== undefined;

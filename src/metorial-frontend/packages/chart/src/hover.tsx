@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { resolveSeriesColors } from './colors';
-import type { ValueFormatter } from './format';
+import type { TooltipValueFormatter } from './format';
 import { ChartSeries, ChartXAxis, getSmallestTimeStep } from './series';
 import { ChartTime, formatBucketRange, formatBucketTime, toTimestamp } from './time';
 
@@ -159,7 +159,7 @@ export let ChartHoverLayer = ({
   intervalMs?: number;
   totalLabel?: string;
   clickHint?: string;
-  formatValue: ValueFormatter;
+  formatValue: TooltipValueFormatter;
   onBarClick?: (click: TimelineBarClick) => void;
   selection?: ChartSelection;
   renderedRef?: React.MutableRefObject<(() => void) | undefined>;
@@ -622,7 +622,7 @@ let SelectionOverlay = ({
   stepMs: number;
   countLabel: string;
   series: ChartSeries[];
-  formatValue: ValueFormatter;
+  formatValue: TooltipValueFormatter;
   onDragStart: (kind: SelectionDrag['kind'], event: React.PointerEvent) => void;
 }) => {
   let labelRef = useRef<HTMLDivElement>(null);
@@ -783,8 +783,8 @@ let FloatingTooltip = ({
 let MAX_CARD_ROWS = 4;
 let MAX_CHIP_ROWS = 3;
 
-let formatRowValue = (value: number | null, formatValue: ValueFormatter) =>
-  isFiniteValue(value) ? formatValue(value) : '—';
+let formatRowValue = (row: TooltipRow, formatValue: TooltipValueFormatter) =>
+  isFiniteValue(row.value) ? formatValue(row.value, [row.id]) : '—';
 
 let pickRows = (rows: TooltipRow[], max: number) => {
   if (rows.length <= max) return { visible: rows, hidden: 0 };
@@ -811,7 +811,7 @@ let CardContent = ({
   totalLabel?: string;
   highlight: number | null;
   clickHint?: string;
-  formatValue: ValueFormatter;
+  formatValue: TooltipValueFormatter;
 }) => {
   let total = rows.reduce((sum, row) => sum + (isFiniteValue(row.value) ? row.value : 0), 0);
   let single = rows.length == 1 ? rows[0] : undefined;
@@ -826,7 +826,14 @@ let CardContent = ({
         {(showTotal || single) && (
           <CardTotal>
             <CardTotalValue>
-              {single ? formatRowValue(single.value, formatValue) : formatValue(total)}
+              {single
+                ? formatRowValue(single, formatValue)
+                : formatValue(
+                    total,
+                    rows
+                      .filter(row => isFiniteValue(row.value) && row.value != 0)
+                      .map(row => row.id)
+                  )}
             </CardTotalValue>
             <CardTotalLabel>{single ? single.name : (totalLabel ?? 'total')}</CardTotalLabel>
           </CardTotal>
@@ -851,7 +858,7 @@ let CardContent = ({
               <CardRow key={row.id} $active={row.id == highlightedId}>
                 <Swatch style={{ background: row.color }} />
                 <CardRowName>{row.name}</CardRowName>
-                <CardRowValue>{formatRowValue(row.value, formatValue)}</CardRowValue>
+                <CardRowValue>{formatRowValue(row, formatValue)}</CardRowValue>
               </CardRow>
             ))}
             {hidden > 0 && <CardMore>+{hidden} more</CardMore>}
@@ -872,7 +879,7 @@ let ChipContent = ({
 }: {
   time?: string;
   rows: TooltipRow[];
-  formatValue: ValueFormatter;
+  formatValue: TooltipValueFormatter;
 }) => {
   let { visible, hidden } = pickRows(rows, MAX_CHIP_ROWS);
 
@@ -882,7 +889,7 @@ let ChipContent = ({
       {visible.map(row => (
         <ChipValue key={row.id}>
           {rows.length > 1 && <Swatch style={{ background: row.color }} />}
-          {formatRowValue(row.value, formatValue)}
+          {formatRowValue(row, formatValue)}
         </ChipValue>
       ))}
       {hidden > 0 && <ChipTime>+{hidden}</ChipTime>}

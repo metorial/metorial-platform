@@ -4,11 +4,14 @@ import { Service } from '@lowerdeck/service';
 import type { Instance, Organization, Project } from '@mtsrc/agent-tracking-db';
 import { db } from '@mtsrc/agent-tracking-db';
 import { snowflake } from '@mtsrc/agent-tracking-db';
-import { mergeSettings } from '../lib/settings';
 import { Events } from '@mtsrc/agent-tracking-events';
 import type { InstanceSettings } from '@mtsrc/agent-tracking-spec';
+import { mergeClassification, mergeSettings } from '../lib/settings';
 
 let include = { project: true } as const;
+
+let isUniqueViolation = (error: unknown) =>
+  (error as { code?: string } | null)?.code == 'P2002';
 
 class InstanceServiceImpl {
   async upsertInstance(d: {
@@ -22,12 +25,35 @@ class InstanceServiceImpl {
       settings?: InstanceSettings;
     };
   }) {
+    // An upsert that includes a relation is a read and a write, not one statement, so two
+    // first upserts of a ref can race; the loser runs again and finds the winner's row.
+    let instance = await this.writeInstance(d).catch(error => {
+      if (!isUniqueViolation(error)) throw error;
+      return this.writeInstance(d);
+    });
+
+    await Events.fire('scope.instance.changed:after', {
+      organizationId: d.organization.id,
+      instanceId: instance.id,
+      change: 'upserted'
+    });
+
+    return instance;
+  }
+
+  private async writeInstance(d: Parameters<InstanceServiceImpl['upsertInstance']>[0]) {
     let existing = await db.instance.findUnique({ where: { ref: d.input.ref } });
     if (existing) this.assertInstanceChangeable(existing, d);
 
-    let settings = mergeSettings(existing?.settings, d.input.settings);
+    let settings = mergeSettings(existing?.settings, {
+      ...d.input.settings,
+      classification: mergeClassification(
+        existing?.settings.classification,
+        d.input.settings?.classification
+      )
+    });
 
-    let instance = await db.instance.upsert({
+    return await db.instance.upsert({
       where: { ref: d.input.ref },
       create: {
         oid: snowflake.nextId(),
@@ -52,14 +78,6 @@ class InstanceServiceImpl {
       },
       include
     });
-
-    await Events.fire('scope.instance.changed:after', {
-      organizationId: d.organization.id,
-      instanceId: instance.id,
-      change: 'upserted'
-    });
-
-    return instance;
   }
 
   async getInstanceById(d: {

@@ -2,6 +2,8 @@ import { v } from '@lowerdeck/validation';
 import { sessionPresenter } from './presenters/session';
 import {
   maxSessionPageSize,
+  sessionListOrders,
+  sessionListSorts,
   sessionService,
   sessionStates
 } from '@mtsrc/agent-tracking-module-sessions';
@@ -32,17 +34,24 @@ export let sessionRoutes = {
 
         projectIds: idsSchema,
         instanceIds: idsSchema,
-        userIds: idsSchema,
+        userIds: v.optional(v.array(v.nullable(v.string()))),
         deviceIds: idsSchema,
         agentIds: idsSchema,
+        modelIds: v.optional(v.array(v.nullable(v.string()))),
+        clientFamilies: idsSchema,
         states: v.optional(v.array(v.enumOf(sessionStates))),
         from: v.optional(v.date()),
         to: v.optional(v.date()),
+        lastActivityFrom: v.optional(v.date()),
+        lastActivityTo: v.optional(v.date()),
 
         limit: v.optional(
           v.number({ modifiers: [v.integer(), v.minValue(1), v.maxValue(maxSessionPageSize)] })
         ),
-        cursor: v.optional(v.string())
+        order: v.optional(v.enumOf(sessionListOrders)),
+        orderBy: v.optional(v.enumOf(sessionListSorts)),
+        after: v.optional(v.string()),
+        before: v.optional(v.string())
       })
     )
     .do(async ctx => {
@@ -54,18 +63,30 @@ export let sessionRoutes = {
           userIds: ctx.input.userIds,
           deviceIds: ctx.input.deviceIds,
           agentIds: ctx.input.agentIds,
+          modelIds: ctx.input.modelIds,
+          clientFamilies: ctx.input.clientFamilies,
           states: ctx.input.states,
           from: ctx.input.from,
-          to: ctx.input.to
+          to: ctx.input.to,
+          lastActivityFrom: ctx.input.lastActivityFrom,
+          lastActivityTo: ctx.input.lastActivityTo
         },
         limit: ctx.input.limit,
-        cursor: ctx.input.cursor
+        order: ctx.input.order,
+        orderBy: ctx.input.orderBy,
+        after: ctx.input.after,
+        before: ctx.input.before
       });
 
       return {
         object: 'list',
         items: page.items.map(sessionPresenter),
-        pagination: { hasMore: page.hasMore, nextCursor: page.nextCursor }
+        pagination: {
+          hasMoreAfter: page.hasMoreAfter,
+          hasMoreBefore: page.hasMoreBefore,
+          ...(page.after ? { after: page.after } : {}),
+          ...(page.before ? { before: page.before } : {})
+        }
       };
     })
 };

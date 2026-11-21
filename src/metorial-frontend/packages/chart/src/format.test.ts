@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatBytes, formatDuration, formatNumber, formatPercent } from './format';
+import {
+  formatBytes,
+  formatCurrency,
+  formatDuration,
+  formatNumber,
+  formatPercent
+} from './format';
 
 describe('formatBytes', () => {
   it('uses binary units by default', () => {
@@ -73,5 +79,55 @@ describe('formatDuration', () => {
     expect(formatDuration(90, { unit: 's' })).toBe('1m 30s');
     expect(formatDuration(5 * 60_000, { units: 1 })).toBe('5m');
     expect(formatDuration(Number.NaN)).toBe('—');
+  });
+});
+
+describe('formatCurrency', () => {
+  it('rounds decimal strings to cents on their digits', () => {
+    expect(formatCurrency('12.345678901')).toBe('$12.35');
+    expect(formatCurrency('12.344999999')).toBe('$12.34');
+    expect(formatCurrency('0.005')).toBe('$0.01');
+    expect(formatCurrency('999.995')).toBe('$1,000.00');
+    expect(formatCurrency('1234567.891')).toBe('$1,234,567.89');
+    expect(formatCurrency('7')).toBe('$7.00');
+    expect(formatCurrency('.5')).toBe('$0.50');
+  });
+
+  it('keeps zero apart from amounts too small to show', () => {
+    expect(formatCurrency('0')).toBe('$0.00');
+    expect(formatCurrency('0.000000000')).toBe('$0.00');
+    expect(formatCurrency('0.004')).toBe('<$0.01');
+    expect(formatCurrency('0.000000001')).toBe('<$0.01');
+    expect(formatCurrency('-0.004')).toBe('>-$0.01');
+  });
+
+  it('supports a finer precision for small amounts', () => {
+    expect(formatCurrency('0.0034567', { precision: 4 })).toBe('$0.0035');
+    expect(formatCurrency('0.00001', { precision: 4 })).toBe('<$0.0001');
+    expect(formatCurrency('12.5', { precision: 0 })).toBe('$13');
+  });
+
+  it('accepts numbers without float noise', () => {
+    expect(formatCurrency(0.1 + 0.2)).toBe('$0.30');
+    expect(formatCurrency(1.005)).toBe('$1.01');
+    expect(formatCurrency(-3.5)).toBe('-$3.50');
+    expect(formatCurrency(0)).toBe('$0.00');
+  });
+
+  it('formats compact amounts for chart axes', () => {
+    expect(formatCurrency(1200, { compact: true })).toBe('$1.2K');
+    expect(formatCurrency(0.25, { compact: true })).toBe('$0.25');
+    expect(formatCurrency(0.5, { compact: true })).toBe('$0.50');
+    expect(formatCurrency(999.5, { compact: true })).toBe('$999.50');
+    expect(formatCurrency(0, { compact: true })).toBe('$0.00');
+    expect(formatCurrency(-2500, { compact: true })).toBe('-$2.5K');
+  });
+
+  it('falls back to the currency code and rejects invalid input', () => {
+    expect(formatCurrency('5', { currency: 'eur' })).toBe('5.00 EUR');
+    expect(formatCurrency('abc')).toBe('—');
+    expect(formatCurrency('')).toBe('—');
+    expect(formatCurrency('1e5')).toBe('—');
+    expect(formatCurrency(Number.NaN)).toBe('—');
   });
 });

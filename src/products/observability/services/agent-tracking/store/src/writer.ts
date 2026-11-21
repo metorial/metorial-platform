@@ -1,6 +1,7 @@
 import { ServiceError } from '@lowerdeck/error';
 import mongoose from 'mongoose';
 import { sinkBusyError } from './sink';
+import { StoreUnreachableError } from './unreachable';
 
 let maxChunkDocuments = 1000;
 let maxChunkBytes = 8 * 1024 * 1024;
@@ -27,10 +28,12 @@ type InsertableCollection<T> = {
   ) => Promise<{ insertedCount: number }>;
 };
 
-let isTransientError = (error: unknown): boolean => {
+export let isTransientStoreError = (error: unknown): boolean => {
   let mongo = mongoose.mongo;
 
   if (
+    error instanceof StoreUnreachableError ||
+    error instanceof mongoose.Error.MongooseServerSelectionError ||
     error instanceof mongo.MongoNetworkError ||
     error instanceof mongo.MongoServerSelectionError ||
     error instanceof mongo.MongoOperationTimeoutError ||
@@ -98,7 +101,7 @@ let insertChunk = async <T extends { _id: string }>(
     return { inserted: result.insertedCount, duplicates: 0, rejections: [] };
   } catch (error) {
     if (!(error instanceof mongoose.mongo.MongoBulkWriteError)) {
-      if (isTransientError(error)) throw busy(error);
+      if (isTransientStoreError(error)) throw busy(error);
       throw error;
     }
 

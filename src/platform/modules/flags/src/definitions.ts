@@ -33,6 +33,7 @@ export type Flags = {
   'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   'devices-enabled': FlagValue;
+  'agent-tracking-enabled': FlagValue;
   outposts: FlagValue;
 
   'skills-manifest-sync': FlagValue;
@@ -103,6 +104,7 @@ export let defaultFlags: Flags = {
   'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   'devices-enabled': false,
+  'agent-tracking-enabled': false,
   outposts: false,
 
   'skills-manifest-sync': false,

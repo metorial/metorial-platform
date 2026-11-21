@@ -16,6 +16,7 @@
     "@mtsrc/agent-tracking-events": "workspace:*",
     "@mtsrc/agent-tracking-layers": "workspace:*",
     "@mtsrc/agent-tracking-module-entities": "workspace:*",
+    "@mtsrc/agent-tracking-redis": "workspace:*",
     "@mtsrc/agent-tracking-rule-match": "workspace:*",
     "@mtsrc/agent-tracking-spec": "workspace:*",
     "@mtsrc/agent-tracking-store": "workspace:*"

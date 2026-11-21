@@ -169,6 +169,98 @@ describe('usage and session queries', () => {
     ]);
   });
 
+  it('counts sessions and users per day by requests, tokens or cost, not by a bare start', async () => {
+    inlineQueues();
+    let scope = await setupScope();
+    let day1 = new Date('2026-11-10T09:00:00Z');
+    let day2 = new Date('2026-11-11T09:00:00Z');
+    let noUsage = {
+      requests: 0,
+      turns: 0,
+      tokens: { inputUncached: 0, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0 },
+      costUsd: usd('0')
+    };
+
+    let ada = await scope.user('ada', 'ada@acme.com');
+    let grace = await scope.user('grace', 'grace@acme.com');
+    let linus = await scope.user('linus', 'linus@acme.com');
+
+    let sessions = [
+      { user: ada, startedAt: day1, slices: [slice({ bucket: day1 })] },
+      {
+        user: ada,
+        startedAt: day2,
+        slices: [slice({ bucket: day2, ...noUsage, costUsd: usd('0.5') })]
+      },
+      {
+        user: grace,
+        startedAt: day2,
+        slices: [slice({ bucket: day2, ...noUsage, sessionsStarted: 1 })]
+      },
+      {
+        user: linus,
+        startedAt: day1,
+        slices: [
+          slice({ bucket: day1, ...noUsage, costUsd: usd('-0.2') }),
+          slice({
+            bucket: day2,
+            ...noUsage,
+            tokens: { ...noUsage.tokens, output: 40 }
+          })
+        ]
+      }
+    ];
+    for (let entry of sessions) {
+      let session = await scope.session({
+        startedAt: entry.startedAt,
+        observed: { userId: entry.user.id }
+      });
+      await reattributeSession({ sessionKey: session._id });
+      await usageSliceService.writeSessionSlices({
+        sessionKey: session._id,
+        slices: entry.slices
+      });
+    }
+
+    let withUsage = {
+      or: [
+        { field: 'requests', op: 'gt', value: 0 },
+        ...['input', 'cacheRead', 'cacheWrite', 'output', 'reasoning'].map(part => ({
+          field: `tokens.${part}`,
+          op: 'gt',
+          value: 0
+        })),
+        { field: 'cost.usd', op: 'gt', value: 0 },
+        { field: 'cost.usd', op: 'lt', value: 0 }
+      ]
+    };
+    let result = await run(scope.organization, {
+      dataset: 'usage',
+      timeZone: 'UTC',
+      dimensions: ['time.day'],
+      measures: [
+        { fn: 'countDistinct', field: 'session', where: withUsage, as: 'sessions' },
+        { fn: 'countDistinct', field: 'user', where: withUsage, as: 'members' },
+        { fn: 'countDistinct', field: 'user', as: 'members_any' },
+        'requests'
+      ],
+      totals: true
+    });
+
+    expect(
+      result.rows.map(row => [
+        String(row['time.day']).slice(0, 10),
+        row.sessions,
+        row.members,
+        row.requests
+      ])
+    ).toEqual([
+      ['2026-11-10', 2, 2, 1],
+      ['2026-11-11', 2, 2, 0]
+    ]);
+    expect(result.totals).toMatchObject({ sessions: 3, members: 2, members_any: 3 });
+  });
+
   it('computes session statistics per team and lists the top sessions', async () => {
     let { organization, payments, growth, adaSession, graceSession } = await setupTeams();
 

@@ -26,6 +26,7 @@ export default project({
   },
   resources: [redis({ REDIS_URL: 'redis://{{HOSTNAME}}:{{PORT}}/0' })],
   dev: dev({
+    run: ['dev:start'],
     env: mergeEnv(baseDevEnv('oss'), {
       AGENT_TRACKING_HASH_SECRET: 'dev-agent-tracking-hash-secret',
       AGENT_TRACKING_CONTENT_SECRET: 'dev-agent-tracking-content-secret',
@@ -64,10 +65,7 @@ export default project({
         canonical: 'ghcr.io/metorial/agent-tracking',
         build: bunService({
           ports: [52181, 52180],
-          health: [
-            { port: 52181, path: '/ping' },
-            { port: 12151, path: '/' }
-          ],
+          health: [{ port: 12151, path: '/' }],
           migrations: [
             ownMigration('agent-tracking', '@mtsrc/agent-tracking-db', {
               prefix: 'AGENT_TRACKING'

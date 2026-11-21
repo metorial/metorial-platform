@@ -1,7 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { agentTelemetryTokenService } from '@metorial/module-agent-telemetry';
+import { agentTrackingTokenService } from '@metorial/module-agent-tracking-access';
+import type { Organization, Project } from '@metorial/db';
 import { consumerDeviceService, consumerDeviceStatuses } from '@metorial/module-consumer-core';
 import { flagService } from '@metorial/module-flags';
 import {
@@ -13,6 +14,7 @@ import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { requireParam } from '../../lib/requireParam';
 import { getSignedInOAuthToken } from '../../lib/signedInOAuthToken';
 import { checkAccess } from '../../middleware/checkAccess';
+import { requireDeviceTelemetry } from './deviceTelemetry';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 
 let maxReportedClients = 32;
@@ -45,13 +47,27 @@ let consumerDeviceGroup = devicesGroup.use(async ctx => {
   return { consumerDevice };
 });
 
-// Not found for the same reason: Metorial Desktop reads a 404 here as "this server
-// collects no agent telemetry" and leaves telemetry off.
-let consumerDeviceTelemetryGroup = consumerDeviceGroup.use(async () => {
-  if (!(await agentTelemetryTokenService.canIssueDeviceTokens())) {
-    throw new ServiceError(notFoundError('consumer.device.telemetry_token'));
-  }
-});
+let consumerDeviceTelemetryGroup = consumerDeviceGroup.use(requireDeviceTelemetry);
+
+type PresentableDevice = Parameters<
+  typeof consumerDevicePresenter.present
+>[0]['consumerDevice'];
+
+let presentDevice = async (
+  ctx: { organization: Organization; project: Project },
+  consumerDevice: PresentableDevice
+) => {
+  let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
+    organization: ctx.organization,
+    project: ctx.project,
+    consumerDevices: [consumerDevice]
+  });
+
+  return consumerDevicePresenter.present({
+    consumerDevice,
+    telemetry: telemetry.get(consumerDevice.oid)
+  });
+};
 
 export let consumerDeviceController = Controller.create(
   {
@@ -167,7 +183,7 @@ export let consumerDeviceController = Controller.create(
           }
         });
 
-        return consumerDevicePresenter.present({ consumerDevice });
+        return await presentDevice(ctx, consumerDevice);
       }),
 
     list: devicesGroup
@@ -200,9 +216,17 @@ export let consumerDeviceController = Controller.create(
           statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
+        let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
+          organization: ctx.organization,
+          project: ctx.project,
+          consumerDevices: list.items
+        });
 
         return Paginator.present(list, consumerDevice =>
-          consumerDevicePresenter.present({ consumerDevice })
+          consumerDevicePresenter.present({
+            consumerDevice,
+            telemetry: telemetry.get(consumerDevice.oid)
+          })
         );
       }),
 
@@ -213,9 +237,7 @@ export let consumerDeviceController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['consumer#instance.device:read'] }))
       .output(consumerDevicePresenter)
-      .do(async ctx =>
-        consumerDevicePresenter.present({ consumerDevice: ctx.consumerDevice })
-      ),
+      .do(async ctx => await presentDevice(ctx, ctx.consumerDevice)),
 
     updateClient: consumerDeviceGroup
       .patch(
@@ -266,7 +288,7 @@ export let consumerDeviceController = Controller.create(
           }
         });
 
-        return consumerDevicePresenter.present({ consumerDevice });
+        return await presentDevice(ctx, consumerDevice);
       }),
 
     signOut: devicesGroup
@@ -284,7 +306,7 @@ export let consumerDeviceController = Controller.create(
           auditScope: ctx.auditScope
         });
 
-        return consumerDevicePresenter.present({ consumerDevice });
+        return await presentDevice(ctx, consumerDevice);
       }),
 
     revoke: consumerDeviceGroup
@@ -301,7 +323,7 @@ export let consumerDeviceController = Controller.create(
           auditScope: ctx.auditScope
         });
 
-        return consumerDevicePresenter.present({ consumerDevice });
+        return await presentDevice(ctx, consumerDevice);
       }),
 
     issueTelemetryToken: consumerDeviceTelemetryGroup
@@ -313,13 +335,13 @@ export let consumerDeviceController = Controller.create(
         {
           name: 'Issue device telemetry token',
           description:
-            'Issues the ingest token the device sends agent telemetry with, bound to the consumer that enrolled this device. Every call rotates: the new token replaces the previous tokens of the device, which are revoked. The secret is only returned here. Returns 404 when this server does not collect agent telemetry, and 412 when the device is no longer signed in.'
+            'Issues the ingest token the device sends agent telemetry with, bound to the consumer that enrolled this device. Every call rotates: the new token replaces the previous tokens of the device, which are revoked. The secret is only returned here. Returns 404 when agent telemetry is not collected for this organization, and 412 when the device is no longer signed in.'
         }
       )
       .use(checkAccess({ possibleScopes: ['consumer#instance.device:write'] }))
       .output(consumerDeviceTelemetryTokenPresenter)
       .do(async ctx => {
-        let issued = await agentTelemetryTokenService.issueDeviceToken({
+        let issued = await agentTrackingTokenService.issueDeviceToken({
           consumerDevice: ctx.consumerDevice,
           auditScope: ctx.auditScope
         });
