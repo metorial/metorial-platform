@@ -6,7 +6,12 @@ export type AiGatewayTokensCreateOutput = {
   name: string;
   prefix: string;
   secret: string | null;
-  consumerRef: string | null;
+  consumer: {
+    object: 'consumer#preview';
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   allowedModels: string[];
   limits: {
     metric: 'requests' | 'tokens' | 'spend_usd';
@@ -23,7 +28,6 @@ export type AiGatewayTokensCreateOutput = {
 export let mapAiGatewayTokensCreateOutput =
   /* @__PURE__ */ mapObject<AiGatewayTokensCreateOutput>(
     [
-      'consumer_ref',
       'allowed_models',
       'last_used_at',
       'expires_at',
@@ -35,7 +39,7 @@ export let mapAiGatewayTokensCreateOutput =
 
 export type AiGatewayTokensCreateBody = {
   name: string;
-  consumerRef?: string | undefined;
+  consumerId?: string | undefined;
   allowedModels?: string[] | undefined;
   limits?:
     | {
@@ -50,6 +54,6 @@ export type AiGatewayTokensCreateBody = {
 
 export let mapAiGatewayTokensCreateBody =
   /* @__PURE__ */ mapObject<AiGatewayTokensCreateBody>(
-    ['consumer_ref', 'allowed_models', 'expires_at'],
+    ['consumer_id', 'allowed_models', 'expires_at'],
     1
   );

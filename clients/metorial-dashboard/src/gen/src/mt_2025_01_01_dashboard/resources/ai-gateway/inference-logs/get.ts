@@ -4,7 +4,12 @@ export type AiGatewayInferenceLogsGetOutput = {
   object: 'ai_gateway.inference_log';
   id: string;
   tokenId: string;
-  consumerRef: string | null;
+  consumer: {
+    object: 'consumer#preview';
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   dialect: 'openai_chat' | 'anthropic_messages' | 'open_responses';
   operation: 'generate' | 'stream' | 'embed' | 'count_tokens';
   requestId: string | null;
@@ -115,7 +120,6 @@ export let mapAiGatewayInferenceLogsGetOutput =
   /* @__PURE__ */ mapObject<AiGatewayInferenceLogsGetOutput>(
     [
       'token_id',
-      'consumer_ref',
       'request_id',
       'requested_model',
       ['model', 0, [1, ['lab_slug']]],

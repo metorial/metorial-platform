@@ -51,7 +51,7 @@ export type DashboardInstanceAiGatewayUsageTimelineQuery = {
   to: Date;
   interval?: '5m' | '15m' | '1h' | '6h' | '1d' | undefined;
   tokenId?: string | undefined;
-  consumerRef?: string | undefined;
+  consumerId?: string | undefined;
   model?: string | undefined;
   virtualModelId?: string | undefined;
 };
@@ -61,6 +61,6 @@ export let mapDashboardInstanceAiGatewayUsageTimelineQuery =
     ['from', 0, 4],
     ['to', 0, 4],
     'token_id',
-    'consumer_ref',
+    'consumer_id',
     'virtual_model_id'
   ]);

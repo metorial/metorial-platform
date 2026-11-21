@@ -6,7 +6,12 @@ export type DashboardInstanceAiGatewayTokensRevokeOutput = {
   name: string;
   prefix: string;
   secret: string | null;
-  consumerRef: string | null;
+  consumer: {
+    object: 'consumer#preview';
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   allowedModels: string[];
   limits: {
     metric: 'requests' | 'tokens' | 'spend_usd';
@@ -23,7 +28,6 @@ export type DashboardInstanceAiGatewayTokensRevokeOutput = {
 export let mapDashboardInstanceAiGatewayTokensRevokeOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceAiGatewayTokensRevokeOutput>(
     [
-      'consumer_ref',
       'allowed_models',
       'last_used_at',
       'expires_at',

@@ -6,7 +6,12 @@ export type ManagementInstanceAiGatewayTokensRevokeOutput = {
   name: string;
   prefix: string;
   secret: string | null;
-  consumerRef: string | null;
+  consumer: {
+    object: 'consumer#preview';
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   allowedModels: string[];
   limits: {
     metric: 'requests' | 'tokens' | 'spend_usd';
@@ -23,7 +28,6 @@ export type ManagementInstanceAiGatewayTokensRevokeOutput = {
 export let mapManagementInstanceAiGatewayTokensRevokeOutput =
   /* @__PURE__ */ mapObject<ManagementInstanceAiGatewayTokensRevokeOutput>(
     [
-      'consumer_ref',
       'allowed_models',
       'last_used_at',
       'expires_at',

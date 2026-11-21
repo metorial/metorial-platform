@@ -6,7 +6,12 @@ export type AiGatewayTokensUpdateOutput = {
   name: string;
   prefix: string;
   secret: string | null;
-  consumerRef: string | null;
+  consumer: {
+    object: 'consumer#preview';
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   allowedModels: string[];
   limits: {
     metric: 'requests' | 'tokens' | 'spend_usd';
@@ -23,7 +28,6 @@ export type AiGatewayTokensUpdateOutput = {
 export let mapAiGatewayTokensUpdateOutput =
   /* @__PURE__ */ mapObject<AiGatewayTokensUpdateOutput>(
     [
-      'consumer_ref',
       'allowed_models',
       'last_used_at',
       'expires_at',

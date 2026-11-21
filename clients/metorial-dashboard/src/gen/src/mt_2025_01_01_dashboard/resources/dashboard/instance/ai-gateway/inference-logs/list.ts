@@ -5,7 +5,12 @@ export type DashboardInstanceAiGatewayInferenceLogsListOutput = {
     object: 'ai_gateway.inference_log';
     id: string;
     tokenId: string;
-    consumerRef: string | null;
+    consumer: {
+      object: 'consumer#preview';
+      id: string;
+      name: string;
+      email: string;
+    } | null;
     dialect: 'openai_chat' | 'anthropic_messages' | 'open_responses';
     operation: 'generate' | 'stream' | 'embed' | 'count_tokens';
     requestId: string | null;
@@ -123,7 +128,6 @@ export let mapDashboardInstanceAiGatewayInferenceLogsListOutput =
         1,
         [
           'token_id',
-          'consumer_ref',
           'request_id',
           'requested_model',
           ['model', 0, [1, ['lab_slug']]],
@@ -225,7 +229,7 @@ export type DashboardInstanceAiGatewayInferenceLogsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   tokenId?: string | undefined;
-  consumerRef?: string | undefined;
+  consumerId?: string | undefined;
   model?: string | undefined;
   virtualModelId?: string | undefined;
   status?: 'succeeded' | 'failed' | 'cancelled' | 'rejected' | undefined;
@@ -233,5 +237,5 @@ export type DashboardInstanceAiGatewayInferenceLogsListQuery = {
 
 export let mapDashboardInstanceAiGatewayInferenceLogsListQuery =
   /* @__PURE__ */ createMapper<DashboardInstanceAiGatewayInferenceLogsListQuery>(
-    [3, [[0, [1, ['token_id', 'consumer_ref', 'virtual_model_id']]]]]
+    [3, [[0, [1, ['token_id', 'consumer_id', 'virtual_model_id']]]]]
   );

@@ -7,7 +7,12 @@ export type DashboardInstanceAiGatewayTokensListOutput = {
     name: string;
     prefix: string;
     secret: string | null;
-    consumerRef: string | null;
+    consumer: {
+      object: 'consumer#preview';
+      id: string;
+      name: string;
+      email: string;
+    } | null;
     allowedModels: string[];
     limits: {
       metric: 'requests' | 'tokens' | 'spend_usd';
@@ -30,7 +35,6 @@ export let mapDashboardInstanceAiGatewayTokensListOutput =
       [
         1,
         [
-          'consumer_ref',
           'allowed_models',
           'last_used_at',
           'expires_at',
@@ -48,10 +52,10 @@ export type DashboardInstanceAiGatewayTokensListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { consumerRef?: string | undefined };
+} & { consumerId?: string | undefined };
 
 export let mapDashboardInstanceAiGatewayTokensListQuery =
   /* @__PURE__ */ createMapper<DashboardInstanceAiGatewayTokensListQuery>([
     3,
-    [[0, [1, ['consumer_ref']]]]
+    [[0, [1, ['consumer_id']]]]
   ]);
