@@ -3,15 +3,15 @@ import { v, type ValidationTypeValue } from '@lowerdeck/validation';
 export let instanceSettingsSchema = v.object({
   contentLogging: v.optional(
     v.object({
-      enabled: v.boolean(),
+      enabled: v.optional(v.boolean()),
       retentionDays: v.optional(
         v.number({ modifiers: [v.integer(), v.minValue(1), v.maxValue(90)] })
       )
     })
   ),
-  metorialProvider: v.optional(v.object({ enabled: v.boolean() })),
-  fallbacks: v.optional(v.object({ enabled: v.boolean() })),
-  zeroDataRetention: v.optional(v.object({ required: v.boolean() }))
+  metorialProvider: v.optional(v.object({ enabled: v.optional(v.boolean()) })),
+  fallbacks: v.optional(v.object({ enabled: v.optional(v.boolean()) })),
+  zeroDataRetention: v.optional(v.object({ required: v.optional(v.boolean()) }))
 });
 
 export type InstanceSettings = ValidationTypeValue<typeof instanceSettingsSchema>;
@@ -30,15 +30,18 @@ export let resolveInstanceSettings = (settings: InstanceSettings) => ({
 
 export type ResolvedInstanceSettings = ReturnType<typeof resolveInstanceSettings>;
 
-export let mergeSettings = <T extends object>(
-  current: T | undefined,
-  changes: T | undefined
-): T => {
-  let merged = { ...current } as Record<string, unknown>;
+let withoutUndefined = (value: object) =>
+  Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined));
+
+export let mergeSettings = (
+  current: InstanceSettings | undefined,
+  changes: InstanceSettings | undefined
+): InstanceSettings => {
+  let merged = { ...current } as Record<string, object | undefined>;
 
   for (let [key, value] of Object.entries(changes ?? {})) {
-    if (value !== undefined) merged[key] = value;
+    if (value !== undefined) merged[key] = { ...merged[key], ...withoutUndefined(value) };
   }
 
-  return merged as T;
+  return merged as InstanceSettings;
 };

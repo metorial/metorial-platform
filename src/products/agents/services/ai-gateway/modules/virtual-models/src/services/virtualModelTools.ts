@@ -158,8 +158,12 @@ class VirtualModelToolsServiceImpl {
 
     let summary = summarizeRequest(d.dialect, d.body);
 
+    let principal = await this.principalFor({ scope: d.scope, tokenId: d.tokenId });
+    // A draft has no slug a token could allow, so only saved virtual models are checked.
+    if (!d.virtualModel) principal.token = { ...principal.token, allowedModels: [] };
+
     let route = await virtualModelRoutingService.routeVirtual({
-      principal: await this.principalFor({ scope: d.scope, tokenId: d.tokenId }),
+      principal,
       virtualModel: activeModelOf(d.virtualModel ?? null, definition),
       summary,
       metadata: d.metadata ?? {},

@@ -45,8 +45,8 @@ beforeEach(() => {
 describe('upsertProject', () => {
   it('gives a new project its ref as id', async () => {
     db.project.findUnique.mockResolvedValue(null);
-    db.project.upsert.mockImplementation(async ({ create }: { create: object }) =>
-      project(create)
+    db.project.upsert.mockImplementation(
+      async ({ create }: { create: Record<string, unknown> }) => project(create)
     );
 
     await projectService.upsertProject({

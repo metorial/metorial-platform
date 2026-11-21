@@ -7,11 +7,18 @@ export {
   getAiGateway,
   isAiGatewayEnabled,
   type AiGateway,
+  type AiGatewayCatalogProvider,
   type AiGatewayInferenceLog,
   type AiGatewayInstance,
+  type AiGatewayLab,
+  type AiGatewayModel,
+  type AiGatewayModelOffering,
+  type AiGatewayProject,
   type AiGatewayProviderConnection,
   type AiGatewayToken,
-  type AiGatewayVirtualModel
+  type AiGatewayVirtualModel,
+  type AiGatewayVirtualModelTemplate,
+  type AiGatewayVirtualModelVersion
 } from './lib/client';
 export type { ScopedInstance } from './lib/scope';
 export * from './services';

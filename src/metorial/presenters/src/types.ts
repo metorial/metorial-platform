@@ -195,6 +195,23 @@ import {
   WebhookDestination
 } from '@metorial/db';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
+import type {
+  AiGatewayCatalogProvider,
+  aiGatewayCatalogService,
+  aiGatewayConfigService,
+  AiGatewayInferenceLog,
+  AiGatewayLab,
+  AiGatewayModel,
+  AiGatewayModelOffering,
+  AiGatewayProviderConnection,
+  aiGatewayRoutingService,
+  AiGatewayToken,
+  aiGatewayUsageService,
+  AiGatewayVirtualModel,
+  aiGatewayVirtualModelService,
+  AiGatewayVirtualModelTemplate,
+  AiGatewayVirtualModelVersion
+} from '@metorial/module-ai-gateway';
 import type { AuditLog } from '@metorial/module-audit-log';
 import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
@@ -3393,6 +3410,77 @@ export let sandboxImageBuildType = PresentableType.create<{
 export let sandboxLogLinesType = PresentableType.create<{
   logs: SandboxResolved<typeof sandboxMachineInstanceService.logs>;
 }>()('sandbox.log_lines');
+
+type AiGatewayResolved<F extends (...args: any[]) => Promise<any>> = Awaited<ReturnType<F>>;
+
+export let aiGatewayConfigType = PresentableType.create<{
+  config: AiGatewayResolved<typeof aiGatewayConfigService.get>;
+}>()('ai_gateway.config');
+
+export let aiGatewayTokenType = PresentableType.create<{
+  gatewayToken: AiGatewayToken;
+  secret?: string;
+}>()('ai_gateway.token');
+
+export let aiGatewayProviderConnectionType = PresentableType.create<{
+  connection: AiGatewayProviderConnection;
+}>()('ai_gateway.provider_connection');
+
+export let aiGatewayVirtualModelType = PresentableType.create<{
+  virtualModel: AiGatewayVirtualModel;
+}>()('ai_gateway.virtual_model');
+
+export let aiGatewayVirtualModelVersionType = PresentableType.create<{
+  version: AiGatewayVirtualModelVersion;
+}>()('ai_gateway.virtual_model.version');
+
+export let aiGatewayVirtualModelTemplateType = PresentableType.create<{
+  template: AiGatewayVirtualModelTemplate;
+}>()('ai_gateway.virtual_model.template');
+
+export let aiGatewayVirtualModelTestType = PresentableType.create<{
+  result: AiGatewayResolved<typeof aiGatewayVirtualModelService.test>;
+}>()('ai_gateway.virtual_model.test');
+
+export let aiGatewayVirtualModelReplayType = PresentableType.create<{
+  replay: AiGatewayResolved<typeof aiGatewayVirtualModelService.replay>;
+}>()('ai_gateway.virtual_model.replay');
+
+export let aiGatewayVirtualModelInsightsType = PresentableType.create<{
+  insights: AiGatewayResolved<typeof aiGatewayVirtualModelService.insights>;
+}>()('ai_gateway.virtual_model.insights');
+
+export let aiGatewayLabType = PresentableType.create<{
+  lab: AiGatewayLab;
+}>()('ai_gateway.lab');
+
+export let aiGatewayProviderType = PresentableType.create<{
+  provider: AiGatewayCatalogProvider;
+}>()('ai_gateway.provider');
+
+export let aiGatewayModelType = PresentableType.create<{
+  model: AiGatewayModel;
+}>()('ai_gateway.model');
+
+export let aiGatewayModelOfferingType = PresentableType.create<{
+  offering: AiGatewayModelOffering;
+}>()('ai_gateway.model.offering');
+
+export let aiGatewayModelResolutionType = PresentableType.create<{
+  resolution: AiGatewayResolved<typeof aiGatewayCatalogService.resolveModel>;
+}>()('ai_gateway.model.resolution');
+
+export let aiGatewayRoutePreviewType = PresentableType.create<{
+  preview: AiGatewayResolved<typeof aiGatewayRoutingService.preview>;
+}>()('ai_gateway.route_preview');
+
+export let aiGatewayInferenceLogType = PresentableType.create<{
+  log: AiGatewayInferenceLog;
+}>()('ai_gateway.inference_log');
+
+export let aiGatewayUsageTimelineType = PresentableType.create<{
+  usage: AiGatewayResolved<typeof aiGatewayUsageService.timeline>;
+}>()('ai_gateway.usage.timeline');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;

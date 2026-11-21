@@ -16,7 +16,7 @@ export let decisionFailedError = createError({
   status: 502,
   code: 'decision_failed',
   message: 'The decision model could not classify the request.',
-  hint: 'Set the virtual model\'s decision.onError to "default" to fall back to its default models.'
+  hint: 'Set the virtual model\'s decision.on_error to "default" to fall back to its default models.'
 });
 
 export let noCompatibleTargetError = createError({

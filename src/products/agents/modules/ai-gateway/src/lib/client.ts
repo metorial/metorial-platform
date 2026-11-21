@@ -12,7 +12,12 @@ export type AiGatewayInput<F extends (input: any) => any> = Omit<
   'organizationId' | 'instanceId'
 >;
 
+type PageItem<F extends (...args: any[]) => Promise<{ items: any[] }>> =
+  Output<F>['items'][number];
+
 export type AiGatewayInstance = Output<AiGateway['instance']['get']>;
+
+export type AiGatewayProject = Output<AiGateway['project']['get']>;
 
 export type AiGatewayToken = Output<AiGateway['gatewayToken']['get']>;
 
@@ -20,7 +25,19 @@ export type AiGatewayProviderConnection = Output<AiGateway['providerConnection']
 
 export type AiGatewayVirtualModel = Output<AiGateway['virtualModel']['get']>;
 
+export type AiGatewayVirtualModelVersion = Output<AiGateway['virtualModel']['getVersion']>;
+
+export type AiGatewayVirtualModelTemplate = PageItem<AiGateway['virtualModel']['listTemplates']>;
+
 export type AiGatewayInferenceLog = Output<AiGateway['inferenceLog']['get']>;
+
+export type AiGatewayLab = PageItem<AiGateway['catalog']['listLabs']>;
+
+export type AiGatewayCatalogProvider = PageItem<AiGateway['catalog']['listProviders']>;
+
+export type AiGatewayModel = Output<AiGateway['catalog']['getModel']>;
+
+export type AiGatewayModelOffering = PageItem<AiGateway['catalog']['listOfferings']>;
 
 let client: AiGateway | undefined;
 

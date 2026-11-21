@@ -31,7 +31,7 @@ class AiGatewayConfigServiceImpl {
   }) {
     let { gateway, scope } = await aiGatewayTenantService.ensure(d);
 
-    let previous = await gateway.instance.get(scope);
+    let { instance: previous, project } = await this.get(d);
     let instance = await gateway.instance.upsert({
       organizationId: scope.organizationId,
       projectId: d.instance.project.id,
@@ -49,7 +49,7 @@ class AiGatewayConfigServiceImpl {
       previousConfig: toAuditConfig(previous)
     });
 
-    return instance;
+    return { instance, project };
   }
 }
 
