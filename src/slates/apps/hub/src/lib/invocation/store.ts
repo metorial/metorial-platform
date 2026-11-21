@@ -106,12 +106,6 @@ export let storeSlateInvocation = (
         return m;
       });
 
-      let { requests: sanitizedRequests, responses: sanitizedResponses } =
-        redactWebhookInvocationMessages({
-          requests: methodRedactedRequests,
-          responses: methodRedactedResponses ?? []
-        });
-
       let extractRequestTraces = (source: unknown) => {
         if (!source || typeof source !== 'object') return [];
         if (!('requestTraces' in source)) return [];
@@ -119,10 +113,20 @@ export let storeSlateInvocation = (
         return Array.isArray(traces) ? traces : [];
       };
 
-      let requestTraces = (d.responseMessages ?? []).flatMap(m => {
+      let responseRequestTraces = (d.responseMessages ?? []).flatMap(m => {
         let result = 'result' in m ? m.result : undefined;
         let error = 'error' in m ? (m as { error?: unknown }).error : undefined;
         return [...extractRequestTraces(result), ...extractRequestTraces(error)];
+      });
+
+      let {
+        requests: sanitizedRequests,
+        responses: sanitizedResponses,
+        requestTraces
+      } = redactWebhookInvocationMessages({
+        requests: methodRedactedRequests,
+        responses: methodRedactedResponses ?? [],
+        requestTraces: responseRequestTraces
       });
 
       if (!d.invocationResult.id) {

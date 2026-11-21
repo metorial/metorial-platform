@@ -246,6 +246,82 @@ describe('storeSlateInvocation webhook content', () => {
     });
   });
 
+  it('keeps receive keys out of failed webhook calls and their request traces', async () => {
+    let trace = {
+      startedAt: 'now',
+      durationMs: 1,
+      request: {
+        method: 'POST',
+        url: 'https://api.provider.example/webhooks',
+        body: {
+          contentType: 'application/json',
+          text: '{"url":"https://hooks.example.com/receive/whk_trace_urlkey"}'
+        }
+      }
+    };
+
+    storeSlateInvocation({
+      tenant: { storeContent: true } as any,
+      slateVersion,
+      participants: [],
+      record,
+      requestMessages: [
+        {
+          jsonrpc: '2.0',
+          id: 'register',
+          method: 'slates/trigger_group.webhook.register',
+          params: { triggerGroupId: 'events' }
+        },
+        {
+          jsonrpc: '2.0',
+          id: 'unregister',
+          method: 'slates/trigger_group.webhook.unregister',
+          params: { triggerGroupId: 'events' }
+        }
+      ] as any,
+      responseMessages: [
+        {
+          jsonrpc: '2.0',
+          id: 'register',
+          error: {
+            code: -32000,
+            message:
+              'Provider rejected https://hooks.example.com/receive/whk_error_urlkey as unreachable',
+            data: { url: 'https://hooks.example.com/receive/whk_error_urlkey' },
+            requestTraces: [trace]
+          }
+        },
+        {
+          jsonrpc: '2.0',
+          id: 'unregister',
+          result: { requestTraces: [trace] }
+        }
+      ] as any,
+      invocationResult
+    });
+    await flush();
+
+    let serialized = mocks.putObject.mock.calls[0]![2] as string;
+    expect(serialized).not.toContain('whk_error_urlkey');
+    expect(serialized).not.toContain('whk_trace_urlkey');
+
+    let payload = storedPayload();
+    expect(payload.responses[0].error).toMatchObject({
+      code: -32000,
+      message: 'Provider rejected https://hooks.example.com/receive/[REDACTED] as unreachable',
+      data: { url: 'https://hooks.example.com/receive/[REDACTED]' }
+    });
+    expect(payload.requestTraces).toHaveLength(2);
+    expect(payload.requestTraces[0].request).toEqual({
+      method: 'POST',
+      url: 'https://api.provider.example/webhooks',
+      body: {
+        contentType: 'application/json',
+        text: '{"url":"https://hooks.example.com/receive/[REDACTED]"}'
+      }
+    });
+  });
+
   it('leaves non-webhook invocations untouched', async () => {
     storeSlateInvocation({
       tenant: { storeContent: true } as any,

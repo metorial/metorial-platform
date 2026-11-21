@@ -59,9 +59,10 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
       logs: []
     } satisfies StoredSlateInvocation);
 
-  let { requests, responses } = redactWebhookInvocationMessages({
+  let { requests, responses, requestTraces } = redactWebhookInvocationMessages({
     requests: output.requests,
-    responses: output.responses
+    responses: output.responses,
+    requestTraces: output.requestTraces
   });
 
   return {
@@ -78,7 +79,7 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
 
     requests,
     responses,
-    requestTraces: output.requestTraces,
+    requestTraces,
     error: output.provider?.error,
     logs: (output.logs ?? []).map(([timestamp, message]) => ({
       timestamp,
