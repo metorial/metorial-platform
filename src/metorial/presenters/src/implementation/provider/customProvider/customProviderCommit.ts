@@ -92,73 +92,82 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
   .schema(
     v.object({
       object: v.literal('custom_provider.commit', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique custom provider commit identifier',
+        description: 'Unique ID.',
         examples: ['cpcm_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['pending', 'applied', 'failed'], {
         name: 'status',
-        description: 'Current commit status'
+        description: '`applied` once the version promotion takes effect.'
       }),
       trigger: v.enumOf(['manual', 'system', 'scm'], {
         name: 'trigger',
-        description: 'What triggered this commit'
+        description: 'How the commit was created: manually, by the system, or by an SCM push.'
       }),
       // type: v.enumOf(["create_version" , "merge_version_into_environment" , "rollback_to_version"], {
       //   name: 'type',
       //   description: 'The type of commit action',
       // }),
       error: v.nullable(
-        v.object({
-          code: v.string({
-            name: 'code',
-            description: 'Error code',
-            examples: ['deployment_failed']
-          }),
-          message: v.string({
-            name: 'message',
-            description: 'Error message',
-            examples: ['Deployment failed due to timeout']
-          })
-        })
+        v.object(
+          {
+            code: v.string({
+              name: 'code',
+              description: 'Machine-readable error code.',
+              examples: ['deployment_failed']
+            }),
+            message: v.string({
+              name: 'message',
+              description: 'Human-readable error message.',
+              examples: ['Deployment failed due to timeout']
+            })
+          },
+          { description: 'Failure details. `null` when the commit did not fail.' }
+        )
       ),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
-        description: 'ID of the parent custom provider',
+        description: 'Custom provider this commit belongs to.',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'ID of the associated provider',
+          description: 'Associated provider, by ID. `null` when there is none.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       custom_provider_deployment_id: v.nullable(
         v.string({
           name: 'custom_provider_deployment_id',
-          description: 'ID of the associated deployment',
+          description: 'Deployment this commit built. `null` when there is none.',
           examples: ['cpd_1aBcDeFgHjKlMnPq']
         })
       ),
       to_environment: v1CustomProviderEnvironmentPresenter.schema,
-      from_environment: v.nullable(v1CustomProviderEnvironmentPresenter.schema),
+      from_environment: v.nullable(v1CustomProviderEnvironmentPresenter.schema, {
+        description: 'Environment the version is promoted from. `null` for rollbacks.'
+      }),
       target_custom_provider_version: v1CustomProviderVersionPresenter.schema,
-      previous_custom_provider_version: v.nullable(v1CustomProviderVersionPresenter.schema),
+      previous_custom_provider_version: v.nullable(v1CustomProviderVersionPresenter.schema, {
+        description: 'Version previously in the environment. `null` when there was none.'
+      }),
       actor: v1ActorPreviewPresenter.schema,
-      scm_push: v.nullable(v1ScmPushPresenter.schema),
+      scm_push: v.nullable(v1ScmPushPresenter.schema, {
+        description: 'SCM push that triggered the commit. `null` unless `trigger` is `scm`.'
+      }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       applied_at: v.nullable(
         v.date({
           name: 'applied_at',
-          description: 'Timestamp when the commit was applied',
+          description: 'When the commit took effect. `null` while `status` is `pending`.',
           examples: [new Date('2025-09-15T10:35:00Z')]
         })
       )

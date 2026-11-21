@@ -30,36 +30,43 @@ export let v1BucketPresenter = Presenter.create(bucketType)
   .schema(
     v.object({
       object: v.literal('bucket', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique bucket identifier'
+        description: 'Unique ID.'
       }),
       is_immutable: v.boolean({
         name: 'is_immutable',
-        description: 'Whether the bucket is immutable'
+        description: '`true` when the bucket contents can no longer change.'
       }),
       is_read_only: v.boolean({
         name: 'is_read_only',
-        description: 'Whether the bucket is read-only'
+        description: '`true` when the bucket cannot be written to.'
       }),
       scm_repo_link: v.nullable(
-        v.object({
-          object: v.literal('bucket.scm_repo'),
-          is_linked: v.literal(true),
-          path: v.nullable(
-            v.string({
-              name: 'path',
-              description: 'Path within the SCM repository'
-            })
-          ),
-          repository: v1ScmRepoPresenter.schema
-        })
+        v.object(
+          {
+            object: v.literal('bucket.scm_repo', {
+              description: 'String representing the object’s type.'
+            }),
+            is_linked: v.literal(true, {
+              description: '`true` when the bucket is linked to a repository.'
+            }),
+            path: v.nullable(
+              v.string({
+                name: 'path',
+                description: 'Path within the repository the bucket syncs.'
+              })
+            ),
+            repository: v1ScmRepoPresenter.schema
+          },
+          { description: 'Repository this bucket syncs with. `null` when not linked.' }
+        )
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created'
+        description: 'Creation time.'
       })
     })
   )

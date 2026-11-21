@@ -43,13 +43,14 @@ export let storeGroup = instanceGroup.use(async ctx => {
 export let storeController = Controller.create(
   {
     name: 'Stores',
-    description: 'Create and manage instance stores backed by Cargo.'
+    description:
+      'A store is a shared collection of files and documents. Participants get read or write access to its contents.'
   },
   {
     list: instanceGroup
       .get(instancePath('stores', 'stores.list'), {
         name: 'List stores',
-        description: 'Returns a paginated list of stores owned by the instance.'
+        description: 'Returns a paginated list of stores.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
@@ -59,9 +60,9 @@ export let storeController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by store ID'),
-            created_at: dateFilterValidator('Filter by creation time'),
-            updated_at: dateFilterValidator('Filter by update time')
+            id: stringArrayFilterSchema('Only return stores with one of these IDs.'),
+            created_at: dateFilterValidator('store creation time'),
+            updated_at: dateFilterValidator('store last update time')
           })
         )
       )
@@ -80,16 +81,28 @@ export let storeController = Controller.create(
     create: instanceGroup
       .post(instancePath('stores', 'stores.create'), {
         name: 'Create store',
-        description: 'Creates a new store for the instance.'
+        description: 'Creates a store.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(
         'default',
         v.object({
-          name: v.string(),
-          access: v.optional(storeAccessSchema),
-          template_id: v.optional(v.string()),
-          parent_id: v.optional(v.string())
+          name: v.string({ description: 'Display name for the store.' }),
+          access: v.optional(storeAccessSchema, {
+            description:
+              'Who else can access the store: `private`, `public_read`, or `public_write`.'
+          }),
+          template_id: v.optional(
+            v.string({
+              description:
+                'Template to create the store from, by ID. Cannot be combined with `parent_id`.'
+            })
+          ),
+          parent_id: v.optional(
+            v.string({
+              description: 'Store to copy, by ID. Cannot be combined with `template_id`.'
+            })
+          )
         })
       )
       .output(storePresenter)
@@ -146,8 +159,8 @@ export let storeController = Controller.create(
 
     get: storeGroup
       .get(instancePath('stores/:storeId', 'stores.get'), {
-        name: 'Get store by ID',
-        description: 'Retrieves a store by its ID.'
+        name: 'Get store',
+        description: 'Retrieves a store.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
@@ -158,8 +171,7 @@ export let storeController = Controller.create(
     permissions: storeGroup
       .get(instancePath('stores/:storeId/permissions', 'stores.permissions.get'), {
         name: 'Get store permissions',
-        description:
-          'Returns the effective Cargo permissions for the current actor on a specific store.'
+        description: 'Returns what the caller can do with a store.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
@@ -176,15 +188,18 @@ export let storeController = Controller.create(
 
     update: storeGroup
       .patch(instancePath('stores/:storeId', 'stores.update'), {
-        name: 'Update store by ID',
-        description: 'Updates a specific store.'
+        name: 'Update store',
+        description: 'Updates a store.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          access: v.optional(storeAccessSchema)
+          name: v.optional(v.string({ description: 'Display name for the store.' })),
+          access: v.optional(storeAccessSchema, {
+            description:
+              'Who else can access the store: `private`, `public_read`, or `public_write`.'
+          })
         })
       )
       .output(storePresenter)
@@ -205,8 +220,8 @@ export let storeController = Controller.create(
 
     delete: storeGroup
       .delete(instancePath('stores/:storeId', 'stores.delete'), {
-        name: 'Delete store by ID',
-        description: 'Deletes a specific store.'
+        name: 'Delete store',
+        description: 'Deletes a store.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(storePresenter)
@@ -224,7 +239,7 @@ export let storeController = Controller.create(
     modifyItems: storeGroup
       .patch(instancePath('stores/:storeId/items', 'stores.items.modify'), {
         name: 'Modify store items',
-        description: 'Applies bulk item operations to a specific store.'
+        description: 'Applies a list of add, modify, and remove operations to a store.'
       })
       .use(
         checkAccess({
@@ -236,12 +251,21 @@ export let storeController = Controller.create(
         v.object({
           operations: v.array(
             v.object({
-              type: v.optional(v.enumOf(['add', 'modify', 'remove'])),
-              itemId: v.optional(v.string()),
-              fileId: v.optional(v.string()),
-              documentId: v.optional(v.string()),
-              path: v.optional(v.string())
-            })
+              type: v.optional(v.enumOf(['add', 'modify', 'remove']), {
+                description: 'Operation to perform.'
+              }),
+              itemId: v.optional(
+                v.string({ description: 'Store item the operation applies to, by ID.' })
+              ),
+              fileId: v.optional(
+                v.string({ description: 'File to add to the store, by ID.' })
+              ),
+              documentId: v.optional(
+                v.string({ description: 'Document to add to the store, by ID.' })
+              ),
+              path: v.optional(v.string({ description: 'Path the operation applies to.' }))
+            }),
+            { description: 'Operations to apply to the store.' }
           )
         })
       )

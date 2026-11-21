@@ -11,11 +11,12 @@ export let v1CustomProviderEnvPresenter = Presenter.create(customProviderEnvType
   .schema(
     v.object({
       object: v.literal('custom_provider.env', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       env: v.nullable(
         v.record(v.any(), {
-          description: 'Key-value pairs representing the custom provider environment variables'
+          description:
+            'Environment variables available to the function. `null` unless the provider is a `function` provider.'
         })
       )
     })

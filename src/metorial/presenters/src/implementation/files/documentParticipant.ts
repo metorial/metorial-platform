@@ -7,15 +7,26 @@ import { v1ConsumerProfilePresenter } from '../consumer';
 import { v1ConsumerPresenter } from '../consumer/consumer';
 import { v1OrganizationActorPresenter } from '../organization/organizationActor';
 
-export let documentParticipantActorSchema = v.object({
-  type: v.enumOf(['organization_actor', 'consumer', 'resource_actor']),
-  name: v.string(),
-  image_url: v.nullable(v.string()),
-  email: v.nullable(v.string()),
-  organization_actor: v.nullable(v1OrganizationActorPresenter.schema),
-  consumer: v.nullable(v1ConsumerPresenter.schema),
-  consumer_profile: v.nullable(v1ConsumerProfilePresenter.schema)
-});
+export let documentParticipantActorSchema = v.object(
+  {
+    type: v.enumOf(['organization_actor', 'consumer', 'resource_actor'], {
+      description: 'What kind of actor this is.'
+    }),
+    name: v.string({ description: 'Display name.' }),
+    image_url: v.nullable(v.string({ description: 'Profile image URL.' })),
+    email: v.nullable(v.string({ description: 'Email address.' })),
+    organization_actor: v.nullable(v1OrganizationActorPresenter.schema, {
+      description: 'Organization actor details. `null` unless `type` is `organization_actor`.'
+    }),
+    consumer: v.nullable(v1ConsumerPresenter.schema, {
+      description: 'Consumer details. `null` unless `type` is `consumer`.'
+    }),
+    consumer_profile: v.nullable(v1ConsumerProfilePresenter.schema, {
+      description: 'Consumer profile details. `null` unless `type` is `consumer`.'
+    })
+  },
+  { description: 'Actor behind a participant.' }
+);
 
 export let presentDocumentParticipantActor = async (
   actor: Pick<
@@ -91,16 +102,24 @@ export let v1DocumentParticipantPresenter = Presenter.create(documentParticipant
   .schema(
     v.object({
       object: v.literal('document.participant', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string(),
-      role: v.enumOf(['editor', 'viewer']),
-      edit_count: v.number(),
-      last_edited_at: v.nullable(v.date()),
-      last_viewed_at: v.nullable(v.date()),
+      id: v.string({ description: 'Unique ID.' }),
+      role: v.enumOf(['editor', 'viewer'], {
+        description: 'What the participant can do in the document.'
+      }),
+      edit_count: v.number({ description: 'Number of edits the participant has made.' }),
+      last_edited_at: v.nullable(
+        v.date({ description: 'When the participant last changed the document.' })
+      ),
+      last_viewed_at: v.nullable(
+        v.date({ description: 'When the participant last opened the document.' })
+      ),
       actor: documentParticipantActorSchema,
-      store_participant_id: v.nullable(v.string()),
-      created_at: v.date()
+      store_participant_id: v.nullable(
+        v.string({ description: 'Linked store participant, by ID.' })
+      ),
+      created_at: v.date({ description: 'Creation time.' })
     })
   )
   .build();

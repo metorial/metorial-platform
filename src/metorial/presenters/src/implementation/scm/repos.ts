@@ -19,23 +19,24 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   }))
   .schema(
     v.object({
-      object: v.literal('scm.repository.list#preview'),
+      object: v.literal('scm.repository.list#preview', {
+        description: 'String representing the object’s type.'
+      }),
       repos: v.array(
         v.object({
           object: v.literal('scm.repository.item#preview', {
-            description: "String representing the repository preview item's type"
+            description: 'String representing the object’s type.'
           }),
           provider: v.enumOf(['github', 'gitlab', 'bitbucket'], {
-            description: 'SCM provider type'
+            description: 'Provider the repository lives on.'
           }),
-          external_id: v.string({ description: 'External repository identifier' }),
-          name: v.string({ description: 'Repository name' }),
-          identifier: v.string({ description: 'Repository identifier (e.g. full name)' })
-        })
+          external_id: v.string({ description: 'ID of the repository on the provider.' }),
+          name: v.string({ description: 'Name of the repository on the provider.' }),
+          identifier: v.string({ description: 'Full name of the repository on the provider.' })
+        }),
+        { description: 'Repositories the installation can access.' }
       ),
-      next_cursor: v.optional(
-        v.string({ description: 'Cursor for the next repository preview page' })
-      )
+      next_cursor: v.optional(v.string({ description: 'Cursor for fetching the next page.' }))
     })
   )
   .build();
@@ -65,21 +66,28 @@ export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
   })
   .schema(
     v.object({
-      object: v.literal('scm.repository'),
-      id: v.string({ description: 'Unique repository identifier' }),
-      provider: v.object({
-        object: v.literal('scm.provider'),
-        type: v.enumOf(['github', 'gitlab', 'bitbucket'], {
-          description: 'SCM provider type'
-        }),
-        id: v.string({ description: 'External provider identifier' }),
-        name: v.string({ description: 'Repository name on the provider' }),
-        owner: v.string({ description: 'Repository owner on the provider' })
+      object: v.literal('scm.repository', {
+        description: 'String representing the object’s type.'
       }),
-      url: v.string({ description: 'Repository URL' }),
-      is_private: v.boolean({ description: 'Whether the repository is private' }),
-      default_branch: v.string({ description: 'Default branch name' }),
-      created_at: v.date({ description: 'Timestamp when created' })
+      id: v.string({ description: 'Unique ID.' }),
+      provider: v.object(
+        {
+          object: v.literal('scm.provider', {
+            description: 'String representing the object’s type.'
+          }),
+          type: v.enumOf(['github', 'gitlab', 'bitbucket'], {
+            description: 'Provider the repository lives on.'
+          }),
+          id: v.string({ description: 'ID of the repository on the provider.' }),
+          name: v.string({ description: 'Name of the repository on the provider.' }),
+          owner: v.string({ description: 'Owner of the repository on the provider.' })
+        },
+        { description: 'Provider the repository lives on.' }
+      ),
+      url: v.string({ description: 'Web URL of the repository.' }),
+      is_private: v.boolean({ description: 'Whether the repository is private.' }),
+      default_branch: v.string({ description: 'Branch used when none is specified.' }),
+      created_at: v.date({ description: 'Creation time.' })
     })
   )
   .build();

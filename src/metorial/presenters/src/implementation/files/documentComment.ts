@@ -9,16 +9,16 @@ import {
 
 let documentCommentSchema = v.object({
   object: v.literal('document.comment', {
-    description: "String representing the object's type"
+    description: 'String representing the object’s type.'
   }),
-  id: v.string({ description: 'The unique identifier of the comment' }),
-  thread_id: v.string({ description: 'The comment thread this comment belongs to' }),
-  body: v.string({ description: 'The plain-text body of the comment' }),
-  author_id: v.string({ description: 'The resource actor id of the comment author' }),
+  id: v.string({ description: 'Unique ID.' }),
+  thread_id: v.string({ description: 'Thread this comment belongs to.' }),
+  body: v.string({ description: 'The plain-text body of the comment.' }),
+  author_id: v.string({ description: 'The resource actor id of the comment author.' }),
   author: documentParticipantActorSchema,
-  edited_at: v.nullable(v.date({ description: 'When the comment body was last edited' })),
-  created_at: v.date(),
-  updated_at: v.date()
+  edited_at: v.nullable(v.date({ description: 'When the comment body was last edited.' })),
+  created_at: v.date({ description: 'Creation time.' }),
+  updated_at: v.date({ description: 'Last update time.' })
 });
 
 let presentDocumentComment = async (
@@ -79,32 +79,32 @@ export let v1DocumentCommentThreadPresenter = Presenter.create(documentCommentTh
   .schema(
     v.object({
       object: v.literal('document.comment_thread', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string({ description: 'The unique identifier of the comment thread' }),
-      document_id: v.string({ description: 'The document the thread is attached to' }),
+      id: v.string({ description: 'Unique ID.' }),
+      document_id: v.string({ description: 'Document this thread is attached to.' }),
       status: v.enumOf(['open', 'resolved'], {
-        description: 'Whether the discussion is still open'
+        description: 'Whether the discussion is still open.'
       }),
       anchor_status: v.enumOf(['attached', 'detached'], {
         description:
           'Whether the commented text still exists in the document. Detached threads lost their text through edits.'
       }),
       quote: v.string({
-        description: 'The text that was selected when the thread was created'
+        description: 'The text that was selected when the thread was created.'
       }),
-      created_by_id: v.string({ description: 'The resource actor id of the thread author' }),
+      created_by_id: v.string({ description: 'The resource actor id of the thread author.' }),
       created_by: documentParticipantActorSchema,
       resolved_by_id: v.nullable(
-        v.string({ description: 'The resource actor id of whoever resolved the thread' })
+        v.string({ description: 'The resource actor id of whoever resolved the thread.' })
       ),
       resolved_by: v.nullable(documentParticipantActorSchema),
-      resolved_at: v.nullable(v.date({ description: 'When the thread was resolved' })),
+      resolved_at: v.nullable(v.date({ description: 'When the thread was marked resolved.' })),
       comments: v.array(documentCommentSchema, {
-        description: 'The comments in this thread, oldest first'
+        description: 'The comments in this thread, oldest first.'
       }),
-      created_at: v.date(),
-      updated_at: v.date()
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

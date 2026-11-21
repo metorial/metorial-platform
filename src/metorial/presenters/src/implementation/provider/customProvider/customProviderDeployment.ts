@@ -8,27 +8,39 @@ import { v1ScmPushPresenter } from '../../scm';
 import { v1ActorPreviewPresenter } from './actorPreview';
 import { v1BucketPresenter } from './bucket';
 
-let commitSchema = v.object({
-  object: v.literal('custom_provider.deployment.commit'),
-  id: v.string({
-    name: 'id',
-    description: 'Commit identifier'
-  }),
-  type: v.enumOf(['create_version', 'merge_version_into_environment', 'rollback_to_version'], {
-    name: 'type',
-    description: 'Commit type'
-  }),
-  message: v.nullable(
-    v.string({
-      name: 'message',
-      description: 'Commit message'
+let commitSchema = v.object(
+  {
+    object: v.literal('custom_provider.deployment.commit', {
+      description: 'String representing the object’s type.'
+    }),
+    id: v.string({
+      name: 'id',
+      description: 'Unique ID.'
+    }),
+    type: v.enumOf(
+      ['create_version', 'merge_version_into_environment', 'rollback_to_version'],
+      {
+        name: 'type',
+        description:
+          'What the commit did: created a version, merged one into an environment, or rolled one back.'
+      }
+    ),
+    message: v.nullable(
+      v.string({
+        name: 'message',
+        description: 'Message of the commit. `null` when the commit has no message.'
+      })
+    ),
+    created_at: v.date({
+      name: 'created_at',
+      description: 'Creation time.'
     })
-  ),
-  created_at: v.date({
-    name: 'created_at',
-    description: 'Timestamp when commit was created'
-  })
-});
+  },
+  {
+    description:
+      'Commit that triggered this deployment. `null` for deployments without a commit.'
+  }
+);
 
 export let v1CustomProviderDeploymentPresenter = Presenter.create(customProviderDeploymentType)
   .presenter(async ({ customProviderDeployment }, opts) => ({
@@ -74,52 +86,58 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
   .schema(
     v.object({
       object: v.literal('custom_provider.deployment', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique custom provider deployment identifier',
+        description: 'Unique ID.',
         examples: ['cpd_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['failed', 'queued', 'deploying', 'succeeded'], {
         name: 'status',
-        description: 'Current deployment status'
+        description: 'Build and rollout status.'
       }),
       trigger: v.enumOf(['manual', 'system', 'scm'], {
         name: 'trigger',
-        description: 'What triggered this deployment'
+        description:
+          'How the deployment was triggered: manually, by the system, or by an SCM push.'
       }),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
-        description: 'ID of the parent custom provider',
+        description: 'Custom provider being deployed.',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'ID of the associated provider',
+          description: 'Associated provider, by ID. `null` when there is none.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       custom_provider_version_id: v.nullable(
         v.string({
           name: 'custom_provider_version_id',
-          description: 'ID of the custom provider version being deployed',
+          description: 'Version being deployed, by ID.',
           examples: ['cpv_1aBcDeFgHjKlMnPq']
         })
       ),
       commit: v.nullable(commitSchema),
-      immutable_bucket: v.nullable(v1BucketPresenter.schema),
+      immutable_bucket: v.nullable(v1BucketPresenter.schema, {
+        description: 'Immutable copy of the deployed code.'
+      }),
       actor: v1ActorPreviewPresenter.schema,
-      scm_push: v.nullable(v1ScmPushPresenter.schema),
+      scm_push: v.nullable(v1ScmPushPresenter.schema, {
+        description:
+          'SCM push that triggered the deployment. `null` unless `trigger` is `scm`.'
+      }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
@@ -183,41 +201,51 @@ export let v1CustomProviderDeploymentLogsPresenter = Presenter.create(
   .schema(
     v.object({
       object: v.literal('custom_provider.deployment.logs', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       custom_provider_deployment_id: v.string({
         name: 'custom_provider_deployment_id',
-        description: 'ID of the deployment these logs belong to'
+        description: 'Deployment these logs belong to.'
       }),
       steps: v.array(
-        v.object({
-          object: v.literal('custom_provider.deployment.logs.step', {
-            description: "String representing the deployment log step's type"
-          }),
-          id: v.string({ description: 'Step identifier' }),
-          name: v.string({ description: 'Step name' }),
-          type: v.string({
-            description: 'Step type',
-            examples: ['build', 'deploy']
-          }),
-          status: v.enumOf(['pending', 'running', 'succeeded', 'failed', 'canceled'], {
-            name: 'status',
-            description: 'Step status'
-          }),
-          logs: v.array(
-            v.object({
-              object: v.literal('custom_provider.deployment.logs.step.log', {
-                description: "String representing the deployment log entry's type"
+        v.object(
+          {
+            object: v.literal('custom_provider.deployment.logs.step', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({ description: 'Unique ID.' }),
+            name: v.string({ description: 'Name of the step.' }),
+            type: v.string({
+              description: 'What kind of work the step does.',
+              examples: ['build', 'deploy']
+            }),
+            status: v.enumOf(['pending', 'running', 'succeeded', 'failed', 'canceled'], {
+              name: 'status',
+              description: 'Step execution status.'
+            }),
+            logs: v.array(
+              v.object({
+                object: v.literal('custom_provider.deployment.logs.step.log', {
+                  description: 'String representing the object’s type.'
+                }),
+                timestamp: v.date({ description: 'When the log line was emitted.' }),
+                message: v.string({ description: 'Log line text.' })
               }),
-              timestamp: v.date({ description: 'Log entry timestamp' }),
-              message: v.string({ description: 'Log message' })
-            })
-          ),
-          created_at: v.date({ description: 'Timestamp when step was created' }),
-          started_at: v.nullable(v.date({ description: 'Timestamp when step started' })),
-          ended_at: v.nullable(v.date({ description: 'Timestamp when step ended' }))
-        }),
-        { name: 'steps', description: 'Deployment steps with logs' }
+              { description: 'Log lines for this step.' }
+            ),
+            created_at: v.date({ description: 'Creation time.' }),
+            started_at: v.nullable(
+              v.date({
+                description: 'When the step started. `null` while `status` is `pending`.'
+              })
+            ),
+            ended_at: v.nullable(
+              v.date({ description: 'When the step ended. `null` until the step finishes.' })
+            )
+          },
+          { description: 'Step of the deployment.' }
+        ),
+        { name: 'steps', description: 'Steps of the deployment, in order.' }
       )
     })
   )
