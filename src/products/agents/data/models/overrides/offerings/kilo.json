@@ -384,6 +384,13 @@
     "by": "agent",
     "at": "2026-11-17"
   },
+  "radixark/daisyrose-27b": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "RadixArk's first open model (Apache-2.0, HF created 2026-11-18): an RL-only post-train of Qwen3.8-27B, so it is not the Qwen base model itself, and the index has no RadixArk entry yet.",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
   "ricursiveai/ripple-65b-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -432,6 +439,13 @@
     "reason": "Tencent's Hunyuan-A13B, the open-weight 80B-total/13B-active MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face, June 2025); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "thinkingmachines/inkling-2-mini": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Inkling 2 Mini (26.4B looped transformer, released 2026-11-20) is a new checkpoint distinct from the index's inkling-2-small (2026-11-05); no matching entry exists yet, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-21"
   },
   "unbiased/pareto-26.10": {
     "decision": "defer",
