@@ -86,6 +86,7 @@ export default project({
       '@mtsrc/mcp-runtime-service',
       '@mtsrc/search-service',
       '@mtsrc/email-service',
+      '@mtsrc/agent-tracking-service',
       '@metorial-subspace/app-worker'
     ],
     healthTimeout: 300,
@@ -96,8 +97,6 @@ export default project({
       AWS_REGION: 'us-east-1',
       AWS_ACCOUNT_ID: '000000000000',
       RELAY_URL: 'http://localhost:52110/metorial-relay',
-      AGENT_TRACKING_URL: '',
-      AGENT_TRACKING_INGEST_PUBLIC_URL: '',
       METORIAL_ENABLED_FLAGS: '*',
       SKILL_SYNC_RECONCILER_CRONS_ENABLED: 'false'
     },

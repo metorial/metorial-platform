@@ -4,11 +4,15 @@ import type { QueryScope } from '@mtsrc/agent-tracking-module-usage';
 import type { DatasetName, Measure, Query, Range } from '@mtsrc/agent-tracking-query-spec';
 import { datasets, resolveField } from '../catalog';
 import { loadCatalogContext } from '../lib/resolve';
+import { entitySearchWhere } from '@mtsrc/agent-tracking-module-entities';
+import { allowsEntityFallback, filterValues } from '../lib/values';
 import { queryService } from './query';
 
 export let defaultValuesLimit = 50;
 
 export let maxValuesLimit = 500;
+
+let maxSearchedEntities = 10_000;
 
 let defaultRange: Range = { last: '30d' };
 
@@ -16,9 +20,6 @@ let usageMeasure = (dataset: DatasetName): Measure =>
   datasets[dataset].countable
     ? { fn: 'count', as: 'count' }
     : { fn: 'sum', field: 'requests', as: 'count' };
-
-let matches = (search: string, ...candidates: (string | null | undefined)[]) =>
-  candidates.some(candidate => candidate?.toLowerCase().includes(search));
 
 class QueryValuesServiceImpl {
   async listValues(d: {
@@ -53,37 +54,39 @@ class QueryValuesServiceImpl {
       (result.labels as Record<string, Record<string, Record<string, string | null>>>)[
         d.field
       ] ?? {};
-    let values = result.rows
-      .map(row => {
-        let value = row[d.field] as string | number | boolean | null;
-        let label = typeof value == 'string' ? (labels[value] ?? null) : null;
-        return { value, label, count: Number(row.count ?? 0) };
-      })
-      .filter(item => item.value !== null && item.value !== '$other')
-      .filter(
-        item =>
-          !search || matches(search, String(item.value), item.label?.name, item.label?.slug)
-      );
 
     let catalog = await loadCatalogContext(d.organization);
     let field = resolveField(datasets[d.dataset], d.field, catalog);
-    if (search && field?.entityKind && values.length < limit) {
-      let entities = await db.entity.findMany({
-        where: {
-          organizationOid: d.organization.oid,
-          kind: field.entityKind,
-          mergedIntoOid: null,
-          archivedAt: null,
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { slug: { contains: search, mode: 'insensitive' } }
-          ]
-        },
-        select: { id: true, name: true, slug: true, status: true, kind: true },
-        take: limit
-      });
+    let entityKind = field?.entityKind;
+
+    let searched =
+      search && entityKind
+        ? await db.entity.findMany({
+            where: {
+              organizationOid: d.organization.oid,
+              kind: entityKind,
+              mergedIntoOid: null,
+              archivedAt: null,
+              ...entitySearchWhere(search, { identifierType: 'email' })
+            },
+            select: { id: true, name: true, slug: true, status: true, kind: true },
+            take: maxSearchedEntities
+          })
+        : [];
+
+    let values = filterValues({
+      values: result.rows.map(row => {
+        let value = row[d.field] as string | number | boolean | null;
+        let label = typeof value == 'string' ? (labels[value] ?? null) : null;
+        return { value, label, count: Number(row.count ?? 0) };
+      }),
+      search,
+      matchingIds: new Set(searched.map(entity => entity.id))
+    });
+
+    if (searched.length && values.length < limit && allowsEntityFallback(d.scope)) {
       let known = new Set(values.map(item => item.value));
-      for (let entity of entities) {
+      for (let entity of searched.slice(0, limit)) {
         if (known.has(entity.id)) continue;
         values.push({
           value: entity.id,

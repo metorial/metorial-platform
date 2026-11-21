@@ -6,7 +6,11 @@ import type {
   Organization,
   Project
 } from '@mtsrc/agent-tracking-db';
-import type { IngestChannel } from '@mtsrc/agent-tracking-spec';
+import {
+  defaultContentPolicy,
+  stricterContentPolicy,
+  type IngestChannel
+} from '@mtsrc/agent-tracking-spec';
 import type { IngestPrincipal } from '@mtsrc/agent-tracking-records-model';
 
 type ScopedInstance = Instance & { project: Project };
@@ -29,7 +33,16 @@ export let isIngestScopeArchived = (d: {
   instance: Pick<Instance, 'archivedAt'> & { project: Pick<Project, 'archivedAt'> };
 }) => !!(d.organization.archivedAt || d.instance.project.archivedAt || d.instance.archivedAt);
 
-let scopePrincipal = (d: { organization: Organization; instance: ScopedInstance }) => ({
+let scopePrincipal = (d: {
+  organization: Organization;
+  instance: ScopedInstance;
+  contentPolicy: IngestToken['contentPolicy'];
+}) => ({
+  contentPolicy: stricterContentPolicy(
+    d.contentPolicy,
+    d.instance.settings.contentPolicy ?? defaultContentPolicy
+  ),
+
   organization: {
     id: d.organization.id,
     ref: d.organization.ref,
@@ -55,7 +68,6 @@ let scopePrincipal = (d: { organization: Organization; instance: ScopedInstance 
 export let tokenPrincipal = (ingestToken: IngestTokenForPrincipal): IngestPrincipal => ({
   credential: { kind: 'token', id: ingestToken.id },
 
-  contentPolicy: ingestToken.contentPolicy,
   limits: ingestToken.limits,
   allowedClients: ingestToken.allowedClients,
   allowedChannels: ingestToken.allowedChannels as IngestChannel[],
@@ -75,7 +87,6 @@ export let tokenPrincipal = (ingestToken: IngestTokenForPrincipal): IngestPrinci
 export let sourcePrincipal = (ingestSource: IngestSourceForPrincipal): IngestPrincipal => ({
   credential: { kind: 'source', id: ingestSource.id, family: ingestSource.family },
 
-  contentPolicy: ingestSource.contentPolicy,
   limits: ingestSource.limits,
   allowedClients: [],
   allowedChannels: ingestSource.allowedChannels as IngestChannel[],

@@ -8,6 +8,13 @@ import {
   MetorialDashboardEndpoint,
   MetorialDashboardInstanceAgentsEndpoint,
   MetorialDashboardInstanceAgentsInstancesEndpoint,
+  MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint,
+  MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint,
+  MetorialDashboardInstanceAgentTrackingMembersEndpoint,
+  MetorialDashboardInstanceAgentTrackingSessionsEndpoint,
+  MetorialDashboardInstanceAgentTrackingSettingsEndpoint,
+  MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint,
+  MetorialDashboardInstanceAgentTrackingSpendEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
   MetorialDashboardInstanceCallbackEventsEndpoint,
   MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint,
@@ -200,6 +207,7 @@ import {
   MetorialDashboardOrganizationsAuditLogStreamsEndpoint,
   MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint,
   MetorialDashboardOrganizationsConfigsEndpoint,
+  MetorialDashboardOrganizationsConfigureAgentTrackingEndpoint,
   MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
@@ -233,6 +241,7 @@ import {
   MetorialDashboardOrganizationsTeamsEndpoint,
   MetorialDashboardOrganizationsTeamsMembersEndpoint,
   MetorialDashboardOrganizationsTeamsPoliciesEndpoint,
+  MetorialDashboardProjectsConfigureAgentTrackingEndpoint,
   MetorialDashboardProjectsConfigureAiAnalysisEndpoint,
   MetorialDashboardProjectsConfigureAuthConfigEndpoint,
   MetorialDashboardProjectsConfigureDataRetentionEndpoint,
@@ -668,6 +677,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   })
 )(manager => ({
   organizations: Object.assign(new MetorialDashboardOrganizationsEndpoint(manager), {
+    configureAgentTracking: new MetorialDashboardOrganizationsConfigureAgentTrackingEndpoint(
+      manager
+    ),
     configureAuditLogRetention:
       new MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint(manager),
     configs: new MetorialDashboardOrganizationsConfigsEndpoint(manager),
@@ -694,6 +706,9 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   sandbox: createSandboxSdk(manager),
   projects: Object.assign(new MetorialDashboardOrganizationsProjectsEndpoint(manager), {
     branding: new MetorialDashboardOrganizationsProjectsBrandingEndpoint(manager),
+    configureAgentTracking: new MetorialDashboardProjectsConfigureAgentTrackingEndpoint(
+      manager
+    ),
     configureAiAnalysis: new MetorialDashboardProjectsConfigureAiAnalysisEndpoint(manager),
     configureAuthConfig: new MetorialDashboardProjectsConfigureAuthConfigEndpoint(manager),
     configureDataRetention: new MetorialDashboardProjectsConfigureDataRetentionEndpoint(
@@ -1049,6 +1064,16 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     devices: new MetorialDashboardInstanceConsumersDevicesEndpoint(manager)
   }),
   consumerSurfaces: new MetorialDashboardInstanceConsumerSurfacesEndpoint(manager),
+
+  agentTracking: {
+    ingestSources: new MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint(manager),
+    spend: new MetorialDashboardInstanceAgentTrackingSpendEndpoint(manager),
+    sessions: new MetorialDashboardInstanceAgentTrackingSessionsEndpoint(manager),
+    filterValues: new MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint(manager),
+    members: new MetorialDashboardInstanceAgentTrackingMembersEndpoint(manager),
+    setupStatus: new MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint(manager),
+    settings: new MetorialDashboardInstanceAgentTrackingSettingsEndpoint(manager)
+  },
 
   accessPolicies: new MetorialDashboardOrganizationsAccessPoliciesEndpoint(manager),
   accessRoles: new MetorialDashboardOrganizationsAccessRolesEndpoint(manager),

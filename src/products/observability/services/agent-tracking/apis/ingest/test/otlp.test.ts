@@ -251,12 +251,13 @@ describe('otlp handler', () => {
         )
       );
 
-      let [record] = pipeline.records();
+      let [record] = pipeline.seen();
 
       expect(response.status).toBe(200);
       expect(record!.type).toBe('unmapped');
       expect(record!.source.dialect).toBe('quarantine.otlp.v1');
       expect(JSON.stringify(record)).not.toContain(sentinel);
+      expect(pipeline.records()).toEqual([]);
     });
 
     it('stores several logs and groups in one request', async () => {
@@ -559,7 +560,7 @@ describe('otlp handler', () => {
       );
 
       expect(response.status).toBe(200);
-      expect(pipeline.records()).toHaveLength(1);
+      expect(pipeline.seen()).toHaveLength(1);
     });
   });
 
@@ -686,7 +687,7 @@ describe('otlp handler', () => {
       let response = await post(pipeline, '/v1/logs', tinyLogs(20_000));
 
       expect(response.status).toBe(200);
-      expect(pipeline.records()).toHaveLength(20_000);
+      expect(pipeline.seen()).toHaveLength(20_000);
     });
 
     it('rejects more items than the limit without writing anything', async () => {

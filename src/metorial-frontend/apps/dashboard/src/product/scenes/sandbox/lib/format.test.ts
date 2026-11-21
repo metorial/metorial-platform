@@ -8,9 +8,9 @@ import {
   formatGib,
   formatMib,
   formatPercent,
-  formatRelativeTime,
   formatSpec
 } from './format';
+import { formatRelativeTime } from '../../../lib/formatDate';
 
 describe('formatBytes', () => {
   it('uses binary units', () => {

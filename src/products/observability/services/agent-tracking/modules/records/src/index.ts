@@ -4,6 +4,7 @@ export { createNdjsonSink } from './lib/ndjson';
 export { createNoopSink } from './lib/noop';
 export { setConfiguredSink as setRecordSink } from './lib/sink';
 export { toRecordDocument } from './lib/mapper';
+export { storedRecords } from './lib/persistence';
 export { eraseCollections, eraseFilter, type EraseScope } from './queues/eraseRecords';
 export * from './services';
 export { recordsQueueProcessor } from './queues';

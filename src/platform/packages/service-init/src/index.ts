@@ -16,6 +16,28 @@ let encode = (value?: string) => encodeURIComponent(value ?? '');
 export let buildPostgresUrl = (database: DatabaseParts) =>
   `postgres://${encode(database.username)}:${encode(database.password)}@${database.host}:${database.port}/${database.name}?schema=public&sslmode=no-verify&connection_limit=20`;
 
+export let buildMongoUrl = (d: {
+  username?: string;
+  password?: string;
+  host?: string;
+  port?: string | number;
+  database?: string;
+  readPreference: 'primary' | 'secondaryPreferred';
+  tlsCAFile?: string;
+}) => {
+  let options = new URLSearchParams({
+    authSource: 'admin',
+    authMechanism: 'SCRAM-SHA-1',
+    tls: 'true',
+    ...(d.tlsCAFile ? { tlsCAFile: d.tlsCAFile } : { tlsAllowInvalidCertificates: 'true' }),
+    replicaSet: 'rs0',
+    readPreference: d.readPreference,
+    retryWrites: 'false'
+  });
+
+  return `mongodb://${encode(d.username)}:${encode(d.password)}@${d.host}:${d.port}/${encode(d.database)}?${options}`;
+};
+
 export let getReaderHost = (host?: string) => host?.replace('.cluster-', '.cluster-ro-');
 
 let getDatabaseParts = (env: ServiceEnvironment, prefix: string): DatabaseParts => ({
@@ -143,7 +165,14 @@ export let initializeMetorialServiceEnvironment = async (
     await signGlobalDatabaseUrlWithIam(env);
 
     if (checkEdition('cloud') && env.USAGE_MONGO_HOST) {
-      env.USAGE_MONGO_URL = `mongodb://${encode(env.USAGE_MONGO_USERNAME)}:${encode(env.USAGE_MONGO_PASSWORD)}@${env.USAGE_MONGO_HOST}:${env.USAGE_MONGO_PORT}/${env.USAGE_MONGO_DATABASE_NAME}?authSource=admin&authMechanism=SCRAM-SHA-1&tls=true&tlsAllowInvalidCertificates=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false`;
+      env.USAGE_MONGO_URL = buildMongoUrl({
+        username: env.USAGE_MONGO_USERNAME,
+        password: env.USAGE_MONGO_PASSWORD,
+        host: env.USAGE_MONGO_HOST,
+        port: env.USAGE_MONGO_PORT,
+        database: env.USAGE_MONGO_DATABASE_NAME,
+        readPreference: 'secondaryPreferred'
+      });
     }
 
     if (env.OPENSEARCH_HOST) {

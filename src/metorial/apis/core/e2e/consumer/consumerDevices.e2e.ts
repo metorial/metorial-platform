@@ -1,6 +1,7 @@
 import {
   API_VERSIONS,
   bootstrapUser,
+  eventually,
   expectAuthMatrix,
   expectError,
   expectOk,
@@ -21,6 +22,15 @@ import {
   oauthAuthorizationService
 } from '@metorial/module-machine-access';
 import { describe, expect, it } from 'vitest';
+import {
+  agentTrackingPath,
+  claudeRequest,
+  expectIngested,
+  sendClaudeCodeRequests,
+  serviceSessions,
+  trackedConsumer,
+  trackedDevice
+} from '@metorial/agent-tracking-e2e';
 import {
   createConsumerProfile,
   createPortal,
@@ -323,20 +333,13 @@ describe('api-core consumer: devices', () => {
     expectError(await laptop.client.post('/consumer/devices/sign-out'), 401);
   });
 
-  it('reports telemetry as unavailable when this server collects none', async () => {
+  it('issues a telemetry token bound to the device only to its own consumer', async () => {
     let portal = await createPortal(org);
     let desktop = await signInDesktop(org, portal.id);
     let neighbour = await signInDesktop(org, portal.id);
     let device = expectOk(
       await desktop.client.post('/consumer/devices/check-in', checkInBody())
     );
-
-    let unavailable = expectError(
-      await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`),
-      404,
-      'not_found'
-    );
-    expect(unavailable.entity).toBe('consumer.device.telemetry_token');
 
     let foreign = expectError(
       await neighbour.client.post(`/consumer/devices/${device.id}/telemetry-token`),
@@ -345,12 +348,113 @@ describe('api-core consumer: devices', () => {
     );
     expect(foreign.entity).toBe('consumer.device');
 
+    let issued = expectPresented(
+      expectOk(await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`)),
+      'consumer.device.telemetry_token'
+    );
+    expect(issued).toMatchObject({ consumer_device_id: device.id, expires_at: null });
+    expect(issued.token.startsWith('metorial_agit_')).toBe(true);
+    expect(typeof issued.ingest_url).toBe('string');
+
+    let rows = await db.agentTrackingIngestToken.findMany({
+      where: { consumerDevice: { id: device.id } }
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      status: 'active',
+      deviceMode: 'bound',
+      serviceIngestTokenId: issued.token_id
+    });
     expect(
-      await db.agentTelemetryIngestToken.count({
-        where: { consumerDevice: { id: device.id } }
-      })
-    ).toBe(0);
+      JSON.stringify(rows[0], (_, value) => (typeof value == 'bigint' ? `${value}` : value))
+    ).not.toContain(issued.token);
   });
+
+  it('attributes usage sent with the telemetry token to the consumer and the device', async () => {
+    let portal = await createPortal(org);
+    let desktop = await signInDesktop(org, portal.id);
+    let device = expectOk(
+      await desktop.client.post('/consumer/devices/check-in', checkInBody())
+    );
+    let issued = expectOk(
+      await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`)
+    );
+    let { consumer } = await db.consumerProfile.findUniqueOrThrow({
+      where: { id: desktop.profile.id },
+      include: { consumer: true }
+    });
+
+    await expectIngested(
+      await sendClaudeCodeRequests({ ingestUrl: issued.ingest_url, secret: issued.token }, [
+        claudeRequest()
+      ])
+    );
+
+    let user = await trackedConsumer(org.ids, consumer.id);
+    let deviceEntity = await trackedDevice(org.ids, device.id);
+
+    await eventually(
+      async () => {
+        let sessions = await serviceSessions(org.ids);
+        expect(
+          sessions.some(
+            session =>
+              session.observed.userId == user.id &&
+              session.observed.deviceId == deviceEntity.id
+          )
+        ).toBe(true);
+      },
+      { timeoutMs: 30_000, intervalMs: 500 }
+    );
+
+    let members = await eventually(
+      async () => {
+        let members = await listAll(org.clients.rest, agentTrackingPath(org, '/members'));
+        expect(members.map(member => member.id)).toContain(user.id);
+
+        return members;
+      },
+      { timeoutMs: 90_000, intervalMs: 5_000 }
+    );
+    expect(members.find(member => member.id == user.id)).toMatchObject({
+      matched: true,
+      consumer: { email: consumer.email }
+    });
+  }, 150_000);
+
+  it('rotates the telemetry token and refuses the replaced one', async () => {
+    let portal = await createPortal(org);
+    let desktop = await signInDesktop(org, portal.id);
+    let device = expectOk(
+      await desktop.client.post('/consumer/devices/check-in', checkInBody())
+    );
+    let issue = async () =>
+      expectOk(await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`));
+    let send = (token: { ingest_url: string; token: string }) =>
+      sendClaudeCodeRequests({ ingestUrl: token.ingest_url, secret: token.token }, [
+        claudeRequest()
+      ]);
+
+    let replaced = await issue();
+    let current = await issue();
+    expect(current.token).not.toBe(replaced.token);
+
+    await eventually(
+      async () => {
+        let previous = await db.agentTrackingIngestToken.findFirstOrThrow({
+          where: { serviceIngestTokenId: replaced.token_id }
+        });
+        expect(previous.status).toBe('revoked');
+      },
+      { timeoutMs: 30_000, intervalMs: 500 }
+    );
+    await eventually(async () => expect((await send(replaced)).status).toBe(401), {
+      timeoutMs: 30_000,
+      intervalMs: 1_000
+    });
+
+    await expectIngested(await send(current));
+  }, 90_000);
 
   it('lets admins list, read and revoke devices of their own instance', async () => {
     let portal = await createPortal(org);

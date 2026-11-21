@@ -1,4 +1,4 @@
-import type { CredentialKind, IngestChannel } from '@mtsrc/agent-tracking-spec';
+import type { IngestChannel } from '@mtsrc/agent-tracking-spec';
 import type { SourceHealthDocument, SourceKind } from '@mtsrc/agent-tracking-store';
 
 let channelKinds: Partial<Record<IngestChannel, SourceKind>> = {
@@ -49,14 +49,15 @@ let usagePrecedence: Record<string, SourceKind[]> = {
   kiro: ['vendor', 'hook']
 };
 
+// Only a provider feed is vendor data; an ingestion key is also a `source` credential and sits
+// on laptops.
+export let isVendorChannel = (channel: IngestChannel) => channelKinds[channel] == 'vendor';
+
 export let sourceKindOf = (d: {
   channel: IngestChannel;
-  credentialKind: CredentialKind;
   type?: string;
   data?: Record<string, unknown>;
 }): SourceKind | undefined => {
-  if (d.credentialKind == 'source') return 'vendor';
-
   if (d.type == 'session.context' && typeof d.data?.source == 'string') {
     let kind = contextSourceKinds[d.data.source];
     if (kind) return kind;

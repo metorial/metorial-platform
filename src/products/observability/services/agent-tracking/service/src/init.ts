@@ -1,3 +1,6 @@
+import { env } from './env';
+import { buildMongoUrl } from '@metorial/service-init';
+
 if (!process.env.DATABASE_URL) {
   if (
     !process.env.DATABASE_USERNAME ||
@@ -34,4 +37,25 @@ if (!process.env.REDIS_URL) {
   } catch {
     // If parsing fails, leave REDIS_URL as-is.
   }
+}
+
+if (!process.env.AGENT_TRACKING_MONGO_URL && env.recordStore.host) {
+  let { host, port, username, password, database, tlsCaFile } = env.recordStore;
+
+  if (!username || !password || !database) {
+    throw new Error(
+      'AGENT_TRACKING_MONGO_URL is not set and the AGENT_TRACKING_MONGO_* component env vars are incomplete'
+    );
+  }
+
+  // Reads stay on the primary: settling and rebuilding read what ingest has just written.
+  process.env.AGENT_TRACKING_MONGO_URL = buildMongoUrl({
+    host,
+    port,
+    username,
+    password,
+    database,
+    readPreference: 'primary',
+    tlsCAFile: tlsCaFile
+  });
 }

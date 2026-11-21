@@ -25,6 +25,16 @@ let promptHook = JSON.stringify({
 let sendHook = (secret: string) =>
   ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook });
 
+describe('scope ids', () => {
+  it('gives an organization, project and instance the id it is given as ref', async () => {
+    let { organization, project, instance } = await createScope();
+
+    expect(organization.id).toBe(organization.ref);
+    expect(project.id).toBe(project.ref);
+    expect(instance.id).toBe(instance.ref);
+  });
+});
+
 describe('organizations', () => {
   it('creates an organization with defaults', async () => {
     let organization = await createOrganization();

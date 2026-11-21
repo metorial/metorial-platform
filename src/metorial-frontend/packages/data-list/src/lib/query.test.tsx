@@ -3,7 +3,7 @@ import React, { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { expect, it } from 'vitest';
-import { useFilterQuery } from './query';
+import { useFilterQuery, useInitialFilterState } from './query';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -91,4 +91,23 @@ it('still writes user filter changes to the URL', async () => {
     ]);
   });
   expect(seen.at(-1)).toBe('/list?status=failed');
+});
+
+it('starts with the filters in the URL on the first render', async () => {
+  let firstRender: any[] | undefined;
+  let Reader = () => {
+    let [filterState] = useInitialFilterState(filters);
+    firstRender ??= filterState;
+    return null;
+  };
+
+  let root = createRoot(document.createElement('div'));
+  await act(async () => {
+    root.render(
+      <MemoryRouter initialEntries={['/list?status=failed']}>
+        <Reader />
+      </MemoryRouter>
+    );
+  });
+  expect(firstRender).toMatchObject([{ id: 'status', value: ['failed'] }]);
 });

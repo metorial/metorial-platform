@@ -1,66 +1,17 @@
-import { parseQuery, type Query } from '@mtsrc/agent-tracking-query-spec';
 import { describe, expect, it } from 'vitest';
-import { type CatalogContext, datasets, fieldNames, resolveField } from '../src/catalog';
-import { bindQuery } from '../src/lib/bind';
-import { groupPipeline, type GroupScan } from '../src/lib/codegen';
-import { compileFilter, type Lookups } from '../src/lib/compile';
-import { planQuery } from '../src/lib/plan';
+import { datasets, fieldNames, resolveField } from '../src/catalog';
+import { compileFilter } from '../src/lib/compile';
 import { exportSortOf, rowsPipeline } from '../src/lib/rows';
+import { assertScoped, scan, ScopeViolationError } from '../src/lib/scope';
 import {
-  assertScoped,
-  type EffectiveScope,
-  scan,
-  ScopeViolationError
-} from '../src/lib/scope';
-import type { BoundQuery, PrivacySettings } from '../src/lib/types';
-
-let now = new Date('2026-11-14T12:00:00Z');
-
-let catalog: CatalogContext = {
-  kinds: new Map([
-    ['team', { key: 'team', name: 'Team', multi: true, attributes: ['costCenter'] }],
-    ['cost_center', { key: 'cost_center', name: 'Cost center', multi: false, attributes: [] }]
-  ])
-};
-
-let open: PrivacySettings = { hideIndividuals: false, minGroupUsers: 5 };
-
-let scope: EffectiveScope = { organizationId: 'org_a', instanceIds: ['in_1'] };
-
-let bind = (query: Record<string, unknown>, privacy = open) => {
-  let parsed = parseQuery({ atq: '0', range: { last: '7d' }, ...query });
-  if (!parsed.ok) throw Object.assign(new Error('invalid'), { errors: parsed.errors });
-
-  return bindQuery(parsed.query as Query, { catalog, now, privacy });
-};
-
-let lookupsOf = (query: BoundQuery): Lookups => ({
-  dataset: query.dataset,
-  timeZone: query.timeZone,
-  ids: new Map(),
-  attributeIds: new Map(),
-  sessionKeys: new Map(),
-  mapped: null
-});
-
-let aggregatePipeline = (query: BoundQuery) => {
-  let plan = planQuery(query);
-  let groupScan: GroupScan = {
-    dataset: query.dataset,
-    scope,
-    range: query.range,
-    timeZone: query.timeZone,
-    predicate: compileFilter(query.where, lookupsOf(query)),
-    dims: query.dimensions,
-    measures: plan.aggregates,
-    wheres: new Map(),
-    allocation: query.allocation,
-    splitFilters: [],
-    cap: query.limit
-  };
-
-  return groupPipeline(groupScan);
-};
+  aggregatePipeline,
+  bind,
+  catalog,
+  lookupsOf,
+  now,
+  open,
+  scope
+} from './compileHarness';
 
 let bindErrors = (query: Record<string, unknown>, privacy = open) => {
   try {

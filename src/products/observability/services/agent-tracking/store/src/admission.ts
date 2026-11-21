@@ -1,10 +1,14 @@
 import { ServiceError } from '@lowerdeck/error';
 import type { RecordLane } from '@mtsrc/agent-tracking-spec';
+import { env } from './env';
 import { sinkBusyError } from './sink';
 
 export type LaneLimits = Record<RecordLane, number>;
 
-export let defaultLaneLimits: LaneLimits = { live: 16, backfill: 4 };
+export let defaultLaneLimits: LaneLimits = {
+  live: env.records.liveWriteLanes,
+  backfill: env.records.backfillWriteLanes
+};
 
 export type Admission = {
   run: <T>(lane: RecordLane, work: () => Promise<T>) => Promise<T>;

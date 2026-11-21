@@ -23,7 +23,7 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
-import { recordAgentTelemetryIngestTokenCreated } from './agentTelemetry';
+import { recordAgentTrackingIngestTokenCreated } from './agentTracking';
 import {
   recordConsumerGroupUpdated,
   recordConsumerIdentityUpdated,
@@ -398,37 +398,37 @@ describe('workforce audit listeners', () => {
     }
   });
 
-  it('records an agent telemetry ingest token as created, then rotated, by id only', async () => {
+  it('records an agent tracking ingest token as created, then rotated, by id only', async () => {
     let ingestToken = {
       oid: 7n,
       id: 'atit_1',
       status: 'active',
       deviceMode: 'bound',
-      groundstationIngestTokenId: 'git_1',
+      serviceIngestTokenId: 'git_1',
       name: "Ada's Mac",
       secret: 'super-secret',
       consumer: { id: 'con_1' },
       consumerDevice: { id: 'codv_1' }
     };
 
-    await recordAgentTelemetryIngestTokenCreated({
+    await recordAgentTrackingIngestTokenCreated({
       ingestToken,
       replacedIngestTokenIds: [],
       auditScope
     } as any);
-    await recordAgentTelemetryIngestTokenCreated({
+    await recordAgentTrackingIngestTokenCreated({
       ingestToken: { ...ingestToken, id: 'atit_2' },
       replacedIngestTokenIds: ['atit_1'],
       auditScope
     } as any);
 
     expect(recordEvent.mock.calls.map(([, resource, action]) => [resource, action])).toEqual([
-      ['agent_telemetry_ingest_token', 'create'],
-      ['agent_telemetry_ingest_token', 'rotate']
+      ['agent_tracking_ingest_token', 'create'],
+      ['agent_tracking_ingest_token', 'rotate']
     ]);
     expect(recordEvent.mock.calls[0]![3].payload).toStrictEqual({
       id: 'atit_1',
-      groundstationIngestTokenId: 'git_1',
+      serviceIngestTokenId: 'git_1',
       name: "Ada's Mac",
       status: 'active',
       deviceMode: 'bound',

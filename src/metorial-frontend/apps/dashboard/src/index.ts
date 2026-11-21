@@ -8,6 +8,7 @@ export {
 
 export {
   deploySlice,
+  productAgentTrackingSlice,
   productCallbacksSlice,
   productChatSlice,
   productDocumentSlice,
@@ -22,6 +23,7 @@ export {
 } from './product';
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
+export { AgentTrackingSettings } from './product/scenes/agentTracking/settings';
 export { useSkillsSidebarGroups } from './product/scenes/skills/navigation/sidebarGroups';
 export { useSkillMarketplacesNav } from './product/scenes/skills/navigation/useSkillMarketplacesNav';
 export {

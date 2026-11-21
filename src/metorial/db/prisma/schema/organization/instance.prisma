@@ -101,6 +101,8 @@ model Instance {
   synthesisEnvironmentId String?
   lastSubspaceSyncAt     DateTime?
 
+  agentTrackingLinkedAt DateTime?
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
@@ -183,7 +185,9 @@ model Instance {
   systemEvents              SystemEvent[]
   eventDeliveryIntents      EventDeliveryIntent[]
 
-  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+  agentTrackingIngestTokens  AgentTrackingIngestToken[]
+  agentTrackingIngestSources AgentTrackingIngestSource[]
+  agentTrackingSettings      AgentTrackingInstanceSettings?
 
   @@index([previousSlugs])
   @@index([oldSlug])

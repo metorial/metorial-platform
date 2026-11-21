@@ -1,3 +1,4 @@
+export * from './agent-tracking';
 export * from './agents';
 export * from './assistants';
 export * from './callback-events';
