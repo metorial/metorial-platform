@@ -1,0 +1,70 @@
+import { formatNumber } from '@metorial/chart';
+import type { DashboardInstanceAgentTrackingMembersListOutput } from '@metorial/dashboard-sdk';
+import { col, createDataList } from '@metorial/data-list';
+import { useAgentTrackingMembers } from '@metorial/state';
+import { Callout } from '@metorial/ui';
+import { useInstanceContext } from '../../lib/dataList';
+import { CostValue } from './cost';
+import { lastActivePhrase, memberListLimit, MemberIdentity, memberPath } from './memberParts';
+import { lastActiveRangeFilter, useLastActiveRange } from './range';
+
+type TeamMember = DashboardInstanceAgentTrackingMembersListOutput['items'][number];
+
+let teamFilters = { range: lastActiveRangeFilter };
+
+let useTeamContext = () => ({ ...useInstanceContext(), ...useLastActiveRange() });
+
+let AgentTrackingTeamList = createDataList<{ instanceId: string }>('agent-tracking-team')
+  .context(useTeamContext)
+  .filters(() => teamFilters)
+  .paginated(({ props, ctx, limit }) =>
+    useAgentTrackingMembers(props.instanceId, {
+      limit,
+      range: ctx.range,
+      timeZone: ctx.timeZone
+    })
+  )
+  .columns([
+    col.custom<TeamMember>({
+      id: 'member',
+      header: 'Member',
+      render: row => <MemberIdentity member={row} />
+    }),
+    col.text<TeamMember>({
+      id: 'sessions',
+      header: 'Sessions',
+      get: row => formatNumber(row.sessions)
+    }),
+    col.custom<TeamMember>({
+      id: 'cost',
+      header: 'Cost',
+      render: row => <CostValue cost={row.cost} />
+    }),
+    col.date<TeamMember>('lastSeenAt', { header: 'Last Active', isDefault: true })
+  ])
+  .link((row, _props, ctx) => memberPath(ctx, row.id, ctx.range))
+  .build();
+
+export let AgentTrackingTeamNotice = ({ instanceId }: { instanceId: string }) => {
+  let range = useLastActiveRange();
+  let members = useAgentTrackingMembers(instanceId, { limit: 1, ...range });
+
+  if (!members.data?.items[0]?.listTruncated) return null;
+
+  return (
+    <Callout color="gray">
+      {`More than ${formatNumber(memberListLimit)} people were active ${lastActivePhrase(range.range)}. Only the ${formatNumber(memberListLimit)} most recently active are listed.`}
+    </Callout>
+  );
+};
+
+export let AgentTrackingTeamTable = ({ instanceId }: { instanceId: string }) => (
+  <AgentTrackingTeamList
+    instanceId={instanceId}
+    emptyState={{
+      initial:
+        'Nobody has sent usage to this instance yet. Members show up here within a minute of their first session.',
+      filtered: 'Nobody was active in this range.'
+    }}
+  />
+);

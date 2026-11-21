@@ -7,17 +7,17 @@ import { lookupMembers, unique } from '../lib/members';
 import { costOf, countOf, tokensOf } from '../lib/money';
 import { loadVisiblePrivacy } from '../lib/privacy';
 import { sessionModelsQuery } from '../lib/queries';
-import { normalizeRange, rangeCacheKey, resolveRange, type RangeInput } from '../lib/range';
-import { createRemotePaginator } from '../lib/remotePaginator';
-import {
-  cachedRead,
-  resolveServiceInstanceId,
-  runUsageQuery,
-  type ReadScope
-} from '../lib/scope';
-import { queryCallOptions } from '../lib/service';
 import {
   hasRange,
+  normalizeRange,
+  rangeCacheKey,
+  resolveRange,
+  type RangeInput
+} from '../lib/range';
+import { createRemotePaginator } from '../lib/remotePaginator';
+import { cachedRead, runUsageQuery, type ReadScope } from '../lib/scope';
+import { queryCallOptions } from '../lib/service';
+import {
   serviceOrderBy,
   sessionAnchorOf,
   sessionIdOf,
@@ -74,8 +74,7 @@ class AgentTrackingSessionServiceImpl {
         read: 'sessions.list',
         input: { filters, page, ...(range ? { range: rangeCacheKey(range, now) } : {}) },
         ttlSeconds: sessionTtlSeconds,
-        load: async () => {
-          let instanceId = await resolveServiceInstanceId(d);
+        load: async instanceId => {
           let agentTracking = requireAgentTracking();
           let resolved = range ? resolveRange(range, now) : undefined;
 
@@ -115,14 +114,17 @@ class AgentTrackingSessionServiceImpl {
       read: 'sessions.get',
       input: { sessionKey },
       ttlSeconds: sessionTtlSeconds,
-      load: async () => {
-        let instanceId = await resolveServiceInstanceId(d);
+      load: async instanceId => {
         let agentTracking = requireAgentTracking();
 
         let session = await agentTracking.session
           .get({ organizationId: d.organization.id, sessionKey }, queryCallOptions)
           .catch(error => {
-            if (isServiceError(error) && error.data.status == 404) {
+            if (
+              isServiceError(error) &&
+              error.data.status == 404 &&
+              error.data.entity == 'session'
+            ) {
               throw sessionNotFound(d.sessionId);
             }
             throw error;

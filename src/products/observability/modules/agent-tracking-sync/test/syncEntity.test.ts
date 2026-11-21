@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('../src/lib/links', async () => (await import('./_mocks')).linksModule);
+
 vi.mock('../src/lib/settings', async importOriginal =>
   (await import('./_mocks')).settingsModule(importOriginal)
 );
@@ -23,10 +25,11 @@ import {
   syncEntityQueue,
   syncEntityQueueProcessor
 } from '../src/queues/syncEntity';
-import { mocks, resetMocks } from './_mocks';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { links, mocks, resetMocks } from './_mocks';
 
 mocks.agentTracking = {
-  organization: { upsert: vi.fn() },
+  organization: { upsert: vi.fn(async () => ({ id: 'ator_1' })) },
   entity: { upsert: vi.fn(), getByRef: vi.fn(), archive: vi.fn() },
   link: { upsert: vi.fn() }
 };
@@ -150,6 +153,31 @@ describe('agent-tracking/sync/entity', () => {
         ref: 'con_1'
       })
     );
+    expect(links.organization.get(1n)).toBe('ator_1');
+  });
+
+  it('syncs a consumer without upserting a linked organization', async () => {
+    links.organization.set(1n, 'ator_1');
+    vi.mocked(db.consumer.findUnique).mockResolvedValue(consumer as any);
+
+    await run({ type: 'consumer', id: 'con_1' });
+
+    expect(mocks.agentTracking.organization.upsert).not.toHaveBeenCalled();
+    expect(mocks.agentTracking.entity.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('relinks the organization once when the service lost it, then syncs the consumer', async () => {
+    links.organization.set(1n, 'ator_gone');
+    mocks.agentTracking.entity.upsert.mockRejectedValueOnce(
+      new ServiceError(notFoundError('organization'))
+    );
+    vi.mocked(db.consumer.findUnique).mockResolvedValue(consumer as any);
+
+    await run({ type: 'consumer', id: 'con_1' });
+
+    expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledTimes(1);
+    expect(mocks.agentTracking.entity.upsert).toHaveBeenCalledTimes(2);
+    expect(links.organization.get(1n)).toBe('ator_1');
   });
 
   it('skips consumers that no longer exist or whose organization was deleted', async () => {
@@ -214,6 +242,7 @@ describe('agent-tracking/sync/entity', () => {
     });
     expect(mocks.agentTracking.entity.upsert).not.toHaveBeenCalled();
     expect(mocks.agentTracking.link.upsert).not.toHaveBeenCalled();
+    expect(mocks.agentTracking.organization.upsert).not.toHaveBeenCalled();
   });
 
   it.each([

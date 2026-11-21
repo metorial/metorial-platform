@@ -11,9 +11,7 @@ import {
   Callout,
   Copy,
   Flex,
-  ProgressSteps,
   RenderDate,
-  Spacer,
   Text,
   theme,
   Tooltip
@@ -39,8 +37,7 @@ import {
   showCreateIngestSourceDialog,
   type CreatedIngestSource
 } from './keys';
-import { memberName } from './member';
-import { MembersList } from './members';
+import { memberName } from './memberParts';
 import { useAgentTrackingPrivacy } from './privacy';
 import { clientLabel, clientVersion, modelLabel } from './sessionParts';
 import {
@@ -76,7 +73,7 @@ let Inset = styled.div`
 
 let NotConfigured = () => (
   <Callout color="gray">
-    {notSetUpText} No ingestion key can be created until Metorial has enabled it.
+    {notSetUpText} No key can be created until Metorial enables it.
   </Callout>
 );
 
@@ -165,33 +162,9 @@ let WaitingForFirstEvent = ({
       </Flex>
 
       <Text size="2" color="gray700">
-        Start Claude Code on a machine with the file and send any prompt. You don't need to end
-        the session.
+        Send any prompt in Claude Code on a machine with the file; the session shows up within
+        a minute.
       </Text>
-
-      <ProgressSteps
-        orientation="horizontal"
-        steps={[
-          {
-            id: 'prompt',
-            label: 'You Send a Prompt',
-            description: 'Any prompt in Claude Code.',
-            state: 'active'
-          },
-          {
-            id: 'listed',
-            label: 'The Session Is Listed',
-            description: 'Within about a minute.',
-            state: 'pending'
-          },
-          {
-            id: 'cost',
-            label: 'Its Cost Settles',
-            description: '30 to 90 seconds after the activity.',
-            state: 'pending'
-          }
-        ]}
-      />
 
       <div>
         <Button size="1" variant="ghost" onClick={toggleTroubleshooting}>
@@ -224,80 +197,6 @@ let WaitingForFirstEvent = ({
     </Inset>
   );
 };
-
-let Collected = () => (
-  <Box
-    title="What Is Collected"
-    description="What Agent Usage keeps from Claude Code with the options above."
-  >
-    <Text size="2" weight="strong">
-      Stored
-    </Text>
-    <Spacer height={8} />
-    <List>
-      <li>
-        With every event: the email, account id and organization id of the member's Claude
-        account, the anonymous install id Claude Code creates, its version and the terminal's
-        name. Where it runs (terminal, IDE, desktop app or SDK) is kept only when Claude Code
-        reports it, which the settings file above does not turn on.
-      </li>
-      <li>
-        Model requests: model, tokens, the cost Claude Code computes, duration, plan and the
-        kind of error, if any.
-      </li>
-      <li>
-        Prompts and responses: their length, and the name of a slash command when one is used.
-      </li>
-      <li>
-        Tool calls and permission decisions: tool name, outcome, duration, input and output
-        sizes, and how permission was given.
-      </li>
-      <li>
-        Hook runs (hook name, counts, duration) and MCP server connections (status, transport,
-        duration).
-      </li>
-      <li>With Repository: the repository of each session, from its git remote.</li>
-      <li>With Tool Details: skill, MCP server and agent names, and the branch of commits.</li>
-    </List>
-
-    <Spacer height={16} />
-
-    <Text size="2" weight="strong">
-      Never Stored
-    </Text>
-    <Spacer height={8} />
-    <List>
-      <li>Prompt text, responses, code and file contents.</li>
-      <li>
-        Command text, tool inputs and outputs, and error messages. Where Claude Code sends them
-        (error messages of failed requests always; tool inputs, file paths, commands and tool
-        error text with Tool Details on), Agent Usage keeps only the length and a keyed hash of
-        each.
-      </li>
-    </List>
-  </Box>
-);
-
-let Limits = () => (
-  <Box title="What to Know" description="Limits of the numbers on these pages.">
-    <List>
-      <li>
-        Claude Code reports an email only for members signed in with a Claude account. Usage
-        through an API key or Bedrock arrives without one and is shown as Unknown Member.
-      </li>
-      <li>
-        With a shared ingestion key, the email is a claim, not proof. Every machine that gets
-        the settings file holds the key, so anyone using one of them can send usage under any
-        email. Exact identity arrives with member-bound collection in a later release.
-      </li>
-      <li>
-        Cost for usage a subscription covers is an estimate: your contract prices where set,
-        else the cost Claude Code reports, else list prices. It is marked with ~ and kept apart
-        from billed cost. It is not what you are charged.
-      </li>
-    </List>
-  </Box>
-);
 
 let CreateKeyButton = ({
   canWrite,
@@ -337,6 +236,7 @@ let CreateKeyButton = ({
 };
 
 export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
+  let ctx = useInstanceContext();
   let canWrite = useAgentTrackingWriteAccess();
   let keys = useAgentTrackingIngestSources(instanceId, {
     status: ['active', 'revoked'],
@@ -353,7 +253,6 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
   let [options, setOptions] = useState(defaultClaudeCodeSettingsOptions);
   let [showKeys, toggleKeys] = useToggle(false);
   let [showDeploy, setShowDeploy] = useState<boolean | null>(null);
-  let [showMembers, toggleMembers] = useToggle(false);
   let settings = useAgentTrackingPrivacy();
   let individualsHidden = settings.data?.privacy.hideIndividuals ?? true;
   let [listeningSince] = useState(() => new Date());
@@ -397,19 +296,11 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
       }
     });
 
-  let keyDescription = created ? (
-    <>
-      {created.name}, created <RenderDate date={created.createdAt} format="time" />. The file
-      below has it filled in.
-    </>
-  ) : activeKey ? (
-    <>
-      {activeKey.name} is active. Its key was shown once, when it was created; create a new key
-      to get the file and commands with the key filled in.
-    </>
-  ) : (
-    'You get a settings file with the key already filled in.'
-  );
+  let keyDescription = created
+    ? `${created.name} is filled into the file below.`
+    : activeKey
+      ? `${activeKey.name} is active; create a new key to get a file with the key filled in.`
+      : 'The settings file is built from it.';
 
   return (
     <Flex direction="column" gap={20}>
@@ -417,7 +308,7 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
 
       <Box
         title="Connect Claude Code"
-        description="For Claude Code in the terminal and in the IDE extensions. Nothing to install on members' machines."
+        description="For Claude Code in the terminal and IDE extensions, with nothing to install."
       >
         <ChecklistStep
           number={1}
@@ -444,8 +335,8 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
               {created?.secret ? (
                 <>
                   <Callout color="orange">
-                    <strong>Copy the key now.</strong> It is shown once and cannot be retrieved
-                    later. The settings file and the commands below already contain it.
+                    <strong>Copy the key now:</strong> it is shown only once, and the file
+                    below already contains it.
                   </Callout>
                   <Copy label={`Ingestion Key: ${created.name}`} value={created.secret} />
                 </>
@@ -516,7 +407,7 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
                 )}
               </>
             ) : waiting ? undefined : (
-              'Once the file is deployed, start Claude Code and send any prompt. The session shows up here within about a minute.'
+              'Once the file is deployed, start Claude Code and send any prompt.'
             )
           }
           action={
@@ -537,35 +428,30 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
 
         <ChecklistStep
           number={4}
-          state="pending"
+          state={hasData ? 'done' : 'pending'}
           title="Members Seen"
           description={
             individualsHidden && settings.data
-              ? 'This organization hides individual data in Agent Usage, so the members seen are not listed. An organization admin can change this on the Settings tab.'
-              : 'Each session is matched to a member of your Metorial organization by the email of the Claude account. An unmatched email is counted on its own until its member uses the same email in Claude and Metorial. Usage through an API key or Bedrock has no email and shows as Unknown Member. Sessions are counted over the last 400 days.'
+              ? 'This organization hides individual data, so members are not listed; an organization admin can change this in Project Settings.'
+              : 'Sessions are matched to members by the email of their Claude account, which a shared key does not verify.'
           }
           action={
-            individualsHidden ? undefined : (
-              <Button
-                size="2"
-                variant="outline"
-                disabled={notConfigured}
-                onClick={toggleMembers}
+            individualsHidden || notConfigured ? undefined : (
+              <Link
+                to={Paths.instance.agentTracking.team(
+                  ctx.organization,
+                  ctx.project,
+                  ctx.instance
+                )}
               >
-                {showMembers ? 'Hide Members' : 'Review Members'}
-              </Button>
+                <Button size="2" variant="outline" as="span">
+                  Review Members
+                </Button>
+              </Link>
             )
           }
-        >
-          {showMembers && !notConfigured && !individualsHidden ? (
-            <MembersList instanceId={instanceId} />
-          ) : undefined}
-        </ChecklistStep>
+        />
       </Box>
-
-      <Collected />
-
-      <Limits />
     </Flex>
   );
 };

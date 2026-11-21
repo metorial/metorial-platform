@@ -15,6 +15,7 @@ export {
   isAgentTrackingEnabledForOrganization,
   shouldSyncOrganization
 } from '../lib/flag';
+export { withInstanceScope } from '../lib/scope';
 export * from '../definitions/clientFamilies';
 export { consumerEntitySource } from '../lib/mapping';
 export {

@@ -1,5 +1,8 @@
+import { Paths } from '@metorial/frontend-config';
 import { Button, Callout } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { useInstanceContext } from '../../lib/dataList';
 
 let autoRetryMaxSeconds = 3;
 
@@ -18,6 +21,20 @@ let errorDetails = (error: unknown) => {
     message: typeof data.message == 'string' ? data.message : undefined,
     retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined
   };
+};
+
+export let PrivacySettingsButton = () => {
+  let ctx = useInstanceContext();
+
+  return (
+    <Link
+      to={Paths.organization.instance.agentUsage(ctx.organization, ctx.project, ctx.instance)}
+    >
+      <Button size="2" variant="outline" as="span">
+        Privacy Settings
+      </Button>
+    </Link>
+  );
 };
 
 export let agentTrackingErrorStatus = (error: unknown) =>
@@ -55,17 +72,16 @@ export let AgentTrackingErrorState = ({
   if (details.status == 404) {
     return (
       <Callout color="gray">
-        {notSetUpText} Once Metorial has enabled it, you can create an ingestion key on the
-        Setup tab.
+        {notSetUpText} Once Metorial enables it, create a key on the Setup tab.
       </Callout>
     );
   }
 
   if (details.code == 'agent_tracking_individuals_hidden') {
     return (
-      <Callout color="gray">
-        This organization hides individual data in Agent Usage, so this is not shown per member
-        or per session. An organization admin can change this on the Settings tab.
+      <Callout color="gray" action={<PrivacySettingsButton />}>
+        This organization hides individual data in Agent Usage; an organization admin can
+        change this in Project Settings.
       </Callout>
     );
   }
@@ -73,8 +89,7 @@ export let AgentTrackingErrorState = ({
   if (details.status == 403) {
     return (
       <Callout color="gray">
-        Agent Usage is not available to you. It needs the Agent Usage permission, which only
-        organization admins have.
+        Agent Usage needs the Agent Usage permission, which only organization admins have.
       </Callout>
     );
   }
@@ -93,7 +108,7 @@ export let AgentTrackingErrorState = ({
   if (details.status >= 500) {
     return (
       <Callout color="orange" action={retryButton}>
-        Agent Usage cannot answer right now. Try again in a moment.
+        Agent Usage cannot answer right now.
       </Callout>
     );
   }

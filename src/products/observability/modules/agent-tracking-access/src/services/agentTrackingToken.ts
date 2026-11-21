@@ -21,7 +21,7 @@ import {
 } from '@metorial/module-agent-tracking-sync';
 import { issuedKeyContentPolicy } from '../lib/contentPolicy';
 import { revokeAgentTrackingIngestToken } from '../lib/ingestToken';
-import { issueCallOpts, prepareIssue } from '../lib/issue';
+import { issueCallOpts, issueInScope } from '../lib/issue';
 import { revokeIngestTokenQueue } from '../queues/revokeTokens';
 
 class AgentTrackingTokenServiceImpl {
@@ -82,25 +82,25 @@ class AgentTrackingTokenServiceImpl {
     let { instance } = consumerDevice;
     let { consumer } = consumerDevice.consumerProfile;
 
-    let { agentTracking, ingestUrl } = await prepareIssue({
+    let { created, ingestUrl } = await issueInScope({
       organization: instance.organization,
       project: instance.project,
       instance,
-      entity: 'consumer.device.telemetry_token'
+      entity: 'consumer.device.telemetry_token',
+      create: agentTracking =>
+        agentTracking.ingestToken.create(
+          {
+            organizationId: instance.organization.id,
+            instanceId: instance.id,
+            name: consumerDevice.name,
+            userRef: consumer.id,
+            deviceRef: consumerDevice.id,
+            deviceMode: 'bound',
+            contentPolicy: issuedKeyContentPolicy
+          },
+          issueCallOpts
+        )
     });
-
-    let created = await agentTracking.ingestToken.create(
-      {
-        organizationId: instance.organization.id,
-        instanceId: instance.id,
-        name: consumerDevice.name,
-        userRef: consumer.id,
-        deviceRef: consumerDevice.id,
-        deviceMode: 'bound',
-        contentPolicy: issuedKeyContentPolicy
-      },
-      issueCallOpts
-    );
 
     let ingestToken = await withTransaction(async db => {
       let previous = await db.agentTrackingIngestToken.findMany({
@@ -177,25 +177,25 @@ class AgentTrackingTokenServiceImpl {
       include: { organization: true, project: true }
     });
 
-    let { agentTracking } = await prepareIssue({
+    let { created } = await issueInScope({
       organization: instance.organization,
       project: instance.project,
       instance,
-      entity: 'agent_tracking.ingest_token'
+      entity: 'agent_tracking.ingest_token',
+      create: agentTracking =>
+        agentTracking.ingestToken.create(
+          {
+            organizationId: instance.organization.id,
+            instanceId: instance.id,
+            name: d.input.name,
+            userRef: d.consumer.id,
+            deviceMode: 'ephemeral',
+            tags: d.input.tags,
+            contentPolicy: issuedKeyContentPolicy
+          },
+          issueCallOpts
+        )
     });
-
-    let created = await agentTracking.ingestToken.create(
-      {
-        organizationId: instance.organization.id,
-        instanceId: instance.id,
-        name: d.input.name,
-        userRef: d.consumer.id,
-        deviceMode: 'ephemeral',
-        tags: d.input.tags,
-        contentPolicy: issuedKeyContentPolicy
-      },
-      issueCallOpts
-    );
 
     let ingestToken = await db.agentTrackingIngestToken.create({
       data: {

@@ -7,12 +7,7 @@ import {
   setupSessionsQuery,
   toolDetailsQuery
 } from '../lib/queries';
-import {
-  cachedRead,
-  resolveServiceInstanceId,
-  runUsageQuery,
-  type ReadScope
-} from '../lib/scope';
+import { cachedRead, runUsageQuery, type ReadScope } from '../lib/scope';
 import { queryCallOptions, readCallOptions } from '../lib/service';
 import type {
   AgentTrackingSetupStatus,
@@ -37,11 +32,10 @@ class AgentTrackingSetupStatusServiceImpl {
     return await cachedRead({
       scope: d,
       read: 'setupStatus.get',
-      load: async () => {
+      load: async instanceId => {
         let now = new Date();
         let window = { from: new Date(now.getTime() - evidenceWindowDays * dayMs), to: now };
 
-        let instanceId = await resolveServiceInstanceId(d);
         let agentTracking = requireAgentTracking();
 
         let [ingestSources, coverage, sessions, toolCalls] = await Promise.all([

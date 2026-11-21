@@ -32,12 +32,7 @@ import {
   type RangeInput,
   type ResolvedRange
 } from '../lib/range';
-import {
-  cachedRead,
-  resolveServiceInstanceId,
-  runUsageQuery,
-  type ReadScope
-} from '../lib/scope';
+import { cachedRead, runUsageQuery, type ReadScope } from '../lib/scope';
 import {
   dayCountsOf,
   dayItem,
@@ -93,7 +88,7 @@ class AgentTrackingSpendServiceImpl {
             today: calendarDateKey(calendarDateIn(now, privateTimeZone)),
             minGroupUsers: privacy.minGroupUsers
           },
-      load: async () => {
+      load: async instanceId => {
         let resolved = range ? resolveRange(range, now) : privateRange(preset, now);
         let current = resolved ?? emptyPrivateRange(preset, now);
         let previous: ResolvedRange = {
@@ -104,7 +99,6 @@ class AgentTrackingSpendServiceImpl {
 
         let [result, before]: [UsageResult, UsageResult] = [noRows, noRows];
         if (resolved) {
-          let instanceId = await resolveServiceInstanceId(d);
           [result, before] = await Promise.all([
             runUsageQuery(d, instanceId, timelineQuery(resolved, filters)),
             runUsageQuery(
@@ -169,9 +163,8 @@ class AgentTrackingSpendServiceImpl {
       scope: d,
       read: 'spend.breakdown',
       input: { range: rangeCacheKey(range, now), groupBy: d.groupBy, filters },
-      load: async () => {
+      load: async instanceId => {
         let resolved = resolveRange(range, now);
-        let instanceId = await resolveServiceInstanceId(d);
 
         let column = breakdownGroups[d.groupBy];
         let result = await runUsageQuery(

@@ -27,7 +27,7 @@ import {
 } from '@metorial/module-agent-tracking-sync';
 import { revokeIngestSourceQueue } from '../queues/revokeIngestSources';
 import { issuedKeyContentPolicy } from '../lib/contentPolicy';
-import { issueCallOpts, prepareIssue } from '../lib/issue';
+import { issueCallOpts, issueInScope } from '../lib/issue';
 
 let orphanRevokeCallOpts: AgentTrackingCallOpts = { timeoutMs: 3_000 };
 let lastUsedAtCallOpts: AgentTrackingCallOpts = {
@@ -57,7 +57,7 @@ class AgentTrackingIngestSourceServiceImpl {
     auditScope: AuditScope;
     input: { name: string; clientFamily: AgentTrackingClientFamily };
   }) {
-    let { agentTracking, ingestUrl } = await prepareIssue({
+    let { agentTracking, created, ingestUrl } = await issueInScope({
       organization: d.organization,
       project: d.project,
       instance: d.instance,
@@ -68,19 +68,19 @@ class AgentTrackingIngestSourceServiceImpl {
           instance: d.instance,
           input: d.input,
           auditScope: d.auditScope
-        })
+        }),
+      create: agentTracking =>
+        agentTracking.ingestSource.create(
+          {
+            organizationId: d.organization.id,
+            instanceId: d.instance.id,
+            name: d.input.name,
+            family: toServiceFamily(d.input.clientFamily),
+            contentPolicy: issuedKeyContentPolicy
+          },
+          issueCallOpts
+        )
     });
-
-    let created = await agentTracking.ingestSource.create(
-      {
-        organizationId: d.organization.id,
-        instanceId: d.instance.id,
-        name: d.input.name,
-        family: toServiceFamily(d.input.clientFamily),
-        contentPolicy: issuedKeyContentPolicy
-      },
-      issueCallOpts
-    );
 
     try {
       let ingestSource = await withTransaction(async db => {

@@ -22,11 +22,7 @@ import {
   requireAgentTracking,
   type AgentTrackingCallOpts
 } from '../lib/client';
-import {
-  upsertInstanceScope,
-  upsertOrganizationScope,
-  upsertProjectScope
-} from '../lib/scope';
+import { pushInstanceScope, pushOrganizationScope, pushProjectScope } from '../lib/scope';
 import {
   instanceSettingsOf,
   narrowsCapture,
@@ -122,7 +118,7 @@ let organizationLevel = (
       })
     ),
   push: organizationSettings =>
-    upsertOrganizationScope({
+    pushOrganizationScope({
       agentTracking: requireAgentTracking(),
       organization: d.organization,
       organizationSettings,
@@ -153,7 +149,7 @@ let projectLevel = (d: ProjectScope): Level<AgentTrackingProjectSettingsValues> 
       })
     ),
   push: projectSettings =>
-    upsertProjectScope({
+    pushProjectScope({
       agentTracking: requireAgentTracking(),
       organization: d.organization,
       project: d.project,
@@ -196,7 +192,7 @@ let instanceLevel = (d: InstanceScope): Level<AgentTrackingInstanceSettingsValue
       });
     }),
   push: instanceSettings =>
-    upsertInstanceScope({
+    pushInstanceScope({
       agentTracking: requireAgentTracking(),
       organization: d.organization,
       project: d.project,
@@ -275,7 +271,10 @@ class AgentTrackingSettingsServiceImpl {
   private async get<V extends AgentTrackingSettingsValues>(level: Level<V>) {
     let { settings, stored } = await level.read();
 
-    return { settings, serviceStatus: await this.serviceStatus(level, settings, stored) };
+    let serviceStatus = await this.serviceStatus(level, settings, stored);
+    if (serviceStatus == 'pending') await this.queueSync(level);
+
+    return { settings, serviceStatus };
   }
 
   private async serviceStatus<V extends AgentTrackingSettingsValues>(
@@ -367,7 +366,9 @@ class AgentTrackingSettingsServiceImpl {
 
   private async queueSync(level: Pick<Level<AgentTrackingSettingsValues>, 'syncTarget'>) {
     try {
-      await syncScopeQueue.add(level.syncTarget);
+      await syncScopeQueue.add(level.syncTarget, {
+        id: `${level.syncTarget.type}:${level.syncTarget.id}`
+      });
     } catch {}
   }
 }

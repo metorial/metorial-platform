@@ -512,11 +512,14 @@ let AgentTrackingSessionsPage = dynamicPage(() =>
 let AgentTrackingSessionPage = dynamicPage(() =>
   import('./pages/(agent-tracking)/session').then(c => c.AgentTrackingSessionPage)
 );
+let AgentTrackingTeamPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/team').then(c => c.AgentTrackingTeamPage)
+);
+let AgentTrackingMemberPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/member').then(c => c.AgentTrackingMemberPage)
+);
 let AgentTrackingSetupPage = dynamicPage(() =>
   import('./pages/(agent-tracking)/(list)/setup').then(c => c.AgentTrackingSetupPage)
-);
-let AgentTrackingSettingsPage = dynamicPage(() =>
-  import('./pages/(agent-tracking)/(list)/settings').then(c => c.AgentTrackingSettingsPage)
 );
 let AgentTrackingDefaultTab = dynamicPage(() =>
   import('./pages/(agent-tracking)/(list)/defaultTab').then(c => c.AgentTrackingDefaultTab)
@@ -646,11 +649,12 @@ export let productAgentTrackingSlice = createSlice([
                   { path: '', element: <AgentTrackingDefaultTab /> },
                   { path: 'sessions', element: <AgentTrackingSessionsPage /> },
                   { path: 'spend', element: <AgentTrackingSpendPage /> },
-                  { path: 'setup', element: <AgentTrackingSetupPage /> },
-                  { path: 'settings', element: <AgentTrackingSettingsPage /> }
+                  { path: 'team', element: <AgentTrackingTeamPage /> },
+                  { path: 'setup', element: <AgentTrackingSetupPage /> }
                 ]
               },
-              { path: 'sessions/:sessionId', element: <AgentTrackingSessionPage /> }
+              { path: 'sessions/:sessionId', element: <AgentTrackingSessionPage /> },
+              { path: 'team/:memberId', element: <AgentTrackingMemberPage /> }
             ]
           }
         ]

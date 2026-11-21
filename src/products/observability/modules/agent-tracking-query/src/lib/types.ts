@@ -183,6 +183,7 @@ export type AgentTrackingFilterValues = {
 export type AgentTrackingSeenMember = AgentTrackingMember & {
   lastSeenAt: Date;
   sessions: number;
+  cost: AgentTrackingCost;
 };
 
 export type AgentTrackingMemberList = {

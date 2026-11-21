@@ -1220,20 +1220,38 @@ let InstancePaths = Object.assign(
         );
       },
 
+      team: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'agent-usage', 'team', ...subPages),
+
+      member: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        memberId?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!memberId) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'agent-usage',
+          'team',
+          memberId,
+          ...subPages
+        );
+      },
+
       setup: (
         organization: EntityParam,
         project: EntityParam,
         instance: EntityParam,
         ...subPages: SubPages
-      ) => InstancePaths(organization, project, instance, 'agent-usage', 'setup', ...subPages),
-
-      settings: (
-        organization: EntityParam,
-        project: EntityParam,
-        instance: EntityParam,
-        ...subPages: SubPages
-      ) =>
-        InstancePaths(organization, project, instance, 'agent-usage', 'settings', ...subPages)
+      ) => InstancePaths(organization, project, instance, 'agent-usage', 'setup', ...subPages)
     },
 
     identity: instanceIdentityPaths,
@@ -1811,6 +1829,20 @@ let OrganizationPaths = Object.assign(
             instance,
             'network',
             'settings',
+            ...subPages
+          ),
+
+        agentUsage: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'agent-usage',
             ...subPages
           ),
 

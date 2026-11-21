@@ -106,19 +106,17 @@ describe('agentTrackingIngestSourceService', () => {
         data: { status: 404, entity: 'agent_tracking.ingest_source' }
       });
       expect(mocks.fire).not.toHaveBeenCalled();
-      expect(mocks.upsertInstanceScope).not.toHaveBeenCalled();
+      expect(mocks.withInstanceScope).not.toHaveBeenCalled();
       expect(mocks.agentTracking.ingestSource.create).not.toHaveBeenCalled();
     });
 
-    it('upserts the scope, creates the key in the service and mirrors it', async () => {
+    it('ensures the scope, creates the key in the service and mirrors it', async () => {
       let result = await create();
 
-      expect(mocks.upsertInstanceScope).toHaveBeenCalledWith({
-        organization,
-        project,
-        instance,
-        callOpts: { timeoutMs: 3_000 }
-      });
+      expect(mocks.withInstanceScope).toHaveBeenCalledWith(
+        { organization, project, instance, callOpts: { timeoutMs: 3_000 } },
+        expect.any(Function)
+      );
       expect(mocks.agentTracking.ingestSource.create).toHaveBeenCalledWith(
         {
           organizationId: 'org_1',
@@ -129,7 +127,7 @@ describe('agentTrackingIngestSourceService', () => {
         },
         { timeoutMs: 5_000, retry: false }
       );
-      expect(mocks.upsertInstanceScope.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(mocks.withInstanceScope.mock.invocationCallOrder[0]).toBeLessThan(
         mocks.agentTracking.ingestSource.create.mock.invocationCallOrder[0]!
       );
 
@@ -179,9 +177,9 @@ describe('agentTrackingIngestSourceService', () => {
         auditScope
       });
       expect(mocks.fire.mock.invocationCallOrder[0]).toBeLessThan(
-        mocks.upsertInstanceScope.mock.invocationCallOrder[0]!
+        mocks.withInstanceScope.mock.invocationCallOrder[0]!
       );
-      expect(mocks.upsertInstanceScope.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(mocks.withInstanceScope.mock.invocationCallOrder[0]).toBeLessThan(
         mocks.agentTracking.ingestSource.create.mock.invocationCallOrder[0]!
       );
     });

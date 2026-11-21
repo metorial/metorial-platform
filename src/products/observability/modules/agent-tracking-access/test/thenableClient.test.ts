@@ -80,21 +80,22 @@ vi.mock('@metorial/db', () => {
     },
     agentTrackingOrganizationSettings: { findFirst: vi.fn(async () => null) },
     agentTrackingProjectSettings: { findFirst: vi.fn(async () => null) },
-    agentTrackingInstanceSettings: { findFirst: vi.fn(async () => null) }
+    agentTrackingInstanceSettings: { findFirst: vi.fn(async () => null) },
+    agentTrackingOrganizationLink: { findUnique: vi.fn(async () => null), upsert: vi.fn() },
+    agentTrackingProjectLink: { findUnique: vi.fn(async () => null), upsert: vi.fn() },
+    agentTrackingInstanceLink: { findUnique: vi.fn(async () => null), upsert: vi.fn() }
   };
 
   return {
     db,
     ID: { generateId: vi.fn(async () => 'atit_1') },
     withTransaction: vi.fn(async (callback: (db: any) => unknown) => await callback(db)),
-    addAfterTransactionHook: vi.fn()
+    addAfterTransactionHook: vi.fn(),
+    isUniqueConstraintError: () => false
   };
 });
 
-import {
-  agentTrackingSyncService,
-  requireAgentTracking
-} from '@metorial/module-agent-tracking-sync';
+import { requireAgentTracking, withInstanceScope } from '@metorial/module-agent-tracking-sync';
 import { revokeIngestSourceQueueProcessor } from '../src/queues/revokeIngestSources';
 import { agentTrackingIngestSourceService } from '../src/services/agentTrackingIngestSource';
 import { agentTrackingTokenService } from '../src/services/agentTrackingToken';
@@ -115,13 +116,16 @@ describe('the agent-tracking client is never resolved through a promise', () => 
     expect(mocks.calls).toEqual([]);
   });
 
-  it('upsertInstanceScope settles without calling then', async () => {
+  it('withInstanceScope settles without calling then', async () => {
     let result = await settles(
-      agentTrackingSyncService.upsertInstanceScope({
-        organization: { id: 'org_1', name: 'Acme' },
-        project: { id: 'proj_1', name: 'Production' },
-        instance: { id: 'inst_1', name: 'Default' }
-      })
+      withInstanceScope(
+        {
+          organization: { oid: 1n, id: 'org_1', name: 'Acme' },
+          project: { oid: 2n, id: 'proj_1', name: 'Production' },
+          instance: { oid: 3n, id: 'inst_1', name: 'Default' }
+        },
+        async serviceInstanceId => serviceInstanceId
+      )
     );
 
     expect(result).toBe('settled');

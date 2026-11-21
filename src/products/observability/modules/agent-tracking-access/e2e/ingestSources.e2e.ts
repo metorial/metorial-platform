@@ -95,6 +95,31 @@ describe('module-agent-tracking-access ingestion keys', () => {
     expect(await listedIds(fixture)).toContain(created.ingestSource.id);
   });
 
+  it('links the scope when it issues a key and relinks it once the service archived it', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    await createIngestSource(fixture);
+
+    let link = await db.agentTrackingInstanceLink.findUniqueOrThrow({
+      where: { instanceOid: fixture.instance.oid }
+    });
+    await agentTracking().instance.archive({
+      organizationId: org.ids.organizationId,
+      instanceId: link.serviceInstanceId
+    });
+
+    let created = await createIngestSource(fixture);
+    expect(created.secret.startsWith('metorial_agis_')).toBe(true);
+
+    let relinked = await db.agentTrackingInstanceLink.findUniqueOrThrow({
+      where: { instanceOid: fixture.instance.oid }
+    });
+    let remote = await agentTracking().instance.get({
+      organizationId: org.ids.organizationId,
+      instanceId: relinked.serviceInstanceId
+    });
+    expect(remote.archivedAt).toBeNull();
+  });
+
   it('revokes a key once, in Metorial first and then in the service', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let created = await createIngestSource(fixture);

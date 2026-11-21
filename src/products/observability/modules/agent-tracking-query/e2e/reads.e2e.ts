@@ -672,6 +672,41 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     for (let member of list.items) expect(member.lastSeenAt).toBeInstanceOf(Date);
   });
 
+  it('gives the sessions and cost of a member in a range, as its sessions add up', async () => {
+    let seen = await agentTrackingMemberService.listMembers({ ...scope, page: { limit: 10 } });
+    let matched = seen.list.items.find(member => member.email == matchedEmail)!;
+    let paginator = agentTrackingSessionService.listSessions({
+      ...scope,
+      memberIds: [matched.id],
+      range: lastWeek
+    });
+    let sessions: Awaited<ReturnType<typeof paginator.run>>['items'] = [];
+    let after: string | undefined;
+    do {
+      let page = await paginator.run({ limit: 50, ...(after ? { after } : {}) });
+      sessions.push(...page.items);
+      after = page.pagination.hasNextPage ? page.items.at(-1)!.id : undefined;
+    } while (after);
+
+    let { list } = await agentTrackingMemberService.listMembers({
+      ...scope,
+      page: { limit: 10 },
+      range: lastWeek,
+      memberIds: [matched.id]
+    });
+
+    expect(list.items.map(member => member.id)).toEqual([matched.id]);
+    let sessionMicros = sessions.map(session => session.cost.totalMicros);
+    expect(sessionMicros).not.toContain(null);
+    let sum = (sessionMicros as number[]).reduce((total, micros) => total + micros, 0);
+
+    expect(list.items[0]).toMatchObject({ sessions: sessions.length });
+    // Each session is rounded to micros on its own, the member total once.
+    expect(Math.abs(list.items[0]!.cost.totalMicros! - sum)).toBeLessThanOrEqual(
+      sessions.length
+    );
+  });
+
   it('reports usage and cost as detected once usage arrived', async () => {
     let status = await agentTrackingSetupStatusService.getSetupStatus(scope);
 

@@ -71,7 +71,7 @@ describe('agent-tracking listeners', () => {
   it('enqueue nothing while agent tracking is not configured', async () => {
     mocks.enabled.value = false;
 
-    await fire('organization.created:after', { organization: { id: 'org_1' } });
+    await fire('organization.updated:after', { organization: { id: 'org_1' } });
     await fire('consumer.profile.updated:after', {
       consumerProfile: { consumer: { id: 'c' } }
     });
@@ -84,8 +84,8 @@ describe('agent-tracking listeners', () => {
   it('enqueue nothing for an organization without the agent tracking flag', async () => {
     mocks.flagged.value = false;
 
-    await fire('organization.created:after', { organization: { id: 'org_1' } });
-    await fire('organization.project.instance.created:after', {
+    await fire('organization.updated:after', { organization: { id: 'org_1' } });
+    await fire('organization.project.instance.updated:after', {
       organization: { id: 'org_1' },
       instance: { id: 'inst_1' }
     });
@@ -127,15 +127,8 @@ describe('agent-tracking listeners', () => {
   });
 
   it.each([
-    ['organization.created:after', { organization: { id: 'org_1' } }, 'organization', 'org_1'],
     ['organization.updated:after', { organization: { id: 'org_1' } }, 'organization', 'org_1'],
     ['organization.deleted:after', { organization: { id: 'org_1' } }, 'organization', 'org_1'],
-    [
-      'organization.project.created:after',
-      { organization: { id: 'org_1' }, project: { id: 'proj_1' } },
-      'project',
-      'proj_1'
-    ],
     [
       'organization.project.updated:after',
       { organization: { id: 'org_1' }, project: { id: 'proj_1' } },
@@ -147,12 +140,6 @@ describe('agent-tracking listeners', () => {
       { organization: { id: 'org_1' }, project: { id: 'proj_1' } },
       'project',
       'proj_1'
-    ],
-    [
-      'organization.project.instance.created:after',
-      { organization: { id: 'org_1' }, instance: { id: 'inst_1' } },
-      'instance',
-      'inst_1'
     ],
     [
       'organization.project.instance.updated:after',
@@ -171,6 +158,14 @@ describe('agent-tracking listeners', () => {
 
     expect(mocks.flagChecks).toEqual(['org_1']);
     expect(mocks.syncScopeAdd).toHaveBeenCalledWith({ type, id });
+  });
+
+  it.each([
+    'organization.created:after',
+    'organization.project.created:after',
+    'organization.project.instance.created:after'
+  ])('does not listen to %s: a new scope reaches the service on its first use', event => {
+    expect(mocks.listeners.has(event)).toBe(false);
   });
 
   it.each([

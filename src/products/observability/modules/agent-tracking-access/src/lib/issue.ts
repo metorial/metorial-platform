@@ -1,9 +1,10 @@
 import type { Instance, Organization, Project } from '@metorial/db';
 import {
-  agentTrackingSyncService,
   assertAgentTrackingEnabled,
   requireAgentTracking,
   requireIngestUrl,
+  withInstanceScope,
+  type AgentTracking,
   type AgentTrackingCallOpts
 } from '@metorial/module-agent-tracking-sync';
 
@@ -11,12 +12,13 @@ import {
 let scopeCallOpts: AgentTrackingCallOpts = { timeoutMs: 3_000 };
 export let issueCallOpts: AgentTrackingCallOpts = { timeoutMs: 5_000, retry: false };
 
-export let prepareIssue = async (d: {
+export let issueInScope = async <T>(d: {
   organization: Organization;
   project: Project;
   instance: Instance;
   entity: string;
   beforeChange?: () => Promise<unknown>;
+  create: (agentTracking: AgentTracking) => Promise<T>;
 }) => {
   let agentTracking = requireAgentTracking();
   let ingestUrl = requireIngestUrl();
@@ -24,12 +26,15 @@ export let prepareIssue = async (d: {
   await assertAgentTrackingEnabled(d);
   await d.beforeChange?.();
 
-  await agentTrackingSyncService.upsertInstanceScope({
-    organization: d.organization,
-    project: d.project,
-    instance: d.instance,
-    callOpts: scopeCallOpts
-  });
+  let created = await withInstanceScope(
+    {
+      organization: d.organization,
+      project: d.project,
+      instance: d.instance,
+      callOpts: scopeCallOpts
+    },
+    () => d.create(agentTracking)
+  );
 
-  return { agentTracking, ingestUrl };
+  return { agentTracking, created, ingestUrl };
 };

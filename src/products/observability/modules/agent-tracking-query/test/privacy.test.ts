@@ -51,7 +51,7 @@ describe('sumSpendCells', () => {
   it('adds up amounts, counts, reported costs and tokens', () => {
     let total = sumSpendCells([figures(1.5), figures(0.25)]);
 
-    expect(total).toMatchObject({ 'cost.usd': '1.75', requests: 8 });
+    expect(total).toMatchObject({ 'cost.usd': 1_750_000_000n, requests: 8 });
     expect(total['cost.reported']).toHaveLength(2);
     expect(total.tokens).toMatchObject({ output: 2, total: 8 });
   });
@@ -296,6 +296,23 @@ describe('reads about individuals with individuals hidden', () => {
     );
 
     expect(error.code).toBe('agent_tracking_individuals_hidden');
+    expect(rpc.calls).toHaveLength(0);
+  });
+
+  it('rejects the cost of members and of one member', async () => {
+    for (let memberIds of [undefined, ['aten_ada']]) {
+      let error = await rejection(
+        agentTrackingMemberService.listMembers({
+          ...scope,
+          page: { limit: 10 } as any,
+          range: { preset: 'last_7_days' },
+          memberIds
+        })
+      );
+
+      expect(error).toMatchObject({ status: 403, code: 'agent_tracking_individuals_hidden' });
+    }
+
     expect(rpc.calls).toHaveLength(0);
   });
 

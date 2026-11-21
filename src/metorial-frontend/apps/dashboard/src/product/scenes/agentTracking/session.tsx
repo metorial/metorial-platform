@@ -6,34 +6,22 @@ import { Paths } from '@metorial/frontend-config';
 import { PageHeader } from '@metorial/layout';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { useAgentTrackingSession } from '@metorial/state';
-import {
-  Badge,
-  Button,
-  Callout,
-  Datalist,
-  Flex,
-  RenderDate,
-  Spacer,
-  Text,
-  theme,
-  useCopy
-} from '@metorial/ui';
+import { Button, Callout, Datalist, Flex, RenderDate, Text, theme } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useNow } from '@metorial/use-now';
-import { RiFileCopyLine } from '@remixicon/react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
-import { formatSpan, formatTimeSpan, sessionLength } from './activity';
+import { formatSpan, formatTimeSpan, sessionLength, sessionTitle } from './activity';
 import { CostValue } from './cost';
 import { agentTrackingErrorStatus, AgentTrackingErrorState } from './errorState';
-import { MemberIdentity, memberName, NotLinkedBadge } from './member';
-import { describeSessionCost, firstName, sessionCostKind } from './sessionCost';
-import { memberSessionsPath } from './sessions';
+import { MemberDetails, memberPath } from './memberParts';
+import { describeSessionCost, sessionCostKind } from './sessionCost';
 import {
   clientLabel,
   clientVersion,
   costIsSettling,
+  DetailColumns,
   formatRequests,
   ModelNameCell,
   SessionActivityLabel,
@@ -50,17 +38,6 @@ let tokenKinds = [
   { id: 'reasoning', label: 'Reasoning' }
 ] as const;
 
-let Columns = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 20px;
-  align-items: start;
-
-  @media (max-width: 1000px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
 let ModelList = styled.div`
   display: flex;
   flex-direction: column;
@@ -76,6 +53,10 @@ let ModelRow = styled.div`
   align-items: start;
   gap: 12px;
   padding: 10px 0;
+
+  & > :first-child {
+    min-width: 0;
+  }
 `;
 
 let sessionsPath = (ctx: InstanceContext) =>
@@ -89,12 +70,9 @@ let costBasisLabels: Record<ReturnType<typeof sessionCostKind>, string> = {
   estimated: 'Estimated'
 };
 
-let cacheShare = (session: Session) =>
-  session.tokens.total ? session.tokens.cacheRead / session.tokens.total : null;
-
 let SessionFigures = ({ session }: { session: Session }) => {
   let models = session.models.length + session.unknownModelNames.length;
-  let cache = cacheShare(session);
+  let cache = session.tokens.total ? session.tokens.cacheRead / session.tokens.total : null;
 
   return (
     <MetricsSummary
@@ -155,7 +133,7 @@ let CostExplanation = ({ session }: { session: Session }) => {
 };
 
 let TokensBox = ({ session }: { session: Session }) => (
-  <Box title="Tokens" description="By kind, for the whole session.">
+  <Box title="Tokens">
     <Table
       headers={['Kind', 'Tokens']}
       data={tokenKinds
@@ -175,17 +153,17 @@ let CostByModel = ({ session }: { session: Session }) => (
       <ModelList>
         {session.usageByModel.map(usage => (
           <ModelRow key={usage.key}>
-            <ModelNameCell model={usage.model} unknownModelNames={usage.unknownModelNames} />
-
-            <Flex direction="column" align="end" gap={2}>
-              <Text as="span" size="2" weight="medium">
-                <CostValue cost={usage.cost} />
-              </Text>
+            <Flex direction="column" gap={2}>
+              <ModelNameCell model={usage.model} unknownModelNames={usage.unknownModelNames} />
               <Text as="span" size="1" color="gray600">
                 {formatRequests(usage.requests)} ·{' '}
                 {formatNumber(usage.tokens.total, { compact: true })} tokens
               </Text>
             </Flex>
+
+            <Text as="span" size="2" weight="medium" wrap="nowrap">
+              <CostValue cost={usage.cost} />
+            </Text>
           </ModelRow>
         ))}
       </ModelList>
@@ -197,34 +175,18 @@ let CostByModel = ({ session }: { session: Session }) => (
   </Box>
 );
 
-let MemberBox = ({ session }: { session: Session }) => (
-  <Box title="Member">
-    <Flex justify="space-between" align="center" gap={10}>
-      <MemberIdentity member={session.member} showLink={false} />
+let MemberBox = ({ session }: { session: Session }) => {
+  let ctx = useInstanceContext();
 
-      {session.member ? (
-        session.member.matched ? (
-          <Badge size="1" color="green" style={{ flexShrink: 0 }}>
-            Linked
-          </Badge>
-        ) : (
-          <NotLinkedBadge />
-        )
-      ) : null}
-    </Flex>
-
-    {session.member ? null : (
-      <>
-        <Spacer height={10} />
-
-        <Text size="1" color="gray600">
-          Usage through an API key or Bedrock carries no email, so it cannot be tied to a
-          person.
-        </Text>
-      </>
-    )}
-  </Box>
-);
+  return (
+    <Box title="Member">
+      <MemberDetails
+        member={session.member}
+        href={session.member ? memberPath(ctx, session.member.id) : undefined}
+      />
+    </Box>
+  );
+};
 
 let ClientBox = ({ session }: { session: Session }) => (
   <Box title="Client">
@@ -257,9 +219,8 @@ let SessionBox = ({ session }: { session: Session }) => (
 let SessionHeader = ({ sessionId, session }: { sessionId: string; session?: Session }) => {
   let ctx = useInstanceContext();
   let now = useNow();
-  let { copy, copied } = useCopy(sessionId);
 
-  let owner = session?.member?.name ? firstName(session.member.name) : null;
+  let title = session ? sessionTitle(session, now) : 'Session';
   let path = Paths.instance.agentTracking.session(
     ctx.organization,
     ctx.project,
@@ -269,7 +230,6 @@ let SessionHeader = ({ sessionId, session }: { sessionId: string; session?: Sess
 
   let description = session
     ? [
-        `By ${memberName(session.member)}`,
         formatTimeSpan(session.startedAt, session.endedAt ?? session.lastActivityAt, now),
         [clientLabel(session.client), clientVersion(session.client)].filter(Boolean).join(' '),
         session.client.surface
@@ -280,35 +240,12 @@ let SessionHeader = ({ sessionId, session }: { sessionId: string; session?: Sess
 
   return (
     <PageHeader
-      title="Session"
+      title={title}
       description={description}
       pagination={[
         { label: 'Sessions', href: sessionsPath(ctx) },
-        { label: sessionId, href: path }
+        { label: title, href: path }
       ]}
-      actions={
-        session ? (
-          <Flex gap={8}>
-            <Button
-              size="2"
-              variant="outline"
-              iconLeft={<RiFileCopyLine />}
-              success={copied}
-              onClick={() => copy()}
-            >
-              Copy Session ID
-            </Button>
-
-            {session.member ? (
-              <Link to={memberSessionsPath(ctx, session.member.id)}>
-                <Button size="2" variant="outline" as="span">
-                  {owner ? `${owner}'s Sessions` : "This Member's Sessions"}
-                </Button>
-              </Link>
-            ) : null}
-          </Flex>
-        ) : undefined
-      }
     />
   );
 };
@@ -317,7 +254,7 @@ let SessionDetail = ({ session }: { session: Session }) => (
   <Flex direction="column" gap={20}>
     <SessionHeader sessionId={session.id} session={session} />
 
-    <Columns>
+    <DetailColumns>
       <Flex direction="column" gap={20}>
         <SessionFigures session={session} />
         <CostExplanation session={session} />
@@ -330,7 +267,7 @@ let SessionDetail = ({ session }: { session: Session }) => (
         <ClientBox session={session} />
         <SessionBox session={session} />
       </Flex>
-    </Columns>
+    </DetailColumns>
   </Flex>
 );
 

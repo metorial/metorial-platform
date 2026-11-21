@@ -1,19 +1,18 @@
 import {
-  withTransaction,
   type AgentTrackingContentMode,
   type AgentTrackingInstanceSettings,
   type AgentTrackingOrganizationSettings,
   type AgentTrackingProjectSettings,
   type Instance,
   type Organization,
-  type Project,
-  type TransactionDB
+  type Project
 } from '@metorial/db';
 import type {
   AgentTrackingInstanceSettingsValues,
   AgentTrackingOrganizationSettingsValues,
   AgentTrackingProjectSettingsValues
 } from '@metorial/fabric';
+import { readFromPrimary } from './primary';
 
 export let agentTrackingContentModes = [
   'basic',
@@ -39,10 +38,6 @@ let contentModeRank: Record<AgentTrackingContentMode, number> = {
 export type AgentTrackingPrivacy = AgentTrackingOrganizationSettingsValues['privacy'];
 
 type CaptureSettings = Pick<AgentTrackingInstanceSettingsValues, 'content' | 'classification'>;
-
-// A transaction always runs on the primary, so enforcement never reads settings from a lagging
-// replica.
-let readFromPrimary = <T>(read: (db: TransactionDB) => Promise<T>) => withTransaction(read);
 
 export let readOrganizationSettings = (organizationId: string) =>
   readFromPrimary(db =>

@@ -4,6 +4,7 @@ import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/
 import { getAgentTracking, ignoreNotFound, isAgentTrackingEnabled } from '../lib/client';
 import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
 import { archivableStatuses, syncedEntitySources } from '../lib/mapping';
+import { unlinkOrganizationTree } from '../lib/links';
 import { backfillOrganizationQueue } from './backfill';
 import { syncScopeQueue } from './syncScope';
 
@@ -57,13 +58,32 @@ export let reconcileSingleQueue = createQueue<{
 });
 
 export let reconcileSingleQueueProcessor = reconcileSingleQueue.process(async data => {
-  let organization = await db.organization.findUnique({ where: { id: data.organizationId } });
+  let agentTracking = getAgentTracking();
+  if (!agentTracking) return;
+
+  let organization = await db.organization.findUnique({
+    where: { id: data.organizationId },
+    include: { agentTrackingLink: true, agentTrackingSettings: true }
+  });
   if (!organization) return;
 
   if (!(await isAgentTrackingEnabledForOrganization({ organization }))) return;
 
-  await syncScopeQueue.add({ type: 'organization', id: organization.id });
-  if (organization.status != 'active') return;
+  let link = organization.agentTrackingLink;
+  let target = { type: 'organization' as const, id: organization.id };
+
+  if (organization.status != 'active') {
+    if (link) await syncScopeQueue.add(target);
+    return;
+  }
+
+  if (link) {
+    let remote = await ignoreNotFound(
+      agentTracking.organization.get({ organizationId: organization.id })
+    );
+    if (remote?.id != link.serviceOrganizationId) await unlinkOrganizationTree(organization);
+    else if (organization.agentTrackingSettings) await syncScopeQueue.add(target);
+  }
 
   await reconcileScopesQueue.addMany([
     { organizationId: organization.id, type: 'project' },
@@ -103,17 +123,42 @@ export let reconcileScopesQueue = createQueue<{
   workerOpts: { concurrency: 1 }
 });
 
+// Unlinked active scopes are left to their first use. A linked one with stored settings is
+// pushed, so a settings push that never landed is applied within a day; a deleted one with a
+// link is archived, which unlinks it.
+let linkedWithSettingsOrDeletedWhere = <Active extends object>(active: Active) => ({
+  OR: [
+    { ...active, agentTrackingLink: { isNot: null }, agentTrackingSettings: { isNot: null } },
+    { NOT: active, agentTrackingLink: { isNot: null } }
+  ]
+});
+
 export let reconcileScopesQueueProcessor = reconcileScopesQueue.process(async data => {
   let where = {
     organization: { id: data.organizationId },
     id: data.cursor ? { gt: data.cursor } : undefined
   };
-  let query = { where, orderBy: { id: 'asc' as const }, take: pageSize, select: { id: true } };
+  let query = { orderBy: { id: 'asc' as const }, take: pageSize, select: { id: true } };
 
   let scopes =
     data.type == 'project'
-      ? await db.project.findMany(query)
-      : await db.instance.findMany(query);
+      ? await db.project.findMany({
+          ...query,
+          where: {
+            ...where,
+            ...linkedWithSettingsOrDeletedWhere({ status: 'active' as const })
+          }
+        })
+      : await db.instance.findMany({
+          ...query,
+          where: {
+            ...where,
+            ...linkedWithSettingsOrDeletedWhere({
+              status: 'active' as const,
+              project: { status: 'active' as const }
+            })
+          }
+        });
   if (!scopes.length) return;
 
   await syncScopeQueue.addMany(scopes.map(scope => ({ type: data.type, id: scope.id })));

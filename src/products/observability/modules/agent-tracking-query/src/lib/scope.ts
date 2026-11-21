@@ -1,47 +1,13 @@
-import { isServiceError } from '@lowerdeck/error';
 import type { Instance, Organization, Project } from '@metorial/db';
-import {
-  agentTrackingSyncService,
-  requireAgentTracking
-} from '@metorial/module-agent-tracking-sync';
-import { cached, cacheKey, scopeTtlSeconds } from './cache';
+import { requireAgentTracking, withInstanceScope } from '@metorial/module-agent-tracking-sync';
+import { cached, cacheKey } from './cache';
 import { fromService, queryCallOptions, readCallOptions } from './service';
 
 export type ReadScope = {
   organization: Pick<Organization, 'oid' | 'id' | 'name'>;
-  project: Pick<Project, 'id' | 'name'>;
+  project: Pick<Project, 'oid' | 'id' | 'name'>;
   instance: Pick<Instance, 'oid' | 'id' | 'name'>;
 };
-
-// Only when the service does not know the instance, so a read does not write each time.
-export let resolveServiceInstanceId = async (d: ReadScope) =>
-  await cached({
-    key: `scope:${d.organization.id}:${d.instance.id}`,
-    ttlSeconds: scopeTtlSeconds,
-    load: async () => {
-      let agentTracking = requireAgentTracking();
-
-      try {
-        let remote = await agentTracking.instance.get(
-          { organizationId: d.organization.id, instanceId: d.instance.id },
-          readCallOptions
-        );
-
-        return remote.id;
-      } catch (error) {
-        if (!isServiceError(error) || error.data.status != 404) throw error;
-      }
-
-      let created = await agentTrackingSyncService.upsertInstanceScope({
-        organization: d.organization,
-        project: d.project,
-        instance: d.instance,
-        callOpts: readCallOptions
-      });
-
-      return created.id;
-    }
-  });
 
 export let runUsageQuery = (
   scope: Pick<ReadScope, 'organization'>,
@@ -58,7 +24,7 @@ export let cachedRead = async <T>(d: {
   read: string;
   input?: unknown;
   ttlSeconds?: number;
-  load: () => Promise<T>;
+  load: (serviceInstanceId: string) => Promise<T>;
 }) => {
   let key = await cacheKey({
     organizationId: d.scope.organization.id,
@@ -67,5 +33,20 @@ export let cachedRead = async <T>(d: {
     input: d.input
   });
 
-  return await fromService(() => cached({ key, ttlSeconds: d.ttlSeconds, load: d.load }));
+  return await fromService(() =>
+    cached({
+      key,
+      ttlSeconds: d.ttlSeconds,
+      load: () =>
+        withInstanceScope(
+          {
+            organization: d.scope.organization,
+            project: d.scope.project,
+            instance: d.scope.instance,
+            callOpts: readCallOptions
+          },
+          d.load
+        )
+    })
+  );
 };

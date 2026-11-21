@@ -186,6 +186,7 @@ model Instance {
   agentTrackingIngestTokens  AgentTrackingIngestToken[]
   agentTrackingIngestSources AgentTrackingIngestSource[]
   agentTrackingSettings      AgentTrackingInstanceSettings?
+  agentTrackingLink          AgentTrackingInstanceLink?
 
   @@index([previousSlugs])
   @@index([oldSlug])

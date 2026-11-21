@@ -1,8 +1,5 @@
 import { formatAmount } from './costFormat';
 
-let valuationBasis =
-  'your contract prices where set, else the cost Claude Code reports, else list prices';
-
 type BillingMode = 'included' | 'overage' | 'api' | 'unknown';
 
 export let firstName = (name: string | null | undefined) =>
@@ -36,27 +33,19 @@ export let describeSessionCost = (
 
   if (kind == 'unknown') {
     return d.requests
-      ? 'None of the requests of this session has a known cost, so it has no total. That is not the same as zero.'
+      ? 'No request of this session has a known cost, so there is no total (not $0).'
       : null;
   }
 
-  if (kind == 'billed') {
-    return "Billed by the provider, so it matches your provider's bill and has no tilde.";
-  }
-
   if (kind == 'partlyBilled') {
-    return `${formatAmount(d.cost.billedMicros!, { estimate: false })} of it was billed by the provider. The other ${formatAmount(d.cost.estimatedMicros!, { estimate: true })} is an estimate, not a bill, valued at ${valuationBasis}.`;
+    return `${formatAmount(d.cost.billedMicros!, { estimate: false })} was billed by the provider. The other ${formatAmount(d.cost.estimatedMicros!, { estimate: true })} is an estimate.`;
   }
-
-  let estimateLead = formatAmount(d.cost.totalMicros!, { estimate: true }).startsWith('~')
-    ? 'The tilde means this is an estimate'
-    : 'This is an estimate';
 
   if (kind == 'subscription') {
     let owner = firstName(d.memberName);
 
-    return `${estimateLead}. ${owner ? `${owner}'s` : 'A'} Claude subscription or seat covers this usage, so nobody was charged ${formatAmount(d.cost.totalMicros!, { estimate: false })}; it is what the same tokens cost at ${valuationBasis}.`;
+    return `${owner ? `${owner}'s` : 'A'} subscription covers this session, so nobody was charged.`;
   }
 
-  return `${estimateLead}, not a bill, valued at ${valuationBasis}.`;
+  return null;
 };

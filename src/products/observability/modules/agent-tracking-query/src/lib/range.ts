@@ -170,6 +170,10 @@ export let previousRange = (range: ResolvedRange): { from: Date; to: Date } => {
   return { from: new Date(range.from.getTime() - length), to: range.from };
 };
 
+export let hasRange = (range: RangeInput | undefined): range is RangeInput =>
+  !!range &&
+  (range.preset !== undefined || range.from !== undefined || range.to !== undefined);
+
 export let normalizeRange = (input: RangeInput) => {
   let timeZone = input.timeZone ?? 'UTC';
   if (!isValidTimeZone(timeZone)) throw invalid(`Unknown time zone "${timeZone}".`);
@@ -203,8 +207,6 @@ export let resolveRange = (range: NormalizedRange, now: Date = new Date()): Reso
   return { preset: null, from: range.from!, to: range.to!, timeZone: range.timeZone };
 };
 
-// The key carries today's date in the zone, so a preset cached before midnight is not served
-// after it.
 export let rangeCacheKey = (range: NormalizedRange, now: Date = new Date()) =>
   range.preset
     ? {

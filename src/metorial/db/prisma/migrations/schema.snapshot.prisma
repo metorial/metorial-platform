@@ -698,6 +698,45 @@ model AgentTrackingIngestToken {
   @@index([instanceOid])
 }
 
+model AgentTrackingOrganizationLink {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  serviceOrganizationId String @unique
+
+  organizationOid BigInt       @unique
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AgentTrackingProjectLink {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  serviceProjectId String @unique
+
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AgentTrackingInstanceLink {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  serviceInstanceId String @unique
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
 enum AgentTrackingContentMode {
   basic
   shape
@@ -4999,6 +5038,7 @@ model Instance {
   agentTrackingIngestTokens  AgentTrackingIngestToken[]
   agentTrackingIngestSources AgentTrackingIngestSource[]
   agentTrackingSettings      AgentTrackingInstanceSettings?
+  agentTrackingLink          AgentTrackingInstanceLink?
 
   @@index([previousSlugs])
   @@index([oldSlug])
@@ -5486,6 +5526,7 @@ model Organization {
   eventDeliveryAttempts                  EventDeliveryAttempt[]
 
   agentTrackingSettings AgentTrackingOrganizationSettings?
+  agentTrackingLink     AgentTrackingOrganizationLink?
 
   @@index([authVersion])
   @@index([previousSlugs])
@@ -5641,6 +5682,7 @@ model Project {
   teams                TeamProject[]
 
   agentTrackingSettings AgentTrackingProjectSettings?
+  agentTrackingLink     AgentTrackingProjectLink?
 
   resourceActors        ResourceActor[]
   fileLinks             FileLink[]

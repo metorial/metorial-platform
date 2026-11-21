@@ -658,7 +658,12 @@ describe('agentTrackingMemberService', () => {
   let seenRows = ['aten_ada', 'aten_bob', 'aten_cy'].map((user, index) => ({
     user,
     sessions: 3 - index,
-    last_activity: new Date(Date.parse('2026-11-18T10:00:00Z') - index * 60_000).toISOString()
+    last_activity: new Date(Date.parse('2026-11-18T10:00:00Z') - index * 60_000).toISOString(),
+    'cost.usd': `${[1.5, 0.5, 0][index]}`,
+    'cost.list': index == 0 ? '2' : '0',
+    'cost.reported': [],
+    sessions_with_cost: [3, 2, 0][index],
+    sessions_with_list_price: index == 0 ? 3 : 0
   }));
 
   beforeEach(() => {
@@ -685,25 +690,97 @@ describe('agentTrackingMemberService', () => {
       query: {
         dataset: 'sessions',
         dimensions: [{ field: 'user', missing: 'exclude' }],
-        measures: ['sessions', 'last_activity'],
+        measures: [
+          'sessions',
+          'last_activity',
+          'cost.usd',
+          'cost.list',
+          'cost.reported',
+          {
+            fn: 'count',
+            where: { field: 'cost.usd', op: 'notNull' },
+            as: 'sessions_with_cost'
+          },
+          {
+            fn: 'count',
+            where: { field: 'cost.list', op: 'notNull' },
+            as: 'sessions_with_list_price'
+          }
+        ],
         orderBy: [{ by: 'last_activity', direction: 'desc' }],
         limit: 1000
       }
     });
+    expect(callsTo('query:run')[0]!.input.query.where).toBeUndefined();
     expect(result.truncated).toBe(false);
     expect(
-      result.list.items.map(member => [member.id, member.matched, member.sessions])
+      result.list.items.map(member => [
+        member.id,
+        member.matched,
+        member.sessions,
+        member.cost.totalMicros,
+        member.cost.listPriceMicros
+      ])
     ).toEqual([
-      ['aten_ada', true, 3],
-      ['aten_bob', false, 2],
-      ['aten_cy', false, 1]
+      ['aten_ada', true, 3, 1_500_000, 2_000_000],
+      ['aten_bob', false, 2, 500_000, null],
+      ['aten_cy', false, 1, null, null]
     ]);
+    expect(result.list.items[0]!.cost.isEstimate).toBe(true);
     expect(result.list.items[0]!.lastSeenAt).toEqual(new Date('2026-11-18T10:00:00Z'));
     expect(result.list.items[0]!.consumer).toEqual({
       id: null,
       name: 'Ada Lovelace',
       email: 'ada@example.com'
     });
+  });
+
+  it('counts the sessions last active in a range, for the members asked for', async () => {
+    vi.useFakeTimers({ now: new Date('2026-11-20T12:00:00Z'), toFake: ['Date'] });
+
+    try {
+      await agentTrackingMemberService.listMembers({
+        ...scope,
+        page: {},
+        range: { preset: 'last_month' },
+        memberIds: ['aten_bob', 'aten_ada', 'aten_bob']
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    let monthStart = '2026-11-01T00:00:00.000Z';
+    expect(callsTo('query:run')[0]!.input.query).toMatchObject({
+      dataset: 'sessions',
+      range: {
+        from: new Date(Date.parse(monthStart) - 400 * 86_400_000).toISOString(),
+        to: monthStart
+      },
+      where: {
+        and: [
+          { field: 'lastActivityAt', op: 'gte', value: '2026-10-01T00:00:00.000Z' },
+          { field: 'lastActivityAt', op: 'lt', value: monthStart },
+          { field: 'user', op: 'in', value: ['aten_ada', 'aten_bob'] }
+        ]
+      }
+    });
+  });
+
+  it('keeps a cache entry per range and per set of members', async () => {
+    let reads = [
+      {},
+      { range: { preset: 'last_7_days' as const } },
+      { range: { preset: 'last_month' as const } },
+      { memberIds: ['aten_ada'] },
+      { memberIds: ['aten_bob'] },
+      { range: { preset: 'last_7_days' as const }, memberIds: ['aten_ada'] }
+    ];
+
+    for (let read of [...reads, ...reads]) {
+      await agentTrackingMemberService.listMembers({ ...scope, page: {}, ...read });
+    }
+
+    expect(callsTo('query:run')).toHaveLength(reads.length);
   });
 
   it('pages forward and back by item id, looking up only the page', async () => {

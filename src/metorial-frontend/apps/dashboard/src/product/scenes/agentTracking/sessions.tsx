@@ -3,180 +3,148 @@ import type { DashboardInstanceAgentTrackingSessionsListOutput } from '@metorial
 import { col, createDataList, defineAction, f, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import { useAgentTrackingSessions } from '@metorial/state';
-import { Flex, RenderDate, Text, useCopy } from '@metorial/ui';
-import { useNow } from '@metorial/use-now';
+import { Flex, Text, useCopy } from '@metorial/ui';
 import { RiFileCopyLine, RiUserLine } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
 import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
-import { formatDayLabel, formatTime } from './activity';
 import { agentTrackingFilters } from './filters';
-import { MemberIdentity } from './member';
-import { agentTrackingRangePresets, getBrowserTimeZone } from './range';
+import { MemberIdentity, memberPath } from './memberParts';
+import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
 import {
   clientLabel,
-  clientVersion,
-  SessionActivityLabel,
   SessionCost,
   SessionModels,
   SessionSummaryCell,
   settlingLabel
 } from './sessionParts';
 
-let filterScope = { range: 'last_30_days', rangeText: 'the last 30 days' } as const;
+let filterRangeText = 'the last 30 days';
 
 type Session = DashboardInstanceAgentTrackingSessionsListOutput['items'][number];
+
+type ListProps = { instanceId: string; memberId?: string };
 
 let legend = [
   { key: '~', text: 'Estimated, not a bill' },
   { key: 'No ~', text: 'Billed by the provider' },
-  { key: settlingLabel, text: 'Cost arrives 30 to 90 seconds after activity' },
-  { key: 'Active Now', text: 'Activity in the last 5 minutes' },
-  { key: 'Idle', text: 'Quiet for the time shown, and may already be closed' },
-  { key: 'Ended', text: 'Quiet for a day, or closed where Claude Code reports it' }
+  { key: settlingLabel, text: 'Cost arrives 30 to 90 seconds after activity' }
 ];
 
-let sessionPath = (ctx: InstanceContext, sessionId: string) =>
-  Paths.instance.agentTracking.session(ctx.organization, ctx.project, ctx.instance, sessionId);
+let memberColumn = col.custom<Session>({
+  id: 'member',
+  header: 'Member',
+  render: row => <MemberIdentity member={row.member} />
+});
 
-export let memberSessionsPath = (ctx: InstanceContext, memberId: string) =>
-  `${Paths.instance.agentTracking.sessions(ctx.organization, ctx.project, ctx.instance)}?memberId=${encodeURIComponent(memberId)}`;
+let copyIdAction = defineAction<Session, ListProps, InstanceContext>({
+  id: 'copy-id',
+  label: 'Copy Session ID',
+  icon: <RiFileCopyLine />,
+  row: true,
+  bulk: false,
+  useRun: () => {
+    let { copy } = useCopy();
+    return row => copy(row.id);
+  }
+});
 
-let LastActiveCell = ({ session }: { session: Session }) => {
-  let now = useNow();
+let memberAction = defineAction<Session, ListProps, InstanceContext>({
+  id: 'open-member',
+  label: 'Open Member',
+  icon: <RiUserLine />,
+  row: true,
+  bulk: false,
+  hidden: row => !row.member,
+  useRun: ({ ctx }) => {
+    let navigate = useNavigate();
+    let { range } = useLastActiveRange();
 
-  return (
-    <Flex direction="column" gap={2}>
-      <Text as="span" size="2">
-        {formatTime(session.lastActivityAt)}
-      </Text>
-
-      <Text as="span" size="1" color="gray600">
-        {formatDayLabel(session.lastActivityAt, now)}
-      </Text>
-    </Flex>
-  );
-};
-
-let AgentTrackingSessionsList = createDataList<{ instanceId: string }>(
-  'agent-tracking-sessions'
-)
-  .context(useInstanceContext)
-  .filters(props => {
-    let byField = agentTrackingFilters(props.instanceId, filterScope, [
-      'member',
-      'model',
-      'client'
-    ]);
-
-    return {
-      memberId: f.entity(byField.member),
-      modelId: f.entity(byField.model),
-      clientFamily: f.entity(byField.client),
-      range: f.select('range', 'Last Active', agentTrackingRangePresets, {
-        description: 'Filter by last activity',
-        highlight: { exclusive: true, label: 'Last Active', preserveOrder: true }
-      })
+    return row => {
+      if (row.member) navigate(memberPath(ctx, row.member.id, range));
     };
-  })
-  .paginated(({ props, filters, limit }) => {
-    let range = filters.range?.[0];
+  }
+});
 
-    return useAgentTrackingSessions(
-      props.instanceId,
-      withDefaults(
-        { order: 'desc' as const },
-        {
-          limit,
-          memberId: filters.memberId,
-          modelId: filters.modelId,
-          clientFamily: filters.clientFamily,
-          range,
-          timeZone: range ? getBrowserTimeZone() : undefined
-        }
-      )
-    );
-  })
-  .columns([
-    col.custom<Session>({
-      id: 'lastActivityAt',
-      header: 'Last Active',
-      render: row => <LastActiveCell session={row} />
-    }),
-    col.custom<Session>({
-      id: 'session',
-      header: 'Session',
-      render: row => <SessionSummaryCell session={row} />
-    }),
-    col.custom<Session>({
-      id: 'member',
-      header: 'Member',
-      render: row => <MemberIdentity member={row.member} />
-    }),
-    col.custom<Session>({
-      id: 'models',
-      header: 'Models',
-      render: row => <SessionModels session={row} />
-    }),
-    col.custom<Session>({
-      id: 'cost',
-      header: 'Cost',
-      render: row => <SessionCost session={row} />
-    }),
-    col.custom<Session>({
-      id: 'activity',
-      header: 'Activity',
-      render: row => <SessionActivityLabel session={row} />
-    }),
-    col.twoLine<Session>({
-      id: 'client',
-      header: 'Client',
-      isDefault: false,
-      primary: row => clientLabel(row.client),
-      secondary: row =>
-        [row.client.surface, clientVersion(row.client)].filter(Boolean).join(' · ') || null
-    }),
-    col.custom<Session>({
-      id: 'requests',
-      header: 'Requests',
-      isDefault: false,
-      render: row => <Text size="2">{formatNumber(row.requests)}</Text>
-    }),
-    col.custom<Session>({
-      id: 'startedAt',
-      header: 'Started',
-      isDefault: false,
-      render: row => <RenderDate date={row.startedAt} />
+let buildSessionsList = (name: string, d: { forMember: boolean }) =>
+  createDataList<ListProps>(name)
+    .context(useInstanceContext)
+    .filters(props => {
+      let common = {
+        modelId: f.entity(agentTrackingFilters.model(props.instanceId, filterRangeText)),
+        clientFamily: f.entity(agentTrackingFilters.client(props.instanceId, filterRangeText)),
+        range: lastActiveRangeFilter
+      };
+
+      return d.forMember
+        ? common
+        : {
+            memberId: f.entity(agentTrackingFilters.member(props.instanceId, filterRangeText)),
+            ...common
+          };
     })
-  ])
-  .link((row, _props, ctx) => sessionPath(ctx, row.id))
-  .itemActions([
-    defineAction<Session, { instanceId: string }, InstanceContext>({
-      id: 'copy-id',
-      label: 'Copy Session ID',
-      icon: <RiFileCopyLine />,
-      row: true,
-      bulk: false,
-      useRun: () => {
-        let { copy } = useCopy();
-        return row => copy(row.id);
-      }
-    }),
-    defineAction<Session, { instanceId: string }, InstanceContext>({
-      id: 'member-sessions',
-      label: "Show This Member's Sessions",
-      icon: <RiUserLine />,
-      row: true,
-      bulk: false,
-      hidden: row => !row.member,
-      useRun: ({ ctx }) => {
-        let navigate = useNavigate();
-        return row => {
-          if (row.member) navigate(memberSessionsPath(ctx, row.member.id));
-        };
-      }
+    .paginated(({ props, filters, limit }) => {
+      let memberId = props.memberId ?? ('memberId' in filters ? filters.memberId : undefined);
+
+      return useAgentTrackingSessions(
+        props.instanceId,
+        withDefaults(
+          { order: 'desc' as const },
+          {
+            limit,
+            memberId,
+            modelId: filters.modelId,
+            clientFamily: filters.clientFamily,
+            ...lastActiveRangeQuery(filters.range?.[0])
+          }
+        )
+      );
     })
-  ])
-  .build();
+    .columns([
+      ...(d.forMember ? [] : [memberColumn]),
+      col.custom<Session>({
+        id: 'models',
+        header: 'Models',
+        render: row => <SessionModels session={row} />
+      }),
+      col.twoLine<Session>({
+        id: 'client',
+        header: 'Client',
+        isDefault: false,
+        primary: row => clientLabel(row.client),
+        secondary: row => row.client.surface
+      }),
+      col.text<Session>({
+        id: 'requests',
+        header: 'Requests',
+        isDefault: false,
+        get: row => formatNumber(row.requests)
+      }),
+      col.date<Session>('startedAt', { header: 'Started' }),
+      col.custom<Session>({
+        id: 'session',
+        header: 'Session',
+        render: row => <SessionSummaryCell session={row} />
+      }),
+      col.custom<Session>({
+        id: 'cost',
+        header: 'Cost',
+        render: row => <SessionCost session={row} />
+      }),
+      col.date<Session>('lastActivityAt', { header: 'Last Active', isDefault: true })
+    ])
+    .link((row, _props, ctx) =>
+      Paths.instance.agentTracking.session(ctx.organization, ctx.project, ctx.instance, row.id)
+    )
+    .itemActions(d.forMember ? [copyIdAction] : [copyIdAction, memberAction])
+    .build();
+
+let AgentTrackingSessionsList = buildSessionsList('agent-usage-sessions', {
+  forMember: false
+});
+
+let AgentTrackingMemberSessionsList = buildSessionsList('agent-usage-member-sessions', {
+  forMember: true
+});
 
 let SessionsLegend = () => (
   <Flex gap={18} wrap="wrap">
@@ -191,17 +159,28 @@ let SessionsLegend = () => (
   </Flex>
 );
 
-export let AgentTrackingSessionsTable = ({ instanceId }: { instanceId: string }) => (
-  <Flex direction="column" gap={14}>
-    <AgentTrackingSessionsList
-      instanceId={instanceId}
-      emptyState={{
-        initial: 'No sessions yet.',
-        filtered:
-          'No sessions match these filters. A session joins a model filter about 30 seconds after its first request.'
-      }}
-    />
+export let AgentTrackingSessionsTable = ({
+  instanceId,
+  memberId
+}: {
+  instanceId: string;
+  memberId?: string;
+}) => {
+  let List = memberId ? AgentTrackingMemberSessionsList : AgentTrackingSessionsList;
 
-    <SessionsLegend />
-  </Flex>
-);
+  return (
+    <Flex direction="column" gap={14}>
+      <List
+        instanceId={instanceId}
+        memberId={memberId}
+        emptyState={{
+          initial: memberId ? 'No sessions of this member yet.' : 'No sessions yet.',
+          filtered:
+            'No sessions match these filters. A session joins a model filter about 30 seconds after its first request.'
+        }}
+      />
+
+      <SessionsLegend />
+    </Flex>
+  );
+};

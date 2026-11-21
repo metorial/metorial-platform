@@ -48,6 +48,13 @@ export let sessionLength = (session: { startedAt: Date; lastActivityAt: Date }) 
 let calendarDay = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
+let formatCalendarDate = (date: Date, now: Date) =>
+  new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() == now.getFullYear() ? {} : { year: 'numeric' })
+  }).format(date);
+
 export let formatDayLabel = (value: Date, now: Date) => {
   let date = new Date(value);
   let days = Math.round((calendarDay(now) - calendarDay(date)) / dayMs);
@@ -55,11 +62,17 @@ export let formatDayLabel = (value: Date, now: Date) => {
   if (days == 0) return 'Today';
   if (days == 1) return 'Yesterday';
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    ...(date.getFullYear() == now.getFullYear() ? {} : { year: 'numeric' })
-  }).format(date);
+  return formatCalendarDate(date, now);
+};
+
+export let sessionTitle = (
+  session: { member: { name: string | null; email: string | null } | null; startedAt: Date },
+  now: Date
+) => {
+  let person = session.member?.name ?? session.member?.email;
+  let date = formatCalendarDate(new Date(session.startedAt), now);
+
+  return person ? `${person} on ${date}` : `Session on ${date}`;
 };
 
 export let formatTime = (value: Date) =>

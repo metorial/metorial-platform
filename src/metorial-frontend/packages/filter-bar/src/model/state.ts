@@ -69,6 +69,23 @@ export let getHighlightLabel = (filter: TableFilter<any>) =>
 export let isExclusiveHighlight = (filter: TableFilter<any>) =>
   typeof filter.highlight == 'object' && !!filter.highlight.exclusive;
 
+export let getHighlightDefault = (filter: TableFilter<any>) =>
+  typeof filter.highlight == 'object' && filter.highlight.exclusive
+    ? filter.highlight.defaultValue
+    : undefined;
+
+export let getActiveHighlightValues = (
+  filter: TableFilter<any>,
+  selected: string[],
+  optionIds: string[]
+) => {
+  let fallback = getHighlightDefault(filter);
+  if (!fallback) return selected;
+
+  let known = selected.filter(id => optionIds.includes(id));
+  return known.length ? known : [fallback];
+};
+
 export let preservesHighlightOrder = (filter: TableFilter<any>) =>
   typeof filter.highlight == 'object' && !!filter.highlight.preserveOrder;
 

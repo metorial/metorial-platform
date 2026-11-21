@@ -4,6 +4,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { saveBlob } from '@metorial/file-browser';
 import { useAgentTrackingIngestSources, useAgentTrackingSetupStatus } from '@metorial/state';
 import {
+  Badge,
   Button,
   Callout,
   Flex,
@@ -12,11 +13,12 @@ import {
   Switch,
   Text,
   theme,
+  Tooltip,
   useCopy
 } from '@metorial/ui';
 import { SideBox, Table } from '@metorial/ui-product';
 import { RiDownloadLine, RiFileCopyLine } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useToggle } from 'react-use';
 import styled from 'styled-components';
 import {
@@ -24,7 +26,6 @@ import {
   AgentTrackingErrorState,
   noIngestAddressText
 } from './errorState';
-import { HintBadge } from './sessionParts';
 import {
   buildClaudeCodeManagedSettings,
   buildManagedSettingsCommands,
@@ -116,12 +117,9 @@ let detectionBadges = {
 } as const;
 
 let osInstructions: Record<ManagedSettingsOs, string> = {
-  macos:
-    'Run this in Terminal. It asks for your Mac password, because the folder belongs to the system. It creates the folder if it is missing and writes the file with your key in it.',
-  linux:
-    'Run this in a terminal. On WSL, run it inside the Linux distribution. It creates the folder if it is missing and writes the file with your key in it.',
-  windows:
-    'Run this in PowerShell opened with Run as Administrator. It creates the folder if it is missing and writes the file with your key in it.'
+  macos: 'Run this in Terminal; it asks for your Mac password and writes the file.',
+  linux: 'Run this in a terminal, on WSL inside the Linux distribution; it writes the file.',
+  windows: 'Run this in PowerShell opened with Run as Administrator; it writes the file.'
 };
 
 let OptionRow = styled.div`
@@ -135,6 +133,24 @@ let OptionRow = styled.div`
     border-bottom: 1px solid ${theme.colors.gray300};
   }
 `;
+
+let HintBadge = ({
+  label,
+  color,
+  hint
+}: {
+  label: ReactNode;
+  color: 'green' | 'gray';
+  hint: ReactNode;
+}) => (
+  <Tooltip content={hint}>
+    <span>
+      <Badge size="2" color={color}>
+        {label}
+      </Badge>
+    </span>
+  </Tooltip>
+);
 
 let CopyButton = ({
   value,
@@ -168,8 +184,7 @@ let SettingsOptions = ({
   return (
     <div>
       <Text size="2" color="gray700">
-        Changing the file later means deploying it again, and nothing is collected for the time
-        before. So decide once, with every option in view.
+        Changing these later means deploying the file again.
       </Text>
 
       {setupStatus.error && agentTrackingErrorStatus(setupStatus.error) != 404 ? (
@@ -266,7 +281,7 @@ let MissingFile = ({
   )(({ activeKeys }) =>
     activeKeys.data.items.length ? (
       <Callout color="gray">
-        {noIngestAddressText} The file cannot be built, but existing keys can still be revoked.
+        {noIngestAddressText} No file can be built, but existing keys can still be revoked.
       </Callout>
     ) : (
       <Text size="2" color="gray600">
@@ -319,10 +334,8 @@ let FileActions = ({ file }: { file: ManagedSettingsFile }) => {
 
 let TemplateNotice = () => (
   <Callout color="orange">
-    This is a template, not a file to deploy as it is. The key is shown only once, so it has{' '}
-    <code>{ingestionKeyPlaceholder}</code> where the key goes. Replace it with the key you
-    saved, or create a new key to get a complete file and copy-ready commands. Deployed
-    unchanged, Claude Code sends nothing.
+    Replace <code>{ingestionKeyPlaceholder}</code> in this template with the key you saved, or
+    create a new key to get a complete file.
   </Callout>
 );
 
@@ -352,17 +365,13 @@ let ThisMachine = ({ file }: { file: ManagedSettingsFile }) => {
             label: location.os
           }))}
         />
-        <Text size="1" color="gray600">
-          Picked from your browser.
-        </Text>
       </Flex>
 
       {file.usesPlaceholder ? (
         <>
           <TemplateNotice />
           <Text size="2" color="gray700">
-            Copy-ready commands need the key. With the template, put your saved key in, then
-            place the file at <code>{location.path}</code>.
+            Then place the file at <code>{location.path}</code>.
           </Text>
         </>
       ) : (
@@ -383,17 +392,15 @@ let ThisMachine = ({ file }: { file: ManagedSettingsFile }) => {
 
           {os == 'macos' ? (
             <Text size="2" color="gray700">
-              Keep the quotes: the folder name has a space. Claude Code does not read{' '}
-              <code>{managedSettingsFileName}</code> from <code>~/.claude</code>, only from
-              this system folder.
+              Claude Code reads <code>{managedSettingsFileName}</code> only from this system
+              folder, not from <code>~/.claude</code>.
             </Text>
           ) : null}
 
           <Spacer height={4} />
 
           <Text size="2" weight="medium">
-            3. Start Claude Code and send a prompt. Sessions started after the file is in place
-            report their usage.
+            3. Start a new Claude Code session and send a prompt.
           </Text>
         </>
       )}
@@ -404,9 +411,7 @@ let ThisMachine = ({ file }: { file: ManagedSettingsFile }) => {
 let ManyMachines = ({ file }: { file: ManagedSettingsFile | null }) => (
   <Flex direction="column" gap={8}>
     <Text size="2" color="gray700">
-      Place the file with Jamf, Intune, Kandji or whatever already puts files on devices.
-      Nothing else is installed. Sessions started after the file is in place report their
-      usage.
+      Place the file at the path below with Jamf, Intune, Kandji or other device management.
     </Text>
 
     {file?.usesPlaceholder ? <TemplateNotice /> : null}
@@ -428,8 +433,7 @@ let AdminConsole = ({ file }: { file: ManagedSettingsFile | null }) => (
   <Flex direction="column" gap={8}>
     <Text size="2" color="gray700">
       On Claude Team and Enterprise plans, paste the file's JSON into the managed settings of
-      the Claude admin console. Those settings reach members who sign in to Claude Code with
-      their organization account, and each member is asked once to accept them.
+      the Claude admin console.
     </Text>
 
     {file ? (
@@ -446,13 +450,9 @@ let OtherSourcesNote = ({ file }: { file: ManagedSettingsFile | null }) => (
     color="gray"
     action={file ? <CopyButton value={file.envJson} label="Copy Env Block" /> : undefined}
   >
-    <strong>Already managing Claude Code settings?</strong> If the Claude admin console or an
-    MDM profile already delivers managed settings to a machine, Claude Code by default uses
-    that source and ignores this file, apart from environment variables the other source leaves
-    unset. The OpenTelemetry exporter variables count as one group: if the other source sets
-    any of them, none from this file apply. In that case add this file's <code>env</code> block
-    to that source, and set <code>cleanupPeriodDays</code> there too, because the file's Keep
-    Local History setting is ignored.
+    If the Claude admin console or an MDM profile already delivers managed settings, Claude
+    Code ignores this file: add its <code>env</code> block and <code>cleanupPeriodDays</code>{' '}
+    to that source instead.
   </Callout>
 );
 

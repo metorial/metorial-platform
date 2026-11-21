@@ -4,7 +4,6 @@ import { isAgentTrackingEnabled } from '../lib/client';
 import { shouldSyncOrganization } from '../lib/flag';
 import { syncScopeQueue, type ScopeSyncTarget } from '../queues/syncScope';
 
-// Some of these events fire inside the writing transaction; the job must read the committed row.
 let enqueueScopeSync = async (organization: Organization, target: ScopeSyncTarget) => {
   if (!isAgentTrackingEnabled()) return;
 
@@ -15,10 +14,6 @@ let enqueueScopeSync = async (organization: Organization, target: ScopeSyncTarge
   });
 };
 
-Fabric.listen('organization.created:after', async ({ organization }) =>
-  enqueueScopeSync(organization, { type: 'organization', id: organization.id })
-);
-
 Fabric.listen('organization.updated:after', async ({ organization }) =>
   enqueueScopeSync(organization, { type: 'organization', id: organization.id })
 );
@@ -27,22 +22,12 @@ Fabric.listen('organization.deleted:after', async ({ organization }) =>
   enqueueScopeSync(organization, { type: 'organization', id: organization.id })
 );
 
-Fabric.listen('organization.project.created:after', async ({ organization, project }) =>
-  enqueueScopeSync(organization, { type: 'project', id: project.id })
-);
-
 Fabric.listen('organization.project.updated:after', async ({ organization, project }) =>
   enqueueScopeSync(organization, { type: 'project', id: project.id })
 );
 
 Fabric.listen('organization.project.deleted:after', async ({ organization, project }) =>
   enqueueScopeSync(organization, { type: 'project', id: project.id })
-);
-
-Fabric.listen(
-  'organization.project.instance.created:after',
-  async ({ organization, instance }) =>
-    enqueueScopeSync(organization, { type: 'instance', id: instance.id })
 );
 
 Fabric.listen(

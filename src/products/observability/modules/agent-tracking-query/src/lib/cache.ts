@@ -7,8 +7,6 @@ export let resultTtlSeconds = 60;
 
 export let sessionTtlSeconds = 30;
 
-export let scopeTtlSeconds = 600;
-
 export let catalogTtlSeconds = 3600;
 
 type CachedRead = { key: string; ttlSeconds: number; load: () => Promise<unknown> };

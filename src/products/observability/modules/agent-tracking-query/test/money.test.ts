@@ -21,7 +21,8 @@ describe('money', () => {
   });
 
   it('sums decimal strings without rounding them', () => {
-    expect(sumMoney(['0.000000123', 0.1, '1.23E-7'])).toBe('0.100000246');
+    expect(sumMoney(['0.000000123', 0.1, '1.23E-7'])).toBe(100_000_246n);
+    expect(toNanos(sumMoney(['1.5', 2]))).toBe(3_500_000_000n);
     expect(sumMoney([null, 'abc'])).toBeNull();
   });
 

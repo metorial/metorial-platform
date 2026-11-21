@@ -1,7 +1,8 @@
 import { formatNumber } from '@metorial/chart';
-import { Badge, Flex, Text, Tooltip } from '@metorial/ui';
+import { Badge, Flex, Text } from '@metorial/ui';
 import { useNow } from '@metorial/use-now';
 import React from 'react';
+import styled from 'styled-components';
 import {
   activityLabel,
   formatDateTime,
@@ -14,9 +15,18 @@ import { TruncatedModelName, UnmatchedModelNames } from './modelNames';
 
 export let settlingLabel = 'Settling…';
 
-let unknownModelNamesLimit = 10;
+export let DetailColumns = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
 
-let shortSessionId = (id: string) => (id.length > 16 ? `${id.slice(0, 13)}…` : id);
+  @media (max-width: 1000px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+let unknownModelNamesLimit = 10;
 
 export let formatRequests = (count: number) =>
   `${formatNumber(count)} ${count == 1 ? 'request' : 'requests'}`;
@@ -51,26 +61,6 @@ let Muted = ({ children }: { children: React.ReactNode }) => (
 );
 
 export let modelLabel = (model: Model) => model.name ?? model.id;
-
-export let HintBadge = ({
-  label,
-  color,
-  hint,
-  size = '2'
-}: {
-  label: React.ReactNode;
-  color: 'green' | 'gray' | 'orange' | 'yellow';
-  hint: React.ReactNode;
-  size?: '1' | '2';
-}) => (
-  <Tooltip content={hint}>
-    <span>
-      <Badge size={size} color={color}>
-        {label}
-      </Badge>
-    </span>
-  </Tooltip>
-);
 
 export let ModelNameCell = ({
   model,
@@ -116,7 +106,6 @@ export let SessionSummaryCell = ({
   showStart = false
 }: {
   session: {
-    id: string;
     startedAt: Date;
     lastActivityAt: Date;
     requests: number;
@@ -131,24 +120,20 @@ export let SessionSummaryCell = ({
     : session.summaryPending
       ? settlingLabel
       : null;
-  let id = shortSessionId(session.id);
 
-  let [first, second] = showStart
-    ? [
-        [formatDateTime(session.startedAt, now), span],
-        [requests, id]
-      ]
-    : [[span, requests], [id]];
+  let title = showStart ? `${formatDateTime(session.startedAt, now)} · ${span}` : span;
 
   return (
     <Flex direction="column" gap={2}>
       <Text as="span" size="2" weight="medium">
-        {first.filter(Boolean).join(' · ')}
+        {title}
       </Text>
 
-      <Text as="span" size="1" color="gray600" truncate>
-        {second.filter(Boolean).join(' · ')}
-      </Text>
+      {requests ? (
+        <Text as="span" size="1" color="gray600" truncate>
+          {requests}
+        </Text>
+      ) : null}
     </Flex>
   );
 };

@@ -9,8 +9,9 @@ let nanosPerMicro = 1000n;
 
 type ReportedAmount = { unit: string; basis: string | null; amount: unknown };
 
-// Integer nano-dollars, so sums never lose cents.
 export let toNanos = (value: unknown): bigint | null => {
+  if (typeof value == 'bigint') return value;
+
   let text =
     typeof value == 'number' && Number.isFinite(value)
       ? value.toFixed(moneyScale)
@@ -33,18 +34,10 @@ export let toNanos = (value: unknown): bigint | null => {
   return match[1] ? -nanos : nanos;
 };
 
-let formatNanos = (nanos: bigint) => {
-  let negative = nanos < 0n;
-  let absolute = negative ? -nanos : nanos;
-  let fraction = (absolute % factor).toString().padStart(moneyScale, '0').replace(/0+$/, '');
-
-  return `${negative ? '-' : ''}${absolute / factor}${fraction ? `.${fraction}` : ''}`;
-};
-
 export let sumMoney = (values: unknown[]) => {
   let amounts = values.flatMap(value => toNanos(value) ?? []);
 
-  return amounts.length ? formatNanos(amounts.reduce((sum, nanos) => sum + nanos, 0n)) : null;
+  return amounts.length ? amounts.reduce((sum, nanos) => sum + nanos, 0n) : null;
 };
 
 let reportedUsd = (reported: unknown, basis: string) => {

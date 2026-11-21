@@ -23,7 +23,7 @@ export let agentTrackingCostSchema = v.object(
     currency: v.literal('usd', { description: 'The currency of every amount. Always usd.' }),
     total_micros: money(
       'total_micros',
-      "The best figure for the cost. Agent tracking picks one basis per session: billed where a provider bill exists, else contract prices where a price override applies, else the agent's own estimate, else list prices computed by Metorial. It covers only the requests with a known cost (see requests_without_cost on spend figures). On spend figures: 0 when there were no requests, null when there were requests and none had a known cost. On a session: null while none of its requests has a known cost."
+      "The best figure for the cost. Agent tracking picks one basis per session: billed where a provider bill exists, else contract prices where a price override applies, else the agent's own estimate, else list prices computed by Metorial. It covers only the requests with a known cost (see requests_without_cost on spend figures). On spend figures: 0 when there were no requests, null when there were requests and none had a known cost. On a session: null while none of its requests has a known cost. On a member: null when none of the counted sessions has a known cost; it covers only the sessions with one."
     ),
     billed_micros: money(
       'billed_micros',
@@ -44,13 +44,13 @@ export let agentTrackingCostSchema = v.object(
     ),
     list_price_micros: money(
       'list_price_micros',
-      'The usage covered here, priced by Metorial at list prices whatever basis total_micros uses. A comparison figure, not a part of total_micros. It covers only the requests whose model has a list price (see requests_without_list_price on spend figures), so it can cover less usage than total_micros or reported_by_client_micros. On spend figures: 0 when there were no requests, null when there were requests and none had a list price. On a session: null while none of its requests has a list price.'
+      'The usage covered here, priced by Metorial at list prices whatever basis total_micros uses. A comparison figure, not a part of total_micros. It covers only the requests whose model has a list price (see requests_without_list_price on spend figures), so it can cover less usage than total_micros or reported_by_client_micros. On spend figures: 0 when there were no requests, null when there were requests and none had a list price. On a session: null while none of its requests has a list price. On a member: null when none of the counted sessions has a list price; it covers only the sessions with one.'
     )
   },
   {
     name: 'cost',
     description:
-      'A cost with its basis. billed_micros plus estimated_micros is total_micros; reported_by_client_micros and list_price_micros describe the same usage for comparison and are not parts of total_micros.'
+      'A cost with its basis. estimated_micros is total_micros minus billed_micros, never below 0, so the two add up to total_micros only while billed_micros is at most total_micros; reported_by_client_micros and list_price_micros describe the same usage for comparison and are not parts of total_micros.'
   }
 );
 

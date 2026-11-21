@@ -40,8 +40,8 @@ export let AgentTrackingListLayout = () => {
         links={[
           { label: 'Sessions', to: Paths.instance.agentTracking.sessions(...params) },
           { label: 'Spend', to: Paths.instance.agentTracking.spend(...params) },
-          { label: setupLabel, to: Paths.instance.agentTracking.setup(...params) },
-          { label: 'Settings', to: Paths.instance.agentTracking.settings(...params) }
+          { label: 'Team', to: Paths.instance.agentTracking.team(...params) },
+          { label: setupLabel, to: Paths.instance.agentTracking.setup(...params) }
         ]}
       />
 

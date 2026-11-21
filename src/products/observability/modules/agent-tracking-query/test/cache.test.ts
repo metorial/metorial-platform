@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cacheKey } from '../src/lib/cache';
 import { agentTrackingSessionService } from '../src/services/agentTrackingSession';
 import { agentTrackingSpendService } from '../src/services/agentTrackingSpend';
-import { cache, callsTo, resetMocks, rpc, scope, upsertInstanceScope } from './_mocks';
+import { cache, callsTo, resetMocks, rpc, scope, withInstanceScope } from './_mocks';
 
 let emptyResult = () => ({ rows: [], totals: null, labels: {} });
 
@@ -92,19 +92,28 @@ describe('cached reads', () => {
     expect(timelineRuns()).toHaveLength(1);
   });
 
-  it('looks the service instance up once and creates the scope only when it is missing', async () => {
-    rpc.handlers['instance:get'] = () => {
-      throw new ServiceError(notFoundError('instance'));
-    };
-
+  it('reads within the instance scope and with its service id', async () => {
     await agentTrackingSpendService.getTimeline({ ...scope, range: { preset: 'today' } });
     await agentTrackingSpendService.getTimeline({ ...scope, range: { preset: 'last_month' } });
 
-    expect(callsTo('instance:get')).toHaveLength(1);
-    expect(upsertInstanceScope).toHaveBeenCalledTimes(1);
-    expect(upsertInstanceScope.mock.calls[0]![0]).toMatchObject({
+    expect(callsTo('instance:get')).toHaveLength(0);
+    expect(withInstanceScope).toHaveBeenCalledTimes(2);
+    expect(withInstanceScope.mock.calls[0]![0]).toEqual({
+      organization: scope.organization,
+      project: scope.project,
+      instance: scope.instance,
       callOpts: { retry: false, captureErrors: false, timeoutMs: 5_000 }
     });
-    expect(timelineRuns()[1]!.input.scope).toEqual({ instanceIds: ['atin_created'] });
+    expect(timelineRuns()[1]!.input.scope).toEqual({ instanceIds: ['atin_service'] });
+  });
+
+  it('passes a stale scope from a session read to the scope repair, not as a missing session', async () => {
+    rpc.handlers['session:get'] = () => {
+      throw new ServiceError(notFoundError('organization'));
+    };
+
+    await expect(
+      agentTrackingSessionService.getSession({ ...scope, sessionId: 'atse_c0ffee' })
+    ).rejects.toMatchObject({ data: { status: 404, entity: 'organization' } });
   });
 });

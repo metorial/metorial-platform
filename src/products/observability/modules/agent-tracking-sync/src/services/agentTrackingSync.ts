@@ -1,7 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import type { Instance, Organization, Project } from '@metorial/db';
-import { requireAgentTracking, type AgentTrackingCallOpts } from '../lib/client';
-import { upsertInstanceScope } from '../lib/scope';
+import type { Organization } from '@metorial/db';
 import { backfillOrganizationQueue } from '../queues/backfill';
 import { reconcileSingleQueue } from '../queues/reconcile';
 import { syncEntityQueue, type EntitySyncTarget } from '../queues/syncEntity';
@@ -14,17 +12,6 @@ let flagChangeReconcileDelays = {
 };
 
 class AgentTrackingSyncServiceImpl {
-  async upsertInstanceScope(d: {
-    organization: Pick<Organization, 'id' | 'name'>;
-    project: Pick<Project, 'id' | 'name'>;
-    instance: Pick<Instance, 'id' | 'name'>;
-    callOpts?: AgentTrackingCallOpts;
-  }) {
-    let agentTracking = requireAgentTracking();
-
-    return await upsertInstanceScope({ agentTracking, ...d });
-  }
-
   async syncEntities(d: { entities: EntitySyncTarget[] }) {
     await syncEntityQueue.addMany(d.entities);
   }

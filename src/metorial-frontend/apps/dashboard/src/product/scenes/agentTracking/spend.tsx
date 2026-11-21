@@ -23,20 +23,23 @@ import {
 import { Button, Flex, OptionToggle, Progress, Spacer, Text, theme } from '@metorial/ui';
 import { Box, FilterToolbar, Table } from '@metorial/ui-product';
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { describeCostComparison } from './costComparison';
-import { dollarsOf, formatAmount, formatCost } from './costFormat';
+import { formatAmount, formatCost, toDollars, toMicros } from './costFormat';
 import { AgentTrackingErrorState } from './errorState';
-import { agentTrackingFilters } from './filters';
-import { MemberIdentity } from './member';
+import { AgentTrackingFilterRangeContext, agentTrackingFilters } from './filters';
+import { MemberIdentity } from './memberParts';
 import { hiddenGroupText, useAgentTrackingPrivacy } from './privacy';
 import {
+  defaultAgentTrackingRange,
   formatAgentTrackingRange,
-  useAgentTrackingRange,
-  useSearchParamOption,
+  getBrowserTimeZone,
+  hiddenIndividualsSpendRangeFilter,
+  spendRangeFilter,
+  withQuery,
   type AgentTrackingRangePreset
 } from './range';
 import {
@@ -57,8 +60,6 @@ let maxDayLabels = 14;
 let billedColor = getChartColor('blue');
 
 let estimatedColor = getChartColor('gray');
-
-let microsPerDollar = 1_000_000;
 
 let filterRangeText = 'this range';
 
@@ -145,26 +146,32 @@ let Legend = styled.div`
   gap: 12px 28px;
 `;
 
-let sessionsQuery = (range: AgentTrackingRangePreset, filters: SpendFilters) => {
-  let query = new URLSearchParams({ range });
-  if (filters.modelId) query.set('modelId', filters.modelId.join(','));
-  if (filters.clientFamily) query.set('clientFamily', filters.clientFamily.join(','));
-
-  return query.toString();
-};
-
 let noneIn = (what: string, filtered: unknown) =>
   `${what} in this range${filtered ? ' with these filters' : ''}.`;
-
-let toDollars = (micros: number | null) =>
-  micros === null ? null : Number(dollarsOf(micros));
-
-let toMicros = (dollars: number) => Math.round(dollars * microsPerDollar);
 
 let isZero = (micros: number | null) => (micros ?? 0) == 0;
 
 let formatUnpricedRequests = (count: number) =>
   `${formatRequests(count)} without a known cost`;
+
+let useSearchParamOption = <Id extends string>(
+  name: string,
+  ids: readonly Id[],
+  defaultId: Id
+) => {
+  let [params, setParams] = useSearchParams();
+  let value = params.get(name);
+  let current = ids.find(id => id == value) ?? defaultId;
+
+  let setCurrent = (next: Id) => {
+    let updated = new URLSearchParams(params);
+    if (next == defaultId) updated.delete(name);
+    else updated.set(name, next);
+    setParams(updated, { replace: true });
+  };
+
+  return [current, setCurrent] as const;
+};
 
 let LegendItem = ({
   color,
@@ -214,7 +221,7 @@ let CostSplit = ({ cost }: { cost: SpendCost }) => {
             color={billedColor}
             title={`Billed ${formatAmount(cost.billedMicros!, { estimate: false })} · ${share(split.billedShare)}`}
           >
-            From provider bills, such as API keys and Bedrock. Matches your provider's bill.
+            From provider bills, such as API keys and Bedrock.
           </LegendItem>
         ) : null}
 
@@ -223,9 +230,8 @@ let CostSplit = ({ cost }: { cost: SpendCost }) => {
             color={estimatedColor}
             title={`Estimated ${formatCost(cost.estimatedMicros, { estimate: true })} · ${share(split.estimatedShare)}`}
           >
-            Not a bill: usage no provider bill covers, such as what a Claude subscription or
-            seat includes. Valued at your contract prices where set, else the cost Claude Code
-            reports, else list prices. A tilde (~) always marks an estimate.
+            Usage no provider bill covers, such as a Claude subscription, valued at your
+            contract prices where set, else at the cost Claude Code reports or list prices.
           </LegendItem>
         ) : null}
       </Legend>
@@ -257,7 +263,6 @@ let dayTickLabel = (timeline: Timeline) => {
     days.find(day => Math.abs(day.key - value.getTime()) < DAY / 4)?.label ?? '';
 };
 
-// Half-day ticks fall on the bar centres, and only those are labelled.
 let useDailyBars = (timeline: Timeline) =>
   useMemo(() => {
     let domain = { from: timeline.range.from, to: chartDomainEnd(timeline) };
@@ -305,7 +310,7 @@ let SpendChart = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
       stacked
       legend={false}
       series={allSeries.filter(item => item.id != 'billed' || hasBilled)}
-      valueFormatter={value => formatAmount(toMicros(value), { estimate: value != 0 })}
+      valueFormatter={value => formatAmount(toMicros(value), { estimate: false })}
       seriesValueFormatter={(value, seriesIds) =>
         formatAmount(toMicros(value), {
           estimate: value != 0 && seriesIds.includes('estimated')
@@ -439,6 +444,9 @@ let OverTime = ({
   );
 };
 
+let rangeDescription = (range: Timeline['range']) =>
+  `${formatAgentTrackingRange(range)} · ${range.timeZone}`;
+
 let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolean }) => {
   let cost = timeline.total.cost;
   let requests = timeline.total.requests;
@@ -461,7 +469,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
 
   if (!hasUsage(timeline.total)) {
     return (
-      <Box title="Total Spend" description={formatAgentTrackingRange(timeline.range)}>
+      <Box title="Total Spend" description={rangeDescription(timeline.range)}>
         <Text size="2" color="gray600">
           {timeline.privacy.hiddenGroups
             ? `All usage in this range is on days with ${hiddenGroupText(timeline.privacy.minGroupUsers)}, so it is hidden.`
@@ -491,7 +499,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
   });
 
   return (
-    <Box title="Total Spend" description={formatAgentTrackingRange(timeline.range)}>
+    <Box title="Total Spend" description={rangeDescription(timeline.range)}>
       <Flex justify="space-between" align="end" gap={20} wrap="wrap">
         <Flex direction="column" gap={4}>
           <Text as="span" size="8" weight="bold">
@@ -659,7 +667,7 @@ let Breakdown = ({
   return (
     <Box
       title="Cost By"
-      description="The most expensive first. Share is of the total."
+      description="Share is of the total."
       rightActions={
         <OptionToggle
           size="2"
@@ -731,7 +739,11 @@ let ExpensiveSessions = ({
   });
 
   let params = [ctx.organization, ctx.project, ctx.instance] as const;
-  let allSessionsPath = `${Paths.instance.agentTracking.sessions(...params)}?${sessionsQuery(range, filters)}`;
+  let allSessionsPath = withQuery(Paths.instance.agentTracking.sessions(...params), {
+    range,
+    modelId: filters.modelId,
+    clientFamily: filters.clientFamily
+  });
 
   return (
     <Box
@@ -789,24 +801,29 @@ let listValue = (payload: FilterPayload | undefined) => {
   return value?.length ? value : undefined;
 };
 
-let useSpendFilters = (instanceId: string, range: AgentTrackingRangePreset) => {
-  let filters = useMemo(
-    () =>
-      Object.values(
-        agentTrackingFilters(instanceId, { range, rangeText: filterRangeText }, [
-          'client',
-          'model'
-        ])
-      ),
-    [instanceId, range]
-  );
-  let { filterState, payload } = useFilterState({ filters });
-  let selected: SpendFilters = {
-    clientFamily: listValue(payload.clientFamily),
-    modelId: listValue(payload.modelId)
-  };
+let useSpendFilters = (instanceId: string, individualsHidden: boolean) => {
+  let rangeFilter = individualsHidden ? hiddenIndividualsSpendRangeFilter : spendRangeFilter;
+  let filters = useMemo(() => {
+    if (individualsHidden) return [rangeFilter.filter];
 
-  return { filters, filterState, selected };
+    return [
+      agentTrackingFilters.client(instanceId, filterRangeText),
+      agentTrackingFilters.model(instanceId, filterRangeText),
+      rangeFilter.filter
+    ];
+  }, [instanceId, individualsHidden, rangeFilter]);
+
+  let { filterState, payload } = useFilterState({ filters });
+  let selected: SpendFilters = individualsHidden
+    ? {}
+    : { clientFamily: listValue(payload.clientFamily), modelId: listValue(payload.modelId) };
+
+  return {
+    filters,
+    filterState,
+    selected,
+    range: rangeFilter.parse(payload.range)?.[0] ?? defaultAgentTrackingRange
+  };
 };
 
 let SpendPage = ({
@@ -816,10 +833,11 @@ let SpendPage = ({
   instanceId: string;
   individualsHidden: boolean;
 }) => {
-  let { range, setRange, presets, timeZone } = useAgentTrackingRange({ individualsHidden });
-  let spendFilters = useSpendFilters(instanceId, range);
-  let { filters, filterState } = spendFilters;
-  let selected: SpendFilters = individualsHidden ? {} : spendFilters.selected;
+  let { filters, filterState, selected, range } = useSpendFilters(
+    instanceId,
+    individualsHidden
+  );
+  let timeZone = individualsHidden ? 'UTC' : getBrowserTimeZone();
   let timelineQuery = { range, timeZone, ...selected };
   let timeline = useAgentTrackingSpendTimeline(instanceId, timelineQuery);
   let filtered = !!(selected.clientFamily || selected.modelId);
@@ -831,34 +849,16 @@ let SpendPage = ({
 
   return (
     <Flex direction="column" gap={20}>
-      <Flex direction="column" gap={12}>
-        <Flex direction="column" gap={8}>
-          <OptionToggle
-            size="2"
-            ariaLabel="Range"
-            items={presets.map(preset => ({
-              id: preset.id,
-              label: preset.label
-            }))}
-            value={range}
-            onChange={value => setRange(value as AgentTrackingRangePreset)}
-          />
-
-          <Text size="1" color="gray600">
-            {individualsHidden
-              ? 'Days are counted in UTC while individuals are hidden, and only whole days up to yesterday are shown.'
-              : `Days are counted in ${timeZone}. New activity shows within a minute; its cost settles 30 to 90 seconds later.`}
-          </Text>
-        </Flex>
+      <Flex direction="column" gap={8}>
+        <AgentTrackingFilterRangeContext.Provider value={range}>
+          <FilterToolbar filters={filters} filterState={filterState} placeholder="Filter..." />
+        </AgentTrackingFilterRangeContext.Provider>
 
         {individualsHidden ? (
           <Text size="1" color="gray600">
-            Filters are off while individuals are hidden: a total filtered to one model or
-            client can single out the few people who use it.
+            Filters, Cost By and Most Expensive Sessions are off while individuals are hidden.
           </Text>
-        ) : (
-          <FilterToolbar filters={filters} filterState={filterState} placeholder="Filter..." />
-        )}
+        ) : null}
       </Flex>
 
       {renderWithLoader(
@@ -876,12 +876,7 @@ let SpendPage = ({
         <SpendTotal timeline={timeline.data} filtered={filtered} />
       ))}
 
-      {individualsHidden ? (
-        <Text size="2" color="gray600">
-          The breakdown by model is not available while individuals are hidden: on some days a
-          model is used by too few people.
-        </Text>
-      ) : (
+      {individualsHidden ? null : (
         <>
           <Breakdown
             instanceId={instanceId}

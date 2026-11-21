@@ -132,7 +132,7 @@ describe('agentTrackingTokenService', () => {
         data: { status: 404, entity: 'consumer.device.telemetry_token' }
       });
       expect(mocks.flagChecks).toEqual([{ organization, project }]);
-      expect(mocks.upsertInstanceScope).not.toHaveBeenCalled();
+      expect(mocks.withInstanceScope).not.toHaveBeenCalled();
       expect(mocks.agentTracking.ingestToken.create).not.toHaveBeenCalled();
       expect(db.agentTrackingIngestToken.create).not.toHaveBeenCalled();
     });
@@ -146,12 +146,10 @@ describe('agentTrackingTokenService', () => {
         auditScope
       });
 
-      expect(mocks.upsertInstanceScope).toHaveBeenCalledWith({
-        organization,
-        project,
-        instance,
-        callOpts: { timeoutMs: 3_000 }
-      });
+      expect(mocks.withInstanceScope).toHaveBeenCalledWith(
+        { organization, project, instance, callOpts: { timeoutMs: 3_000 } },
+        expect.any(Function)
+      );
       expect(mocks.agentTracking.ingestToken.create).toHaveBeenCalledWith(
         {
           organizationId: 'org_1',
@@ -194,7 +192,7 @@ describe('agentTrackingTokenService', () => {
           createDevice() as any
         );
 
-        mocks.upsertInstanceScope.mockImplementationOnce(({ callOpts }) =>
+        mocks.withInstanceScope.mockImplementationOnce(({ callOpts }) =>
           unreachable(callOpts)
         );
         let scopeDown = agentTrackingTokenService.issueDeviceToken({
@@ -326,7 +324,7 @@ describe('agentTrackingTokenService', () => {
       ).rejects.toMatchObject({
         data: { status: 404, entity: 'agent_tracking.ingest_token' }
       });
-      expect(mocks.upsertInstanceScope).not.toHaveBeenCalled();
+      expect(mocks.withInstanceScope).not.toHaveBeenCalled();
       expect(mocks.agentTracking.ingestToken.create).not.toHaveBeenCalled();
       expect(db.agentTrackingIngestToken.create).not.toHaveBeenCalled();
     });

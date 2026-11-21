@@ -36,7 +36,7 @@ export class MetorialDashboardInstanceAgentTrackingMembersEndpoint {
 
   /**
    * @name List members seen
-   * @description Returns the members who have sent usage to this instance in the last 400 days, most recently active first, with whether each matched a Metorial member. Pages by item id. Results can be up to a minute old.
+   * @description Returns the members with sessions in this instance last active in the range (the last 400 days without one), most recently active first, with whether each matched a Metorial member and the sessions and cost of those sessions. Pages by item id. Results can be up to a minute old.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceAgentTrackingMembersListQuery

@@ -92,7 +92,13 @@ describe('module-agent-tracking-query with individuals hidden: reads about one p
           field: 'member',
           range: {}
         }),
-      () => agentTrackingMemberService.listMembers({ ...scope, page: { limit: 10 } })
+      () => agentTrackingMemberService.listMembers({ ...scope, page: { limit: 10 } }),
+      () =>
+        agentTrackingMemberService.listMembers({
+          ...scope,
+          page: { limit: 10 },
+          range: { preset: 'last_7_days' }
+        })
     ];
 
     await expectAllShown(personalReads());

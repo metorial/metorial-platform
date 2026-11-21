@@ -584,4 +584,29 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     expect(ids(back.items)).toEqual([newest]);
     expect(back.pagination).toMatchObject({ has_more_after: true, has_more_before: false });
   });
+
+  it('counts the sessions and cost of a member in a range', async () => {
+    let [member] = await listAll(org.clients.rest, agentTrackingPath(org, '/members'));
+    let sessions = await listAll(org.clients.rest, sessionsPath(), {
+      query: { member_id: member.id }
+    });
+    let sessionCost = sessions.reduce((sum, session) => sum + session.cost.total_micros, 0);
+
+    let inRange = await read('/members', {
+      member_id: member.id,
+      range: 'last_7_days',
+      time_zone: 'Europe/Berlin'
+    });
+    expect(ids(inRange.items)).toEqual([member.id]);
+    expect(inRange.items[0]).toMatchObject({
+      sessions: sessions.length,
+      cost: { currency: 'usd' }
+    });
+    expect(Math.abs(inRange.items[0].cost.total_micros - sessionCost)).toBeLessThanOrEqual(
+      sessions.length
+    );
+
+    let lastMonth = await read('/members', { member_id: member.id, range: 'last_month' });
+    expect(lastMonth.items).toEqual([]);
+  });
 });

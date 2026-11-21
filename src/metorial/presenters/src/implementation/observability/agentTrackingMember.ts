@@ -1,8 +1,11 @@
 import { v } from '@lowerdeck/validation';
+import { maxMembers, memberWindowDays } from '@metorial/module-agent-tracking-query';
 import { Presenter } from '@metorial/presenter';
 import { agentTrackingMemberType } from '../../types';
 import {
+  agentTrackingCostSchema,
   agentTrackingMemberProperties,
+  presentAgentTrackingCost,
   presentAgentTrackingMember
 } from './agentTrackingCommon';
 
@@ -11,6 +14,7 @@ export let v1AgentTrackingMemberPresenter = Presenter.create(agentTrackingMember
     ...presentAgentTrackingMember(member),
     last_seen_at: member.lastSeenAt,
     sessions: member.sessions,
+    cost: presentAgentTrackingCost(member.cost),
     list_truncated: listTruncated
   }))
   .schema(
@@ -19,16 +23,16 @@ export let v1AgentTrackingMemberPresenter = Presenter.create(agentTrackingMember
         ...agentTrackingMemberProperties,
         last_seen_at: v.date({
           name: 'last_seen_at',
-          description: 'When a session of this member was last active in this instance.'
+          description: 'When the latest of the sessions counted in sessions was last active.'
         }),
         sessions: v.number({
           name: 'sessions',
-          description: 'Sessions of this member in this instance in the last 400 days.'
+          description: `Sessions of this member in this instance last active in the requested range, or in the last ${memberWindowDays} days without one.`
         }),
+        cost: agentTrackingCostSchema,
         list_truncated: v.boolean({
           name: 'list_truncated',
-          description:
-            'Whether more than 1000 members sent usage, in which case only the 1000 most recently active are listed. The same for every member of a list.'
+          description: `Whether more than ${maxMembers} members sent usage, in which case only the ${maxMembers} most recently active are listed. The same for every member of a list.`
         })
       },
       { name: 'member', description: 'A person who has sent usage to this instance.' }

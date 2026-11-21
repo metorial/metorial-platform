@@ -2,7 +2,7 @@ import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { getAgentTracking, ignoreNotFound } from '../lib/client';
 import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
-import { upsertOrganizationScope } from '../lib/scope';
+import { withOrganizationScope } from '../lib/scope';
 import {
   clientAgentEntityInput,
   consumerEntityInput,
@@ -20,7 +20,6 @@ let consumerInclude = {
 
 let syncEntityLimiter = { max: 20, duration: 1000 };
 
-// Backfills have their own queue so a roster scan never delays a live member or device sync.
 export let backfillSyncEntityLimiter = { max: 10, duration: 1000 };
 
 export let syncEntityQueue = createQueue<EntitySyncTarget>({
@@ -48,8 +47,9 @@ let syncEntity = async (data: EntitySyncTarget) => {
     let { organization } = consumer;
     if (!(await isAgentTrackingEnabledForOrganization({ organization }))) return;
 
-    await upsertOrganizationScope({ agentTracking, organization });
-    await agentTracking.entity.upsert(consumerEntityInput({ organization, consumer }));
+    await withOrganizationScope({ organization }, async () => {
+      await agentTracking.entity.upsert(consumerEntityInput({ organization, consumer }));
+    });
     return;
   }
 
@@ -69,8 +69,6 @@ let syncEntity = async (data: EntitySyncTarget) => {
   let { organization } = consumerDevice.instance;
   if (!(await isAgentTrackingEnabledForOrganization({ organization }))) return;
 
-  await upsertOrganizationScope({ agentTracking, organization });
-
   if (consumerDevice.status != 'active') {
     let entity = await ignoreNotFound(
       agentTracking.entity.getByRef({
@@ -88,27 +86,29 @@ let syncEntity = async (data: EntitySyncTarget) => {
     return;
   }
 
-  let user = await agentTracking.entity.upsert(
-    consumerEntityInput({ organization, consumer: consumerDevice.consumerProfile.consumer })
-  );
-  let device = await agentTracking.entity.upsert(
-    deviceEntityInput({ organization, consumerDevice })
-  );
+  await withOrganizationScope({ organization }, async () => {
+    let user = await agentTracking.entity.upsert(
+      consumerEntityInput({ organization, consumer: consumerDevice.consumerProfile.consumer })
+    );
+    let device = await agentTracking.entity.upsert(
+      deviceEntityInput({ organization, consumerDevice })
+    );
 
-  await agentTracking.link.upsert({
-    organizationId: organization.id,
-    fromId: device.id,
-    toId: user.id,
-    type: 'owned_by',
-    origin: 'sync',
-    reach: 'from_now'
+    await agentTracking.link.upsert({
+      organizationId: organization.id,
+      fromId: device.id,
+      toId: user.id,
+      type: 'owned_by',
+      origin: 'sync',
+      reach: 'from_now'
+    });
+
+    await Promise.all(
+      consumerDevice.clients.map(client =>
+        agentTracking.entity.upsert(clientAgentEntityInput({ organization, client }))
+      )
+    );
   });
-
-  await Promise.all(
-    consumerDevice.clients.map(client =>
-      agentTracking.entity.upsert(clientAgentEntityInput({ organization, client }))
-    )
-  );
 };
 
 export let syncEntityQueueProcessor = combineQueueProcessors([

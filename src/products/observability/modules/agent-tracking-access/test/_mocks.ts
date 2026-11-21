@@ -14,7 +14,10 @@ export let mocks = {
     ingestPublicUrl: 'https://ingest.example.com' as string | undefined
   },
   afterCommit: [] as (() => unknown)[],
-  upsertInstanceScope: vi.fn(),
+  withInstanceScope: vi.fn(
+    async (_scope: unknown, run: (serviceInstanceId: string) => Promise<unknown>) =>
+      await run('atin_service')
+  ),
   backfillRoster: vi.fn(),
   syncEntities: vi.fn(),
   fire: vi.fn()
@@ -31,7 +34,6 @@ let isEnabledForOrganization = async (d: unknown) => {
 export let syncModule = {
   ...clientFamilies,
   agentTrackingSyncService: {
-    upsertInstanceScope: mocks.upsertInstanceScope,
     backfillRoster: mocks.backfillRoster,
     syncEntities: mocks.syncEntities
   },
@@ -59,7 +61,8 @@ export let syncModule = {
     if (!mocks.settings.ingestPublicUrl) throw notConfigured();
     return mocks.settings.ingestPublicUrl;
   },
-  ignoreNotFound: (promise: Promise<unknown>) => promise
+  ignoreNotFound: (promise: Promise<unknown>) => promise,
+  withInstanceScope: mocks.withInstanceScope
 };
 
 export let fabricModule = { Fabric: { fire: mocks.fire } };

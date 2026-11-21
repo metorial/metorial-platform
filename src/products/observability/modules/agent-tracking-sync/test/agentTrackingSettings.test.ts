@@ -18,6 +18,8 @@ let mocks = vi.hoisted(() => ({
   queue: vi.fn()
 }));
 
+vi.mock('../src/lib/links', async () => (await import('./_mocks')).linksModule);
+
 vi.mock('../src/lib/settings', async importOriginal =>
   (await import('./_mocks')).settingsModule(importOriginal)
 );
@@ -166,7 +168,10 @@ describe('agentTrackingSettingsService', () => {
         update: { mode: 'shape', deterministicEnabled: true, aiEnabled: false }
       })
     );
-    expect(mocks.queue).toHaveBeenCalledWith({ type: 'instance', id: 'inst_1' });
+    expect(mocks.queue).toHaveBeenCalledWith(
+      { type: 'instance', id: 'inst_1' },
+      { id: 'instance:inst_1' }
+    );
   });
 
   it('tells the service before storing a narrower content policy', async () => {
@@ -233,7 +238,10 @@ describe('agentTrackingSettingsService', () => {
     expect(mocks.fire.mock.calls.map(([name]) => name)).toEqual([
       'agent_tracking.settings.updated:before'
     ]);
-    expect(mocks.queue).toHaveBeenCalledWith({ type: 'instance', id: 'inst_1' });
+    expect(mocks.queue).toHaveBeenCalledWith(
+      { type: 'instance', id: 'inst_1' },
+      { id: 'instance:inst_1' }
+    );
   });
 
   it('keeps the original error when queueing the sync fails too', async () => {
@@ -297,7 +305,10 @@ describe('agentTrackingSettingsService', () => {
       })
     ).rejects.toThrow('commit failed');
 
-    expect(mocks.queue).toHaveBeenCalledWith({ type: 'instance', id: 'inst_1' });
+    expect(mocks.queue).toHaveBeenCalledWith(
+      { type: 'instance', id: 'inst_1' },
+      { id: 'instance:inst_1' }
+    );
   });
 
   it('changes nothing and fires nothing when the input holds the current values', async () => {
@@ -343,7 +354,11 @@ describe('agentTrackingSettingsService', () => {
       (await agentTrackingSettingsService.getProjectSettings({ organization, project }))
         .serviceStatus
     ).toBe('pending');
-    expect(mocks.queue).not.toHaveBeenCalled();
+    expect(mocks.queue).toHaveBeenCalledTimes(1);
+    expect(mocks.queue).toHaveBeenCalledWith(
+      { type: 'project', id: 'proj_1' },
+      { id: 'project:proj_1' }
+    );
   });
 
   it('answers pending while the service does not know the instance, and unknown when it cannot be asked', async () => {
@@ -358,6 +373,7 @@ describe('agentTrackingSettingsService', () => {
 
     expect(await status()).toBe('pending');
     expect(await status()).toBe('unknown');
+    expect(mocks.queue).toHaveBeenCalledTimes(1);
   });
 
   it('answers applied when the service holds the stored values among others', async () => {

@@ -21,7 +21,7 @@ import {
   type NormalizedRange,
   type RangeInput
 } from '../lib/range';
-import { cachedRead, resolveServiceInstanceId, type ReadScope } from '../lib/scope';
+import { cachedRead, type ReadScope } from '../lib/scope';
 import { fromService, queryCallOptions } from '../lib/service';
 import type {
   AgentTrackingFilterValue,
@@ -65,9 +65,8 @@ class AgentTrackingFilterValueServiceImpl {
       scope: d,
       read: 'filterValues.list',
       input: { field: d.field, search, range: rangeCacheKey(range, now) },
-      load: async () => {
+      load: async instanceId => {
         let resolved = resolveRange(range, now);
-        let instanceId = await resolveServiceInstanceId(d);
         let agentTracking = requireAgentTracking();
 
         let result = await agentTracking.query.values(

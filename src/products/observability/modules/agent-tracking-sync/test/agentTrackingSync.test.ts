@@ -4,7 +4,8 @@ let mocks = vi.hoisted(() => ({
   agentTracking: {
     organization: { upsert: vi.fn() },
     project: { upsert: vi.fn() },
-    instance: { upsert: vi.fn() }
+    instance: { upsert: vi.fn() },
+    ingestSource: { create: vi.fn() }
   },
   settings: {
     url: 'http://agent-tracking.internal/metorial-agent-tracking' as string | undefined,
@@ -14,6 +15,8 @@ let mocks = vi.hoisted(() => ({
   backfillAdd: vi.fn(),
   reconcileAddManyWithOps: vi.fn()
 }));
+
+vi.mock('../src/lib/links', async () => (await import('./_mocks')).linksModule);
 
 vi.mock('../src/lib/settings', async importOriginal =>
   (await import('./_mocks')).settingsModule(importOriginal)
@@ -45,6 +48,7 @@ vi.mock('@metorial/module-flags', () => ({
   flagService: { isFlagEnabledForScope: vi.fn() }
 }));
 
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { flagService } from '@metorial/module-flags';
 import {
   agentTrackingSyncService,
@@ -55,16 +59,34 @@ import {
   isAgentTrackingEnabled,
   isAgentTrackingEnabledForOrganization,
   requireAgentTracking,
-  requireIngestUrl
+  requireIngestUrl,
+  withInstanceScope
 } from '../src/services';
+import { links, resetLinks } from './_mocks';
 
-let organization = { id: 'org_1', name: 'Acme' };
-let project = { id: 'proj_1', name: 'Production' };
-let instance = { id: 'inst_1', name: 'Default' };
+let organization = { oid: 1n, id: 'org_1', name: 'Acme' };
+let project = { oid: 2n, id: 'proj_1', name: 'Production' };
+let instance = { oid: 3n, id: 'inst_1', name: 'Default' };
+
+let scope = { organization, project, instance };
+
+let upserts = () => [
+  mocks.agentTracking.organization.upsert,
+  mocks.agentTracking.project.upsert,
+  mocks.agentTracking.instance.upsert
+];
+
+let serviceId = async (serviceInstanceId: string) => serviceInstanceId;
+
+let rpcCount = () => upserts().reduce((count, upsert) => count + upsert.mock.calls.length, 0);
 
 describe('agent-tracking-sync public surface', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetLinks();
+    mocks.agentTracking.organization.upsert.mockImplementation(async () => ({ id: 'ator_1' }));
+    mocks.agentTracking.project.upsert.mockImplementation(async () => ({ id: 'atpr_1' }));
+    mocks.agentTracking.instance.upsert.mockImplementation(async () => ({ id: 'atin_1' }));
     mocks.settings.url = 'http://agent-tracking.internal/metorial-agent-tracking';
     mocks.settings.ingestPublicUrl = 'https://ingest.example.com';
   });
@@ -100,53 +122,121 @@ describe('agent-tracking-sync public surface', () => {
     );
   });
 
-  it('upserts the organization, project and instance scopes in order', async () => {
-    await agentTrackingSyncService.upsertInstanceScope({ organization, project, instance });
+  it('upserts and links the organization, project and instance in order while none is linked', async () => {
+    expect(await withInstanceScope(scope, serviceId)).toBe('atin_1');
 
     expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledWith(
-      {
-        ref: 'org_1',
-        name: 'Acme'
-      },
+      { ref: 'org_1', name: 'Acme' },
       undefined
     );
     expect(mocks.agentTracking.project.upsert).toHaveBeenCalledWith(
-      {
-        organizationId: 'org_1',
-        ref: 'proj_1',
-        name: 'Production'
-      },
+      { organizationId: 'org_1', ref: 'proj_1', name: 'Production' },
       undefined
     );
     expect(mocks.agentTracking.instance.upsert).toHaveBeenCalledWith(
-      {
-        organizationId: 'org_1',
-        projectId: 'proj_1',
-        ref: 'inst_1',
-        name: 'Default'
-      },
+      { organizationId: 'org_1', projectId: 'proj_1', ref: 'inst_1', name: 'Default' },
       undefined
     );
-    expect(mocks.agentTracking.project.upsert.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.agentTracking.instance.upsert.mock.invocationCallOrder[0]!
-    );
+    let order = upserts().map(upsert => upsert.mock.invocationCallOrder[0]!);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect([
+      links.organization.get(1n),
+      links.project.get(2n),
+      links.instance.get(3n)
+    ]).toEqual(['ator_1', 'atpr_1', 'atin_1']);
+  });
+
+  it('makes no call to the service while the instance is linked', async () => {
+    links.instance.set(3n, 'atin_1');
+
+    expect(await withInstanceScope(scope, serviceId)).toBe('atin_1');
+    expect(await withInstanceScope(scope, serviceId)).toBe('atin_1');
+
+    expect(rpcCount()).toBe(0);
+  });
+
+  it('upserts only the levels that are not linked yet', async () => {
+    links.organization.set(1n, 'ator_1');
+
+    await withInstanceScope(scope, serviceId);
+
+    expect(mocks.agentTracking.organization.upsert).not.toHaveBeenCalled();
+    expect(mocks.agentTracking.project.upsert).toHaveBeenCalledTimes(1);
+    expect(mocks.agentTracking.instance.upsert).toHaveBeenCalledTimes(1);
+
+    await withInstanceScope(scope, serviceId);
+    expect(rpcCount()).toBe(2);
   });
 
   it('passes call options to every scope upsert', async () => {
-    await agentTrackingSyncService.upsertInstanceScope({
-      organization,
-      project,
-      instance,
-      callOpts: { timeoutMs: 4_000 }
-    });
+    await withInstanceScope({ ...scope, callOpts: { timeoutMs: 4_000 } }, serviceId);
 
-    for (let upsert of [
-      mocks.agentTracking.organization.upsert,
-      mocks.agentTracking.project.upsert,
-      mocks.agentTracking.instance.upsert
-    ]) {
+    for (let upsert of upserts()) {
       expect(upsert).toHaveBeenCalledWith(expect.any(Object), { timeoutMs: 4_000 });
     }
+  });
+
+  describe('stale scope repair', () => {
+    let staleLinks = () => {
+      links.organization.set(1n, 'ator_gone');
+      links.project.set(2n, 'atpr_gone');
+      links.instance.set(3n, 'atin_gone');
+    };
+
+    it('relinks every level once and repeats the call with the new service id', async () => {
+      staleLinks();
+      let calls: string[] = [];
+
+      let result = await withInstanceScope(scope, async serviceInstanceId => {
+        calls.push(serviceInstanceId);
+        if (calls.length == 1) throw new ServiceError(notFoundError('instance'));
+        return 'done';
+      });
+
+      expect(result).toBe('done');
+      expect(calls).toEqual(['atin_gone', 'atin_1']);
+      expect(rpcCount()).toBe(3);
+      expect([
+        links.organization.get(1n),
+        links.project.get(2n),
+        links.instance.get(3n)
+      ]).toEqual(['ator_1', 'atpr_1', 'atin_1']);
+    });
+
+    it('drops the links of the whole organization, not only the scope in hand', async () => {
+      staleLinks();
+      links.instance.set(4n, 'atin_sibling');
+
+      await withInstanceScope(scope, async serviceInstanceId => {
+        if (serviceInstanceId == 'atin_gone') {
+          throw new ServiceError(notFoundError('organization'));
+        }
+      });
+
+      expect(links.instance.has(4n)).toBe(false);
+    });
+
+    it('gives up after one repair, upserting each level at most twice', async () => {
+      let lost = new ServiceError(notFoundError('project'));
+      mocks.agentTracking.instance.upsert
+        .mockRejectedValueOnce(lost)
+        .mockRejectedValueOnce(lost);
+
+      await expect(withInstanceScope(scope, serviceId)).rejects.toBe(lost);
+
+      for (let upsert of upserts()) expect(upsert).toHaveBeenCalledTimes(2);
+    });
+
+    it('leaves the links alone on a not found that is not about the scope', async () => {
+      links.instance.set(3n, 'atin_1');
+      let missingSession = new ServiceError(notFoundError('session'));
+      let run = vi.fn().mockRejectedValue(missingSession);
+
+      await expect(withInstanceScope(scope, run)).rejects.toBe(missingSession);
+
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(links.instance.get(3n)).toBe('atin_1');
+    });
   });
 
   it('enqueues an entity sync for each entity', async () => {

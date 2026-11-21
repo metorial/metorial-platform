@@ -17,13 +17,17 @@ export let evidenceWindowDays = 30;
 
 export let memberWindowDays = 400;
 
-let maxMembers = 1000;
+export let maxMembers = 1000;
 
 let sessionModelsLimit = 50;
 
 export let sessionCountColumn = 'sessions_active';
 
 export let memberCountColumn = 'members_active';
+
+export let sessionsWithCostColumn = 'sessions_with_cost';
+
+export let sessionsWithListPriceColumn = 'sessions_with_list_price';
 
 export let distinctCappedWarning = 'distinct_capped';
 
@@ -86,6 +90,8 @@ export let activityMeasures = [
 
 type Filter = Record<string, unknown>;
 
+let allOf = (clauses: Filter[]) => (clauses.length > 1 ? { and: clauses } : clauses[0]);
+
 let sortedUnique = (values: string[] | undefined) =>
   values?.length ? [...new Set(values)].sort() : undefined;
 
@@ -113,7 +119,7 @@ let spendWhere = (filters: AgentTrackingSpendFilters): Filter | undefined => {
   }
   if (filters.modelIds) clauses.push(modelWhere(filters.modelIds));
 
-  return clauses.length > 1 ? { and: clauses } : clauses[0];
+  return allOf(clauses);
 };
 
 let usageQuery = (
@@ -245,13 +251,42 @@ export let toolDetailsQuery = (range: { from: Date; to: Date }) => ({
   labels: false
 });
 
-export let membersQuery = (range: { from: Date; to: Date }) => ({
-  atq: '0',
-  dataset: 'sessions',
-  range: queryRange(range),
-  dimensions: [{ field: 'user', missing: 'exclude' }],
-  measures: ['sessions', 'last_activity'],
-  orderBy: [{ by: 'last_activity', direction: 'desc' }],
-  limit: maxMembers,
-  labels: false
-});
+export let membersQuery = (d: {
+  window: { from: Date; to: Date };
+  lastActivity?: { from: Date; to: Date };
+  memberIds?: string[];
+}) => {
+  let clauses: Filter[] = [
+    ...(d.lastActivity
+      ? [
+          { field: 'lastActivityAt', op: 'gte', value: d.lastActivity.from.toISOString() },
+          { field: 'lastActivityAt', op: 'lt', value: d.lastActivity.to.toISOString() }
+        ]
+      : []),
+    ...(d.memberIds ? [{ field: 'user', op: 'in', value: d.memberIds }] : [])
+  ];
+
+  return {
+    atq: '0',
+    dataset: 'sessions',
+    range: queryRange(d.window),
+    ...(clauses.length ? { where: allOf(clauses) } : {}),
+    dimensions: [{ field: 'user', missing: 'exclude' }],
+    measures: [
+      'sessions',
+      'last_activity',
+      'cost.usd',
+      'cost.list',
+      'cost.reported',
+      { fn: 'count', where: { field: 'cost.usd', op: 'notNull' }, as: sessionsWithCostColumn },
+      {
+        fn: 'count',
+        where: { field: 'cost.list', op: 'notNull' },
+        as: sessionsWithListPriceColumn
+      }
+    ],
+    orderBy: [{ by: 'last_activity', direction: 'desc' }],
+    limit: maxMembers,
+    labels: false
+  };
+};

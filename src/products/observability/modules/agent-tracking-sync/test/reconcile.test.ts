@@ -4,6 +4,8 @@ vi.mock('@metorial/queue', async () => (await import('./_mocks')).queueModule);
 
 vi.mock('@metorial/cron', async () => (await import('./_mocks')).cronModule);
 
+vi.mock('../src/lib/links', async () => (await import('./_mocks')).linksModule);
+
 vi.mock('@metorial/db', () => ({
   db: {
     organization: { findMany: vi.fn(), findUnique: vi.fn() },
@@ -34,14 +36,31 @@ import {
   reconcileManyQueue,
   reconcileManyQueueProcessor,
   reconcileScopesQueue,
+  reconcileScopesQueueProcessor,
   reconcileSingleQueue,
   reconcileSingleQueueProcessor
 } from '../src/queues/reconcile';
 import { backfillOrganizationQueue } from '../src/queues/backfill';
-import { mocks, resetMocks } from './_mocks';
+import { linksModule, mocks, resetMocks } from './_mocks';
 import { syncScopeQueue } from '../src/queues/syncScope';
 
-mocks.agentTracking = { entity: { list: vi.fn(), archive: vi.fn() } };
+mocks.agentTracking = {
+  organization: { get: vi.fn() },
+  entity: { list: vi.fn(), archive: vi.fn() }
+};
+
+let link = { serviceOrganizationId: 'ator_1' };
+
+let matches = (row: any, where: any): boolean =>
+  Object.entries(where ?? {}).every(([key, value]: [string, any]) => {
+    if (key == 'organization' || value === undefined) return true;
+    if (key == 'OR') return value.some((branch: any) => matches(row, branch));
+    if (key == 'NOT') return !matches(row, value);
+    if (value && typeof value == 'object' && 'is' in value) return row[key] == null;
+    if (value && typeof value == 'object' && 'isNot' in value) return row[key] != null;
+    if (value && typeof value == 'object') return matches(row[key], value);
+    return row?.[key] === value;
+  });
 
 let organization = { oid: 1n, id: 'org_1', status: 'active' };
 
@@ -123,10 +142,11 @@ describe('agent-tracking/reconcile', () => {
     expect(mocks.agentTracking.entity.archive).not.toHaveBeenCalled();
   });
 
-  it('only re-syncs the scope of a deleted organization', async () => {
+  it('only archives the scope of a deleted organization, and only while it is linked', async () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
-      status: 'deleted'
+      status: 'deleted',
+      agentTrackingLink: link
     } as any);
 
     await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
@@ -134,7 +154,132 @@ describe('agent-tracking/reconcile', () => {
     expect(syncScopeQueue.add).toHaveBeenCalledWith({ type: 'organization', id: 'org_1' });
     expect(reconcileEntitiesQueue.addMany).not.toHaveBeenCalled();
     expect(backfillOrganizationQueue.add).not.toHaveBeenCalled();
+
+    vi.mocked(syncScopeQueue.add).mockClear();
+    vi.mocked(db.organization.findUnique).mockResolvedValue({
+      ...organization,
+      status: 'deleted',
+      agentTrackingLink: null
+    } as any);
+
+    await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
+
+    expect(syncScopeQueue.add).not.toHaveBeenCalled();
   });
+
+  it('leaves an organization that is not linked to its first use, settings or not', async () => {
+    vi.mocked(db.organization.findUnique).mockResolvedValue({
+      ...organization,
+      agentTrackingLink: null,
+      agentTrackingSettings: { hideIndividuals: true }
+    } as any);
+
+    await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
+
+    expect(mocks.agentTracking.organization.get).not.toHaveBeenCalled();
+    expect(syncScopeQueue.add).not.toHaveBeenCalled();
+    expect(reconcileScopesQueue.addMany).toHaveBeenCalled();
+  });
+
+  it('leaves a linked organization the service still holds alone', async () => {
+    vi.mocked(db.organization.findUnique).mockResolvedValue({
+      ...organization,
+      agentTrackingLink: link
+    } as any);
+    mocks.agentTracking.organization.get.mockResolvedValue({ id: 'ator_1' });
+
+    await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
+
+    expect(mocks.agentTracking.organization.get).toHaveBeenCalledWith({
+      organizationId: 'org_1'
+    });
+    expect(syncScopeQueue.add).not.toHaveBeenCalled();
+    expect(linksModule.unlinkOrganizationTree).not.toHaveBeenCalled();
+    expect(reconcileScopesQueue.addMany).toHaveBeenCalled();
+  });
+
+  it('pushes a linked organization with stored settings again, so a lost push lands within a day', async () => {
+    vi.mocked(db.organization.findUnique).mockResolvedValue({
+      ...organization,
+      agentTrackingLink: link,
+      agentTrackingSettings: { hideIndividuals: true }
+    } as any);
+    mocks.agentTracking.organization.get.mockResolvedValue({ id: 'ator_1' });
+
+    await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
+
+    expect(syncScopeQueue.add).toHaveBeenCalledWith({ type: 'organization', id: 'org_1' });
+    expect(linksModule.unlinkOrganizationTree).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['lost', null],
+    ['recreated under another id', { id: 'ator_2' }]
+  ])(
+    'drops every link of an organization the service %s and leaves it to its next use',
+    async (_, remote) => {
+      vi.mocked(db.organization.findUnique).mockResolvedValue({
+        ...organization,
+        agentTrackingLink: link,
+        agentTrackingSettings: { hideIndividuals: true }
+      } as any);
+      mocks.agentTracking.organization.get.mockResolvedValue(remote);
+
+      await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
+
+      expect(linksModule.unlinkOrganizationTree).toHaveBeenCalledWith(
+        expect.objectContaining({ oid: 1n })
+      );
+      expect(syncScopeQueue.add).not.toHaveBeenCalled();
+      expect(
+        vi.mocked(linksModule.unlinkOrganizationTree).mock.invocationCallOrder[0]
+      ).toBeLessThan(vi.mocked(reconcileScopesQueue.addMany).mock.invocationCallOrder[0]!);
+    }
+  );
+
+  it.each([
+    ['project', () => db.project.findMany],
+    ['instance', () => db.instance.findMany]
+  ] as const)(
+    'queues %s scopes that are linked with stored settings or deleted while linked',
+    async (type, findMany) => {
+      let rows = [
+        { id: 'unlinked', status: 'active' },
+        { id: 'unlinked_settings', status: 'active', agentTrackingSettings: {} },
+        { id: 'linked', status: 'active', agentTrackingLink: {} },
+        {
+          id: 'linked_settings',
+          status: 'active',
+          agentTrackingLink: {},
+          agentTrackingSettings: {}
+        },
+        { id: 'deleted_linked', status: 'deleted', agentTrackingLink: {} },
+        { id: 'deleted_unlinked', status: 'deleted', agentTrackingSettings: {} },
+        ...(type == 'instance'
+          ? [
+              {
+                id: 'in_deleted_project',
+                status: 'active',
+                project: { status: 'deleted' },
+                agentTrackingLink: {}
+              }
+            ]
+          : [])
+      ].map(row => ({ project: { status: 'active' }, ...row }));
+      vi.mocked(findMany()).mockImplementation((async ({ where }: any) =>
+        rows.filter(row => matches(row, where)).map(row => ({ id: row.id }))) as any);
+
+      await (reconcileScopesQueueProcessor as any).handler({ organizationId: 'org_1', type });
+
+      expect(syncScopeQueue.addMany).toHaveBeenCalledWith(
+        [
+          'linked_settings',
+          'deleted_linked',
+          ...(type == 'instance' ? ['in_deleted_project'] : [])
+        ].map(id => ({ type, id }))
+      );
+    }
+  );
 
   it('backfills the roster of an organization that holds an active credential', async () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue(organization as any);

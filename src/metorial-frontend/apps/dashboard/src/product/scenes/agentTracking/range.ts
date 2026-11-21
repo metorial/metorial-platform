@@ -1,6 +1,12 @@
+import {
+  deserializeFromQuery,
+  f,
+  getFilterPayload,
+  readFilterPayload
+} from '@metorial/data-list';
 import { useSearchParams } from 'react-router-dom';
 
-export let agentTrackingRangePresets = [
+let agentTrackingRangePresets = [
   { id: 'today', label: 'Today' },
   { id: 'last_7_days', label: '7 Days' },
   { id: 'last_30_days', label: '30 Days' },
@@ -10,26 +16,7 @@ export let agentTrackingRangePresets = [
 
 export type AgentTrackingRangePreset = (typeof agentTrackingRangePresets)[number]['id'];
 
-let defaultPreset: AgentTrackingRangePreset = 'last_30_days';
-
-export let useSearchParamOption = <Id extends string>(
-  name: string,
-  ids: readonly Id[],
-  defaultId: Id
-) => {
-  let [params, setParams] = useSearchParams();
-  let value = params.get(name);
-  let current = ids.find(id => id == value) ?? defaultId;
-
-  let setCurrent = (next: Id) => {
-    let updated = new URLSearchParams(params);
-    if (next == defaultId) updated.delete(name);
-    else updated.set(name, next);
-    setParams(updated, { replace: true });
-  };
-
-  return [current, setCurrent] as const;
-};
+export let defaultAgentTrackingRange: AgentTrackingRangePreset = 'last_30_days';
 
 export let getBrowserTimeZone = () => {
   try {
@@ -39,25 +26,59 @@ export let getBrowserTimeZone = () => {
   }
 };
 
-export let useAgentTrackingRange = (opts: { individualsHidden?: boolean } = {}) => {
-  let presets = opts.individualsHidden
-    ? agentTrackingRangePresets.filter(preset => preset.id != 'today')
-    : agentTrackingRangePresets;
-  let [range, setRange] = useSearchParamOption(
-    'range',
-    presets.map(preset => preset.id),
-    defaultPreset
-  );
+let spendRangeHighlight = {
+  exclusive: true,
+  preserveOrder: true,
+  defaultValue: defaultAgentTrackingRange
+} as const;
 
-  return {
-    range,
-    setRange,
-    presets,
-    timeZone: opts.individualsHidden ? 'UTC' : getBrowserTimeZone()
-  };
+export let spendRangeFilter = f.select('range', 'Range', agentTrackingRangePresets, {
+  highlight: spendRangeHighlight
+});
+
+// With individuals hidden the API counts whole UTC days up to yesterday, so Today is not offered.
+export let hiddenIndividualsSpendRangeFilter = f.select(
+  'range',
+  'Range',
+  agentTrackingRangePresets.filter(preset => preset.id != 'today'),
+  { highlight: spendRangeHighlight }
+);
+
+export let lastActiveRangeFilter = f.select(
+  'range',
+  'Last Active',
+  agentTrackingRangePresets,
+  {
+    description: 'Filter by last activity',
+    highlight: { exclusive: true, label: 'Last Active', preserveOrder: true }
+  }
+);
+
+export let lastActiveRangeQuery = (range: AgentTrackingRangePreset | undefined) => ({
+  range,
+  timeZone: range ? getBrowserTimeZone() : undefined
+});
+
+export let useLastActiveRange = () => {
+  let [params] = useSearchParams();
+  let payload = getFilterPayload(deserializeFromQuery(params, [lastActiveRangeFilter.filter]));
+
+  return lastActiveRangeQuery(readFilterPayload(lastActiveRangeFilter, payload)?.[0]);
 };
 
-// `to` is exclusive, so the last day shown is the one that contains the instant before it.
+export let withQuery = (
+  path: string,
+  query: Record<string, string | string[] | undefined>
+) => {
+  let params = new URLSearchParams();
+  for (let [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.set(key, Array.isArray(value) ? value.join(',') : value);
+  }
+
+  let search = params.toString();
+  return search ? `${path}?${search}` : path;
+};
+
 export let formatAgentTrackingRange = (range: { from: Date; to: Date; timeZone: string }) => {
   let format = (date: Date) => {
     try {

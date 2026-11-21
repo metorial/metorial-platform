@@ -5,7 +5,8 @@ import {
   formatDayLabel,
   formatSpan,
   formatTimeSpan,
-  sessionActivity
+  sessionActivity,
+  sessionTitle
 } from './activity';
 
 let minute = 60 * 1000;
@@ -87,5 +88,34 @@ describe('dates', () => {
     expect(
       formatTimeSpan(new Date(2026, 10, 18, 22, 0), new Date(2026, 10, 19, 1, 30), now)
     ).toBe('Yesterday, 10:00 PM to Today, 1:30 AM');
+  });
+});
+
+describe('sessionTitle', () => {
+  let startedAt = new Date(2026, 10, 19, 9, 0);
+
+  it('names the member and the day the session started, never relatively', () => {
+    expect(
+      sessionTitle(
+        { member: { name: 'Maya Okafor', email: 'maya@example.com' }, startedAt },
+        now
+      )
+    ).toBe('Maya Okafor on Nov 19');
+    expect(
+      sessionTitle(
+        {
+          member: { name: null, email: 'maya@example.com' },
+          startedAt: new Date(2025, 11, 30)
+        },
+        now
+      )
+    ).toBe('maya@example.com on Dec 30, 2025');
+  });
+
+  it('falls back to the session without a known member', () => {
+    expect(sessionTitle({ member: null, startedAt }, now)).toBe('Session on Nov 19');
+    expect(sessionTitle({ member: { name: null, email: null }, startedAt }, now)).toBe(
+      'Session on Nov 19'
+    );
   });
 });

@@ -25,9 +25,7 @@ describe('describeSessionCost', () => {
       describeSessionCost(
         session({ billingModes: ['included'], requests: 214, memberName: 'Maya Okafor' })
       )
-    ).toBe(
-      "The tilde means this is an estimate. Maya's Claude subscription or seat covers this usage, so nobody was charged $18.42; it is what the same tokens cost at your contract prices where set, else the cost Claude Code reports, else list prices."
-    );
+    ).toBe("Maya's subscription covers this session, so nobody was charged.");
   });
 
   it('splits a session that is partly billed', () => {
@@ -39,10 +37,10 @@ describe('describeSessionCost', () => {
           requests: 12
         })
       )
-    ).toMatch(/^\$4\.00 of it was billed by the provider\. The other ~\$6\.00 is an estimate/);
+    ).toBe('$4.00 was billed by the provider. The other ~$6.00 is an estimate.');
   });
 
-  it('says a billed session matches the bill', () => {
+  it('adds nothing to the cost label of a billed session', () => {
     expect(
       describeSessionCost(
         session({
@@ -50,31 +48,24 @@ describe('describeSessionCost', () => {
           billingModes: ['api']
         })
       )
-    ).toBe("Billed by the provider, so it matches your provider's bill and has no tilde.");
+    ).toBeNull();
   });
 
-  it('keeps an estimate without a subscription generic', () => {
+  it('adds nothing to the cost label of a plain estimate', () => {
     expect(
       describeSessionCost(session({ billingModes: ['unknown'], memberName: 'Maya Okafor' }))
-    ).toMatch(/^The tilde means this is an estimate, not a bill/);
+    ).toBeNull();
   });
 
-  it('does not point at a tilde when the amount below a cent has none', () => {
-    expect(
-      describeSessionCost(
-        session({
-          cost: { totalMicros: 4672, estimatedMicros: 4672 },
-          billingModes: ['included']
-        })
-      )
-    ).toMatch(
-      /^This is an estimate\. A Claude subscription or seat covers this usage, so nobody was charged <\$0\.01;/
+  it('names no one when the member of a covered session is unknown', () => {
+    expect(describeSessionCost(session({ billingModes: ['included'] }))).toBe(
+      'A subscription covers this session, so nobody was charged.'
     );
   });
 
   it('separates an unknown cost from zero', () => {
-    expect(describeSessionCost(session({ cost: unknownCost }))).toMatch(
-      /no total\. That is not the same as zero\.$/
+    expect(describeSessionCost(session({ cost: unknownCost }))).toBe(
+      'No request of this session has a known cost, so there is no total (not $0).'
     );
     expect(describeSessionCost(session({ cost: unknownCost, requests: 0 }))).toBeNull();
   });

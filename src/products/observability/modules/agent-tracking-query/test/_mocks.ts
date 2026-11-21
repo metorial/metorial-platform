@@ -51,7 +51,10 @@ export let cacheModule = {
   }
 };
 
-export let upsertInstanceScope = vi.fn(async (_d: any) => ({ id: 'atin_created' }));
+export let withInstanceScope = vi.fn(
+  async (_d: any, run: (serviceInstanceId: string) => Promise<unknown>) =>
+    await run('atin_service')
+);
 
 export let privacy = { hideIndividuals: false, minGroupUsers: 5 };
 
@@ -59,7 +62,7 @@ export let syncModule = {
   ...clientFamilies,
   consumerEntitySource: 'metorial.consumer',
   requireAgentTracking: () => client,
-  agentTrackingSyncService: { upsertInstanceScope },
+  withInstanceScope,
   agentTrackingSettingsService: { getPrivacy: async () => ({ ...privacy }) }
 };
 
@@ -69,7 +72,7 @@ export let dbModule = { db: { consumer: consumers } };
 
 export let scope = {
   organization: { oid: 1n, id: 'org_1', name: 'Acme' },
-  project: { id: 'proj_1', name: 'Production' },
+  project: { oid: 2n, id: 'proj_1', name: 'Production' },
   instance: { oid: 3n, id: 'inst_1', name: 'Default' }
 };
 
@@ -97,12 +100,12 @@ export let remoteMember = (overrides: Record<string, unknown> = {}) => ({
 
 export let resetMocks = () => {
   rpc.calls.length = 0;
-  rpc.handlers = { 'instance:get': () => ({ id: 'atin_service' }) };
+  rpc.handlers = {};
   cache.store.clear();
   cache.failing = false;
   consumers.findMany.mockReset();
   consumers.findMany.mockImplementation(async () => []);
-  upsertInstanceScope.mockClear();
+  withInstanceScope.mockClear();
   privacy.hideIndividuals = false;
   privacy.minGroupUsers = 5;
 };

@@ -2,11 +2,8 @@ import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { getAgentTracking, ignoreNotFound } from '../lib/client';
 import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
-import {
-  upsertInstanceScope,
-  upsertOrganizationScope,
-  upsertProjectScope
-} from '../lib/scope';
+import { unlinkInstance, unlinkOrganizationTree, unlinkProject } from '../lib/links';
+import { pushInstanceScope, pushOrganizationScope, pushProjectScope } from '../lib/scope';
 
 export type ScopeSyncTarget = { type: 'organization' | 'project' | 'instance'; id: string };
 
@@ -20,7 +17,10 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
   if (!agentTracking) return;
 
   if (data.type == 'organization') {
-    let organization = await db.organization.findUnique({ where: { id: data.id } });
+    let organization = await db.organization.findUnique({
+      where: { id: data.id },
+      include: { agentTrackingLink: true }
+    });
     if (!organization) return;
     if (!(await isAgentTrackingEnabledForOrganization({ organization }))) return;
 
@@ -28,17 +28,20 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
       await ignoreNotFound(
         agentTracking.organization.archive({ organizationId: organization.id })
       );
+      await unlinkOrganizationTree(organization);
       return;
     }
 
-    await upsertOrganizationScope({ agentTracking, organization });
+    if (organization.agentTrackingLink) {
+      await pushOrganizationScope({ agentTracking, organization });
+    }
     return;
   }
 
   if (data.type == 'project') {
     let project = await db.project.findUnique({
       where: { id: data.id },
-      include: { organization: true }
+      include: { organization: true, agentTrackingLink: true }
     });
     if (!project) return;
 
@@ -52,16 +55,19 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
           projectId: project.id
         })
       );
+      await unlinkProject(project);
       return;
     }
 
-    await upsertProjectScope({ agentTracking, organization, project });
+    if (project.agentTrackingLink) {
+      await pushProjectScope({ agentTracking, organization, project });
+    }
     return;
   }
 
   let instance = await db.instance.findUnique({
     where: { id: data.id },
-    include: { organization: true, project: true }
+    include: { organization: true, project: true, agentTrackingLink: true }
   });
   if (!instance) return;
 
@@ -79,8 +85,11 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
         instanceId: instance.id
       })
     );
+    await unlinkInstance(instance);
     return;
   }
 
-  await upsertInstanceScope({ agentTracking, organization, project, instance });
+  if (instance.agentTrackingLink) {
+    await pushInstanceScope({ agentTracking, organization, project, instance });
+  }
 });
