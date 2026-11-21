@@ -34,12 +34,12 @@ export let providerRunController = Controller.create(
   {
     name: 'Provider Runs',
     description:
-      'Provider runs track the execution of provider operations within a session. This read-only resource provides visibility into provider activity.'
+      'A provider run is one execution of a provider in a session. Runs track activity from start to completion.'
   },
   {
     list: integrationsGroup
       .get(instancePath('provider-runs', 'providerRuns.list'), {
-        name: 'List all provider runs',
+        name: 'List provider runs',
         description: 'Returns a paginated list of provider runs across all sessions.'
       })
       .use(requireNonPublishableMachineAccess())
@@ -108,7 +108,7 @@ export let providerRunController = Controller.create(
     get: providerRunGroup
       .get(instancePath('provider-runs/:providerRunId', 'providerRuns.get'), {
         name: 'Get provider run',
-        description: 'Retrieves a specific provider run by ID.'
+        description: 'Retrieves a provider run.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
@@ -122,7 +122,7 @@ export let providerRunController = Controller.create(
     getLogs: integrationsGroup
       .get(instancePath('provider-runs/:providerRunId/logs', 'providerRuns.getLogs'), {
         name: 'Get provider run logs',
-        description: 'Retrieves the logs for a specific provider run.'
+        description: 'Retrieves the logs for a provider run.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))

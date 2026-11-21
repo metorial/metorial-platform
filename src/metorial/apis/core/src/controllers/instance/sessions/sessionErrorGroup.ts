@@ -31,13 +31,13 @@ export let sessionErrorGroupController = Controller.create(
   {
     name: 'Session Error Groups',
     description:
-      'Session error groups aggregate similar errors that occurred during a session. This read-only resource helps identify patterns in errors.',
+      'A session error group is a set of similar session errors. Groups show how often each failure repeats.',
     hideInDocs: true
   },
   {
     list: integrationsGroup
       .get(instancePath('session-error-groups', 'sessions.errorGroups.list'), {
-        name: 'List all session error groups',
+        name: 'List session error groups',
         description: 'Returns a paginated list of error groups across all sessions.'
       })
       .use(requireNonPublishableMachineAccess())
@@ -105,7 +105,7 @@ export let sessionErrorGroupController = Controller.create(
         instancePath('session-error-groups/:sessionErrorGroupId', 'sessions.errorGroups.get'),
         {
           name: 'Get session error group',
-          description: 'Retrieves a specific error group by ID across all sessions.'
+          description: 'Retrieves a session error group.'
         }
       )
       .use(requireNonPublishableMachineAccess())

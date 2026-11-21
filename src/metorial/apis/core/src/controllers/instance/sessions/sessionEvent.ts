@@ -49,14 +49,14 @@ export let sessionEventController = Controller.create(
   {
     name: 'Session Events',
     description:
-      'Session events represent significant occurrences during a session, such as errors or state changes. This read-only resource provides visibility into session activity.',
+      'A session event records something that happened in a session, like a connection opening or an error occurring.',
     hideInDocs: true
   },
   {
     list: integrationsGroup
       .get(instancePath('session-events', 'sessions.events.list'), {
         name: 'List session events',
-        description: 'Returns a paginated list of events for a session.'
+        description: 'Returns a paginated list of session events.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -128,7 +128,7 @@ export let sessionEventController = Controller.create(
     get: sessionEventGroup
       .get(instancePath('session-events/:sessionEventId', 'sessions.events.get'), {
         name: 'Get session event',
-        description: 'Retrieves a specific event from a session.'
+        description: 'Retrieves a session event.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(

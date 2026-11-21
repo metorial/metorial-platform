@@ -39,65 +39,85 @@ export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantTy
   .schema(
     v.object({
       object: v.literal('session.participant', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session participant identifier',
+        description: 'Unique ID.',
         examples: ['spt_5eFgHjKlMnPqRsTu']
       }),
       type: v.enumOf(['unknown', 'provider', 'agent', 'system'] as const, {
         name: 'type',
-        description: 'Participant type'
+        description: 'What kind of actor the participant is. Older client types report as `agent`.'
       }),
       identifier: v.string({
         name: 'identifier',
-        description: 'Participant identifier',
+        description: 'How the participant identifies itself.',
         examples: ['claude-desktop']
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name',
+        description: 'Display name.',
         examples: ['Claude Desktop']
       }),
-      data: v.object(
+          data: v.object(
         {
           identifier: v.string({
             name: 'identifier',
-            description: 'Participant-specific identifier within the payload',
+            description: 'Participant identifier from the connection payload.',
             examples: ['claude-desktop']
           }),
           name: v.string({
             name: 'name',
-            description: 'Participant-specific display name within the payload',
+            description: 'Display name from the connection payload.',
             examples: ['Claude Desktop']
           })
         },
         {
           name: 'data',
-          description: 'Participant payload data'
+          description: 'Extra details the participant connected with.'
         }
       ),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'Provider ID if associated',
+          description: 'Provider the participant belongs to. `null` when there is none.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       connection_type: v.nullable(
-        v.enumOf(['mcp', 'metorial_protocol', 'tool_call'] as const)
+        v.enumOf(['mcp', 'metorial_protocol', 'tool_call'] as const, {
+          description: 'How the participant connected.'
+        })
       ),
-      agent_id: v.nullable(v.string()),
-      agent_instance_id: v.nullable(v.string()),
-      identity_actor_id: v.nullable(v.string()),
-      identity_id: v.nullable(v.string()),
-      agent_actor_id: v.nullable(v.string()),
-      agent_client_id: v.nullable(v.string()),
-      consumer_id: v.nullable(v.string()),
+      agent_id: v.nullable(
+        v.string({ description: 'Agent the participant belongs to. `null` when there is none.' })
+      ),
+      agent_instance_id: v.nullable(
+        v.string({
+          description: 'Agent instance the participant runs as. `null` when there is none.'
+        })
+      ),
+      identity_actor_id: v.nullable(
+        v.string({
+          description: 'Identity actor the participant acts as. `null` when there is none.'
+        })
+      ),
+      identity_id: v.nullable(
+        v.string({ description: 'Identity the participant acts as. `null` when there is none.' })
+      ),
+      agent_actor_id: v.nullable(
+        v.string({ description: 'Actor record for the agent. `null` when there is none.' })
+      ),
+      agent_client_id: v.nullable(
+        v.string({ description: 'Client record for the agent. `null` when there is none.' })
+      ),
+      consumer_id: v.nullable(
+        v.string({ description: 'Consumer the participant acts for. `null` when there is none.' })
+      ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

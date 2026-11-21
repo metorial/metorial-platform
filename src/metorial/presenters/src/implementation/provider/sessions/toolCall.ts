@@ -77,31 +77,31 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
   .schema(
     v.object({
       object: v.literal('session.tool_call', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique tool call identifier',
+        description: 'Unique ID.',
         examples: ['tcl_8hJkLmNpQrStUvWx']
       }),
       tool_key: v.string({
         name: 'tool_key',
-        description: 'The key identifying the tool that was called',
+        description: 'The key identifying the tool that was called.',
         examples: ['create_issue', 'search_code']
       }),
 
       type: v.enumOf(['tool_call', 'mcp_control', 'mcp_message', 'unknown'], {
         name: 'type',
-        description: 'The type of the tool call'
+        description: 'Always `tool_call`.'
       }),
       status: v.enumOf(['waiting_for_response', 'failed', 'succeeded'], {
         name: 'status',
-        description: 'Current status of the tool call'
+        description: '`waiting_for_response` until the tool replies.'
       }),
       source: v.enumOf(['client', 'provider'], {
         name: 'source',
-        description: 'Source of the tool call'
+        description: 'Whether the client or the provider made the call.'
       }),
       transport: v.enumOf(['tool_call', 'mcp', 'metorial_protocol', 'system'], {
         name: 'transport',
@@ -110,32 +110,32 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
 
       session_id: v.string({
         name: 'session_id',
-        description: 'Parent session ID',
+        description: 'Session the tool was called in.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       message_id: v.string({
         name: 'message_id',
-        description: 'Associated session message ID',
+        description: 'Message that records this call.',
         examples: ['smg_3cDeFgHjKlMnPqRs']
       }),
       session_provider_id: v.nullable(
         v.string({
           name: 'session_provider_id',
-          description: 'Session provider ID',
+          description: 'Session provider that handled the call. `null` when there is none.',
           examples: ['spr_3cDeFgHjKlMnPqRs']
         })
       ),
       connection_id: v.nullable(
         v.string({
           name: 'connection_id',
-          description: 'Session connection ID',
+          description: 'Connection the call belongs to. `null` when there is none.',
           examples: ['scn_2bCdEfGhJkLmNpQr']
         })
       ),
       provider_run_id: v.nullable(
         v.string({
           name: 'provider_run_id',
-          description: 'Provider run ID',
+          description: 'Provider run that produced the call. `null` when there is none.',
           examples: ['prn_8hJkLmNpQrStUvWx']
         })
       ),
@@ -160,7 +160,7 @@ export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

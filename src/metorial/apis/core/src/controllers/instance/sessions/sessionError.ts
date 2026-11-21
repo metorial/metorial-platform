@@ -49,12 +49,12 @@ export let sessionErrorController = Controller.create(
   {
     name: 'Session Errors',
     description:
-      'Session errors track errors that occurred during a session. This read-only resource provides visibility into issues that happened during provider execution.'
+      'A session error is an error recorded while running a session. Similar errors group together for review.'
   },
   {
     list: integrationsGroup
       .get(instancePath('session-errors', 'sessions.errors.list'), {
-        name: 'List all session errors',
+        name: 'List session errors',
         description: 'Returns a paginated list of errors across all sessions.'
       })
       .use(requireNonPublishableMachineAccess())
@@ -157,7 +157,7 @@ export let sessionErrorController = Controller.create(
     get: sessionErrorGroup
       .get(instancePath('session-errors/:sessionErrorId', 'sessions.errors.get'), {
         name: 'Get session error',
-        description: 'Retrieves a specific error that occurred in a session.'
+        description: 'Retrieves a session error.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(

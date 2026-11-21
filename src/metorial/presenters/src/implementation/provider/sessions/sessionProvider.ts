@@ -63,16 +63,17 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
   .schema(
     v.object({
       object: v.literal('session.provider', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session provider identifier',
+        description: 'Unique ID.',
         examples: ['spr_3cDeFgHjKlMnPqRs']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Provider status'
+        description:
+          '`archived` once the session provider is deleted. Archived session providers stay listable.'
       }),
       usage: v.object(
         {
@@ -90,44 +91,54 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
       tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this session provider connects to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       session_id: v.string({
         name: 'session_id',
-        description: 'Parent session ID',
+        description: 'Session this provider is connected to.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       from_template_id: v.nullable(
         v.string({
           name: 'from_template_id',
-          description: 'Source template ID',
+          description:
+            'Template this provider was created from. `null` when it was added directly.',
           examples: ['stm_2bCdEfGhJkLmNpQr']
         })
       ),
       from_template_provider_id: v.nullable(
         v.string({
           name: 'from_template_provider_id',
-          description: 'Source template provider ID',
+          description:
+            'Template provider this was created from. `null` when added directly.',
           examples: ['stp_3cDeFgHjKlMnPqRs']
         })
       ),
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
       config: v1ProviderConfigPreviewPresenter.schema,
       auth_config: v.nullable(
-        v.object({
-          object: v.literal('provider.auth_config#preview'),
-          id: v.string()
-        })
+        v.object(
+          {
+            object: v.literal('provider.auth_config#preview', {
+              description: "String representing the object’s type."
+            }),
+            id: v.string({ description: 'Unique ID.' })
+          },
+          {
+            name: 'auth_config',
+            description: 'Auth config the provider runs with. `null` when there is none.'
+          }
+        )
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
