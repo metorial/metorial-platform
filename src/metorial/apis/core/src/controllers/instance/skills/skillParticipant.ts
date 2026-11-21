@@ -46,13 +46,13 @@ export let skillParticipantGroup = skillGroup.use(async ctx => {
 export let skillParticipantController = Controller.create(
   {
     name: 'Skill Participants',
-    description: 'Inspect participants associated with an instance skill.'
+    description: 'A skill participant is a member or consumer participating in a skill.'
   },
   {
     list: skillGroup
       .get(instancePath('skills/:skillId/participants', 'skills.participants.list'), {
         name: 'List skill participants',
-        description: 'Returns a paginated list of participants for a specific skill.'
+        description: 'Returns a paginated list of skill participants.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -95,8 +95,8 @@ export let skillParticipantController = Controller.create(
           'skills.participants.get'
         ),
         {
-          name: 'Get skill participant by ID',
-          description: 'Retrieves a specific participant within a skill.'
+          name: 'Get skill participant',
+          description: 'Retrieves a skill participant.'
         }
       )
       .use(hasFlags(['skills-enabled']))

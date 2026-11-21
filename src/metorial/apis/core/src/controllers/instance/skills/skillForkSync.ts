@@ -36,7 +36,7 @@ export let skillForkSyncGroup = instanceGroup
 export let skillForkSyncController = Controller.create(
   {
     name: 'Skill Fork Syncs',
-    description: 'Synchronize changes from an upstream skill into a fork.',
+    description: 'A skill fork sync is a queued update pulling upstream changes into a forked skill.',
     hideInDocs: true
   },
   {
@@ -50,7 +50,9 @@ export let skillForkSyncController = Controller.create(
       .body(
         'default',
         v.object({
-          skill_id: v.string()
+          skill_id: v.string({
+            description: 'Forked skill to sync upstream changes into, by ID.'
+          })
         })
       )
       .output(skillForkSyncPresenter)

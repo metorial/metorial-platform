@@ -15,12 +15,20 @@ import { skillGroup } from './skill';
 
 let createSkillItemValidator = v.union([
   v.object({
-    type: v.literal('provider'),
-    provider_id: v.string()
+    type: v.literal('provider', {
+      description: 'Attach a provider to the skill.'
+    }),
+    provider_id: v.string({
+      description: 'Provider to attach to the skill, by ID.'
+    })
   }),
   v.object({
-    type: v.literal('integration'),
-    integration_id: v.string()
+    type: v.literal('integration', {
+      description: 'Attach an integration to the skill.'
+    }),
+    integration_id: v.string({
+      description: 'Integration to attach to the skill, by ID.'
+    })
   })
 ]);
 
@@ -70,13 +78,13 @@ let assertConsumerCanWriteSkillItems = async (
 export let skillItemController = Controller.create(
   {
     name: 'Skill Items',
-    description: 'Skill items attach integrations and providers to skills.'
+    description: 'A skill item is a provider or integration attached to a skill.'
   },
   {
     list: skillGroup
       .get(instancePath('skills/:skillId/items', 'skills.items.list'), {
         name: 'List skill items',
-        description: 'Returns a paginated list of items for a skill.'
+        description: 'Returns a paginated list of skill items.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -87,20 +95,42 @@ export let skillItemController = Controller.create(
         Paginator.validate(
           v.object({
             status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skill items with one of these statuses.'
+                }
+              )
             ),
             type: v.optional(
-              v.union([
-                v.enumOf(['integration', 'provider']),
-                v.array(v.enumOf(['integration', 'provider']))
-              ])
+              v.union(
+                [
+                  v.enumOf(['integration', 'provider']),
+                  v.array(v.enumOf(['integration', 'provider']))
+                ],
+                {
+                  description: 'Only return skill items of one of these types.'
+                }
+              )
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill items with these IDs.'
+              })
+            ),
+            integration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill items for one of these integrations.'
+              })
+            ),
+            provider_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill items for one of these providers.'
+              })
+            ),
             created_at: dateFilterValidator('skill item creation time')
           })
         )
@@ -126,7 +156,7 @@ export let skillItemController = Controller.create(
     get: skillItemGroup
       .get(instancePath('skills/:skillId/items/:skillItemId', 'skills.items.get'), {
         name: 'Get skill item',
-        description: 'Retrieves a specific skill item.'
+        description: 'Retrieves a skill item.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -173,7 +203,7 @@ export let skillItemController = Controller.create(
 
     delete: skillItemGroup
       .delete(instancePath('skills/:skillId/items/:skillItemId', 'skills.items.delete'), {
-        name: 'Delete skill item',
+        name: 'Archive skill item',
         description: 'Archives a skill item.'
       })
       .use(hasFlags(['skills-enabled']))

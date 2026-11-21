@@ -46,7 +46,7 @@ export let skillAgentGroup = skillGroup.use(async ctx => {
 export let skillAgentController = Controller.create(
   {
     name: 'Skill Agents',
-    description: 'Manage sub-agents attached to a skill.'
+    description: 'A skill agent is a reusable sub-agent document stored in a skill.'
   },
   {
     create: skillGroup
@@ -60,9 +60,13 @@ export let skillAgentController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.nullable(v.string())),
-          content: v.optional(v.string())
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(v.nullable(v.string()), {
+            description: 'Free-text description. `null` clears it.'
+          }),
+          content: v.optional(
+            v.string({ description: 'Agent document content.' })
+          )
         })
       )
       .output(skillAgentPresenter)
@@ -90,7 +94,7 @@ export let skillAgentController = Controller.create(
     list: skillGroup
       .get(instancePath('skills/:skillId/agents', 'skills.agents.list'), {
         name: 'List skill agents',
-        description: 'Returns a paginated list of agents for a specific skill.'
+        description: 'Returns a paginated list of skill agents.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -100,7 +104,11 @@ export let skillAgentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            include_archived: v.optional(v.boolean())
+            include_archived: v.optional(
+              v.boolean({
+                description: 'Include archived agents in the results.'
+              })
+            )
           })
         )
       )
@@ -119,8 +127,8 @@ export let skillAgentController = Controller.create(
 
     get: skillAgentGroup
       .get(instancePath('skills/:skillId/agents/:skillAgentId', 'skills.agents.get'), {
-        name: 'Get skill agent by ID',
-        description: 'Retrieves a specific agent within a skill.'
+        name: 'Get skill agent',
+        description: 'Retrieves a skill agent.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -131,7 +139,7 @@ export let skillAgentController = Controller.create(
     update: skillAgentGroup
       .patch(instancePath('skills/:skillId/agents/:skillAgentId', 'skills.agents.update'), {
         name: 'Update skill agent',
-        description: 'Updates the name or description for a specific skill agent.'
+        description: 'Updates a skill agent. Omitted fields keep their current value.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
@@ -139,8 +147,10 @@ export let skillAgentController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string()))
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.nullable(v.string()), {
+            description: 'Free-text description. `null` clears it.'
+          })
         })
       )
       .output(skillAgentPresenter)
@@ -159,8 +169,8 @@ export let skillAgentController = Controller.create(
 
     delete: skillAgentGroup
       .delete(instancePath('skills/:skillId/agents/:skillAgentId', 'skills.agents.delete'), {
-        name: 'Delete skill agent',
-        description: 'Archives a specific skill agent and removes its linked store item.'
+        name: 'Archive skill agent',
+        description: 'Archives a skill agent and removes its linked store item.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
