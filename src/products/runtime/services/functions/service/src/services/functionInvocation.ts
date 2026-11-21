@@ -36,6 +36,19 @@ let getFunctionData = createLocallyCachedFunction({
           : undefined
       }
     }),
+  shouldCache: (func, i) => !!func && (!i.versionId || !!func.functionVersions?.length),
+  // Deploys and enclave overrides move the current version from any pod, and this cache is
+  // per process, so every hit re-reads the pointer instead of waiting out the TTL.
+  revalidate: async func => {
+    if (!func) return false;
+
+    let current = await db.function.findUnique({
+      where: { oid: func.oid },
+      select: { currentVersionOid: true }
+    });
+
+    return !!current && current.currentVersionOid === func.currentVersionOid;
+  },
   ttlSeconds: 60
 });
 

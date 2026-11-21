@@ -93,7 +93,10 @@ let commandOptions: Record<
   env: { flags: ['json'] },
   run: {},
   'test:unit': {},
-  'test:e2e': { flags: ['keep', 'plan'], values: ['images', 'workspace', 'concurrency'] },
+  'test:e2e': {
+    flags: ['keep', 'plan', 'replica'],
+    values: ['images', 'workspace', 'concurrency', 'replica-delay']
+  },
   cleanup: { flags: ['dry-run', 'docker'] },
   docker: {},
   'docker stop': {},
@@ -255,6 +258,9 @@ let parseArgumentsUnchecked = (args: string[]): Arguments => {
 
   if (parsed.values.workspace !== undefined && parsed.values.images === undefined)
     throw new Error('--workspace requires --images');
+
+  if (parsed.values['replica-delay'] !== undefined && !parsed.flags.has('replica'))
+    throw new Error('--replica-delay requires --replica');
 
   if (
     parsed.values.concurrency !== undefined &&
@@ -430,6 +436,7 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
             : Number(parsed.values.concurrency),
         keep: flags.has('keep'),
         planOnly: flags.has('plan'),
+        replica: flags.has('replica') ? { delay: parsed.values['replica-delay'] } : undefined,
         testArgs: parsed.testArgs
       });
       return;

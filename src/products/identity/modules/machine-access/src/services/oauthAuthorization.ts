@@ -549,17 +549,28 @@ class OAuthAuthorizationService {
     }
 
     return await withTransaction(async db => {
-      let oauthToken = await this.issueOAuthToken({
-        oauthAuthorization,
-        withRefreshToken: !!d.clientSecret
-      });
-
-      await db.oAuthAuthorizationFlow.update({
-        where: { oid: oauthAuthorizationFlow.oid },
+      let consumed = await db.oAuthAuthorizationFlow.updateMany({
+        where: { oid: oauthAuthorizationFlow.oid, status: 'accepted' },
         data: {
           status: 'consumed',
           consumedAt: new Date()
         }
+      });
+      if (!consumed.count) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid authorization code',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Invalid authorization code'
+            }
+          })
+        );
+      }
+
+      let oauthToken = await this.issueOAuthToken({
+        oauthAuthorization,
+        withRefreshToken: !!d.clientSecret
       });
 
       return {
@@ -661,17 +672,28 @@ class OAuthAuthorizationService {
     }
 
     return await withTransaction(async db => {
-      let oauthToken = await this.issueOAuthToken({
-        oauthAuthorization,
-        withRefreshToken: !!(d.clientSecret || d.forceIncludeRefreshToken)
-      });
-
-      await db.oAuthAuthorizationFlow.update({
-        where: { oid: oauthAuthorizationFlow.oid },
+      let consumed = await db.oAuthAuthorizationFlow.updateMany({
+        where: { oid: oauthAuthorizationFlow.oid, status: 'accepted' },
         data: {
           status: 'consumed',
           consumedAt: new Date()
         }
+      });
+      if (!consumed.count) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Authorization request has been consumed',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Authorization request has been consumed'
+            }
+          })
+        );
+      }
+
+      let oauthToken = await this.issueOAuthToken({
+        oauthAuthorization,
+        withRefreshToken: !!(d.clientSecret || d.forceIncludeRefreshToken)
       });
 
       return {

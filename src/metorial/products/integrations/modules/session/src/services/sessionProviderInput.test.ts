@@ -24,7 +24,6 @@ vi.mock('@lowerdeck/id', () => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db: {},
-  dbPrimary: {},
   addAfterTransactionHook: vi.fn(async (hook: () => Promise<unknown>) => {
     await hook();
   }),

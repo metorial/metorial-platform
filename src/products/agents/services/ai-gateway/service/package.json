@@ -22,6 +22,7 @@
     "e2e:start": "bun ./src/server.ts"
   },
   "dependencies": {
+    "@metorial/service-init": "workspace:*",
     "@mtsrc/ai-gateway-api-internal": "workspace:*",
     "@mtsrc/ai-gateway-db": "workspace:*",
     "@lowerdeck/queue": "workspace:2.0.0",

@@ -8,7 +8,7 @@ import { detect } from './root';
 import { parse, workspaceMetadataSchema } from './schema';
 import type { LoadedManifest, ProjectRoot, ServicePorts, WorkspaceMetadata } from './types';
 
-let standardPorts = [31025, 32379, 32380, 32707, 34222, 35432, 36379, 38025];
+let standardPorts = [31025, 32379, 32380, 32707, 34222, 35432, 35433, 36379, 38025];
 
 export let validateBranch = (branch: string) => {
   if (
@@ -155,7 +155,7 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
     if (data) reserve(reserved, data);
   }
 
-  let values = await allocatePortValues(reserved, 9);
+  let values = await allocatePortValues(reserved, 10);
 
   return {
     postgres: values[0]!,
@@ -166,7 +166,8 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
     etcd_peer: values[5]!,
     mail: values[6]!,
     mail_ui: values[7]!,
-    db_explorer: values[8]!
+    db_explorer: values[8]!,
+    postgres_replica: values[9]!
   };
 };
 
@@ -177,10 +178,11 @@ let ensureServicePorts = async (
   let ports = data.service_ports;
   if (!ports) return allocateServicePorts(project);
 
-  let optionalPorts: ('mail' | 'mail_ui' | 'db_explorer')[] = [
+  let optionalPorts: ('mail' | 'mail_ui' | 'db_explorer' | 'postgres_replica')[] = [
     'mail',
     'mail_ui',
-    'db_explorer'
+    'db_explorer',
+    'postgres_replica'
   ];
   let missing = optionalPorts.filter(key => ports[key] === undefined);
   if (!missing.length) return ports;

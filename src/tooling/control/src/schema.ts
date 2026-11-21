@@ -311,6 +311,7 @@ export let workspaceMetadataSchema = v.object({
   service_ports: v.optional(
     v.object({
       postgres: port,
+      postgres_replica: v.optional(port),
       mongo: port,
       redis: port,
       nats: port,

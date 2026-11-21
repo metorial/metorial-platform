@@ -42,6 +42,7 @@
     "@metorial-platform-systems/runtime-trust-publisher": "workspace:*",
     "@metorial/doctor": "workspace:*",
     "@metorial/editions": "workspace:*",
+    "@metorial/service-init": "workspace:*",
     "@mtsrc/mcp-runtime-api-connection": "workspace:*",
     "@mtsrc/mcp-runtime-api-internal": "workspace:*",
     "@mtsrc/mcp-runtime-api-public": "workspace:*",

@@ -1,8 +1,9 @@
 import type { ErrorData } from '@lowerdeck/error';
 import { withExecutionContextTraceFallback } from '@lowerdeck/telemetry';
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
-import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
-import { readReplicas } from '@prisma/extension-read-replicas';
+import { createDatabase } from '@lowerdeck/prisma-pg';
+
+export { withPrimaryReads, withReplicaReads } from '@lowerdeck/prisma-pg';
 import type { ChatBody, ChatContext, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
 import { Prisma, PrismaClient } from '../prisma/generated/client';
 import type {
@@ -41,50 +42,6 @@ export type EntityImage =
 
 type EntityImageOuter = EntityImage;
 
-let mainAdapter = createPrismaPgAdapter(
-  {
-    connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
-  },
-  {
-    environment: process.env.METORIAL_ENV,
-    databaseName: 'integrations',
-    role: 'primary'
-  }
-);
-
-let replicaUrl = process.env.SUBSPACE_DATABASE_URL_READER ?? process.env.DATABASE_URL_READER;
-
-let replicaAdapter = replicaUrl
-  ? createPrismaPgAdapter(
-      {
-        connectionString: replicaUrl
-      },
-      {
-        environment: process.env.METORIAL_ENV,
-        databaseName: 'integrations',
-        role: 'replica'
-      }
-    )
-  : undefined;
-
-let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;
-
-let primaryClient = new PrismaClient({
-  adapter: mainAdapter,
-  transactionOptions: {
-    maxWait: 10000,
-    timeout: 12000
-  }
-});
-
-let baseClient = primaryClient;
-
-if (replicaClient) {
-  baseClient = baseClient.$extends(
-    readReplicas({ replicas: [replicaClient] })
-  ) as any as PrismaClient;
-}
-
 let pointLookupOperations = new Set([
   'findUnique',
   'findUniqueOrThrow',
@@ -121,17 +78,25 @@ let queryExtension = Prisma.defineExtension({
   }
 });
 
-export let db = baseClient.$extends(queryExtension);
+let database = createDatabase({
+  name: 'integrations',
+  url: ['SUBSPACE_DATABASE_URL', 'DATABASE_URL'],
+  createClient: adapter =>
+    new PrismaClient({
+      adapter,
+      transactionOptions: {
+        maxWait: 10000,
+        timeout: 12000
+      }
+    }),
+  extend: client => client.$extends(queryExtension) as any as PrismaClient,
+  afterHookDelayMs: 5000,
+  warnOnAfterHookOutsideTransaction: true
+});
 
-// Reads that must observe a write another process made moments ago (queue jobs, the conduit
-// receiver) bypass the read replica, which may lag behind the primary.
-export let dbPrimary = primaryClient.$extends(queryExtension) as unknown as typeof db;
+export let db: PrismaClient = database.db;
 
-// For lookups a client may issue right after creating the record (e.g. fetching or connecting
-// to a session it just created): a replica miss is retried once on the primary.
-export let findWithPrimaryFallback = async <T>(
-  read: (client: typeof db) => Promise<T | null>
-): Promise<T | null> => (await read(db)) ?? (await read(dbPrimary));
+export let { withTransaction, addAfterTransactionHook, isInTransaction } = database;
 
 declare global {
   namespace PrismaJson {

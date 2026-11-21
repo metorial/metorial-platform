@@ -22,7 +22,6 @@ import {
   type AgentInstance,
   db,
   type Environment,
-  findWithPrimaryFallback,
   getId,
   ID,
   type ProviderAuthConfig,
@@ -295,28 +294,26 @@ export class SenderManager {
   private static async resolveSession(d: SenderMangerProps) {
     if (d.connectionToken) {
       let loadConnection = async () =>
-        await findWithPrimaryFallback(client =>
-          client.sessionConnection.findFirst({
-            where: {
-              token: d.connectionToken,
-              session: {
-                OR: [{ id: d.sessionId }, { ephemeralManagedSession: { id: d.sessionId } }]
-              },
-              tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
-              solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
+        await db.sessionConnection.findFirst({
+          where: {
+            token: d.connectionToken,
+            session: {
+              OR: [{ id: d.sessionId }, { ephemeralManagedSession: { id: d.sessionId } }]
             },
-            include: {
-              session: {
-                include: {
-                  ephemeralManagedSession: true
-                }
-              },
-              participant: true,
-              tenant: true,
-              solution: true
-            }
-          })
-        );
+            tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
+            solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
+          },
+          include: {
+            session: {
+              include: {
+                ephemeralManagedSession: true
+              }
+            },
+            participant: true,
+            tenant: true,
+            solution: true
+          }
+        });
 
       let connection = await loadConnection();
 
@@ -452,19 +449,17 @@ export class SenderManager {
       }
     }
 
-    let session = await findWithPrimaryFallback(client =>
-      client.session.findFirst({
-        where: {
-          id: d.sessionId,
-          tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
-          solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
-        },
-        include: {
-          tenant: true,
-          solution: true
-        }
-      })
-    );
+    let session = await db.session.findFirst({
+      where: {
+        id: d.sessionId,
+        tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
+        solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
+      },
+      include: {
+        tenant: true,
+        solution: true
+      }
+    });
     if (session) {
       return {
         ...session,

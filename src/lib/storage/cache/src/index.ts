@@ -21,6 +21,7 @@ export let createCachedFunction = <I, O>(opts: {
   ttlSeconds: number;
   getTags?: (o: O, i: I) => string[];
   revalidate?: (o: O, i: I) => Promise<boolean>;
+  shouldCache?: (o: O, i: I) => boolean;
 }) => {
   let active = new Map<string, Promise<O>>();
   let cache = new LRUCache<string, any>({
@@ -84,6 +85,8 @@ export let createCachedFunction = <I, O>(opts: {
       let setTTL = (newTTL: number) => (ttl.current = newTTL);
 
       let result = await opts.provider(i, { setTTL });
+      if (opts.shouldCache && !opts.shouldCache(result, i)) return result;
+
       await redis.set(hash, SuperJson.stringify(result), {
         EX: ttl.current
       });
@@ -169,6 +172,7 @@ export let createLocallyCachedFunction = <I, O>(opts: {
   provider: (i: I) => Promise<O>;
   ttlSeconds: number;
   revalidate?: (o: O, i: I) => Promise<boolean>;
+  shouldCache?: (o: O, i: I) => boolean;
 }) => {
   let cache = new LRUCache<string, any>({ max: 500, ttl: opts.ttlSeconds * 1000 });
 
@@ -190,7 +194,8 @@ export let createLocallyCachedFunction = <I, O>(opts: {
       }
 
       let result = await opts.provider(i);
-      cache.set(hash, result);
+      if (!opts.shouldCache || opts.shouldCache(result, i)) cache.set(hash, result);
+
       return result;
     })();
 

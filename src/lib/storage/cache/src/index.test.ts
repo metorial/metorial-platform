@@ -224,6 +224,30 @@ describe('createCachedFunction', () => {
     expect(revalidate).toHaveBeenCalledTimes(1);
     expect(provider).toHaveBeenCalledTimes(1);
   });
+
+  it('stores nothing for results that shouldCache rejects', async () => {
+    let name = 'should-cache';
+    let found = false;
+    let provider = vi.fn(async () => (found ? 'value' : null));
+    let cached = createCachedFunction({
+      name,
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      getTags: (_value, key: string) => [key],
+      provider,
+      shouldCache: value => value !== null,
+      ttlSeconds: 60
+    });
+
+    expect(await cached('key')).toBeNull();
+    expect(redisStore.has(`cache:0:${name}:val:key`)).toBe(false);
+    expect(tagMembers(name, 'key')).toEqual([]);
+
+    found = true;
+    expect(await cached('key')).toBe('value');
+    expect(await cached('key')).toBe('value');
+    expect(provider).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('createLocallyCachedFunction', () => {
@@ -288,5 +312,20 @@ describe('createLocallyCachedFunction', () => {
 
     expect(await cached('key')).toBe('value:key');
     expect(provider).toHaveBeenCalledTimes(1);
+  });
+
+  it('recomputes results that shouldCache rejects', async () => {
+    let provider = vi.fn(async () => (provider.mock.calls.length > 1 ? ['value'] : []));
+    let cached = createLocallyCachedFunction({
+      getHash: (key: string) => key,
+      provider,
+      shouldCache: value => value.length > 0,
+      ttlSeconds: 60
+    });
+
+    expect(await cached('key')).toEqual([]);
+    expect(await cached('key')).toEqual(['value']);
+    expect(await cached('key')).toEqual(['value']);
+    expect(provider).toHaveBeenCalledTimes(2);
   });
 });

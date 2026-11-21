@@ -1,5 +1,5 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { dbPrimary } from '@metorial-subspace/db';
+import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { recordMessageActivity } from '../../shared/messageActivity';
 import { finalizeMessageQueue } from './finalizeMessage';
@@ -14,7 +14,7 @@ export let messageCreatedQueue = createQueue<{ messageId: string }>({
 });
 
 export let messageCreatedQueueProcessor = messageCreatedQueue.process(async data => {
-  let message = await dbPrimary.sessionMessage.findUnique({
+  let message = await db.sessionMessage.findUnique({
     where: { id: data.messageId },
     select: {
       oid: true,

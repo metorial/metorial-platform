@@ -68,11 +68,10 @@
     "@metorial-platform-systems/runtime-egress-grants": "workspace:*",
     "@metorial-platform-systems/runtime-trust-publisher": "workspace:*",
     "@metorial/doctor": "workspace:*",
+    "@metorial/service-init": "workspace:*",
     "@mtsrc/build-client-internal": "workspace:*",
     "@metorial-platform-systems/network-logs-client": "workspace:*",
-    "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
-    "@prisma/extension-read-replicas": "^0.5.0",
     "@sentry/bun": "^11.12.0",
     "@sentry/cli": "^3.8.2",
     "date-fns": "^4.4.0",
@@ -89,6 +88,7 @@
     "@lowerdeck/delay": "workspace:2.0.0",
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",
-    "@metorial/editions": "workspace:*"
+    "@metorial/editions": "workspace:*",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0"
   }
 }

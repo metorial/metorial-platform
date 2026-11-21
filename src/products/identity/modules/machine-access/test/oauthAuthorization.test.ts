@@ -43,7 +43,7 @@ let {
     oAuthAuthorizationFlow: {
       findFirst: vi.fn(),
       upsert: vi.fn(),
-      update: vi.fn()
+      updateMany: vi.fn()
     },
     oAuthToken: {
       findUnique: vi.fn(),
@@ -289,10 +289,7 @@ describe('oauthAuthorizationService', () => {
         };
       }
     );
-    mockDb.oAuthAuthorizationFlow.update.mockImplementation(async ({ where, data }: any) => ({
-      oid: where.oid,
-      ...data
-    }));
+    mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 1 });
     getMemberEffectiveAccessMock.mockResolvedValue({ entries: [] });
     getGrantedScopesMock.mockReturnValue(['organization:read', 'organization:write']);
     oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest.mockImplementation(
@@ -752,7 +749,7 @@ describe('oauthAuthorizationService', () => {
     expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
   });
 
-  it('exchanges authorization codes into access and refresh tokens', async () => {
+  let mockAcceptedAuthorizationCode = () => {
     oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByCode.mockResolvedValue({
       id: 'oarf_1',
       oauthApplicationId: 'oauthApplication-generated-id',
@@ -823,8 +820,10 @@ describe('oauthAuthorizationService', () => {
       organization: baseOrg,
       user: baseUser
     });
+  };
 
-    let result = await oauthAuthorizationService.exchangeOAuthToken({
+  let exchangeAuthorizationCode = () =>
+    oauthAuthorizationService.exchangeOAuthToken({
       context: baseContext,
       input: {
         grantType: 'authorization_code',
@@ -834,10 +833,29 @@ describe('oauthAuthorizationService', () => {
       }
     });
 
+  it('exchanges authorization codes into access and refresh tokens', async () => {
+    mockAcceptedAuthorizationCode();
+
+    let result = await exchangeAuthorizationCode();
+
+    expect(mockDb.oAuthAuthorizationFlow.updateMany).toHaveBeenCalledWith({
+      where: { oid: 500n, status: 'accepted' },
+      data: { status: 'consumed', consumedAt: expect.any(Date) }
+    });
     expect(unifiedApiKeyCreateMock).toHaveBeenCalled();
     expect(mockDb.oAuthToken.create).toHaveBeenCalled();
     expect(result.oauthToken.accessToken).toContain('metorial_oa_');
     expect(result.oauthToken.refreshToken).toBeNull();
+  });
+
+  it('rejects an authorization code that a concurrent exchange consumed first', async () => {
+    mockAcceptedAuthorizationCode();
+    mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(exchangeAuthorizationCode()).rejects.toMatchObject({
+      data: { message: 'Invalid authorization code', oauth: { error: 'invalid_grant' } }
+    });
+    expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
   });
 
   let refreshableAuthorization = {
@@ -1059,6 +1077,61 @@ describe('oauthAuthorizationService', () => {
         deviceCode: 'device-1'
       })
     ).rejects.toThrow(ServiceError);
+  });
+
+  describe('accepted device codes', () => {
+    beforeEach(() => {
+      mockAcceptedAuthorizationCode();
+
+      let acceptedDeviceRequest = {
+        id: 'oarf_1',
+        oauthApplicationId: 'oauthApplication-generated-id',
+        type: 'device_code',
+        status: 'accepted',
+        deviceCode: 'device-1',
+        lastPollAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+        oauthApplication: { clientId: 'client-1' }
+      };
+      oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByDeviceCode.mockResolvedValue(
+        acceptedDeviceRequest
+      );
+      oauthGlobalRepositoryMock.touchOAuthAuthorizationRequestPoll.mockResolvedValue(
+        acceptedDeviceRequest
+      );
+    });
+
+    let exchangeDeviceCode = () =>
+      oauthAuthorizationService.exchangeOAuthToken({
+        context: baseContext,
+        input: {
+          grantType: 'device_code',
+          clientId: 'client-1',
+          deviceCode: 'device-1'
+        }
+      });
+
+    it('consumes the flow before issuing a token', async () => {
+      await exchangeDeviceCode();
+
+      expect(mockDb.oAuthAuthorizationFlow.updateMany).toHaveBeenCalledWith({
+        where: { oid: 500n, status: 'accepted' },
+        data: { status: 'consumed', consumedAt: expect.any(Date) }
+      });
+      expect(mockDb.oAuthToken.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a device code that a concurrent exchange consumed first', async () => {
+      mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(exchangeDeviceCode()).rejects.toMatchObject({
+        data: {
+          message: 'Authorization request has been consumed',
+          oauth: { error: 'invalid_grant' }
+        }
+      });
+      expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+    });
   });
 
   it('allows direct authorization get requests for non-internal apps', async () => {

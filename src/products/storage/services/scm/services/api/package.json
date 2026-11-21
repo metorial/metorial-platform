@@ -63,6 +63,7 @@
     "@lowerdeck/telemetry": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial/doctor": "workspace:*",
+    "@metorial/service-init": "workspace:*",
     "@octokit/auth-app": "^8.3.1",
     "@octokit/core": "^7.0.8",
     "@prisma/adapter-pg": "^7.10.1",

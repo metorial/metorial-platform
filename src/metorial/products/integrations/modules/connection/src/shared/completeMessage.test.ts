@@ -4,7 +4,7 @@ let mocks = vi.hoisted(() => ({
   protoGuardService: { scheduleMessageScan: vi.fn() },
   db: {
     sessionMessage: {
-      findFirstOrThrow: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       update: vi.fn()
     },
     sessionEvent: {
@@ -30,9 +30,6 @@ vi.mock('@metorial-subspace/module-protoguard', () => ({
 }));
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
-  dbPrimary: {
-    sessionMessage: { findUniqueOrThrow: mocks.db.sessionMessage.findFirstOrThrow }
-  },
   withTransaction: (cb: (tx: any) => Promise<any>) => mocks.db.$transaction(cb),
   getId: mocks.getId,
   getRawToolCallAttachmentsFromOutput: mocks.getRawToolCallAttachmentsFromOutput,
@@ -109,7 +106,7 @@ describe('completeMessage', () => {
       }
     };
 
-    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue(currentMessage);
     mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
 
     let message = await completeMessage(
@@ -183,7 +180,7 @@ describe('completeMessage', () => {
       }
     };
 
-    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue(currentMessage);
     mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
     mocks.createError.mockResolvedValue({ oid: 32n });
     mocks.db.sessionMessage.update.mockResolvedValue(finalMessage);
@@ -287,7 +284,7 @@ describe('completeMessage', () => {
       }
     };
 
-    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue(currentMessage);
     mocks.db.$transaction.mockImplementation(async cb => {
       await cb(firstAttemptTx);
       return await cb(retriedAttemptTx);
@@ -358,7 +355,7 @@ describe('completeMessage', () => {
       }
     };
 
-    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue(currentMessage);
     mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
 
     await completeMessage(
@@ -420,7 +417,7 @@ describe('completeMessage', () => {
       }
     };
 
-    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue(currentMessage);
     mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
 
     await completeMessage(
@@ -482,7 +479,7 @@ describe('completeMessage', () => {
       }
     };
 
-    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue(currentMessage);
     mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
 
     await completeMessage(

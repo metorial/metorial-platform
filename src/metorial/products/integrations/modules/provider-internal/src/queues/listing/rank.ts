@@ -2,7 +2,7 @@ import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdeck/queue';
 
 let RANK_BATCH_SIZE = 500;
-import { db } from '@metorial-subspace/db';
+import { db, withReplicaReads } from '@metorial-subspace/db';
 import { env } from '../../env';
 
 let startRankQueue = createQueue<{ cursor?: string }>({
@@ -35,15 +35,17 @@ let rankCron = createCron(
 );
 
 let startRankQueueProcessor = startRankQueue.process(async data => {
-  let providers = await db.providerListing.findMany({
-    where: {
-      isPublic: true,
-      id: data.cursor ? { gt: data.cursor } : undefined
-    },
-    select: { id: true },
-    take: RANK_BATCH_SIZE,
-    orderBy: { id: 'asc' }
-  });
+  let providers = await withReplicaReads(() =>
+    db.providerListing.findMany({
+      where: {
+        isPublic: true,
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
+      select: { id: true },
+      take: RANK_BATCH_SIZE,
+      orderBy: { id: 'asc' }
+    })
+  );
   if (providers.length === 0) return;
 
   await processSingleRankQueue.addManyWithOps(
@@ -79,11 +81,6 @@ let processSingleRankQueueProcessor = processSingleRankQueue.process(async data 
   });
   if (!providerListing) return;
 
-  let rank = 0;
-  let deploymentsCount = 0;
-  let providerSessionsCount = 0;
-  let providerMessagesCount = 0;
-
   let isVerified = providerListing.isVerified;
   let isMetorial = providerListing.isMetorial;
   let isSlates =
@@ -93,27 +90,36 @@ let processSingleRankQueueProcessor = processSingleRankQueue.process(async data 
 
   let isOfficial = providerListing.isOfficial;
 
-  deploymentsCount = await db.providerDeployment.count({
-    where: { providerOid: providerListing.providerOid }
-  });
-  providerSessionsCount = await db.sessionProvider.count({
-    where: { providerOid: providerListing.providerOid }
-  });
+  let providerOid = providerListing.providerOid;
+  let {
+    deploymentsCount,
+    providerSessionsCount,
+    providerMessagesCount,
+    hasManagedCredentials
+  } = await withReplicaReads(async () => {
+    let messages = await db.sessionProvider.aggregate({
+      where: { providerOid },
+      _sum: {
+        totalProductiveProviderMessageCount: true,
+        totalProductiveClientMessageCount: true
+      }
+    });
 
-  let providerMessagesCountAgg = await db.sessionProvider.aggregate({
-    where: { providerOid: providerListing.providerOid },
-    _sum: {
-      totalProductiveProviderMessageCount: true,
-      totalProductiveClientMessageCount: true
-    }
+    return {
+      deploymentsCount: await db.providerDeployment.count({ where: { providerOid } }),
+      providerSessionsCount: await db.sessionProvider.count({ where: { providerOid } }),
+      providerMessagesCount:
+        (messages._sum.totalProductiveProviderMessageCount ?? 0) +
+        (messages._sum.totalProductiveClientMessageCount ?? 0),
+      hasManagedCredentials: !!(await db.managedProviderAuthCredentials.findFirst({
+        where: { providerOid },
+        select: { oid: true }
+      }))
+    };
   });
-
-  providerMessagesCount =
-    (providerMessagesCountAgg._sum.totalProductiveProviderMessageCount ?? 0) +
-    (providerMessagesCountAgg._sum.totalProductiveClientMessageCount ?? 0);
 
   // Calculate rank based on various factors
-  rank = Math.ceil(
+  let rank = Math.ceil(
     deploymentsCount * 0.1 + providerSessionsCount * 0.3 + providerMessagesCount * 0.01
   );
 
@@ -123,10 +129,6 @@ let processSingleRankQueueProcessor = processSingleRankQueue.process(async data 
     if (isNative) rank += 20_000;
     rank = 10_000 + Math.ceil(rank * 5);
   } else if (isOfficial || isVerified) rank = Math.ceil(rank * 3);
-
-  let hasManagedCredentials = await db.managedProviderAuthCredentials.findFirst({
-    where: { providerOid: providerListing.providerOid }
-  });
 
   if (hasManagedCredentials) rank += 50_000;
 
