@@ -31,7 +31,8 @@ let scmConnectionGroup = instanceGroup.use(async ctx => {
 export let scmConnectionsController = Controller.create(
   {
     name: 'SCM Connections',
-    description: 'Manage source control connections for an instance.'
+    description:
+      'An SCM connection is an authorized link between an instance and a source control provider.'
   },
   {
     list: instanceGroup
@@ -67,7 +68,7 @@ export let scmConnectionsController = Controller.create(
     get: scmConnectionGroup
       .get(instancePath('scm/connections/:scmConnectionId', 'scm.connections.get'), {
         name: 'Get SCM connection',
-        description: 'Retrieves a specific SCM connection by ID.'
+        description: 'Retrieves an SCM connection.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:read'] }))
       .output(scmConnectionPresenter)
@@ -80,26 +81,26 @@ export let scmConnectionsController = Controller.create(
     create: instanceGroup
       .post(instancePath('scm/connections', 'scm.connections.create'), {
         name: 'Create SCM connection',
-        description: 'Initiates an SCM connection setup session.'
+        description:
+          'Creates a connection setup session. Open the returned URL to authorize access.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:write'] }))
       .body(
         'default',
         v.object({
           redirect_url: v.optional(
-            v.string({ description: 'URL to redirect after authorization' })
+            v.string({ description: 'URL to redirect to after authorization.' })
           )
         })
       )
       .output(scmConnectionSetupPresenter)
       .do(async ctx => {
-        let scmConnectionSetup = await scmConnectionSetupSessionService.createScmConnectionSetupSession(
-          {
+        let scmConnectionSetup =
+          await scmConnectionSetupSessionService.createScmConnectionSetupSession({
             instance: ctx.instance,
             redirectUrl: ctx.body.redirect_url,
             organizationActor: ctx.actor!
-          }
-        );
+          });
 
         return scmConnectionSetupPresenter.present({
           scmConnectionSetup

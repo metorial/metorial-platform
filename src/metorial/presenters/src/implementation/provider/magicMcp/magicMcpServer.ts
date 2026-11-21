@@ -12,32 +12,42 @@ import {
 import { getCachedPortalConnectUrl } from './portalConnectUrl';
 
 let magicMcpServerSchema = v.object({
-  object: v.literal('magic_mcp.server'),
-  id: v.string(),
-  status: v.enumOf(['active', 'archived', 'deleted']),
+  object: v.literal('magic_mcp.server', {
+    description: 'String representing the object’s type.'
+  }),
+  id: v.string({ description: 'Unique ID.' }),
+  status: v.enumOf(['active', 'archived', 'deleted'], {
+    description: '`archived` once you delete the server. Archived servers stay listable.'
+  }),
   source: v.enumOf(['manual', 'consumer_provider_template', 'explorer'], {
     description: 'How this Magic MCP server was created or configured'
   }),
-  provider_management_mode: v.enumOf([
-    'manual',
-    'inherited_from_provider_template',
-    'inherited_from_integration'
-  ]),
+  provider_management_mode: v.enumOf(
+    ['manual', 'inherited_from_provider_template', 'inherited_from_integration'],
+    { description: 'Whether providers are managed on the server or inherited.' }
+  ),
   endpoints: v.array(
     v.object({
-      id: v.string(),
-      alias: v.string(),
-      url: v.string()
-    })
+      id: v.string({ description: 'Unique ID.' }),
+      alias: v.string({ description: 'Connection slug for the server.' }),
+      url: v.string({ description: 'Connection URL for the server.' })
+    }),
+    { description: 'Connection targets for the server.' }
   ),
-  provider_template_id: v.nullable(v.string()),
-  providers: v.array(v1MagicMcpServerProviderPresenter.schema),
-  name: v.nullable(v.string()),
-  description: v.nullable(v.string()),
-  metadata: v.record(v.any()),
+  provider_template_id: v.nullable(
+    v.string({ description: 'Provider template the server is built from, if any.' })
+  ),
+  providers: v.array(v1MagicMcpServerProviderPresenter.schema, {
+    description: 'Providers the server connects through.'
+  }),
+  name: v.nullable(v.string({ description: 'Display name.' })),
+  description: v.nullable(v.string({ description: 'Free-text description.' })),
+  metadata: v.record(v.any(), {
+    description: 'Custom data you attach to identify or organize this record.'
+  }),
   access: resourceAccessSchema,
-  created_at: v.date(),
-  updated_at: v.date()
+  created_at: v.date({ description: 'Creation time.' }),
+  updated_at: v.date({ description: 'Last update time.' })
 });
 
 let dashboardMagicMcpServerConsumerOwnerSchema = v.object({

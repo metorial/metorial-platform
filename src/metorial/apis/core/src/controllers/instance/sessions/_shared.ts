@@ -33,7 +33,11 @@ export let toolFilterValidator = v.union([
 ]);
 
 export let toolFiltersValidator = v.nullable(
-  v.optional(v.union([toolFilterValidator, v.array(toolFilterValidator)]))
+  v.optional(
+    v.union([toolFilterValidator, v.array(toolFilterValidator)], {
+      description: 'Limits which tools the provider can call. Omitted allows all tools.'
+    })
+  )
 );
 
 export let normalizeToolFilters = (

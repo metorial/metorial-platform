@@ -30,12 +30,12 @@ export let v1ChatThreadPresenter = Presenter.create(chatThreadType)
   .schema(
     v.object({
       object: v.literal('chat.thread', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat thread identifier',
+        description: 'Unique ID.',
         examples: ['cth_6hJkLmNpQrStUvWx']
       }),
 
@@ -64,7 +64,7 @@ export let v1ChatThreadPresenter = Presenter.create(chatThreadType)
 
       provider_thread_id: v.string({
         name: 'provider_thread_id',
-        description: "The thread's identifier on the chat provider",
+        description: 'Identifier the chat provider uses for this thread.',
         examples: ['1727385600.001700']
       }),
 
@@ -80,7 +80,7 @@ export let v1ChatThreadPresenter = Presenter.create(chatThreadType)
       subject: v.nullable(
         v.string({
           name: 'subject',
-          description: 'Subject of the thread',
+          description: 'Subject of the thread, if the provider sets one.',
           examples: ['Invoice not received']
         })
       ),

@@ -22,14 +22,13 @@ export let fileLinkController = Controller.create(
   {
     name: 'File Links',
     description:
-      'Files are private by default. If you want to share a file, you can create a link for it. Links are public and do not require authentication to access, so be careful with what you share.'
+      'A file link is a public URL for a file. Anyone with the link can download the file without authenticating, until the link expires or is deleted.'
   },
   {
     listRoot: instanceGroup
       .get(instancePath('file-links', 'files.links.list'), {
         name: 'List file links',
-        description:
-          'Returns a paginated list of file links owned by the instance organization.'
+        description: 'Returns a paginated list of file links.'
       })
       .use(
         checkAccess({
@@ -42,7 +41,7 @@ export let fileLinkController = Controller.create(
         Paginator.validate(
           v.object({
             file_id: v.optional(v.string(), {
-              description: 'Filter by file ID'
+              description: 'Only return links for this file.'
             })
           })
         )
@@ -60,8 +59,8 @@ export let fileLinkController = Controller.create(
 
     getRoot: fileLinkRootGroup
       .get(instancePath('file-links/:linkId', 'files.links.get'), {
-        name: 'Get file link by ID',
-        description: 'Retrieves the details of a specific file link by its ID.'
+        name: 'Get file link',
+        description: 'Retrieves a file link.'
       })
       .use(
         checkAccess({
@@ -76,7 +75,7 @@ export let fileLinkController = Controller.create(
     createRoot: instanceGroup
       .post(instancePath('file-links', 'files.links.create'), {
         name: 'Create file link',
-        description: 'Creates a new link for a specific file.'
+        description: 'Creates a link for a file.'
       })
       .use(
         checkAccess({
@@ -90,8 +89,12 @@ export let fileLinkController = Controller.create(
       .body(
         'default',
         v.object({
-          file_id: v.string(),
-          expires_at: v.optional(v.date())
+          file_id: v.string({ description: 'File to share, by ID.' }),
+          expires_at: v.optional(
+            v.date({
+              description: 'When the link stops working. The link never expires when omitted.'
+            })
+          )
         })
       )
       .output(fileLinkPresenter)
@@ -117,8 +120,8 @@ export let fileLinkController = Controller.create(
 
     deleteRoot: fileLinkRootGroup
       .delete(instancePath('file-links/:linkId', 'files.links.delete'), {
-        name: 'Delete file link by ID',
-        description: 'Deletes a specific file link by its ID.'
+        name: 'Delete file link',
+        description: 'Deletes a file link. The file itself is kept.'
       })
       .use(
         checkAccess({

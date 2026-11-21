@@ -19,47 +19,48 @@ export let v1OrganizationPresenter = Presenter.create(organizationType)
   .schema(
     v.object({
       object: v.literal('organization', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: `The organization's unique identifier`,
+        description: 'Unique ID.',
         examples: ['org_7hNkPqRsTuVwXyZa']
       }),
       type: v.enumOf(['default'], {
         name: 'type',
-        description: `The organization's type`
+        description: 'Always `default`.'
       }),
       slug: v.string({
         name: 'slug',
-        description: `The organization's slug`,
+        description: 'URL-safe name, unique across Metorial.',
         examples: ['acme-corp']
       }),
       name: v.string({
         name: 'name',
-        description: `The organization's name`,
+        description: 'Display name.',
         examples: ['Acme Corporation']
       }),
       image_url: v.string({
         name: 'image_url',
-        description: `The organization's image URL`,
+        description: 'Uploaded logo, or a generated avatar when none is set.',
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),
       magic_mcp_origin: v.nullable(
         v.string({
           name: 'magic_mcp_origin',
-          description: `A custom protocol+host to use for this organization's Magic MCP URLs (e.g. a self-hosted outpost proxy). The \`/connect/portal/:slug\` path is unaffected.`,
+          description:
+            'Origin that replaces the default host in Magic MCP URLs, for example a self-hosted outpost proxy. `null` uses the default host. The `/connect/portal/:slug` path is unaffected.',
           examples: ['https://mcp.acme.com']
         })
       ),
       created_at: v.date({
         name: 'created_at',
-        description: `The organization's creation date`
+        description: 'Creation time.'
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: `The organization's last update date`
+        description: 'Last update time.'
       })
     })
   )

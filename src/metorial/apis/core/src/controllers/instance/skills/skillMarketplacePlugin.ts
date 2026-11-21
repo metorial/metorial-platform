@@ -46,7 +46,7 @@ export let skillMarketplacePluginGroup = skillMarketplaceGroup.use(async ctx => 
 export let skillMarketplacePluginController = Controller.create(
   {
     name: 'Skill Marketplace Plugins',
-    description: 'Manage plugin links for skill marketplaces.'
+    description: 'A skill marketplace plugin is one plugin in a skill marketplace.'
   },
   {
     list: skillMarketplaceGroup
@@ -68,15 +68,33 @@ export let skillMarketplacePluginController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_plugin_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return marketplace plugins with these IDs.'
+              })
             ),
-            skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_plugin_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return links for one of these skill plugins.'
+              })
+            ),
+            status: v.optional(
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return marketplace plugins with one of these statuses.'
+                }
+              )
+            ),
+            skill_configuration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description:
+                  'Only return marketplace plugins using one of these skill configurations.'
+              })
+            ),
             created_at: dateFilterValidator('skill marketplace plugin creation time'),
             updated_at: dateFilterValidator('skill marketplace plugin last update time')
           })
@@ -142,7 +160,8 @@ export let skillMarketplacePluginController = Controller.create(
         ),
         {
           name: 'Add skill marketplace plugin',
-          description: 'Adds a skill plugin to a skill marketplace.'
+          description:
+            'Adds a skill plugin to a skill marketplace. Adding a plugin that was removed reactivates its link.'
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -151,9 +170,19 @@ export let skillMarketplacePluginController = Controller.create(
       .body(
         'default',
         v.object({
-          skill_plugin_id: v.string(),
-          skill_configuration_id: v.optional(v.nullable(v.string())),
-          identifier: v.optional(v.string())
+          skill_plugin_id: v.string({
+            description: 'Skill plugin to add to the marketplace, by ID.'
+          }),
+          skill_configuration_id: v.optional(v.nullable(v.string()), {
+            description:
+              'Skill configuration for the plugin link, by ID. `null` uses the default configuration.'
+          }),
+          identifier: v.optional(
+            v.string({
+              description:
+                'Slug identifying the plugin in the marketplace. Defaults to the plugin name.'
+            })
+          )
         })
       )
       .output(skillMarketplacePluginPresenter)

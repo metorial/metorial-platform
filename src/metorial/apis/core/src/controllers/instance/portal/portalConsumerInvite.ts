@@ -32,7 +32,7 @@ export let consumerInviteGroup = portalGroup.use(async ctx => {
 export let portalConsumerInviteController = Controller.create(
   {
     name: 'Portal Consumer Invites',
-    description: 'List and inspect consumer invites for a portal.'
+    description: 'A portal consumer invite is an email invitation for one person to join a portal.'
   },
   {
     list: portalGroup
@@ -40,7 +40,7 @@ export let portalConsumerInviteController = Controller.create(
         instancePath('portals/:portalId/consumer-invites', 'portals.consumerInvites.list'),
         {
           name: 'List portal consumer invites',
-          description: 'Returns a paginated list of invites for a portal.'
+          description: 'Returns a paginated list of consumer invites for a portal.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
@@ -50,18 +50,21 @@ export let portalConsumerInviteController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string({ description: 'Search by name or email.' })),
             email: v.optional(
-              v.union([
-                v.string({ modifiers: [v.email()] }),
-                v.array(v.string({ modifiers: [v.email()] }))
-              ])
+              v.union(
+                [
+                  v.string({ modifiers: [v.email()] }),
+                  v.array(v.string({ modifiers: [v.email()] }))
+                ],
+                { description: 'Only return invites sent to one of these emails.' }
+              )
             ),
             status: v.optional(
-              v.union([
-                v.enumOf(['pending', 'accepted']),
-                v.array(v.enumOf(['pending', 'accepted']))
-              ])
+              v.union(
+                [v.enumOf(['pending', 'accepted']), v.array(v.enumOf(['pending', 'accepted']))],
+                { description: 'Only return invites with one of these statuses.' }
+              )
             )
           })
         )
@@ -95,9 +98,14 @@ export let portalConsumerInviteController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          email: v.string({ modifiers: [v.email()] }),
-          message: v.optional(v.string())
+          name: v.string({ description: 'Display name.' }),
+          email: v.string({
+            description: 'Email address to invite.',
+            modifiers: [v.email()]
+          }),
+          message: v.optional(
+            v.string({ description: 'Personal message included in the invite.' })
+          )
         })
       )
       .output(consumerInvitePresenter)
@@ -127,7 +135,7 @@ export let portalConsumerInviteController = Controller.create(
         ),
         {
           name: 'Get portal consumer invite',
-          description: 'Retrieves a portal consumer invite by ID.'
+          description: 'Retrieves a portal consumer invite.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))

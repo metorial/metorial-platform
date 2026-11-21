@@ -3,41 +3,48 @@ import { Presenter } from '@metorial/presenter';
 import { protoGuardConfigType } from '../../types';
 import { protoGuardIssueTypeValidator, protoGuardSeverityValidator } from './protoGuardShared';
 
-let protoGuardFilterSchema = v.object({
-  object: v.literal('protoguard.filter'),
-  id: v.string({ name: 'id', description: 'The unique identifier of the filter.' }),
-  key: v.string({
-    name: 'key',
-    description: 'The stable key of the filter.',
-    examples: ['instruction_override']
-  }),
-  name: v.string({ name: 'name', description: 'The display name of the filter.' }),
-  description: v.nullable(
-    v.string({ name: 'description', description: 'What the filter detects.' })
-  ),
-  issue_type: protoGuardIssueTypeValidator,
-  severity: protoGuardSeverityValidator,
-  score_weight: v.number({
-    name: 'score_weight',
-    description: 'How much a match in this filter contributes to the run score.'
-  }),
-  default_enabled: v.boolean({
-    name: 'default_enabled',
-    description: 'Whether the filter is enabled when no override exists.'
-  }),
-  enabled: v.boolean({
-    name: 'enabled',
-    description: 'Whether the filter is enabled for this instance.'
-  }),
-  default_alert_confidence_threshold: v.number({
-    name: 'default_alert_confidence_threshold',
-    description: 'The default confidence a match needs for the filter to count as triggered.'
-  }),
-  alert_confidence_threshold: v.number({
-    name: 'alert_confidence_threshold',
-    description: 'The confidence a match needs for the filter to count as triggered.'
-  })
-});
+let protoGuardFilterSchema = v.object(
+  {
+    object: v.literal('protoguard.filter', {
+      description: 'String representing the object’s type.'
+    }),
+    id: v.string({ name: 'id', description: 'Unique ID.' }),
+    key: v.string({
+      name: 'key',
+      description: 'The stable key of the filter.',
+      examples: ['instruction_override']
+    }),
+    name: v.string({ name: 'name', description: 'Display name.' }),
+    description: v.nullable(
+      v.string({ name: 'description', description: 'What the filter detects.' })
+    ),
+    issue_type: protoGuardIssueTypeValidator,
+    severity: protoGuardSeverityValidator,
+    score_weight: v.number({
+      name: 'score_weight',
+      description: 'How much a match in this filter contributes to the run score.'
+    }),
+    default_enabled: v.boolean({
+      name: 'default_enabled',
+      description: 'Whether the filter is enabled when no override exists.'
+    }),
+    enabled: v.boolean({
+      name: 'enabled',
+      description: 'The filter runs for this instance when `true`.'
+    }),
+    default_alert_confidence_threshold: v.number({
+      name: 'default_alert_confidence_threshold',
+      description: 'The default confidence a match needs for the filter to count as triggered.'
+    }),
+    alert_confidence_threshold: v.number({
+      name: 'alert_confidence_threshold',
+      description: 'The confidence a match needs for the filter to count as triggered.'
+    })
+  },
+  {
+    description: 'One prompt-injection filter in the config.'
+  }
+);
 
 export let v1ProtoGuardConfigPresenter = Presenter.create(protoGuardConfigType)
   .presenter(async ({ config }) => ({
@@ -62,7 +69,9 @@ export let v1ProtoGuardConfigPresenter = Presenter.create(protoGuardConfigType)
   }))
   .schema(
     v.object({
-      object: v.literal('protoguard.filter_config'),
+      object: v.literal('protoguard.filter_config', {
+        description: 'String representing the object’s type.'
+      }),
       enabled: v.boolean({
         name: 'enabled',
         description:
@@ -79,7 +88,9 @@ export let v1ProtoGuardConfigPresenter = Presenter.create(protoGuardConfigType)
         description: 'The number of triggered filters at which a message raises an alert.',
         examples: [2]
       }),
-      filters: v.array(protoGuardFilterSchema)
+      filters: v.array(protoGuardFilterSchema, {
+        description: 'Prompt-injection filters and their per-instance settings.'
+      })
     })
   )
   .build();

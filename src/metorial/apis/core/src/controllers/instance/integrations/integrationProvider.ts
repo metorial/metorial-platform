@@ -18,7 +18,7 @@ let callbacksInputValidator = v.object(
   {
     status: v.enumOf(['enabled', 'disabled'] as const, {
       description:
-        'Enabling creates a callback and registers it against every matching integration instance. Disabling tears down the callback and every callback instance registered for it. Only providers whose type reports `triggers.status` as `enabled` can enable callbacks.'
+        'Enabling registers a callback against every matching integration instance. Disabling tears it down again. Only providers whose type reports `triggers.status` as `enabled` can enable callbacks.'
     })
   },
   { description: 'Provider callback state for this integration provider' }
@@ -47,7 +47,7 @@ export let integrationProviderController = Controller.create(
   {
     name: 'Integration Providers',
     description:
-      'Integration providers define the shared provider-level contract for a given integration.'
+      'An integration provider is one provider in an integration, with the deployment, configuration, credentials, and tool filters it runs with.'
   },
   {
     list: integrationsGroup
@@ -62,22 +62,46 @@ export let integrationProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string(), {
+              description:
+                'Search integration providers by name, description, ID, or provider.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return integration providers with one of these statuses. `deleted` providers are never listed.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration providers with one of these IDs.'
+            }),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration providers for one of these integrations.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration providers using one of these providers.'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration providers running on one of these deployments.'
+            }),
+            provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration providers using one of these auth methods.'
+            }),
             provider_auth_credentials_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description:
+                  'Only return integration providers using one of these credentials.'
+              }
             ),
-            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration providers using one of these configs.'
+            }),
             created_at: dateFilterValidator('integration provider creation time'),
             updated_at: dateFilterValidator('integration provider last update time')
           })
@@ -117,7 +141,7 @@ export let integrationProviderController = Controller.create(
         ),
         {
           name: 'Get integration provider',
-          description: 'Retrieves a specific integration provider.'
+          description: 'Retrieves an integration provider.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -130,22 +154,60 @@ export let integrationProviderController = Controller.create(
     create: integrationsGroup
       .post(instancePath('integration-providers', 'integrations.providers.create'), {
         name: 'Create integration provider',
-        description: 'Creates a new integration provider.'
+        description: 'Creates an integration provider.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
-          integration_id: v.string(),
-          provider_id: v.string(),
-          provider_deployment_id: v.string(),
-          provider_auth_method_id: v.optional(v.nullable(v.string())),
-          provider_auth_credentials_id: v.optional(v.nullable(v.string())),
-          provider_config_id: v.optional(v.nullable(v.string())),
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
+          integration_id: v.string({
+            description: 'Integration the provider belongs to.',
+            examples: ['int_2bCdEfGhJkLmNpQr']
+          }),
+          provider_id: v.string({
+            description: 'Provider to add to the integration.'
+          }),
+          provider_deployment_id: v.string({
+            description: 'Deployment the provider runs with.'
+          }),
+          provider_auth_method_id: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Auth method the provider runs with. Omitted leaves it unset.'
+              })
+            )
+          ),
+          provider_auth_credentials_id: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Credentials the provider runs with. Omitted leaves them unset.'
+              })
+            )
+          ),
+          provider_config_id: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Provider config the provider runs with. Omitted leaves it unset.'
+              })
+            )
+          ),
+          name: v.optional(
+            v.string({
+              description:
+                'Display name for the integration provider. Defaults to the provider name.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the integration provider.'
+            })
+          ),
           tool_filters: toolFiltersValidator,
           callbacks: v.optional(callbacksInputValidator)
         })
@@ -191,7 +253,8 @@ export let integrationProviderController = Controller.create(
         ),
         {
           name: 'Update integration provider',
-          description: 'Updates a specific integration provider.'
+          description:
+            'Updates an integration provider. Omitted fields keep their current value.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -199,13 +262,56 @@ export let integrationProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_deployment_id: v.optional(v.string()),
-          provider_auth_method_id: v.optional(v.nullable(v.string())),
-          provider_auth_credentials_id: v.optional(v.nullable(v.string())),
-          provider_config_id: v.optional(v.nullable(v.string())),
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          metadata: v.optional(v.nullable(v.record(v.any()))),
+          provider_deployment_id: v.optional(
+            v.string({
+              description: 'Deployment the provider runs with. Omitted keeps the current one.'
+            })
+          ),
+          provider_auth_method_id: v.optional(
+            v.nullable(
+              v.string({
+                description:
+                  'Auth method the provider runs with. `null` clears it. Omitted keeps the current one.'
+              })
+            )
+          ),
+          provider_auth_credentials_id: v.optional(
+            v.nullable(
+              v.string({
+                description:
+                  'Credentials the provider runs with. `null` clears them. Omitted keeps the current ones.'
+              })
+            )
+          ),
+          provider_config_id: v.optional(
+            v.nullable(
+              v.string({
+                description:
+                  'Provider config the provider runs with. `null` clears it. Omitted keeps the current one.'
+              })
+            )
+          ),
+          name: v.optional(
+            v.string({
+              description:
+                'Display name for the integration provider. Omitted keeps the current one.'
+            })
+          ),
+          description: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Free-text description. `null` clears it.'
+              })
+            )
+          ),
+          metadata: v.optional(
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Custom data to identify or organize the integration provider. Replaces existing metadata. `null` clears it.'
+              })
+            )
+          ),
           tool_filters: toolFiltersValidator,
           callbacks: v.optional(callbacksInputValidator)
         })
@@ -245,8 +351,9 @@ export let integrationProviderController = Controller.create(
           'integrations.providers.delete'
         ),
         {
-          name: 'Delete integration provider',
-          description: 'Archives a specific integration provider.'
+          name: 'Archive integration provider',
+          description:
+            'Archives an integration provider. It stays retrievable by ID and listable with `status=archived`.'
         }
       )
       .use(requireNonPublishableMachineAccess())

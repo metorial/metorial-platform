@@ -1,5 +1,10 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { bootstrapRegistry } from './bootstrap';
+import {
+  backfillArtifactSizeSingleProcessor,
+  backfillArtifactSizesCron,
+  backfillArtifactSizesManyProcessor
+} from './queues/artifactSizes';
 import { cleanupProcessor } from './queues/cleanup';
 import { expireTokensProcessor } from './queues/expiresTokens';
 import {
@@ -21,6 +26,9 @@ await runQueueProcessors([
   backfillSignaturesProcessor,
   backfillChecksumsCron,
   backfillChecksumsProcessor,
+  backfillArtifactSizesCron,
+  backfillArtifactSizesManyProcessor,
+  backfillArtifactSizeSingleProcessor,
   mirrorSyncCron,
   mirrorSyncAllProcessor,
   mirrorSyncUpstreamProcessor,

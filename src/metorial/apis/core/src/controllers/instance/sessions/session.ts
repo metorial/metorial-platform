@@ -141,7 +141,7 @@ export let sessionController = Controller.create(
   {
     name: 'Sessions',
     description:
-      'Sessions are connections to providers that allow clients to interact with MCP servers. Each session can include one or more provider deployments.'
+      'A session is a connection between clients and providers over MCP. Each session connects to one or more providers.'
   },
   {
     list: integrationsGroup
@@ -265,7 +265,7 @@ export let sessionController = Controller.create(
     get: sessionGroup
       .get(instancePath('sessions/:sessionId', 'sessions.get'), {
         name: 'Get session',
-        description: 'Retrieves a specific session by ID.'
+        description: 'Retrieves a session.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -292,16 +292,21 @@ export let sessionController = Controller.create(
     create: integrationsGroup
       .post(instancePath('sessions', 'sessions.create'), {
         name: 'Create session',
-        description: 'Creates a new session with provider deployments.'
+        description:
+          'Creates a session with one or more providers, from a template or inline definitions.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
+          name: v.optional(v.string(), {
+            description: 'Display name. Generated when omitted.'
+          }),
+          description: v.optional(v.string(), { description: 'Free-text description.' }),
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom data to identify or organize the session.'
+          }),
           providers: v.array(providerInput)
         }),
         v => v
@@ -309,9 +314,13 @@ export let sessionController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
+          name: v.optional(v.string(), {
+            description: 'Display name. Generated when omitted.'
+          }),
+          description: v.optional(v.string(), { description: 'Free-text description.' }),
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom data to identify or organize the session.'
+          }),
           providers: v.array(providerInput),
           source: v.optional(v.enumOf(['explorer']), {
             description:
@@ -367,7 +376,7 @@ export let sessionController = Controller.create(
     update: sessionGroup
       .patch(instancePath('sessions/:sessionId', 'sessions.update'), {
         name: 'Update session',
-        description: 'Updates a session.'
+        description: 'Updates a session. Omitted fields keep their current value.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -379,10 +388,15 @@ export let sessionController = Controller.create(
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string({ examples: ['My updated session'] })),
-          description: v.optional(v.string({ examples: ['Updated session description'] })),
+          name: v.optional(v.string({ examples: ['My updated session'] }), {
+            description: 'Display name.'
+          }),
+          description: v.optional(v.string({ examples: ['Updated session description'] }), {
+            description: 'Free-text description.'
+          }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the session. Replaces existing metadata.'
           })
         }),
         v => v
@@ -390,10 +404,15 @@ export let sessionController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['My updated session'] })),
-          description: v.optional(v.string({ examples: ['Updated session description'] })),
+          name: v.optional(v.string({ examples: ['My updated session'] }), {
+            description: 'Display name.'
+          }),
+          description: v.optional(v.string({ examples: ['Updated session description'] }), {
+            description: 'Free-text description.'
+          }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the session. Replaces existing metadata.'
           }),
           source: v.optional(v.enumOf(['explorer']), {
             description:
@@ -433,8 +452,9 @@ export let sessionController = Controller.create(
 
     delete: sessionGroup
       .delete(instancePath('sessions/:sessionId', 'sessions.delete'), {
-        name: 'Delete session',
-        description: 'Deletes a session.'
+        name: 'Archive session',
+        description:
+          'Archives a session. Its connections disconnect and its providers are archived. It stays listable with `status=archived`.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(

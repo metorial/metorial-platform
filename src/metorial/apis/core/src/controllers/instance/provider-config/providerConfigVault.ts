@@ -35,7 +35,7 @@ export let providerConfigVaultController = Controller.create(
   {
     name: 'Provider Config Vaults',
     description:
-      'A config vault is a saved, reusable set of configuration values. Use vaults to store credentials once and apply them to multiple deployments without re-entering.'
+      'A provider config vault is a saved, reusable set of configuration values. Configs can reference a vault instead of holding values directly.'
   },
   {
     list: integrationsGroup
@@ -134,23 +134,27 @@ export let providerConfigVaultController = Controller.create(
         'default',
         v.object({
           provider_id: v.string({
-            description: 'Provider ID',
+            description: 'Provider to create the vault for.',
             examples: ['pro_5gHjKlMnPqRsTuVw']
           }),
           provider_deployment_id: v.optional(
             v.string({
-              description: 'Provider deployment ID',
+              description: 'Deployment the vault is locked to.',
               examples: ['pdp_4dEfGhJkLmNpQrSt']
             })
           ),
 
-          name: v.string({ examples: ['Production Secrets'] }),
+          name: v.string({ description: 'Display name.', examples: ['Production Secrets'] }),
           description: v.optional(
-            v.string({ examples: ['Secure storage for production credentials'] })
+            v.string({ examples: ['Secure storage for production credentials'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), { examples: [{ owner: 'platform-team', sensitivity: 'high' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider config vault. Replaces existing metadata.'
+            }
           ),
 
           value: v.record(v.any(), {
@@ -208,13 +212,20 @@ export let providerConfigVaultController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Vault Name'] })),
-          description: v.optional(v.string({ examples: ['Updated vault description'] })),
+          name: v.optional(v.string({ examples: ['Updated Vault Name'] }), {
+            description: 'Display name.'
+          }),
+          description: v.optional(v.string({ examples: ['Updated vault description'] }), {
+            description: 'Free-text description.'
+          }),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ owner: 'platform-team', sensitivity: 'critical' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider config vault. Replaces existing metadata.'
+            }
           )
         })
       )
@@ -243,8 +254,9 @@ export let providerConfigVaultController = Controller.create(
           'providerDeployments.configVaults.delete'
         ),
         {
-          name: 'Delete provider config vault',
-          description: 'Permanently deletes a provider config vault.'
+          name: 'Archive provider config vault',
+          description:
+            'Archives a provider config vault. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))

@@ -32,7 +32,9 @@ export let chatThreadController = Controller.create(
               description: 'The channel to list threads for',
               examples: ['cch_2bCdEfGhJkLmNpQr']
             }),
-            type: v.optional(threadTypeValidator, { description: 'Filter by thread type' })
+            type: v.optional(threadTypeValidator, {
+              description: 'Only return threads of this type.'
+            })
           })
         )
       )
@@ -54,7 +56,7 @@ export let chatThreadController = Controller.create(
     get: chatGroup
       .get(instancePath('chats/:chatId/threads/:threadId', 'chats.threads.get'), {
         name: 'Get chat thread',
-        description: 'Retrieves a specific chat thread.'
+        description: 'Retrieves a chat thread.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .query(

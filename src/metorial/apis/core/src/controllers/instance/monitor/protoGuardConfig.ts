@@ -12,13 +12,14 @@ type ProtoGuardConfig = Awaited<ReturnType<typeof protoGuardConfigService.listFi
 export let protoGuardConfigController = Controller.create(
   {
     name: 'ProtoGuard Config',
-    description: 'ProtoGuard config controls prompt-injection filters and alert thresholds.'
+    description:
+      'ProtoGuard config is the prompt-injection filter set for an instance. It controls which filters run and when they raise alerts.'
   },
   {
     get: integrationsGroup
       .get(instancePath('protoguard-config', 'protoGuardConfig.get'), {
         name: 'Get ProtoGuard config',
-        description: 'Retrieves ProtoGuard filter configuration for this instance.'
+        description: 'Retrieves the ProtoGuard config for the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .output(protoGuardConfigPresenter)
@@ -43,7 +44,8 @@ export let protoGuardConfigController = Controller.create(
           enabled: v.optional(
             v.boolean({
               name: 'enabled',
-              description: 'Whether ProtoGuard analyzes session messages for this instance.'
+              description:
+                'Analyzes session messages for prompt injection when `true`. Set to `false` to stop analysis.'
             })
           ),
           alert_probability_threshold: v.optional(
@@ -99,8 +101,19 @@ export let protoGuardConfigController = Controller.create(
       .body(
         'default',
         v.object({
-          enabled: v.optional(v.boolean()),
-          alert_confidence_threshold: v.optional(v.nullable(v.number()))
+          enabled: v.optional(
+            v.boolean({
+              description: 'Whether the filter runs for the instance.'
+            })
+          ),
+          alert_confidence_threshold: v.optional(
+            v.nullable(
+              v.number({
+                description:
+                  'Confidence a match needs for the filter to count as triggered. Pass `null` to restore the default.'
+              })
+            )
+          )
         })
       )
       .output(protoGuardConfigPresenter)
@@ -161,7 +174,12 @@ export let protoGuardConfigController = Controller.create(
       .body(
         'default',
         v.object({
-          threshold: v.nullable(v.number())
+          threshold: v.nullable(
+            v.number({
+              description:
+                'Number of matching ProtoGuard filters required to create an alert. Pass `null` to clear it.'
+            })
+          )
         })
       )
       .output(protoGuardConfigPresenter)

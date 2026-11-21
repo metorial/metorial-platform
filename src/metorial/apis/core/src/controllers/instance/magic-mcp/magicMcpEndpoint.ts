@@ -126,7 +126,7 @@ let resolveSkillSelection = async (
 };
 
 let magicMcpEndpointServerValidator = v.object({
-  magic_mcp_server_id: v.string(),
+  magic_mcp_server_id: v.string({ description: 'Server to route to.' }),
   tool_filters: toolFiltersValidator
 });
 
@@ -170,7 +170,7 @@ export let magicMcpEndpointController = Controller.create(
   {
     name: 'Magic MCP Endpoints',
     description:
-      'Magic MCP endpoints combine multiple Magic MCP servers behind one routed connection target.',
+      'A magic MCP endpoint is one connection target that routes to multiple magic MCP servers.',
     hideInDocs: true
   },
   {
@@ -201,10 +201,14 @@ export let magicMcpEndpointController = Controller.create(
               v.union([
                 v.enumOf([...magicMcpEndpointStatusValues]),
                 v.array(v.enumOf([...magicMcpEndpointStatusValues]))
-              ])
+              ]),
+              { description: 'Only return endpoints with one of these statuses.' }
             ),
-            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string())
+            magic_mcp_server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return endpoints routing to one of these servers.' }
+            ),
+            search: v.optional(v.string({ description: 'Search by name or description.' }))
           })
         )
       )
@@ -269,15 +273,28 @@ export let magicMcpEndpointController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          consumer_profile_id: v.optional(v.string()),
-          skill_plugin_id: v.optional(v.string()),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the endpoint. Replaces existing metadata.'
+            })
+          ),
+          consumer_profile_id: v.optional(
+            v.string({ description: 'Consumer profile that will own the endpoint.' })
+          ),
+          skill_plugin_id: v.optional(
+            v.string({ description: 'Skill plugin the endpoint is created for.' })
+          ),
           enable_skill_editing: enableSkillEditingValidator,
           enable_skill_resources: enableSkillResourcesValidator,
           skill_selection: skillSelectionValidator,
-          magic_mcp_servers: v.optional(v.array(magicMcpEndpointServerValidator))
+          magic_mcp_servers: v.optional(
+            v.array(magicMcpEndpointServerValidator, {
+              description: 'Servers the endpoint routes to.'
+            })
+          )
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -369,7 +386,7 @@ export let magicMcpEndpointController = Controller.create(
       .delete(
         instancePath('magic-mcp-endpoints/:magicMcpEndpointId', 'magicMcpEndpoints.delete'),
         {
-          name: 'Delete magic MCP endpoint',
+          name: 'Archive magic MCP endpoint',
           description: 'Archives a magic MCP endpoint.'
         }
       )
@@ -410,7 +427,7 @@ export let magicMcpEndpointController = Controller.create(
         instancePath('magic-mcp-endpoints/:magicMcpEndpointId', 'magicMcpEndpoints.update'),
         {
           name: 'Update magic MCP endpoint',
-          description: 'Updates a magic MCP endpoint.'
+          description: 'Updates a magic MCP endpoint. Omitted fields keep their current value.'
         }
       )
       .use(
@@ -425,9 +442,14 @@ export let magicMcpEndpointController = Controller.create(
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the endpoint. Replaces existing metadata.'
+            })
+          ),
           enable_skill_editing: enableSkillEditingValidator,
           enable_skill_resources: enableSkillResourcesValidator,
           skill_selection: skillSelectionValidator
@@ -437,9 +459,14 @@ export let magicMcpEndpointController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the endpoint. Replaces existing metadata.'
+            })
+          ),
           enable_skill_editing: enableSkillEditingValidator,
           enable_skill_resources: enableSkillResourcesValidator,
           skill_selection: skillSelectionValidator,
@@ -507,7 +534,11 @@ export let magicMcpEndpointController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_servers: v.optional(v.array(magicMcpEndpointServerValidator))
+          magic_mcp_servers: v.optional(
+            v.array(magicMcpEndpointServerValidator, {
+              description: 'Servers to add to the endpoint.'
+            })
+          )
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -582,7 +613,9 @@ export let magicMcpEndpointController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_server_ids: v.array(v.string())
+          magic_mcp_server_ids: v.array(v.string(), {
+            description: 'Servers to remove from the endpoint.'
+          })
         })
       )
       .output(magicMcpEndpointPresenter)

@@ -17,37 +17,37 @@ export let v1ProviderRunLogsPresenter = Presenter.create(providerRunLogsType)
   .schema(
     v.object({
       object: v.literal('session.provider_run.logs', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       provider_run_id: v.string({
         name: 'provider_run_id',
-        description: 'Provider run ID',
+        description: 'Provider run the logs belong to.',
         examples: ['prn_8hJkLmNpQrStUvWx']
       }),
       logs: v.array(
         v.object({
           object: v.literal('session.provider_run.item', {
-            description: "String representing the object's type"
+            description: "String representing the object’s type."
           }),
           timestamp: v.date({
             name: 'timestamp',
-            description: 'Log timestamp',
+            description: 'When the log entry was written.',
             examples: [new Date('2025-09-15T10:30:00Z')]
           }),
           message: v.string({
             name: 'message',
-            description: 'Log message content',
+            description: 'Log message content.',
             examples: ['Server started on port 3000']
           }),
           output_type: v.enumOf(
             ['stdout', 'stderr', 'debug.info', 'debug.warning', 'debug.error'] as const,
             {
               name: 'output_type',
-              description: 'Output type of the log entry'
+              description: 'Which stream the log entry came from.'
             }
           )
         }),
-        { name: 'logs', description: 'Array of log entries' }
+        { name: 'logs', description: 'Log entries for the run.' }
       )
     })
   )

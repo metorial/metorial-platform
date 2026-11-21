@@ -69,13 +69,13 @@ export let sessionParticipantController = Controller.create(
   {
     name: 'Session Participants',
     description:
-      'Session participants represent the clients and other entities that are connected to a session. This read-only resource tracks who is participating in a session.'
+      'A session participant is a client, provider, or system actor in a session. Participants appear automatically as connections open.'
   },
   {
     list: integrationsGroup
       .get(instancePath('session-participants', 'sessions.participants.list'), {
         name: 'List session participants',
-        description: 'Returns a paginated list of participants in a session.'
+        description: 'Returns a paginated list of session participants.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -184,7 +184,7 @@ export let sessionParticipantController = Controller.create(
         ),
         {
           name: 'Get session participant',
-          description: 'Retrieves a specific participant in a session.'
+          description: 'Retrieves a session participant.'
         }
       )
       .use(requireNonPublishableMachineAccess())

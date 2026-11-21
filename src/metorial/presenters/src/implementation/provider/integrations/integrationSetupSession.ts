@@ -115,21 +115,61 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
   }))
   .schema(
     v.object({
-      object: v.literal('integration.setup_session'),
-      id: v.string(),
-      status: v.enumOf(['pending', 'successful', 'expired', 'archived', 'deleted']),
-      url: v.string(),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
-      configuration: v.nullable(v.record(v.any())),
-      redirect_url: v.nullable(v.string()),
-      integration_id: v.string(),
+      object: v.literal('integration.setup_session', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['iss_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['pending', 'successful', 'expired', 'archived', 'deleted'], {
+        description:
+          '`pending` until every provider is configured. `successful` once every provider is configured. `expired` past `expires_at` without completion.'
+      }),
+      url: v.string({
+        description: 'Hosted setup page URL.'
+      }),
+      name: v.nullable(
+        v.string({
+          description: 'Display name.'
+        })
+      ),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
+      configuration: v.nullable(
+        v.record(v.any(), {
+          description: 'Configuration for the setup flow. `null` when none was set.'
+        })
+      ),
+      redirect_url: v.nullable(
+        v.string({
+          description:
+            'Where to send the user once setup completes. `null` when none was given.'
+        })
+      ),
+      integration_id: v.string({
+        description: 'Integration being set up.',
+        examples: ['int_2bCdEfGhJkLmNpQr']
+      }),
       access: resourceAccessSchema,
       integration_instance: v1IntegrationInstancePresenter.schema,
-      created_at: v.date(),
-      updated_at: v.date(),
-      expires_at: v.date()
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      expires_at: v.date({
+        description: 'When the session expires. Past this time the session reads as `expired`.'
+      })
     })
   )
   .build();
@@ -153,28 +193,53 @@ export let dashboardIntegrationSetupSessionPresenter = Presenter.create(
   .schema(
     v.object({
       ...v1IntegrationSetupSessionPresenter.schema.properties,
-      integration_instance_id: v.string(),
+      integration_instance_id: v.string({
+        description: 'Instance the session sets up.',
+        examples: ['ini_4dEfGhJkLmNpQrSt']
+      }),
       steps: v.array(
         v.object({
-          object: v.literal('integration.setup_session.step'),
-          id: v.string(),
-          status: v.enumOf([
-            'configured',
-            'pending',
-            'failed',
-            'completed',
-            'expired',
-            'archived',
-            'deleted'
-          ]),
-          url: v.string(),
-          integration_provider_id: v.string(),
+          object: v.literal('integration.setup_session.step', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({
+            description: 'Unique ID.'
+          }),
+          status: v.enumOf(
+            ['configured', 'pending', 'failed', 'completed', 'expired', 'archived', 'deleted'],
+            {
+              description:
+                '`configured` once the provider is linked to the instance. Otherwise the provider setup session status.'
+            }
+          ),
+          url: v.string({
+            description: 'Hosted setup page URL for this step.'
+          }),
+          integration_provider_id: v.string({
+            description: 'Integration provider this step configures.',
+            examples: ['inp_3cDeFgHjKlMnPqRs']
+          }),
           provider: v1ProviderPreview.schema,
-          provider_setup_session_id: v.nullable(v.string()),
-          integration_instance_provider_id: v.nullable(v.string()),
-          created_at: v.date(),
-          updated_at: v.date()
-        })
+          provider_setup_session_id: v.nullable(
+            v.string({
+              description:
+                'Provider setup session handling this step. `null` when none exists yet.'
+            })
+          ),
+          integration_instance_provider_id: v.nullable(
+            v.string({
+              description:
+                'Integration instance provider created by this step. `null` until the provider is configured.'
+            })
+          ),
+          created_at: v.date({
+            description: 'Creation time.'
+          }),
+          updated_at: v.date({
+            description: 'Last update time.'
+          })
+        }),
+        { description: 'Setup steps, one per provider.' }
       )
     }) as any
   )

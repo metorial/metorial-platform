@@ -46,41 +46,41 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
   .schema(
     v.object({
       object: v.literal('provider.tool', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique tool identifier',
+        description: 'Unique ID.',
         examples: ['pto_5jKlMnPqRsTuVwXy']
       }),
       key: v.string({
         name: 'key',
-        description: 'Tool key',
+        description: 'Key used to call the tool over MCP.',
         examples: ['create_issue']
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the tool',
+        description: 'Display name.',
         examples: ['Create Issue']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Tool description',
+          description: 'Free-text description.',
           examples: ['Creates a new issue in a GitHub repository']
         })
       ),
       capabilities: v.record(v.any(), {
         name: 'capabilities',
-        description: 'Tool capabilities'
+        description: 'What the tool can do.'
       }),
       constraints: v.array(v.string(), {
         name: 'constraints',
-        description: 'Tool constraints'
+        description: 'Rules for using the tool.'
       }),
       instructions: v.array(v.string(), {
         name: 'instructions',
-        description: 'Tool usage instructions'
+        description: 'Guidance for calling the tool correctly.'
       }),
       input_schema: v.nullable(
         v.object({
@@ -103,10 +103,13 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
       tags: v.nullable(
         v.object({
           destructive: v.nullable(
-            v.boolean({ name: 'destructive', description: 'Whether the tool is destructive' })
+            v.boolean({
+              name: 'destructive',
+              description: 'Whether the tool changes or deletes data.'
+            })
           ),
           read_only: v.nullable(
-            v.boolean({ name: 'read_only', description: 'Whether the tool is read-only' })
+            v.boolean({ name: 'read_only', description: 'Whether the tool only reads data.' })
           )
         })
       ),
@@ -117,22 +120,22 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
       }),
       specification_id: v.string({
         name: 'specification_id',
-        description: 'Specification ID',
+        description: 'Specification this tool belongs to.',
         examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this tool belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

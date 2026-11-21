@@ -17,12 +17,25 @@ let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as cons
 let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
 let skillPluginSkillInput = {
-  client_name: v.optional(v.nullable(v.string())),
-  client_description: v.optional(v.nullable(v.string())),
-  client_metadata: v.optional(v.nullable(v.record(v.any()))),
-  license: v.optional(v.nullable(v.string())),
-  compatibility: v.optional(v.nullable(v.string())),
-  skill_configuration_id: v.optional(v.nullable(v.string()))
+  client_name: v.optional(v.nullable(v.string()), {
+    description: 'Client-facing skill name. `null` clears it.'
+  }),
+  client_description: v.optional(v.nullable(v.string()), {
+    description: 'Client-facing description. `null` clears it.'
+  }),
+  client_metadata: v.optional(v.nullable(v.record(v.any())), {
+    description: 'Custom data for the client-facing skill. `null` clears it.'
+  }),
+  license: v.optional(v.nullable(v.string()), {
+    description: 'License terms for the skill. `null` clears it.'
+  }),
+  compatibility: v.optional(v.nullable(v.string()), {
+    description: 'Compatibility notes for the skill. `null` clears it.'
+  }),
+  skill_configuration_id: v.optional(v.nullable(v.string()), {
+    description:
+      'Skill configuration for the plugin skill, by ID. `null` uses the default configuration.'
+  })
 };
 
 export let skillPluginSkillGroup = skillPluginGroup.use(async ctx => {
@@ -47,7 +60,7 @@ export let skillPluginSkillGroup = skillPluginGroup.use(async ctx => {
 export let skillPluginSkillController = Controller.create(
   {
     name: 'Skill Plugin Skills',
-    description: 'Manage skill links for skill plugins.'
+    description: 'A skill plugin skill is one skill in a skill plugin.'
   },
   {
     list: skillPluginGroup
@@ -63,15 +76,33 @@ export let skillPluginSkillController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return plugin skills with these IDs.'
+              })
             ),
-            skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return links for one of these skills.'
+              })
+            ),
+            status: v.optional(
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return plugin skills with one of these statuses.'
+                }
+              )
+            ),
+            skill_configuration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description:
+                  'Only return plugin skills using one of these skill configurations.'
+              })
+            ),
             created_at: dateFilterValidator('skill plugin skill creation time'),
             updated_at: dateFilterValidator('skill plugin skill last update time')
           })
@@ -98,7 +129,8 @@ export let skillPluginSkillController = Controller.create(
     add: skillPluginGroup
       .post(instancePath('skill-plugins/:skillPluginId/skills', 'skills.plugins.skills.add'), {
         name: 'Add skill plugin skill',
-        description: 'Adds a skill to a skill plugin.'
+        description:
+          'Adds a skill to a skill plugin. Adding a skill that was removed reactivates its link.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
@@ -106,8 +138,15 @@ export let skillPluginSkillController = Controller.create(
       .body(
         'default',
         v.object({
-          skill_id: v.string(),
-          identifier: v.optional(v.string()),
+          skill_id: v.string({
+            description: 'Skill to add to the plugin, by ID.'
+          }),
+          identifier: v.optional(
+            v.string({
+              description:
+                'Slug identifying the skill in the plugin. Defaults to the skill name.'
+            })
+          ),
           ...skillPluginSkillInput
         })
       )

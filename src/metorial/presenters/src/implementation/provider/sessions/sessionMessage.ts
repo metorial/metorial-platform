@@ -123,114 +123,122 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
   .schema(
     v.object({
       object: v.literal('session.message', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session message identifier',
+        description: 'Unique ID.',
         examples: ['smg_8hJkLmNpQrStUvWx']
       }),
       type: v.enumOf(['tool_call', 'mcp_control', 'mcp_message', 'unknown'], {
         name: 'type',
-        description: 'Message type'
+        description: 'What the message carries: a tool call, connection control, or MCP protocol data.'
       }),
       status: v.enumOf(['waiting_for_response', 'failed', 'succeeded'], {
         name: 'status',
-        description: 'Message status'
+        description: '`waiting_for_response` until a reply arrives.'
       }),
       source: v.enumOf(['client', 'provider'], {
         name: 'source',
-        description: 'Message source'
+        description: 'Whether the client or the provider sent the message.'
       }),
       session_id: v.string({
         name: 'session_id',
-        description: 'Parent session ID',
+        description: 'Session the message was sent in.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       session_provider_id: v.nullable(
         v.string({
           name: 'session_provider_id',
-          description: 'Session provider ID',
+          description: 'Session provider that handled the message. `null` when there is none.',
           examples: ['spr_3cDeFgHjKlMnPqRs']
         })
       ),
       connection_id: v.nullable(
         v.string({
           name: 'connection_id',
-          description: 'Connection ID',
+          description: 'Connection the message belongs to. `null` when there is none.',
           examples: ['scn_2bCdEfGhJkLmNpQr']
         })
       ),
       provider_run_id: v.nullable(
         v.string({
           name: 'provider_run_id',
-          description: 'Provider run ID',
+          description: 'Provider run that produced the message. `null` when there is none.',
           examples: ['prn_8hJkLmNpQrStUvWx']
         })
       ),
       hierarchy: v.object(
         {
-          object: v.literal('session.message.hierarchy'),
+          object: v.literal('session.message.hierarchy', {
+            description: "String representing the object’s type."
+          }),
           type: v.string({
             name: 'type',
-            description: 'Hierarchy type',
+            description: '`child` when the message replies to another message, `parent` otherwise.',
             examples: ['child', 'parent']
           }),
           parent_message_id: v.nullable(
             v.string({
               name: 'parent_message_id',
-              description: 'Parent message ID'
+              description: 'Message this replies to. `null` for parent messages.'
             })
           ),
           child_message_ids: v.array(
             v.string({
               name: 'child_message_id',
-              description: 'Child message ID'
+              description: 'One message replying to this one.'
             }),
             {
               name: 'child_message_ids',
-              description: 'List of child message IDs'
+              description: 'Messages replying to this one.'
             }
           )
         },
-        { name: 'hierarchy', description: 'Message hierarchy information' }
+        { name: 'hierarchy', description: 'Where this message sits in the reply chain.' }
       ),
       transport: v.object(
         {
-          object: v.literal('session.message.transport'),
+          object: v.literal('session.message.transport', {
+            description: "String representing the object’s type."
+          }),
           type: v.enumOf(['mcp', 'tool_call', 'metorial_protocol', 'system'] as const, {
             name: 'type',
-            description: 'Transport type'
+            description: 'Which channel carried the message.'
           }),
           mcp: v.nullable(
             v.object({
-              object: v.literal('session.message.transport.mcp'),
+              object: v.literal('session.message.transport.mcp', {
+                description: "String representing the object’s type."
+              }),
               id: v.union([v.string(), v.number()], {
                 name: 'id',
-                description: 'MCP message ID'
+                description: 'Unique ID.'
               }),
               protocol_version: v.string({
                 name: 'protocol_version',
-                description: 'MCP protocol version'
+                description: 'Negotiated MCP version, or `unknown`.'
               }),
               transport: v.string({
                 name: 'transport',
-                description: 'MCP transport type',
+                description: 'How the MCP connection is carried.',
                 examples: ['unknown', 'sse', 'streamable_http', 'sessionless']
               })
             })
           ),
           tool_call: v.nullable(
             v.object({
-              object: v.literal('session.message.transport.tool_call'),
+              object: v.literal('session.message.transport.tool_call', {
+                description: "String representing the object’s type."
+              }),
               id: v.string({
                 name: 'id',
-                description: 'Tool call ID'
+                description: 'Unique ID.'
               })
             })
           )
         },
-        { name: 'transport', description: 'Transport information' }
+        { name: 'transport', description: 'How this message was delivered.' }
       ),
       input: v.nullable(
         v.record(v.any(), {
@@ -250,7 +258,7 @@ export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageTy
       error: v.nullable(v1SessionErrorPresenter.schema),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

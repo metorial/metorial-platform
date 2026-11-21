@@ -30,47 +30,49 @@ export let v1FilePresenter = Presenter.create(fileType)
   }))
   .schema(
     v.object({
-      object: v.literal('file', { description: "String representing the object's type" }),
+      object: v.literal('file', { description: 'String representing the object’s type.' }),
 
       id: v.string({
         name: 'id',
-        description: `The files's unique identifier`,
+        description: 'Unique ID.',
         examples: ['fil_9jKlMnPqRsTuVwXy']
       }),
       status: v.enumOf(['active', 'deleted'], {
         name: 'status',
-        description: `The files's status`
+        description: '`deleted` after the file is deleted.'
       }),
       file_name: v.string({
         name: 'file_name',
-        description: `The file's name`,
+        description: 'Name of the uploaded file.',
         examples: ['company-logo.png']
       }),
       file_size: v.number({
         name: 'file_size',
-        description: `The file's size in bytes`,
+        description: 'Size of the file in bytes.',
         examples: [245760]
       }),
       file_type: v.string({
         name: 'file_type',
-        description: `The file's MIME type`,
+        description: 'MIME type of the file.',
         examples: ['image/png']
       }),
       title: v.string({
         name: 'title',
-        description: `The file's title`,
+        description: 'Label shown for the file.',
         examples: ['Company Logo']
       }),
       purpose: v.string({
         name: 'identifier',
-        description: `The file's purpose identifier`,
+        description: 'Why the file was uploaded. Controls what it can be used for.',
         examples: ['organization_logo']
       }),
-      created_by: v.nullable(documentParticipantActorSchema),
-      created_at: v.date({ name: 'created_at', description: `The files's creation date` }),
+      created_by: v.nullable(documentParticipantActorSchema, {
+        description: 'Actor that uploaded the file.'
+      }),
+      created_at: v.date({ name: 'created_at', description: 'Creation time.' }),
       updated_at: v.date({
         name: 'updated_at',
-        description: `The files's last update date`
+        description: 'Last update time.'
       })
     })
   )
@@ -89,7 +91,9 @@ export let dashboardFilePresenter = Presenter.create(fileType)
     v.intersection([
       v1FilePresenter.schema,
       v.object({
-        download_url: v.nullable(v.string())
+        download_url: v.nullable(
+          v.string({ description: 'Signed download URL for the file.' })
+        )
       })
     ])
   )

@@ -61,19 +61,20 @@ export let v1ProviderPresenter = Presenter.create(providerType)
   })
   .schema(
     v.object({
-      object: v.literal('provider', { description: "String representing the object's type" }),
+      object: v.literal('provider', { description: 'String representing the object’s type.' }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider identifier',
+        description: 'Unique ID.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       access: v.enumOf(['public', 'tenant'], {
         name: 'access',
-        description: 'Access level of the provider'
+        description:
+          '`public` providers are available to every instance. `tenant` providers are your own.'
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Current status of the provider'
+        description: 'Archived once the provider is archived.'
       }),
       publisher: v1PublisherPresenter.schema,
       current_version: v.nullable(v1ProviderVersionPresenter.schema),
@@ -84,7 +85,10 @@ export let v1ProviderPresenter = Presenter.create(providerType)
             description: 'OAuth status'
           }),
           callback_url: v.nullable(
-            v.string({ name: 'callback_url', description: 'OAuth callback URL' })
+            v.string({
+              name: 'callback_url',
+              description: 'Callback URL to register on your OAuth app.'
+            })
           ),
           auto_registration: v.object({
             status: v.enumOf(['supported', 'unsupported'], {
@@ -95,26 +99,26 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         })
       ),
       identifier: v.string({ name: 'identifier', description: 'Provider identifier' }),
-      name: v.string({ name: 'name', description: 'Display name of the provider' }),
+      name: v.string({ name: 'name', description: 'Display name.' }),
       description: v.nullable(
-        v.string({ name: 'description', description: 'Brief description of the provider' })
+        v.string({ name: 'description', description: 'Free-text description.' })
       ),
-      slug: v.string({ name: 'slug', description: 'URL-friendly identifier' }),
+      slug: v.string({ name: 'slug', description: 'URL-safe name for the provider.' }),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
         })
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

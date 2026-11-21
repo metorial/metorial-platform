@@ -25,16 +25,22 @@ export let v1DocumentVersionPresenter = Presenter.create(documentVersionType)
   .schema(
     v.object({
       object: v.literal('document.version', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string(),
-      document_id: v.string(),
-      version_number: v.number(),
-      previous_version_id: v.nullable(v.string()),
-      list_edited_at: v.nullable(v.date()),
-      content: v.string(),
-      editors: v.array(documentParticipantActorSchema),
-      created_at: v.date()
+      id: v.string({ description: 'Unique ID.' }),
+      document_id: v.string({ description: 'Document this version belongs to.' }),
+      version_number: v.number({ description: 'Sequential number of this version.' }),
+      previous_version_id: v.nullable(
+        v.string({ description: 'Previous version, by ID. `null` for the first version.' })
+      ),
+      list_edited_at: v.nullable(
+        v.date({ description: 'When the version content was last changed.' })
+      ),
+      content: v.string({ description: 'Text body of the document at this version.' }),
+      editors: v.array(documentParticipantActorSchema, {
+        description: 'Actors who edited this version.'
+      }),
+      created_at: v.date({ description: 'Creation time.' })
     })
   )
   .build();

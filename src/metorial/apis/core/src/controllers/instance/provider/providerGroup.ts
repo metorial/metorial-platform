@@ -33,8 +33,7 @@ let providerGroupGroup = integrationsGroup.use(async ctx => {
 export let providerGroupController = Controller.create(
   {
     name: 'Provider Groups',
-    description:
-      "A group is a user-defined custom folder for organizing providers in your instance like 'Sales Tools' or 'Engineering'.",
+    description: 'A provider group is a folder for organizing providers in your instance.',
     hideInDocs: true
   },
   {
@@ -98,9 +97,10 @@ export let providerGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string({ examples: ['Sales Integrations'] }),
+          name: v.string({ description: 'Display name.', examples: ['Sales Integrations'] }),
           description: v.optional(
-            v.string({ examples: ['CRM and sales pipeline integrations'] })
+            v.string({ examples: ['CRM and sales pipeline integrations'] }),
+            { description: 'Free-text description.' }
           )
         })
       )
@@ -129,9 +129,12 @@ export let providerGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Engineering Tools'] })),
+          name: v.optional(v.string({ examples: ['Engineering Tools'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['Developer and DevOps integrations'] })
+            v.string({ examples: ['Developer and DevOps integrations'] }),
+            { description: 'Free-text description.' }
           )
         })
       )
@@ -164,7 +167,10 @@ export let providerGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_listing_id: v.string({ examples: ['plg_abc123'] })
+          provider_listing_id: v.string({
+            examples: ['plg_abc123'],
+            description: 'Listing to add to the group.'
+          })
         })
       )
       .output(providerGroupPresenter)

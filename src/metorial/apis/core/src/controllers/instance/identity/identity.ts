@@ -60,7 +60,7 @@ export let identityController = Controller.create(
   {
     name: 'Identities',
     description:
-      'Identities bundle credentials under a single owner actor so provider access can be managed and delegated consistently.',
+      'An identity is a set of provider credentials owned by one actor. It lets you manage and delegate provider access consistently.',
     hideInDocs: true
   },
   {
@@ -88,19 +88,19 @@ export let identityController = Controller.create(
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ]),
               {
-                description: 'Filter by one or more identity statuses.'
+                description: 'Only return identities with one of these statuses.'
               }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by identity ID or IDs.',
+              description: 'Only return identities with one of these IDs.',
               examples: ['idn_5gHjKlMnPqRsTuVw']
             }),
             agent_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by owner agent ID or IDs.',
+              description: 'Only return identities owned by one of these agents.',
               examples: ['agt_4mNoPq8rSt2uVx6y']
             }),
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by owner identity actor ID or IDs.',
+              description: 'Only return identities owned by one of these identity actors.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
             }),
             created_at: dateFilterValidator('identity creation time'),
@@ -131,7 +131,7 @@ export let identityController = Controller.create(
     get: identityGroup
       .get(instancePath('identities/:identityId', 'identities.get'), {
         name: 'Get identity',
-        description: 'Retrieves a specific identity by ID.'
+        description: 'Retrieves an identity.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -141,7 +141,7 @@ export let identityController = Controller.create(
     create: instanceGroup
       .post(instancePath('identities', 'identities.create'), {
         name: 'Create identity',
-        description: 'Creates a new identity owned by an existing identity actor.'
+        description: 'Creates an identity.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -154,19 +154,19 @@ export let identityController = Controller.create(
           }),
           name: v.optional(
             v.string({
-              description: 'Optional display name for the identity.',
+              description: 'Display name.',
               examples: ['Production GitHub Identity']
             })
           ),
           description: v.optional(
             v.string({
-              description: 'Optional description of the identity.',
+              description: 'Free-text description.',
               examples: ['Identity used by the release pipeline']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Additional metadata to store on the identity.',
+              description: 'Custom data to identify or organize the identity.',
               examples: [{ environment: 'production', owner: 'platform' }]
             })
           ),
@@ -206,7 +206,7 @@ export let identityController = Controller.create(
     update: identityGroup
       .patch(instancePath('identities/:identityId', 'identities.update'), {
         name: 'Update identity',
-        description: 'Updates mutable fields on an existing identity.'
+        description: 'Updates an identity. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -215,19 +215,20 @@ export let identityController = Controller.create(
         v.object({
           name: v.optional(
             v.string({
-              description: 'Updated display name for the identity.',
+              description: 'Display name.',
               examples: ['Updated Production GitHub Identity']
             })
           ),
           description: v.optional(
             v.string({
-              description: 'Updated description for the identity.',
+              description: 'Free-text description.',
               examples: ['Updated identity used by the release pipeline']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Updated metadata for the identity.',
+              description:
+                'Custom data to identify or organize the identity. Replaces existing metadata.',
               examples: [{ environment: 'staging', owner: 'release-team' }]
             })
           )
@@ -251,8 +252,8 @@ export let identityController = Controller.create(
 
     delete: identityGroup
       .delete(instancePath('identities/:identityId', 'identities.delete'), {
-        name: 'Delete identity',
-        description: 'Archives an identity.'
+        name: 'Archive identity',
+        description: 'Archives an identity. It stays listable with `status=archived`.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))

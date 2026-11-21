@@ -67,8 +67,7 @@ let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write']
 export let skillController = Controller.create(
   {
     name: 'Skills',
-    description:
-      'Skills group provider and integration capabilities into reusable, owned compositions.'
+    description: 'A skill is a reusable composition of provider and integration capabilities.'
   },
   {
     list: instanceGroup
@@ -84,21 +83,46 @@ export let skillController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
-            status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+            search: v.optional(
+              v.string({
+                description: 'Only return skills matching this search text.'
+              })
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            status: v.optional(
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skills with one of these statuses.'
+                }
+              )
+            ),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skills with these IDs.'
+              })
+            ),
+            skill_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skills in one of these skill groups.'
+              })
+            ),
+            integration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skills using one of these integrations.'
+              })
+            ),
+            provider_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skills using one of these providers.'
+              })
+            ),
             owned_by_me: v.optional(
               v.boolean({
                 description:
-                  'Only return skills the caller created or owns, including ones created through their other member or consumer identities'
+                  'Only return skills the caller created or owns, including ones created through their other member or consumer identities.'
               })
             ),
             created_at: dateFilterValidator('skill creation time'),
@@ -145,7 +169,7 @@ export let skillController = Controller.create(
     get: skillGroup
       .get(instancePath('skills/:skillId', 'skills.get'), {
         name: 'Get skill',
-        description: 'Retrieves a specific skill.'
+        description: 'Retrieves a skill.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -175,18 +199,46 @@ export let skillController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(
+            v.string({ description: 'Free-text description.' })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the skill.'
+            })
+          ),
 
-          client_name: v.optional(skillClientNameValidator),
-          client_description: v.optional(skillClientDescriptionValidator),
-          license: v.optional(skillLicenseValidator),
-          compatibility: v.optional(skillCompatibilityValidator),
-          client_metadata: v.optional(v.record(v.any())),
-          image_file_id: v.optional(v.nullable(v.string())),
-          template_id: v.optional(v.string()),
-          skill_group_id: v.optional(v.string())
+          client_name: v.optional(skillClientNameValidator, {
+            description:
+              'Client-facing skill name. Defaults to `name`. Lowercase letters, numbers, and hyphens.'
+          }),
+          client_description: v.optional(skillClientDescriptionValidator, {
+            description: 'Client-facing description.'
+          }),
+          license: v.optional(skillLicenseValidator, {
+            description: 'License terms for the skill.'
+          }),
+          compatibility: v.optional(skillCompatibilityValidator, {
+            description: 'Compatibility notes for the skill.'
+          }),
+          client_metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data for the client-facing skill.'
+            })
+          ),
+          image_file_id: v.optional(v.nullable(v.string()), {
+            description: 'Image file for the skill, by ID.'
+          }),
+          template_id: v.optional(
+            v.string({
+              description:
+                'Skill template to create the skill from. Defaults to the default template.'
+            })
+          ),
+          skill_group_id: v.optional(
+            v.string({ description: 'Skill group to add the skill to.' })
+          )
         })
       )
       .output(skillPresenter)
@@ -286,7 +338,7 @@ export let skillController = Controller.create(
     update: skillGroup
       .patch(instancePath('skills/:skillId', 'skills.update'), {
         name: 'Update skill',
-        description: 'Updates a specific skill.'
+        description: 'Updates a skill. Omitted fields keep their current value.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
@@ -294,23 +346,44 @@ export let skillController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          client_name: v.optional(skillClientNameValidator),
-          client_description: v.optional(skillClientDescriptionValidator),
-          license: v.optional(v.nullable(skillLicenseValidator)),
-          compatibility: v.optional(v.nullable(skillCompatibilityValidator)),
-          client_metadata: v.optional(v.nullable(v.record(v.any()))),
-          metadata: v.optional(v.nullable(v.record(v.any()))),
-          image_file_id: v.optional(v.nullable(v.string())),
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.nullable(v.string()), {
+            description: 'Free-text description. `null` clears it.'
+          }),
+          client_name: v.optional(skillClientNameValidator, {
+            description:
+              'Client-facing skill name. Lowercase letters, numbers, and hyphens.'
+          }),
+          client_description: v.optional(skillClientDescriptionValidator, {
+            description: 'Client-facing description.'
+          }),
+          license: v.optional(v.nullable(skillLicenseValidator), {
+            description: 'License terms for the skill. `null` clears it.'
+          }),
+          compatibility: v.optional(v.nullable(skillCompatibilityValidator), {
+            description: 'Compatibility notes for the skill. `null` clears it.'
+          }),
+          client_metadata: v.optional(v.nullable(v.record(v.any())), {
+            description: 'Custom data for the client-facing skill. `null` clears it.'
+          }),
+          metadata: v.optional(v.nullable(v.record(v.any())), {
+            description:
+              'Custom data to identify or organize the skill. Replaces existing metadata. `null` clears it.'
+          }),
+          image_file_id: v.optional(v.nullable(v.string()), {
+            description:
+              'Image file for the skill, by ID. `null` resets to the default image. Cannot be combined with `image_icon`.'
+          }),
           image_icon: v.optional(
             v.nullable(
               v.object({
                 icon: v.string({
-                  description: 'Library icon id, e.g. rocket-2-line'
+                  description: 'ID of the library icon.',
+                  examples: ['rocket-2-line']
                 }),
                 color: v.string({
-                  description: 'Tile color: gray, blue, green, yellow, orange, red or purple'
+                  description:
+                    'Tile color. One of `gray`, `blue`, `green`, `yellow`, `orange`, `red`, or `purple`.'
                 })
               })
             ),
@@ -354,8 +427,8 @@ export let skillController = Controller.create(
 
     delete: skillGroup
       .delete(instancePath('skills/:skillId', 'skills.delete'), {
-        name: 'Delete skill',
-        description: 'Archives a specific skill.'
+        name: 'Archive skill',
+        description: 'Archives a skill.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
@@ -392,15 +465,36 @@ export let skillController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          client_name: v.optional(skillClientNameValidator),
-          client_description: v.optional(skillClientDescriptionValidator),
-          license: v.optional(skillLicenseValidator),
-          compatibility: v.optional(skillCompatibilityValidator),
-          client_metadata: v.optional(v.record(v.any())),
-          metadata: v.optional(v.record(v.any())),
-          image_file_id: v.optional(v.nullable(v.string()))
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(
+            v.string({ description: 'Free-text description.' })
+          ),
+          client_name: v.optional(skillClientNameValidator, {
+            description:
+              'Client-facing skill name. Defaults to `name`. Lowercase letters, numbers, and hyphens.'
+          }),
+          client_description: v.optional(skillClientDescriptionValidator, {
+            description: 'Client-facing description.'
+          }),
+          license: v.optional(skillLicenseValidator, {
+            description: 'License terms for the skill.'
+          }),
+          compatibility: v.optional(skillCompatibilityValidator, {
+            description: 'Compatibility notes for the skill.'
+          }),
+          client_metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data for the client-facing skill.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the skill.'
+            })
+          ),
+          image_file_id: v.optional(v.nullable(v.string()), {
+            description: 'Image file for the skill, by ID.'
+          })
         })
       )
       .output(skillPresenter)
@@ -498,7 +592,7 @@ export let skillController = Controller.create(
     share: skillGroup
       .post(instancePath('skills/:skillId/shares', 'skills.share'), {
         name: 'Share skill',
-        description: 'Shares a skill with consumers or organization members.'
+        description: 'Shares a skill with consumers.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(
@@ -514,8 +608,13 @@ export let skillController = Controller.create(
       .body(
         'default',
         v.object({
-          consumer_profile_ids: v.optional(v.array(v.string())),
-          organization_member_ids: v.optional(v.array(v.string())),
+          consumer_profile_ids: v.optional(v.array(v.string()), {
+            description: 'Consumers to share the skill with, by ID.'
+          }),
+          organization_member_ids: v.optional(v.array(v.string()), {
+            description:
+              'Must be omitted. Organization member access cannot be changed.'
+          }),
           permission: v.enumOf(['none', 'read', 'write', 'owner'], {
             description:
               'Access to grant. Owners can always edit the skill and can add other owners; only admins can remove or downgrade an owner. Owners must be consumers.'
@@ -553,14 +652,33 @@ export let skillController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          client_name: v.optional(skillClientNameValidator),
-          client_description: v.optional(skillClientDescriptionValidator),
-          license: v.optional(skillLicenseValidator),
-          compatibility: v.optional(skillCompatibilityValidator),
-          client_metadata: v.optional(v.record(v.any())),
-          metadata: v.optional(v.record(v.any()))
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(
+            v.string({ description: 'Free-text description.' })
+          ),
+          client_name: v.optional(skillClientNameValidator, {
+            description:
+              'Client-facing skill name. Defaults to `name`. Lowercase letters, numbers, and hyphens.'
+          }),
+          client_description: v.optional(skillClientDescriptionValidator, {
+            description: 'Client-facing description.'
+          }),
+          license: v.optional(skillLicenseValidator, {
+            description: 'License terms for the skill.'
+          }),
+          compatibility: v.optional(skillCompatibilityValidator, {
+            description: 'Compatibility notes for the skill.'
+          }),
+          client_metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data for the client-facing skill.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the skill.'
+            })
+          )
         })
       )
       .output(skillPresenter)

@@ -15,8 +15,7 @@ let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as cons
 export let skillContentPreviewController = Controller.create(
   {
     name: 'Skill Content Previews',
-    description:
-      'Read the beginning of the SKILL.md of many skills and skill templates at once.'
+    description: 'A skill content preview is the beginning of a skill or skill template `SKILL.md` file.'
   },
   {
     list: instanceGroup

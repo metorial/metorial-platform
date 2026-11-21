@@ -72,23 +72,23 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
   .schema(
     v.object({
       object: v.literal('provider.specification', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique specification identifier',
+        description: 'Unique ID.',
         examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
       key: v.string({
         name: 'key',
-        description: 'Unique specification key',
+        description: 'Stable key identifying the specification.',
         examples: ['github']
       }),
-      name: v.string({ name: 'name', description: 'Display name', examples: ['GitHub'] }),
+      name: v.string({ name: 'name', description: 'Display name.', examples: ['GitHub'] }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['GitHub API integration']
         })
       ),
@@ -107,31 +107,31 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
       }),
       config_visibility: v.enumOf(['encrypted', 'plain'] as const, {
         name: 'config_visibility',
-        description: 'Visibility level of the configuration'
+        description: 'Whether config values are stored encrypted or in plain text.'
       }),
       tools: v.array(v1ProviderToolPresenter.schema, {
         name: 'tools',
-        description: 'Available tools'
+        description: 'Tools this specification offers.'
       }),
       tool_categories: v.array(
         v.object({
           object: v.literal('provider.tool_category', {
-            description: "String representing the object's type"
+            description: 'String representing the object’s type.'
           }),
           key: v.string({
             name: 'key',
-            description: 'Tool category key',
+            description: 'Stable key for the tool category.',
             examples: ['crm']
           }),
           name: v.string({
             name: 'name',
-            description: 'Display name of the tool category',
+            description: 'Display name.',
             examples: ['Zoho CRM']
           }),
           description: v.nullable(
             v.string({
               name: 'description',
-              description: 'Tool category description',
+              description: 'Free-text description.',
               examples: ['Manage leads, contacts, deals and other CRM records']
             })
           ),
@@ -155,21 +155,21 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
       ),
       auth_methods: v.array(v1ProviderAuthMethodPresenter.schema, {
         name: 'auth_methods',
-        description: 'Authentication methods'
+        description: 'Auth methods this specification offers.'
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this specification belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

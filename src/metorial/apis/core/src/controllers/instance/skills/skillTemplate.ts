@@ -45,7 +45,7 @@ export let skillTemplateGroup = instanceGroup
 export let skillTemplateController = Controller.create(
   {
     name: 'Skill Templates',
-    description: 'Skill templates define reusable starting points for skills.'
+    description: 'A skill template is a reusable starting point for creating skills.'
   },
   {
     list: instanceGroup
@@ -66,22 +66,46 @@ export let skillTemplateController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(
+              v.string({
+                description: 'Only return skill templates matching this search text.'
+              })
+            ),
             status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skill templates with one of these statuses.'
+                }
+              )
             ),
             owner: v.optional(
-              v.union([
-                v.enumOf(['system', 'tenant']),
-                v.array(v.enumOf(['system', 'tenant']))
-              ])
+              v.union(
+                [v.enumOf(['system', 'tenant']), v.array(v.enumOf(['system', 'tenant']))],
+                {
+                  description: 'Only return skill templates with one of these owners.'
+                }
+              )
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill templates with these IDs.'
+              })
+            ),
+            provider_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill templates using one of these providers.'
+              })
+            ),
+            integration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description:
+                  'Only return skill templates using one of these integrations.'
+              })
+            ),
             created_at: dateFilterValidator('skill template creation time'),
             updated_at: dateFilterValidator('skill template last update time')
           })
@@ -114,7 +138,7 @@ export let skillTemplateController = Controller.create(
     get: skillTemplateGroup
       .get(instancePath('skill-templates/:skillTemplateId', 'skills.templates.get'), {
         name: 'Get skill template',
-        description: 'Retrieves a specific skill template.',
+        description: 'Retrieves a skill template.',
         legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId')
       })
       .use(hasFlags(['skills-enabled']))
@@ -140,10 +164,20 @@ export let skillTemplateController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          from_skill_Id: v.optional(v.string())
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(
+            v.string({ description: 'Free-text description.' })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the skill template.'
+            })
+          ),
+          from_skill_Id: v.optional(
+            v.string({
+              description: 'Skill to copy content and items from, by ID.'
+            })
+          )
         })
       )
       .output(skillTemplatePresenter)
@@ -176,7 +210,7 @@ export let skillTemplateController = Controller.create(
     update: skillTemplateGroup
       .patch(instancePath('skill-templates/:skillTemplateId', 'skills.templates.update'), {
         name: 'Update skill template',
-        description: 'Updates a skill template.',
+        description: 'Updates a skill template. Omitted fields keep their current value.',
         legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId')
       })
       .use(hasFlags(['skills-enabled']))
@@ -184,9 +218,14 @@ export let skillTemplateController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          metadata: v.optional(v.nullable(v.record(v.any())))
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.nullable(v.string()), {
+            description: 'Free-text description. `null` clears it.'
+          }),
+          metadata: v.optional(v.nullable(v.record(v.any())), {
+            description:
+              'Custom data to identify or organize the skill template. Replaces existing metadata. `null` clears it.'
+          })
         })
       )
       .output(skillTemplatePresenter)
@@ -211,7 +250,7 @@ export let skillTemplateController = Controller.create(
 
     delete: skillTemplateGroup
       .delete(instancePath('skill-templates/:skillTemplateId', 'skills.templates.delete'), {
-        name: 'Delete skill template',
+        name: 'Archive skill template',
         description: 'Archives a skill template.',
         legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId')
       })

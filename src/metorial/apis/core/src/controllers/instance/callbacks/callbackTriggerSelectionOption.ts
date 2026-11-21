@@ -13,7 +13,7 @@ export let callbackTriggerSelectionOptionController = Controller.create(
   {
     name: 'Callback Trigger Selection Options',
     description:
-      'The values a connected account can pick for a field of a trigger group selection.',
+      'A callback trigger selection option is a value a connected account can pick for a field of a trigger group selection.',
     hideInDocs: true
   },
   {

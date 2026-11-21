@@ -70,7 +70,7 @@ export let identityDelegationRequestController = Controller.create(
   {
     name: 'Identity Delegation Requests',
     description:
-      'Identity delegation requests represent approval workflows for creating delegations that require consent.',
+      'An identity delegation request is an approval workflow for a delegation that needs consent. Approving it creates the delegation.',
     hideInDocs: true
   },
   {
@@ -95,19 +95,22 @@ export let identityDelegationRequestController = Controller.create(
                 v.array(v.enumOf(['pending', 'approved', 'denied', 'canceled']))
               ]),
               {
-                description: 'Filter by one or more delegation request statuses.'
+                description:
+                  'Only return identity delegation requests with one of these statuses.'
               }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by delegation request ID or IDs.',
+              description: 'Only return identity delegation requests with one of these IDs.',
               examples: ['idr_2mNpQrStUvWxYzAb']
             }),
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by requester actor ID or IDs.',
+              description:
+                'Only return identity delegation requests from one of these requesters.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
             }),
             identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by identity ID or IDs.',
+              description:
+                'Only return identity delegation requests for one of these identities.',
               examples: ['idn_5gHjKlMnPqRsTuVw']
             }),
             created_at: dateFilterValidator('identity delegation request creation time'),
@@ -141,7 +144,7 @@ export let identityDelegationRequestController = Controller.create(
         ),
         {
           name: 'Get identity delegation request',
-          description: 'Retrieves a specific identity delegation request by ID.'
+          description: 'Retrieves an identity delegation request.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
@@ -169,7 +172,7 @@ export let identityDelegationRequestController = Controller.create(
         instancePath('identity-delegation-requests', 'identities.delegationRequests.create'),
         {
           name: 'Create identity delegation request',
-          description: 'Creates a new identity delegation request.'
+          description: 'Creates an identity delegation request.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -197,7 +200,7 @@ export let identityDelegationRequestController = Controller.create(
             })
           ),
           expires_at: v.date({
-            description: 'Timestamp when the request should expire.',
+            description: 'Deadline for approving or denying the request.',
             examples: [new Date('2026-03-03T10:15:00Z')]
           }),
           delegation_config_id: v.optional(
@@ -219,7 +222,8 @@ export let identityDelegationRequestController = Controller.create(
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Additional metadata to store on the request.',
+              description:
+                'Custom data to identify or organize the identity delegation request.',
               examples: [{ incident: 'INC-2048', requested_by: 'support' }]
             })
           )
@@ -275,7 +279,7 @@ export let identityDelegationRequestController = Controller.create(
         ),
         {
           name: 'Approve identity delegation request',
-          description: 'Approves an existing identity delegation request.'
+          description: 'Approves an identity delegation request.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -311,7 +315,7 @@ export let identityDelegationRequestController = Controller.create(
         ),
         {
           name: 'Deny identity delegation request',
-          description: 'Denies an existing identity delegation request.'
+          description: 'Denies an identity delegation request.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

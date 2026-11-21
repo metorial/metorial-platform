@@ -16,19 +16,46 @@ type IntegrationFirewallAssignmentRecord = Prisma.IntegrationFirewallAssignmentG
 
 let targetTypes = ['enclave', 'provider', 'internet_gateway'] as const;
 
-let firewallPreviewSchema = v.object({
-  object: v.literal('networking.firewall#preview'),
-  id: v.string(),
-  slug: v.string(),
-  name: v.string()
-});
+let firewallPreviewSchema = v.object(
+  {
+    object: v.literal('networking.firewall#preview', {
+      description: 'String representing the object’s type.'
+    }),
+    id: v.string({
+      description: 'Unique ID.',
+      examples: ['fwl_7dEfGhJkLmNpQrSt']
+    }),
+    slug: v.string({
+      description: 'URL-safe name, unique within the instance.'
+    }),
+    name: v.string({
+      description: 'Display name.'
+    })
+  },
+  {
+    description: 'Firewall applied to the target.'
+  }
+);
 
-let assignmentTargetPreviewSchema = v.object({
-  object: v.literal('integration.firewall_assignment.target#preview'),
-  type: v.enumOf([...targetTypes]),
-  id: v.string(),
-  name: v.string()
-});
+let assignmentTargetPreviewSchema = v.object(
+  {
+    object: v.literal('integration.firewall_assignment.target#preview', {
+      description: 'String representing the object’s type.'
+    }),
+    type: v.enumOf([...targetTypes], {
+      description: 'Kind of target the firewall applies to.'
+    }),
+    id: v.string({
+      description: 'Unique ID.'
+    }),
+    name: v.string({
+      description: 'Display name.'
+    })
+  },
+  {
+    description: 'Target the firewall applies to. `null` when the target no longer exists.'
+  }
+);
 
 let presentAssignmentTarget = (assignment: IntegrationFirewallAssignmentRecord) => {
   if (assignment.targetType === 'enclave' && assignment.enclave) {
@@ -79,12 +106,20 @@ export let v1IntegrationFirewallAssignmentPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('integration.firewall_assignment'),
-      id: v.string(),
-      target_type: v.enumOf([...targetTypes]),
+      object: v.literal('integration.firewall_assignment', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.'
+      }),
+      target_type: v.enumOf([...targetTypes], {
+        description: 'What the firewall applies to.'
+      }),
       firewall: firewallPreviewSchema,
       target: v.nullable(assignmentTargetPreviewSchema),
-      created_at: v.date()
+      created_at: v.date({
+        description: 'Creation time.'
+      })
     })
   )
   .build();

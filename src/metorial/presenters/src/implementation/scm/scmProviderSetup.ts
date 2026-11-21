@@ -24,8 +24,10 @@ export let v1ScmProviderSetupPresenter = Presenter.create(scmProviderSetupType)
   }))
   .schema(
     v.object({
-      object: v.literal('scm.provider.setup_session'),
-      id: v.string({ description: 'Unique setup session identifier' }),
+      object: v.literal('scm.provider.setup_session', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
       type: v.enumOf(
         [
           'github',
@@ -36,16 +38,18 @@ export let v1ScmProviderSetupPresenter = Presenter.create(scmProviderSetupType)
           'bitbucket_data_center'
         ],
         {
-          description: 'SCM backend type'
+          description: 'Provider software this connects to.'
         }
       ),
-      url: v.string({ description: 'Setup URL' }),
+      url: v.string({ description: 'URL to open for completing setup.' }),
       status: v.enumOf(['pending', 'completed', 'expired'] as const, {
-        description: 'Status of the provider setup session'
+        description: '`pending` until setup completes.'
       }),
-      provider: v.nullable(v1ScmProviderPresenter.schema),
-      created_at: v.date({ description: 'Timestamp when created' }),
-      expires_at: v.date({ description: 'Timestamp when the session expires' })
+      provider: v.nullable(v1ScmProviderPresenter.schema, {
+        description: 'Provider created by this session. `null` until the session completes.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      expires_at: v.date({ description: 'When the setup session expires.' })
     })
   )
   .build();

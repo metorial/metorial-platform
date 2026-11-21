@@ -25,7 +25,7 @@ export let v1SandboxSpecPresenter = Presenter.create(sandboxSpecType)
         examples: ['sbs_7hNkPqRsTuVwXyZa']
       }),
       identifier: v.string({
-        description: "The spec's human-readable identifier",
+        description: 'Stable size label shared across regions.',
         examples: ['m3072-c3000']
       }),
       memory_gib: v.number({
@@ -42,7 +42,7 @@ export let v1SandboxSpecPresenter = Presenter.create(sandboxSpecType)
       regions: v.array(v.string(), {
         description: 'The identifiers of the regions this spec is available in'
       }),
-      created_at: v.date({ description: "The spec's creation date" })
+      created_at: v.date({ description: 'Creation time.' })
     })
   )
   .build();

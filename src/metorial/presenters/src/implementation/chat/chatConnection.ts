@@ -30,43 +30,44 @@ export let v1ChatConnectionPresenter = Presenter.create(chatConnectionType)
   .schema(
     v.object({
       object: v.literal('chat.connection', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat connection identifier',
+        description: 'Unique ID.',
         examples: ['cin_9jKlMnPqRsTuVwXy']
       }),
 
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'The chat connection status'
+        description:
+          '`archived` once you archive the connection. Archived connections stay listable.'
       }),
 
       slug: v.string({
         name: 'slug',
-        description: 'URL-safe identifier for the chat connection',
+        description: 'URL-safe name, unique across Metorial.',
         examples: ['acme-slack']
       }),
 
       name: v.string({
         name: 'name',
-        description: 'Display name of the chat connection',
+        description: 'Display name.',
         examples: ['Acme Slack']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description of the chat connection',
+          description: 'Free-text description.',
           examples: ['Slack connection used for customer support']
         })
       ),
 
       metadata: v.record(v.any(), {
         name: 'metadata',
-        description: 'Metadata set on the chat connection',
+        description: 'Custom data you attach to identify or organize this record.',
         examples: [{}]
       }),
 
@@ -78,13 +79,13 @@ export let v1ChatConnectionPresenter = Presenter.create(chatConnectionType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the chat connection was created',
+        description: 'Creation time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the chat connection was last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

@@ -8,19 +8,21 @@ import { Presenter } from '@metorial/presenter';
 import { providerInvocationType, providerInvocationsType } from '../../../types';
 
 let invocationLogSchema = v.object({
-  object: v.literal('provider.invocation.log'),
+  object: v.literal('provider.invocation.log', {
+    description: 'String representing the object’s type.'
+  }),
   timestamp: v.date({
     name: 'timestamp',
-    description: 'Log timestamp'
+    description: 'When the log line was written.'
   }),
   message: v.string({
     name: 'message',
-    description: 'Log message content'
+    description: 'What was logged.'
   }),
   output_type: v.nullable(
     v.string({
       name: 'output_type',
-      description: 'Output type when provided by the backing provider'
+      description: 'Output type, when the provider reported one.'
     })
   )
 });
@@ -97,55 +99,57 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
   })
   .schema(
     v.object({
-      object: v.literal('provider.invocation'),
+      object: v.literal('provider.invocation', {
+        description: 'String representing the object’s type.'
+      }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider invocation identifier',
+        description: 'Unique ID.',
         examples: ['piv_8hJkLmNpQrStUvWx']
       }),
       source: v.enumOf(['slates', 'shuttle', 'native'], {
         name: 'source',
-        description: 'Backing provider integration source'
+        description: 'Which runtime executed the call.'
       }),
       type: v.enumOf(
         ['tool_call', 'auth_config_event', 'oauth_setup', 'callback_event', 'unknown'],
         {
           name: 'type',
-          description: 'Invocation category'
+          description: 'What kind of work was traced.'
         }
       ),
       status: v.enumOf(['success', 'error'], {
         name: 'status',
-        description: 'Normalized invocation outcome status'
+        description: 'Whether the call succeeded or failed.'
       }),
       provider_run_ids: v.array(
         v.string({
           name: 'provider_run_id',
-          description: 'Related provider run ID'
+          description: 'Provider runs this invocation traces.'
         })
       ),
       session_message_ids: v.array(
         v.string({
           name: 'session_message_id',
-          description: 'Related session message ID'
+          description: 'Session messages this invocation traces.'
         })
       ),
       callback_event_ids: v.array(
         v.string({
           name: 'callback_event_id',
-          description: 'Related callback event ID'
+          description: 'Callback events this invocation traces.'
         })
       ),
       auth_config_event_ids: v.array(
         v.string({
           name: 'auth_config_event_id',
-          description: 'Related auth config event ID'
+          description: 'Auth config events this invocation traces.'
         })
       ),
       provider_oauth_setup_ids: v.array(
         v.string({
           name: 'provider_oauth_setup_id',
-          description: 'Related provider OAuth setup ID'
+          description: 'OAuth setups this invocation traces.'
         })
       ),
       tool_call_id: v.nullable(
@@ -155,11 +159,14 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
         })
       ),
       action: v.nullable(
-        v.object({
-          id: v.string(),
-          key: v.string(),
-          name: v.string()
-        })
+        v.object(
+          {
+            id: v.string(),
+            key: v.string(),
+            name: v.string()
+          },
+          { description: 'Tool or operation invoked, when the invocation is a tool call.' }
+        )
       ),
       requests: v.array(v.any(), {
         name: 'requests',
@@ -178,7 +185,7 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
       }),
       logs: v.array(invocationLogSchema, {
         name: 'logs',
-        description: 'Invocation logs'
+        description: 'Log lines captured during the call.'
       }),
       attachments: v.array(v.any(), {
         name: 'attachments',
@@ -186,10 +193,13 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
           'Captured attachments. Entries that are too large for this response are replaced with a provider.invocation.omitted_payload object.'
       }),
       error: v.nullable(
-        v.object({
-          code: v.string(),
-          message: v.string()
-        })
+        v.object(
+          {
+            code: v.string({ description: 'Machine-readable error code.' }),
+            message: v.string({ description: 'What went wrong.' })
+          },
+          { description: 'Error that ended the call, or `null` when it succeeded.' }
+        )
       ),
       provider: v.nullable(
         v.record(v.any(), {
@@ -205,7 +215,7 @@ export let v1ProviderInvocationPresenter = Presenter.create(providerInvocationTy
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created'
+        description: 'Creation time.'
       })
     })
   )
@@ -224,7 +234,9 @@ export let v1ProviderInvocationsPresenter = Presenter.create(providerInvocations
   }))
   .schema(
     v.object({
-      object: v.literal('provider.invocations'),
+      object: v.literal('provider.invocations', {
+        description: 'String representing the object’s type.'
+      }),
       items: v.array(v1ProviderInvocationPresenter.schema)
     })
   )

@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, spyOn } from 'bun:test';
+import Redis from 'ioredis';
 import {
   appendRegionToClientSecret,
   createSnowflakeWorkerLease,
@@ -72,6 +73,41 @@ describe('regional client secrets', () => {
 });
 
 describe('Snowflake worker leases', () => {
+  it('disconnects the internally created client when claiming a worker ID fails', async () => {
+    let error = new Error('claim failed');
+    let connect = spyOn(Redis.prototype, 'connect').mockResolvedValue(undefined);
+    let set = spyOn(Redis.prototype, 'set').mockRejectedValue(error);
+    let disconnect = spyOn(Redis.prototype, 'disconnect');
+
+    try {
+      await expect(
+        createSnowflakeWorkerLease({ redisUrl: 'redis://unused', startWorkerId: 0 })
+      ).rejects.toBe(error);
+      expect(disconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      disconnect.mockRestore();
+      set.mockRestore();
+      connect.mockRestore();
+    }
+  });
+
+  it('leaves a caller-owned Redis client open when claiming a worker ID fails', async () => {
+    let redis = new FakeRedis();
+    let error = new Error('claim failed');
+    let set = spyOn(redis, 'set').mockRejectedValue(error);
+    let disconnect = spyOn(redis, 'disconnect');
+
+    try {
+      await expect(createSnowflakeWorkerLease({ redis, startWorkerId: 0 })).rejects.toBe(
+        error
+      );
+      expect(disconnect).not.toHaveBeenCalled();
+    } finally {
+      disconnect.mockRestore();
+      set.mockRestore();
+    }
+  });
+
   it('does not give two live processes the same worker ID', async () => {
     let redis = new FakeRedis();
 

@@ -51,25 +51,69 @@ export let v1IntegrationInstanceGroupProviderPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('integration.instance.group.provider'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
+      object: v.literal('integration.instance.group.provider', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['dip_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you archive the entry.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
 
-      integration_id: v.string(),
-      integration_instance_group_id: v.string(),
-      integration_instance_id: v.string(),
-      integration_provider_id: v.nullable(v.string()),
-      integration_instance_provider_id: v.string(),
+      integration_id: v.string({
+        description: 'Integration this entry belongs to.',
+        examples: ['int_2bCdEfGhJkLmNpQr']
+      }),
+      integration_instance_group_id: v.string({
+        description: 'Group this entry belongs to.',
+        examples: ['dii_4dEfGhJkLmNpQrSt']
+      }),
+      integration_instance_id: v.string({
+        description: 'Instance this entry’s provider comes from.',
+        examples: ['ini_4dEfGhJkLmNpQrSt']
+      }),
+      integration_provider_id: v.nullable(
+        v.string({
+          description:
+            'Integration provider this entry was taken from. `null` when the entry has no integration provider.'
+        })
+      ),
+      integration_instance_provider_id: v.string({
+        description: 'Integration instance provider this entry links.',
+        examples: ['iip_4dEfGhJkLmNpQrSt']
+      }),
 
       tool_filter: v.nullable(toolFilterPresenter.schema),
-      is_override_tool_filter: v.boolean(),
+      is_override_tool_filter: v.boolean({
+        description: 'Replaces the integration tool filters instead of combining with them.'
+      }),
 
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     }) as any
   )
   .build();

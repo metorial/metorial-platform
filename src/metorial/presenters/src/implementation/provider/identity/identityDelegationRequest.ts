@@ -30,16 +30,16 @@ export let v1IdentityDelegationRequestPresenter = Presenter.create(
   .schema(
     v.object({
       object: v.literal('identity.delegation_request', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique delegation request identifier.',
+        description: 'Unique ID.',
         examples: ['idr_2mNpQrStUvWxYzAb']
       }),
       status: v.enumOf(['pending', 'approved', 'denied', 'canceled'], {
         name: 'status',
-        description: 'Current status of the delegation request.'
+        description: 'Where the request is in the approval workflow.'
       }),
       denied_reason: v.nullable(
         v.enumOf(
@@ -59,12 +59,12 @@ export let v1IdentityDelegationRequestPresenter = Presenter.create(
       delegation: v1IdentityDelegationPresenter.schema,
       expires_at: v.date({
         name: 'expires_at',
-        description: 'Timestamp when the delegation request expires.',
+        description: 'Deadline for approving or denying the request.',
         examples: [new Date('2026-03-03T10:15:00Z')]
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the delegation request was created.',
+        description: 'Creation time.',
         examples: [new Date('2026-02-03T10:15:00Z')]
       })
     })

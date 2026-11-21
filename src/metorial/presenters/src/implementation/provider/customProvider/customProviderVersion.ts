@@ -5,21 +5,24 @@ import { v1ActorPreviewPresenter } from './actorPreview';
 import { v1CustomProviderDeploymentPresenter } from './customProviderDeployment';
 import { v1CustomProviderEnvironmentPresenter } from './customProviderEnvironment';
 
-let environmentNestedSchema = v.object({
-  object: v.literal('custom_provider.environment', {
-    description: "String representing the object's type"
-  }),
-  id: v.string({
-    name: 'id',
-    description: 'Environment version reference identifier',
-    examples: ['cpenv_1aBcDeFgHjKlMnPq']
-  }),
-  is_current_version_for_environment: v.boolean({
-    name: 'is_current_version_for_environment',
-    description: 'Whether this version is the current one for the environment'
-  }),
-  environment: v1CustomProviderEnvironmentPresenter.schema
-});
+let environmentNestedSchema = v.object(
+  {
+    object: v.literal('custom_provider.environment', {
+      description: 'String representing the object’s type.'
+    }),
+    id: v.string({
+      name: 'id',
+      description: 'Unique ID.',
+      examples: ['cpenv_1aBcDeFgHjKlMnPq']
+    }),
+    is_current_version_for_environment: v.boolean({
+      name: 'is_current_version_for_environment',
+      description: 'Whether this version is the current one for the environment.'
+    }),
+    environment: v1CustomProviderEnvironmentPresenter.schema
+  },
+  { description: 'Environment this version is deployed to.' }
+);
 
 export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVersionType)
   .presenter(async ({ customProviderVersion }, opts) => ({
@@ -112,105 +115,124 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
   .schema(
     v.object({
       object: v.literal('custom_provider.version', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique custom provider version identifier',
+        description: 'Unique ID.',
         examples: ['cpv_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['queued', 'deploying', 'deployment_succeeded', 'deployment_failed'], {
         name: 'status',
-        description: 'Current version status'
+        description: 'Build status of this version.'
       }),
       config: v.nullable(
-        v.object({
-          object: v.literal('custom_provider.version.config', {
-            description: "String representing the object's type"
-          }),
-          schema: v.object({
-            type: v.literal('json_schema'),
-            schema: v.record(v.any(), {
-              name: 'schema',
-              description:
-                'JSON Schema defining the configuration fields for the custom provider'
+        v.object(
+          {
+            object: v.literal('custom_provider.version.config', {
+              description: 'String representing the object’s type.'
+            }),
+            schema: v.object(
+              {
+                type: v.literal('json_schema', {
+                  description: 'Format of the configuration schema.'
+                }),
+                schema: v.record(v.any(), {
+                  name: 'schema',
+                  description: "JSON Schema for the provider's configuration."
+                })
+              },
+              { description: 'Configuration fields for the custom provider.' }
+            ),
+            transformer: v.string({
+              name: 'transformer',
+              description: "Code that transforms the provider's configuration."
             })
-          }),
-          transformer: v.string({
-            name: 'transformer',
-            description: 'Optional jsonata transformer function for the configuration.'
-          })
-        })
+          },
+          { description: 'Configuration for this version.' }
+        )
       ),
       index: v.number({
         name: 'index',
-        description: 'Version index number',
+        description: 'Sequential number of this version.',
         examples: [1, 2, 3]
       }),
       identifier: v.string({
         name: 'identifier',
-        description: 'Version identifier',
+        description: 'Human-readable label for this version.',
         examples: ['v1.0.0']
       }),
       deployment: v1CustomProviderDeploymentPresenter.schema,
       environments: v.array(environmentNestedSchema, {
         name: 'environments',
-        description: 'Environments this version is deployed to'
+        description: 'Environments this version is deployed to.'
       }),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
-        description: 'ID of the parent custom provider',
+        description: 'Custom provider this version belongs to.',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'ID of the associated provider',
+          description: 'Associated provider, by ID. `null` when there is none.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       actor: v1ActorPreviewPresenter.schema,
       container_image: v.optional(
-        v.object({
-          container_registry: v.string({
-            name: 'container_registry',
-            description: 'URL of the container registry',
-            examples: ['https://index.docker.io/v1/']
-          }),
-          container_image_tag: v.string({
-            name: 'container_image_tag',
-            description: 'Tag of the container image',
-            examples: ['v1.0.0']
-          }),
-          container_image: v.string({
-            name: 'container_image',
-            description: 'Name of the container image',
-            examples: ['my-app-image']
-          })
-        })
+        v.object(
+          {
+            container_registry: v.string({
+              name: 'container_registry',
+              description: 'Registry the image is pulled from.',
+              examples: ['https://index.docker.io/v1/']
+            }),
+            container_image_tag: v.string({
+              name: 'container_image_tag',
+              description: 'Tag selecting the image version.',
+              examples: ['v1.0.0']
+            }),
+            container_image: v.string({
+              name: 'container_image',
+              description: 'Name of the image in the registry.',
+              examples: ['my-app-image']
+            })
+          },
+          {
+            description:
+              'Container image this version deploys. Only set for `container` providers.'
+          }
+        )
       ),
       remote_mcp_server: v.optional(
-        v.object({
-          url: v.string({
-            name: 'url',
-            description: 'URL of the remote MCP server',
-            examples: ['https://mcp.example.com']
-          }),
-          transport: v.string({
-            name: 'transport',
-            description: 'Transport protocol for the remote MCP server',
-            examples: ['grpc', 'http']
-          })
-        })
+        v.object(
+          {
+            url: v.string({
+              name: 'url',
+              description: 'URL where the remote MCP server is reachable.',
+              examples: ['https://mcp.example.com']
+            }),
+            transport: v.string({
+              name: 'transport',
+              description: 'MCP transport the remote server speaks.',
+              examples: ['grpc', 'http']
+            })
+          },
+          {
+            description:
+              'Remote MCP server this version connects to. Only set for `remote` providers.'
+          }
+        )
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     }) as any

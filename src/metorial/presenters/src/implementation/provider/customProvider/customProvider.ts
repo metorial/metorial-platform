@@ -68,123 +68,150 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
   .schema(
     v.object({
       object: v.literal('custom_provider', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique custom provider identifier',
+        description: 'Unique ID.',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Current status of the custom provider'
+        description: '`archived` once archived. Archived providers reject new connections.'
       }),
       type: v.enumOf(['function', 'container', 'remote'], {
         name: 'type',
-        description: 'Type of the custom provider'
+        description: 'How the provider runs: `function`, `container`, or `remote`.'
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the custom provider',
+        description: 'Display name.',
         examples: ['My Custom Provider']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Brief description of the custom provider',
+          description: 'Free-text description.',
           examples: ['A custom provider for my application']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ environment: 'production' }]
         })
       ),
-      draft: v.object({
-        object: v.enumOf(
-          [
-            'custom_provider.draft#function',
-            'custom_provider.draft.container',
-            'custom_provider.draft.remote'
-          ],
-          {
-            description: "String representing the draft's type"
-          }
-        ),
+      draft: v.object(
+        {
+          object: v.enumOf(
+            [
+              'custom_provider.draft#function',
+              'custom_provider.draft.container',
+              'custom_provider.draft.remote'
+            ],
+            {
+              description: 'String representing the object’s type.'
+            }
+          ),
 
-        container_image: v.optional(
-          v.object({
-            object: v.literal('custom_provider.draft.container', {
-              description: 'String representing the container image draft type'
-            }),
+          container_image: v.optional(
+            v.object(
+              {
+                object: v.literal('custom_provider.draft.container', {
+                  description: 'String representing the object’s type.'
+                }),
 
-            container_registry: v.string({
-              name: 'container_registry',
-              description: 'URL of the container registry',
-              examples: ['https://index.docker.io/v1/']
-            }),
-            container_image_tag: v.string({
-              name: 'container_image_tag',
-              description: 'Tag of the container image',
-              examples: ['v1.0.0']
-            }),
-            container_image: v.string({
-              name: 'container_image',
-              description: 'Name of the container image',
-              examples: ['my-app-image']
-            })
-          })
-        ),
+                container_registry: v.string({
+                  name: 'container_registry',
+                  description: 'Registry the image is pulled from.',
+                  examples: ['https://index.docker.io/v1/']
+                }),
+                container_image_tag: v.string({
+                  name: 'container_image_tag',
+                  description: 'Tag selecting the image version.',
+                  examples: ['v1.0.0']
+                }),
+                container_image: v.string({
+                  name: 'container_image',
+                  description: 'Name of the image in the registry.',
+                  examples: ['my-app-image']
+                })
+              },
+              {
+                description:
+                  'Container image this provider deploys. Only set for `container` providers.'
+              }
+            )
+          ),
 
-        remote_mcp_server: v.optional(
-          v.object({
-            object: v.literal('custom_provider.draft.remote', {
-              description: 'String representing the remote MCP server draft type'
-            }),
+          remote_mcp_server: v.optional(
+            v.object(
+              {
+                object: v.literal('custom_provider.draft.remote', {
+                  description: 'String representing the object’s type.'
+                }),
 
-            url: v.string({
-              name: 'url',
-              description: 'URL of the remote MCP server',
-              examples: ['https://mcp.example.com']
-            }),
-            transport: v.enumOf(['sse', 'streamable_http', 'stateless'], {
-              name: 'transport',
-              description: 'Transport protocol for connecting to the remote MCP server'
-            })
-          })
-        ),
+                url: v.string({
+                  name: 'url',
+                  description: 'URL where the remote MCP server is reachable.',
+                  examples: ['https://mcp.example.com']
+                }),
+                transport: v.enumOf(['sse', 'streamable_http', 'stateless'], {
+                  name: 'transport',
+                  description: 'MCP transport the remote server speaks.'
+                })
+              },
+              {
+                description:
+                  'Remote MCP server this provider connects to. Only set for `remote` providers.'
+              }
+            )
+          ),
 
-        config: v.object({
-          object: v.literal('custom_provider.draft.config', {
-            description: 'String representing the custom provider config draft type'
-          }),
-          schema: v.object({
-            type: v.literal('json_schema'),
-            schema: v.record(v.any(), {
-              name: 'schema',
-              description:
-                'JSON Schema defining the configuration fields for the custom provider'
-            })
-          }),
-          transformer: v.string({
-            name: 'transformer',
-            description: 'Optional jsonata transformer function for the configuration.'
-          })
-        })
+          config: v.object(
+            {
+              object: v.literal('custom_provider.draft.config', {
+                description: 'String representing the object’s type.'
+              }),
+              schema: v.object(
+                {
+                  type: v.literal('json_schema', {
+                    description: 'Format of the configuration schema.'
+                  }),
+                  schema: v.record(v.any(), {
+                    name: 'schema',
+                    description: "JSON Schema for the provider's configuration."
+                  })
+                },
+                { description: 'Configuration fields for the custom provider.' }
+              ),
+              transformer: v.string({
+                name: 'transformer',
+                description: "Code that transforms the provider's configuration."
+              })
+            },
+            { description: 'Configuration for the custom provider.' }
+          )
+        },
+        { description: 'Draft source and configuration of the custom provider.' }
+      ),
+
+      scm_repo: v.nullable(v1ScmRepoPresenter.schema, {
+        description: 'Repository the provider code is deployed from. `null` when not linked.'
       }),
-
-      scm_repo: v.nullable(v1ScmRepoPresenter.schema),
-      provider: v.nullable(v1ProviderPresenter.schema),
+      provider: v.nullable(v1ProviderPresenter.schema, {
+        description:
+          'Session provider backed by this custom provider. `null` when none is linked.'
+      }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
@@ -210,7 +237,10 @@ export let dashboardCustomProviderPresenter = Presenter.create(customProviderTyp
     v.intersection([
       v1CustomProviderPresenter.schema,
       v.object({
-        draft_bucket: v.nullable(v1BucketPresenter.schema)
+        draft_bucket: v.nullable(v1BucketPresenter.schema, {
+          description:
+            'Bucket holding the draft code. `null` for providers without draft code.'
+        })
       })
     ])
   )

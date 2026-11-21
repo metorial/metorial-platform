@@ -34,7 +34,7 @@ export let magicMcpSessionController = Controller.create(
   {
     name: 'Magic MCP Sessions',
     description:
-      'Magic MCP sessions map a Magic MCP server to one Subspace session and are created on demand by the MCP connection API.',
+      'A magic MCP session is the live connection behind a magic MCP server or endpoint. Sessions are created on demand when a client connects.',
     hideInDocs: true
   },
   {
@@ -57,7 +57,10 @@ export let magicMcpSessionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            magic_mcp_server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return sessions for one of these servers.' }
+            )
           })
         )
       )

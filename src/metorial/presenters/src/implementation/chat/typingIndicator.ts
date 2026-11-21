@@ -10,7 +10,7 @@ export let v1ChatTypingIndicatorPresenter = Presenter.create(chatTypingIndicator
   .schema(
     v.object({
       object: v.literal('chat.typing_indicator', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       started: v.boolean({
