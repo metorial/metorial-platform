@@ -2,6 +2,7 @@ import { gzipSync, zstdCompressSync } from 'node:zlib';
 import { getStore, setStoreIndexMode } from '@mtsrc/agent-tracking-store';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  createScope,
   createToken,
   errorCode,
   agentTracking,
@@ -13,6 +14,9 @@ import {
 let sentinel = 'SENTINEL-e2e-hook-5d2c';
 
 beforeAll(() => setStoreIndexMode('skip'));
+
+let fullContentScope = () =>
+  createScope({ instance: { settings: { contentPolicy: { defaultMode: 'full' } } } });
 
 let promptHook = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -67,7 +71,10 @@ describe('hook ingest', () => {
   });
 
   it('applies the content policy of the token', async () => {
-    let { instance, secret } = await createToken({ contentPolicy: { defaultMode: 'full' } });
+    let { instance, secret } = await createToken(
+      { contentPolicy: { defaultMode: 'full' } },
+      await fullContentScope()
+    );
 
     await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook() });
 
@@ -78,8 +85,19 @@ describe('hook ingest', () => {
     expect(JSON.stringify(item)).not.toContain('secret-project');
   });
 
+  it('never stores more than the instance allows', async () => {
+    let { instance, secret } = await createToken({ contentPolicy: { defaultMode: 'full' } });
+
+    await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook() });
+
+    expect(JSON.stringify(await instanceRecords(instance))).not.toContain(sentinel);
+  });
+
   it('picks up an updated content policy without waiting for the cache', async () => {
-    let { organization, instance, token, secret } = await createToken();
+    let { organization, instance, token, secret } = await createToken(
+      {},
+      await fullContentScope()
+    );
 
     await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
