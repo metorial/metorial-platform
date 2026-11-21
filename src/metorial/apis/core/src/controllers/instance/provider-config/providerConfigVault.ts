@@ -144,12 +144,7 @@ export let providerConfigVaultController = Controller.create(
             })
           ),
 
-          name: v.string(
-            { examples: ['Production Secrets'] },
-            {
-              description: 'Display name.'
-            }
-          ),
+          name: v.string({ description: 'Display name.', examples: ['Production Secrets'] }),
           description: v.optional(
             v.string({ examples: ['Secure storage for production credentials'] }),
             { description: 'Free-text description.' }

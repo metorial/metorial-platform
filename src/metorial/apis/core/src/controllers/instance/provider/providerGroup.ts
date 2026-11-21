@@ -97,12 +97,7 @@ export let providerGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(
-            { examples: ['Sales Integrations'] },
-            {
-              description: 'Display name.'
-            }
-          ),
+          name: v.string({ description: 'Display name.', examples: ['Sales Integrations'] }),
           description: v.optional(
             v.string({ examples: ['CRM and sales pipeline integrations'] }),
             { description: 'Free-text description.' }
