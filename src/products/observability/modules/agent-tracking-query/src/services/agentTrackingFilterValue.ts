@@ -65,14 +65,14 @@ class AgentTrackingFilterValueServiceImpl {
       scope: d,
       read: 'filterValues.list',
       input: { field: d.field, search, range: rangeCacheKey(range, now) },
-      load: async instanceId => {
+      load: async () => {
         let resolved = resolveRange(range, now);
         let agentTracking = requireAgentTracking();
 
         let result = await agentTracking.query.values(
           {
             organizationId: d.organization.id,
-            scope: { instanceIds: [instanceId] },
+            scope: { instanceIds: [d.instance.id] },
             dataset: 'usage',
             field: filterFields[d.field],
             search,

@@ -44,7 +44,7 @@ vi.mock('../src/queues/syncScope', () => ({ syncScopeQueue: { add: mocks.queue }
 
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { agentTrackingSettingsService } from '../src/services/agentTrackingSettings';
-import { storedSettings } from './_mocks';
+import { resetLinks, storedSettings } from './_mocks';
 
 let organization = { oid: 1n, id: 'org_1', name: 'Acme' } as any;
 let project = { oid: 2n, id: 'proj_1', name: 'Production' } as any;
@@ -69,6 +69,7 @@ let store = (key: keyof typeof storedSettings) =>
 describe('agentTrackingSettingsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetLinks();
     mocks.calls.length = 0;
     mocks.commitFails.value = false;
     storedSettings.organization = null;
@@ -189,8 +190,6 @@ describe('agentTrackingSettingsService', () => {
       'push:project',
       'push:instance',
       'write',
-      'push:organization',
-      'push:project',
       'push:instance'
     ]);
     expect(

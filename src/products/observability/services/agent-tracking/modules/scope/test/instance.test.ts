@@ -6,7 +6,7 @@ let mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@mtsrc/agent-tracking-db', () => ({
-  getId: () => ({ id: 'atin_new' }),
+  snowflake: { nextId: () => 10n },
   db: {
     instance: {
       findUnique: vi.fn(async ({ where }: any) => mocks.rows.get(where.ref) ?? null),
@@ -25,8 +25,8 @@ vi.mock('@mtsrc/agent-tracking-events', () => ({ Events: { fire: mocks.fire } })
 import { db } from '@mtsrc/agent-tracking-db';
 import { instanceService } from '../src/services/instance';
 
-let organization = { oid: 1n, id: 'ator_1' } as any;
-let project = { oid: 2n, id: 'atpr_1' } as any;
+let organization = { oid: 1n, id: 'org_1' } as any;
+let project = { oid: 2n, id: 'proj_1' } as any;
 
 let raced = () => Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
 
@@ -36,10 +36,20 @@ describe('instanceService.upsertInstance', () => {
     mocks.rows.clear();
   });
 
+  it('creates an instance under the id it is given as ref', async () => {
+    let instance = await instanceService.upsertInstance({
+      organization,
+      project,
+      input: { ref: 'inst_1', name: 'Default' }
+    });
+
+    expect(instance).toMatchObject({ oid: 10n, id: 'inst_1', ref: 'inst_1' });
+  });
+
   it('settles on the row a concurrent first upsert of the same ref created', async () => {
     vi.mocked(db.instance.upsert).mockImplementationOnce((async () => {
       mocks.rows.set('inst_1', {
-        id: 'atin_winner',
+        id: 'inst_1',
         ref: 'inst_1',
         organizationOid: 1n,
         projectOid: 2n,
@@ -54,7 +64,7 @@ describe('instanceService.upsertInstance', () => {
       input: { ref: 'inst_1', name: 'Default' }
     });
 
-    expect(instance).toMatchObject({ id: 'atin_winner', name: 'Default' });
+    expect(instance).toMatchObject({ id: 'inst_1', name: 'Default' });
     expect(db.instance.upsert).toHaveBeenCalledTimes(2);
     expect(mocks.fire).toHaveBeenCalledTimes(1);
   });

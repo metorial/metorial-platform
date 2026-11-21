@@ -52,8 +52,7 @@ export let cacheModule = {
 };
 
 export let withInstanceScope = vi.fn(
-  async (_d: any, run: (serviceInstanceId: string) => Promise<unknown>) =>
-    await run('atin_service')
+  async (_d: any, run: () => Promise<unknown>) => await run()
 );
 
 export let privacy = { hideIndividuals: false, minGroupUsers: 5 };

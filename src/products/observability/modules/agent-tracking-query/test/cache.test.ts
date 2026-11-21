@@ -104,7 +104,7 @@ describe('cached reads', () => {
       instance: scope.instance,
       callOpts: { retry: false, captureErrors: false, timeoutMs: 5_000 }
     });
-    expect(timelineRuns()[1]!.input.scope).toEqual({ instanceIds: ['atin_service'] });
+    expect(timelineRuns()[1]!.input.scope).toEqual({ instanceIds: ['inst_1'] });
   });
 
   it('passes a stale scope from a session read to the scope repair, not as a missing session', async () => {

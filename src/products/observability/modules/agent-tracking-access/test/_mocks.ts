@@ -15,8 +15,7 @@ export let mocks = {
   },
   afterCommit: [] as (() => unknown)[],
   withInstanceScope: vi.fn(
-    async (_scope: unknown, run: (serviceInstanceId: string) => Promise<unknown>) =>
-      await run('atin_service')
+    async (_scope: unknown, run: () => Promise<unknown>) => await run()
   ),
   backfillRoster: vi.fn(),
   syncEntities: vi.fn(),

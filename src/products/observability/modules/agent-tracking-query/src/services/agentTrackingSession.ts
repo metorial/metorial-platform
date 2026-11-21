@@ -74,14 +74,14 @@ class AgentTrackingSessionServiceImpl {
         read: 'sessions.list',
         input: { filters, page, ...(range ? { range: rangeCacheKey(range, now) } : {}) },
         ttlSeconds: sessionTtlSeconds,
-        load: async instanceId => {
+        load: async () => {
           let agentTracking = requireAgentTracking();
           let resolved = range ? resolveRange(range, now) : undefined;
 
           let result = await agentTracking.session.list(
             {
               organizationId: d.organization.id,
-              instanceIds: [instanceId],
+              instanceIds: [d.instance.id],
               ...filters,
               ...(resolved
                 ? { lastActivityFrom: resolved.from, lastActivityTo: resolved.to }
@@ -114,7 +114,7 @@ class AgentTrackingSessionServiceImpl {
       read: 'sessions.get',
       input: { sessionKey },
       ttlSeconds: sessionTtlSeconds,
-      load: async instanceId => {
+      load: async () => {
         let agentTracking = requireAgentTracking();
 
         let session = await agentTracking.session
@@ -129,11 +129,11 @@ class AgentTrackingSessionServiceImpl {
             }
             throw error;
           });
-        if (session.instanceId != instanceId) throw sessionNotFound(d.sessionId);
+        if (session.instanceId != d.instance.id) throw sessionNotFound(d.sessionId);
 
         let [[view], usageByModel] = await Promise.all([
           this.describe({ scope: d, sessions: [session] }),
-          this.usageByModel({ scope: d, instanceId, session })
+          this.usageByModel({ scope: d, session })
         ]);
 
         return { ...view!, usageByModel };
@@ -143,12 +143,10 @@ class AgentTrackingSessionServiceImpl {
 
   private async usageByModel(d: {
     scope: ReadScope;
-    instanceId: string;
     session: RemoteSession;
   }): Promise<AgentTrackingSessionModelUsage[]> {
     let result = await runUsageQuery(
       d.scope,
-      d.instanceId,
       sessionModelsQuery({
         sessionKey: d.session.sessionKey,
         range: sessionUsageRange(d.session)

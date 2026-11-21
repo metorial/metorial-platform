@@ -49,7 +49,7 @@ mocks.agentTracking = {
   entity: { list: vi.fn(), archive: vi.fn() }
 };
 
-let link = { serviceOrganizationId: 'ator_1' };
+let linkedAt = new Date();
 
 let matches = (row: any, where: any): boolean =>
   Object.entries(where ?? {}).every(([key, value]: [string, any]) => {
@@ -58,6 +58,7 @@ let matches = (row: any, where: any): boolean =>
     if (key == 'NOT') return !matches(row, value);
     if (value && typeof value == 'object' && 'is' in value) return row[key] == null;
     if (value && typeof value == 'object' && 'isNot' in value) return row[key] != null;
+    if (value && typeof value == 'object' && value.not === null) return row[key] != null;
     if (value && typeof value == 'object') return matches(row[key], value);
     return row?.[key] === value;
   });
@@ -146,7 +147,7 @@ describe('agent-tracking/reconcile', () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
       status: 'deleted',
-      agentTrackingLink: link
+      agentTrackingLinkedAt: linkedAt
     } as any);
 
     await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
@@ -159,7 +160,7 @@ describe('agent-tracking/reconcile', () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
       status: 'deleted',
-      agentTrackingLink: null
+      agentTrackingLinkedAt: null
     } as any);
 
     await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
@@ -170,7 +171,7 @@ describe('agent-tracking/reconcile', () => {
   it('leaves an organization that is not linked to its first use, settings or not', async () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
-      agentTrackingLink: null,
+      agentTrackingLinkedAt: null,
       agentTrackingSettings: { hideIndividuals: true }
     } as any);
 
@@ -184,9 +185,9 @@ describe('agent-tracking/reconcile', () => {
   it('leaves a linked organization the service still holds alone', async () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
-      agentTrackingLink: link
+      agentTrackingLinkedAt: linkedAt
     } as any);
-    mocks.agentTracking.organization.get.mockResolvedValue({ id: 'ator_1' });
+    mocks.agentTracking.organization.get.mockResolvedValue({ id: 'org_1' });
 
     await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
 
@@ -201,10 +202,10 @@ describe('agent-tracking/reconcile', () => {
   it('pushes a linked organization with stored settings again, so a lost push lands within a day', async () => {
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
-      agentTrackingLink: link,
+      agentTrackingLinkedAt: linkedAt,
       agentTrackingSettings: { hideIndividuals: true }
     } as any);
-    mocks.agentTracking.organization.get.mockResolvedValue({ id: 'ator_1' });
+    mocks.agentTracking.organization.get.mockResolvedValue({ id: 'org_1' });
 
     await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
 
@@ -212,30 +213,24 @@ describe('agent-tracking/reconcile', () => {
     expect(linksModule.unlinkOrganizationTree).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['lost', null],
-    ['recreated under another id', { id: 'ator_2' }]
-  ])(
-    'drops every link of an organization the service %s and leaves it to its next use',
-    async (_, remote) => {
-      vi.mocked(db.organization.findUnique).mockResolvedValue({
-        ...organization,
-        agentTrackingLink: link,
-        agentTrackingSettings: { hideIndividuals: true }
-      } as any);
-      mocks.agentTracking.organization.get.mockResolvedValue(remote);
+  it('drops every link of an organization the service lost and leaves it to its next use', async () => {
+    vi.mocked(db.organization.findUnique).mockResolvedValue({
+      ...organization,
+      agentTrackingLinkedAt: linkedAt,
+      agentTrackingSettings: { hideIndividuals: true }
+    } as any);
+    mocks.agentTracking.organization.get.mockResolvedValue(null);
 
-      await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
+    await (reconcileSingleQueueProcessor as any).handler({ organizationId: 'org_1' });
 
-      expect(linksModule.unlinkOrganizationTree).toHaveBeenCalledWith(
-        expect.objectContaining({ oid: 1n })
-      );
-      expect(syncScopeQueue.add).not.toHaveBeenCalled();
-      expect(
-        vi.mocked(linksModule.unlinkOrganizationTree).mock.invocationCallOrder[0]
-      ).toBeLessThan(vi.mocked(reconcileScopesQueue.addMany).mock.invocationCallOrder[0]!);
-    }
-  );
+    expect(linksModule.unlinkOrganizationTree).toHaveBeenCalledWith(
+      expect.objectContaining({ oid: 1n })
+    );
+    expect(syncScopeQueue.add).not.toHaveBeenCalled();
+    expect(
+      vi.mocked(linksModule.unlinkOrganizationTree).mock.invocationCallOrder[0]
+    ).toBeLessThan(vi.mocked(reconcileScopesQueue.addMany).mock.invocationCallOrder[0]!);
+  });
 
   it.each([
     ['project', () => db.project.findMany],
@@ -246,14 +241,14 @@ describe('agent-tracking/reconcile', () => {
       let rows = [
         { id: 'unlinked', status: 'active' },
         { id: 'unlinked_settings', status: 'active', agentTrackingSettings: {} },
-        { id: 'linked', status: 'active', agentTrackingLink: {} },
+        { id: 'linked', status: 'active', agentTrackingLinkedAt: linkedAt },
         {
           id: 'linked_settings',
           status: 'active',
-          agentTrackingLink: {},
+          agentTrackingLinkedAt: linkedAt,
           agentTrackingSettings: {}
         },
-        { id: 'deleted_linked', status: 'deleted', agentTrackingLink: {} },
+        { id: 'deleted_linked', status: 'deleted', agentTrackingLinkedAt: linkedAt },
         { id: 'deleted_unlinked', status: 'deleted', agentTrackingSettings: {} },
         ...(type == 'instance'
           ? [
@@ -261,7 +256,7 @@ describe('agent-tracking/reconcile', () => {
                 id: 'in_deleted_project',
                 status: 'active',
                 project: { status: 'deleted' },
-                agentTrackingLink: {}
+                agentTrackingLinkedAt: linkedAt
               }
             ]
           : [])

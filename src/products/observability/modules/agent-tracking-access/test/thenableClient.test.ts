@@ -82,17 +82,16 @@ vi.mock('@metorial/db', () => {
     agentTrackingOrganizationSettings: { findFirst: vi.fn(async () => null) },
     agentTrackingProjectSettings: { findFirst: vi.fn(async () => null) },
     agentTrackingInstanceSettings: { findFirst: vi.fn(async () => null) },
-    agentTrackingOrganizationLink: { findUnique: vi.fn(async () => null), upsert: vi.fn() },
-    agentTrackingProjectLink: { findUnique: vi.fn(async () => null), upsert: vi.fn() },
-    agentTrackingInstanceLink: { findUnique: vi.fn(async () => null), upsert: vi.fn() }
+    organization: { findUnique: vi.fn(async () => null), updateMany: vi.fn() },
+    project: { findUnique: vi.fn(async () => null), updateMany: vi.fn() },
+    instance: { findUnique: vi.fn(async () => null), updateMany: vi.fn() }
   };
 
   return {
     db,
     ID: { generateId: vi.fn(async () => 'atit_1') },
     withTransaction: vi.fn(async (callback: (db: any) => unknown) => await callback(db)),
-    addAfterTransactionHook: vi.fn(),
-    isUniqueConstraintError: () => false
+    addAfterTransactionHook: vi.fn()
   };
 });
 
@@ -125,7 +124,7 @@ describe('the agent-tracking client is never resolved through a promise', () => 
           project: { oid: 2n, id: 'proj_1', name: 'Production' },
           instance: { oid: 3n, id: 'inst_1', name: 'Default' }
         },
-        async serviceInstanceId => serviceInstanceId
+        async () => {}
       )
     );
 

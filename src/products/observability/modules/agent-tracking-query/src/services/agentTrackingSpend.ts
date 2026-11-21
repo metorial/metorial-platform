@@ -88,7 +88,7 @@ class AgentTrackingSpendServiceImpl {
             today: calendarDateKey(calendarDateIn(now, privateTimeZone)),
             minGroupUsers: privacy.minGroupUsers
           },
-      load: async instanceId => {
+      load: async () => {
         let resolved = range ? resolveRange(range, now) : privateRange(preset, now);
         let current = resolved ?? emptyPrivateRange(preset, now);
         let previous: ResolvedRange = {
@@ -100,10 +100,9 @@ class AgentTrackingSpendServiceImpl {
         let [result, before]: [UsageResult, UsageResult] = [noRows, noRows];
         if (resolved) {
           [result, before] = await Promise.all([
-            runUsageQuery(d, instanceId, timelineQuery(resolved, filters)),
+            runUsageQuery(d, timelineQuery(resolved, filters)),
             runUsageQuery(
               d,
-              instanceId,
               hidden ? timelineQuery(previous) : periodTotalQuery(previous, filters)
             )
           ]);
@@ -163,13 +162,12 @@ class AgentTrackingSpendServiceImpl {
       scope: d,
       read: 'spend.breakdown',
       input: { range: rangeCacheKey(range, now), groupBy: d.groupBy, filters },
-      load: async instanceId => {
+      load: async () => {
         let resolved = resolveRange(range, now);
 
         let column = breakdownGroups[d.groupBy];
         let result = await runUsageQuery(
           d,
-          instanceId,
           breakdownQuery({ range: resolved, groupBy: d.groupBy, filters })
         );
 
@@ -189,7 +187,7 @@ class AgentTrackingSpendServiceImpl {
               })
             : new Map<string, AgentTrackingMember>(),
           d.groupBy == 'model' && hasUnknown
-            ? this.unknownModelNames({ scope: d, instanceId, range: resolved, filters })
+            ? this.unknownModelNames({ scope: d, range: resolved, filters })
             : []
         ]);
 
@@ -225,17 +223,12 @@ class AgentTrackingSpendServiceImpl {
 
   private async unknownModelNames(d: {
     scope: ReadScope;
-    instanceId: string;
     range: ResolvedRange;
     filters: AgentTrackingSpendFilters;
   }): Promise<string[]> {
     let result;
     try {
-      result = await runUsageQuery(
-        d.scope,
-        d.instanceId,
-        unknownModelsQuery(d.range, d.filters)
-      );
+      result = await runUsageQuery(d.scope, unknownModelsQuery(d.range, d.filters));
     } catch (error) {
       if (isServiceError(error)) return [];
       throw error;

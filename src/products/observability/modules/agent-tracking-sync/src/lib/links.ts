@@ -1,111 +1,84 @@
-import {
-  db,
-  ID,
-  isUniqueConstraintError,
-  type Instance,
-  type Organization,
-  type Project
-} from '@metorial/db';
+import { db, type Instance, type Organization, type Project } from '@metorial/db';
 import { readFromPrimary } from './primary';
 
-// A concurrent ensure of the same scope stores the same id, the service upserts by ref.
-let store = async (write: () => Promise<unknown>) => {
-  try {
-    await write();
-  } catch (error) {
-    if (!isUniqueConstraintError(error)) throw error;
-  }
-};
-
-export let readOrganizationLink = async (organization: Pick<Organization, 'oid'>) =>
-  (
+export let isOrganizationLinked = async (organization: Pick<Organization, 'oid'>) =>
+  !!(
     await readFromPrimary(db =>
-      db.agentTrackingOrganizationLink.findUnique({
-        where: { organizationOid: organization.oid }
+      db.organization.findUnique({
+        where: { oid: organization.oid },
+        select: { agentTrackingLinkedAt: true }
       })
     )
-  )?.serviceOrganizationId;
+  )?.agentTrackingLinkedAt;
 
-export let readProjectLink = async (project: Pick<Project, 'oid'>) =>
-  (
+export let isProjectLinked = async (project: Pick<Project, 'oid'>) =>
+  !!(
     await readFromPrimary(db =>
-      db.agentTrackingProjectLink.findUnique({ where: { projectOid: project.oid } })
+      db.project.findUnique({
+        where: { oid: project.oid },
+        select: { agentTrackingLinkedAt: true }
+      })
     )
-  )?.serviceProjectId;
+  )?.agentTrackingLinkedAt;
 
-export let readInstanceLink = async (instance: Pick<Instance, 'oid'>) =>
-  (
+export let isInstanceLinked = async (instance: Pick<Instance, 'oid'>) =>
+  !!(
     await readFromPrimary(db =>
-      db.agentTrackingInstanceLink.findUnique({ where: { instanceOid: instance.oid } })
+      db.instance.findUnique({
+        where: { oid: instance.oid },
+        select: { agentTrackingLinkedAt: true }
+      })
     )
-  )?.serviceInstanceId;
+  )?.agentTrackingLinkedAt;
 
-// An organization the service re-created under a new id holds none of the old projects and
-// instances, so their links go with the old organization link.
-export let linkOrganization = async (
-  organization: Pick<Organization, 'oid'>,
-  serviceOrganizationId: string
-) => {
-  let current = await readOrganizationLink(organization);
-  if (current && current != serviceOrganizationId) await unlinkOrganizationTree(organization);
-
-  await store(async () =>
-    db.agentTrackingOrganizationLink.upsert({
-      where: { organizationOid: organization.oid },
-      create: {
-        id: await ID.generateId('agentTrackingOrganizationLink'),
-        serviceOrganizationId,
-        organizationOid: organization.oid
-      },
-      update: { serviceOrganizationId }
-    })
-  );
+export let markOrganizationLinked = async (organization: Pick<Organization, 'oid'>) => {
+  await db.organization.updateMany({
+    where: { oid: organization.oid, agentTrackingLinkedAt: null },
+    data: { agentTrackingLinkedAt: new Date() }
+  });
 };
 
-export let linkProject = (project: Pick<Project, 'oid'>, serviceProjectId: string) =>
-  store(async () =>
-    db.agentTrackingProjectLink.upsert({
-      where: { projectOid: project.oid },
-      create: {
-        id: await ID.generateId('agentTrackingProjectLink'),
-        serviceProjectId,
-        projectOid: project.oid
-      },
-      update: { serviceProjectId }
-    })
-  );
+export let markProjectLinked = async (project: Pick<Project, 'oid'>) => {
+  await db.project.updateMany({
+    where: { oid: project.oid, agentTrackingLinkedAt: null },
+    data: { agentTrackingLinkedAt: new Date() }
+  });
+};
 
-export let linkInstance = (instance: Pick<Instance, 'oid'>, serviceInstanceId: string) =>
-  store(async () =>
-    db.agentTrackingInstanceLink.upsert({
-      where: { instanceOid: instance.oid },
-      create: {
-        id: await ID.generateId('agentTrackingInstanceLink'),
-        serviceInstanceId,
-        instanceOid: instance.oid
-      },
-      update: { serviceInstanceId }
-    })
-  );
+export let markInstanceLinked = async (instance: Pick<Instance, 'oid'>) => {
+  await db.instance.updateMany({
+    where: { oid: instance.oid, agentTrackingLinkedAt: null },
+    data: { agentTrackingLinkedAt: new Date() }
+  });
+};
 
 export let unlinkProject = async (project: Pick<Project, 'oid'>) => {
-  await db.agentTrackingProjectLink.deleteMany({ where: { projectOid: project.oid } });
+  await db.project.updateMany({
+    where: { oid: project.oid, agentTrackingLinkedAt: { not: null } },
+    data: { agentTrackingLinkedAt: null }
+  });
 };
 
 export let unlinkInstance = async (instance: Pick<Instance, 'oid'>) => {
-  await db.agentTrackingInstanceLink.deleteMany({ where: { instanceOid: instance.oid } });
+  await db.instance.updateMany({
+    where: { oid: instance.oid, agentTrackingLinkedAt: { not: null } },
+    data: { agentTrackingLinkedAt: null }
+  });
 };
 
 export let unlinkOrganizationTree = async (organization: Pick<Organization, 'oid'>) => {
   await Promise.all([
-    db.agentTrackingOrganizationLink.deleteMany({
-      where: { organizationOid: organization.oid }
+    db.organization.updateMany({
+      where: { oid: organization.oid, agentTrackingLinkedAt: { not: null } },
+      data: { agentTrackingLinkedAt: null }
     }),
-    db.agentTrackingProjectLink.deleteMany({
-      where: { project: { organizationOid: organization.oid } }
+    db.project.updateMany({
+      where: { organizationOid: organization.oid, agentTrackingLinkedAt: { not: null } },
+      data: { agentTrackingLinkedAt: null }
     }),
-    db.agentTrackingInstanceLink.deleteMany({
-      where: { instance: { organizationOid: organization.oid } }
+    db.instance.updateMany({
+      where: { organizationOid: organization.oid, agentTrackingLinkedAt: { not: null } },
+      data: { agentTrackingLinkedAt: null }
     })
   ]);
 };

@@ -76,7 +76,7 @@ let upserts = () => [
   mocks.agentTracking.instance.upsert
 ];
 
-let serviceId = async (serviceInstanceId: string) => serviceInstanceId;
+let run = async () => 'done';
 
 let rpcCount = () => upserts().reduce((count, upsert) => count + upsert.mock.calls.length, 0);
 
@@ -84,9 +84,9 @@ describe('agent-tracking-sync public surface', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetLinks();
-    mocks.agentTracking.organization.upsert.mockImplementation(async () => ({ id: 'ator_1' }));
-    mocks.agentTracking.project.upsert.mockImplementation(async () => ({ id: 'atpr_1' }));
-    mocks.agentTracking.instance.upsert.mockImplementation(async () => ({ id: 'atin_1' }));
+    for (let upsert of upserts()) {
+      upsert.mockImplementation(async (input: { ref: string }) => ({ id: input.ref }));
+    }
     mocks.settings.url = 'http://agent-tracking.internal/metorial-agent-tracking';
     mocks.settings.ingestPublicUrl = 'https://ingest.example.com';
   });
@@ -123,7 +123,7 @@ describe('agent-tracking-sync public surface', () => {
   });
 
   it('upserts and links the organization, project and instance in order while none is linked', async () => {
-    expect(await withInstanceScope(scope, serviceId)).toBe('atin_1');
+    expect(await withInstanceScope(scope, run)).toBe('done');
 
     expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledWith(
       { ref: 'org_1', name: 'Acme' },
@@ -140,36 +140,36 @@ describe('agent-tracking-sync public surface', () => {
     let order = upserts().map(upsert => upsert.mock.invocationCallOrder[0]!);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect([
-      links.organization.get(1n),
-      links.project.get(2n),
-      links.instance.get(3n)
-    ]).toEqual(['ator_1', 'atpr_1', 'atin_1']);
+      links.organization.has(1n),
+      links.project.has(2n),
+      links.instance.has(3n)
+    ]).toEqual([true, true, true]);
   });
 
   it('makes no call to the service while the instance is linked', async () => {
-    links.instance.set(3n, 'atin_1');
+    links.instance.add(3n);
 
-    expect(await withInstanceScope(scope, serviceId)).toBe('atin_1');
-    expect(await withInstanceScope(scope, serviceId)).toBe('atin_1');
+    expect(await withInstanceScope(scope, run)).toBe('done');
+    expect(await withInstanceScope(scope, run)).toBe('done');
 
     expect(rpcCount()).toBe(0);
   });
 
   it('upserts only the levels that are not linked yet', async () => {
-    links.organization.set(1n, 'ator_1');
+    links.organization.add(1n);
 
-    await withInstanceScope(scope, serviceId);
+    await withInstanceScope(scope, run);
 
     expect(mocks.agentTracking.organization.upsert).not.toHaveBeenCalled();
     expect(mocks.agentTracking.project.upsert).toHaveBeenCalledTimes(1);
     expect(mocks.agentTracking.instance.upsert).toHaveBeenCalledTimes(1);
 
-    await withInstanceScope(scope, serviceId);
+    await withInstanceScope(scope, run);
     expect(rpcCount()).toBe(2);
   });
 
   it('passes call options to every scope upsert', async () => {
-    await withInstanceScope({ ...scope, callOpts: { timeoutMs: 4_000 } }, serviceId);
+    await withInstanceScope({ ...scope, callOpts: { timeoutMs: 4_000 } }, run);
 
     for (let upsert of upserts()) {
       expect(upsert).toHaveBeenCalledWith(expect.any(Object), { timeoutMs: 4_000 });
@@ -177,40 +177,79 @@ describe('agent-tracking-sync public surface', () => {
   });
 
   describe('stale scope repair', () => {
-    let staleLinks = () => {
-      links.organization.set(1n, 'ator_gone');
-      links.project.set(2n, 'atpr_gone');
-      links.instance.set(3n, 'atin_gone');
+    let linkAll = () => {
+      links.organization.add(1n);
+      links.project.add(2n);
+      links.instance.add(3n);
     };
 
-    it('relinks every level once and repeats the call with the new service id', async () => {
-      staleLinks();
-      let calls: string[] = [];
+    it('relinks every level once and repeats the call', async () => {
+      linkAll();
+      let calls = 0;
 
-      let result = await withInstanceScope(scope, async serviceInstanceId => {
-        calls.push(serviceInstanceId);
-        if (calls.length == 1) throw new ServiceError(notFoundError('instance'));
+      let result = await withInstanceScope(scope, async () => {
+        calls++;
+        if (calls == 1) throw new ServiceError(notFoundError('instance'));
         return 'done';
       });
 
       expect(result).toBe('done');
-      expect(calls).toEqual(['atin_gone', 'atin_1']);
+      expect(calls).toBe(2);
       expect(rpcCount()).toBe(3);
       expect([
-        links.organization.get(1n),
-        links.project.get(2n),
-        links.instance.get(3n)
-      ]).toEqual(['ator_1', 'atpr_1', 'atin_1']);
+        links.organization.has(1n),
+        links.project.has(2n),
+        links.instance.has(3n)
+      ]).toEqual([true, true, true]);
+    });
+
+    it('re-registers the scopes below an organization the service lost and re-created under the same id', async () => {
+      linkAll();
+      let remote = {
+        organizations: new Set(['org_1']),
+        projects: new Set(),
+        instances: new Set()
+      };
+      let register = (into: Set<unknown>) => async (input: { ref: string }) => {
+        into.add(input.ref);
+        return { id: input.ref };
+      };
+      mocks.agentTracking.organization.upsert.mockImplementation(
+        register(remote.organizations)
+      );
+      mocks.agentTracking.project.upsert.mockImplementation(register(remote.projects));
+      mocks.agentTracking.instance.upsert.mockImplementation(register(remote.instances));
+      let calls = 0;
+
+      let result = await withInstanceScope(scope, async () => {
+        calls++;
+        if (!remote.instances.has(instance.id))
+          throw new ServiceError(notFoundError('instance'));
+        return 'done';
+      });
+
+      expect(result).toBe('done');
+      expect(calls).toBe(2);
+      expect(remote).toEqual({
+        organizations: new Set(['org_1']),
+        projects: new Set(['proj_1']),
+        instances: new Set(['inst_1'])
+      });
+      expect([
+        links.organization.has(1n),
+        links.project.has(2n),
+        links.instance.has(3n)
+      ]).toEqual([true, true, true]);
     });
 
     it('drops the links of the whole organization, not only the scope in hand', async () => {
-      staleLinks();
-      links.instance.set(4n, 'atin_sibling');
+      linkAll();
+      links.instance.add(4n);
+      let calls = 0;
 
-      await withInstanceScope(scope, async serviceInstanceId => {
-        if (serviceInstanceId == 'atin_gone') {
-          throw new ServiceError(notFoundError('organization'));
-        }
+      await withInstanceScope(scope, async () => {
+        calls++;
+        if (calls == 1) throw new ServiceError(notFoundError('organization'));
       });
 
       expect(links.instance.has(4n)).toBe(false);
@@ -222,20 +261,20 @@ describe('agent-tracking-sync public surface', () => {
         .mockRejectedValueOnce(lost)
         .mockRejectedValueOnce(lost);
 
-      await expect(withInstanceScope(scope, serviceId)).rejects.toBe(lost);
+      await expect(withInstanceScope(scope, run)).rejects.toBe(lost);
 
       for (let upsert of upserts()) expect(upsert).toHaveBeenCalledTimes(2);
     });
 
     it('leaves the links alone on a not found that is not about the scope', async () => {
-      links.instance.set(3n, 'atin_1');
+      links.instance.add(3n);
       let missingSession = new ServiceError(notFoundError('session'));
       let run = vi.fn().mockRejectedValue(missingSession);
 
       await expect(withInstanceScope(scope, run)).rejects.toBe(missingSession);
 
       expect(run).toHaveBeenCalledTimes(1);
-      expect(links.instance.get(3n)).toBe('atin_1');
+      expect(links.instance.has(3n)).toBe(true);
     });
   });
 

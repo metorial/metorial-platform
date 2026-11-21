@@ -32,7 +32,7 @@ class AgentTrackingSetupStatusServiceImpl {
     return await cachedRead({
       scope: d,
       read: 'setupStatus.get',
-      load: async instanceId => {
+      load: async () => {
         let now = new Date();
         let window = { from: new Date(now.getTime() - evidenceWindowDays * dayMs), to: now };
 
@@ -40,19 +40,23 @@ class AgentTrackingSetupStatusServiceImpl {
 
         let [ingestSources, coverage, sessions, toolCalls] = await Promise.all([
           agentTracking.ingestSource.list(
-            { organizationId: d.organization.id, instanceId, limit: maxIngestSources },
+            {
+              organizationId: d.organization.id,
+              instanceId: d.instance.id,
+              limit: maxIngestSources
+            },
             readCallOptions
           ),
           agentTracking.coverage.get(
             {
               organizationId: d.organization.id,
-              scope: { instanceIds: [instanceId] },
+              scope: { instanceIds: [d.instance.id] },
               range: window
             },
             queryCallOptions
           ),
-          runUsageQuery(d, instanceId, setupSessionsQuery(window)),
-          runUsageQuery(d, instanceId, toolDetailsQuery(window))
+          runUsageQuery(d, setupSessionsQuery(window)),
+          runUsageQuery(d, toolDetailsQuery(window))
         ]);
 
         let hookSeen = coverage.sources.some(source => {

@@ -20,7 +20,7 @@ describe('organization service', () => {
       }
     });
 
-    expect(created.id).toMatch(/^ator_/);
+    expect(created.id).toBe('org_a');
     expect(created.hashKeyVersion).toBe(1);
 
     let updated = await organizationService.upsertOrganization({

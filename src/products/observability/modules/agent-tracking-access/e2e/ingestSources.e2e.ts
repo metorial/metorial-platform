@@ -99,23 +99,23 @@ describe('module-agent-tracking-access ingestion keys', () => {
     let fixture = await loadOrganizationFixture(org.ids);
     await createIngestSource(fixture);
 
-    let link = await db.agentTrackingInstanceLink.findUniqueOrThrow({
-      where: { instanceOid: fixture.instance.oid }
-    });
+    let linked = await db.instance.findUniqueOrThrow({ where: { oid: fixture.instance.oid } });
+    expect(linked.agentTrackingLinkedAt).toEqual(expect.any(Date));
     await agentTracking().instance.archive({
       organizationId: org.ids.organizationId,
-      instanceId: link.serviceInstanceId
+      instanceId: fixture.instance.id
     });
 
     let created = await createIngestSource(fixture);
     expect(created.secret.startsWith('metorial_agis_')).toBe(true);
 
-    let relinked = await db.agentTrackingInstanceLink.findUniqueOrThrow({
-      where: { instanceOid: fixture.instance.oid }
+    let relinked = await db.instance.findUniqueOrThrow({
+      where: { oid: fixture.instance.oid }
     });
+    expect(relinked.agentTrackingLinkedAt).toEqual(expect.any(Date));
     let remote = await agentTracking().instance.get({
       organizationId: org.ids.organizationId,
-      instanceId: relinked.serviceInstanceId
+      instanceId: fixture.instance.id
     });
     expect(remote.archivedAt).toBeNull();
   });

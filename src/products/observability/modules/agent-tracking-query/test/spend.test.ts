@@ -123,7 +123,7 @@ describe('agentTrackingSpendService', () => {
     let [call] = callsTo('query:run');
     expect(call!.input).toMatchObject({
       organizationId: 'org_1',
-      scope: { instanceIds: ['atin_service'] },
+      scope: { instanceIds: ['inst_1'] },
       query: { dataset: 'usage', timeZone: 'Europe/Berlin' }
     });
     expect(call!.opts).toMatchObject({ retry: false, captureErrors: false });
@@ -166,7 +166,7 @@ describe('agentTrackingSpendService', () => {
       { from: '2026-11-16T00:00:00.000Z', to: '2026-11-18T00:00:00.000Z' },
       { from: '2026-11-14T00:00:00.000Z', to: '2026-11-16T00:00:00.000Z' }
     ]);
-    expect(calls[1]!.input.scope).toEqual({ instanceIds: ['atin_service'] });
+    expect(calls[1]!.input.scope).toEqual({ instanceIds: ['inst_1'] });
 
     expect(timeline.counts).toEqual({ sessions: 7, members: 3, capped: true });
     expect(timeline.previous.range).toEqual({

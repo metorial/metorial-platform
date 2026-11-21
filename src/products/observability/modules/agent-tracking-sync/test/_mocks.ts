@@ -55,25 +55,25 @@ export let settingsModule = async (importOriginal: () => Promise<any>) => ({
 type Oid = { oid: bigint };
 
 export let links = {
-  organization: new Map<bigint, string>(),
-  project: new Map<bigint, string>(),
-  instance: new Map<bigint, string>()
+  organization: new Set<bigint>(),
+  project: new Set<bigint>(),
+  instance: new Set<bigint>()
 };
 
 export let linksModule = {
-  readOrganizationLink: vi.fn(async (organization: Oid) =>
-    links.organization.get(organization.oid)
+  isOrganizationLinked: vi.fn(async (organization: Oid) =>
+    links.organization.has(organization.oid)
   ),
-  readProjectLink: vi.fn(async (project: Oid) => links.project.get(project.oid)),
-  readInstanceLink: vi.fn(async (instance: Oid) => links.instance.get(instance.oid)),
-  linkOrganization: vi.fn(async (organization: Oid, id: string) => {
-    links.organization.set(organization.oid, id);
+  isProjectLinked: vi.fn(async (project: Oid) => links.project.has(project.oid)),
+  isInstanceLinked: vi.fn(async (instance: Oid) => links.instance.has(instance.oid)),
+  markOrganizationLinked: vi.fn(async (organization: Oid) => {
+    links.organization.add(organization.oid);
   }),
-  linkProject: vi.fn(async (project: Oid, id: string) => {
-    links.project.set(project.oid, id);
+  markProjectLinked: vi.fn(async (project: Oid) => {
+    links.project.add(project.oid);
   }),
-  linkInstance: vi.fn(async (instance: Oid, id: string) => {
-    links.instance.set(instance.oid, id);
+  markInstanceLinked: vi.fn(async (instance: Oid) => {
+    links.instance.add(instance.oid);
   }),
   unlinkProject: vi.fn(async (project: Oid) => {
     links.project.delete(project.oid);

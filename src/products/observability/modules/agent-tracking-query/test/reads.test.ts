@@ -11,8 +11,8 @@ import { cache, callsTo, consumers, remoteMember, resetMocks, rpc, scope } from 
 let remoteSession = (overrides: Record<string, unknown> = {}) => ({
   object: 'agent_tracking#session',
   sessionKey: 'c0ffee',
-  projectId: 'atpr_1',
-  instanceId: 'atin_service',
+  projectId: 'proj_1',
+  instanceId: 'inst_1',
   state: 'ended',
   client: { family: 'claude-code', surface: 'cli', version: '2.1.317' },
   observed: { userId: 'aten_ada', deviceId: 'aten_device', agentId: null },
@@ -79,7 +79,7 @@ describe('agentTrackingSessionService', () => {
 
     expect(callsTo('session:list')[0]!.input).toEqual({
       organizationId: 'org_1',
-      instanceIds: ['atin_service'],
+      instanceIds: ['inst_1'],
       userIds: ['aten_ada', null],
       modelIds: ['claude-sonnet-4-5'],
       limit: 2,
@@ -173,7 +173,7 @@ describe('session list order and range', () => {
 
     expect(callsTo('session:list')[0]!.input).toEqual({
       organizationId: 'org_1',
-      instanceIds: ['atin_service'],
+      instanceIds: ['inst_1'],
       lastActivityFrom: from,
       lastActivityTo: to,
       limit: 4,
@@ -301,7 +301,7 @@ describe('one session', () => {
     expect(callsTo('query:run')).toHaveLength(1);
     expect(query!.input).toMatchObject({
       organizationId: 'org_1',
-      scope: { instanceIds: ['atin_service'] },
+      scope: { instanceIds: ['inst_1'] },
       query: {
         dataset: 'usage',
         where: { field: 'session', op: 'eq', value: 'c0ffee' },
@@ -342,7 +342,7 @@ describe('one session', () => {
   });
 
   it('answers not found for a session of another instance, an unknown key or a foreign id', async () => {
-    rpc.handlers['session:get'] = () => remoteSession({ instanceId: 'atin_other' });
+    rpc.handlers['session:get'] = () => remoteSession({ instanceId: 'inst_other' });
     await expect(
       agentTrackingSessionService.getSession({ ...scope, sessionId: 'atse_c0ffee' })
     ).rejects.toMatchObject({ data: { status: 404 } });
@@ -437,7 +437,7 @@ describe('agentTrackingFilterValueService', () => {
     expect(callsTo('query:values')[0]!.input).toMatchObject({
       dataset: 'usage',
       field: 'user',
-      scope: { instanceIds: ['atin_service'] },
+      scope: { instanceIds: ['inst_1'] },
       limit: 100
     });
     expect(result.items.map(item => [item.kind, item.value, item.requests])).toEqual([
@@ -686,7 +686,7 @@ describe('agentTrackingMemberService', () => {
     let result = await agentTrackingMemberService.listMembers({ ...scope, page: {} });
 
     expect(callsTo('query:run')[0]!.input).toMatchObject({
-      scope: { instanceIds: ['atin_service'] },
+      scope: { instanceIds: ['inst_1'] },
       query: {
         dataset: 'sessions',
         dimensions: [{ field: 'user', missing: 'exclude' }],

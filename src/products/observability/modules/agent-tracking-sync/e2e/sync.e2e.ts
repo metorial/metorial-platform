@@ -16,17 +16,20 @@ import { pushInstanceScope } from '../src/lib/scope';
 
 type Fixture = Awaited<ReturnType<typeof loadOrganizationFixture>>;
 
-let storedLinks = async (fixture: Fixture) => ({
-  organization: await db.agentTrackingOrganizationLink.findUnique({
-    where: { organizationOid: fixture.organization.oid }
-  }),
-  project: await db.agentTrackingProjectLink.findUnique({
-    where: { projectOid: fixture.project.oid }
-  }),
-  instance: await db.agentTrackingInstanceLink.findUnique({
-    where: { instanceOid: fixture.instance.oid }
-  })
-});
+let storedLinks = async (fixture: Fixture) => {
+  let select = { agentTrackingLinkedAt: true };
+  let [organization, project, instance] = await Promise.all([
+    db.organization.findUniqueOrThrow({ where: { oid: fixture.organization.oid }, select }),
+    db.project.findUniqueOrThrow({ where: { oid: fixture.project.oid }, select }),
+    db.instance.findUniqueOrThrow({ where: { oid: fixture.instance.oid }, select })
+  ]);
+
+  return {
+    organization: organization.agentTrackingLinkedAt,
+    project: project.agentTrackingLinkedAt,
+    instance: instance.agentTrackingLinkedAt
+  };
+};
 
 let trackedProject = (ids: { organizationId: string; projectId: string }) =>
   agentTracking().project.get({
@@ -42,24 +45,25 @@ describe('module-agent-tracking-sync scope and entities', () => {
     await expect(trackedInstance(org.ids)).rejects.toMatchObject({ data: { status: 404 } });
     expect((await storedLinks(fixture)).instance).toBeNull();
 
-    let serviceInstanceId = await withInstanceScope(fixture, async id => id);
+    await withInstanceScope(fixture, async () => {});
 
     let links = await storedLinks(fixture);
-    expect(links.instance?.serviceInstanceId).toBe(serviceInstanceId);
-    expect((await trackedInstance(org.ids)).id).toBe(serviceInstanceId);
-    expect((await trackedProject(org.ids)).id).toBe(links.project?.serviceProjectId);
-    expect((await trackedOrganization(org.ids)).id).toBe(
-      links.organization?.serviceOrganizationId
-    );
+    expect(links).toEqual({
+      organization: expect.any(Date),
+      project: expect.any(Date),
+      instance: expect.any(Date)
+    });
+    expect((await trackedInstance(org.ids)).id).toBe(fixture.instance.id);
+    expect((await trackedProject(org.ids)).id).toBe(fixture.project.id);
+    expect((await trackedOrganization(org.ids)).id).toBe(fixture.organization.id);
 
     let renamed = uniqueId('Renamed Instance');
-    expect(
-      await withInstanceScope(
-        { ...fixture, instance: { ...fixture.instance, name: renamed } },
-        async id => id
-      )
-    ).toBe(serviceInstanceId);
+    await withInstanceScope(
+      { ...fixture, instance: { ...fixture.instance, name: renamed } },
+      async () => {}
+    );
     expect((await trackedInstance(org.ids)).name).not.toBe(renamed);
+    expect(await storedLinks(fixture)).toEqual(links);
   });
 
   it('pushes the names Metorial holds to every level and keeps the links', async () => {
@@ -69,14 +73,16 @@ describe('module-agent-tracking-sync scope and entities', () => {
       project: uniqueId('Renamed Project'),
       instance: uniqueId('Renamed Instance')
     };
-    await db.agentTrackingOrganizationLink.deleteMany({
-      where: { organizationOid: fixture.organization.oid }
+    await db.organization.update({
+      where: { oid: fixture.organization.oid },
+      data: { agentTrackingLinkedAt: null }
     });
-    await db.agentTrackingProjectLink.deleteMany({
-      where: { projectOid: fixture.project.oid }
+    await db.project.update({
+      where: { oid: fixture.project.oid },
+      data: { agentTrackingLinkedAt: null }
     });
 
-    let scope = await pushInstanceScope({
+    await pushInstanceScope({
       agentTracking: requireAgentTracking(),
       organization: { ...fixture.organization, name: names.organization },
       project: { ...fixture.project, name: names.project },
@@ -84,39 +90,40 @@ describe('module-agent-tracking-sync scope and entities', () => {
     });
 
     expect(await trackedInstance(org.ids)).toMatchObject({
-      id: scope.id,
+      id: fixture.instance.id,
       name: names.instance
     });
     expect(await trackedOrganization(org.ids)).toMatchObject({ name: names.organization });
     expect(await trackedProject(org.ids)).toMatchObject({ name: names.project });
 
-    let links = await storedLinks(fixture);
-    expect(links.instance?.serviceInstanceId).toBe(scope.id);
-    expect(links.project).not.toBeNull();
-    expect(links.organization).not.toBeNull();
+    expect(await storedLinks(fixture)).toEqual({
+      organization: expect.any(Date),
+      project: expect.any(Date),
+      instance: expect.any(Date)
+    });
   });
 
   it('relinks an instance the service archived and repeats the call once', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
-    let serviceInstanceId = await withInstanceScope(fixture, async id => id);
+    await withInstanceScope(fixture, async () => {});
     await agentTracking().instance.archive({
       organizationId: org.ids.organizationId,
-      instanceId: serviceInstanceId
+      instanceId: fixture.instance.id
     });
 
     let attempts = 0;
-    let remote = await withInstanceScope(fixture, async instanceId => {
+    let remote = await withInstanceScope(fixture, async () => {
       attempts++;
 
       return await agentTracking().instance.get({
         organizationId: org.ids.organizationId,
-        instanceId
+        instanceId: fixture.instance.id
       });
     });
 
     expect(attempts).toBe(2);
-    expect(remote.archivedAt).toBeNull();
-    expect((await storedLinks(fixture)).instance?.serviceInstanceId).toBe(remote.id);
+    expect(remote).toMatchObject({ id: fixture.instance.id, archivedAt: null });
+    expect((await storedLinks(fixture)).instance).toEqual(expect.any(Date));
   });
 
   it('syncs a new consumer and brings it back when the roster is backfilled', async () => {

@@ -10,12 +10,15 @@ export type ReadScope = {
 };
 
 export let runUsageQuery = (
-  scope: Pick<ReadScope, 'organization'>,
-  instanceId: string,
+  scope: Pick<ReadScope, 'organization' | 'instance'>,
   query: Record<string, unknown>
 ) =>
   requireAgentTracking().query.run(
-    { organizationId: scope.organization.id, scope: { instanceIds: [instanceId] }, query },
+    {
+      organizationId: scope.organization.id,
+      scope: { instanceIds: [scope.instance.id] },
+      query
+    },
     queryCallOptions
   );
 
@@ -24,7 +27,7 @@ export let cachedRead = async <T>(d: {
   read: string;
   input?: unknown;
   ttlSeconds?: number;
-  load: (serviceInstanceId: string) => Promise<T>;
+  load: () => Promise<T>;
 }) => {
   let key = await cacheKey({
     organizationId: d.scope.organization.id,

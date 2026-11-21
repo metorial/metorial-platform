@@ -63,25 +63,25 @@ export let reconcileSingleQueueProcessor = reconcileSingleQueue.process(async da
 
   let organization = await db.organization.findUnique({
     where: { id: data.organizationId },
-    include: { agentTrackingLink: true, agentTrackingSettings: true }
+    include: { agentTrackingSettings: true }
   });
   if (!organization) return;
 
   if (!(await isAgentTrackingEnabledForOrganization({ organization }))) return;
 
-  let link = organization.agentTrackingLink;
+  let linked = !!organization.agentTrackingLinkedAt;
   let target = { type: 'organization' as const, id: organization.id };
 
   if (organization.status != 'active') {
-    if (link) await syncScopeQueue.add(target);
+    if (linked) await syncScopeQueue.add(target);
     return;
   }
 
-  if (link) {
+  if (linked) {
     let remote = await ignoreNotFound(
       agentTracking.organization.get({ organizationId: organization.id })
     );
-    if (remote?.id != link.serviceOrganizationId) await unlinkOrganizationTree(organization);
+    if (!remote) await unlinkOrganizationTree(organization);
     else if (organization.agentTrackingSettings) await syncScopeQueue.add(target);
   }
 
@@ -128,8 +128,12 @@ export let reconcileScopesQueue = createQueue<{
 // link is archived, which unlinks it.
 let linkedWithSettingsOrDeletedWhere = <Active extends object>(active: Active) => ({
   OR: [
-    { ...active, agentTrackingLink: { isNot: null }, agentTrackingSettings: { isNot: null } },
-    { NOT: active, agentTrackingLink: { isNot: null } }
+    {
+      ...active,
+      agentTrackingLinkedAt: { not: null },
+      agentTrackingSettings: { isNot: null }
+    },
+    { NOT: active, agentTrackingLinkedAt: { not: null } }
   ]
 });
 

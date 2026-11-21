@@ -53,7 +53,7 @@ let answerEverything = () => {
   });
   rpc.handlers['session:get'] = () => ({
     sessionKey: 'c0ffee',
-    instanceId: 'atin_service',
+    instanceId: 'inst_1',
     state: 'ended',
     client: { family: 'claude-code' },
     observed: { userId: 'aten_ada' },

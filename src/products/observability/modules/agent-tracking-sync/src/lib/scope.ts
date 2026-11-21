@@ -11,12 +11,12 @@ import {
   type AgentTrackingCallOpts
 } from './client';
 import {
-  linkInstance,
-  linkOrganization,
-  linkProject,
-  readInstanceLink,
-  readOrganizationLink,
-  readProjectLink,
+  isInstanceLinked,
+  isOrganizationLinked,
+  isProjectLinked,
+  markInstanceLinked,
+  markOrganizationLinked,
+  markProjectLinked,
   unlinkOrganizationTree
 } from './links';
 import {
@@ -55,10 +55,10 @@ let storedOr = async <Row, Values>(
 let isStaleScopeError = (error: unknown) =>
   isServiceError(error) && error.data.status == 404 && scopeEntities.has(error.data.entity);
 
-// A stored link outlives its service resource when the service loses, archives or re-creates
-// it. Service calls address scopes by Metorial id, so a 404 does not tell which stored id went
-// stale: every link of the organization is dropped and the run repeats once, so the ensure
-// inside it upserts again. Only the outermost call retries; the ensures inside never do.
+// A link outlives its service resource when the service loses, archives or re-creates it. A
+// 404 does not tell which scope of the organization is gone, so every link of the organization
+// is cleared and the run repeats once, so the ensures inside it upsert again. Only the outermost
+// call retries; the ensures inside never do.
 let retryOnStaleScope = async <T>(
   scope: { organization: Pick<Organization, 'oid'> },
   run: () => Promise<T>
@@ -91,7 +91,7 @@ export let pushOrganizationScope = async (
     d.callOpts
   );
 
-  await linkOrganization(d.organization, remote.id);
+  await markOrganizationLinked(d.organization);
 
   return remote;
 };
@@ -117,7 +117,7 @@ let upsertProject = async (
     d.callOpts
   );
 
-  await linkProject(d.project, remote.id);
+  await markProjectLinked(d.project);
 
   return remote;
 };
@@ -144,19 +144,22 @@ let upsertInstance = async (
     d.callOpts
   );
 
-  await linkInstance(d.instance, remote.id);
+  await markInstanceLinked(d.instance);
 
   return remote;
 };
 
-let ensureOrganizationScope = async (d: OrganizationScope) =>
-  (await readOrganizationLink(d.organization)) ?? (await pushOrganizationScope(d)).id;
+let ensureOrganizationScope = async (d: OrganizationScope) => {
+  if (!(await isOrganizationLinked(d.organization))) await pushOrganizationScope(d);
+};
 
-let ensureProjectScope = async (d: ProjectScope) =>
-  (await readProjectLink(d.project)) ?? (await upsertProject(d)).id;
+let ensureProjectScope = async (d: ProjectScope) => {
+  if (!(await isProjectLinked(d.project))) await upsertProject(d);
+};
 
-let ensureInstanceScope = async (d: InstanceScope) =>
-  (await readInstanceLink(d.instance)) ?? (await upsertInstance(d)).id;
+let ensureInstanceScope = async (d: InstanceScope) => {
+  if (!(await isInstanceLinked(d.instance))) await upsertInstance(d);
+};
 
 export let pushProjectScope = (
   d: ProjectScope & { projectSettings?: AgentTrackingProjectSettingsValues }
@@ -168,18 +171,24 @@ export let pushInstanceScope = (
 
 export let withOrganizationScope = <T>(
   d: Omit<OrganizationScope, 'agentTracking'>,
-  run: (serviceOrganizationId: string) => Promise<T>
+  run: () => Promise<T>
 ) => {
   let scope = { ...d, agentTracking: requireAgentTracking() };
 
-  return retryOnStaleScope(scope, async () => await run(await ensureOrganizationScope(scope)));
+  return retryOnStaleScope(scope, async () => {
+    await ensureOrganizationScope(scope);
+    return await run();
+  });
 };
 
 export let withInstanceScope = <T>(
   d: Omit<InstanceScope, 'agentTracking'>,
-  run: (serviceInstanceId: string) => Promise<T>
+  run: () => Promise<T>
 ) => {
   let scope = { ...d, agentTracking: requireAgentTracking() };
 
-  return retryOnStaleScope(scope, async () => await run(await ensureInstanceScope(scope)));
+  return retryOnStaleScope(scope, async () => {
+    await ensureInstanceScope(scope);
+    return await run();
+  });
 };

@@ -17,10 +17,7 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
   if (!agentTracking) return;
 
   if (data.type == 'organization') {
-    let organization = await db.organization.findUnique({
-      where: { id: data.id },
-      include: { agentTrackingLink: true }
-    });
+    let organization = await db.organization.findUnique({ where: { id: data.id } });
     if (!organization) return;
     if (!(await isAgentTrackingEnabledForOrganization({ organization }))) return;
 
@@ -32,7 +29,7 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
       return;
     }
 
-    if (organization.agentTrackingLink) {
+    if (organization.agentTrackingLinkedAt) {
       await pushOrganizationScope({ agentTracking, organization });
     }
     return;
@@ -41,7 +38,7 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
   if (data.type == 'project') {
     let project = await db.project.findUnique({
       where: { id: data.id },
-      include: { organization: true, agentTrackingLink: true }
+      include: { organization: true }
     });
     if (!project) return;
 
@@ -59,7 +56,7 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
       return;
     }
 
-    if (project.agentTrackingLink) {
+    if (project.agentTrackingLinkedAt) {
       await pushProjectScope({ agentTracking, organization, project });
     }
     return;
@@ -67,7 +64,7 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
 
   let instance = await db.instance.findUnique({
     where: { id: data.id },
-    include: { organization: true, project: true, agentTrackingLink: true }
+    include: { organization: true, project: true }
   });
   if (!instance) return;
 
@@ -89,7 +86,7 @@ export let syncScopeQueueProcessor = syncScopeQueue.process(async data => {
     return;
   }
 
-  if (instance.agentTrackingLink) {
+  if (instance.agentTrackingLinkedAt) {
     await pushInstanceScope({ agentTracking, organization, project, instance });
   }
 });

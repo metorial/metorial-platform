@@ -29,7 +29,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { links, mocks, resetMocks } from './_mocks';
 
 mocks.agentTracking = {
-  organization: { upsert: vi.fn(async () => ({ id: 'ator_1' })) },
+  organization: { upsert: vi.fn(async () => ({ id: 'org_1' })) },
   entity: { upsert: vi.fn(), getByRef: vi.fn(), archive: vi.fn() },
   link: { upsert: vi.fn() }
 };
@@ -153,11 +153,11 @@ describe('agent-tracking/sync/entity', () => {
         ref: 'con_1'
       })
     );
-    expect(links.organization.get(1n)).toBe('ator_1');
+    expect(links.organization.has(1n)).toBe(true);
   });
 
   it('syncs a consumer without upserting a linked organization', async () => {
-    links.organization.set(1n, 'ator_1');
+    links.organization.add(1n);
     vi.mocked(db.consumer.findUnique).mockResolvedValue(consumer as any);
 
     await run({ type: 'consumer', id: 'con_1' });
@@ -167,7 +167,7 @@ describe('agent-tracking/sync/entity', () => {
   });
 
   it('relinks the organization once when the service lost it, then syncs the consumer', async () => {
-    links.organization.set(1n, 'ator_gone');
+    links.organization.add(1n);
     mocks.agentTracking.entity.upsert.mockRejectedValueOnce(
       new ServiceError(notFoundError('organization'))
     );
@@ -177,7 +177,7 @@ describe('agent-tracking/sync/entity', () => {
 
     expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledTimes(1);
     expect(mocks.agentTracking.entity.upsert).toHaveBeenCalledTimes(2);
-    expect(links.organization.get(1n)).toBe('ator_1');
+    expect(links.organization.has(1n)).toBe(true);
   });
 
   it('skips consumers that no longer exist or whose organization was deleted', async () => {

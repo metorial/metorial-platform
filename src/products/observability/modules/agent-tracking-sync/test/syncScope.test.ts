@@ -25,9 +25,9 @@ import { syncScopeQueueProcessor } from '../src/queues/syncScope';
 import { links, linksModule, mocks, resetMocks, storedSettings } from './_mocks';
 
 mocks.agentTracking = {
-  organization: { upsert: vi.fn(async () => ({ id: 'ator_1' })), archive: vi.fn() },
-  project: { upsert: vi.fn(async () => ({ id: 'atpr_1' })), archive: vi.fn() },
-  instance: { upsert: vi.fn(async () => ({ id: 'atin_1' })), archive: vi.fn() }
+  organization: { upsert: vi.fn(async () => ({ id: 'org_1' })), archive: vi.fn() },
+  project: { upsert: vi.fn(async () => ({ id: 'proj_1' })), archive: vi.fn() },
+  instance: { upsert: vi.fn(async () => ({ id: 'inst_1' })), archive: vi.fn() }
 };
 
 let run = (data: { type: 'organization' | 'project' | 'instance'; id: string }) =>
@@ -35,7 +35,7 @@ let run = (data: { type: 'organization' | 'project' | 'instance'; id: string }) 
 
 let organization = { oid: 1n, id: 'org_1', name: 'Acme', status: 'active' };
 let project = { oid: 2n, id: 'proj_1', name: 'Production', status: 'active', organization };
-let linked = <T extends object>(row: T) => ({ ...row, agentTrackingLink: { oid: 9n } });
+let linked = <T extends object>(row: T) => ({ ...row, agentTrackingLinkedAt: new Date() });
 
 let instance = {
   oid: 3n,
@@ -124,7 +124,7 @@ describe('agent-tracking/sync/scope', () => {
   );
 
   it('pushes the current name of a linked organization', async () => {
-    links.organization.set(1n, 'ator_1');
+    links.organization.add(1n);
     vi.mocked(db.organization.findUnique).mockResolvedValue(linked(organization) as any);
 
     await run({ type: 'organization', id: 'org_1' });
@@ -137,9 +137,9 @@ describe('agent-tracking/sync/scope', () => {
   });
 
   it('archives a deleted organization and drops every link below it', async () => {
-    links.organization.set(1n, 'ator_1');
-    links.project.set(2n, 'atpr_1');
-    links.instance.set(3n, 'atin_1');
+    links.organization.add(1n);
+    links.project.add(2n);
+    links.instance.add(3n);
     vi.mocked(db.organization.findUnique).mockResolvedValue({
       ...organization,
       status: 'deleted'
@@ -187,14 +187,14 @@ describe('agent-tracking/sync/scope', () => {
   });
 
   it('pushes a linked project without the organization once the organization is linked', async () => {
-    links.organization.set(1n, 'ator_1');
+    links.organization.add(1n);
     vi.mocked(db.project.findUnique).mockResolvedValue(linked(project) as any);
 
     await run({ type: 'project', id: 'proj_1' });
 
     expect(mocks.agentTracking.organization.upsert).not.toHaveBeenCalled();
     expect(mocks.agentTracking.project.upsert).toHaveBeenCalledTimes(1);
-    expect(links.project.get(2n)).toBe('atpr_1');
+    expect(links.project.has(2n)).toBe(true);
   });
 
   it('archives a project whose organization was deleted', async () => {
@@ -247,8 +247,8 @@ describe('agent-tracking/sync/scope', () => {
   });
 
   it('pushes only a linked instance while its project and organization are linked', async () => {
-    links.organization.set(1n, 'ator_1');
-    links.project.set(2n, 'atpr_1');
+    links.organization.add(1n);
+    links.project.add(2n);
     vi.mocked(db.instance.findUnique).mockResolvedValue(linked(instance) as any);
 
     await run({ type: 'instance', id: 'inst_1' });
@@ -256,13 +256,13 @@ describe('agent-tracking/sync/scope', () => {
     expect(mocks.agentTracking.organization.upsert).not.toHaveBeenCalled();
     expect(mocks.agentTracking.project.upsert).not.toHaveBeenCalled();
     expect(mocks.agentTracking.instance.upsert).toHaveBeenCalledTimes(1);
-    expect(links.instance.get(3n)).toBe('atin_1');
+    expect(links.instance.has(3n)).toBe(true);
   });
 
   it('archives a deleted instance and drops only its own link', async () => {
-    links.organization.set(1n, 'ator_1');
-    links.project.set(2n, 'atpr_1');
-    links.instance.set(3n, 'atin_1');
+    links.organization.add(1n);
+    links.project.add(2n);
+    links.instance.add(3n);
     vi.mocked(db.instance.findUnique).mockResolvedValue({
       ...instance,
       status: 'deleted'
@@ -275,8 +275,8 @@ describe('agent-tracking/sync/scope', () => {
       instanceId: 'inst_1'
     });
     expect(mocks.agentTracking.instance.upsert).not.toHaveBeenCalled();
-    expect([...links.instance.keys()]).toEqual([]);
-    expect(links.project.get(2n)).toBe('atpr_1');
-    expect(links.organization.get(1n)).toBe('ator_1');
+    expect([...links.instance]).toEqual([]);
+    expect(links.project.has(2n)).toBe(true);
+    expect(links.organization.has(1n)).toBe(true);
   });
 });

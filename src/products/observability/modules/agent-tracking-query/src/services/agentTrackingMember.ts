@@ -38,7 +38,7 @@ class AgentTrackingMemberServiceImpl {
       scope: d,
       read: 'members.seen',
       input: { range: range ? rangeCacheKey(range, now) : null, memberIds },
-      load: async instanceId => {
+      load: async () => {
         let lastActivity = range ? resolveRange(range, now) : undefined;
         let to = lastActivity && lastActivity.to < now ? lastActivity.to : now;
 
@@ -46,7 +46,6 @@ class AgentTrackingMemberServiceImpl {
         // are kept and the range applies to their last activity, as in the session list.
         let result = await runUsageQuery(
           d,
-          instanceId,
           membersQuery({
             window: { from: new Date(to.getTime() - memberWindowDays * dayMs), to },
             lastActivity,

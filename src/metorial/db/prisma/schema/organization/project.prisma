@@ -55,6 +55,8 @@ model Project {
   synthesisTenantId String?
   nebulaTenantId    String?
 
+  agentTrackingLinkedAt DateTime?
+
   resourceTenantOid BigInt?         @unique
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
 
@@ -88,7 +90,6 @@ model Project {
   teams                TeamProject[]
 
   agentTrackingSettings AgentTrackingProjectSettings?
-  agentTrackingLink     AgentTrackingProjectLink?
 
   resourceActors        ResourceActor[]
   fileLinks             FileLink[]
