@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/pkg/commitbatch"
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 )
 
 const (
@@ -63,7 +64,7 @@ func (r Remote) endpoint(path string) (*url.URL, error) {
 func (r Remote) client() *http.Client {
 	base := r.HTTPClient
 	if base == nil {
-		base = http.DefaultClient
+		base = egress.Client
 	}
 
 	client := *base

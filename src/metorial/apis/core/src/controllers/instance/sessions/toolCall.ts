@@ -194,11 +194,19 @@ export let toolCallController = Controller.create(
         })
       )
       .do(async ctx => {
+        let organizationActor = getOwnershipActor(ctx);
+
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          organizationActor: getOwnershipActor(ctx),
+          organizationActor,
           sessionId: ctx.body.session_id
         });
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor,
+          session
+        });
+
         let toolCall = await toolCallService.createToolCall({
           instance: ctx.instance,
           auditScope: ctx.auditScope,

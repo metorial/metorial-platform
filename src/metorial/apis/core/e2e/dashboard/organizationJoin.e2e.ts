@@ -31,11 +31,11 @@ describe('api-core dashboard: organization join', () => {
     return { invite, key: invite.invite_link.key as string };
   };
 
-  let createEmailInvite = async () => {
+  let createEmailInvite = async (email: string = uniqueEmail('join')) => {
     let invite = expectOk(
       await org.clients.management.post('/organization/invites', {
         type: 'email',
-        email: uniqueEmail('join'),
+        email,
         role: 'member'
       })
     );
@@ -168,8 +168,8 @@ describe('api-core dashboard: organization join', () => {
   });
 
   it('uses up an email invite when it is accepted', async () => {
-    let { invite, key } = await createEmailInvite();
     let { user, client } = await signUp();
+    let { invite, key } = await createEmailInvite(user.email.toUpperCase());
 
     let found = expectOk(
       await client.get('/dashboard/organization-join/find', { query: { invite_key: key } })
@@ -199,9 +199,33 @@ describe('api-core dashboard: organization join', () => {
     );
   });
 
+  it('only lets the invited email answer an email invite', async () => {
+    let invitee = await signUp();
+    let other = await signUp();
+    let { invite, key } = await createEmailInvite(invitee.user.email);
+
+    expectError(
+      await other.client.post('/dashboard/organization-join/accept', { invite_key: key }),
+      403
+    );
+    expectError(
+      await other.client.post('/dashboard/organization-join/reject', { invite_key: key }),
+      403
+    );
+    expect(await findMember(other.user.id)).toBeUndefined();
+
+    expectOk(
+      await invitee.client.post('/dashboard/organization-join/accept', { invite_key: key })
+    );
+    expect(await findMember(invitee.user.id)).toMatchObject({ role: 'member' });
+    expect(
+      expectOk(await org.clients.management.get(`/organization/invites/${invite.id}`)).status
+    ).toBe('accepted');
+  });
+
   it('closes an email invite when it is rejected', async () => {
-    let { invite, key } = await createEmailInvite();
     let { user, client } = await signUp();
+    let { invite, key } = await createEmailInvite(user.email);
 
     let rejected = expectOk(
       await client.post('/dashboard/organization-join/reject', { invite_key: key })

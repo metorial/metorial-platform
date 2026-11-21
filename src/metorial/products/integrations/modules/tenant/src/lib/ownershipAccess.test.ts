@@ -2,13 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   subspaceIdentityActor: { findUnique: vi.fn(), findMany: vi.fn() },
+  subspaceSession: { findFirst: vi.fn() },
+  subspaceEphemeralManagedSession: { findFirst: vi.fn() },
   coreIdentityActor: { findUnique: vi.fn() },
   consumerActor: { findMany: vi.fn() },
   resolveMetorialFacing: vi.fn()
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
-  db: { identityActor: mocks.subspaceIdentityActor }
+  db: {
+    identityActor: mocks.subspaceIdentityActor,
+    session: mocks.subspaceSession,
+    ephemeralManagedSession: mocks.subspaceEphemeralManagedSession
+  }
 }));
 
 vi.mock('./metorialDb', () => ({
@@ -25,6 +31,7 @@ vi.mock('./metorialFacing', () => ({
 import {
   assertCanChangeCoreOwnerLock,
   assertCanChangeOwnerLock,
+  assertCanUseSessionById,
   canUseCoreOwnedResource,
   canUseOwnedResource,
   getOwnershipAccessor,
@@ -346,5 +353,158 @@ describe('redactClientSecretsForCaller', () => {
     });
 
     expect(result.map(resource => resource.clientSecret)).toEqual(['secret_a', '']);
+  });
+});
+
+describe('assertCanUseSessionById', () => {
+  let useSession = (d: {
+    organizationActor?: { oid: bigint; type: string };
+    isCrossConsumerUseDenied?: boolean;
+  }) =>
+    assertCanUseSessionById({
+      instance: {} as any,
+      organizationActor: d.organizationActor as any,
+      sessionId: 'ses_1',
+      isCrossConsumerUseDenied: d.isCrossConsumerUseDenied
+    });
+
+  let ownConsumerActors = () => {
+    mocks.consumerActor.findMany.mockResolvedValue([{ id: 'actor_30' }]);
+    mocks.subspaceIdentityActor.findMany.mockResolvedValue([
+      { oid: ownConsumerOid, id: 'actor_30' }
+    ]);
+  };
+
+  let enforceOwnership = () => {
+    mocks.resolveMetorialFacing.mockResolvedValue({
+      tenant: tenant({ api: false, member: true }),
+      environment: { oid: 2n }
+    });
+  };
+
+  beforeEach(() => {
+    mocks.resolveMetorialFacing.mockResolvedValue({
+      tenant: tenant({ api: true, member: true }),
+      environment: { oid: 2n }
+    });
+    mocks.subspaceSession.findFirst.mockResolvedValue({ ownerActorOid: consumerOwnerOid });
+    mocks.subspaceEphemeralManagedSession.findFirst.mockResolvedValue(null);
+  });
+
+  it('looks the session up inside the instance scope', async () => {
+    mocks.subspaceSession.findFirst.mockResolvedValue(null);
+
+    await expect(useSession({})).rejects.toThrow();
+    expect(mocks.subspaceSession.findFirst.mock.calls[0]![0].where).toEqual({
+      id: 'ses_1',
+      tenantOid: 1n,
+      environmentOid: 2n
+    });
+  });
+
+  it("lets members use a consumer's unlocked session when the project allows it", async () => {
+    await expect(
+      useSession({ organizationActor: { oid: 301n, type: 'member' } })
+    ).resolves.toBeUndefined();
+    await expect(
+      useSession({
+        organizationActor: { oid: 301n, type: 'member' },
+        isCrossConsumerUseDenied: true
+      })
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects a consumer-owned session for members the project restricts', async () => {
+    mocks.resolveMetorialFacing.mockResolvedValue({
+      tenant: tenant({ api: true, member: false }),
+      environment: { oid: 2n }
+    });
+
+    await expect(
+      useSession({ organizationActor: { oid: 302n, type: 'member' } })
+    ).rejects.toThrow(/owned by a consumer/);
+  });
+
+  it('rejects an owner-locked session of another consumer in any project', async () => {
+    mocks.subspaceSession.findFirst.mockResolvedValue({
+      ownerActorOid: consumerOwnerOid,
+      isOwnerLocked: true
+    });
+
+    await expect(
+      useSession({ organizationActor: { oid: 303n, type: 'member' } })
+    ).rejects.toThrow(/owned by a consumer/);
+  });
+
+  it("keeps another consumer's session usable for consumers by default", async () => {
+    await expect(
+      useSession({ organizationActor: { oid: 304n, type: 'consumer_profile' } })
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects another consumer's session for consumers when cross-consumer use is denied", async () => {
+    enforceOwnership();
+
+    await expect(
+      useSession({
+        organizationActor: { oid: 305n, type: 'consumer_profile' },
+        isCrossConsumerUseDenied: true
+      })
+    ).rejects.toThrow(/owned by a consumer/);
+  });
+
+  it("rejects another consumer's session in projects that do not enforce ownership", async () => {
+    await expect(
+      useSession({
+        organizationActor: { oid: 309n, type: 'consumer_profile' },
+        isCrossConsumerUseDenied: true
+      })
+    ).rejects.toThrow(/owned by a consumer/);
+  });
+
+  it('falls back to the identity actor of a session without an owner', async () => {
+    enforceOwnership();
+    mocks.subspaceSession.findFirst.mockResolvedValue({
+      ownerActorOid: null,
+      identityActorOid: consumerOwnerOid
+    });
+
+    await expect(
+      useSession({
+        organizationActor: { oid: 306n, type: 'consumer_profile' },
+        isCrossConsumerUseDenied: true
+      })
+    ).rejects.toThrow(/owned by a consumer/);
+  });
+
+  it('lets consumers use their own session when cross-consumer use is denied', async () => {
+    enforceOwnership();
+    ownConsumerActors();
+    mocks.subspaceSession.findFirst.mockResolvedValue({
+      ownerActorOid: ownConsumerOid,
+      isOwnerLocked: true
+    });
+
+    await expect(
+      useSession({
+        organizationActor: { oid: 307n, type: 'consumer_profile' },
+        isCrossConsumerUseDenied: true
+      })
+    ).resolves.toBeUndefined();
+  });
+
+  it.each([
+    ['no owner', { ownerActorOid: null }],
+    ['a non-consumer owner', { ownerActorOid: personOwnerOid }]
+  ])('lets consumers use a session with %s', async (_name, session) => {
+    enforceOwnership();
+    mocks.subspaceSession.findFirst.mockResolvedValue(session);
+
+    await expect(
+      useSession({
+        organizationActor: { oid: 308n, type: 'consumer_profile' },
+        isCrossConsumerUseDenied: true
+      })
+    ).resolves.toBeUndefined();
   });
 });

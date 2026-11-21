@@ -8,6 +8,7 @@ import {
   providerAuthCredentialsService,
   providerSetupSessionEmailService,
   providerSetupSessionService,
+  setupSessionRedirectUrlPattern,
   SETUP_SESSION_EMAIL_MAX_RECIPIENTS,
   SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_DAY,
   SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_INSTANCE_PER_DAY,
@@ -26,6 +27,17 @@ import {
   providerSetupSessionPresenter
 } from '@metorial/presenters';
 import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
+
+let redirectUrlValidator = v.optional(
+  v.string({
+    examples: ['https://app.example.com/oauth/callback'],
+    modifiers: [
+      v.url(),
+      v.regex(setupSessionRedirectUrlPattern, { message: 'Must be an http or https URL' })
+    ]
+  }),
+  { description: 'URL to redirect to after setup.' }
+);
 
 let providerSetupSessionConfigurationValidator = v.optional(
   v.object(
@@ -325,10 +337,7 @@ export let providerSetupSessionController = Controller.create(
               description: 'Optional consumer to link this setup session to'
             })
           ),
-          redirect_url: v.optional(
-            v.string({ examples: ['https://app.example.com/oauth/callback'] }),
-            { description: 'URL to redirect to after setup.' }
-          ),
+          redirect_url: redirectUrlValidator,
           type: v.optional(
             v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin', 'auto'], {
               description:
@@ -393,10 +402,7 @@ export let providerSetupSessionController = Controller.create(
               description: 'Optional consumer to link this setup session to'
             })
           ),
-          redirect_url: v.optional(
-            v.string({ examples: ['https://app.example.com/oauth/callback'] }),
-            { description: 'URL to redirect to after setup.' }
-          ),
+          redirect_url: redirectUrlValidator,
           type: v.optional(
             v.enumOf([...providerSetupSessionTypes, 'auto'], {
               description:

@@ -6,6 +6,7 @@ import { providerService } from '@metorial-subspace/module-catalog';
 import { providerPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { isPublicCatalogOnly } from '../../../lib/publicCatalogOnly';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 
@@ -21,7 +22,8 @@ let providerGroup = integrationsGroup.use(async ctx => {
 
   let provider = await providerService.getProviderById({
     instance: ctx.instance,
-    providerId: ctx.params.providerId
+    providerId: ctx.params.providerId,
+    publicCatalogOnly: isPublicCatalogOnly(ctx)
   });
 
   return { provider };
@@ -129,11 +131,14 @@ export let providerController = Controller.create(
       .do(async ctx => {
         let paginator = await providerService.listProviders({
           instance: ctx.instance,
+          publicCatalogOnly: isPublicCatalogOnly(ctx),
 
           ids: normalizeArrayParam(ctx.query.id),
           search: ctx.query.search,
           authMethods: normalizeArrayParam(ctx.query.auth_method),
-          authSetup: normalizeArrayParam(ctx.query.auth_setup),
+          authSetup: ctx.consumerProfile
+            ? undefined
+            : normalizeArrayParam(ctx.query.auth_setup),
           capabilities: ctx.query.capabilities
         });
 

@@ -12,7 +12,10 @@ import type { AuthInfo } from '@metorial/module-access';
 export let getOwnershipActor = (ctx: {
   actor?: OrganizationActor | null;
   consumerProfile?: object | null;
+  consumerProfileFromHeader?: boolean;
 }) => {
+  if (ctx.consumerProfileFromHeader) return ctx.actor ?? undefined;
+
   let profileActor =
     ctx.consumerProfile && 'organizationActor' in ctx.consumerProfile
       ? (ctx.consumerProfile.organizationActor as OrganizationActor | null | undefined)

@@ -11,6 +11,7 @@ import {
   accessTagService,
   type AnyAccessTagSelector,
   consumerSkillReadRoles,
+  type ResourceAuthorization,
   skillStoreResourceAccess,
   storeResourceAccessLevels,
   type StoreResourceAccessLevel
@@ -246,6 +247,7 @@ class SkillGroupServiceImpl {
     project: Project;
     instance: Instance;
     auditScope: AuditScope;
+    authorization?: ResourceAuthorization;
     skillGroupId: string;
     input: {
       name?: string;
@@ -290,7 +292,8 @@ class SkillGroupServiceImpl {
         instance: d.instance,
         entity: { id: group.id, type: 'skill_group' },
         imageFileId: d.input.imageFileId,
-        clearedImage: { type: 'default' }
+        clearedImage: { type: 'default' },
+        authorization: d.authorization
       });
     }
     let skills = d.input.skillIds

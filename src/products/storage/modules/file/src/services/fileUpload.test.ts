@@ -134,3 +134,54 @@ describe('signed-URL upload completion', () => {
     expect(mocks.requestContentHashes).not.toHaveBeenCalled();
   });
 });
+
+describe('signed-URL upload creation', () => {
+  let create = (mimeType?: string) =>
+    fileUploadService.createPendingUpload({
+      instance: { oid: 1n } as any,
+      project: { oid: 1n } as any,
+      purpose: 'generic',
+      authorization: { type: 'privileged' } as any,
+      input: { name: 'photo.png', size: 1024, mimeType }
+    });
+
+  let isFileTypeError = async (mimeType?: string) =>
+    await create(mimeType).then(
+      () => false,
+      (error: Error) => /single media type/.test(error.message)
+    );
+
+  it.each([
+    'image/png, text/html',
+    'image/png,text/html',
+    'text/html, image/png',
+    'image/png; a=b, text/html',
+    'video/webm;codecs=vp8,opus',
+    'image/png\r\ncontent-type: text/html',
+    'image/png text/html',
+    'image',
+    'not a type'
+  ])('rejects the file type %j', async mimeType => {
+    await expect(create(mimeType)).rejects.toMatchObject({
+      message: expect.stringMatching(/single media type/)
+    });
+  });
+
+  it.each([
+    undefined,
+    '',
+    'image/png',
+    ' image/png ',
+    'IMAGE/PNG',
+    'application/pdf',
+    'application/octet-stream',
+    'text/plain;charset=utf-8',
+    'text/plain; charset=utf-8',
+    'text/html; charset=utf-8',
+    'image/svg+xml',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'multipart/form-data; boundary=----x'
+  ])('accepts the file type %j', async mimeType => {
+    expect(await isFileTypeError(mimeType)).toBe(false);
+  });
+});

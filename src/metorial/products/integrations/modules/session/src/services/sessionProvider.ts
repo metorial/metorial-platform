@@ -26,7 +26,9 @@ import {
 import {
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  type OwnershipAccessor,
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -235,7 +237,11 @@ class sessionProviderServiceImpl {
     let sessionProvider = await this.createSessionProviderInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     await Fabric.fire('provider.session.provider.created:after', {
@@ -247,7 +253,11 @@ class sessionProviderServiceImpl {
   }
 
   async createSessionProviderInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateSessionProviderParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      ownershipAccessor?: OwnershipAccessor;
+    } & CreateSessionProviderParams
   ) {
     checkTenant(d, d.session);
     checkDeletedRelation(d.session);
@@ -259,7 +269,8 @@ class sessionProviderServiceImpl {
       environment: d.environment,
 
       session: d.session,
-      providers: [d.input]
+      providers: [d.input],
+      ownershipAccessor: d.ownershipAccessor
     });
 
     return res!;

@@ -11,6 +11,11 @@ import type {
 import { db } from '@mtsrc/auth-core-db';
 import { getId } from '@mtsrc/auth-core-db';
 import { jackson } from '../../lib/jackson';
+import {
+  assertSsoUrlReachable,
+  fetchSsoMetadata,
+  ssoAllowsPrivateNetworks
+} from '../../lib/ssoFetch';
 import { getSamlConnectionDefaultRedirectUrl } from '@mtsrc/auth-core-sso-protocol';
 import { enqueueDisableSsoDirectoryUsers } from '../../queues/disableSsoDirectoryUsers';
 
@@ -40,6 +45,11 @@ class SsoConnectionServiceImpl {
 
     let con;
     try {
+      let rawMetadata =
+        d.input.samlMetadata.type === 'xml'
+          ? d.input.samlMetadata.payload
+          : await fetchSsoMetadata(d.input.samlMetadata.url);
+
       con = await jackson.apiController.createSAMLConnection({
         product: 'metorial',
         tenant: d.tenant.id,
@@ -50,9 +60,7 @@ class SsoConnectionServiceImpl {
           tenantId: d.tenant.id,
           connectionId: connectionId.id
         }),
-        rawMetadata:
-          d.input.samlMetadata.type === 'xml' ? d.input.samlMetadata.payload : undefined!,
-        metadataUrl: d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
+        rawMetadata
       });
     } catch (error) {
       throw new ServiceError(
@@ -107,6 +115,8 @@ class SsoConnectionServiceImpl {
 
     let con;
     try {
+      await assertSsoUrlReachable(d.input.oidcDiscoveryUrl);
+
       con = await jackson.apiController.createOIDCConnection({
         product: 'metorial',
         tenant: internalId,
@@ -280,6 +290,31 @@ class SsoConnectionServiceImpl {
           })
       )
     );
+  }
+
+  async assertIdentityProviderReachable(d: {
+    connection: Pick<SsoConnection, 'providerType' | 'internalClientId'>;
+  }) {
+    if (ssoAllowsPrivateNetworks) return;
+    if (d.connection.providerType !== 'oidc' || !d.connection.internalClientId) return;
+
+    let records = await jackson.apiController.getConnections({
+      clientID: d.connection.internalClientId
+    });
+
+    for (let record of records) {
+      if (!('oidcProvider' in record)) continue;
+
+      let { discoveryUrl, metadata } = record.oidcProvider;
+      let urls = [
+        discoveryUrl,
+        metadata?.token_endpoint,
+        metadata?.userinfo_endpoint,
+        metadata?.jwks_uri
+      ].filter((url): url is string => typeof url == 'string' && !!url);
+
+      for (let url of urls) await assertSsoUrlReachable(url);
+    }
   }
 
   async getConnectionsByTenant(d: { tenant: SsoTenant }) {

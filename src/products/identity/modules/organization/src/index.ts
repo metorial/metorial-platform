@@ -23,6 +23,7 @@ export * from './definitions/configRegistry';
 export * from './definitions/layout';
 export * from './definitions/notifications';
 export * from './definitions/skillConfigs';
+export * from './definitions/userEmailVerification';
 export * from './services';
 
 export let organizationQueueProcessor = combineQueueProcessors([

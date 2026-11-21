@@ -16,6 +16,7 @@ import { getId } from '../id';
 import { createBitbucketClientWithInstallation } from '../lib/bitbucket';
 import { createGitHubInstallationClient } from '../lib/githubApp';
 import { createGitLabClientWithInstallation } from '../lib/gitlab';
+import { getProviderWebUrl } from '../lib/providerWebUrl';
 import { readWebhookSigningSecret } from '../lib/scmCredentials';
 import {
   getGitLabNamespaceId,
@@ -506,7 +507,7 @@ class scmRepoServiceImpl {
         externalName: repoRes.data.name,
         defaultBranch: repoRes.data.default_branch,
         externalOwner: repoRes.data.owner.login,
-        externalUrl: repoRes.data.html_url
+        externalUrl: getProviderWebUrl(repoRes.data.html_url)
       };
 
       let repo = await db.scmRepository.upsert({
@@ -574,7 +575,7 @@ class scmRepoServiceImpl {
         externalName: externalRepo.slug,
         defaultBranch: externalRepo.defaultBranch,
         externalOwner: externalRepo.owner.slug,
-        externalUrl: externalRepo.webUrl
+        externalUrl: getProviderWebUrl(externalRepo.webUrl)
       };
       let repo = await db.scmRepository.upsert({
         where: {
@@ -642,7 +643,7 @@ class scmRepoServiceImpl {
           project.default_branch ?? project.defaultBranch
         ),
         externalOwner: String(project.namespace.path),
-        externalUrl: String(project.web_url)
+        externalUrl: getProviderWebUrl(project.web_url)
       };
 
       let repo = await db.scmRepository.upsert({

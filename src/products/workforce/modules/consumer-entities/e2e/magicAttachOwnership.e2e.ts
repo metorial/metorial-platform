@@ -123,18 +123,16 @@ describe('module-consumer-entities magic MCP attach ownership', () => {
       input: { providerId, providerConfigId }
     });
 
-  it('lets a consumer attach shared and own configs to their own server', async () => {
+  it('lets a consumer attach own configs but not shared ones to their own server', async () => {
     let surface = await createSurface(fixture);
     let owner = await createConsumerActor(surface);
     let sharedServer = await createConsumerServer(owner);
     let ownServer = await createConsumerServer(owner);
 
-    let shared = await attach(
-      sharedServer,
-      await grantWrite(owner, sharedServer),
-      await createConfig()
+    await expectServiceError(
+      attach(sharedServer, await grantWrite(owner, sharedServer), await createConfig()),
+      'ownership_restricted'
     );
-    expect(shared.magicMcpServerBacking.id).toBe(sharedServer.id);
 
     let own = await attach(
       ownServer,

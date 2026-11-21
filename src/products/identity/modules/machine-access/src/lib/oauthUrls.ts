@@ -9,7 +9,9 @@ export let urlsMatch = (url1: string, url2: string) => {
       u1.protocol == u2.protocol &&
       u1.hostname == u2.hostname &&
       u1.port == u2.port &&
-      u1.pathname == u2.pathname
+      u1.pathname == u2.pathname &&
+      u1.search == u2.search &&
+      u1.hash == u2.hash
     );
   } catch (e) {
     return false;

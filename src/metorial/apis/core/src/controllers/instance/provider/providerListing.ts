@@ -6,6 +6,7 @@ import { providerListingService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { isPublicCatalogOnly } from '../../../lib/publicCatalogOnly';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerListingPresenter } from '@metorial/presenters';
@@ -22,7 +23,8 @@ let providerListingGroup = integrationsGroup.use(async ctx => {
 
   let providerListing = await providerListingService.getProviderListingById({
     instance: ctx.instance,
-    providerListingId: ctx.params.providerListingId
+    providerListingId: ctx.params.providerListingId,
+    publicCatalogOnly: isPublicCatalogOnly(ctx)
   });
 
   return { providerListing };
@@ -205,6 +207,7 @@ export let providerListingController = Controller.create(
       .do(async ctx => {
         let paginator = await providerListingService.listProviderListings({
           instance: ctx.instance,
+          publicCatalogOnly: isPublicCatalogOnly(ctx),
           search: ctx.query.search,
 
           ids: normalizeArrayParam(ctx.query.id),
@@ -226,9 +229,10 @@ export let providerListingController = Controller.create(
           capabilities: ctx.query.capabilities,
           adapterIdentifiers: normalizeArrayParam(ctx.query.adapter),
 
-          orderByUse: ctx.query.order_by_use
-            ? orderByUseMapper[ctx.query.order_by_use as keyof typeof orderByUseMapper]
-            : undefined
+          orderByUse:
+            ctx.query.order_by_use && !ctx.consumerProfile
+              ? orderByUseMapper[ctx.query.order_by_use as keyof typeof orderByUseMapper]
+              : undefined
         });
 
         let list = await paginator.run(ctx.query);
