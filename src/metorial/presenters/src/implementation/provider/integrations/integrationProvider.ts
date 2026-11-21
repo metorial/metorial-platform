@@ -45,13 +45,13 @@ let integrationProviderCallbacks = Object.assign(
   {
     properties: {
       object: v.literal('integration.provider.callbacks', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       status: v.enumOf(['enabled', 'disabled'], {
         name: 'status',
         description:
-          'Whether this integration provider should receive provider callbacks. Enabling it creates a callback and registers it against every matching integration instance.'
+          'Enabling registers a callback against every matching integration instance. Disabling tears it down again. Only providers whose type reports `triggers.status` as `enabled` can enable callbacks.'
       }),
 
       callback_id: v.nullable(
@@ -168,26 +168,70 @@ export let v1IntegrationProviderSnapshot = Object.assign(
   },
   {
     schema: v.object({
-      object: v.literal('integration.provider#snapshot'),
-      id: v.string(),
-      provider_version: v.object({
-        object: v.literal('integration.provider.version'),
-        id: v.string(),
-        index: v.number()
+      object: v.literal('integration.provider#snapshot', {
+        description: 'String representing the object’s type.'
       }),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['inp_3cDeFgHjKlMnPqRs']
+      }),
+      provider_version: v.object(
+        {
+          object: v.literal('integration.provider.version', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({
+            description: 'Unique ID.'
+          }),
+          index: v.number({
+            description: 'Position of this version, starting at 0.'
+          })
+        },
+        { description: 'Version this snapshot was taken from.' }
+      ),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you archive the integration provider.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
       tool_filter: v.nullable(toolFilterPresenter.schema),
-      provider_id: v.string(),
-      deployment_id: v.string(),
-      auth_method_id: v.nullable(v.string()),
-      auth_credentials_id: v.nullable(v.string()),
+      provider_id: v.string({
+        description: 'Provider this snapshot was taken from.'
+      }),
+      deployment_id: v.string({
+        description: 'Deployment this snapshot was taken from.'
+      }),
+      auth_method_id: v.nullable(
+        v.string({
+          description: 'Auth method at snapshot time. `null` when none was set.'
+        })
+      ),
+      auth_credentials_id: v.nullable(
+        v.string({
+          description: 'Credentials at snapshot time. `null` when none were set.'
+        })
+      ),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
-      created_at: v.date(),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
       updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   }
 );
@@ -251,26 +295,66 @@ export let v1IntegrationProviderPresenter = Presenter.create(integrationProvider
   })
   .schema(
     v.object({
-      object: v.literal('integration.provider'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      integration_id: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
+      object: v.literal('integration.provider', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['inp_3cDeFgHjKlMnPqRs']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you archive the integration provider.'
+      }),
+      integration_id: v.string({
+        description: 'Integration this provider belongs to.',
+        examples: ['int_2bCdEfGhJkLmNpQr']
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
       tool_filter: v.nullable(toolFilterPresenter.schema),
-      provider_id: v.string(),
-      deployment_id: v.string(),
-      auth_method_id: v.nullable(v.string()),
-      auth_credentials_id: v.nullable(v.string()),
+      provider_id: v.string({
+        description: 'Provider added to the integration.'
+      }),
+      deployment_id: v.string({
+        description: 'Deployment the provider runs with.'
+      }),
+      auth_method_id: v.nullable(
+        v.string({
+          description: 'Auth method the provider runs with. `null` when none is set.'
+        })
+      ),
+      auth_credentials_id: v.nullable(
+        v.string({
+          description: 'Credentials the provider runs with. `null` when none are set.'
+        })
+      ),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       callbacks: v.object(integrationProviderCallbacks.properties, {
         name: 'callbacks',
         description: 'Provider callback state for this integration provider'
       }),
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   )
   .build();

@@ -58,7 +58,7 @@ export let integrationInstanceProviderController = Controller.create(
   {
     name: 'Integration Instance Providers',
     description:
-      'Integration instance providers resolve the effective per-instance provider materialization for an integration.'
+      'An integration instance provider binds one provider of an integration instance to the deployment, config, credentials, and tool filters it runs with.'
   },
   {
     list: integrationsGroup
@@ -79,22 +79,54 @@ export let integrationInstanceProviderController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string(), {
+              description: 'Search integration instance providers by name, description, or ID.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return integration instance providers with one of these statuses. `deleted` providers are never listed.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration instance providers with one of these IDs.'
+            }),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers for one of these integrations.'
+            }),
+            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers for one of these integration instances.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers using one of these providers.'
+            }),
+            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers using one of these integration providers.'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers running on one of these deployments.'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers using one of these configs.'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers using one of these credentials.'
+            }),
+            session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance providers using one of these session templates.'
+            }),
             created_at: dateFilterValidator('integration instance provider creation time'),
             updated_at: dateFilterValidator('integration instance provider last update time')
           })
@@ -135,7 +167,7 @@ export let integrationInstanceProviderController = Controller.create(
         ),
         {
           name: 'Get integration instance provider',
-          description: 'Retrieves a specific integration instance provider.'
+          description: 'Retrieves an integration instance provider.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -156,7 +188,7 @@ export let integrationInstanceProviderController = Controller.create(
         {
           name: 'Set integration instance provider',
           description:
-            'Creates or updates the effective integration instance provider materialization.'
+            'Sets the deployment, config, credentials, and tool filters one provider of an integration instance runs with. Creates the entry when none exists, otherwise updates it.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -164,11 +196,34 @@ export let integrationInstanceProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_deployment_id: v.optional(v.string()),
-          provider_config_id: v.optional(v.nullable(v.string())),
-          provider_auth_config_id: v.optional(v.nullable(v.string())),
+          provider_deployment_id: v.optional(
+            v.string({
+              description:
+                'Deployment to run with. Omitted uses the integration provider’s deployment.'
+            })
+          ),
+          provider_config_id: v.optional(
+            v.nullable(
+              v.string({
+                description:
+                  'Provider config to run with. Omitted keeps the current one, or the shared config when none exists.'
+              })
+            )
+          ),
+          provider_auth_config_id: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Credentials to run with. Omitted keeps the current ones.'
+              })
+            )
+          ),
           tool_filters: toolFiltersValidator,
-          is_override_tool_filter: v.optional(v.boolean())
+          is_override_tool_filter: v.optional(
+            v.boolean({
+              description:
+                'Replaces the integration tool filters instead of combining with them.'
+            })
+          )
         })
       )
       .output(integrationInstanceProviderPresenter)

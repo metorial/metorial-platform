@@ -96,16 +96,41 @@ export let v1IntegrationInstanceProviderPresenter = Presenter.create(
   })
   .schema(
     v.object({
-      object: v.literal('integration.instance.provider'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
-      integration_id: v.string(),
-      integration_instance_id: v.string(),
+      object: v.literal('integration.instance.provider', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['iip_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once the entry is archived.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
+      integration_id: v.string({
+        description: 'Integration the instance belongs to.',
+        examples: ['int_2bCdEfGhJkLmNpQr']
+      }),
+      integration_instance_id: v.string({
+        description: 'Integration instance this entry belongs to.',
+        examples: ['ini_4dEfGhJkLmNpQrSt']
+      }),
       tool_filter: v.nullable(toolFilterPresenter.schema),
-      is_override_tool_filter: v.boolean(),
+      is_override_tool_filter: v.boolean({
+        description: 'Replaces the integration tool filters instead of combining with them.'
+      }),
       provider: v1ProviderPreview.schema,
       integration_provider: v1IntegrationProviderSnapshot.schema,
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
@@ -118,9 +143,17 @@ export let v1IntegrationInstanceProviderPresenter = Presenter.create(
           examples: ['cbi_5gHjKlMnPqRsTuVw']
         })
       ),
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   )
   .build();
