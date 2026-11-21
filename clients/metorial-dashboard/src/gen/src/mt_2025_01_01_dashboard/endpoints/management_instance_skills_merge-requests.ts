@@ -65,7 +65,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsEndpoint {
     query?: DashboardInstanceSkillsMergeRequestsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsListOutput> {
-    let path = `instances/${instanceId}/skill-merge-requests`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-merge-requests`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsEndpoint {
     body: DashboardInstanceSkillsMergeRequestsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCreateOutput> {
-    let path = `instances/${instanceId}/skill-merge-requests`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-merge-requests`;
 
     let request = {
       path,
@@ -127,7 +127,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsEndpoint {
     skillMergeRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsGetOutput> {
-    let path = `instances/${instanceId}/skill-merge-requests/${skillMergeRequestId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsEndpoint {
     skillMergeRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsPerformOutput> {
-    let path = `instances/${instanceId}/skill-merge-requests/${skillMergeRequestId}/perform`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/perform`;
 
     let request = {
       path,
@@ -185,7 +185,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsEndpoint {
     skillMergeRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCloseOutput> {
-    let path = `instances/${instanceId}/skill-merge-requests/${skillMergeRequestId}/close`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/close`;
 
     let request = {
       path,
@@ -214,7 +214,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsEndpoint {
     skillMergeRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsRollbackOutput> {
-    let path = `instances/${instanceId}/skill-merge-requests/${skillMergeRequestId}/rollback`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/rollback`;
 
     let request = {
       path,

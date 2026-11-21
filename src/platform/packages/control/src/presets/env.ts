@@ -11,6 +11,7 @@ export let baseDevEnv = (kind: 'oss' | 'enterprise'): EnvInput => ({
 
 export let platformEnv = (): EnvInput => ({
   AI_GATEWAY_API_KEY: inherit(),
+  AI_GATEWAY_API_URL: services.aiGateway.url('/metorial-ai-gateway'),
   API_URL: services.coreApi.url(),
   APP_URL: services.dashboard.url(),
   ARES_AUTH_URL: services.aresAuth.url(),
@@ -63,7 +64,6 @@ export let platformEnv = (): EnvInput => ({
   SLATES_HUB_PUBLIC_URL: services.slatesHubPublic.url(),
   SLATES_HUB_URL: services.slatesHub.url('/slates-hub'),
   SUBSPACE_SOLUTION: 'metorial-dev',
-  SYNTHESIS_API_URL: services.synthesis.url('/metorial-synthesis'),
   USAGE_MONGO_URI: 'mongodb://mongo:mongo@localhost:{{CONTROL_PORT_MONGO}}/?authSource=admin',
   VOYAGER_URL: services.voyager.url('/metorial-voyager')
 });

@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceProtoGuardConfigEndpoint {
     instanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardConfigGetOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-config`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-config`;
 
     let request = {
       path,
@@ -90,7 +90,7 @@ export class MetorialDashboardInstanceProtoGuardConfigEndpoint {
     body: DashboardInstanceProtoGuardConfigUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardConfigUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-config`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-config`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceProtoGuardConfigEndpoint {
     body: DashboardInstanceProtoGuardConfigUpdateFilterBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardConfigUpdateFilterOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-config/filters/${filterId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-config/filters/${encodeURIComponent(filterId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialDashboardInstanceProtoGuardConfigEndpoint {
     body: DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-config/alert-filter-count-threshold`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-config/alert-filter-count-threshold`;
 
     let request = {
       path,

@@ -97,7 +97,7 @@ export class MetorialWebhookRegistrationsEndpoint {
     webhookRegistrationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceWebhookRegistrationsGetOutput> {
-    let path = `webhook-registrations/${webhookRegistrationId}`;
+    let path = `webhook-registrations/${encodeURIComponent(webhookRegistrationId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialWebhookRegistrationsEndpoint {
     body: DashboardInstanceWebhookRegistrationsSetupBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceWebhookRegistrationsSetupOutput> {
-    let path = `webhook-registrations/${webhookRegistrationId}/setup`;
+    let path = `webhook-registrations/${encodeURIComponent(webhookRegistrationId)}/setup`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialWebhookRegistrationsEndpoint {
     body: DashboardInstanceWebhookRegistrationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceWebhookRegistrationsUpdateOutput> {
-    let path = `webhook-registrations/${webhookRegistrationId}`;
+    let path = `webhook-registrations/${encodeURIComponent(webhookRegistrationId)}`;
 
     let request = {
       path,
@@ -216,7 +216,7 @@ export class MetorialWebhookRegistrationsEndpoint {
     webhookRegistrationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceWebhookRegistrationsDeleteOutput> {
-    let path = `webhook-registrations/${webhookRegistrationId}`;
+    let path = `webhook-registrations/${encodeURIComponent(webhookRegistrationId)}`;
 
     let request = {
       path,

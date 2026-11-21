@@ -1,0 +1,47 @@
+model VirtualModel {
+  oid BigInt @id
+  id  String @unique
+
+  slug        String
+  name        String
+  description String?
+
+  currentVersionOid BigInt?              @unique
+  currentVersion    VirtualModelVersion? @relation("CurrentVersion", fields: [currentVersionOid], references: [oid])
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  versions VirtualModelVersion[] @relation("Versions")
+
+  @@index([instanceOid, slug])
+  @@index([organizationOid])
+}
+
+model VirtualModelVersion {
+  oid BigInt @id
+  id  String @unique
+
+  number Int
+
+  /// [VirtualModelDefinition]
+  definition Json
+
+  targetModelSlugs String[]
+
+  createdAt DateTime @default(now())
+
+  virtualModelOid BigInt
+  virtualModel    VirtualModel @relation("Versions", fields: [virtualModelOid], references: [oid])
+
+  currentOf VirtualModel? @relation("CurrentVersion")
+
+  @@unique([virtualModelOid, number])
+}

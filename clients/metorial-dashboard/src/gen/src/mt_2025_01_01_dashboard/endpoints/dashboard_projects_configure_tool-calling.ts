@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureToolCallingEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureToolCallingGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/tool-calling`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/tool-calling`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureToolCallingEndpoint {
     body: DashboardProjectsConfigureToolCallingUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureToolCallingUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/tool-calling`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/tool-calling`;
 
     let request = {
       path,

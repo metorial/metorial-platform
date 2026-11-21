@@ -57,7 +57,7 @@ export class MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint {
     query?: DashboardOrganizationsServiceAccountsCredentialsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsCredentialsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts/${serviceAccountId}/credentials`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts/${encodeURIComponent(serviceAccountId)}/credentials`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardOrganizationsServiceAccountsCredentialsEndpoint {
     serviceAccountCredentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsCredentialsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts/${serviceAccountId}/credentials/${serviceAccountCredentialId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts/${encodeURIComponent(serviceAccountId)}/credentials/${encodeURIComponent(serviceAccountCredentialId)}`;
 
     let request = {
       path,

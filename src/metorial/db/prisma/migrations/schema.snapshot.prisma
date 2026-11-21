@@ -4837,6 +4837,8 @@ model Instance {
   synthesisEnvironmentId String?
   lastSubspaceSyncAt     DateTime?
 
+  aiGatewayInstanceId String?
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
@@ -8113,7 +8115,7 @@ model Skill {
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]               @ignore
+  skillParticipants               SkillParticipant[]                  @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]

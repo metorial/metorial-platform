@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceProviderSpecificationChangeNotificationsEn
     query?: DashboardInstanceProviderSpecificationChangeNotificationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderSpecificationChangeNotificationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-specification-change-notifications`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-specification-change-notifications`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardInstanceProviderSpecificationChangeNotificationsEn
     notificationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderSpecificationChangeNotificationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-specification-change-notifications/${notificationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-specification-change-notifications/${encodeURIComponent(notificationId)}`;
 
     let request = {
       path,

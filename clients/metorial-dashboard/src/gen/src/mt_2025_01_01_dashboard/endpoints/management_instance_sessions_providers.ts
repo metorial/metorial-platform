@@ -65,7 +65,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
     query?: DashboardInstanceSessionsProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersListOutput> {
-    let path = `instances/${instanceId}/session-providers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-providers`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersGetOutput> {
-    let path = `instances/${instanceId}/session-providers/${sessionProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
     body: DashboardInstanceSessionsProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersCreateOutput> {
-    let path = `instances/${instanceId}/session-providers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-providers`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
     body: DashboardInstanceSessionsProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersUpdateOutput> {
-    let path = `instances/${instanceId}/session-providers/${sessionProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersDeleteOutput> {
-    let path = `instances/${instanceId}/session-providers/${sessionProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,

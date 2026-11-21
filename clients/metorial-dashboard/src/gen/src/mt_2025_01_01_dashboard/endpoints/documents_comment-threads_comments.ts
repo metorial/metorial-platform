@@ -61,7 +61,7 @@ export class MetorialDocumentsCommentThreadsCommentsEndpoint {
     body: DashboardInstanceDocumentsCommentThreadsCommentsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsCommentsCreateOutput> {
-    let path = `documents/${documentId}/comment-threads/${documentCommentThreadId}/comments`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads/${encodeURIComponent(documentCommentThreadId)}/comments`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDocumentsCommentThreadsCommentsEndpoint {
     body: DashboardInstanceDocumentsCommentThreadsCommentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsCommentsUpdateOutput> {
-    let path = `documents/${documentId}/comment-threads/${documentCommentThreadId}/comments/${documentCommentId}`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads/${encodeURIComponent(documentCommentThreadId)}/comments/${encodeURIComponent(documentCommentId)}`;
 
     let request = {
       path,
@@ -131,7 +131,7 @@ export class MetorialDocumentsCommentThreadsCommentsEndpoint {
     documentCommentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsCommentsDeleteOutput> {
-    let path = `documents/${documentId}/comment-threads/${documentCommentThreadId}/comments/${documentCommentId}`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads/${encodeURIComponent(documentCommentThreadId)}/comments/${encodeURIComponent(documentCommentId)}`;
 
     let request = {
       path,

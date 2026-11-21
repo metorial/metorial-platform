@@ -83,7 +83,7 @@ export class MetorialManagementOrganizationAuditLogsEndpoint {
     auditLogId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogsGetOutput> {
-    let path = `organization/audit-logs/${auditLogId}`;
+    let path = `organization/audit-logs/${encodeURIComponent(auditLogId)}`;
 
     let request = {
       path,

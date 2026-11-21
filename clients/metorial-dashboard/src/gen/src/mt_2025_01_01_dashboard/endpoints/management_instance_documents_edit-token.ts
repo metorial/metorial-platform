@@ -51,7 +51,7 @@ export class MetorialManagementInstanceDocumentsEditTokenEndpoint {
     documentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsEditTokenGetOutput> {
-    let path = `instances/${instanceId}/documents/${documentId}/edit-token`;
+    let path = `instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}/edit-token`;
 
     let request = {
       path,

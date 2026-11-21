@@ -83,7 +83,7 @@ export class MetorialPublishersEndpoint {
     publisherId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublishersGetOutput> {
-    let path = `publishers/${publisherId}`;
+    let path = `publishers/${encodeURIComponent(publisherId)}`;
 
     let request = {
       path,

@@ -59,7 +59,7 @@ export class MetorialManagementInstanceIntegrationsSetupSessionsEndpoint {
     query?: DashboardInstanceIntegrationsSetupSessionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsSetupSessionsListOutput> {
-    let path = `instances/${instanceId}/integration-setup-sessions`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-setup-sessions`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstanceIntegrationsSetupSessionsEndpoint {
     integrationSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsSetupSessionsGetOutput> {
-    let path = `instances/${instanceId}/integration-setup-sessions/${integrationSetupSessionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-setup-sessions/${encodeURIComponent(integrationSetupSessionId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialManagementInstanceIntegrationsSetupSessionsEndpoint {
     body: DashboardInstanceIntegrationsSetupSessionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsSetupSessionsCreateOutput> {
-    let path = `instances/${instanceId}/integration-setup-sessions`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-setup-sessions`;
 
     let request = {
       path,

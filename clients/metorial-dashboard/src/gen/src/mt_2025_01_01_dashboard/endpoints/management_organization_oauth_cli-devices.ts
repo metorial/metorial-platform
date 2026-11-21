@@ -83,7 +83,7 @@ export class MetorialManagementOrganizationOauthCliDevicesEndpoint {
     cliDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthCliDevicesGetOutput> {
-    let path = `organization/oauth/cli-devices/${cliDeviceId}`;
+    let path = `organization/oauth/cli-devices/${encodeURIComponent(cliDeviceId)}`;
 
     let request = {
       path,

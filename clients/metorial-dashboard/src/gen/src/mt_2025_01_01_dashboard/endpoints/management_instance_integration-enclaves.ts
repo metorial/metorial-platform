@@ -55,7 +55,7 @@ export class MetorialManagementInstanceIntegrationEnclavesEndpoint {
     query?: DashboardInstanceIntegrationEnclavesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationEnclavesListOutput> {
-    let path = `instances/${instanceId}/integration-enclaves`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-enclaves`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialManagementInstanceIntegrationEnclavesEndpoint {
     integrationEnclaveId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationEnclavesGetOutput> {
-    let path = `instances/${instanceId}/integration-enclaves/${integrationEnclaveId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-enclaves/${encodeURIComponent(integrationEnclaveId)}`;
 
     let request = {
       path,

@@ -65,7 +65,7 @@ export class MetorialManagementInstanceIdentitiesCredentialsEndpoint {
     query?: DashboardInstanceIdentitiesCredentialsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsListOutput> {
-    let path = `instances/${instanceId}/identity-credentials`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-credentials`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceIdentitiesCredentialsEndpoint {
     identityCredentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsGetOutput> {
-    let path = `instances/${instanceId}/identity-credentials/${identityCredentialId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceIdentitiesCredentialsEndpoint {
     body: DashboardInstanceIdentitiesCredentialsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsCreateOutput> {
-    let path = `instances/${instanceId}/identity-credentials`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-credentials`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialManagementInstanceIdentitiesCredentialsEndpoint {
     body: DashboardInstanceIdentitiesCredentialsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsUpdateOutput> {
-    let path = `instances/${instanceId}/identity-credentials/${identityCredentialId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialManagementInstanceIdentitiesCredentialsEndpoint {
     identityCredentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsDeleteOutput> {
-    let path = `instances/${instanceId}/identity-credentials/${identityCredentialId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,

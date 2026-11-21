@@ -8,10 +8,6 @@ export let aiGatewayApi = apiMux(
   [
     {
       methods: ['GET', 'OPTIONS'],
-      endpoint: { path: '/assistant-live', exact: false, fetch: aiGatewayHttpApi.fetch as any }
-    },
-    {
-      methods: ['GET', 'OPTIONS'],
       endpoint: { path: '/ping', exact: true, fetch: aiGatewayHttpApi.fetch as any }
     }
   ],

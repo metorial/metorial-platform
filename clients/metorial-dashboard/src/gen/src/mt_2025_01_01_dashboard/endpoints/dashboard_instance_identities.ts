@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceIdentitiesEndpoint {
     query?: DashboardInstanceIdentitiesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesListOutput> {
-    let path = `dashboard/instances/${instanceId}/identities`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identities`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceIdentitiesEndpoint {
     identityId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/identities/${identityId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceIdentitiesEndpoint {
     body: DashboardInstanceIdentitiesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/identities`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identities`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceIdentitiesEndpoint {
     body: DashboardInstanceIdentitiesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/identities/${identityId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceIdentitiesEndpoint {
     identityId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/identities/${identityId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,

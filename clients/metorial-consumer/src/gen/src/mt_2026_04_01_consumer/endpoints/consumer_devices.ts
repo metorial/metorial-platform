@@ -113,7 +113,7 @@ export class MetorialConsumerDevicesEndpoint {
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerDevicesGetOutput> {
-    let path = `consumer/devices/${consumerDeviceId}`;
+    let path = `consumer/devices/${encodeURIComponent(consumerDeviceId)}`;
 
     let request = {
       path,
@@ -161,7 +161,7 @@ export class MetorialConsumerDevicesEndpoint {
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerDevicesRevokeOutput> {
-    let path = `consumer/devices/${consumerDeviceId}/revoke`;
+    let path = `consumer/devices/${encodeURIComponent(consumerDeviceId)}/revoke`;
 
     let request = {
       path,

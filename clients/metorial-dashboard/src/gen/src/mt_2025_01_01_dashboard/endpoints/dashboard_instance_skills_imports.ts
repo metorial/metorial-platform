@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceSkillsImportsEndpoint {
     query?: DashboardInstanceSkillsImportsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsImportsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-imports`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-imports`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardInstanceSkillsImportsEndpoint {
     skillImportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsImportsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-imports/${skillImportId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-imports/${encodeURIComponent(skillImportId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialDashboardInstanceSkillsImportsEndpoint {
     body: DashboardInstanceSkillsImportsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsImportsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-imports`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-imports`;
 
     let request = {
       path,

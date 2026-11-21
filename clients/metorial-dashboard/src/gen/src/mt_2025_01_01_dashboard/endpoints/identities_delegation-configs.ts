@@ -95,7 +95,7 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
     identityDelegationConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsGetOutput> {
-    let path = `identity-delegation-configs/${identityDelegationConfigId}`;
+    let path = `identity-delegation-configs/${encodeURIComponent(identityDelegationConfigId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
     body: DashboardInstanceIdentitiesDelegationConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsUpdateOutput> {
-    let path = `identity-delegation-configs/${identityDelegationConfigId}`;
+    let path = `identity-delegation-configs/${encodeURIComponent(identityDelegationConfigId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
     identityDelegationConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsDeleteOutput> {
-    let path = `identity-delegation-configs/${identityDelegationConfigId}`;
+    let path = `identity-delegation-configs/${encodeURIComponent(identityDelegationConfigId)}`;
 
     let request = {
       path,

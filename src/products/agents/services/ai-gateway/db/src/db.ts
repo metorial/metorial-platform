@@ -1,11 +1,12 @@
 import { createDatabase } from '@lowerdeck/prisma-pg';
+import type * as Spec from '@mtsrc/ai-gateway-spec';
 import { PrismaClient } from '../prisma/generated/client';
 
 export * from '../prisma/generated/client';
 
 export let { db, withTransaction, addAfterTransactionHook } = createDatabase({
   name: 'ai-gateway',
-  url: ['SYNTHESIS_DATABASE_URL', 'DATABASE_URL'],
+  url: ['AI_GATEWAY_DATABASE_URL', 'DATABASE_URL'],
   createClient: adapter =>
     new PrismaClient({
       adapter,
@@ -19,13 +20,18 @@ export let { db, withTransaction, addAfterTransactionHook } = createDatabase({
 
 declare global {
   namespace PrismaJson {
-    type AssistantConversationInput = unknown;
-    type AssistantMessageStateContent = import('./types').State;
-    type AssistantMessageSerializedContent =
-      import('./types').AssistantMessageSerializedContent;
-    type AssistantRunCost = import('./types').AssistantRunCost;
-    type AssistantRunMetadata = import('./types').AssistantRunMetadata;
-    type SubspaceMcpToolList = import('./types').SubspaceMcpToolList;
+    type GatewayInstanceSettings = Spec.InstanceSettings;
+    type GatewayLimits = Spec.GatewayLimit[];
+    type PlatformLimits = Spec.PlatformLimit[];
+    type GatewayTokenMetadata = Spec.GatewayTokenMetadata;
+    type CatalogSyncCounts = Spec.CatalogSyncCounts;
+    type ModelCapabilities = Spec.ModelCapabilities;
+    type OfferingVariant = Spec.OfferingVariant;
+    type Pricing = Spec.Pricing;
+    type ProviderConnectionConfig = Spec.ProviderConnectionConfig;
+    type ProviderFeatures = Spec.ProviderFeatures;
+    type ConnectionPricingOverride = Spec.ConnectionPricingOverride;
+    type VirtualModelDefinition = Spec.VirtualModelDefinition;
   }
 }
 

@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceSandboxDisksResizesEndpoint {
     query?: DashboardInstanceSandboxDisksResizesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksResizesListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}/resizes`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}/resizes`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceSandboxDisksResizesEndpoint {
     resizeId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksResizesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}/resizes/${resizeId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}/resizes/${encodeURIComponent(resizeId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialDashboardInstanceSandboxDisksResizesEndpoint {
     resizeId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksResizesRetryOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}/resizes/${resizeId}/retry`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}/resizes/${encodeURIComponent(resizeId)}/retry`;
 
     let request = {
       path,

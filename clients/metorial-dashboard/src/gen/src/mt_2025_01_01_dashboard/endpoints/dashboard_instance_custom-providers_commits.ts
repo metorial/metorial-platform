@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceCustomProvidersCommitsEndpoint {
     query?: DashboardInstanceCustomProvidersCommitsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsListOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-commits`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-commits`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardInstanceCustomProvidersCommitsEndpoint {
     customProviderCommitId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-commits/${customProviderCommitId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-commits/${encodeURIComponent(customProviderCommitId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialDashboardInstanceCustomProvidersCommitsEndpoint {
     body: DashboardInstanceCustomProvidersCommitsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-commits`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-commits`;
 
     let request = {
       path,

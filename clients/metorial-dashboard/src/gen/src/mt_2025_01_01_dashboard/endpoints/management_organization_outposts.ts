@@ -97,7 +97,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
     outpostId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsGetOutput> {
-    let path = `organization/outposts/${outpostId}`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
     body: DashboardOrganizationsOutpostsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsUpdateOutput> {
-    let path = `organization/outposts/${outpostId}`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}`;
 
     let request = {
       path,
@@ -182,7 +182,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
     outpostId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsDisableOutput> {
-    let path = `organization/outposts/${outpostId}/disable`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/disable`;
 
     let request = {
       path,
@@ -209,7 +209,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
     outpostId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsEnableOutput> {
-    let path = `organization/outposts/${outpostId}/enable`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/enable`;
 
     let request = {
       path,
@@ -236,7 +236,7 @@ export class MetorialManagementOrganizationOutpostsEndpoint {
     outpostId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsDeleteOutput> {
-    let path = `organization/outposts/${outpostId}`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}`;
 
     let request = {
       path,

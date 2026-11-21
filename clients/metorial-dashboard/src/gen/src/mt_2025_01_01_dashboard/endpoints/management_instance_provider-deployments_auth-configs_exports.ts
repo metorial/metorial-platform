@@ -59,7 +59,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsExportsEndp
     query?: DashboardInstanceProviderDeploymentsAuthConfigsExportsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsExportsListOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-exports`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-exports`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsExportsEndp
     providerAuthExportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsExportsGetOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-exports/${providerAuthExportId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-exports/${encodeURIComponent(providerAuthExportId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsExportsEndp
     body: DashboardInstanceProviderDeploymentsAuthConfigsExportsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsExportsCreateOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-exports`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-exports`;
 
     let request = {
       path,

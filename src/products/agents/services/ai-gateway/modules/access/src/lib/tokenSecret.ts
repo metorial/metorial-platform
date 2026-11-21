@@ -1,0 +1,46 @@
+import { base62 } from '@lowerdeck/base62';
+import { Hash } from '@lowerdeck/hash';
+import { timingSafeEqual } from 'node:crypto';
+
+let tokenPrefix = 'metorial_aigt';
+let prefixBytes = 16;
+let secretBytes = 32;
+
+let tokenPattern = /^metorial_aigt_([0-9A-Za-z]{8,32})_([0-9A-Za-z]{32,96})$/;
+
+export type ParsedGatewayToken = { prefix: string; secret: string };
+
+let randomBase62 = (bytes: number) =>
+  base62.encode(crypto.getRandomValues(new Uint8Array(bytes)));
+
+export let generateGatewayToken = () => {
+  let prefix = randomBase62(prefixBytes);
+  let secret = randomBase62(secretBytes);
+
+  return { prefix, secret, token: `${tokenPrefix}_${prefix}_${secret}` };
+};
+
+export let parseGatewayToken = (token: string): ParsedGatewayToken | null => {
+  let match = tokenPattern.exec(token);
+  if (!match) return null;
+
+  return { prefix: match[1]!, secret: match[2]! };
+};
+
+export let hashGatewayTokenSecret = (secret: string) => Hash.sha256(secret);
+
+export let secretHashesMatch = (a: string, b: string) => {
+  let left = Buffer.from(a);
+  let right = Buffer.from(b);
+
+  return left.length == right.length && timingSafeEqual(left, right);
+};
+
+export let extractGatewayToken = (headers: {
+  authorization?: string | null;
+  apiKey?: string | null;
+}) => {
+  let bearer = headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+
+  return bearer || headers.apiKey?.trim() || undefined;
+};

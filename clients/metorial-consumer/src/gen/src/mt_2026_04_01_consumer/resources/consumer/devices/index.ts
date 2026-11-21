@@ -4,3 +4,4 @@ export * from './get';
 export * from './list';
 export * from './revoke';
 export * from './sign-out';
+export * from './telemetry-token';

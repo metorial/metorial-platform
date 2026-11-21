@@ -67,7 +67,7 @@ export class MetorialDashboardInstancePortalsAccessEndpoint {
     query?: DashboardInstancePortalsAccessListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessListOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}/access`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/access`;
 
     let request = {
       path,
@@ -101,7 +101,7 @@ export class MetorialDashboardInstancePortalsAccessEndpoint {
     accessId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessGetOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}/access/${accessId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/access/${encodeURIComponent(accessId)}`;
 
     let request = {
       path,
@@ -132,7 +132,7 @@ export class MetorialDashboardInstancePortalsAccessEndpoint {
     body: DashboardInstancePortalsAccessCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}/access`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/access`;
 
     let request = {
       path,
@@ -166,7 +166,7 @@ export class MetorialDashboardInstancePortalsAccessEndpoint {
     body: DashboardInstancePortalsAccessUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}/access/${accessId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/access/${encodeURIComponent(accessId)}`;
 
     let request = {
       path,
@@ -198,7 +198,7 @@ export class MetorialDashboardInstancePortalsAccessEndpoint {
     accessId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}/access/${accessId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/access/${encodeURIComponent(accessId)}`;
 
     let request = {
       path,

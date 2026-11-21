@@ -5,13 +5,30 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",
-    "@lowerdeck/rpc-server": "workspace:2.0.0"
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@mtsrc/ai-gateway-db": "workspace:*",
+    "@mtsrc/ai-gateway-module-access": "workspace:*",
+    "@mtsrc/ai-gateway-module-billing": "workspace:*",
+    "@mtsrc/ai-gateway-module-catalog": "workspace:*",
+    "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+    "@mtsrc/ai-gateway-module-limits": "workspace:*",
+    "@mtsrc/ai-gateway-module-logs": "workspace:*",
+    "@mtsrc/ai-gateway-module-routing": "workspace:*",
+    "@mtsrc/ai-gateway-module-scope": "workspace:*",
+    "@mtsrc/ai-gateway-module-virtual-models": "workspace:*",
+    "@mtsrc/ai-gateway-providers": "workspace:*",
+    "@mtsrc/ai-gateway-request-features": "workspace:*",
+    "@mtsrc/ai-gateway-spec": "workspace:*",
+    "@mtsrc/ai-gateway-store": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

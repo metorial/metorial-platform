@@ -61,7 +61,7 @@ export class MetorialDashboardOrganizationsMembersEndpoint {
     query?: DashboardOrganizationsMembersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsMembersListOutput> {
-    let path = `dashboard/organizations/${organizationId}/members`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/members`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardOrganizationsMembersEndpoint {
     memberId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsMembersGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/members/${memberId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(memberId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardOrganizationsMembersEndpoint {
     memberId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsMembersDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/members/${memberId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(memberId)}`;
 
     let request = {
       path,
@@ -153,7 +153,7 @@ export class MetorialDashboardOrganizationsMembersEndpoint {
     body: DashboardOrganizationsMembersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsMembersUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/members/${memberId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/members/${encodeURIComponent(memberId)}`;
 
     let request = {
       path,

@@ -93,7 +93,7 @@ export class MetorialManagementOrganizationOauthAppsEndpoint {
     oauthApplicationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsGetOutput> {
-    let path = `organization/oauth/apps/${oauthApplicationId}`;
+    let path = `organization/oauth/apps/${encodeURIComponent(oauthApplicationId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialManagementOrganizationOauthAppsEndpoint {
     body: DashboardOrganizationsOauthAppsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsUpdateOutput> {
-    let path = `organization/oauth/apps/${oauthApplicationId}`;
+    let path = `organization/oauth/apps/${encodeURIComponent(oauthApplicationId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialManagementOrganizationOauthAppsEndpoint {
     oauthApplicationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsDeleteOutput> {
-    let path = `organization/oauth/apps/${oauthApplicationId}`;
+    let path = `organization/oauth/apps/${encodeURIComponent(oauthApplicationId)}`;
 
     let request = {
       path,

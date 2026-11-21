@@ -51,7 +51,7 @@ export class MetorialSecurityReviewsEndpoint {
     securityReviewId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSecurityReviewsGetOutput> {
-    let path = `security-reviews/${securityReviewId}`;
+    let path = `security-reviews/${encodeURIComponent(securityReviewId)}`;
 
     let request = {
       path,
@@ -78,7 +78,7 @@ export class MetorialSecurityReviewsEndpoint {
     securityReviewId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSecurityReviewsReassessOutput> {
-    let path = `security-reviews/${securityReviewId}/reassess`;
+    let path = `security-reviews/${encodeURIComponent(securityReviewId)}/reassess`;
 
     let request = {
       path,

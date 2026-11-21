@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceStoresItemsEndpoint {
     body: DashboardInstanceStoresItemsModifyBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresItemsModifyOutput> {
-    let path = `dashboard/instances/${instanceId}/stores/${storeId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/stores/${encodeURIComponent(storeId)}/items`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceStoresItemsEndpoint {
     query?: DashboardInstanceStoresItemsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresItemsListOutput> {
-    let path = `dashboard/instances/${instanceId}/stores/${storeId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/stores/${encodeURIComponent(storeId)}/items`;
 
     let request = {
       path,
@@ -127,7 +127,7 @@ export class MetorialDashboardInstanceStoresItemsEndpoint {
     itemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresItemsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/stores/${storeId}/items/${itemId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/stores/${encodeURIComponent(storeId)}/items/${encodeURIComponent(itemId)}`;
 
     let request = {
       path,

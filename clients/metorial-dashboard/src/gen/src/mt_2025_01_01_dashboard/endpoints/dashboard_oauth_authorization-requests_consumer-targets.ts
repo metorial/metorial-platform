@@ -49,7 +49,7 @@ export class MetorialDashboardOauthAuthorizationRequestsConsumerTargetsEndpoint 
     urlToken: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOauthAuthorizationRequestsConsumerTargetsListOutput> {
-    let path = `dashboard/oauth/authorization-requests/${urlToken}/consumer-targets`;
+    let path = `dashboard/oauth/authorization-requests/${encodeURIComponent(urlToken)}/consumer-targets`;
 
     let request = {
       path,

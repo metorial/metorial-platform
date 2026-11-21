@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureDataRetentionEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureDataRetentionGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/data-retention`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/data-retention`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureDataRetentionEndpoint {
     body: DashboardProjectsConfigureDataRetentionUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureDataRetentionUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/data-retention`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/data-retention`;
 
     let request = {
       path,

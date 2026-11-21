@@ -59,7 +59,7 @@ export class MetorialManagementInstanceScmConnectionsEndpoint {
     query?: DashboardInstanceScmConnectionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmConnectionsListOutput> {
-    let path = `instances/${instanceId}/scm/connections`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/connections`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceScmConnectionsEndpoint {
     scmConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmConnectionsGetOutput> {
-    let path = `instances/${instanceId}/scm/connections/${scmConnectionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/connections/${encodeURIComponent(scmConnectionId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialManagementInstanceScmConnectionsEndpoint {
     body: DashboardInstanceScmConnectionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmConnectionsCreateOutput> {
-    let path = `instances/${instanceId}/scm/connections`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/connections`;
 
     let request = {
       path,

@@ -117,7 +117,7 @@ export class MetorialDashboardOrganizationsEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}`;
 
     let request = {
       path,
@@ -144,7 +144,7 @@ export class MetorialDashboardOrganizationsEndpoint {
     body: DashboardOrganizationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}`;
 
     let request = {
       path,
@@ -172,7 +172,7 @@ export class MetorialDashboardOrganizationsEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}`;
 
     let request = {
       path,
