@@ -36,6 +36,9 @@ export let functionDeploymentPresenter = (
       }
     : null,
 
+  pendingReason: deployment.pendingReason,
+  forgeRunId: deployment.forgeRunId,
+
   identifier: deployment.identifier,
   name: deployment.name,
 
@@ -51,7 +54,8 @@ export let functionDeploymentPresenter = (
       })
     : null,
 
-  createdAt: deployment.createdAt
+  createdAt: deployment.createdAt,
+  updatedAt: deployment.updatedAt
 });
 
 export let functionDeploymentStepPresenter = (step: {

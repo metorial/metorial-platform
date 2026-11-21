@@ -65,6 +65,18 @@ class activationServiceImpl {
     return slate;
   }
 
+  async getCatalogVersion(d: { slateId: string; versionId: string }) {
+    let slate = await this.getCatalogSlate(d);
+
+    let version = await db.slateVersion.findFirst({
+      where: { slateOid: slate.oid, OR: [{ id: d.versionId }, { version: d.versionId }] },
+      include: versionInclude
+    });
+    if (!version) throw new ServiceError(notFoundError('slate.version'));
+
+    return { slate, version };
+  }
+
   async listCatalogVersions(d: { slateId: string }) {
     let slate = await this.getCatalogSlate(d);
 
