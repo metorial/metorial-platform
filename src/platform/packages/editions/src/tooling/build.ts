@@ -3,9 +3,11 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { resolveReleaseChannel, type ReleaseChannel } from '../channel';
 import type { Edition } from '../edition';
+import { esbuildBundleContents, writeBundleManifest } from './bundleManifest';
 import { makeEsmCyclesSafe } from './esmCycles';
 import { editionsEsbuildPlugin } from './esbuild';
 import { postgresSamlPlugin } from './postgresSaml';
+import { samlJacksonImportsPlugin } from './samlJacksonImports';
 
 let defaultExternals = ['bun', 'bun:*'];
 
@@ -22,6 +24,7 @@ export type BuildEditionOptions = {
   minify?: boolean;
   splitting?: boolean;
   sourcemap?: 'external' | 'none';
+  bundleManifest?: string;
 };
 
 export let buildEdition = async (options: BuildEditionOptions) => {
@@ -48,6 +51,7 @@ export let buildEdition = async (options: BuildEditionOptions) => {
       __METORIAL_RELEASE_CHANNEL__: JSON.stringify(channel)
     },
     plugins: [
+      samlJacksonImportsPlugin(),
       editionsEsbuildPlugin(options.edition, channel),
       ...(options.edition === 'on-prem' ? [postgresSamlPlugin()] : [])
     ],
@@ -65,6 +69,9 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     let patched = makeEsmCyclesSafe(code, output);
     if (patched != code) await writeFile(output, patched);
   }
+
+  if (options.bundleManifest)
+    await writeBundleManifest(options.bundleManifest, esbuildBundleContents(result.metafile));
 
   return Object.keys(result.metafile.outputs).map(output => resolve(output));
 };

@@ -23,6 +23,7 @@
     "@mtsrc/mcp-runtime-function-bay": "workspace:*",
     "@mtsrc/mcp-runtime-module-functions": "workspace:*",
     "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
     "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
     "date-fns": "^4.4.0",
     "vitest": "5.0.4"

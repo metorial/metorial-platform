@@ -32,7 +32,7 @@ class slateVersionDiscoveryServiceImpl {
     let versions = d.versionIds
       ? await db.slateVersion.findMany({
           where: {
-            status: 'active',
+            slateOid: d.slate.oid,
             OR: [{ id: { in: d.versionIds } }, { version: { in: d.versionIds } }]
           },
           select: { oid: true }

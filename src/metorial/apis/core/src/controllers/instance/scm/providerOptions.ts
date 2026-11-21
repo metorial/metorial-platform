@@ -12,7 +12,8 @@ let optionsType = PresentableType.create<{
 let optionsPresenter = Presenter.create(optionsType)
   .presenter(async ({ options }) => ({
     object: 'scm.provider_options' as const,
-    items: options.map(option => ({
+    project_providers_allowed: options.projectProvidersAllowed,
+    items: options.items.map(option => ({
       type: option.type,
       label: option.label,
       allowed_domains: option.allowedDomains
@@ -21,6 +22,10 @@ let optionsPresenter = Presenter.create(optionsType)
   .schema(
     v.object({
       object: v.literal('scm.provider_options'),
+      project_providers_allowed: v.boolean({
+        description:
+          'Whether projects may add their own providers; when false only centrally managed providers are available'
+      }),
       items: v.array(
         v.object({
           type: v.enumOf(

@@ -1,10 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Slate, SlateDeployment } from '../../prisma/generated/client';
+import type { Slate, SlateDeployment, SlateVersion } from '../../prisma/generated/client';
 import { db } from '../db';
 import { functionBay, functionBayTenant } from '../functionBay';
-import { deploySlateVersionQueue } from '../queues/deployment/deploy';
+import { getId } from '../id';
+import {
+  deploySlateVersionQueue,
+  hasServingSlateDeployment
+} from '../queues/deployment/deploy';
 
 let include = {
   slate: {
@@ -42,13 +46,22 @@ class slateDeploymentServiceImpl {
       return [];
     }
 
-    let res = await functionBay.functionDeployment.getOutput({
+    let steps = await functionBay.functionDeployment.getOutput({
       tenantId: (await functionBayTenant).id,
       functionId: d.slateDeployment.providerDeploymentInfo.functionId,
       functionDeploymentId: d.slateDeployment.providerDeploymentInfo.functionDeploymentId
     });
 
-    return res;
+    return steps.map(step => ({
+      id: step.id,
+      name: step.name,
+      type: step.type,
+      status: step.status,
+      logs: step.logs,
+      createdAt: step.createdAt,
+      startedAt: step.startedAt,
+      endedAt: step.endedAt
+    }));
   }
 
   async getInternalLogs(d: { slateDeployment: SlateDeployment }) {
@@ -73,6 +86,7 @@ class slateDeploymentServiceImpl {
       data: {
         isCancelledByRedeploy: true,
         status: 'failed',
+        endedAt: new Date(),
         errorCode: 'cancelled_by_redeploy',
         errorMessage: 'Cancelled by redeploy'
       }
@@ -86,6 +100,29 @@ class slateDeploymentServiceImpl {
     await deploySlateVersionQueue.add({ versionId: version.id });
 
     return { version, queuedAt };
+  }
+
+  async deployVersion(d: { slateVersion: SlateVersion; requestedBy?: string }) {
+    await db.slateEvent.create({
+      data: {
+        ...getId('slateEvent'),
+        type: 'deployment_started',
+        message: d.requestedBy
+          ? `Rebuild of version ${d.slateVersion.version} requested by ${d.requestedBy}`
+          : `Rebuild of version ${d.slateVersion.version} requested`,
+        slateOid: d.slateVersion.slateOid,
+        slateVersionOid: d.slateVersion.oid
+      }
+    });
+
+    if (!hasServingSlateDeployment(d.slateVersion)) {
+      await db.slateVersion.update({
+        where: { oid: d.slateVersion.oid },
+        data: { status: 'pending' }
+      });
+    }
+
+    return this.redeployVersion({ versionOid: d.slateVersion.oid });
   }
 
   async redeploy(d: { slateDeployment: SlateDeployment }) {

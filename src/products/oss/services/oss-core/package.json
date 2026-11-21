@@ -5,7 +5,7 @@
   "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
-    "oss:server:build": "NODE_OPTIONS=--max-old-space-size=15360 ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
+    "oss:server:build": "metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js",
     "oss:server:start": "bun ./dist/index.js",
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "dev:start": "bun --watch ./src/server.ts",
@@ -61,7 +61,6 @@
     "@metorial/module-web": "1.0.0",
     "@metorial/multi-region": "1.0.0",
     "@metorial/queue": "1.0.0",
-    "@vercel/ncc": "^0.45.0",
     "@metorial/api-integrations": "1.0.0",
     "@metorial/module-event-delivery": "1.0.0",
     "@metorial/module-event-destination": "1.0.0",

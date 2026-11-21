@@ -9,7 +9,7 @@
     "start": "bun run server:start",
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "enterprise:dev": "bun run dev",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
+    "server:build": "metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-agent-tracking ./dist && sentry-cli sourcemaps upload --org metorial --project mte-agent-tracking ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
@@ -44,8 +44,9 @@
     "@mtsrc/agent-tracking-module-sessions": "workspace:*",
     "@mtsrc/agent-tracking-spec": "workspace:*",
     "@mtsrc/agent-tracking-store": "workspace:*",
-    "@sentry/bun": "^11.9.0",
-    "@sentry/cli": "^3.8.2"
+    "@sentry/bun": "^11.12.0",
+    "@sentry/cli": "^3.8.2",
+    "@metorial/editions": "workspace:*"
   },
   "devDependencies": {
     "@lowerdeck/rpc-client": "workspace:2.0.0",
@@ -60,8 +61,7 @@
     "@mtsrc/agent-tracking-testing": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.45.0",
-    "mongoose": "^9.11.4",
+    "mongoose": "^9.12.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
   }

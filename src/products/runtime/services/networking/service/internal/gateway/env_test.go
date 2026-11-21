@@ -40,6 +40,7 @@ var testHosts = map[string][]string{
 	"down.example.test": {"93.184.216.99"},
 	"mapped.test":       {"::ffff:93.184.216.34"},
 	"mapped.meta.test":  {"::ffff:169.254.169.254"},
+	"hub.cluster.test":  {"10.42.9.9"},
 }
 
 type testEnv struct {
@@ -57,9 +58,10 @@ type testEnv struct {
 }
 
 type envOptions struct {
-	allowInternal bool
-	hardDeny      []string
-	idleTimeout   time.Duration
+	allowInternal  bool
+	hardDeny       []string
+	idleTimeout    time.Duration
+	platformRoutes []string
 }
 
 func newTestEnv(t *testing.T, opts envOptions) *testEnv {
@@ -83,16 +85,22 @@ func newTestEnv(t *testing.T, opts envOptions) *testEnv {
 		metrics:   NewMetrics(),
 		routes:    map[netip.AddrPort]string{},
 	}
+	platformRoutes, err := ParsePlatformRoutes(opts.platformRoutes, fakeResolver(testHosts))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	env.core = &Core{
-		Keys:        egress.NewKeySet(map[string]ed25519.PublicKey{"test": key.PublicKey()}),
-		Evaluator:   env.evaluator,
-		Resolver:    fakeResolver(testHosts),
-		Dial:        env.dial,
-		DialTimeout: 2 * time.Second,
-		Memory:      NewResolveMemory(),
-		Recorder:    NewRecorder("gw-test", time.Hour, nil),
-		Metrics:     env.metrics,
-		Logger:      testLogger(),
+		Keys:           egress.NewKeySet(map[string]ed25519.PublicKey{"test": key.PublicKey()}),
+		Evaluator:      env.evaluator,
+		Resolver:       fakeResolver(testHosts),
+		PlatformRoutes: platformRoutes,
+		Dial:           env.dial,
+		DialTimeout:    2 * time.Second,
+		Memory:         NewResolveMemory(),
+		Recorder:       NewRecorder("gw-test", time.Hour, nil),
+		Metrics:        env.metrics,
+		Logger:         testLogger(),
 	}
 
 	idle := opts.idleTimeout
@@ -146,6 +154,10 @@ func withPolicy(p *policy.Policy) grantOption {
 
 func withAllowAll() grantOption {
 	return func(g *egress.Grant) { g.AllowAll = true }
+}
+
+func withPlatformRoutes(routes ...string) grantOption {
+	return func(g *egress.Grant) { g.PlatformRoutes = routes }
 }
 
 func (e *testEnv) grant(opts ...grantOption) string {

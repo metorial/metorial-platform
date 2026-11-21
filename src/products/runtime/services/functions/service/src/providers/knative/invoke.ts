@@ -72,6 +72,7 @@ export let invokeFunction = async (
           functionVersion: d.functionVersion,
           enclave: d.enclave,
           egressPolicy: d.egressPolicy,
+          platformRoutes: d.platformRoutes,
           source: 'knative'
         }),
         deadlineMs

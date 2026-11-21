@@ -22,6 +22,14 @@ const (
 	messageHijackUnsupported = "Metorial Magic Network: hijacking unsupported"
 )
 
+// EgressErrorHeader marks responses the gateway generates itself, so a client can tell a gateway
+// denial apart from the same status code returned by the upstream server.
+const (
+	EgressErrorHeader       = "X-Metorial-Egress-Error"
+	egressErrorDenied       = "denied"
+	egressErrorUnauthorized = "unauthorized"
+)
+
 var (
 	errMissingProxyAuthorization = errors.New("missing proxy authorization")
 	errInvalidProxyAuthorization = errors.New("invalid proxy authorization")
@@ -44,6 +52,7 @@ func (s *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	grant, err := s.grantFromRequest(r)
 	if err != nil {
 		s.Core.logger().Warn("proxy authentication failed", "reason", authFailureReason(err), "method", r.Method, "host", r.Host)
+		w.Header().Set(EgressErrorHeader, egressErrorUnauthorized)
 		http.Error(w, messageAuthFailed, http.StatusProxyAuthRequired)
 		return
 	}
@@ -211,6 +220,7 @@ func (s *ProxyServer) handleUpgrade(w http.ResponseWriter, out *http.Request, up
 func (s *ProxyServer) dial(w http.ResponseWriter, r *http.Request, grant *egress.Grant, host, port string) (*Upstream, bool) {
 	portNumber, err := net.LookupPort("tcp", port)
 	if err != nil || portNumber < 1 || portNumber > 65535 || host == "" {
+		w.Header().Set(EgressErrorHeader, egressErrorDenied)
 		http.Error(w, messageDenied, http.StatusForbidden)
 		return nil, false
 	}
@@ -218,6 +228,7 @@ func (s *ProxyServer) dial(w http.ResponseWriter, r *http.Request, grant *egress
 	upstream, err := s.Core.Connect(r.Context(), FrontEndProxy, grant, Target{Host: host, Port: portNumber})
 	if err != nil {
 		s.Core.logger().Warn("proxy denied request", "method", r.Method, "host", host, "error", err)
+		w.Header().Set(EgressErrorHeader, egressErrorDenied)
 		http.Error(w, messageDenied, http.StatusForbidden)
 		return nil, false
 	}

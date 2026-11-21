@@ -157,6 +157,14 @@ func NewFileKeySet(path string, checkInterval time.Duration) (*FileKeySet, error
 	return f, nil
 }
 
+// OpenFileKeySet is NewFileKeySet for a file that may not exist or parse yet, because whoever
+// publishes it starts at the same time: it trusts no key until the file loads, and LastError says why.
+func OpenFileKeySet(path string, checkInterval time.Duration) *FileKeySet {
+	f := &FileKeySet{path: path, checkInterval: checkInterval, now: time.Now, current: &KeySet{}}
+	_ = f.reload()
+	return f
+}
+
 func (f *FileKeySet) PublicKey(kid string) (ed25519.PublicKey, bool) {
 	f.mu.Lock()
 	if f.now().Sub(f.checkedAt) >= f.checkInterval {

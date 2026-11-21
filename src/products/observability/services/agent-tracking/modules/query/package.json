@@ -28,7 +28,7 @@
     "@mtsrc/agent-tracking-redis": "workspace:*",
     "@mtsrc/agent-tracking-spec": "workspace:*",
     "@mtsrc/agent-tracking-store": "workspace:*",
-    "mongoose": "^9.11.4",
+    "mongoose": "^9.12.1",
     "object-storage-client": "workspace:*"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import type {
   SlateAuthConfig,
   SlateInstance,
   SlateInstanceConfig,
+  SlateInstanceConfiguration,
   Tenant
 } from '../../prisma/generated/client';
 import { db } from '../db';
@@ -29,14 +30,15 @@ let buildInvocationAuth = (auth: {
 export type RefreshableAttachment = SlateAttachment & {
   tenant: Tenant | null;
   authConfig: SlateAuthConfig | null;
+  instanceConfiguration: SlateInstanceConfiguration | null;
   slateInstance:
-    | (SlateInstance & { slate: Slate; currentConfig: SlateInstanceConfig | null })
-    | null;
+    (SlateInstance & { slate: Slate; currentConfig: SlateInstanceConfig | null }) | null;
 };
 
 export let refreshableAttachmentInclude = {
   tenant: true,
   authConfig: true,
+  instanceConfiguration: true,
   slateInstance: { include: { slate: true, currentConfig: true } }
 } as const;
 

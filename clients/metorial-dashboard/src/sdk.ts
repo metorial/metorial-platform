@@ -279,6 +279,21 @@ export type MetorialFileUploadMode = 'direct' | 'presigned';
 
 export let smallFileDirectUploadMaxBytes = 1024 * 1024;
 
+let multipartBatchSize = 8;
+let multipartUploadConcurrency = 3;
+
+type MultipartPart = { number: number; url: string; manifest: string };
+
+type MultipartPendingUpload = {
+  id: string;
+  upload: {
+    method: 'multipart';
+    part_size: number;
+    part_count: number;
+    parts: MultipartPart[];
+  };
+};
+
 let presignedUploadHostSuffixes = [
   '.metorial.com',
   '.metorial.app',
@@ -632,6 +647,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     organizationId?: string;
     instanceId?: string;
     metorialInstance?: string;
+    supportsPresignedFileUploads?: boolean;
+    supportsMultipartFileUploads?: boolean;
 
     consumer?: {
       apiKey: `${MetorialKeyPrefix}${string}` | string;
@@ -743,7 +760,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
       let mode =
         input.mode ??
-        (supportsPresignedUpload(base) && input.file.size > smallFileDirectUploadMaxBytes
+        ((manager.config.supportsPresignedFileUploads ?? supportsPresignedUpload(base)) &&
+        input.file.size > smallFileDirectUploadMaxBytes
           ? 'presigned'
           : 'direct');
       let requestHeaders = manager.getHeaders(manager.config) as Record<string, string>;
@@ -768,7 +786,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
       let postFiles = async (
         body: FormData | string,
-        onProgress?: typeof input.onProgress
+        onProgress?: typeof input.onProgress,
+        signal: AbortSignal | null = input.signal ?? null
       ) => {
         let res =
           typeof body != 'string' && onProgress
@@ -778,7 +797,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
                 body,
                 headers: requestHeaders,
                 credentials: 'include',
-                signal: input.signal,
+                signal: signal ?? undefined,
                 onProgress
               })
             : await fetch(`${base}files`, {
@@ -793,7 +812,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
                 referrerPolicy: 'no-referrer-when-downgrade',
                 cache: 'no-cache',
                 mode: 'cors',
-                signal: input.signal
+                signal
               }).then(async response => ({
                 ok: response.ok,
                 status: response.status,
@@ -801,6 +820,138 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
               }));
 
         return parseFilesResponse(res.status, res.text);
+      };
+
+      let multipartStarted = false;
+
+      let retryMultipartRequest = async <T>(run: () => Promise<T>) => {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await run();
+          } catch (error) {
+            let status = error instanceof MetorialSDKError ? error.response.status : undefined;
+            if (
+              input.signal?.aborted ||
+              isAbortError(error) ||
+              attempt >= 2 ||
+              (status !== undefined && status < 500 && status !== 408 && status !== 429)
+            )
+              throw error;
+
+            await new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt));
+          }
+        }
+      };
+
+      let uploadMultipart = async (pending: MultipartPendingUpload) => {
+        multipartStarted = true;
+        let { part_count: count, part_size: size } = pending.upload;
+        let receipts: string[] = Array.from({ length: count });
+        let bytesSent = Array<number>(count).fill(0);
+        let startedCompletion = false;
+        let post = (
+          mode: string,
+          fields: Record<string, unknown> = {},
+          signal?: AbortSignal | null
+        ) =>
+          postFiles(
+            JSON.stringify({
+              mode,
+              instance_id: input.instanceId,
+              file_upload_id: pending.id,
+              ...fields
+            }),
+            undefined,
+            signal
+          );
+
+        let requestParts = async (numbers: number[]): Promise<MultipartPart[]> =>
+          (
+            await retryMultipartRequest(() =>
+              post('part_manifests', { part_numbers: numbers })
+            )
+          ).parts;
+
+        let sendPart = async (part: MultipartPart) => {
+          let index = part.number - 1;
+          let body = input.file.slice(index * size, (index + 1) * size);
+          let updateProgress = (loaded: number) => {
+            bytesSent[index] = Math.max(bytesSent[index], Math.min(loaded, body.size));
+            notifyUploadProgress(
+              input.onProgress,
+              bytesSent.reduce((sum, bytes) => sum + bytes, 0),
+              input.file.size
+            );
+          };
+
+          let renewed = false;
+          await retryMultipartRequest(async () => {
+            let send = () =>
+              sendWithUploadProgress({
+                url: part.url,
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/octet-stream',
+                  'X-Metorial-Upload-Manifest': part.manifest
+                },
+                body,
+                signal: input.signal,
+                onProgress: input.onProgress
+                  ? ({ loaded }) => updateProgress(loaded)
+                  : undefined
+              });
+
+            let response = await send();
+            if (response.status === 403 && !renewed) {
+              renewed = true;
+              [part] = await requestParts([part.number]);
+              response = await send();
+            }
+            if (!response.ok) {
+              throw new MetorialSDKError({
+                status: response.status,
+                code: 'file_upload_part_failed',
+                message: `Upload part ${part.number} failed with status ${response.status}`
+              });
+            }
+
+            let { receipt } = JSON.parse(response.text);
+            if (typeof receipt !== 'string' || !receipt)
+              throw new Error('Missing upload part receipt');
+            receipts[index] = receipt;
+            updateProgress(body.size);
+          });
+        };
+
+        notifyUploadProgress(input.onProgress, 0, input.file.size);
+        try {
+          for (let start = 0; start < count; start += multipartBatchSize) {
+            let parts =
+              start === 0
+                ? pending.upload.parts
+                : await requestParts(
+                    Array.from(
+                      { length: Math.min(count - start, multipartBatchSize) },
+                      (_, index) => start + index + 1
+                    )
+                  );
+
+            for (let offset = 0; offset < parts.length; offset += multipartUploadConcurrency) {
+              let results = await Promise.allSettled(
+                parts.slice(offset, offset + multipartUploadConcurrency).map(sendPart)
+              );
+              for (let result of results) {
+                if (result.status === 'rejected') throw result.reason;
+              }
+            }
+          }
+
+          startedCompletion = true;
+          return await retryMultipartRequest(() => post('complete', { receipts }));
+        } catch (error) {
+          if (!startedCompletion) await post('cancel_multipart', {}, null).catch(() => {});
+          throw error;
+        }
       };
 
       let directUpload = async () => {
@@ -829,12 +980,20 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
             purpose: input.purpose,
             file_name: getUploadFileName(input),
             file_size: input.file.size,
+            ...(manager.config.supportsMultipartFileUploads ? { accept_multipart: true } : {}),
             ...(input.file.type ? { file_type: input.file.type } : {}),
             ...(input.title ? { title: input.title } : {}),
             ...(input.store ? { store_id: input.store.id, path: input.store.path } : {}),
             ...(input.storeReplace ? { store_replace: true } : {})
           })
         );
+
+        if (
+          manager.config.supportsMultipartFileUploads &&
+          pending.upload.method === 'multipart'
+        ) {
+          return await uploadMultipart(pending);
+        }
 
         notifyUploadProgress(input.onProgress, 0, input.file.size);
 
@@ -898,7 +1057,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         } catch (error) {
           if (input.signal?.aborted || isAbortError(error)) throw error;
 
-          if (!(error instanceof MetorialSDKError) && attempt < 2) {
+          if (!multipartStarted && !(error instanceof MetorialSDKError) && attempt < 2) {
             console.warn('File upload failed, retrying...', error);
             attempt++;
             continue;

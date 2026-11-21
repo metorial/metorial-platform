@@ -39,6 +39,7 @@ type MonitorBuildData = {
   buildStarted?: boolean;
   buildEnded?: boolean;
   currentStepOid?: bigint;
+  pendingReason?: string | null;
 };
 
 type BuildEndedData = {
@@ -46,6 +47,7 @@ type BuildEndedData = {
   artifactData: Record<string, ArtifactTarget>;
   logStepOid: bigint;
   timedOut?: boolean;
+  pendingReason?: string | null;
 };
 
 let isBuildNotFound = (err: unknown) =>
@@ -55,6 +57,11 @@ let isClientError = (err: unknown) =>
   isServiceError(err) && err.data.status >= 400 && err.data.status < 500;
 
 let isTerminal = (build: Build) => build.status == 'succeeded' || build.status == 'failed';
+
+let describePendingReason = (pendingReason: string) =>
+  pendingReason.startsWith('Unschedulable')
+    ? `Waiting for cluster capacity: ${pendingReason}`
+    : `Waiting for the build to start: ${pendingReason}`;
 
 let createDefaultOpts = (): KubernetesBuildAdapterOpts => ({
   client: createClusterManagerClient({
@@ -106,7 +113,8 @@ export class KubernetesBuildAdapter extends ForgeBuildAdapter {
         runId: data.runId,
         artifactData: data.artifactData,
         logStepOid: data.currentStepOid ?? data.setupStepOid,
-        timedOut
+        timedOut,
+        pendingReason: data.pendingReason
       });
 
     let ctx = await BuildContext.of(data.runId);
@@ -115,6 +123,18 @@ export class KubernetesBuildAdapter extends ForgeBuildAdapter {
     if (!build) {
       await ended();
       return;
+    }
+
+    let pendingReason = build.status == 'pending' ? build.pendingReason : null;
+    if (!isTerminal(build) && pendingReason != (data.pendingReason ?? null)) {
+      await ctx.setPendingReason({ pendingReason });
+      if (pendingReason) {
+        await ctx.storeTempOutput({
+          stepOid: data.setupStepOid,
+          message: JSON.stringify([Date.now(), describePendingReason(pendingReason)])
+        });
+      }
+      data.pendingReason = pendingReason;
     }
 
     let logs = await this.opts.client.build.logs({
@@ -162,6 +182,9 @@ export class KubernetesBuildAdapter extends ForgeBuildAdapter {
         : !build
           ? 'Build no longer exists in the cluster'
           : (build.failureReason ?? `Build exited with code ${build.exitCode ?? 'unknown'}`);
+      if (data.pendingReason) {
+        reason = `${reason} (the build never started: ${data.pendingReason})`;
+      }
 
       await ctx.storeTempOutput({
         stepOid: data.logStepOid,

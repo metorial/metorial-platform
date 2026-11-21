@@ -3,7 +3,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Function, FunctionDeployment, Tenant } from '../../prisma/generated/client';
+import type {
+  Function,
+  FunctionDeployment,
+  FunctionDeploymentStepStatus,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { encryption } from '../encryption';
 import { forge } from '../forge';
@@ -31,12 +36,12 @@ type ForgeDeploymentStepLog = {
   step: {
     id: string;
     name: string;
-    status: string;
+    status: FunctionDeploymentStepStatus;
     createdAt: Date;
     startedAt: Date | null;
     endedAt: Date | null;
   };
-  logs: unknown;
+  logs: { timestamp: number; message: string }[];
 };
 
 class functionDeploymentServiceImpl {

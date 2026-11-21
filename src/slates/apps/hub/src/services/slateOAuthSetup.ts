@@ -63,13 +63,14 @@ class slateOAuthSetupServiceImpl {
       );
     }
 
-    let authMethod = d.input.authMethodId
+    let requestedAuthMethodId = d.input.authMethodId ?? d.input.oauthCredentials.authMethodKey;
+    let authMethod = requestedAuthMethodId
       ? authMethods.find(
           m =>
-            m.id === d.input.authMethodId ||
-            m.identifier === d.input.authMethodId ||
-            m.type === d.input.authMethodId ||
-            m.key === d.input.authMethodId
+            m.id === requestedAuthMethodId ||
+            m.identifier === requestedAuthMethodId ||
+            m.type === requestedAuthMethodId ||
+            m.key === requestedAuthMethodId
         )
       : oauthAuthMethod;
 
@@ -77,10 +78,20 @@ class slateOAuthSetupServiceImpl {
       throw new ServiceError(notFoundError('slate.auth_method'));
     }
 
+    let boundAuthMethodKey = d.input.oauthCredentials.authMethodKey;
+    if (boundAuthMethodKey && authMethod.key !== boundAuthMethodKey) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'oauth_credentials_auth_method_mismatch',
+          message:
+            'These OAuth credentials can only be used with their configured auth method.'
+        })
+      );
+    }
+
     // TODO: drop once @slates/proto ships admin RPCs
     let capabilities = authMethod.spec.capabilities as
-      | { adminSetup?: { enabled: boolean } }
-      | undefined;
+      { adminSetup?: { enabled: boolean } } | undefined;
 
     if (d.input.isAdminSetup && !capabilities?.adminSetup?.enabled) {
       throw new ServiceError(
@@ -93,7 +104,7 @@ class slateOAuthSetupServiceImpl {
 
     let input = validateJsonSchema({
       schema: authMethod.spec.inputSchema,
-      data: d.input.input,
+      data: { ...d.input.input, ...d.input.oauthCredentials.fixedInput },
       entity: 'oauth_setup.input',
       message: 'Invalid OAuth setup input.'
     });

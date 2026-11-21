@@ -38,6 +38,7 @@ import { sessionTypeSkipsConfig } from '../lib/setupSessionType';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
+import { providerAuthCredentialsService } from './providerAuthCredentials';
 import { providerOAuthSetupService } from './providerOAuthSetup';
 
 class providerSetupSessionInternalServiceImpl {
@@ -167,6 +168,21 @@ class providerSetupSessionInternalServiceImpl {
                 status: 'active'
               }
             });
+
+            if (!defaultCredentials) {
+              let templateCredentials =
+                await providerAuthCredentialsService.getInstallationTemplateDefaultInternal({
+                  tenant: d.tenant,
+                  provider: d.provider
+                });
+              if (
+                templateCredentials &&
+                (!templateCredentials.fixedAuthMethodKey ||
+                  templateCredentials.fixedAuthMethodKey === authMethod.key)
+              ) {
+                defaultCredentials = templateCredentials;
+              }
+            }
 
             if (!defaultCredentials) {
               if (d.input.type === 'auto' && concreteType === 'auth_and_config') {
@@ -311,18 +327,6 @@ class providerSetupSessionInternalServiceImpl {
     checkProviderMatch(d.provider, d.authMethod);
 
     if (d.authMethod.type === 'oauth') {
-      if (
-        !d.credentials &&
-        d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !== 'supported'
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'No provider auth credentials provided for oauth method',
-            code: 'missing_auth_credentials'
-          })
-        );
-      }
-
       let setup = await providerOAuthSetupService.createProviderOAuthSetupInternal({
         tenant: d.tenant,
         environment: d.environment,

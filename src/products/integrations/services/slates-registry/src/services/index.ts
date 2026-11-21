@@ -15,6 +15,7 @@ export * from './user';
 export * from './userToken';
 export * from './workspace';
 export * from './slatePackBatch';
+export * from './slatePackUpload';
 export * from './artifactChecksum';
 export * from './slatePackBuild';
 export * from './slateTooling';

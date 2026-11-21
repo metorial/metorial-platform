@@ -31,6 +31,7 @@ const (
 	ErrIssuedInFuture ErrorCode = "issued_in_future"
 	ErrMissingClaims  ErrorCode = "missing_claims"
 	ErrInvalidPolicy  ErrorCode = "invalid_policy"
+	ErrInvalidRoutes  ErrorCode = "invalid_platform_routes"
 	ErrPayloadHash    ErrorCode = "payload_mismatch"
 	ErrBinding        ErrorCode = "binding_mismatch"
 )

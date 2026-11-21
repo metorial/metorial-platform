@@ -1,5 +1,6 @@
 import { createHono } from '@lowerdeck/hono';
 import { db } from '../db';
+import { areProjectProvidersAllowed } from '../lib/scmPolicy';
 import { installationSessionHtml } from '../lib/templates/installationSession';
 import { scmResultHtml } from '../lib/templates/scmResult';
 import { presentScmInstallationSession } from '../presenters/scmInstallationSession';
@@ -46,7 +47,8 @@ export let scmInstallationSessionPublicController = createHono()
           name: b.name,
           description: b.description,
           isDefault: b.isDefault
-        }))
+        })),
+        canAddProvider: areProjectProvidersAllowed()
       })
     );
   })
@@ -66,7 +68,7 @@ export let scmInstallationSessionPublicController = createHono()
 
     let tenant = await db.tenant.findUniqueOrThrow({ where: { oid: session.tenantOid } });
     let actor = await db.actor.findUniqueOrThrow({ where: { oid: session.ownerActorOid } });
-    let backend = await scmBackendService.getScmBackendById({
+    let backend = await scmBackendService.getSelectableScmBackendById({
       backendId,
       tenant
     });

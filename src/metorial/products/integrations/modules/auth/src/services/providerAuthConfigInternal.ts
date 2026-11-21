@@ -116,6 +116,50 @@ class providerAuthConfigInternalServiceImpl {
       };
     }
 
+    let fixedAuthMethodKey = d.credentials?.fixedAuthMethodKey;
+    if (fixedAuthMethodKey) {
+      let fixedAuthMethod = await db.providerAuthMethod.findFirst({
+        where: {
+          providerOid: d.provider.oid,
+          specificationOid,
+          key: fixedAuthMethodKey
+        },
+        include: {
+          specification: true
+        }
+      });
+      if (!fixedAuthMethod) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Managed credentials are not available for the resolved provider version',
+            code: 'managed_credentials_auth_method_unavailable'
+          })
+        );
+      }
+
+      if (d.authMethodId) {
+        let requestedAuthMethod = await this.findAuthMethodForVersion({
+          provider: d.provider,
+          specificationOid,
+          authMethodId: d.authMethodId
+        });
+        if (!requestedAuthMethod || requestedAuthMethod.key !== fixedAuthMethodKey) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'Managed credentials can only be used with their configured auth method',
+              code: 'managed_credentials_auth_method_mismatch'
+            })
+          );
+        }
+      }
+
+      return {
+        version: version as ProviderVersion,
+        authMethod: fixedAuthMethod as ProviderAuthMethodWithSpecification
+      };
+    }
+
     let authMethod = d.authMethodId
       ? await this.findAuthMethodForVersion({
           provider: d.provider,

@@ -4,7 +4,9 @@ import { purposeSlugs } from '@metorial/module-file';
 
 export let uploadModes = ['direct', 'get_upload_url', 'complete'] as const;
 
-export type UploadMode = (typeof uploadModes)[number];
+let onPremUploadModes = [...uploadModes, 'part_manifests', 'cancel_multipart'] as const;
+
+export type UploadMode = (typeof onPremUploadModes)[number];
 
 let purposeValidator = v.enumOf(purposeSlugs as unknown as [string, ...string[]], {
   description: 'The purpose the file is uploaded for'
@@ -18,6 +20,9 @@ export let getUploadUrlRequestSchema = v.object({
   file_size: v.any({ description: 'The size of the file in bytes' }),
   file_type: v.optional(v.string()),
   title: v.optional(v.string()),
+  accept_multipart: v.optional(
+    v.boolean({ description: 'Accepts an on-prem multipart upload plan' })
+  ),
 
   organization_id: v.optional(v.string()),
   instance_id: v.optional(v.string()),
@@ -31,18 +36,46 @@ export let completeRequestSchema = v.object({
   mode: v.literal('complete'),
 
   file_upload_id: v.string(),
+  receipts: v.optional(
+    v.array(v.string(), { description: 'Encrypted part receipts in part-number order' })
+  ),
 
   organization_id: v.optional(v.string()),
   instance_id: v.optional(v.string())
 });
 
-export let parseUploadMode = (value: unknown): UploadMode => {
+let partManifestsRequestSchema = v.object({
+  mode: v.literal('part_manifests'),
+  file_upload_id: v.string(),
+  part_numbers: v.array(v.number({ modifiers: [v.integer(), v.positive()] }), {
+    description: 'Part numbers to issue or renew manifests for'
+  }),
+  organization_id: v.optional(v.string()),
+  instance_id: v.optional(v.string())
+});
+
+let cancelMultipartRequestSchema = v.object({
+  mode: v.literal('cancel_multipart'),
+  file_upload_id: v.string(),
+  organization_id: v.optional(v.string()),
+  instance_id: v.optional(v.string())
+});
+
+let uploadRequestSchemas = {
+  get_upload_url: getUploadUrlRequestSchema,
+  complete: completeRequestSchema,
+  part_manifests: partManifestsRequestSchema,
+  cancel_multipart: cancelMultipartRequestSchema
+};
+
+export let parseUploadMode = (value: unknown, multipartEnabled = false): UploadMode => {
   if (value === null || value === undefined || value === '') return 'direct';
 
-  if (typeof value !== 'string' || !uploadModes.includes(value as UploadMode)) {
+  let modes: readonly UploadMode[] = multipartEnabled ? onPremUploadModes : uploadModes;
+  if (typeof value !== 'string' || !modes.includes(value as UploadMode)) {
     throw new ServiceError(
       badRequestError({
-        message: `mode must be one of ${uploadModes.join(', ')}`
+        message: `mode must be one of ${modes.join(', ')}`
       })
     );
   }
@@ -50,7 +83,7 @@ export let parseUploadMode = (value: unknown): UploadMode => {
   return value as UploadMode;
 };
 
-export let parseUploadRequest = (body: unknown) => {
+export let parseUploadRequest = (body: unknown, multipartEnabled = false) => {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     throw new ServiceError(
       badRequestError({
@@ -59,7 +92,7 @@ export let parseUploadRequest = (body: unknown) => {
     );
   }
 
-  let mode = parseUploadMode((body as Record<string, unknown>).mode);
+  let mode = parseUploadMode((body as Record<string, unknown>).mode, multipartEnabled);
 
   if (mode === 'direct') {
     throw new ServiceError(
@@ -69,7 +102,7 @@ export let parseUploadRequest = (body: unknown) => {
     );
   }
 
-  let schema = mode === 'get_upload_url' ? getUploadUrlRequestSchema : completeRequestSchema;
+  let schema = uploadRequestSchemas[mode];
   let result = schema.validate(body);
 
   if (!result.success) {

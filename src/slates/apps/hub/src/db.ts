@@ -131,6 +131,8 @@ declare global {
         capabilitiesNotification?: boolean;
         // Understands slates/hub.live_invocation.set
         liveInvocation?: boolean;
+        // Uploads live invocation attachments as signed multipart parts
+        multipartUpload?: boolean;
         runtimeInfo?: boolean;
       };
       provider?: {
@@ -149,6 +151,8 @@ declare global {
       imageUrl?: string;
       [key: string]: any;
     };
+
+    type SlateOAuthCredentialsFixedInput = Record<string, string>;
 
     type SlateWebhookEventRequest = {
       method: string;

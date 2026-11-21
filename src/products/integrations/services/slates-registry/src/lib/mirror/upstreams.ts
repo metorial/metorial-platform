@@ -1,5 +1,12 @@
 import { v } from '@lowerdeck/validation';
+import type { Prisma } from '../../../prisma/generated/client';
 import { env } from '../../env';
+
+export let registerLicenseUpstream = env.mirror.SLATES_REGISTER_LICENSE_UPSTREAM ?? true;
+
+export let enabledUpstreamSourceFilter = (
+  registerLicenseUpstream ? {} : { source: { not: 'license' } }
+) satisfies Pick<Prisma.MirrorUpstreamWhereInput, 'source'>;
 
 export type StaticUpstreamConfig = {
   identifier: string;

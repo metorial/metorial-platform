@@ -6,6 +6,7 @@ import { discoveryQueueProcessor } from '@mtsrc/mcp-runtime-module-discovery';
 import { oauthQueueProcessor } from '@mtsrc/mcp-runtime-module-oauth';
 import { retentionQueueProcessor } from '@mtsrc/mcp-runtime-module-retention';
 import { serversQueueProcessor } from '@mtsrc/mcp-runtime-module-servers';
+import { tenantsQueueProcessor } from '@mtsrc/mcp-runtime-module-tenants';
 
 await runQueueProcessors([
   changeNotificationsQueueProcessor,
@@ -14,5 +15,6 @@ await runQueueProcessors([
   discoveryQueueProcessor,
   oauthQueueProcessor,
   retentionQueueProcessor,
-  serversQueueProcessor
+  serversQueueProcessor,
+  tenantsQueueProcessor
 ]);

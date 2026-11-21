@@ -61,9 +61,12 @@ export interface RawBuild {
   migrations?: RawBuildMigration[];
   assets?: { from: string; to?: string }[];
   packages?: { build?: string[]; runtime?: string[] };
-  modules?: 'production' | 'none';
+  modules?: 'production' | 'none' | 'external';
   sentry?: boolean;
   node?: boolean;
+  curl?: boolean;
+  upgradePackages?: boolean;
+  prisma?: boolean;
   env?: Record<string, string>;
   buildEnv?: Record<string, string>;
   sources?: string[];

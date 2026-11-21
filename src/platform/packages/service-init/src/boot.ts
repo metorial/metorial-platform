@@ -8,6 +8,14 @@ export let bootStep = (name: string, run: BootStep['run']): BootStep => ({ name,
 export let importStep = (name: string, load: () => Promise<unknown>): BootStep =>
   bootStep(name, load);
 
+type BootFailureHandler = (error: unknown, step: string) => void;
+
+let bootFailureHandler: BootFailureHandler | null = null;
+
+export let setBootFailureHandler = (handler: BootFailureHandler | null) => {
+  bootFailureHandler = handler;
+};
+
 let startMetricsIfEnabled = async () => {
   if (process.env.METRICS_ENABLED !== 'true') return;
 
@@ -27,7 +35,10 @@ export let runBoot = async (steps: BootStep[]) => {
       await step.run();
     } catch (error) {
       console.error(`Boot step "${step.name}" failed`, error);
-      throw error;
+      if (!bootFailureHandler) throw error;
+
+      bootFailureHandler(error, step.name);
+      await new Promise<never>(() => {});
     }
   }
 };

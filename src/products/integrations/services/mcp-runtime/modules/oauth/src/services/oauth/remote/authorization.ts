@@ -25,6 +25,7 @@ import type {
 import { secretService } from '@mtsrc/mcp-runtime-module-secrets';
 import { serverEventService } from '../serverEvent';
 import { remoteOAuthConnectionService } from './connection';
+import { createEgressContext } from '@mtsrc/mcp-runtime-network';
 
 export let getRemoteOAuthRedirectUri = (d: {
   connection: Pick<RemoteOAuthConnection, 'registrationOid'>;
@@ -292,8 +293,10 @@ class remoteOauthAuthorizationServiceImpl {
     }
 
     let connection = attempt.connection;
-    let egressPolicy = attempt.serverOAuthSetup.serverInstanceConfiguration
-      ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
+    let egress = createEgressContext({
+      tenant: attempt.tenant,
+      serverInstanceConfiguration: attempt.serverOAuthSetup.serverInstanceConfiguration
+    });
     let redirectUri = getRemoteOAuthRedirectUri({
       connection,
       serverOAuthSetup: attempt.serverOAuthSetup
@@ -327,7 +330,7 @@ class remoteOauthAuthorizationServiceImpl {
         codeVerifier: attempt.codeVerifier ?? undefined,
         config: connection.config.config,
         tokenEndpointAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod,
-        egressPolicy
+        egress
       });
 
       if (!tokenResponse.access_token) {
@@ -374,7 +377,7 @@ class remoteOauthAuthorizationServiceImpl {
         providerProfile = await OAuthUtils.getUserProfile({
           userInfoEndpoint: connection.config.config.userinfo_endpoint,
           accessToken: tokenResponse.access_token,
-          egressPolicy
+          egress
         });
       } catch (error) {
         let errorCode = isServiceError(error) ? error.data.code : 'oauth_userinfo_failed';

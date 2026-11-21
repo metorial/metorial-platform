@@ -20,10 +20,10 @@
     "@lowerdeck/snowflake": "workspace:2.0.0",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
-    "dotenv": "^18.0.9",
+    "dotenv": "^18.0.10",
     "p-queue": "^10.0.0",
     "prisma": "^7.10.1",
-    "prisma-json-types-generator": "^6.0.0"
+    "prisma-json-types-generator": "^6.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
