@@ -54,12 +54,17 @@ export let anthropicProvider = defineProvider({
 
     let text = await response.text();
     if (!response.ok) {
+      let responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
       throw new APICallError({
         message: `Anthropic token counting responded with ${response.status}`,
         url,
         requestBodyValues: body,
         statusCode: response.status,
-        responseHeaders: Object.fromEntries(response.headers.entries()),
+        responseHeaders,
         responseBody: text,
         isRetryable: response.status == 429 || response.status >= 500
       });
