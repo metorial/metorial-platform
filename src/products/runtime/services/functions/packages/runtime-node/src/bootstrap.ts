@@ -1,12 +1,24 @@
 import { syncBuiltinESMExports } from 'node:module';
 import net from 'node:net';
 import { isMainThread } from 'node:worker_threads';
-import { beginRequest, RequestContext, setConcurrency, type Concurrency } from './context';
+import {
+  beginRequest,
+  currentContext,
+  RequestContext,
+  setConcurrency,
+  type Concurrency
+} from './context';
 import { Control } from './control';
-import { createInvoker, loadEntrypoint, serializeResult, type Entrypoint } from './entrypoint';
+import {
+  createInvoker,
+  loadEntrypoint,
+  serializeResult,
+  unhandledRejectionError,
+  type Entrypoint
+} from './entrypoint';
 import { installLogCapture } from './logs';
 import { installNetwork } from './network';
-import { installPools } from './pools';
+import { installPools, restoreRequestRouting } from './pools';
 import { denyWorkerThreadNetwork, installWorkerThreads } from './threads';
 
 let INTERNAL_ENV = [
@@ -43,10 +55,26 @@ let main = async () => {
   );
   control.onClose(() => process.exit(0));
 
+  let requests = new Map<string, RequestContext>();
+
+  let finishRequest = (ctx: RequestContext, result: unknown) => {
+    if (ctx.ended) return;
+
+    let json = serializeResult(result);
+    ctx.end();
+    requests.delete(ctx.requestId);
+    control.sendJson(
+      `{"type":"result","requestId":${JSON.stringify(ctx.requestId)},"payload":${json}}`
+    );
+  };
+
+  // The supervisor passes the message only to the request named here; the other requests
+  // sharing this worker get a generic crash error.
   let crash = (phase: 'boot' | 'runtime', err: any) => {
     control.send({
       type: 'crash',
       phase,
+      requestId: currentContext()?.requestId,
       message: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
       stack: err instanceof Error ? err.stack : undefined
     });
@@ -57,6 +85,17 @@ let main = async () => {
     crash('runtime', err);
     setTimeout(() => process.exit(1), 50).unref();
   });
+
+  // Exclusive mode keeps Node's default of crashing, as on Lambda. In shared mode that would
+  // fail every request in the worker, so only the request the promise belongs to fails.
+  if (config.concurrency == 'shared') {
+    process.on('unhandledRejection', reason => {
+      console.error(reason);
+
+      let ctx = currentContext();
+      if (ctx) finishRequest(ctx, unhandledRejectionError(reason));
+    });
+  }
 
   setConcurrency(config.concurrency);
   installNetwork(control, config.socketPath);
@@ -78,8 +117,6 @@ let main = async () => {
     return;
   }
 
-  let requests = new Map<string, RequestContext>();
-
   control.on('invoke', frame => {
     let requestId = frame.requestId!;
     let ctx = new RequestContext(
@@ -88,19 +125,12 @@ let main = async () => {
       frame.context?.deadlineMs ?? 0
     );
     requests.set(requestId, ctx);
+    restoreRequestRouting();
     beginRequest(ctx);
 
     ctx
       .run(() => invoke(String(frame.payload ?? '')))
-      .then(result => {
-        if (ctx.ended) return;
-        let json = serializeResult(result);
-        ctx.end();
-        requests.delete(requestId);
-        control.sendJson(
-          `{"type":"result","requestId":${JSON.stringify(requestId)},"payload":${json}}`
-        );
-      });
+      .then(result => finishRequest(ctx, result));
   });
 
   control.on('cancel', frame => {

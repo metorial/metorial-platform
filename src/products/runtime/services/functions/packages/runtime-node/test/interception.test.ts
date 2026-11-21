@@ -324,6 +324,94 @@ describe('per-request pools', () => {
     expect(harness.tunnels.every(t => calls.some(c => c.requestId == t.requestId))).toBe(true);
   });
 
+  it('keeps keep-alive agents created by the function from sharing sockets between requests', async () => {
+    let harness = await start(`
+      ${getJson}
+      let httpAgent = new http.Agent({ keepAlive: true });
+      let httpsAgent = new https.Agent({ keepAlive: true });
+      let pooled = agent => Object.keys(agent.sockets).length + Object.keys(agent.freeSockets).length;
+      exports.handler = async ({ delayMs, report }) => {
+        if (report) return pooled(httpAgent) + pooled(httpsAgent);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        let plain = await get(http, { host: 'api.test', path: '/private', agent: httpAgent });
+        let secure = await get(https, { host: 'api.test', path: '/private', agent: httpsAgent });
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return [plain.path, secure.path];
+      };
+    `);
+
+    let first = harness.invoke({ delayMs: 0 });
+    let second = harness.invoke({ delayMs: 100 });
+    let results = await Promise.all([first.result, second.result]);
+
+    for (let result of results) {
+      expect(result.payload.body.result).toEqual(['/private', '/private']);
+    }
+    for (let call of [first, second]) {
+      expect(harness.tunnels.filter(t => t.requestId == call.requestId)).toHaveLength(2);
+    }
+
+    await Promise.all(harness.tunnels.map(t => t.closed));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    let { payload } = await harness.invoke({ report: true }).result;
+    expect(payload.body.result).toBe(0);
+  });
+
+  it('restores per-request fetch routing when the function replaces the global dispatcher', async () => {
+    let harness = await start(`
+      let key = Symbol.for('undici.globalDispatcher.1');
+      let router = globalThis[key];
+      let calls = 0;
+      Object.defineProperty(globalThis, key, {
+        value: { dispatch: (options, handler) => (calls++, router.dispatch(options, handler)) },
+        writable: true,
+        enumerable: false,
+        configurable: false
+      });
+      exports.handler = async () => {
+        let path = (await (await fetch('http://api.test/after-override')).json()).path;
+        return { path, calls };
+      };
+    `);
+
+    let { requestId, result } = harness.invoke({});
+    let { payload } = await result;
+    expect(payload.body.result).toEqual({ path: '/after-override', calls: 0 });
+    expect(harness.tunnels.map(t => t.requestId)).toEqual([requestId]);
+    expect(harness.instanceOutput).toContain('replaced the global fetch dispatcher');
+  });
+
+  it('warns when a request writes to a connection another request opened', async () => {
+    let harness = await start(`
+      let net = require('node:net');
+      let shared;
+      exports.handler = async ({ role }) => {
+        if (role == 'owner') {
+          shared = net.connect(7, 'echo.test');
+          await new Promise(resolve => shared.once('connect', resolve));
+          shared.write('own');
+          await new Promise(resolve => setTimeout(resolve, 300));
+          return 'owner done';
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return await new Promise(resolve => {
+          shared.on('data', data => String(data).includes('borrowed') && resolve('echoed'));
+          shared.write('borrowed');
+        });
+      };
+    `);
+
+    let owner = harness.invoke({ role: 'owner' });
+    let borrower = harness.invoke({ role: 'borrower' });
+    let [, borrowed] = await Promise.all([owner.result, borrower.result]);
+
+    expect(borrowed.payload.body.result).toBe('echoed');
+    expect(harness.instanceOutput).toContain(
+      `request ${borrower.requestId} wrote to a connection opened by request ${owner.requestId}`
+    );
+    expect(harness.instanceOutput).not.toContain(`request ${owner.requestId} wrote to`);
+  });
+
   it('opens fresh connections for each request and closes them when it ends', async () => {
     let harness = await start(`
       exports.handler = async () => (await (await fetch('http://api.test/keepalive')).json()).path;
@@ -554,9 +642,54 @@ describe('lifecycle', () => {
     let harness = await start(
       `exports.handler = async () => { setTimeout(() => { throw new Error('async boom'); }, 1); return new Promise(() => {}); };`
     );
-    harness.invoke({});
+    let { requestId } = harness.invoke({});
     expect(await harness.exited()).toBe(1);
-    expect(harness.crash).toMatchObject({ phase: 'runtime', message: 'Error: async boom' });
+    expect(harness.crash).toMatchObject({
+      phase: 'runtime',
+      requestId,
+      message: 'Error: async boom'
+    });
+  });
+
+  it('fails only the owning request on an unhandled rejection in shared mode', async () => {
+    let harness = await start(`
+      exports.handler = async ({ n }) => {
+        if (n == 1) {
+          setTimeout(() => Promise.reject(new Error('lost promise')), 1);
+          return new Promise(() => {});
+        }
+        await new Promise(resolve => setTimeout(resolve, 50));
+        return 'ok ' + n;
+      };
+    `);
+
+    let failing = harness.invoke({ n: 1 });
+    let bystander = harness.invoke({ n: 2 });
+    let [failed, finished] = await Promise.all([failing.result, bystander.result]);
+
+    expect(failed.payload.body.error.code).toBe('function_bay.unhandled_rejection');
+    expect(failed.payload.body.error.message).toContain('lost promise');
+    expect(failed.logs[0]).toEqual({ stream: 'stderr', line: 'Error: lost promise' });
+    expect(finished.payload.body.result).toBe('ok 2');
+    expect(finished.logs).toEqual([]);
+
+    let { payload } = await harness.invoke({ n: 3 }).result;
+    expect(payload.body.result).toBe('ok 3');
+    expect(harness.crash).toBeUndefined();
+  });
+
+  it('keeps crashing on unhandled rejections in exclusive mode', async () => {
+    let harness = await start(
+      `exports.handler = async () => { Promise.reject(new Error('lost promise')); return new Promise(() => {}); };`,
+      { concurrency: 'exclusive' }
+    );
+    let { requestId } = harness.invoke({});
+    expect(await harness.exited()).toBe(1);
+    expect(harness.crash).toMatchObject({
+      phase: 'runtime',
+      requestId,
+      message: 'Error: lost promise'
+    });
   });
 
   it('scrubs its own configuration from process.env', async () => {
