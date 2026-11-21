@@ -11,6 +11,7 @@ import {
   Spacer,
   Switch
 } from '@metorial-io/ui';
+import { checkEdition } from '@metorial/editions';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -47,7 +48,8 @@ let CreateUserStep = ({
   createUserLoading: boolean;
   createUserError?: string;
 }) => {
-  let [termsAccepted, setTermsAccepted] = useState(false);
+  let isOnPrem = checkEdition('on-prem');
+  let [termsAccepted, setTermsAccepted] = useState(isOnPrem);
   let needsPassword = authIntent.type == 'password';
 
   let form = useForm({
@@ -135,33 +137,36 @@ let CreateUserStep = ({
 
         <Spacer size={15} />
 
-        <Switch
-          checked={termsAccepted}
-          onCheckedChange={setTermsAccepted}
-          label={
-            <>
-              I agree to the{' '}
-              <a
-                href="https://metorial.com/legal/terms-of-service"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Terms of Service
-              </a>{' '}
-              and the{' '}
-              <a
-                href="https://metorial.com/legal/privacy-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Privacy Policy
-              </a>
-              .
-            </>
-          }
-        />
-
-        <Spacer size={15} />
+        {!isOnPrem && (
+          <>
+            <Switch
+              checked={termsAccepted}
+              onCheckedChange={setTermsAccepted}
+              label={
+                <>
+                  I agree to the{' '}
+                  <a
+                    href="https://metorial.com/legal/terms-of-service"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Terms of Service
+                  </a>{' '}
+                  and the{' '}
+                  <a
+                    href="https://metorial.com/legal/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </>
+              }
+            />
+            <Spacer size={15} />
+          </>
+        )}
 
         <Button type="submit" loading={createUserLoading} fullWidth disabled={!termsAccepted}>
           Finish
