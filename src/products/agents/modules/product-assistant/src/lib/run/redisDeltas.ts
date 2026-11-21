@@ -25,8 +25,17 @@ let messageIndex = (message: WireMessage) =>
 
 let parseWireMessage = (raw: string) => JSON.parse(raw) as AgentRunWireMessage;
 
-let createClient = async () => await createRedisClient({}).eager();
 let deltaReplayLimit = 15;
+
+let createClient = () => createRedisClient({}).eager();
+
+let redisPromise: ReturnType<typeof createClient> | undefined;
+
+let getRedis = () =>
+  (redisPromise ??= createClient().catch(error => {
+    redisPromise = undefined;
+    throw error;
+  }));
 
 export let createAssistantRunDeltaPublisher = async (d: {
   runId: string;
@@ -35,10 +44,9 @@ export let createAssistantRunDeltaPublisher = async (d: {
 }): Promise<{
   delta: RedisAgentRunOptions;
   markDone: (message: AssistantRunDoneMessage) => Promise<void>;
-  close: () => Promise<void>;
 }> => {
   let keys = assistantRunDeltaKeys(d.runId);
-  let redis = await createClient();
+  let redis = await getRedis();
   let ttlSeconds = d.ttlSeconds ?? 60 * 60;
 
   let publishDelta = async (message: AgentRunWireMessage) => {
@@ -80,10 +88,7 @@ export let createAssistantRunDeltaPublisher = async (d: {
       snapshotIntervalMs: d.snapshotIntervalMs ?? 500,
       deltaFormat: 'message'
     },
-    markDone,
-    close: async () => {
-      await redis.quit();
-    }
+    markDone
   };
 };
 
@@ -96,17 +101,31 @@ export let listenToAssistantRunDeltas = async (d: {
   onDone?: (message: AssistantRunDoneMessage) => void | Promise<void>;
 }) => {
   let keys = assistantRunDeltaKeys(d.runId);
-  let redis = await createClient();
+  let redis = await getRedis();
   let subscriber = redis.duplicate();
-  await subscriber.connect();
+  subscriber.on('error', error =>
+    console.error('Assistant run Redis subscriber error', error)
+  );
 
   let started = false;
   let starting = false;
   let closed = false;
   let bufferedDeltas: AgentRunWireMessage[] = [];
-  let cleanupFns: (() => void)[] = [];
   let snapshotTimeout: ReturnType<typeof setTimeout> | undefined;
   let terminalMessage: AssistantRunDoneMessage | null = null;
+
+  let close = async () => {
+    if (closed) return;
+    closed = true;
+
+    if (snapshotTimeout) clearTimeout(snapshotTimeout);
+    d.signal?.removeEventListener('abort', abort);
+    if (subscriber.isOpen) subscriber.destroy();
+  };
+
+  let abort = () => {
+    void close();
+  };
 
   let emit = async (message: AgentRunWireMessage) => {
     if (closed) return;
@@ -114,10 +133,14 @@ export let listenToAssistantRunDeltas = async (d: {
   };
 
   let emitDoneAndClose = async (message: AssistantRunDoneMessage) => {
-    if (closed) return;
+    if (closed || terminalMessage) return;
     terminalMessage = message;
-    await d.onDone?.(message);
-    await close();
+
+    try {
+      await d.onDone?.(message);
+    } finally {
+      await close();
+    }
   };
 
   let getPersistedRunStatus = async () => {
@@ -240,69 +263,52 @@ export let listenToAssistantRunDeltas = async (d: {
     await startFromSnapshot(['s', snapshotIndex, message.state as unknown as JsonValue]);
   };
 
-  await subscriber.subscribe(keys.deltaChannel, raw => {
-    let message = parseWireMessage(raw);
-    if (started) {
-      void emit(message);
-    } else {
-      bufferedDeltas.push(message);
-    }
-  });
-
-  await subscriber.subscribe(keys.snapshotWrittenChannel, () => {
-    void (async () => {
-      let raw = await redis.get(keys.snapshot);
-      if (!raw) return;
-
-      let snapshot = parseWireMessage(raw);
-      if (snapshot[0] == 's') await startFromSnapshot(snapshot);
-    })();
-  });
-
-  await subscriber.subscribe(keys.doneChannel, raw => {
-    let message = JSON.parse(raw) as AssistantRunDoneMessage;
-    void emitDoneAndClose(message);
-  });
-
-  snapshotTimeout = setTimeout(
-    () => void emitPersistedSnapshot(),
-    d.snapshotWaitTimeoutMs ?? 2000
-  );
-  cleanupFns.push(() => {
-    if (snapshotTimeout) clearTimeout(snapshotTimeout);
-  });
-
-  let close = async () => {
-    if (closed) return;
-    closed = true;
-
-    for (let fn of cleanupFns) fn();
-    await subscriber.unsubscribe(keys.deltaChannel);
-    await subscriber.unsubscribe(keys.snapshotWrittenChannel);
-    await subscriber.unsubscribe(keys.doneChannel);
-    await subscriber.quit();
-    await redis.quit();
-  };
-
-  if (d.signal) {
-    let abort = () => {
-      void close();
-    };
-    d.signal.addEventListener('abort', abort, { once: true });
-    cleanupFns.push(() => d.signal?.removeEventListener('abort', abort));
+  if (d.signal?.aborted) {
+    await close();
+    return close;
   }
 
-  let persistedStatus = await getPersistedRunStatus();
-  if (persistedStatus && !terminalMessage) {
-    if (!started) {
-      await emitPersistedSnapshot();
-    }
+  d.signal?.addEventListener('abort', abort, { once: true });
+  try {
+    await subscriber.connect();
+    await subscriber.subscribe(keys.deltaChannel, raw => {
+      let message = parseWireMessage(raw);
+      if (started) {
+        void emit(message);
+      } else {
+        bufferedDeltas.push(message);
+      }
+    });
 
-    if (closed || terminalMessage) {
-      return close;
-    }
+    await subscriber.subscribe(keys.snapshotWrittenChannel, () => {
+      void (async () => {
+        let raw = await redis.get(keys.snapshot);
+        if (!raw) return;
 
-    await emitDoneAndClose(persistedStatus);
+        let snapshot = parseWireMessage(raw);
+        if (snapshot[0] == 's') await startFromSnapshot(snapshot);
+      })();
+    });
+
+    await subscriber.subscribe(keys.doneChannel, raw => {
+      let message = JSON.parse(raw) as AssistantRunDoneMessage;
+      void emitDoneAndClose(message);
+    });
+
+    if (closed) return close;
+    snapshotTimeout = setTimeout(
+      () => void emitPersistedSnapshot(),
+      d.snapshotWaitTimeoutMs ?? 2000
+    );
+
+    let persistedStatus = await getPersistedRunStatus();
+    if (persistedStatus && !terminalMessage) {
+      if (!started) await emitPersistedSnapshot();
+      await emitDoneAndClose(persistedStatus);
+    }
+  } catch (error) {
+    await close();
+    if (!d.signal?.aborted) throw error;
   }
 
   return close;

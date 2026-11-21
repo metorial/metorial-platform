@@ -35,7 +35,14 @@ export let env = defineSettings({
     SLATES_PACK_MAX_BYTES: v.optional(v.number()),
     SLATES_PACK_CHANNELS: v.optional(v.string()),
     SLATES_PACK_TARGET_BYTES: v.optional(v.number()),
+    SLATES_PACK_MAX_RELEASE_BYTES: v.optional(
+      v.number({ modifiers: [v.integer(), v.positive()] })
+    ),
     SLATES_PACK_INCREMENTAL_RETENTION_DAYS: v.optional(v.number())
+  },
+
+  tooling: {
+    SLATES_TOOLING_PUBLISHER_TENANTS: v.optional(v.string())
   },
 
   encryption: {

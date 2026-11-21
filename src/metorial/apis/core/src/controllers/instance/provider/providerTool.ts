@@ -39,14 +39,13 @@ export let providerToolController = Controller.create(
   {
     name: 'Provider Tools',
     description:
-      "A tool is a single action a provider can perform like 'search_issues' or 'send_message'. Tools are what AI agents call via MCP. By default, tools from the latest provider version are returned. Use the optional version filter to get tools for a specific version."
+      'A tool is a single action a provider can perform, like `search_issues` or `send_message`. Agents call tools over MCP, and each provider version has its own set.'
   },
   {
     list: integrationsGroup
       .get(instancePath('provider-tools', 'providers.tools.list'), {
         name: 'List provider tools',
-        description:
-          'Returns a paginated list of provider tools. By default returns tools from the latest version. Use optional filters to get tools for a specific version.',
+        description: 'Returns a paginated list of provider tools for a provider version.',
         legacyPaths: instanceLegacyPath('providers-tools')
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
@@ -55,7 +54,9 @@ export let providerToolController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_version_id: v.string(),
+            provider_version_id: v.string({
+              description: 'Provider version to list tools for.'
+            }),
             provider_auth_method_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description:
                 'Filter to tools compatible with one auth method ID, or the common compatible subset for multiple auth method IDs.'

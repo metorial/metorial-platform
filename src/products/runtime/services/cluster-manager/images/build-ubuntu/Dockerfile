@@ -32,6 +32,17 @@ RUN packages=src/products/runtime/services/functions/packages \
     && bun -e "let p = d => require('./' + d + '/package.json').version; console.log(JSON.stringify({ 'function-bay': p('$packages/cli'), '@function-bay/nodejs': p('$packages/builder-node') }))" > /out/versions.json \
     && bun -e "import { functionBayNodeBuildToolchain as t } from './$packages/builder-node/src/buildToolchain.ts'; console.log(Object.values(t).join(' '))" > /out/toolchain.txt
 
+# Packages builds use without registry access (builder-node/src/lib/vendor.ts). The manifest lists every
+# top-level package in node_modules, hoisted transitive ones included.
+FROM node AS vendor
+WORKDIR /out/vendor
+COPY src/products/runtime/services/functions/packages/builder-node/vendor/ /src/
+RUN cp /src/dependencies.json package.json \
+    && cp /src/package-lock.json package-lock.json \
+    && npm ci --ignore-scripts --omit=dev --no-audit --no-fund \
+    && node /src/write-manifest.mjs . \
+    && rm package.json package-lock.json
+
 FROM ubuntu:24.04
 
 RUN apt-get update \
@@ -54,6 +65,7 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && chown 65532:65532 /workspace
 
 COPY --from=function-bay /out/ /opt/function-bay/
+COPY --from=vendor /out/vendor/ /opt/function-bay/vendor/
 RUN chmod -R a=rX /opt/function-bay \
     && printf '#!/bin/sh\nexec bun /opt/function-bay/cli/index.js "$@"\n' > /usr/local/bin/function-bay \
     && chmod 0555 /usr/local/bin/function-bay

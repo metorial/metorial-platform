@@ -32,7 +32,7 @@ export let providerAuthConfigEventController = Controller.create(
   {
     name: 'Provider Auth Config Events',
     description:
-      'Provider auth config events describe OAuth setup progress, token refreshes, and provider-side authentication lifecycle changes.'
+      'Provider auth config events are records of OAuth setup progress, token refreshes, and other authentication lifecycle changes.'
   },
   {
     list: integrationsGroup

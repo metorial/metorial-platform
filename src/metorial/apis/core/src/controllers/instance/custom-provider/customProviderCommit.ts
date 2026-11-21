@@ -36,14 +36,14 @@ export let customProviderCommitController = Controller.create(
   {
     name: 'Custom Provider Commits',
     description:
-      'Commits represent version promotions between environments. Merge versions from one environment to another or rollback to a previous version.',
+      'A custom provider commit is a promotion of a version into an environment, or a rollback to a previous version.',
     hideInDocs: true
   },
   {
     list: integrationsGroup
       .get(instancePath('custom-provider-commits', 'customProviders.commits.list'), {
         name: 'List custom provider commits',
-        description: 'Returns a paginated list of commits for a custom provider.'
+        description: 'Returns a paginated list of custom provider commits.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:read'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
@@ -53,21 +53,24 @@ export let customProviderCommitController = Controller.create(
         Paginator.validate(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by commit IDs'
+              description: 'Only return commits with one of these IDs.'
             }),
             custom_provider_version_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by version IDs' }
+              { description: 'Only return commits for one of these custom provider versions.' }
             ),
             custom_provider_environment_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by environment IDs' }
+              {
+                description:
+                  'Only return commits for one of these custom provider environments.'
+              }
             ),
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by custom provider IDs'
+              description: 'Only return commits for one of these custom providers.'
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider ID(s)'
+              description: 'Only return commits for one of these provider IDs.'
             }),
             created_at: dateFilterValidator('custom provider commit creation time'),
             updated_at: dateFilterValidator('custom provider commit last update time')
@@ -105,7 +108,7 @@ export let customProviderCommitController = Controller.create(
         ),
         {
           name: 'Get custom provider commit',
-          description: 'Retrieves a specific commit.'
+          description: 'Retrieves a custom provider commit.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.commit:read'] }))
@@ -135,13 +138,15 @@ export let customProviderCommitController = Controller.create(
             [
               v.object(
                 {
-                  type: v.literal('merge_version_into_environment'),
+                  type: v.literal('merge_version_into_environment', {
+                    description: 'Promotes the version from one environment into another.'
+                  }),
                   from_environment_id: v.string({
-                    description: 'Source environment ID',
+                    description: 'Environment to promote the version from.',
                     examples: ['cpenv_1aBcDeFgHjKlMnPq']
                   }),
                   to_environment_id: v.string({
-                    description: 'Target environment ID',
+                    description: 'Environment to promote the version into.',
                     examples: ['cpenv_2bCdEfGhJkLmNpQr']
                   })
                 },
@@ -152,13 +157,15 @@ export let customProviderCommitController = Controller.create(
               ),
               v.object(
                 {
-                  type: v.literal('rollback_commit'),
+                  type: v.literal('rollback_commit', {
+                    description: 'Rolls an environment back to a previous version.'
+                  }),
                   environment_id: v.string({
-                    description: 'Environment ID to rollback',
+                    description: 'Environment to roll back.',
                     examples: ['cpenv_1aBcDeFgHjKlMnPq']
                   }),
                   version_id: v.string({
-                    description: 'Version ID to rollback to',
+                    description: 'Version to restore in the environment.',
                     examples: ['cpv_1aBcDeFgHjKlMnPq']
                   })
                 },

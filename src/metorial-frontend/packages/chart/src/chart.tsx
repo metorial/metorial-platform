@@ -4,7 +4,7 @@ import React, { memo, useMemo, useRef } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { chartPalette, getChartColor } from './colors';
 import { ChartFrame } from './frame';
-import type { ValueFormatter } from './format';
+import type { SeriesValueFormatter, TooltipValueFormatter, ValueFormatter } from './format';
 import { useStableFormatters } from './hooks';
 import {
   ChartHoverLayer,
@@ -41,6 +41,7 @@ export type ChartProps = {
   xAxis?: ChartXAxis;
   domain?: ChartDomain;
   valueFormatter?: ValueFormatter;
+  seriesValueFormatter?: SeriesValueFormatter;
   tickFormatter?: ValueFormatter;
   yMin?: number;
   yMax?: number;
@@ -54,6 +55,8 @@ export type ChartProps = {
   intervalMs?: number;
   selection?: ChartSelection;
   stacked?: boolean;
+  xTickAmount?: number;
+  xTickFormatter?: (value: Date) => string;
   onBarClick?: (click: TimelineBarClick) => void;
   loading?: boolean;
   error?: React.ReactNode;
@@ -78,13 +81,18 @@ let TimelineChart = ({
   intervalMs,
   selection,
   stacked,
+  xTickAmount,
+  xTickFormatter,
   onBarClick,
   formatValue,
   formatTick
-}: Omit<ChartProps, 'type' | 'height' | 'valueFormatter' | 'tickFormatter'> & {
+}: Omit<
+  ChartProps,
+  'type' | 'height' | 'valueFormatter' | 'seriesValueFormatter' | 'tickFormatter'
+> & {
   variant?: 'line' | 'bar';
   height: number;
-  formatValue: ValueFormatter;
+  formatValue: TooltipValueFormatter;
   formatTick: ValueFormatter;
 }) => {
   let axis = xAxis ?? 'time';
@@ -121,6 +129,8 @@ let TimelineChart = ({
       legend,
       stacked,
       formatTick,
+      xTickAmount,
+      xTickFormatter,
       onRendered: () => renderedRef.current?.()
     };
 
@@ -139,7 +149,9 @@ let TimelineChart = ({
     height,
     binaryScale,
     legend,
-    formatTick
+    formatTick,
+    xTickAmount,
+    xTickFormatter
   ]);
 
   let chart = useMemo(
@@ -188,7 +200,7 @@ let LegacyChart = ({
   series: ChartSeries[];
   type: 'bar-vertical' | 'bar-horizontal' | 'pie';
   height: number;
-  formatValue: ValueFormatter;
+  formatValue: TooltipValueFormatter;
 }) => {
   let colors = useMemo(() => chartPalette.map(getChartColor), []);
 
@@ -269,13 +281,18 @@ export let Chart = memo(
     series,
     domain,
     valueFormatter,
+    seriesValueFormatter,
     tickFormatter,
     loading,
     error,
     emptyText,
     ...rest
   }: ChartProps) => {
-    let { formatValue, formatTick } = useStableFormatters(valueFormatter, tickFormatter);
+    let { formatValue, formatTick } = useStableFormatters(
+      valueFormatter,
+      tickFormatter,
+      seriesValueFormatter
+    );
     let isEmpty = !hasChartData(series);
     let isTimeline = type == 'line' || type == 'bar';
     let showEmptyState = isEmpty && (loading || !isTimeline || emptyText !== undefined);

@@ -26,20 +26,20 @@ export let callbackSyncPresenter = Object.assign(
     schema: v.object(
       {
         object: v.literal('callback.sync', {
-          description: "String representing the object's type"
+          description: 'String representing the object’s type.'
         }),
 
         status: v.enumOf(['pending', 'synced', 'failed'], {
           name: 'status',
           description:
-            'Whether the callback has been registered with the provider yet. Nothing is delivered until this is synced.'
+            'Registration state with the provider. Nothing is delivered until this is `synced`.'
         }),
 
         error: v.nullable(
           v.object(
             {
               object: v.literal('callback.sync.error', {
-                description: "String representing the object's type"
+                description: 'String representing the object’s type.'
               }),
 
               code: v.string({
@@ -66,7 +66,8 @@ export let callbackSyncPresenter = Object.assign(
         synced_at: v.nullable(
           v.date({
             name: 'synced_at',
-            description: 'Timestamp when the callback was last successfully registered',
+            description:
+              'When the callback was last successfully registered. `null` until the first registration succeeds.',
             examples: [new Date('2026-01-10T14:45:00Z')]
           })
         )
@@ -103,7 +104,7 @@ let presentTriggerGroups = (
 let triggerGroupSchema = v.object(
   {
     object: v.literal('callback.trigger_group', {
-      description: "String representing the object's type"
+      description: 'String representing the object’s type.'
     }),
 
     key: v.string({
@@ -169,12 +170,12 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
   .schema(
     v.object({
       object: v.literal('callback', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique callback identifier',
+        description: 'Unique ID.',
         examples: ['cbk_4dEfGhJkLmNpQrSt']
       }),
 
@@ -186,14 +187,14 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
 
       name: v.string({
         name: 'name',
-        description: 'Display name for the callback',
+        description: 'Display name.',
         examples: ['Production GitHub Events']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Optional callback description',
+          description: 'Free-text description. `null` when none was set.',
           examples: ['Repository events for the production workspace']
         })
       ),
@@ -201,7 +202,7 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional callback metadata',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ environment: 'production', owner: 'platform-team' }]
         })
       ),
@@ -214,7 +215,7 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
 
       integration_provider_id: v.string({
         name: 'integration_provider_id',
-        description: 'Integration provider this callback was created for',
+        description: 'Integration provider this callback receives events for.',
         examples: ['inp_3cDeFgHjKlMnPqRs']
       }),
 
@@ -237,13 +238,13 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the callback was created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the callback was last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
@@ -278,7 +279,7 @@ export let dashboardCallbackPresenter = Presenter.create(callbackType)
       ),
       auth_credentials_is_managed: v.boolean({
         name: 'auth_credentials_is_managed',
-        description: 'Whether the selected auth credentials are managed by Metorial',
+        description: '`true` when Metorial manages the selected auth credentials.',
         examples: [true, false]
       }),
       sync: callbackSyncPresenter.schema

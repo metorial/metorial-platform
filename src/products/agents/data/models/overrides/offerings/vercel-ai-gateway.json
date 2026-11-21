@@ -118,6 +118,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance/seedance-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "Seedance 2.5 Flash is ByteDance's faster, cheaper variant of Seedance 2.5 (announced Nov 12, 2026), analogous to Seedance 2.0 Fast vs Seedance 2.0 which the catalog models separately. The index has no seedance-2.5-flash entry yet, so defer rather than mis-link it to bytedance/seedance-2.5.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "bytedance/seedance-v1.0-pro": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -138,6 +145,13 @@
     "reason": "ByteDance's Seedream 4.0 image model (released Aug/Sep 2025; up to 4K output and multi-reference editing, per ByteDance/Leap listings); the index's Seedream line starts at 4.5, so defer rather than link the wrong generation.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "bytedance/seedream-5.5": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "ByteDance's Seedream 5.5 image model launched 2026-11-09 on Dreamina/CapCut/BytePlus; the index only has Seedream up to 5.0 Pro, so there is no entry to link.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "callstack/apex": {
     "decision": "defer",
@@ -230,6 +244,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-4-neon": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Same new Google model (Gemini 4 Neon) as the OpenRouter issue; no matching entry in the model index yet, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",
     "model": "google/veo-3.1-fast-generate-preview",
@@ -250,6 +271,20 @@
     "reason": "Vercel's own page: the GA '-001' release of Veo 3.1 Lite, 'the cost-optimized tier of the Veo 3.1 family'; the index records that tier as google/veo-3.1-lite-generate-preview, so the GA serving is the same model at $0.05/s.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "heygen/heygen-decision-1": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "HeyGen's docs list heygen-decision-1 as a separate decision model released 2026-11-13; the index has HeyGen Video and Voice but no HeyGen decision model, so defer rather than link another lab's decision model.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
+  "heygen/heygen-decision-1-turbo": {
+    "decision": "defer",
+    "until": "2026-12-16",
+    "reason": "HeyGen's docs list heygen-decision-1-turbo as a lower-cost preview variant of HeyGen Decision 1, released 2026-11-13; the index has no HeyGen decision entries, so defer rather than link the base or another lab's model.",
+    "by": "agent",
+    "at": "2026-11-16"
   },
   "humansand/ampersand-v0.1": {
     "decision": "defer",
@@ -335,6 +370,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "liquid/d1.2": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Liquid AI's d1.2 decision model, released 2026-11-16 per Liquid AI's blog; the index only has liquid/d1, so this new generation is not in the catalog yet",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "liquid/d1.2-ultra": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Liquid AI's d1.2-ultra decision model, released 2026-11-16 per Liquid AI's blog; the index has no d1.2-ultra entry, only liquid/d1",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "liquid/lfm2.5-24b-a2b": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -362,6 +411,27 @@
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "microsoft/decision-1.1": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Microsoft's Decision decision-scoring model (released Oct 2026, on Microsoft Foundry). The index catalogs decision-kind models from other labs but has no Microsoft decision entry yet.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "microsoft/mai-image-2.7": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Real new Microsoft image-editing model in preview since 2026-10-27; the index only has MAI-Image entries up to 2.6, so there is no exact checkpoint to link.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "microsoft/mai-image-2.7-flash": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Flash variant of the MAI-Image-2.7 preview family; the index only has flash entries up to MAI-Image-2.6-Flash, so there is no exact checkpoint to link.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "microsoft/mai-transcribe-2-streaming": {
     "decision": "defer",
@@ -398,6 +468,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "modaic/mo": {
+    "decision": "defer",
+    "until": "2026-12-20",
+    "reason": "Mo is Modaic's specialized decision model built from Qwen/Qwen3.6-35B-A3B (per the modaic-ai/mo GitHub repo), so it is a derivative, not the Qwen checkpoint itself; the model index has no modaic entry, so defer until the catalog adds it.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "nace-ai/drex-max-finance": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -433,6 +510,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-6.2-astra-fast": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-astra",
+    "reason": "GPT-6.2 Astra (released 2026-11-17) served at Fast speed; OpenAI docs say Fast costs 2x the standard rate, matching $16 input vs $8 standard. A fast serving is still the same model.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "openai/gpt-6.2-sol-fast": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-sol",
+    "reason": "GPT-6.2 Sol (released 2026-11-17) served at Fast speed; OpenAI docs say Fast costs 2x the standard rate, matching $4/$20 vs standard $2/$10. Same model.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "openai/gpt-image-2.6-flare": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -446,6 +537,13 @@
     "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Sunburst, released 2026-11-04 alongside GPT Image 2.6 Flare; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-sunburst), so defer rather than link the 2.5 model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "openai/gpt-live-1.1": {
+    "decision": "defer",
+    "until": "2026-12-19",
+    "reason": "GPT-Live 1.1 is a new OpenAI realtime voice model checkpoint released 2026-10-15, replacing GPT-Live 1. The model index only has openai/gpt-live-1, a different checkpoint, so defer until an entry for 1.1 is added.",
+    "by": "agent",
+    "at": "2026-11-19"
   },
   "paperinstruments/ultramarine-1-flash": {
     "decision": "defer",
@@ -495,6 +593,13 @@
     "reason": "Recraft's V2, its first model trained from scratch (20B image model, per Vercel's own page and CloudPrice); the index's Recraft line starts at V3, so defer rather than link a later generation.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "scaledown/extract-1": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Scaledown's Extract-1, a task-specific structured-data extraction model (1M context, $0.05/M input). No Scaledown model exists in the index and no candidate matches; a real new model the catalog does not contain yet.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "scaledown/scaledown-classify-1": {
     "decision": "defer",

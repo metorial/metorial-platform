@@ -70,6 +70,7 @@ let reviewFixture = (
     hasHistory: false,
     previousFindingKeys: [],
     lockedFindings: [],
+    controls: [],
     observations: scan.observations,
     expectedBehaviors: scan.behaviors
   });
@@ -149,7 +150,7 @@ describe('review quality regression corpus', () => {
     );
 
     expect(scores).toMatchObject({
-      security: 95,
+      security: 100,
       exposure: 'high',
       confidence: 'high',
       assessmentComplete: true,

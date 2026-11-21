@@ -22,7 +22,8 @@ vi.mock('../../env', () => ({
     provider: { DEFAULT_PROVIDER: 'aws.code-build' },
     codeBuild: {},
     storage: { ARTIFACT_BUCKET_NAME: 'artifacts', LOG_BUCKET_NAME: 'logs' }
-  }
+  },
+  buildNpmRegistryUrl: undefined
 }));
 
 vi.mock('../../storage', () => ({ storage: { getPublicURL: mocks.getPublicURL } }));

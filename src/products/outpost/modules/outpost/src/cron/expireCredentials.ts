@@ -5,7 +5,7 @@ import { Fabric } from '@metorial/fabric';
 import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 
-let expireCron = createCron(
+export let expireCron = createCron(
   { name: 'outp/credential/expire', cron: '* * * * *' },
   async () => {
     let credentialsToExpire = await db.outpostCredential.findMany({

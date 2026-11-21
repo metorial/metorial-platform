@@ -39,7 +39,7 @@ export let providerAuthImportController = Controller.create(
   {
     name: 'Provider Auth Imports',
     description:
-      "An auth import lets you bring in existing OAuth tokens or credentials from another system, so users don't need to re-authenticate to use Metorial."
+      'A provider auth import is existing authentication credentials brought into Metorial from another system, so users skip re-authenticating.'
   },
   {
     list: integrationsGroup
@@ -134,7 +134,7 @@ export let providerAuthImportController = Controller.create(
         ),
         {
           name: 'Create provider auth import',
-          description: 'Imports authentication credentials for a provider.',
+          description: 'Imports existing authentication credentials into Metorial.',
           confidential: true
         }
       )
@@ -143,11 +143,24 @@ export let providerAuthImportController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_id: v.optional(v.string({ examples: ['pro_5gHjKlMnPqRsTuVw'] })),
+          provider_id: v.optional(
+            v.string({
+              examples: ['pro_5gHjKlMnPqRsTuVw'],
+              description: 'Provider the imported credentials belong to.'
+            })
+          ),
 
-          provider_deployment_id: v.optional(v.string({ examples: ['pdp_4dEfGhJkLmNpQrSt'] })),
+          provider_deployment_id: v.optional(
+            v.string({
+              examples: ['pdp_4dEfGhJkLmNpQrSt'],
+              description: 'Deployment the imported credentials belong to.'
+            })
+          ),
           provider_auth_config_id: v.optional(
-            v.string({ examples: ['pacf_4sTuVwXyZaBcDeFg'] })
+            v.string({
+              examples: ['pacf_4sTuVwXyZaBcDeFg'],
+              description: 'Auth config the imported credentials belong to.'
+            })
           ),
           provider_auth_method_id: v.optional(
             v.string({ examples: ['pam_3cDeFgHjKlMnPqRs'] }),
@@ -161,7 +174,8 @@ export let providerAuthImportController = Controller.create(
             examples: ['Migrated from legacy OAuth app']
           }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the provider auth import. Replaces existing metadata.'
           }),
 
           value: v.record(v.any(), {
@@ -238,10 +252,18 @@ export let providerAuthImportController = Controller.create(
       .query(
         'default',
         v.object({
-          provider_id: v.optional(v.string()),
-          provider_deployment_id: v.optional(v.string()),
-          provider_auth_config_id: v.optional(v.string()),
-          provider_auth_method_id: v.optional(v.string())
+          provider_id: v.optional(
+            v.string({ description: 'Provider to resolve the schema for.' })
+          ),
+          provider_deployment_id: v.optional(
+            v.string({ description: 'Deployment to resolve the schema for.' })
+          ),
+          provider_auth_config_id: v.optional(
+            v.string({ description: 'Auth config to resolve the schema for.' })
+          ),
+          provider_auth_method_id: v.optional(
+            v.string({ description: 'Auth method to resolve the schema for.' })
+          )
         })
       )
       .output(authImportSchemaPresenter)

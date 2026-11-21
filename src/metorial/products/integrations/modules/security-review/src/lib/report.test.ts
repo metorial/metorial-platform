@@ -14,6 +14,7 @@ let definition = createSecurityReportDefinition({
   hasHistory: false,
   previousFindingKeys: [],
   lockedFindings: [],
+  controls: [],
   observations: [
     {
       key: 'sensitive-file-access',

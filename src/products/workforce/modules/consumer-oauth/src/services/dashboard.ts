@@ -176,11 +176,15 @@ class ConsumerOAuthDashboardService {
       );
     }
 
-    if (magicMcpEndpoint.servers.length == 0) {
+    if (
+      magicMcpEndpoint.servers.length == 0 &&
+      !magicMcpEndpoint.enableSkillResources &&
+      !magicMcpEndpoint.enableSkillEditing
+    ) {
       throw new ServiceError(
         preconditionFailedError({
           message:
-            'Add at least one Magic MCP server to the endpoint before linking it to this OAuth authorization.'
+            'Add at least one Magic MCP server or enable skills on the endpoint before linking it to this OAuth authorization.'
         })
       );
     }

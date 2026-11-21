@@ -17,12 +17,15 @@ import { correlationKey, orphanKey, recordActor, recordCorrelations } from './ke
 import { tryRedis } from '@mtsrc/agent-tracking-redis';
 import { correlationCacheKey, inferCacheKey } from './cacheKeys';
 import { sourceKindOf } from '@mtsrc/agent-tracking-module-usage';
+import { storedRecords } from '@mtsrc/agent-tracking-module-records';
 
 let dayMs = 24 * 60 * 60 * 1000;
 
 let linkTtlMs = dayMs;
 
 let cacheTtlSeconds = 24 * 60 * 60;
+
+let maxUnmappedNamesPerWrite = 50;
 
 type AnyBulkWrite<T extends mongoose.mongo.Document> = mongoose.mongo.AnyBulkWriteOperation<T>;
 
@@ -285,22 +288,30 @@ let linkOps = (d: { instanceId: string; records: NormalizedRecord[]; observedAt:
 export let sourceHealthId = (d: { instanceId: string; actorKey: string; family: string }) =>
   `${d.instanceId}:${d.actorKey}:${d.family}`;
 
+let fieldKey = (value: string) => value.replace(/[^A-Za-z0-9_:-]/g, '_').slice(0, 64) || '_';
+
+let unmappedCounterPath = (record: Pick<NormalizedRecord, 'source' | 'data'>) => {
+  let name = typeof record.data.native_name == 'string' ? record.data.native_name : 'unknown';
+
+  return `unmapped.${fieldKey(record.source.dialect)}.${fieldKey(name)}`;
+};
+
+type SourceHealthEntry = {
+  family: string;
+  userId?: string;
+  deviceId?: string;
+  kinds: Set<string>;
+  unmapped: Map<string, number>;
+  version?: string;
+};
+
 let sourceHealthOps = (d: {
   principal: IngestPrincipal;
   records: NormalizedRecord[];
   observedAt: Date;
 }): AnyBulkWrite<SourceHealthDocument>[] => {
   let instanceId = d.principal.instance.id;
-  let entries = new Map<
-    string,
-    {
-      family: string;
-      userId?: string;
-      deviceId?: string;
-      kinds: Set<string>;
-      version?: string;
-    }
-  >();
+  let entries = new Map<string, SourceHealthEntry>();
 
   for (let record of d.records) {
     let actor = recordActor(record, d.principal);
@@ -310,26 +321,33 @@ let sourceHealthOps = (d: {
     let family = record.client.family;
     let id = sourceHealthId({ instanceId, actorKey, family });
 
-    let entry = entries.get(id) ?? {
+    let entry: SourceHealthEntry = entries.get(id) ?? {
       family,
       ...(actor.deviceId ? { deviceId: actor.deviceId } : { userId: actor.userId }),
-      kinds: new Set()
+      kinds: new Set(),
+      unmapped: new Map()
     };
 
     let kind = sourceKindOf({
       channel: record.source.channel,
-      credentialKind: record.ingest.credential_kind,
       type: record.type,
       data: record.data
     });
     if (kind) entry.kinds.add(kind);
     if (record.client.version) entry.version = record.client.version;
 
+    if (record.type == 'unmapped') {
+      let path = unmappedCounterPath(record);
+      if (entry.unmapped.has(path) || entry.unmapped.size < maxUnmappedNamesPerWrite) {
+        entry.unmapped.set(path, (entry.unmapped.get(path) ?? 0) + 1);
+      }
+    }
+
     entries.set(id, entry);
   }
 
   return [...entries].flatMap(([_id, entry]) => {
-    if (!entry.kinds.size) return [];
+    if (!entry.kinds.size && !entry.unmapped.size) return [];
 
     let lastSeen = Object.fromEntries(
       [...entry.kinds].map(kind => [`lastSeen.${kind}`, d.observedAt])
@@ -348,6 +366,7 @@ let sourceHealthOps = (d: {
               ...(entry.userId ? { userId: entry.userId } : {})
             },
             $max: { ...lastSeen, updatedAt: d.observedAt },
+            ...(entry.unmapped.size ? { $inc: Object.fromEntries(entry.unmapped) } : {}),
             ...(entry.version ? { $set: { clientVersion: entry.version } } : {})
           } satisfies Update as never,
           upsert: true
@@ -382,7 +401,8 @@ export let writeSessions = async (d: {
   assignment: SessionAssignment;
   collections: StoreCollections;
 }) => {
-  let groups = groupBySession(d.records);
+  let records = storedRecords(d.records);
+  let groups = groupBySession(records);
   let roots = await loadRoots(groups, d.collections);
 
   let sessionOps = groups.flatMap(group => [
@@ -398,7 +418,7 @@ export let writeSessions = async (d: {
 
   let links = linkOps({
     instanceId: d.principal.instance.id,
-    records: d.records,
+    records,
     observedAt: d.observedAt
   });
 

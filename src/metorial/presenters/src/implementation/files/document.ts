@@ -25,18 +25,28 @@ export let v1DocumentPresenter = Presenter.create(documentType)
   .schema(
     v.object({
       object: v.literal('document', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string(),
-      status: v.enumOf(['active', 'deleted']),
-      title: v.string(),
-      content: v.string(),
-      file_id: v.string(),
-      parent_document_id: v.nullable(v.string()),
-      current_version_id: v.nullable(v.string()),
-      created_by: v.nullable(documentParticipantActorSchema),
-      created_at: v.date(),
-      updated_at: v.date()
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'deleted'], {
+        description: '`deleted` after the document is deleted.'
+      }),
+      title: v.string({ description: 'Label shown for the document.' }),
+      content: v.string({ description: 'Text body of the document.' }),
+      file_id: v.string({ description: 'File holding the document content.' }),
+      parent_document_id: v.nullable(
+        v.string({
+          description: 'Document this was cloned from. `null` for top-level documents.'
+        })
+      ),
+      current_version_id: v.nullable(
+        v.string({ description: 'Latest version of the document, by ID.' })
+      ),
+      created_by: v.nullable(documentParticipantActorSchema, {
+        description: 'Actor that created the document.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

@@ -67,7 +67,7 @@ export let identityDelegationController = Controller.create(
   {
     name: 'Identity Delegations',
     description:
-      'Identity delegations grant provider permissions from one identity owner to another actor, with optional per-credential overrides.',
+      'An identity delegation is a grant of provider permissions from an identity owner to another actor. It can narrow permissions per credential.',
     hideInDocs: true
   },
   {
@@ -91,7 +91,7 @@ export let identityDelegationController = Controller.create(
                 )
               ]),
               {
-                description: 'Filter by one or more delegation statuses.'
+                description: 'Only return identity delegations with one of these statuses.'
               }
             ),
             permissions: v.optional(
@@ -100,27 +100,28 @@ export let identityDelegationController = Controller.create(
                 v.array(v.enumOf(['provider:call', 'provider:read']))
               ]),
               {
-                description: 'Filter by one or more granted permissions.'
+                description:
+                  'Only return identity delegations granting one of these permissions.'
               }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by delegation ID or IDs.',
+              description: 'Only return identity delegations with one of these IDs.',
               examples: ['idd_7gHjKlMnPqRsTuVw']
             }),
             owner_actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by owner actor ID or IDs.',
+              description: 'Only return identity delegations owned by one of these actors.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
             }),
             delegator_actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by delegator actor ID or IDs.',
+              description: 'Only return identity delegations started by one of these actors.',
               examples: ['iac_1aBcDeFgHiJkLmNo']
             }),
             delegatee_actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by delegatee actor ID or IDs.',
+              description: 'Only return identity delegations received by one of these actors.',
               examples: ['iac_9zYxWvUtSrQpOnMl']
             }),
             identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by identity ID or IDs.',
+              description: 'Only return identity delegations for one of these identities.',
               examples: ['idn_5gHjKlMnPqRsTuVw']
             }),
             created_at: dateFilterValidator('identity delegation creation time'),
@@ -158,7 +159,7 @@ export let identityDelegationController = Controller.create(
         ),
         {
           name: 'Get identity delegation',
-          description: 'Retrieves a specific identity delegation by ID.'
+          description: 'Retrieves an identity delegation.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
@@ -171,7 +172,7 @@ export let identityDelegationController = Controller.create(
     create: instanceGroup
       .post(instancePath('identity-delegations', 'identities.delegations.create'), {
         name: 'Create identity delegation',
-        description: 'Creates a new identity delegation.'
+        description: 'Creates an identity delegation.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -223,7 +224,7 @@ export let identityDelegationController = Controller.create(
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Additional metadata to store on the delegation.',
+              description: 'Custom data to identify or organize the identity delegation.',
               examples: [{ incident: 'INC-2048', requested_by: 'support' }]
             })
           )
@@ -278,7 +279,7 @@ export let identityDelegationController = Controller.create(
         ),
         {
           name: 'Revoke identity delegation',
-          description: 'Revokes an existing identity delegation.'
+          description: 'Revokes an identity delegation.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

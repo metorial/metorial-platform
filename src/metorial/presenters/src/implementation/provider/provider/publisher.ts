@@ -21,22 +21,22 @@ export let v1PublisherPresenter = Presenter.create(publisherType)
   .schema(
     v.object({
       object: v.literal('provider.publisher', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique publisher identifier',
+        description: 'Unique ID.',
         examples: ['pub_9hJkLmNpQrStUvWx']
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the publisher',
+        description: 'Display name.',
         examples: ['Acme Corp']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Brief description of the publisher',
+          description: 'Free-text description.',
           examples: ['A leading provider of developer tools']
         })
       ),
@@ -47,12 +47,12 @@ export let v1PublisherPresenter = Presenter.create(publisherType)
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

@@ -6,14 +6,14 @@ export let tokenController = Controller.create(
   {
     name: 'Token',
     description:
-      'Endpoint for retrieving metadata about the token used for authentication. This is useful for clients to understand the type and capabilities of the token they are using, especially since Metorial supports multiple token types with different permission models.',
+      'A token is the credential a request authenticates with. This resource describes the calling token’s type and scope.',
     hideInDocs: true
   },
   {
     get: apiGroup
       .get(Path('token', 'token.get'), {
-        name: 'Get token details',
-        description: 'Retrieves metadata and configuration details for a specific token.',
+        name: 'Get token',
+        description: 'Retrieves metadata about the calling token.',
         confidential: true
       })
       .output(tokenPresenter)

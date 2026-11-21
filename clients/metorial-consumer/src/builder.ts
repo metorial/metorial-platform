@@ -1,4 +1,8 @@
-import { GetMetorialSDKConfig, MetorialSDKBuilder } from '@metorial/util-endpoint';
+import {
+  GetMetorialSDKConfig,
+  MetorialSDKBuilder,
+  resolveApiHost
+} from '@metorial/util-endpoint';
 
 export type MetorialKeyPrefix = 'metorial_pk_';
 
@@ -11,7 +15,7 @@ export let sdkBuilder = MetorialSDKBuilder.create<
     apiHost?: string;
   }
 >('metorial-consumer-api', '2026-04-01-consumer')
-  .setGetApiHost(config => config.apiHost ?? 'https://api.metorial.com')
+  .setGetApiHost(resolveApiHost)
   .setGetHeaders(config => ({
     'Metorial-Version': config.apiVersion,
     ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),

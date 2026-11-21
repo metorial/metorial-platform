@@ -15,7 +15,9 @@ export let v1ProviderToolsPresenter = Presenter.create(providerToolsType)
   })
   .schema(
     v.object({
-      object: v.literal('provider.tools'),
+      object: v.literal('provider.tools', {
+        description: 'String representing the object’s type.'
+      }),
       items: v.array(v1ProviderToolPresenter.schema)
     })
   )

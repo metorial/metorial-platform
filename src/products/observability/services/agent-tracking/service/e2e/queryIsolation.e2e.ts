@@ -14,6 +14,8 @@ import {
 
 let settleTimeoutMs = 120_000;
 
+let settleIntervalMs = 5_000;
+
 let model = 'claude-sonnet-4-5-20250929';
 
 let fixedRange = isoRange(
@@ -71,7 +73,7 @@ let seed = async () => {
       expect(await countOf(first.organization.id, 'usage')).toBe(3);
       expect(await countOf(other.organization.id, 'sessions')).toBe(1);
     },
-    { timeoutMs: settleTimeoutMs }
+    { timeoutMs: settleTimeoutMs, intervalMs: settleIntervalMs }
   );
 
   return { first, secondProject, secondInstance, other };

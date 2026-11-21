@@ -23,8 +23,10 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
   }))
   .schema(
     v.object({
-      object: v.literal('scm.provider'),
-      id: v.string({ description: 'Unique SCM provider identifier' }),
+      object: v.literal('scm.provider', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
 
       type: v.enumOf(
         [
@@ -36,25 +38,36 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
           'bitbucket_data_center'
         ],
         {
-          description: 'SCM backend type'
+          description: 'Provider software this connects to.'
         }
       ),
-      name: v.string({ description: 'Provider name' }),
-      description: v.nullable(v.string({ description: 'Provider description' })),
-      api_url: v.nullable(v.string({ description: 'API base URL for the SCM provider' })),
-      web_url: v.nullable(v.string({ description: 'Web base URL for the SCM provider' })),
+      name: v.string({ description: 'Display name.' }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      api_url: v.nullable(
+        v.string({
+          description: 'Base URL for the provider API. `null` when using the provider default.'
+        })
+      ),
+      web_url: v.nullable(
+        v.string({
+          description:
+            'Base URL for the provider website. `null` when using the provider default.'
+        })
+      ),
 
-      is_default: v.boolean({ description: 'Whether this is the default provider' }),
+      is_default: v.boolean({
+        description: 'Used when no other provider is specified.'
+      }),
       ...(checkEdition('on-prem')
         ? {
             app_webhook_url: v.nullable(
-              v.string({ description: 'Webhook URL for this configured GitHub application' })
+              v.string({ description: 'Webhook URL for the configured GitHub application.' })
             )
           }
         : {}),
 
-      created_at: v.date({ description: 'Timestamp when created' }),
-      updated_at: v.date({ description: 'Timestamp when last updated' })
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

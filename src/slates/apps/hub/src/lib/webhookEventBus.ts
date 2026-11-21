@@ -1,12 +1,12 @@
 import { createRedisClient } from '@lowerdeck/redis';
 import { env } from '../env';
 
-let redis = createRedisClient({ redisUrl: env.service.REDIS_URL });
+let getRedis = createRedisClient({ redisUrl: env.service.REDIS_URL }).lazy();
 
 let getChannel = (eventId: string) => `shub:whk:evt:${eventId}`;
 
 export let publishWebhookEventResolved = async (eventId: string) => {
-  let client = await redis.lazy()();
+  let client = await getRedis();
   await client.publish(getChannel(eventId), '1');
 };
 
@@ -18,8 +18,14 @@ export interface WebhookEventSubscription {
 export let subscribeToWebhookEvent = async (
   eventId: string
 ): Promise<WebhookEventSubscription> => {
-  let subscriber = (await redis.lazy()()).duplicate();
-  await subscriber.connect();
+  let subscriber = (await getRedis()).duplicate();
+  subscriber.on('error', error =>
+    console.error('Slates webhook Redis subscriber error', error)
+  );
+
+  let close = async () => {
+    if (subscriber.isOpen) subscriber.destroy();
+  };
 
   let channel = getChannel(eventId);
   let resolveSignal: () => void;
@@ -27,14 +33,17 @@ export let subscribeToWebhookEvent = async (
     resolveSignal = resolve;
   });
 
-  await subscriber.subscribe(channel, () => resolveSignal());
+  try {
+    await subscriber.connect();
+    await subscriber.subscribe(channel, () => resolveSignal());
+  } catch (error) {
+    await close();
+    throw error;
+  }
 
   return {
     waitForSignal: () => signalled,
-    close: async () => {
-      await subscriber.unsubscribe(channel).catch(() => {});
-      await subscriber.disconnect().catch(() => {});
-    }
+    close
   };
 };
 

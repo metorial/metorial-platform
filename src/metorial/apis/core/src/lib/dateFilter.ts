@@ -1,22 +1,22 @@
 import { v } from '@lowerdeck/validation';
 
-export let dateFilterValidator = (description: string) =>
+export let dateFilterValidator = (timestamp: string) =>
   v.optional(
     v.object(
       {
         gt: v.optional(
           v.date({
-            description: `Only include records after this timestamp for ${description}`
+            description: 'Exclusive lower bound.'
           })
         ),
         lt: v.optional(
           v.date({
-            description: `Only include records before this timestamp for ${description}`
+            description: 'Exclusive upper bound.'
           })
         )
       },
       {
-        description: `Filter ${description} by date range`
+        description: `Only return results whose ${timestamp} is in this range. Set \`gt\`, \`lt\`, or both.`
       }
     )
   );

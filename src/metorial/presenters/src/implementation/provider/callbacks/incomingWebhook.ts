@@ -18,19 +18,19 @@ export let v1IncomingWebhookPresenter = Presenter.create(incomingWebhookType)
   .schema(
     v.object({
       object: v.literal('incoming_webhook', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique incoming webhook identifier',
+        description: 'Unique ID.',
         examples: ['swe_7dEfGhJkLmNpQrSt']
       }),
 
       status: v.string({
         name: 'status',
         description:
-          'Processing status of the inbound webhook, as reported by the provider backend',
+          'Processing status of the inbound webhook. `failed_retrying` while delivery is retried, `failed_final` once retries are exhausted.',
         examples: ['succeeded']
       }),
 
@@ -44,7 +44,7 @@ export let v1IncomingWebhookPresenter = Presenter.create(incomingWebhookType)
         v.string({
           name: 'webhook_registration_id',
           description:
-            'Your webhook registration this event was received on. Null when the event arrived on an endpoint Metorial operates for the provider: you can see it because it produced a callback event of yours, but there is no registration of your own behind it.',
+            'Your webhook registration this request was received on. `null` when it arrived on an endpoint Metorial operates for the provider after producing one of your callback events.',
           examples: ['whr_4dEfGhJkLmNpQrSt']
         })
       ),
@@ -57,7 +57,7 @@ export let v1IncomingWebhookPresenter = Presenter.create(incomingWebhookType)
 
       received_at: v.date({
         name: 'received_at',
-        description: 'Timestamp when the webhook was received',
+        description: 'Time the webhook arrived.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

@@ -1,4 +1,11 @@
 {
+  "alibaba/kimi-k3.1-pro-prime": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3.1-pro",
+    "reason": "Alibaba Model Studio's kimi-k3.1-pro-prime is a prime serving tier of Kimi K3.1 Pro at twice the base rates ($4/$20 vs $2/$10), per the LLM Gateway PR; same checkpoint, and the offering's specs (text+image input, 1M context) match moonshot/kimi-k3.1-pro exactly.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "bytedance/seed-2-0-code-preview-260328": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -48,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "gpt-oss-120b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Offering name and 131072 context match GPT OSS 120B exactly. Input price 0.0291 is far below the 0.15 median because it is an Apache-2.0 open-weight model that many providers host cheaply (e.g. Vercel lists $0.10); aggregator pricing varies widely for this model.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "grok-4": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -76,6 +90,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "kimi-k3.1-pro-prime": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3.1-pro",
+    "reason": "Same offering as llmgateway/alibaba/kimi-k3.1-pro-prime without the namespace: a prime pricing tier of Kimi K3.1 Pro at 2x base rates, not a distinct checkpoint; specs (text+image input, 1M context) match moonshot/kimi-k3.1-pro exactly.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "llama-3.2-11b-instruct": {
     "decision": "link",
     "model": "meta/llama-3.2-11b-vision-instruct",
@@ -103,6 +124,13 @@
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.3.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "UltraSpeed is Xiaomi's high-speed serving of the MiMo V2.6 Pro checkpoint: same release date (2026-09-21/22), 1M context, same weights repo (XiaomiMiMo/MiMo-V2.6-Pro-RL); the index has no separate ultraspeed entry. The 10x price is the premium for the speed tier, explaining the outlier.",
+    "by": "agent",
+    "at": "2026-11-16"
   },
   "mistral-large-latest": {
     "decision": "router",
@@ -157,6 +185,13 @@
     "reason": "The same xAI Grok 4 (Jul 2025, 256K context) under LLM Gateway's namespaced id; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "UltraSpeed is Xiaomi's high-speed serving tier of the same MiMo-V2.6-Pro checkpoint: launch coverage calls it a faster serving mode of Pro built from the same 1T checkpoint, with the same 1M context and release date. The index has no separate ultraspeed entry, so it stays xiaomi/mimo-v2.6-pro; the 4.35 input price is the 10x speed-tier premium, which explains the outlier.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "zai/glm-4-32b-0414-128k": {
     "decision": "defer",

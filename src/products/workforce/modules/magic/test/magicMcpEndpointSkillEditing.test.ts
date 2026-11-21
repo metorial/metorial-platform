@@ -10,6 +10,9 @@ let { db, isFlagEnabledForInstanceMock, ensureMagicMcpEndpointBackingMock } = vi
         create: vi.fn(),
         update: vi.fn()
       },
+      magicMcpEndpointSkillSelection: {
+        deleteMany: vi.fn()
+      },
       instance: {
         findUniqueOrThrow: vi.fn()
       }
@@ -69,7 +72,7 @@ vi.mock('../src/lib/backing', () => ({
 import { magicMcpEndpointService } from '../src/services/magicMcpEndpoint';
 
 let instance = { oid: 20n, id: 'ins_1' } as any;
-let project = { oid: 30n, allowConsumerSkillEditing: true };
+let project = { oid: 30n, allowConsumerSkillEditing: true, allowConsumerSkillSelection: true };
 let auditScope = { organizationOid: 1n, actor: { type: 'system', id: 'test' } } as any;
 
 let endpoint = {
@@ -220,6 +223,125 @@ describe('magicMcpEndpointService skill editing', () => {
     expect(db.magicMcpEndpoint.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ enableSkillEditing: false })
+      })
+    );
+  });
+});
+
+describe('magicMcpEndpointService skill selection', () => {
+  let consumerProfile = { oid: 40n };
+  let consumerEndpoint = { ...endpoint, consumerProfileOid: consumerProfile.oid };
+  let selection = { skills: [{ oid: 50n }], skillGroups: [] };
+
+  let turnSelectionOff = () =>
+    db.instance.findUniqueOrThrow.mockResolvedValue({
+      ...instance,
+      project: { ...project, allowConsumerSkillSelection: false }
+    });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.magicMcpServer.findMany.mockResolvedValue([]);
+    db.magicMcpEndpoint.create.mockResolvedValue(endpoint);
+    db.magicMcpEndpoint.update.mockResolvedValue(endpoint);
+    db.instance.findUniqueOrThrow.mockResolvedValue({ ...instance, project });
+    isFlagEnabledForInstanceMock.mockResolvedValue(true);
+    ensureMagicMcpEndpointBackingMock.mockResolvedValue({
+      hasSubspaceBacking: true,
+      subspaceEphemeralManagedSessionId: 'ems_1',
+      isSubspaceBackingReconciling: false
+    });
+  });
+
+  it('stores a selection for a consumer-owned endpoint when the project allows it', async () => {
+    await magicMcpEndpointService.createMagicMcpEndpoint({
+      instance,
+      auditScope,
+      input: { name: 'Endpoint', consumerProfile, skillSelection: selection }
+    });
+
+    expect(db.magicMcpEndpoint.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skillSelectionType: 'selected' })
+      })
+    );
+  });
+
+  it('rejects creating a consumer-owned endpoint with a selection when the project turned it off', async () => {
+    turnSelectionOff();
+
+    await expect(
+      magicMcpEndpointService.createMagicMcpEndpoint({
+        instance,
+        auditScope,
+        input: { name: 'Endpoint', consumerProfile, skillSelection: selection }
+      })
+    ).rejects.toMatchObject({ data: { status: 403 } });
+    expect(db.magicMcpEndpoint.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects updating a consumer-owned endpoint to a selection when the project turned it off', async () => {
+    turnSelectionOff();
+
+    await expect(
+      magicMcpEndpointService.updateMagicMcpEndpoint({
+        endpoint: consumerEndpoint,
+        auditScope,
+        input: { skillSelection: selection }
+      })
+    ).rejects.toMatchObject({ data: { status: 403 } });
+    expect(db.magicMcpEndpointSkillSelection.deleteMany).not.toHaveBeenCalled();
+    expect(db.magicMcpEndpoint.update).not.toHaveBeenCalled();
+  });
+
+  it('accepts a selection without a consumer profile when the project turned it off', async () => {
+    turnSelectionOff();
+
+    await magicMcpEndpointService.createMagicMcpEndpoint({
+      instance,
+      auditScope,
+      input: { name: 'Endpoint', skillSelection: selection }
+    });
+    await magicMcpEndpointService.updateMagicMcpEndpoint({
+      endpoint,
+      auditScope,
+      input: { skillSelection: selection }
+    });
+
+    expect(db.magicMcpEndpoint.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skillSelectionType: 'selected' })
+      })
+    );
+    expect(db.magicMcpEndpoint.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skillSelectionType: 'selected' })
+      })
+    );
+  });
+
+  it('accepts sharing all skills on a consumer-owned endpoint when the project turned selection off', async () => {
+    turnSelectionOff();
+
+    await magicMcpEndpointService.createMagicMcpEndpoint({
+      instance,
+      auditScope,
+      input: { name: 'Endpoint', consumerProfile, skillSelection: null }
+    });
+    await magicMcpEndpointService.updateMagicMcpEndpoint({
+      endpoint: consumerEndpoint,
+      auditScope,
+      input: { skillSelection: null }
+    });
+
+    expect(db.magicMcpEndpoint.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skillSelectionType: 'all' })
+      })
+    );
+    expect(db.magicMcpEndpoint.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skillSelectionType: 'all' })
       })
     );
   });

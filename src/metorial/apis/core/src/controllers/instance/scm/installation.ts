@@ -13,7 +13,7 @@ export let scmInstallationController = Controller.create(
   {
     name: 'SCM Installations',
     description:
-      'Manage source control management installations (e.g. GitHub App installations).'
+      'An SCM installation is a provider app installation connected to an instance, for example a GitHub App installation.'
   },
   {
     list: instanceGroup
@@ -49,26 +49,26 @@ export let scmInstallationController = Controller.create(
     create: instanceGroup
       .post(instancePath('scm/installations', 'scm.installation.create'), {
         name: 'Create SCM installation',
-        description: 'Initiates an SCM installation setup (e.g. GitHub App authorization).'
+        description:
+          'Creates an installation setup session. Open the returned URL to authorize access.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:write'] }))
       .body(
         'default',
         v.object({
           redirect_url: v.optional(
-            v.string({ description: 'URL to redirect after authorization' })
+            v.string({ description: 'URL to redirect to after authorization.' })
           )
         })
       )
       .output(scmConnectionSetupPresenter)
       .do(async ctx => {
-        let scmConnectionSetup = await scmConnectionSetupSessionService.createScmConnectionSetupSession(
-          {
+        let scmConnectionSetup =
+          await scmConnectionSetupSessionService.createScmConnectionSetupSession({
             instance: ctx.instance,
             redirectUrl: ctx.body.redirect_url,
             organizationActor: ctx.actor!
-          }
-        );
+          });
 
         return scmConnectionSetupPresenter.present({
           scmConnectionSetup

@@ -2,7 +2,7 @@
   "$schema": "https://turborepo.com/schema.json",
   "agentGuidance": false,
   "ui": "tui",
-  "globalEnv": ["METORIAL_EDITION", "METORIAL_RELEASE_CHANNEL"],
+  "globalEnv": ["METORIAL_EDITION", "METORIAL_RELEASE_CHANNEL", "METORIAL_BUILD_ARCH"],
   "tasks": {
     "enterprise:dev": {
       "cache": false,
@@ -77,8 +77,8 @@
         "!README*",
         "!control/**"
       ],
-      "outputs": ["dist/**", "frontend/*/dist/**"],
-      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
+      "outputs": ["dist/**", "frontend/*/dist/**", "../frontends/*/dist/**"],
+      "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "METORIAL_EDITION", "VITE_*"]
     },
     "_frontend:build": {
       "dependsOn": ["^build", "^_frontend:build"],
@@ -190,7 +190,7 @@
       "dependsOn": ["^build", "@mtsrc/mcp-runtime-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/agent-tracking-client#build": {
+    "@mtsrc/agent-tracking-client-internal#build": {
       "dependsOn": ["^build", "@mtsrc/agent-tracking-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
@@ -387,7 +387,7 @@
     },
     "test:e2e": {
       "dependsOn": ["^build", "prisma:generate", "^prisma:generate"],
-      "env": ["CONTROL_E2E_STACK_KEY"],
+      "env": ["CONTROL_E2E_STACK_KEY", "METORIAL_E2E_PACKAGE_SHARDS"],
       "passThroughEnv": ["*"],
       "outputs": []
     },

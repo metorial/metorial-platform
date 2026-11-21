@@ -33,7 +33,7 @@ export let integrationController = Controller.create(
   {
     name: 'Integrations',
     description:
-      'Integrations define reusable provider contracts that can then be materialized into integration instances.'
+      'An integration is a reusable set of providers with shared configuration. Integration instances connect it for a specific actor or identity.'
   },
   {
     list: integrationsGroup
@@ -48,16 +48,28 @@ export let integrationController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string(), {
+              description: 'Search integrations by name, description, ID, or slug.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return integrations with one of these statuses. `deleted` integrations are never listed.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integrations with one of these IDs.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integrations using one of these providers.'
+            }),
+            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integrations using one of these integration providers.'
+            }),
             created_at: dateFilterValidator('integration creation time'),
             updated_at: dateFilterValidator('integration last update time')
           })
@@ -86,7 +98,7 @@ export let integrationController = Controller.create(
     get: integrationGroup
       .get(instancePath('integrations/:integrationId', 'integrations.get'), {
         name: 'Get integration',
-        description: 'Retrieves a specific integration.'
+        description: 'Retrieves an integration.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
@@ -96,21 +108,55 @@ export let integrationController = Controller.create(
     create: integrationsGroup
       .post(instancePath('integrations', 'integrations.create'), {
         name: 'Create integration',
-        description: 'Creates a new integration.'
+        description: 'Creates an integration.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          use_integration_name_in_tool_names: v.optional(v.nullable(v.boolean())),
-          can_attach_custom_tool_filters: v.optional(v.boolean()),
-          can_attach_custom_provider_config: v.optional(v.boolean()),
-          can_override_tool_filters: v.optional(v.boolean()),
-          enable_callback_tools: v.optional(v.boolean())
+          name: v.string({
+            description: 'Display name for the integration.',
+            examples: ['GitHub']
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the integration.'
+            })
+          ),
+          use_integration_name_in_tool_names: v.optional(
+            v.nullable(
+              v.boolean({
+                description:
+                  'Names session providers after the integration instead of the provider. `null` uses the default.'
+              })
+            )
+          ),
+          can_attach_custom_tool_filters: v.optional(
+            v.boolean({
+              description: 'Lets integration instances attach their own tool filters.'
+            })
+          ),
+          can_attach_custom_provider_config: v.optional(
+            v.boolean({
+              description: 'Lets integration instances use their own provider configs.'
+            })
+          ),
+          can_override_tool_filters: v.optional(
+            v.boolean({
+              description: 'Lets integration instances ignore the integration tool filters.'
+            })
+          ),
+          enable_callback_tools: v.optional(
+            v.boolean({
+              description: 'Makes callback event tools available for this integration.'
+            })
+          )
         })
       )
       .output(integrationPresenter)
@@ -137,21 +183,62 @@ export let integrationController = Controller.create(
     update: integrationGroup
       .patch(instancePath('integrations/:integrationId', 'integrations.update'), {
         name: 'Update integration',
-        description: 'Updates a specific integration.'
+        description: 'Updates an integration. Omitted fields keep their current value.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          metadata: v.optional(v.nullable(v.record(v.any()))),
-          use_integration_name_in_tool_names: v.optional(v.nullable(v.boolean())),
-          can_attach_custom_tool_filters: v.optional(v.boolean()),
-          can_attach_custom_provider_config: v.optional(v.boolean()),
-          can_override_tool_filters: v.optional(v.boolean()),
-          enable_callback_tools: v.optional(v.boolean())
+          name: v.optional(
+            v.string({
+              description: 'Display name for the integration.',
+              examples: ['GitHub']
+            })
+          ),
+          description: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Free-text description. `null` clears it.'
+              })
+            )
+          ),
+          metadata: v.optional(
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Custom data to identify or organize the integration. Replaces existing metadata. `null` clears it.'
+              })
+            )
+          ),
+          use_integration_name_in_tool_names: v.optional(
+            v.nullable(
+              v.boolean({
+                description:
+                  'Names session providers after the integration instead of the provider. `null` uses the default.'
+              })
+            )
+          ),
+          can_attach_custom_tool_filters: v.optional(
+            v.boolean({
+              description: 'Lets integration instances attach their own tool filters.'
+            })
+          ),
+          can_attach_custom_provider_config: v.optional(
+            v.boolean({
+              description: 'Lets integration instances use their own provider configs.'
+            })
+          ),
+          can_override_tool_filters: v.optional(
+            v.boolean({
+              description: 'Lets integration instances ignore the integration tool filters.'
+            })
+          ),
+          enable_callback_tools: v.optional(
+            v.boolean({
+              description: 'Makes callback event tools available for this integration.'
+            })
+          )
         })
       )
       .output(integrationPresenter)
@@ -178,8 +265,9 @@ export let integrationController = Controller.create(
 
     delete: integrationGroup
       .delete(instancePath('integrations/:integrationId', 'integrations.delete'), {
-        name: 'Delete integration',
-        description: 'Archives a specific integration.'
+        name: 'Archive integration',
+        description:
+          'Archives an integration. It stays retrievable by ID and listable with `status=archived`.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))

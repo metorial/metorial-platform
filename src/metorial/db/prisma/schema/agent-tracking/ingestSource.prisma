@@ -1,0 +1,28 @@
+enum AgentTrackingIngestSourceStatus {
+  active
+  revoked
+}
+
+model AgentTrackingIngestSource {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status AgentTrackingIngestSourceStatus @default(active)
+
+  serviceIngestSourceId String @unique
+
+  name           String
+  clientFamily   String
+  secretRedacted String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  revokedAt        DateTime?
+  serviceRevokedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  @@index([instanceOid, status])
+  @@index([status, serviceRevokedAt])
+}

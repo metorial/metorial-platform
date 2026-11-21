@@ -1,0 +1,227 @@
+[
+  {
+    "name": "on-prem sk",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem pk",
+    "token": "metorial_pk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem uk",
+    "token": "metorial_uk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem lk",
+    "token": "metorial_lk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem oa",
+    "token": "metorial_oa_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem or",
+    "token": "metorial_or_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem fk",
+    "token": "metorial_fk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem ek",
+    "token": "metorial_ek_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "on-prem mk",
+    "token": "metorial_mk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "regional",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7eyc2B3xqwzKA15V1fgFp4ZPOXCGVcaOEoOdYAhvIpvbKeth1tlWmbv2",
+    "host": "https://api.eu.metorial.com"
+  },
+  {
+    "name": "http and port",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWBpRMsIAReeSAbLhG2ErLfi4OTYd8XpYlbt61T1EBKPv2",
+    "host": "http://localhost:4310/v1"
+  },
+  {
+    "name": "ipv6",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVdCH2zgMtHLtqL2tJhseAcYDpvmg7tW0l2Qx1OJ0vpvRM49GEBE1lNNv2",
+    "host": "http://[::1]:4310/custom/v1/"
+  },
+  {
+    "name": "unicode path",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8hIHX2bhNr0qbzWiAoyGemylyLu4sbjx3LLpgqYfku3nxVSqgNQObTjjG1v2",
+    "host": "https://metorial.test/café/v1"
+  },
+  {
+    "name": "future region",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZulUOQlf8UtVEs773wI1XBJY0UMf0Xowk3pwO8UR962tB6T85M5JP5TZU4Lv2",
+    "host": "https://new.metorial.test/v1"
+  },
+  {
+    "name": "v1 key",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmeh7GUdS1ixpdv1",
+    "host": "https://metorial.test/v1"
+  },
+  {
+    "name": "not array",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA81oI8c8Vce7eP6nTHCLY1WXfhTMpKl3nQ5seAs2F35OV4Pv2",
+    "host": null
+  },
+  {
+    "name": "empty config",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA65Fv2",
+    "host": null
+  },
+  {
+    "name": "short config",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4bnX7G6OgTddJPwDMzuddhEXnHb7U1ILpH0VrRv2",
+    "host": null
+  },
+  {
+    "name": "extra config",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA26bqgOMgxXfNOhTibUkZ27zDYTWTH6EWE2p0ukyV39iq018gwbjXbGZUTv2",
+    "host": null
+  },
+  {
+    "name": "non-string URL",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5m45sh6kylWSdTVAc9v2",
+    "host": null
+  },
+  {
+    "name": "null URL",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfmcrJfDVqlYZnE7fKN81v2",
+    "host": null
+  },
+  {
+    "name": "non-string instance",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5EUxGKrkWyIVzFJw1sjEZNFsLO8scUWeA93GAQLE7xv2",
+    "host": null
+  },
+  {
+    "name": "empty instance",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5EUxGKrkWyIVzFJw1sjEZNFsLO8scUWeA93GAQGGBJv2",
+    "host": null
+  },
+  {
+    "name": "empty URL",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2RSLK7NyveL2RleelBv2",
+    "host": null
+  },
+  {
+    "name": "relative URL",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2lxvJsQVfHLpH0yHrmtR4Hv2",
+    "host": null
+  },
+  {
+    "name": "bare host",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJ24aUf5QisjbWJHhuPBGbDtCveet4HItda3YMblv2",
+    "host": null
+  },
+  {
+    "name": "invalid scheme",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5EUwpsdBxtEihTNjGSOVqNHS0i4BPV5QV6SuEBs78Hv2",
+    "host": null
+  },
+  {
+    "name": "missing host",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAyxdvCdtiDlLhdBC0MSMtIBNPVs8EmGyrv2",
+    "host": null
+  },
+  {
+    "name": "bad port",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8hIHX2bhNr0qbzWiAoyGemylyLu4sbjybCHZkXmWidKZ3vUz2vEIDcQN2Lv2",
+    "host": null
+  },
+  {
+    "name": "credentials",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAemIHGVcd11hctVp69pB39WR3cBwoSm1AwOxEkqMfhZeJ4Lvt6BPKgZFZxqmp28zv2",
+    "host": null
+  },
+  {
+    "name": "query",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVdCH2zgN8dZDFNBHnaSpNFJGaDBvuF8lxmCXunf0B9nmOeTT7ScIGtxv2",
+    "host": null
+  },
+  {
+    "name": "fragment",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1r25Ks1RZaZC9CtelWj2AH4CoQq20TkGgXTvfRbZezqGWmkzUHvwrv2",
+    "host": null
+  },
+  {
+    "name": "backslash",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA26bqgOMgxXfNOhTibUkZ27zDYTWTH6EXmEyhZK5dQqfEx6WuFEF4gmacvv2",
+    "host": null
+  },
+  {
+    "name": "whitespace",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARrHRA6p7kdAQeFrGbX3boUdKPvVMWVIon6dFz177WwohoXm2Dcbv2",
+    "host": null
+  },
+  {
+    "name": "space in path",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVdCH2zgN8dZDFNBHnaSpNFJGaDBvuF8lv84MA24vUDAqIgWEH8esxcjv2",
+    "host": null
+  },
+  {
+    "name": "opaque key",
+    "token": "metorial_sk_test",
+    "host": null
+  },
+  {
+    "name": "empty token",
+    "token": "",
+    "host": null
+  },
+  {
+    "name": "wrong prefix",
+    "token": "other_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": null
+  },
+  {
+    "name": "unknown version",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v3",
+    "host": null
+  },
+  {
+    "name": "truncated secret",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2",
+    "host": null
+  },
+  {
+    "name": "invalid base62",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh3747!v2",
+    "host": null
+  },
+  {
+    "name": "truncated config",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQv2",
+    "host": null
+  },
+  {
+    "name": "invalid json",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7tQLFHzv2",
+    "host": null
+  },
+  {
+    "name": "invalid utf8",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1dJV46WZtyCAYoKnNdbrzeLzbvI3FADrGwq3JctyRVH5EUAk1v2",
+    "host": null
+  },
+  {
+    "name": "trailing newline",
+    "token": "metorial_sk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6kKWGwwWF6YFbjprtbYMwYcoOaYXOcDDuJMWWmehxQhQh37473v2\n",
+    "host": null
+  }
+]

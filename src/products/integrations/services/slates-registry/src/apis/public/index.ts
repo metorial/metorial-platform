@@ -5,6 +5,7 @@ import { infoController } from './info';
 import { scopesController } from './scope';
 import { slatesController } from './slate';
 import { slatePacksController } from './slatePack';
+import { toolingController } from './tooling';
 import { usersController } from './user';
 import { workspacesController } from './workspace';
 
@@ -34,4 +35,5 @@ export let registryApp = createHono()
   .route('/workspaces', workspacesController)
   .route('/slates', slatesController)
   .route('/slate-packs', slatePacksController)
+  .route('/tooling', toolingController)
   .route('/change-notifications', changeNotificationsController);

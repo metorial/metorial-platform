@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sessionService } from '../src/services/session';
 import { closeRedis, getCacheRedis } from '@mtsrc/agent-tracking-redis';
 import { correlationCacheKey, inferCacheKey, summaryLockKey } from '../src/lib/cacheKeys';
 import { settleSession } from '../src/lib/settle';
+import { sessionlessBucket, settleSessionless } from '../src/lib/sessionless';
 import { createSessionHarness, minutesAfter, store } from './harness';
 
 let dayMs = 24 * 60 * 60 * 1000;
@@ -253,6 +255,53 @@ describe('inferred sessions', () => {
   });
 });
 
+describe('sessionless usage', () => {
+  it('keeps a cost sent with an ingestion key an estimate', async () => {
+    let harness = await createSessionHarness({
+      credential: { kind: 'source', id: 'atis_shared_key' }
+    });
+    let start = new Date(Math.floor(Date.now() / dayMs) * dayMs - dayMs);
+    let window = { start, end: new Date(start.getTime() + dayMs) };
+    let dims = { model: model.id, provider: model.provider };
+
+    await harness.ingest([
+      {
+        kind: 'measurement',
+        type: 'requests',
+        at: window.end,
+        family: 'kiro',
+        channel: 'otlp.metrics',
+        role: 'aggregate',
+        data: { value: 1, unit: '{request}', aggregation: 'delta', window, dims }
+      },
+      {
+        kind: 'measurement',
+        type: 'cost',
+        at: window.end,
+        family: 'kiro',
+        channel: 'otlp.metrics',
+        role: 'aggregate',
+        data: { value: 0.5, unit: 'USD', aggregation: 'delta', window, dims }
+      }
+    ]);
+
+    let { bucket } = sessionlessBucket({ occurredAt: window.end, window });
+    await settleSessionless({
+      organizationId: harness.scope.organization.id,
+      instanceId: harness.scope.instance.id,
+      bucket
+    });
+
+    let slices = await harness
+      .collections()
+      .usageSlices.find({ instanceId: harness.scope.instance.id })
+      .toArray();
+    expect(slices.flatMap(slice => slice.costReported.map(cost => cost.basis))).toEqual([
+      'client_estimate'
+    ]);
+  });
+});
+
 describe('settling', () => {
   it('links orphans into the native session and drops the emptied inferred session', async () => {
     let harness = await createSessionHarness();
@@ -385,7 +434,7 @@ describe('lazy summary', () => {
 });
 
 describe('session list', () => {
-  it('pages sessions newest first and filters them', async () => {
+  it('pages sessions by last activity in both directions and filters them', async () => {
     let harness = await createSessionHarness();
     let start = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -402,20 +451,100 @@ describe('session list', () => {
 
     let page = await sessionService.listSessions({ organization, filters: {}, limit: 2 });
     expect(page.items.map(session => session.startedAt)).toEqual([
-      minutesAfter(start, 2),
-      minutesAfter(start, 1)
+      start,
+      minutesAfter(start, 2)
     ]);
-    expect(page.hasMore).toBe(true);
+    expect(page).toMatchObject({ hasMoreAfter: true, hasMoreBefore: false });
 
     let next = await sessionService.listSessions({
       organization,
       filters: {},
       limit: 2,
-      cursor: page.nextCursor!
+      after: page.after
     });
-    expect(next.items.map(session => session.startedAt)).toEqual([start]);
-    expect(next.hasMore).toBe(false);
-    expect(next.nextCursor).toBeNull();
+    expect(next.items.map(session => session.startedAt)).toEqual([minutesAfter(start, 1)]);
+    expect(next).toMatchObject({ hasMoreAfter: false, hasMoreBefore: true, after: undefined });
+
+    let keys = (await sessionService.listSessions({ organization, filters: {} })).items.map(
+      session => session._id
+    );
+    expect(keys).toHaveLength(3);
+
+    let after = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 1,
+      after: keys[0]
+    });
+    expect(after.items.map(session => session._id)).toEqual([keys[1]]);
+    expect(after).toMatchObject({ hasMoreAfter: true, hasMoreBefore: true });
+
+    let back = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 1,
+      before: after.before
+    });
+    expect(back.items.map(session => session._id)).toEqual([keys[0]]);
+
+    let forward = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 1,
+      after: after.after
+    });
+    expect(forward.items.map(session => session._id)).toEqual([keys[2]]);
+
+    let before = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 1,
+      before: keys[2]
+    });
+    expect(before.items.map(session => session._id)).toEqual([keys[1]]);
+    expect(before).toMatchObject({ hasMoreAfter: true, hasMoreBefore: true });
+
+    let firstPage = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 2,
+      before: keys[2]
+    });
+    expect(firstPage.items.map(session => session._id)).toEqual([keys[0], keys[1]]);
+    expect(firstPage).toMatchObject({ hasMoreAfter: true, hasMoreBefore: false });
+
+    let ascending = await sessionService.listSessions({
+      organization,
+      filters: {},
+      order: 'asc'
+    });
+    expect(ascending.items.map(session => session._id)).toEqual([...keys].reverse());
+
+    let endedOnly = await sessionService.listSessions({
+      organization,
+      filters: { states: ['ended'] },
+      after: keys[1]
+    });
+    expect(endedOnly).toMatchObject({ items: [], hasMoreAfter: false, hasMoreBefore: true });
+
+    await expect(
+      sessionService.listSessions({ organization, filters: {}, after: 'no-such-session' })
+    ).rejects.toThrow('Unknown session list anchor');
+    await expect(
+      sessionService.listSessions({
+        organization,
+        filters: { instanceIds: ['atin_another_instance'] },
+        after: keys[0]
+      })
+    ).rejects.toThrow('Unknown session list anchor');
+    await expect(
+      sessionService.listSessions({
+        organization,
+        filters: {},
+        after: keys[0],
+        before: keys[2]
+      })
+    ).rejects.toThrow('Pass only one of after and before.');
 
     let ended = await sessionService.listSessions({
       organization,
@@ -434,6 +563,254 @@ describe('session list', () => {
       filters: { from: minutesAfter(start, 1), to: minutesAfter(start, 2) }
     });
     expect(ranged.items.map(session => session.startedAt)).toEqual([minutesAfter(start, 1)]);
+  });
+
+  it('pages from the positions it returned after the anchor session gets new activity', async () => {
+    let harness = await createSessionHarness();
+    let start = new Date(Date.now() - 60 * 60 * 1000);
+
+    for (let index = 0; index < 4; index++) {
+      await harness.ingest([
+        { type: 'session.start', at: minutesAfter(start, index), sessionId: `moving-${index}` }
+      ]);
+    }
+
+    let organization = harness.scope.organization;
+
+    let all = (await sessionService.listSessions({ organization, filters: {} })).items.map(
+      session => session._id
+    );
+    let second = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 2,
+      after: (await sessionService.listSessions({ organization, filters: {}, limit: 1 })).after
+    });
+    expect(second.items.map(session => session._id)).toEqual([all[1], all[2]]);
+
+    await harness.ingest([
+      { type: 'turn.completed', at: minutesAfter(start, 30), sessionId: 'moving-2' },
+      { type: 'turn.completed', at: minutesAfter(start, 31), sessionId: 'moving-1' }
+    ]);
+
+    let previous = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 1,
+      before: second.before
+    });
+    expect(previous.items.map(session => session._id)).toEqual([all[0]]);
+    expect(previous.hasMoreBefore).toBe(true);
+
+    let next = await sessionService.listSessions({
+      organization,
+      filters: {},
+      limit: 2,
+      after: second.after
+    });
+    expect(next.items.map(session => session._id)).toEqual([all[3]]);
+    expect(next.hasMoreAfter).toBe(false);
+  });
+
+  it('settles ties on last activity by key, in both orders and directions', async () => {
+    let harness = await createSessionHarness();
+    let at = new Date(Date.now() - 60 * 60 * 1000);
+
+    for (let index = 0; index < 3; index++) {
+      await harness.ingest([{ type: 'session.start', at, sessionId: `tied-${index}` }]);
+    }
+
+    let organization = harness.scope.organization;
+    let ids = (page: { items: { _id: string }[] }) => page.items.map(session => session._id);
+    let keys = ids(await sessionService.listSessions({ organization, filters: {} }));
+    expect(keys).toEqual([...keys].sort().reverse());
+
+    for (let [order, listed] of [
+      ['desc', keys],
+      ['asc', [...keys].reverse()]
+    ] as const) {
+      let list = (page: { after?: string; before?: string }) =>
+        sessionService.listSessions({ organization, filters: {}, order, limit: 1, ...page });
+
+      let page = await list({});
+      let seen = ids(page);
+      while (page.hasMoreAfter) {
+        page = await list({ after: page.after });
+        seen.push(...ids(page));
+      }
+      expect(seen).toEqual(listed);
+
+      let back = await list({ before: page.before });
+      expect(ids(back)).toEqual([listed[1]]);
+      expect(back).toMatchObject({ hasMoreAfter: true, hasMoreBefore: true });
+
+      let byKey = await list({ after: listed[0] });
+      expect(ids(byKey)).toEqual([listed[1]]);
+    }
+  });
+});
+
+describe('session list by cost', () => {
+  it('pages by cost in both directions, sessions without a cost last, within a range of last activity', async () => {
+    let harness = await createSessionHarness();
+    let start = new Date(Date.now() - 60 * 60 * 1000);
+    let costs = ['0.5', null, '12', '0.000000125', '0.5', undefined];
+
+    for (let index = 0; index < costs.length; index++) {
+      await harness.ingest([
+        { type: 'session.start', at: minutesAfter(start, index), sessionId: `cost-${index}` }
+      ]);
+    }
+
+    let organization = harness.scope.organization;
+    let { sessions } = harness.collections();
+    let byStart = (
+      await sessionService.listSessions({ organization, filters: {}, order: 'asc' })
+    ).items.map(session => session._id);
+
+    for (let [index, cost] of costs.entries()) {
+      if (cost === undefined) continue;
+      await sessions.updateOne(
+        { _id: byStart[index] },
+        {
+          $set: {
+            'summary.costUsd':
+              cost === null ? null : mongoose.Types.Decimal128.fromString(cost)
+          }
+        }
+      );
+    }
+
+    let keysDescending = (indexes: number[]) =>
+      indexes
+        .map(index => byStart[index]!)
+        .sort()
+        .reverse();
+    let expected = [
+      byStart[2]!,
+      ...keysDescending([0, 4]),
+      byStart[3]!,
+      ...keysDescending([1, 5])
+    ];
+
+    let all = await sessionService.listSessions({
+      organization,
+      filters: {},
+      orderBy: 'cost'
+    });
+    expect(all.items.map(session => session._id)).toEqual(expected);
+
+    let seen: string[] = [];
+    let page = await sessionService.listSessions({
+      organization,
+      filters: {},
+      orderBy: 'cost',
+      limit: 2
+    });
+    seen.push(...page.items.map(session => session._id));
+    while (page.hasMoreAfter) {
+      page = await sessionService.listSessions({
+        organization,
+        filters: {},
+        orderBy: 'cost',
+        limit: 2,
+        after: page.after
+      });
+      seen.push(...page.items.map(session => session._id));
+    }
+    expect(seen).toEqual(expected);
+    expect(page.hasMoreBefore).toBe(true);
+
+    let back = await sessionService.listSessions({
+      organization,
+      filters: {},
+      orderBy: 'cost',
+      limit: 2,
+      before: page.before
+    });
+    expect(back.items.map(session => session._id)).toEqual(expected.slice(2, 4));
+
+    let byKey = await sessionService.listSessions({
+      organization,
+      filters: {},
+      orderBy: 'cost',
+      limit: 1,
+      after: expected[3]
+    });
+    expect(byKey.items.map(session => session._id)).toEqual([expected[4]]);
+
+    let cheapest = await sessionService.listSessions({
+      organization,
+      filters: {},
+      orderBy: 'cost',
+      order: 'asc',
+      limit: 3
+    });
+    expect(cheapest.items.map(session => session._id)).toEqual(
+      [...expected].reverse().slice(0, 3)
+    );
+
+    let ids = (page: { items: { _id: string }[] }) => page.items.map(session => session._id);
+    let flags = (pages: { hasMoreBefore: boolean; hasMoreAfter: boolean }[]) =>
+      pages.map(page => [page.hasMoreBefore, page.hasMoreAfter]);
+
+    for (let order of ['desc', 'asc'] as const) {
+      let listed = order == 'desc' ? expected : [...expected].reverse();
+
+      for (let limit of [1, 2]) {
+        let chunks: string[][] = [];
+        for (let index = 0; index < listed.length; index += limit) {
+          chunks.push(listed.slice(index, index + limit));
+        }
+        let chunkFlags = chunks.map((_, index) => [index > 0, index < chunks.length - 1]);
+
+        let list = (anchor: { after?: string; before?: string }) =>
+          sessionService.listSessions({
+            organization,
+            filters: {},
+            orderBy: 'cost',
+            order,
+            limit,
+            ...anchor
+          });
+
+        let forward = [await list({})];
+        while (forward.at(-1)!.hasMoreAfter) {
+          forward.push(await list({ after: forward.at(-1)!.after }));
+        }
+        expect(forward.map(ids)).toEqual(chunks);
+        expect(flags(forward)).toEqual(chunkFlags);
+
+        let backward = [forward.at(-1)!];
+        while (backward[0]!.hasMoreBefore) {
+          backward.unshift(await list({ before: backward[0]!.before }));
+        }
+        expect(backward.map(ids)).toEqual(chunks);
+        expect(flags(backward)).toEqual(chunkFlags);
+      }
+    }
+
+    let ranged = await sessionService.listSessions({
+      organization,
+      filters: {
+        lastActivityFrom: minutesAfter(start, 2),
+        lastActivityTo: minutesAfter(start, 5)
+      },
+      orderBy: 'cost'
+    });
+    expect(ranged.items.map(session => session._id)).toEqual(
+      expected.filter(key => [2, 3, 4].includes(byStart.indexOf(key)))
+    );
+
+    await expect(
+      sessionService.listSessions({
+        organization,
+        filters: {},
+        orderBy: 'cost',
+        after: (await sessionService.listSessions({ organization, filters: {}, limit: 1 }))
+          .after
+      })
+    ).rejects.toThrow('Unknown session list anchor');
   });
 });
 
@@ -472,5 +849,109 @@ describe('source health', () => {
       lastSeen: { hook: first, otel: { logs: second, spans: second } }
     });
     expect(health!.updatedAt).toEqual(second);
+  });
+
+  it('counts unknown events per dialect and name instead of storing them', async () => {
+    let harness = await createSessionHarness();
+    let at = new Date();
+
+    await harness.ingest(
+      [
+        {
+          type: 'unmapped',
+          at,
+          sessionId: 'drift-1',
+          channel: 'otlp.logs',
+          data: { native_name: 'hook_registered', category: 'diagnostic' }
+        },
+        {
+          type: 'unmapped',
+          at,
+          sessionId: 'drift-1',
+          channel: 'otlp.logs',
+          data: { native_name: 'hook_registered', category: 'diagnostic' }
+        },
+        {
+          type: 'extension.event',
+          at,
+          sessionId: 'drift-1',
+          channel: 'otlp.logs',
+          data: { kind: 'plugin', action: 'loaded' }
+        },
+        {
+          type: 'extension.event',
+          at,
+          sessionId: 'drift-1',
+          channel: 'otlp.logs',
+          data: { kind: 'skill', action: 'activated' }
+        },
+        { type: 'model.request', at, sessionId: 'drift-1', channel: 'otlp.logs' }
+      ],
+      at
+    );
+
+    let health = await harness.collections().sourceHealth.findOne({
+      _id: `${harness.scope.instance.id}:aten_device_unit:claude-code`
+    });
+    expect(health!.unmapped).toEqual({ test_v1: { hook_registered: 2 } });
+
+    let stored = await harness
+      .collections()
+      .events.find({ instanceId: harness.scope.instance.id })
+      .toArray();
+    expect(stored.map(event => [event.type, event.data?.kind ?? null]).sort()).toEqual([
+      ['extension.event', 'skill'],
+      ['model.request', null]
+    ]);
+
+    expect(
+      await harness
+        .collections()
+        .sessions.countDocuments({ instanceId: harness.scope.instance.id })
+    ).toBe(1);
+  });
+
+  it('creates no session for a client start that sends nothing we store', async () => {
+    let harness = await createSessionHarness();
+    let at = new Date();
+
+    let records = await harness.ingest(
+      [
+        {
+          type: 'unmapped',
+          at,
+          sessionId: 'probe-1',
+          channel: 'otlp.logs',
+          data: { native_name: 'managed_settings_resolved', category: 'diagnostic' }
+        },
+        {
+          type: 'extension.event',
+          at,
+          sessionId: 'probe-1',
+          channel: 'otlp.logs',
+          data: { kind: 'plugin', action: 'loaded' }
+        }
+      ],
+      at
+    );
+
+    expect(records[0]!.ctx.session_key).toBeTruthy();
+
+    let filter = { instanceId: harness.scope.instance.id };
+    expect(await harness.collections().sessions.countDocuments(filter)).toBe(0);
+    expect(await harness.collections().sessionLinks.countDocuments(filter)).toBe(0);
+    expect(await harness.collections().events.countDocuments(filter)).toBe(0);
+
+    let health = await harness.collections().sourceHealth.findOne({
+      _id: `${harness.scope.instance.id}:aten_device_unit:claude-code`
+    });
+    expect(health!.unmapped).toEqual({ test_v1: { managed_settings_resolved: 1 } });
+
+    await harness.ingest(
+      [{ type: 'model.request', at, sessionId: 'probe-1', channel: 'otlp.logs' }],
+      at
+    );
+
+    expect(await harness.collections().sessions.countDocuments(filter)).toBe(1);
   });
 });

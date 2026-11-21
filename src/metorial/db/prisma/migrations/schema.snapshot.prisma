@@ -630,24 +630,53 @@ model WorkspaceGroupAssignment {
   @@unique([workspaceGroupOid, workspaceProfileOid])
 }
 
-enum AgentTelemetryIngestTokenStatus {
+enum AgentTrackingIngestSourceStatus {
   active
   revoked
 }
 
-enum AgentTelemetryIngestTokenDeviceMode {
+model AgentTrackingIngestSource {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status AgentTrackingIngestSourceStatus @default(active)
+
+  serviceIngestSourceId String @unique
+
+  name           String
+  clientFamily   String
+  secretRedacted String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  revokedAt        DateTime?
+  serviceRevokedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  @@index([instanceOid, status])
+  @@index([status, serviceRevokedAt])
+}
+
+enum AgentTrackingIngestTokenStatus {
+  active
+  revoked
+}
+
+enum AgentTrackingIngestTokenDeviceMode {
   bound
   ephemeral
 }
 
-model AgentTelemetryIngestToken {
+model AgentTrackingIngestToken {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status     AgentTelemetryIngestTokenStatus     @default(active)
-  deviceMode AgentTelemetryIngestTokenDeviceMode
+  status     AgentTrackingIngestTokenStatus     @default(active)
+  deviceMode AgentTrackingIngestTokenDeviceMode
 
-  groundstationIngestTokenId String @unique
+  serviceIngestTokenId String @unique
 
   name String
 
@@ -667,6 +696,57 @@ model AgentTelemetryIngestToken {
   @@index([consumerDeviceOid, status])
   @@index([consumerOid, status])
   @@index([instanceOid])
+}
+
+enum AgentTrackingContentMode {
+  basic
+  shape
+  full
+}
+
+model AgentTrackingOrganizationSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  hideIndividuals Boolean @default(false)
+  minGroupUsers   Int     @default(5)
+
+  organizationOid BigInt       @unique
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AgentTrackingProjectSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  recordDays  Int?
+  contentDays Int?
+  usageDays   Int?
+
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model AgentTrackingInstanceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  mode AgentTrackingContentMode @default(basic)
+
+  deterministicEnabled Boolean @default(true)
+  aiEnabled            Boolean @default(false)
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model AuditLog {
@@ -1287,9 +1367,10 @@ model Consumer {
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
   storeParticipants          StoreParticipant[]
-  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+  agentTrackingIngestTokens  AgentTrackingIngestToken[]
 
   @@unique([email, organizationOid])
+  @@index([organizationOid, id])
 }
 
 model InstanceConsumer {
@@ -1744,9 +1825,9 @@ model ConsumerDevice {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
-  clients                    ConsumerDeviceClient[]
-  magicMcpTokens             MagicMcpToken[]
-  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+  clients                   ConsumerDeviceClient[]
+  magicMcpTokens            MagicMcpToken[]
+  agentTrackingIngestTokens AgentTrackingIngestToken[]
 
   @@unique([consumerProfileOid, installationId])
   @@index([instanceOid, consumerProfileOid])
@@ -4833,6 +4914,8 @@ model Instance {
   synthesisEnvironmentId String?
   lastSubspaceSyncAt     DateTime?
 
+  agentTrackingLinkedAt DateTime?
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
@@ -4915,7 +4998,9 @@ model Instance {
   systemEvents              SystemEvent[]
   eventDeliveryIntents      EventDeliveryIntent[]
 
-  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+  agentTrackingIngestTokens  AgentTrackingIngestToken[]
+  agentTrackingIngestSources AgentTrackingIngestSource[]
+  agentTrackingSettings      AgentTrackingInstanceSettings?
 
   @@index([previousSlugs])
   @@index([oldSlug])
@@ -5319,6 +5404,8 @@ model Organization {
   cargoTenantId      String?
   cargoEnvironmentId String?
 
+  agentTrackingLinkedAt DateTime?
+
   resourceTenantOid BigInt?         @unique
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
 
@@ -5401,6 +5488,8 @@ model Organization {
   systemEvents                           SystemEvent[]
   eventDeliveryIntents                   EventDeliveryIntent[]
   eventDeliveryAttempts                  EventDeliveryAttempt[]
+
+  agentTrackingSettings AgentTrackingOrganizationSettings?
 
   @@index([authVersion])
   @@index([previousSlugs])
@@ -5523,6 +5612,8 @@ model Project {
   synthesisTenantId String?
   nebulaTenantId    String?
 
+  agentTrackingLinkedAt DateTime?
+
   resourceTenantOid BigInt?         @unique
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
 
@@ -5534,6 +5625,7 @@ model Project {
 
   autoAddOrganizationMembersToPortals    Boolean @default(false)
   allowConsumerSkillEditing              Boolean @default(true)
+  allowConsumerSkillSelection            Boolean @default(true)
   allowOrganizationMemberFullSkillAccess Boolean @default(false)
 
   reducedSubprocessors   Boolean @default(false)
@@ -5553,6 +5645,8 @@ model Project {
   accessPolicyProjects AccessPolicyProject[]
   brand                ProjectBrand?
   teams                TeamProject[]
+
+  agentTrackingSettings AgentTrackingProjectSettings?
 
   resourceActors        ResourceActor[]
   fileLinks             FileLink[]

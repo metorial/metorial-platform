@@ -12,6 +12,7 @@ import {
   declaredCapabilities,
   hintMismatchFindings
 } from './evidence';
+import { resolveControls } from './controls';
 import { computeScores } from './scoring';
 import { neutralizeInternalTermsDeep } from './terminology';
 
@@ -137,11 +138,20 @@ export let assembleReport = (d: AssembleInput) => {
   let derivedFindings = tools
     ? hintMismatchFindings({ tools, capabilities: capabilities.tools })
     : [];
+  // Metorial chooses the OAuth scopes of its own integrations, so scope breadth is never
+  // held against them. Staff-locked findings still apply.
   let merged = mergeFindings({
     agent: draft.findings ?? [],
     recorded: [...d.evidence.findings, ...derivedFindings],
     locked: d.lockedFindings ?? []
-  });
+  }).filter(
+    entry =>
+      !(
+        provenance.class == 'metorial_built' &&
+        entry.origin != 'admin' &&
+        entry.finding.category == 'excessive_scope'
+      )
+  );
   let sources = {
     facts: d.evidence.facts,
     files: { ...d.evidence.files, ...d.evidence.codeFiles }
@@ -149,12 +159,21 @@ export let assembleReport = (d: AssembleInput) => {
   let findings = merged.map(entry => resolveFindingCitations(entry.finding, sources));
   let origins = Object.fromEntries(merged.map(entry => [entry.finding.key, entry.origin]));
 
+  let controls = resolveControls({
+    kind: d.evidence.kind,
+    assessed: draft.controls,
+    tools,
+    transportEncrypted: d.evidence.transportEncrypted,
+    findings
+  });
+
   let reviewedKeys = new Set(reviewedTools.map(tool => tool.key));
   let scores: SecurityReviewComputedScores = computeScores({
     provenance: provenance.class,
     tools: tools ? capabilities.tools : null,
     behaviors,
     findings,
+    controls,
     coverage: {
       toolsExpected: tools ? tools.length : null,
       toolsReviewed: tools ? tools.filter(tool => reviewedKeys.has(tool.key)).length : 0,
@@ -207,6 +226,7 @@ export let assembleReport = (d: AssembleInput) => {
       summary,
       provenance,
       capabilities,
+      controls,
       findings,
       method: {
         coverage: scores.assessmentComplete ? 'complete' : 'partial',

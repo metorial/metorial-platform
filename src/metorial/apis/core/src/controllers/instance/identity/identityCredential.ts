@@ -38,7 +38,7 @@ export let identityCredentialController = Controller.create(
   {
     name: 'Identity Credentials',
     description:
-      'Identity credentials bind an identity to concrete provider deployment, config, and auth resources.',
+      'An identity credential is one provider attachment on an identity. It links the identity to a provider deployment, config, or auth config.',
     hideInDocs: true
   },
   {
@@ -60,43 +60,49 @@ export let identityCredentialController = Controller.create(
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ]),
               {
-                description: 'Filter by one or more credential statuses.'
+                description: 'Only return identity credentials with one of these statuses.'
               }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by identity credential ID or IDs.',
+              description: 'Only return identity credentials with one of these IDs.',
               examples: ['icr_8vBnM4xZa2cDf7gH']
             }),
             agent_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by owner agent ID or IDs.',
+              description: 'Only return identity credentials owned by one of these agents.',
               examples: ['agt_4mNoPq8rSt2uVx6y']
             }),
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by owner actor ID or IDs.',
+              description:
+                'Only return identity credentials owned by one of these identity actors.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
             }),
             consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by the consumer profile that owns the credentials.',
+              description:
+                'Only return identity credentials owned by one of these consumer profiles.',
               examples: ['cop_7nR8sK2mZa1pYx4b']
             }),
             identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by identity ID or IDs.',
+              description:
+                'Only return identity credentials attached to one of these identities.',
               examples: ['idn_5gHjKlMnPqRsTuVw']
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider ID or IDs.',
+              description: 'Only return identity credentials for one of these providers.',
               examples: ['pro_5gHjKlMnPqRsTuVw']
             }),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider deployment ID or IDs.',
+              description:
+                'Only return identity credentials attached to one of these provider deployments.',
               examples: ['pdp_4dEfGhJkLmNpQrSt']
             }),
             provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider config ID or IDs.',
+              description:
+                'Only return identity credentials attached to one of these provider configs.',
               examples: ['pcf_7dEfGhJkLmNpQrSt']
             }),
             provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider auth config ID or IDs.',
+              description:
+                'Only return identity credentials attached to one of these provider auth configs.',
               examples: ['pac_3nOpRsTuVwXyZaBc']
             }),
             created_at: dateFilterValidator('identity credential creation time'),
@@ -151,7 +157,7 @@ export let identityCredentialController = Controller.create(
         ),
         {
           name: 'Get identity credential',
-          description: 'Retrieves a specific identity credential by ID.'
+          description: 'Retrieves an identity credential.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
@@ -164,7 +170,7 @@ export let identityCredentialController = Controller.create(
     create: instanceGroup
       .post(instancePath('identity-credentials', 'identities.credentials.create'), {
         name: 'Create identity credential',
-        description: 'Creates a new credential and attaches it to an identity.'
+        description: 'Creates an identity credential.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -268,8 +274,9 @@ export let identityCredentialController = Controller.create(
           'identities.credentials.delete'
         ),
         {
-          name: 'Delete identity credential',
-          description: 'Archives an identity credential.'
+          name: 'Archive identity credential',
+          description:
+            'Archives an identity credential. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

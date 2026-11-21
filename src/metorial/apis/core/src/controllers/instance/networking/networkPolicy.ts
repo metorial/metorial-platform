@@ -39,13 +39,14 @@ export let networkPolicyGroup = networkingInstanceGroup.use(async ctx => {
 export let networkPolicyController = Controller.create(
   {
     name: 'Network Policies',
-    description: 'Manage reusable network policy definitions and their rules.'
+    description:
+      'A network policy is a reusable set of allow and deny rules. Firewalls attach policies to enforce them.'
   },
   {
     list: networkingInstanceGroup
       .get(instancePath('network-policies', 'networkPolicies.list'), {
         name: 'List network policies',
-        description: 'Returns a paginated list of network policies.'
+        description: 'Returns a paginated list of network policies in the instance.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .outputList(networkPolicyPresenter)
@@ -53,15 +54,26 @@ export let networkPolicyController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return network policies with one of these IDs.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description: 'Only return network policies with one of these statuses.'
+              }
             ),
-            firewall_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string()),
+            firewall_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return network policies attached to one of these firewalls.'
+            }),
+            search: v.optional(
+              v.string({
+                description: 'Filter network policies by name or description.'
+              })
+            ),
             created_at: dateFilterValidator('network policy creation time'),
             updated_at: dateFilterValidator('network policy last update time')
           })
@@ -91,7 +103,7 @@ export let networkPolicyController = Controller.create(
     get: networkPolicyGroup
       .get(instancePath('network-policies/:networkPolicyId', 'networkPolicies.get'), {
         name: 'Get network policy',
-        description: 'Retrieves a specific network policy by ID.'
+        description: 'Retrieves a network policy.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(networkPolicyPresenter)
@@ -100,15 +112,25 @@ export let networkPolicyController = Controller.create(
     create: networkingInstanceGroup
       .post(instancePath('network-policies', 'networkPolicies.create'), {
         name: 'Create network policy',
-        description: 'Creates a new network policy.'
+        description: 'Creates a network policy.'
       })
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          rules: v.optional(v.array(networkPolicyRuleValidator))
+          name: v.string({
+            description: 'Display name.'
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          rules: v.optional(
+            v.array(networkPolicyRuleValidator, {
+              description: 'Rules to create with the network policy.'
+            })
+          )
         })
       )
       .output(networkPolicyPresenter)
@@ -129,15 +151,27 @@ export let networkPolicyController = Controller.create(
     update: networkPolicyGroup
       .patch(instancePath('network-policies/:networkPolicyId', 'networkPolicies.update'), {
         name: 'Update network policy',
-        description: 'Updates a network policy definition.'
+        description: 'Updates a network policy. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          rules: v.optional(v.array(networkPolicyRuleValidator))
+          name: v.optional(
+            v.string({
+              description: 'Display name.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          rules: v.optional(
+            v.array(networkPolicyRuleValidator, {
+              description: 'Rules in the network policy. Replaces existing rules.'
+            })
+          )
         })
       )
       .output(networkPolicyPresenter)
@@ -158,8 +192,8 @@ export let networkPolicyController = Controller.create(
 
     delete: networkPolicyGroup
       .delete(instancePath('network-policies/:networkPolicyId', 'networkPolicies.delete'), {
-        name: 'Delete network policy',
-        description: 'Archives a network policy.'
+        name: 'Archive network policy',
+        description: 'Archives a network policy. It stays listable with `status=archived`.'
       })
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .output(networkPolicyPresenter)

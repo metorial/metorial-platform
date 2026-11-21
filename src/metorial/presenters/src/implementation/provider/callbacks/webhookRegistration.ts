@@ -38,12 +38,12 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
   .schema(
     v.object({
       object: v.literal('webhook_registration', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique webhook registration identifier',
+        description: 'Unique ID.',
         examples: ['whr_4dEfGhJkLmNpQrSt']
       }),
 
@@ -56,19 +56,19 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
       purpose: v.enumOf(['webhook_receiver', 'delivery_setup'], {
         name: 'purpose',
         description:
-          'What the registration is for. `webhook_receiver`: a URL the provider sends webhooks to. `delivery_setup`: the one-time delivery setup for the connections that use the OAuth app named by `auth_credentials_id`.'
+          'What the registration is for. `webhook_receiver` receives webhooks at `receive_url`. `delivery_setup` serves every connection using the OAuth app named by `auth_credentials_id`.'
       }),
 
       name: v.string({
         name: 'name',
-        description: 'Display name for the webhook registration',
+        description: 'Display name.',
         examples: ['Production GitHub Webhook']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Optional webhook registration description',
+          description: 'Free-text description.',
           examples: ['Receives repository events for the production workspace']
         })
       ),
@@ -76,8 +76,7 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description:
-            'Custom key-value pairs for storing additional webhook registration metadata',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ environment: 'production', owner: 'platform-team' }]
         })
       ),
@@ -94,7 +93,7 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
       setup: v.object(
         {
           object: v.literal('webhook_registration.setup', {
-            description: "String representing the object's type"
+            description: 'String representing the object’s type.'
           }),
 
           status: v.enumOf(['pending', 'completed'], {
@@ -114,8 +113,10 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
 
           schema: v.nullable(
             v.object(
-              {
-                type: v.literal('json_schema'),
+            {
+              type: v.literal('json_schema', {
+                description: 'Format of the setup schema. Always `json_schema`.'
+              }),
                 schema: v.record(v.any(), {
                   name: 'schema',
                   description: 'JSON Schema describing the setup values the provider expects',
@@ -149,13 +150,13 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the webhook registration was created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the webhook registration was last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

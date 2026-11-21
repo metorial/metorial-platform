@@ -1,4 +1,8 @@
-import { useSecurityReviewGenerationEnabled, type UsageReviewRevision } from '@metorial/state';
+import {
+  useSecurityReviewGenerationBlockedByAi,
+  useSecurityReviewGenerationEnabled,
+  type UsageReviewRevision
+} from '@metorial/state';
 import { Button } from '@metorial/ui';
 import {
   SecurityReviewNotices,
@@ -47,6 +51,7 @@ export let SecurityAssessmentBody = ({
   usage?: UsageReviewRevision | null;
 }) => {
   let canGenerate = useSecurityReviewGenerationEnabled();
+  let blockedByAi = useSecurityReviewGenerationBlockedByAi();
   let { current, inProgress, failed } = getReviewRevisions<AnySecurityReviewRevision>(review);
   let shown = revision ?? current;
   let subject = getReviewSubject(review);
@@ -83,6 +88,17 @@ export let SecurityAssessmentBody = ({
         <SecurityReviewNotices review={review} revision={shown} versionLabel={versionLabel} />
         <SecurityReviewVerdict revision={shown} detailed={detailed} usage={usage} />
       </>
+    );
+  }
+
+  if (!canGenerate && canRetry && blockedByAi) {
+    return (
+      <SecurityReviewStatus
+        icon={securityReviewIcons.locked}
+        eyebrow="No assessment available"
+        title="AI is not configured."
+        description="Security reviews can't be generated because AI is not configured on this Metorial instance."
+      />
     );
   }
 

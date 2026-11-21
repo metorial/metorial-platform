@@ -2,8 +2,9 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Organization, Project } from '@mtsrc/agent-tracking-db';
 import { db, withTransaction } from '@mtsrc/agent-tracking-db';
-import { getId } from '@mtsrc/agent-tracking-db';
+import { snowflake } from '@mtsrc/agent-tracking-db';
 import { Events } from '@mtsrc/agent-tracking-events';
+import { defaultRetentionDays } from '../lib/retention';
 
 class ProjectServiceImpl {
   async upsertProject(d: {
@@ -11,15 +12,18 @@ class ProjectServiceImpl {
     input: {
       ref: string;
       name?: string | null;
-      recordRetentionDays?: number;
-      contentRetentionDays?: number;
-      usageRetentionDays?: number;
+      recordRetentionDays?: number | null;
+      contentRetentionDays?: number | null;
+      usageRetentionDays?: number | null;
     };
   }) {
+    let days = (key: keyof typeof defaultRetentionDays) =>
+      d.input[key] === null ? defaultRetentionDays[key] : d.input[key];
+
     let retention = {
-      recordRetentionDays: d.input.recordRetentionDays,
-      contentRetentionDays: d.input.contentRetentionDays,
-      usageRetentionDays: d.input.usageRetentionDays
+      recordRetentionDays: days('recordRetentionDays'),
+      contentRetentionDays: days('contentRetentionDays'),
+      usageRetentionDays: days('usageRetentionDays')
     };
 
     let project = await withTransaction(async db => {
@@ -29,7 +33,8 @@ class ProjectServiceImpl {
       let project = await db.project.upsert({
         where: { ref: d.input.ref },
         create: {
-          ...getId('project'),
+          oid: snowflake.nextId(),
+          id: d.input.ref,
           ref: d.input.ref,
           name: d.input.name,
           ...retention,

@@ -5,6 +5,7 @@ export {
   getFileSystemErrorCode,
   type FileSystemErrorCode
 } from './lib/errors';
+export { saveBlob } from './lib/download';
 export { basename, dirname, joinPath, normalizePath } from './lib/path';
 export {
   createMemoryFileSystem,

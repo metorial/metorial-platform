@@ -15,7 +15,7 @@ let writeScopes = ['instance.skill:write'] as const;
 export let skillPluginRepositoryController = Controller.create(
   {
     name: 'Skill Plugin Repositories',
-    description: 'Manage repositories linked to skill plugins for an instance.'
+    description: 'A skill plugin repository is a repository linked to a skill plugin.'
   },
   {
     list: skillPluginGroup
@@ -89,7 +89,9 @@ export let skillPluginRepositoryController = Controller.create(
       .body(
         'default',
         v.object({
-          repo_id: v.string()
+          repo_id: v.string({
+            description: 'Repository to link to the plugin, by ID.'
+          })
         })
       )
       .output(skillPluginRepositoryPresenter)

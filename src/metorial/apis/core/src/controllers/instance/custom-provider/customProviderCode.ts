@@ -30,7 +30,8 @@ let customProviderCodeGroup = integrationsGroup.use(async ctx => {
 export let customProviderCodeController = Controller.create(
   {
     name: 'Custom Provider Code',
-    description: 'Manage custom provider code editor access.'
+    description:
+      'Custom provider code is the draft source of a function custom provider. It is edited in the browser through a short-lived editor token.'
   },
   {
     getCodeEditorToken: customProviderCodeGroup
@@ -41,7 +42,8 @@ export let customProviderCodeController = Controller.create(
         ),
         {
           name: 'Get code editor token',
-          description: 'Get a token to access the code editor for a custom provider.'
+          description:
+            'Returns a short-lived editor token for the draft code of a custom provider. Fails when the provider has no draft code.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.code:write'] }))

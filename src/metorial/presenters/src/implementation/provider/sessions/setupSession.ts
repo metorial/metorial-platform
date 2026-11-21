@@ -174,11 +174,11 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
   .schema(
     v.object({
       object: v.literal('provider.setup_session', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique setup session identifier',
+        description: 'Unique ID.',
         examples: ['pas_6eFgHjKlMnPqRsTu']
       }),
       type: v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin'], {
@@ -188,11 +188,12 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       }),
       status: v.enumOf(['failed', 'archived', 'deleted', 'pending', 'completed', 'expired'], {
         name: 'status',
-        description: 'Session status'
+        description:
+          'Session status. `pending` until the flow completes. Reads as `expired` once past `expires_at`. `archived` once the session is archived.'
       }),
       url: v.string({
         name: 'url',
-        description: 'URL where user completes authentication',
+        description: 'URL where the user completes this session.',
         examples: ['https://provider.metorial.com/setup/pas_6eFgHjKlMnPqRsTu']
       }),
       error: v.nullable(
@@ -220,41 +221,42 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       name: v.nullable(
         v.string({
           name: 'name',
-          description: 'Display name',
+          description: 'Display name.',
           examples: ['GitHub OAuth Setup']
         })
       ),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['Connect your GitHub account']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ redirect_uri: 'https://app.example.com/callback' }]
         })
       ),
       configuration: v.nullable(
         v.record(v.any(), {
           name: 'configuration',
-          description: 'Setup session configuration'
+          description:
+            'Options shaping the session flow, like provider search filters and UI layout.'
         })
       ),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'Provider ID',
+          description: 'Provider the session sets up, or `null` when none was chosen.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       identity_id: v.nullable(
         v.string({
           name: 'identity_id',
-          description: 'Linked identity ID',
+          description: 'Identity the session is linked to. `null` when unlinked.',
           examples: ['idn_3nOpRsTuVwXyZaBc']
         })
       ),
@@ -273,7 +275,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       config: v.nullable(v1ConfigPresenter.schema),
       ui_mode: v.enumOf(['metorial_elements', 'dashboard_embeddable'] as const, {
         name: 'ui_mode',
-        description: 'UI mode for setup'
+        description: 'How the session UI is presented.'
       }),
       redirect_url: v.nullable(
         v.string({
@@ -284,17 +286,18 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       }),
       expires_at: v.date({
         name: 'expires_at',
-        description: 'Timestamp when the session expires',
+        description:
+          'When the session expires. `pending` sessions read as `expired` past this time.',
         examples: [new Date('2025-09-15T11:30:00Z')]
       })
     }) as any

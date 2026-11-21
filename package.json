@@ -33,6 +33,7 @@
     "_clients/metorial-node/*/*",
     "clients/metorial-dashboard",
     "clients/metorial-consumer",
+    "clients/metorial-node/packages/util-endpoint",
     "scripts/*",
     "vendor-placeholder/*",
     "src/metorial/*",

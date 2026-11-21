@@ -51,14 +51,14 @@ export let instancesController = Controller.create(
   {
     name: 'Instances',
     description:
-      'Endpoints for listing and retrieving instances. An instance is an isolated environment within a Metorial project. Instances are created via the dashboard (since API keys are scoped to instances). Common setups include production, staging, and development instances.',
+      'An instance is an isolated environment within a Metorial project. Only the instances you can access are listed.',
     hideInDocs: true
   },
   {
     get: instancesGroup
       .get(Path('instances/:instanceId', 'instances.get'), {
-        name: 'Get instance details',
-        description: 'Retrieves metadata and configuration details for a specific instance.'
+        name: 'Get instance',
+        description: 'Retrieves an instance.'
       })
       .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .output(instancePresenter)
@@ -74,8 +74,7 @@ export let instancesController = Controller.create(
     list: instancesGroup
       .get(Path('instances', 'instances.list'), {
         name: 'List instances',
-        description:
-          'Lists all instances within the organization that the authenticated actor has access to.',
+        description: 'Returns the instances in the organization that the caller can access.',
         hideInDocs: true
       })
       .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))

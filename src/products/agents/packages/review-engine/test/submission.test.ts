@@ -67,16 +67,16 @@ describe('reviewer and verifier cooperation', () => {
               text: JSON.stringify(
                 ++judgeCalls == 1
                   ? {
-                      consistent: false,
                       issues: [
                         {
-                          section: 'summary',
-                          message:
-                            'The source allows deleting the selected file; acknowledge deletion.'
+                          section: 'summary.text',
+                          claim: 'The summary says the skill only reads files.',
+                          evidence: 'The source allows deleting the selected file.',
+                          correction: 'Acknowledge deletion.'
                         }
                       ]
                     }
-                  : { consistent: true, issues: [] }
+                  : { issues: [] }
               )
             }
           ]),
@@ -165,7 +165,9 @@ describe('reviewer and verifier cooperation', () => {
     expect(result.usage.costMicros + verificationCost).toBe(7700);
     let lastPrompt = JSON.stringify(reviewer.doGenerateCalls.at(-1)?.prompt);
     expect(lastPrompt).toContain('retaining this original context');
-    expect(lastPrompt).toContain('acknowledge deletion');
+    expect(lastPrompt).toContain(
+      'summary.text: The summary says the skill only reads files. Evidence: The source allows deleting the selected file. Correction: Acknowledge deletion.'
+    );
     expect(lastPrompt).toContain('Delete the file selected by the user.');
     expect(lastPrompt).not.toContain('NoSuchToolError');
   });

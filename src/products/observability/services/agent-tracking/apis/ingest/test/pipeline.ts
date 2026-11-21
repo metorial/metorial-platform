@@ -28,11 +28,12 @@ export let createPipeline = (
   options: { maxRecords?: number } = {}
 ) => {
   let sink = createMemorySink({ maxRecords: options.maxRecords });
+  let seen: NormalizedRecord[] = [];
 
   let runtime = createRuntime({
     keys: createOrganizationKeyDeriver('test-hash-secret'),
     clock: () => fixedNow,
-    stages: []
+    stages: [{ name: 'seen', beforeWrite: async (_, records) => void seen.push(...records) }]
   });
 
   setRuntime(runtime);
@@ -66,7 +67,8 @@ export let createPipeline = (
     sink,
     principal,
     send,
-    records: (): NormalizedRecord[] => sink.list().map(item => item.record)
+    records: (): NormalizedRecord[] => sink.list().map(item => item.record),
+    seen: () => seen
   };
 };
 

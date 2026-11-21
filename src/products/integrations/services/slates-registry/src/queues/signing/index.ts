@@ -20,10 +20,26 @@ export let ensureSigningKeyCron = createCron(
 
     let { created } = await signingKeyService.ensureCurrentSigningKey();
     await backfillSignaturesQueue.add({}, { deduplication: { id: 'backfill-start' } });
+    await backfillToolingSignatures();
 
     if (created) console.log('[Registry]: Created a new slate signing key');
   }
 );
+
+// Only a handful of tooling versions exist, so one page covers all of them.
+let backfillToolingSignatures = async () => {
+  let keys = await signingKeyService.listActiveSigningKeys();
+  if (!keys.length) return;
+
+  let artifacts = await db.slateToolingArtifact.findMany({
+    where: { OR: keys.map(key => ({ signatures: { none: { kid: key.kid } } })) },
+    orderBy: { oid: 'asc' },
+    take: pageSize,
+    select: { oid: true, kind: true, version: true, checksum: true }
+  });
+
+  await signingKeyService.signToolingArtifacts({ artifacts });
+};
 
 export let backfillSignaturesQueue = createQueue<{ cursor?: string }>({
   name: 'sreg/signing/backfill',

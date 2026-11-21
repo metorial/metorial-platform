@@ -20,6 +20,7 @@ import { storage } from '../storage';
 import type { BuildRun } from './slatePackBuild';
 import { signingKeyService } from './signingKey';
 import { slatePackService, type PackSelection } from './slatePack';
+import { slateToolingService } from './slateTooling';
 
 let GB = 1024 * 1024 * 1024;
 
@@ -624,6 +625,7 @@ class slatePackChannelServiceImpl {
 
     let contents = slatePackService.buildPackContents({
       selected: d.selected,
+      tooling: await slateToolingService.listNewestPerKnownKind(),
       source: {
         url: env.url.SERVICE_PUBLIC_URL,
         subRegistryId: d.channel.subRegistry.identifier
@@ -638,8 +640,17 @@ class slatePackChannelServiceImpl {
       'application/zip'
     );
 
+    let size = stored.digests.size;
+    let maxReleaseBytes = env.mirror.SLATES_PACK_MAX_RELEASE_BYTES;
+    if (maxReleaseBytes !== undefined && size > maxReleaseBytes) {
+      await storage.deleteObject(bucket, storageKey).catch(() => {});
+      throw new Error(
+        `Slate pack ${d.fileName} is ${size} bytes and exceeds the ${maxReleaseBytes}-byte release limit.`
+      );
+    }
+
     await d.run?.log(
-      `Wrote ${d.fileName}: ${stored.digests.size} bytes, sha256 ${stored.digests.sha256.slice(0, 12)}.`
+      `Wrote ${d.fileName}: ${size} bytes, sha256 ${stored.digests.sha256.slice(0, 12)}.`
     );
     await d.run?.releaseWritten();
 
@@ -647,7 +658,7 @@ class slatePackChannelServiceImpl {
       ...ids,
       fileName: d.fileName,
       entryCount: contents.manifest.entries.length,
-      size: BigInt(stored.digests.size),
+      size: BigInt(size),
       sha256: stored.digests.sha256,
       bucket,
       storageKey

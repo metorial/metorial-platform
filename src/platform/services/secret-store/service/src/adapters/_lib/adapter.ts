@@ -78,6 +78,8 @@ export abstract class KeyProviderAdapter {
     return true;
   }
 
+  async verifySystemKeyAccess(_keyInfo: any): Promise<void> {}
+
   abstract createSystemKeyProvider(): Promise<{
     name: string;
     keyInfo: any;

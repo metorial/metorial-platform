@@ -31,7 +31,7 @@ export let providerVersionController = Controller.create(
   {
     name: 'Provider Versions',
     description:
-      'A version is a specific release of a provider (e.g., v1.2.0). Each version has its own tools, auth methods, and config schema. Deployments are pinned to a version for security reasons.'
+      "A provider version is a specific release of a provider. Each version has its own tools, auth methods, and config schema. A deployment can lock to one version or follow the provider's current version."
   },
   {
     list: integrationsGroup

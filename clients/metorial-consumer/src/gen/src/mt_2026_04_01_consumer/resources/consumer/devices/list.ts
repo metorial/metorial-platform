@@ -25,6 +25,7 @@ export type ConsumerDevicesListOutput = {
     revokedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    telemetry: { enabled: boolean; tokenId: string | null };
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -56,7 +57,8 @@ export let mapConsumerDevicesListOutput =
           'last_seen_at',
           'revoked_at',
           'created_at',
-          'updated_at'
+          'updated_at',
+          ['telemetry', 0, [1, ['token_id']]]
         ]
       ]
     ],

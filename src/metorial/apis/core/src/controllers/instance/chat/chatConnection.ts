@@ -12,20 +12,20 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 let chatConnectionProviderInputValidator = v.object({
   provider_id: v.string({
     name: 'provider_id',
-    description: 'The chat provider to link this connection to',
+    description: 'Chat provider to link this connection to.',
     examples: ['pro_3cDeFgHjKlMnPqRs']
   }),
   provider_deployment_id: v.optional(
     v.string({
       name: 'provider_deployment_id',
-      description: 'Provider deployment to use for this connection'
+      description: 'Provider deployment to use for this connection.'
     })
   ),
   provider_auth_method_id: v.optional(
     v.nullable(
       v.string({
         name: 'provider_auth_method_id',
-        description: 'Auth method to use for this connection'
+        description: 'Auth method to use for this connection.'
       })
     )
   ),
@@ -33,7 +33,7 @@ let chatConnectionProviderInputValidator = v.object({
     v.nullable(
       v.string({
         name: 'provider_auth_credentials_id',
-        description: 'Auth credentials to use for this connection'
+        description: 'Auth credentials to use for this connection.'
       })
     )
   ),
@@ -41,19 +41,22 @@ let chatConnectionProviderInputValidator = v.object({
     v.nullable(
       v.string({
         name: 'provider_config_id',
-        description: 'Provider config to use for this connection'
+        description: 'Provider config to use for this connection.'
       })
     )
   ),
-  name: v.optional(
-    v.string({ name: 'name', description: 'Display name of the provider link' })
-  ),
-  description: v.optional(
-    v.string({ name: 'description', description: 'Description of the provider link' })
-  ),
+  name: v.optional(v.string({ name: 'name', description: 'Display name.' })),
+  description: v.optional(v.string({ name: 'description', description: 'Free-text description.' })),
   metadata: v.optional(
-    v.record(v.any(), { name: 'metadata', description: 'Metadata set on the provider link' })
+    v.record(v.any(), {
+      name: 'metadata',
+      description: 'Custom data to identify or organize the provider link.'
+    })
   )
+},
+{
+  name: 'provider',
+  description: 'Chat provider to link this connection to.'
 });
 
 let chatConnectionGroup = instanceGroup.use(async ctx => {
@@ -99,10 +102,10 @@ export let chatConnectionController = Controller.create(
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ]),
-              { description: 'Filter by status' }
+              { description: 'Only return chat connections with one of these statuses.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat connection ID(s)'
+              description: 'Only return chat connections with one of these IDs.'
             }),
             created_at: dateFilterValidator('chat connection creation time'),
             updated_at: dateFilterValidator('chat connection last update time')
@@ -130,7 +133,7 @@ export let chatConnectionController = Controller.create(
     get: chatConnectionGroup
       .get(instancePath('chat/connections/:chatConnectionId', 'chat.connections.get'), {
         name: 'Get chat connection',
-        description: 'Retrieves a specific chat connection.'
+        description: 'Retrieves a chat connection.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .output(chatConnectionPresenter)
@@ -150,14 +153,19 @@ export let chatConnectionController = Controller.create(
         v.object({
           name: v.string({
             name: 'name',
-            description: 'Display name of the chat connection'
+            description: 'Display name.'
           }),
-          description: v.optional(v.string({ description: 'Description of the connection' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
           metadata: v.optional(
-            v.record(v.any(), { description: 'Metadata for the connection' })
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the chat connection.'
+            })
           ),
           private_metadata: v.optional(
-            v.record(v.any(), { description: 'Private metadata for the connection' })
+            v.record(v.any(), {
+              description:
+                'Private data stored with the connection. Never returned by the API.'
+            })
           ),
           provider: chatConnectionProviderInputValidator
         })
@@ -193,19 +201,31 @@ export let chatConnectionController = Controller.create(
     update: chatConnectionGroup
       .patch(instancePath('chat/connections/:chatConnectionId', 'chat.connections.update'), {
         name: 'Update chat connection',
-        description: 'Updates a specific chat connection.'
+        description: 'Updates a chat connection. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ description: 'Display name of the chat connection' })),
+          name: v.optional(v.string({ description: 'Display name.' })),
           description: v.optional(
-            v.nullable(v.string({ description: 'Description of the connection' }))
+            v.nullable(v.string({ description: 'Free-text description. `null` clears it.' }))
           ),
-          metadata: v.optional(v.nullable(v.record(v.any(), { description: 'Metadata' }))),
+          metadata: v.optional(
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Custom data to identify or organize the chat connection. Replaces existing metadata.'
+              })
+            )
+          ),
           private_metadata: v.optional(
-            v.nullable(v.record(v.any(), { description: 'Private metadata' }))
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Private data stored with the connection. Never returned by the API.'
+              })
+            )
           )
         })
       )
@@ -227,8 +247,8 @@ export let chatConnectionController = Controller.create(
 
     delete: chatConnectionGroup
       .delete(instancePath('chat/connections/:chatConnectionId', 'chat.connections.delete'), {
-        name: 'Delete chat connection',
-        description: 'Archives a specific chat connection.'
+        name: 'Archive chat connection',
+        description: 'Archives a chat connection. It stays listable with `status=archived`.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .output(chatConnectionPresenter)

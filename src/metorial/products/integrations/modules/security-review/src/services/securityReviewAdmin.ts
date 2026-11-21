@@ -158,6 +158,7 @@ class SecurityReviewAdminServiceImpl {
       tools,
       behaviors: report.capabilities?.behaviors,
       findings: openFindings,
+      controls: report.controls,
       coverage: {
         toolsExpected: tools ? Math.max(baseScores.counts.tools.expected, tools.length) : null,
         toolsReviewed: tools ? tools.length : 0,

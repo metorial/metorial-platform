@@ -3,26 +3,66 @@ import { Presenter } from '@metorial/presenter';
 import { providerSpecificationChangeNotificationType } from '../../types';
 
 let specificationPreviewSchema = v.nullable(
-  v.object({
-    object: v.literal('provider.capabilities.specification#preview'),
-    id: v.string(),
-    name: v.string(),
-    description: v.nullable(v.string()),
-    created_at: v.date(),
-    updated_at: v.date()
-  })
+  v.object(
+    {
+      object: v.literal('provider.capabilities.specification#preview', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      })
+    },
+    {
+      description: 'Specification on one side of the change.'
+    }
+  )
 );
 
 let versionPreviewSchema = v.nullable(
-  v.object({
-    object: v.literal('provider.version#preview'),
-    id: v.string(),
-    version: v.string(),
-    name: v.string(),
-    description: v.nullable(v.string()),
-    created_at: v.date(),
-    updated_at: v.date()
-  })
+  v.object(
+    {
+      object: v.literal('provider.version#preview', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.'
+      }),
+      version: v.string({
+        description: 'Release identifier of the provider version.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      })
+    },
+    {
+      description: 'Provider version on one side of the change.'
+    }
+  )
 );
 
 let presentSpecificationPreview = (specification: any) =>
@@ -84,15 +124,25 @@ export let v1ProviderSpecificationChangeNotificationPresenter = Presenter.create
   })
   .schema(
     v.object({
-      object: v.literal('provider.specification_change_notification'),
-      id: v.string(),
-      provider_id: v.string(),
-      provider_version_id: v.string(),
+      object: v.literal('provider.specification_change_notification', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.'
+      }),
+      provider_id: v.string({
+        description: 'Provider whose specification changed.'
+      }),
+      provider_version_id: v.string({
+        description: 'Provider version whose specification changed.'
+      }),
       from_specification: specificationPreviewSchema,
       to_specification: specificationPreviewSchema,
       from_provider_version: versionPreviewSchema,
       to_provider_version: versionPreviewSchema,
-      created_at: v.date()
+      created_at: v.date({
+        description: 'Creation time.'
+      })
     })
   )
   .build();

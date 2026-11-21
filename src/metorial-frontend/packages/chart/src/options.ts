@@ -41,6 +41,8 @@ export type TimelineOptionsInput = {
   sparkline?: boolean;
   stacked?: boolean;
   formatTick: ValueFormatter;
+  xTickAmount?: number;
+  xTickFormatter?: (value: Date) => string;
   onRendered?: () => void;
 };
 
@@ -145,12 +147,17 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
             axisTicks: { show: !sparkline },
             min: domain ? toTimestamp(domain.from) : undefined,
             max: domain ? toTimestamp(domain.to) : undefined,
+            ...(input.xTickAmount ? { tickAmount: input.xTickAmount } : {}),
             labels: {
               show: !sparkline,
               style: axisLabelStyle,
               datetimeUTC: false,
-              formatter: (value, timestamp) =>
-                formatTimeTick(timestamp ?? Number(value), spanMs)
+              formatter: (value, timestamp) => {
+                let stamp = timestamp ?? Number(value);
+                return input.xTickFormatter
+                  ? input.xTickFormatter(new Date(stamp))
+                  : formatTimeTick(stamp, spanMs);
+              }
             },
             tooltip: { enabled: false },
             crosshairs: { show: false }

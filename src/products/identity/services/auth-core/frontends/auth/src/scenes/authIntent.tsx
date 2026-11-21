@@ -42,28 +42,35 @@ let CreateUserStep = ({
     firstName: string;
     lastName: string;
     timezone: string;
+    password?: string;
   }) => void;
   createUserLoading: boolean;
   createUserError?: string;
 }) => {
   let [termsAccepted, setTermsAccepted] = useState(false);
+  let needsPassword = authIntent.type == 'password';
 
   let form = useForm({
     schema: yup =>
       yup.object({
         firstName: yup.string().required('Please enter your first name'),
-        lastName: yup.string().required('Please enter your last name')
+        lastName: yup.string().required('Please enter your last name'),
+        ...(needsPassword
+          ? { password: yup.string().required('Please enter a password') }
+          : {})
       }),
     initialValues: {
       firstName: authIntent.userCreationPrefill?.firstName ?? '',
-      lastName: authIntent.userCreationPrefill?.lastName ?? ''
+      lastName: authIntent.userCreationPrefill?.lastName ?? '',
+      password: ''
     },
     onSubmit: async values => {
       await createUser({
         firstName: values.firstName,
         lastName: values.lastName,
         termsAccepted: termsAccepted,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        password: needsPassword ? String(values.password ?? '') : undefined
       });
     }
   });
@@ -106,6 +113,20 @@ let CreateUserStep = ({
 
         {authIntent.identifier && authIntent.identifier.type == 'email' && (
           <Input label="Email" disabled value={authIntent.identifier.value} />
+        )}
+
+        {needsPassword && (
+          <>
+            <Spacer size={15} />
+            <Input
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              disabled={createUserLoading}
+              {...form.getFieldProps('password')}
+            />
+            <form.RenderError field="password" />
+          </>
         )}
 
         <div style={{ marginTop: 15, display: 'flex', justifyContent: 'center' }}>
@@ -162,6 +183,7 @@ let PasswordIntentStep = (p: {
   codeSuccess: boolean;
   codeError?: string;
   captchaReady: boolean;
+  emailCodesAllowed: boolean;
 }) => {
   let form = useForm({
     initialValues: { password: '' },
@@ -204,19 +226,23 @@ let PasswordIntentStep = (p: {
         >
           Sign In
         </Button>
-        <Spacer size={15} />
-        <Button
-          fullWidth
-          variant="outline"
-          type="button"
-          loading={p.requestingCode}
-          success={p.codeSuccess}
-          disabled={p.loading}
-          onClick={p.requestCode}
-        >
-          Send Me a Code Instead
-        </Button>
-        {p.codeError && <Error>{p.codeError}</Error>}
+        {p.emailCodesAllowed && (
+          <>
+            <Spacer size={15} />
+            <Button
+              fullWidth
+              variant="outline"
+              type="button"
+              loading={p.requestingCode}
+              success={p.codeSuccess}
+              disabled={p.loading}
+              onClick={p.requestCode}
+            >
+              Send Me a Code Instead
+            </Button>
+            {p.codeError && <Error>{p.codeError}</Error>}
+          </>
+        )}
       </form>
     </AuthLayout>
   );
@@ -283,6 +309,7 @@ let AuthIntentStep = ({
         codeSuccess={codeSuccess}
         codeError={codeError}
         captchaReady={!authIntent.captcha || authIntent.captcha.status == 'complete'}
+        emailCodesAllowed={authIntent.emailCodesAllowed}
       />
     );
   }

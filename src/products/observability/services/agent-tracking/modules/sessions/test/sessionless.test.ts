@@ -25,6 +25,7 @@ let measurement = (d: {
   aggregation?: string;
   unit?: string;
   userId?: string;
+  channel?: SessionlessRecord['source']['channel'];
 }): SessionlessRecord => {
   let window = d.window ?? { start: day, end: new Date(day.getTime() + 24 * 60 * 60 * 1000) };
 
@@ -33,7 +34,12 @@ let measurement = (d: {
     kind: 'measurement',
     type: d.type,
     occurredAt: window.end,
-    source: { adapter: 'test', dialect: 'test.v1', channel: 's3_report', role: 'aggregate' },
+    source: {
+      adapter: 'test',
+      dialect: 'test.v1',
+      channel: d.channel ?? 's3_report',
+      role: 'aggregate'
+    },
     ingest: {
       credentialKind: 'source',
       credentialId: 'atis_1',
@@ -167,6 +173,29 @@ describe('sessionlessBaseSlices', () => {
     expect(other.vendorId).toBeUndefined();
     expect(other.tokens.output).toBe(50);
     expect(other.costUsd).toBeUndefined();
+  });
+
+  it('keeps a cost sent with an ingestion key an estimate unless it came from a provider feed', async () => {
+    let model = { model: 'claude-sonnet-4-5-20250929', provider: 'anthropic' };
+
+    let slices = await sessionlessBaseSlices({
+      bucket: day,
+      catalog,
+      records: [
+        measurement({ type: 'requests', value: 1, dims: model, channel: 'otlp.metrics' }),
+        measurement({
+          type: 'cost',
+          value: 0.5,
+          unit: 'USD',
+          dims: model,
+          channel: 'otlp.metrics'
+        })
+      ]
+    });
+
+    expect(
+      slices[0]!.costReported.map(cost => [cost.unit, cost.basis, cost.amount.toString()])
+    ).toEqual([['usd', 'client_estimate', '0.5']]);
   });
 
   it('splits slices by vendor and prices each with its own offering', async () => {

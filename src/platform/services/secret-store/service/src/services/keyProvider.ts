@@ -79,11 +79,20 @@ class KeyProviderServiceImpl {
           ? storedFingerprint === fingerprint
           : await adapter.matchesLegacySystemKeyInfo(candidate.keyInfo);
 
-        if (matches) return candidate;
+        if (matches) {
+          try {
+            await adapter.verifySystemKeyAccess(candidate.keyInfo);
+          } catch (err) {
+            throw normalizeAdapterError(err);
+          }
+
+          return candidate;
+        }
       }
 
       try {
         let provider = await adapter.createSystemKeyProvider();
+        await adapter.verifySystemKeyAccess(provider.keyInfo);
         let id = await ID.generateId('keyProvider');
         let fingerprintHash = (await Hash.sha256(fingerprint)).slice(
           0,

@@ -13,6 +13,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "@cf/cloudflare/clairic-flash": {
+    "decision": "defer",
+    "until": "2026-12-19",
+    "reason": "Cloudflare's new open-weight 9B extraction model (HF: Cloudflare/clairic-flash, a fine-tune of Qwen3.5-9B), released Nov 18, 2026. Not Clef Flash or Qwen3.5-9B itself; no clairic entry exists in the model index yet.",
+    "by": "agent",
+    "at": "2026-11-19"
+  },
   "@cf/cloudflare/clef-omni": {
     "decision": "defer",
     "until": "2026-12-12",

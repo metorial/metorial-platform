@@ -22,15 +22,17 @@ export let v1ProviderAuthConfigErrorGroupPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('provider.auth_config_error_group'),
+      object: v.literal('provider.auth_config_error_group', {
+        description: 'String representing the object’s type.'
+      }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider auth config error group identifier',
+        description: 'Unique ID.',
         examples: ['aceg_8hJkLmNpQrStUvWx']
       }),
       type: v.string({
         name: 'type',
-        description: 'Auth config error group type',
+        description: 'Category of the grouped failures.',
         examples: ['oauth_token_refresh_failed']
       }),
       code: v.string({
@@ -45,7 +47,7 @@ export let v1ProviderAuthConfigErrorGroupPresenter = Presenter.create(
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Associated provider ID'
+        description: 'Provider this group belongs to.'
       }),
       occurrence_count: v.number({
         name: 'occurrence_count',
@@ -54,7 +56,7 @@ export let v1ProviderAuthConfigErrorGroupPresenter = Presenter.create(
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the group was created'
+        description: 'Creation time.'
       })
     })
   )

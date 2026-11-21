@@ -23,45 +23,46 @@ export let v1CustomProviderEnvironmentPresenter = Presenter.create(
   .schema(
     v.object({
       object: v.literal('custom_provider.environment', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique custom provider environment identifier',
+        description: 'Unique ID.',
         examples: ['cpenv_1aBcDeFgHjKlMnPq']
       }),
       custom_provider_id: v.string({
         name: 'custom_provider_id',
-        description: 'ID of the parent custom provider',
+        description: 'Custom provider this environment belongs to.',
         examples: ['cpr_1aBcDeFgHjKlMnPq']
       }),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'ID of the associated provider',
+          description: 'Associated provider, by ID. `null` when there is none.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       current_provider_version_id: v.nullable(
         v.string({
           name: 'current_provider_version_id',
-          description: 'ID of the current provider version in this environment',
+          description:
+            'Version currently live in this environment. `null` when no version is live.',
           examples: ['prv_4dEfGhJkLmNpQrSt']
         })
       ),
       instance_id: v.string({
         name: 'instance_id',
-        description: 'ID of the instance this environment is associated with',
+        description: 'ID of the instance this environment deploys into.',
         examples: ['ins_2cDeFgHjKlMnPqRs']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

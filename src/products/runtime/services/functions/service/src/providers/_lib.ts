@@ -14,6 +14,7 @@ import type {
 } from '../../prisma/generated/client';
 import type { ForgeWorkflowStep } from '../forge';
 import type { FunctionInvocationResult } from '../lib/presentInvokeResponse';
+import type { BuildArtifactRef } from '../lib/buildArtifact';
 
 let Sentry = getSentry();
 
@@ -32,7 +33,7 @@ export interface ProviderDeployFunctionParams {
   runtimeConfig: FunctionBayRuntimeConfig;
   runtime: Runtime;
   env: Record<string, string>;
-  zipFileUrl: string;
+  zipFile: BuildArtifactRef;
 }
 
 export interface ProviderDeployFunctionResult {

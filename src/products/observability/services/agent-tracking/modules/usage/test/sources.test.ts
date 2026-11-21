@@ -1,33 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { sourceKindOf, sourceLastSeen, usageRank } from '../src/lib/sources';
+import { isVendorChannel, sourceKindOf, sourceLastSeen, usageRank } from '../src/lib/sources';
 import { bucketEnd, bucketStart } from '@mtsrc/agent-tracking-layers';
 import { formatAmount, parseAmount, toDecimal } from '@mtsrc/agent-tracking-cost';
 
 describe('sourceKindOf', () => {
   it('maps ingest channels to source kinds', () => {
-    expect(sourceKindOf({ channel: 'hook', credentialKind: 'token' })).toBe('hook');
-    expect(sourceKindOf({ channel: 'otlp.logs', credentialKind: 'token' })).toBe('otel.logs');
-    expect(sourceKindOf({ channel: 'otlp.traces', credentialKind: 'token' })).toBe(
-      'otel.spans'
-    );
-    expect(sourceKindOf({ channel: 'otlp.metrics', credentialKind: 'token' })).toBe(
-      'otel.metrics'
-    );
-    expect(sourceKindOf({ channel: 'transcript', credentialKind: 'token' })).toBe(
-      'transcript'
-    );
-    expect(sourceKindOf({ channel: 'envelope', credentialKind: 'token' })).toBe('plugin');
+    expect(sourceKindOf({ channel: 'hook' })).toBe('hook');
+    expect(sourceKindOf({ channel: 'otlp.logs' })).toBe('otel.logs');
+    expect(sourceKindOf({ channel: 'otlp.traces' })).toBe('otel.spans');
+    expect(sourceKindOf({ channel: 'otlp.metrics' })).toBe('otel.metrics');
+    expect(sourceKindOf({ channel: 'transcript' })).toBe('transcript');
+    expect(sourceKindOf({ channel: 'envelope' })).toBe('plugin');
   });
 
-  it('treats source credentials as vendor data', () => {
-    expect(sourceKindOf({ channel: 'hook', credentialKind: 'source' })).toBe('vendor');
+  it('treats only provider feeds as vendor data, whatever the credential', () => {
+    expect(sourceKindOf({ channel: 'admin_api' })).toBe('vendor');
+    expect(sourceKindOf({ channel: 's3_report' })).toBe('vendor');
+    expect(sourceKindOf({ channel: 'otlp.metrics' })).toBe('otel.metrics');
+    expect(isVendorChannel('admin_api')).toBe(true);
+    expect(isVendorChannel('otlp.logs')).toBe(false);
   });
 
   it('reads the producer of session.context records', () => {
     expect(
       sourceKindOf({
         channel: 'hook',
-        credentialKind: 'token',
         type: 'session.context',
         data: { source: 'probe' }
       })
@@ -36,7 +33,6 @@ describe('sourceKindOf', () => {
     expect(
       sourceKindOf({
         channel: 'hook',
-        credentialKind: 'token',
         type: 'session.context',
         data: { source: 'credential' }
       })

@@ -92,7 +92,7 @@ let getLinkedSlateIdentifier = (d: {
     group => group.key === d.triggerGroupKey
   )?.linkedOptionProviders;
 
-  return providers && Object.hasOwn(providers, d.field) ? providers[d.field]! : null;
+  return providers && Object.prototype.hasOwnProperty.call(providers, d.field) ? providers[d.field]! : null;
 };
 
 let findLinkedProviderVariants = async (d: {

@@ -9,7 +9,7 @@ import { env } from '../env';
 import { ensureForgeWorkflow, forge } from '../forge';
 import { ID, snowflake } from '../id';
 import { fetchBuildManifest } from '../lib/fetchBuildManifest';
-import { internalObjectStorageUrl } from '../lib/internalObjectStorageUrl';
+import { type BuildArtifactRef, readBuildArtifact } from '../lib/buildArtifact';
 import { defaultProvider } from '../providers';
 import {
   MANIFEST_ARTIFACT_NAME,
@@ -152,8 +152,8 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
       return;
     }
 
-    let manifestResult = await fetchBuildManifest(
-      internalObjectStorageUrl(manifestArtifact.url.url)
+    let manifestResult = await fetchBuildManifest(() =>
+      readBuildArtifact(manifestArtifact)
     );
     if (!manifestResult.success) {
       let attempt = (data.manifestFetchAttempt ?? 0) + 1;
@@ -196,7 +196,7 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
     await deployToRuntimeQueue.add(
       {
         deploymentId: data.deploymentId,
-        outputUrl: outputArtifact.url.url,
+        output: { bucket: outputArtifact.bucket, storageKey: outputArtifact.storageKey },
         manifest: valRes.value as any
       },
       {
@@ -218,7 +218,7 @@ let deployToRuntimeQueue = createQueue<{
     hash: string;
     runtime: FunctionBayRuntimeConfig;
   };
-  outputUrl: string;
+  output: BuildArtifactRef;
 }>({
   name: 'fbay/build/drun',
   workerOpts: { concurrency: 50 },
@@ -257,7 +257,7 @@ let deployToRuntimeQueueProcessor = deployToRuntimeQueue.process(async data => {
       functionVersion: { id: versionId },
       runtime: deployment.runtime,
       runtimeConfig: data.manifest.runtime,
-      zipFileUrl: data.outputUrl,
+      zipFile: data.output,
       env
     });
 
@@ -270,7 +270,7 @@ let deployToRuntimeQueueProcessor = deployToRuntimeQueue.process(async data => {
     await deployToFunctionBayQueue.add({
       deploymentId: deployment.id,
       manifest: data.manifest,
-      outputUrl: data.outputUrl,
+      output: data.output,
       providerData: res.providerData,
       functionVersionId: versionId
     });
@@ -295,7 +295,7 @@ let deployToFunctionBayQueue = createQueue<{
     hash: string;
     runtime: FunctionBayRuntimeConfig;
   };
-  outputUrl: string;
+  output: BuildArtifactRef;
   providerData: any;
   functionVersionId: string;
 }>({
@@ -351,7 +351,7 @@ let deployToFunctionBayQueueProcessor = deployToFunctionBayQueue.process(async d
   await uploadBundleQueue.add({
     deploymentId: deployment.id,
     bundleId: bundle.id,
-    outputUrl: data.outputUrl
+    output: data.output
   });
 });
 
@@ -436,7 +436,7 @@ let errorQueueProcessor = errorQueue.process(async data => {
 let uploadBundleQueue = createQueue<{
   deploymentId: string;
   bundleId: string;
-  outputUrl: string;
+  output: BuildArtifactRef;
 }>({
   name: 'fbay/build/upbndl',
   workerOpts: { concurrency: 50 },
@@ -448,12 +448,7 @@ let uploadBundleQueueProcessor = uploadBundleQueue.process(async data => {
   let bucket = env.storage.BUNDLE_BUCKET_NAME;
 
   try {
-    let res = await fetch(internalObjectStorageUrl(data.outputUrl));
-    if (!res.ok) {
-      throw new Error(`Failed to download function bundle: ${res.status} ${res.statusText}`);
-    }
-
-    let zipFile = Buffer.from(await res.arrayBuffer());
+    let zipFile = await readBuildArtifact(data.output);
     await JSZip.loadAsync(zipFile);
 
     await storage.putObject(bucket, storageKey, zipFile, 'application/zip');

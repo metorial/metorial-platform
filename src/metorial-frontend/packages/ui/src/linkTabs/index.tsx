@@ -34,7 +34,10 @@ export let LinkTabs = ({
   variant?: 'soft' | 'outline';
   maxWidth?: number | string;
 }) => {
-  let linkString = useMemo(() => links.map(link => link.to).join(','), [links]);
+  let linkString = useMemo(
+    () => JSON.stringify(links.map(link => [link.to, link.label])),
+    [links]
+  );
 
   let normalizedLinks = useMemo(
     () =>

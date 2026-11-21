@@ -36,13 +36,13 @@ export let customProviderDeploymentController = Controller.create(
   {
     name: 'Custom Provider Deployments',
     description:
-      'Deployments track the build and deployment process of custom provider versions. View deployment status and logs.'
+      'A custom provider deployment is a build and rollout of one custom provider version.'
   },
   {
     list: integrationsGroup
       .get(instancePath('custom-provider-deployments', 'customProviders.deployments.list'), {
         name: 'List custom provider deployments',
-        description: 'Returns a paginated list of deployments for a custom provider.'
+        description: 'Returns a paginated list of custom provider deployments.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
@@ -56,17 +56,20 @@ export let customProviderDeploymentController = Controller.create(
                 v.enumOf(['queued', 'deploying', 'succeeded', 'failed']),
                 v.array(v.enumOf(['queued', 'deploying', 'succeeded', 'failed']))
               ]),
-              { description: 'Filter by status (queued, deploying, succeeded, failed)' }
+              { description: 'Only return deployments with one of these statuses.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by deployment IDs'
+              description: 'Only return deployments with one of these IDs.'
             }),
             custom_provider_version_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by version IDs' }
+              {
+                description:
+                  'Only return deployments of one of these custom provider versions.'
+              }
             ),
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by custom provider IDs'
+              description: 'Only return deployments of one of these custom providers.'
             }),
             created_at: dateFilterValidator('custom provider deployment creation time'),
             updated_at: dateFilterValidator('custom provider deployment last update time')
@@ -101,7 +104,7 @@ export let customProviderDeploymentController = Controller.create(
         ),
         {
           name: 'Get custom provider deployment',
-          description: 'Retrieves a specific deployment.'
+          description: 'Retrieves a custom provider deployment.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))
@@ -120,8 +123,9 @@ export let customProviderDeploymentController = Controller.create(
           'customProviders.deployments.getLogs'
         ),
         {
-          name: 'Get deployment logs',
-          description: 'Retrieves the build and deployment logs for a deployment.'
+          name: 'Get custom provider deployment logs',
+          description:
+            'Retrieves the build and deployment logs for a custom provider deployment.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.deployment:read'] }))

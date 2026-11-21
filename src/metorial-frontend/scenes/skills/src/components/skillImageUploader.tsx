@@ -1,3 +1,4 @@
+import { isGeneratedAvatarUrl, getAvatarUrl } from '@metorial/frontend-config';
 import { AvatarUploader } from '@metorial/avatar-uploader';
 import { type Skill, useUploadFile } from '@metorial/state';
 import { useState } from 'react';
@@ -17,8 +18,8 @@ export let ResourceImageUploader = (p: {
 }) => {
   let createFile = useUploadFile();
   let [isOpen, setIsOpen] = useState(false);
-  let imageUrl = p.resource.imageUrl ?? `https://avatar-cdn.metorial.com/${p.resource.id}`;
-  let isCustomImage = !imageUrl.includes('avatar-cdn.metorial.com');
+  let imageUrl = p.resource.imageUrl ?? getAvatarUrl(p.resource.id);
+  let isCustomImage = !isGeneratedAvatarUrl(imageUrl);
 
   return (
     <AvatarUploader
@@ -29,7 +30,9 @@ export let ResourceImageUploader = (p: {
       title="Upload Image"
       description={p.description}
       uploadLabel={isCustomImage ? 'Upload' : 'Upload Image'}
-      onRemove={isCustomImage ? () => p.updateResource.mutate({ imageFileId: null }) : undefined}
+      onRemove={
+        isCustomImage ? () => p.updateResource.mutate({ imageFileId: null }) : undefined
+      }
       onUpload={async file => {
         let [uploadedFile] = await createFile.mutate({
           instanceId: p.instanceId,

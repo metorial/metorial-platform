@@ -19,6 +19,7 @@ import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let redirectUrlValidator = v.optional(
   v.string({
+    description: 'Where to send the user once setup completes.',
     modifiers: [
       v.url(),
       v.regex(setupSessionRedirectUrlPattern, { message: 'Must be an http or https URL' })
@@ -27,25 +28,73 @@ let redirectUrlValidator = v.optional(
 );
 
 let setupSessionConfigurationValidator = v.optional(
-  v.object({
-    provider_search: v.optional(
-      v.object({
-        groups: v.optional(v.array(v.object({ group_id: v.string() }))),
-        collections: v.optional(v.array(v.object({ collection_id: v.string() }))),
-        categories: v.optional(v.array(v.object({ category_id: v.string() })))
-      })
-    ),
-    tool_filters: v.optional(
-      v.object({
-        enabled: v.optional(v.boolean())
-      })
-    ),
-    ui: v.optional(
-      v.object({
-        layout: v.optional(v.enumOf(['box', 'side', 'light']))
-      })
-    )
-  })
+  v.object(
+    {
+      provider_search: v.optional(
+        v.object(
+          {
+            groups: v.optional(
+              v.array(
+                v.object({
+                  group_id: v.string({
+                    description: 'Provider group to include in the search.'
+                  })
+                }),
+                { description: 'Provider groups to include in the search.' }
+              )
+            ),
+            collections: v.optional(
+              v.array(
+                v.object({
+                  collection_id: v.string({
+                    description: 'Provider collection to include in the search.'
+                  })
+                }),
+                { description: 'Provider collections to include in the search.' }
+              )
+            ),
+            categories: v.optional(
+              v.array(
+                v.object({
+                  category_id: v.string({
+                    description: 'Provider category to include in the search.'
+                  })
+                }),
+                { description: 'Provider categories to include in the search.' }
+              )
+            )
+          },
+          { description: 'Narrows the setup flow’s provider search to these catalog entries.' }
+        )
+      ),
+      tool_filters: v.optional(
+        v.object(
+          {
+            enabled: v.optional(
+              v.boolean({
+                description:
+                  'Lets the user pick tool filters during setup. Only applies when the integration allows custom tool filters.'
+              })
+            )
+          },
+          { description: 'Tool filter selection for the setup flow.' }
+        )
+      ),
+      ui: v.optional(
+        v.object(
+          {
+            layout: v.optional(
+              v.enumOf(['box', 'side', 'light'], {
+                description: 'Layout of the setup flow. Defaults to `box`.'
+              })
+            )
+          },
+          { description: 'Presentation of the setup flow.' }
+        )
+      )
+    },
+    { description: 'Configuration for the setup flow.' }
+  )
 );
 
 let toSubspaceSetupSessionConfiguration = (
@@ -106,7 +155,7 @@ export let integrationSetupSessionController = Controller.create(
   {
     name: 'Integration Setup Sessions',
     description:
-      'Integration setup sessions orchestrate configuring every provider required by an integration instance.'
+      'An integration setup session is a shareable flow that connects each provider an integration instance needs. It creates a draft instance unless you pass one, and expires 30 minutes after creation unless `expires_at` is set.'
   },
   {
     list: integrationsGroup
@@ -125,11 +174,21 @@ export let integrationSetupSessionController = Controller.create(
               v.union([
                 v.enumOf(['pending', 'successful', 'expired', 'archived', 'deleted']),
                 v.array(v.enumOf(['pending', 'successful', 'expired', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return setup sessions with one of these statuses. `deleted` sessions are never listed.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return setup sessions with one of these IDs.'
+            }),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return setup sessions for one of these integrations.'
+            }),
+            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return setup sessions for one of these integration instances.'
+            }),
             created_at: dateFilterValidator('integration setup session creation time'),
             updated_at: dateFilterValidator('integration setup session last update time')
           })
@@ -171,7 +230,7 @@ export let integrationSetupSessionController = Controller.create(
         ),
         {
           name: 'Get integration setup session',
-          description: 'Retrieves a specific integration setup session.'
+          description: 'Retrieves an integration setup session.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -196,21 +255,57 @@ export let integrationSetupSessionController = Controller.create(
       .post(instancePath('integration-setup-sessions', 'integrations.setupSessions.create'), {
         name: 'Create integration setup session',
         description:
-          'Creates a new integration setup session. Creates a draft integration instance unless integration_instance_id is given, in which case that instance is reused and its config and auth config are overwritten on completion.'
+          'Creates an integration setup session. Creates a draft integration instance unless `integration_instance_id` is given, in which case that instance is reused and its providers are configured on completion.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
-          integration_id: v.string(),
-          integration_instance_id: v.optional(v.string()),
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          identity_actor_id: v.optional(v.nullable(v.string())),
-          identity_id: v.optional(v.nullable(v.string())),
-          expires_at: v.optional(v.date()),
+          integration_id: v.string({
+            description: 'Integration to set up.',
+            examples: ['int_2bCdEfGhJkLmNpQr']
+          }),
+          integration_instance_id: v.optional(
+            v.string({
+              description: 'Existing instance to reuse. Omitted creates a draft instance.',
+              examples: ['ini_4dEfGhJkLmNpQrSt']
+            })
+          ),
+          name: v.string({
+            description: 'Display name for the setup session.'
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the setup session.'
+            })
+          ),
+          identity_actor_id: v.optional(
+            v.nullable(
+              v.string({
+                description:
+                  'Identity actor the instance is set up for. Cannot be set when `integration_instance_id` is given.'
+              })
+            )
+          ),
+          identity_id: v.optional(
+            v.nullable(
+              v.string({
+                description:
+                  'Identity the instance is set up for. Cannot be set when `integration_instance_id` is given.'
+              })
+            )
+          ),
+          expires_at: v.optional(
+            v.date({
+              description: 'When the session expires. Defaults to 30 minutes after creation.'
+            })
+          ),
           redirect_url: redirectUrlValidator,
           configuration: setupSessionConfigurationValidator
         })

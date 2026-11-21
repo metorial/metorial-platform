@@ -28,6 +28,10 @@ runs:
       run: |
         set -euo pipefail
         df -h /
+        # A job may start `free-disk-space` early so the removal overlaps workspace setup.
+        if [ -f "$RUNNER_TEMP/free-disk-space.pid" ]; then
+          while [ -e "/proc/$(cat "$RUNNER_TEMP/free-disk-space.pid")" ]; do sleep 1; done
+        fi
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         df -h /
     - uses: actions/download-artifact@v4
@@ -47,11 +51,34 @@ runs:
         set -euo pipefail
         read -r -a args <<< "$ARGS"
         read -r -a test_args <<< "$TEST_ARGS"
+        concurrency="$(bun "$(dirname "$CONTROL_DIRECTORY")/test-ci/e2e-groups.ts" concurrency)"
         bun "$CONTROL_DIRECTORY/src/main.ts" "${args[@]}" test:e2e \
           --images "$RUNNER_TEMP/test-images" \
           --workspace "$(cd "$TEST_WORKSPACE" && pwd)" \
-          --concurrency 1 \
-          "${test_args[@]}"
+          --concurrency "$concurrency" \
+          "${test_args[@]}" 2>&1 | tee "$RUNNER_TEMP/control-e2e.log"
+    - name: Record package durations
+      if: success()
+      continue-on-error: true
+      shell: bash
+      env:
+        CONTROL_DIRECTORY: ${{ inputs.control-directory }}
+        E2E_TEST_ARGS: ${{ inputs.test-args }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/e2e-durations"
+        bun "$(dirname "$CONTROL_DIRECTORY")/test-ci/e2e-groups.ts" record \
+          "$RUNNER_TEMP/e2e-durations/durations.json" "$RUNNER_TEMP/control-e2e.log"
+    - name: Upload package durations
+      if: success()
+      continue-on-error: true
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-durations-${{ github.job }}${{ inputs.log-name && format('-{0}', inputs.log-name) || '' }}
+        path: ${{ runner.temp }}/e2e-durations/durations.json
+        if-no-files-found: ignore
+        overwrite: true
+        retention-days: 1
     - name: Upload e2e logs
       if: always()
       uses: actions/upload-artifact@v4

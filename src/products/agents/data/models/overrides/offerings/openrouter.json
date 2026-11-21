@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-13"
   },
+  "bytedance/seedance-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "ByteDance's Seedance 2.5 Flash is a distinct faster/cheaper tier of Seedance 2.5 (analogous to Seedance 2.0 Fast), announced 2026-11-12; the index has no seedance-2.5-flash entry yet, and linking to bytedance/seedance-2.5 would conflate two separate models.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "bytedance/ui-tars-1.5-7b": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -111,6 +118,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "deepseek/deepseek-v4.1-flash:batch": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "The ':batch' suffix is OpenRouter's batch-pricing tier of the same model, so the link is correct. HF repo deepseek-ai/DeepSeek-V4.1-Flash (created 2026-09-10) and listing slug deepseek-v4.1-flash-20260910 match the index entry deepseek/deepseek-v4.1-flash (released 2026-09-10); the lower input price (0.023 vs median 0.223) is the discounted batch rate.",
+    "by": "agent",
+    "at": "2026-11-16"
+  },
   "dots-studio/dots-3-note-preview:free": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -131,6 +145,34 @@
     "reason": "Google's Gemini 4 Hydrogen, the speed-first member of the Gemini 4 family (per OpenRouter listing and launch coverage, canonical slug google/gemini-4-hydrogen-20261112, announced 2026-11-12); the index has only Argon and Carbon, no Hydrogen entry.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "google/gemini-4-neon": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Gemini 4 Neon is a new, distinct Google model (fast reasoning, builds on Hydrogen with deeper reasoning). The index has no gemini-4-neon entry; linking to Argon, Carbon or Hydrogen would be wrong.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "google/gemini-4-neon:batch": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "Gemini 4 Neon is a new Google fast-reasoning model (canonical slug google/gemini-4-neon-20261118); the index has only Argon, Carbon and Hydrogen, no Neon entry, so defer the batch serving until it is added.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "heygen/heygen-avatar-6": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "HeyGen launched Avatar 6, an audio-driven avatar video model, on 2026-11-17. The index has no entry for it (only Avatar IV, HeyGen Video, HeyGen Voice); a real new model to defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "heygen/heygen-avatar-6-turbo": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Avatar 6 Turbo is the faster, lower-cost variant of HeyGen's Avatar 6 (launched 2026-11-17). The index has no entry for it; defer until the catalog adds the Avatar 6 family.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "inclusionai/ling-3.0-tiny": {
     "decision": "defer",
@@ -222,6 +264,20 @@
     "reason": "OpenRouter lists Meta's Muse Wonder (canonical slug meta/muse-wonder-20261012), the frontier agentic model released 2026-10-12; matches meta/muse-wonder-1.0 (1M context, 4/20 list price). Muse Wonder Full is a separate index entry, meta/muse-wonder-full.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "microsoft/mai-image-2.7": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "MAI-Image-2.7 entered public preview on 2026-10-27. The index only goes up to MAI-Image-2.6/2.6-Flash; a real new model to defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "microsoft/mai-image-2.7-flash": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "MAI-Image-2.7 Flash is the lower-latency, lower-cost member of the MAI-Image-2.7 family (public preview since late Oct 2026). The index has no 2.7 entries; defer until the catalog adds the family.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "microsoft/phi-4": {
     "decision": "defer",
@@ -376,6 +432,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-6.2-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-astra",
+    "reason": "OpenRouter's listing states it is the same underlying model as GPT-6.2 Astra, served with reasoning.mode set to pro; pro mode only spends more reasoning tokens.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "openai/gpt-6.2-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.2-sol",
+    "reason": "OpenRouter's listing states it is the same underlying model as GPT-6.2 Sol, served with reasoning.mode set to pro; pro mode only spends more reasoning tokens.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "openai/gpt-image-2.6-flare": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -430,6 +500,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "perplexity/pplx-embed-v2-context-0.6b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Perplexity 0.6B multimodal contextual embedding model from the pplx-embed-v2-context family (announced Oct 2026); the index only has the v1 pplx-embed and pplx-embed-context models",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
+  "perplexity/pplx-embed-v2-context-9b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Perplexity 9B multimodal contextual embedding model, per the HF card perplexity-ai/pplx-embed-v2-context-9b; the index only has the v1 pplx-embed and pplx-embed-context models",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
   "perplexity/sonar-pro-search": {
     "decision": "link",
     "model": "perplexity/sonar-pro",
@@ -451,6 +535,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-tts-1.7b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Alibaba Qwen3-TTS 1.7B text-to-speech model (Qwen3-TTS-12Hz-1.7B, Apache 2.0, released Jan 2026); the index has no qwen3-tts entry, only the later Qwen-Audio-3.0-TTS line",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
   "qwen/qwen3-vl-30b-a3b-thinking": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -471,6 +562,20 @@
     "reason": "OpenRouter's Qwen3.5 9B offering is the Qwen/Qwen3.5-9B instruct checkpoint (HF image-text-to-text, Apache 2.0, 262K context, Feb 2026), distinct from the separately-indexed alibaba/qwen3.5-9b-base repo. The 0.019 input price is OpenRouter's aggregator discount on a small dense model, not a different model.",
     "by": "agent",
     "at": "2026-11-15"
+  },
+  "qwen/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Listing, HF repo Qwen/Qwen3.8-27B (2026-08-05, Apache 2.0, image-text-to-text) and the 2026-08-14 release all match alibaba/qwen3.8-27b; the 1M context is the 262k native window with YaRN scaling, and no dated variant exists in the index. The 0.06 input price is an OpenRouter provider outlier, not a different model.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "radixark/daisyrose-27b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "RadixArk's first model, an RL post-train of Qwen3.8-27B (HF RadixArk/DaisyRose-27B, created 2026-11-18); it is not Qwen3.8-27B itself, and the index has no radixark entry yet",
+    "by": "agent",
+    "at": "2026-11-21"
   },
   "recraft/recraft-v4.1-flash-v2": {
     "decision": "defer",
@@ -549,6 +654,13 @@
     "by": "agent",
     "at": "2026-11-16"
   },
+  "thinkingmachines/inkling-2-mini": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Inkling 2 Mini is a new Thinking Machines model (3.4B active/26.4B total MoE, released 2026-11-20 per the vendor listing and HF card thinkingmachines/Inkling-2-Mini). The index has no entry for it — inkling-2-small (2026-11-05) is a different, earlier sibling — so defer until the catalog adds it.",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
   "unbiased/pareto-26.10": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -590,6 +702,13 @@
     "reason": "Z.ai's GLM-5.3 (zai-org/GLM-5.3 on Hugging Face, launched 2026-08-14, same base model as GLM-5.2 with post-training gains) matches zhipu/glm-5.3; OpenRouter's 0.0699/1.4 rate is a discount off the model's median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash:batch": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "The `:batch` suffix is OpenRouter's batch-tier serving of GLM-5.3-Flash (Hugging Face card zai-org/GLM-5.3-Flash, image-text-to-text, released 2026-08-26 matches zhipu/glm-5.3-flash). Batch pricing is discounted, which explains the lower input price.",
+    "by": "agent",
+    "at": "2026-11-17"
   },
   "z-ai/glm-5.3-flashx-legal": {
     "decision": "defer",

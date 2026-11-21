@@ -150,7 +150,7 @@ export let reattributeSingleProcessor = reattributeSingleQueue.process(async dat
 // 06 §5: raw records, sessions and slices that stamped the loser now point at the winner; the
 // sessions are then re-attributed, which rewrites their dimIds and slice dims.
 export let remapMergedEntity = async (d: MergeRemapJob) => {
-  attributionService.invalidate({ organizationId: d.organizationId });
+  await attributionService.invalidate({ organizationId: d.organizationId });
 
   let store = getStore();
   await store.ready();

@@ -29,13 +29,14 @@ let monitorAlertGroup = integrationsGroup.use(async ctx => {
 export let monitorAlertController = Controller.create(
   {
     name: 'Monitor Alerts',
-    description: 'Monitor alerts represent detected prompt-injection or schema-change events.'
+    description:
+      'A monitor alert is one firing of a monitor. It records a detected prompt-injection or schema-change event.'
   },
   {
     list: integrationsGroup
       .get(instancePath('monitor-alerts', 'monitorAlerts.list'), {
         name: 'List monitor alerts',
-        description: 'Returns a paginated list of monitor alerts for this instance.'
+        description: 'Returns a paginated list of monitor alerts in the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .outputList(monitorAlertPresenter)
@@ -43,26 +44,62 @@ export let monitorAlertController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(stringOrArray()),
-            monitor_id: v.optional(stringOrArray()),
+            id: v.optional(stringOrArray(), {
+              description: 'Only return monitor alerts with one of these IDs.'
+            }),
+            monitor_id: v.optional(stringOrArray(), {
+              description: 'Only return alerts from one of these monitors.'
+            }),
             status: v.optional(
-              v.union([monitorAlertStatusValidator, v.array(monitorAlertStatusValidator)])
+              v.union([monitorAlertStatusValidator, v.array(monitorAlertStatusValidator)]),
+              {
+                description: 'Only return monitor alerts with one of these statuses.'
+              }
             ),
             target: v.optional(
-              v.union([monitorTargetValidator, v.array(monitorTargetValidator)])
+              v.union([monitorTargetValidator, v.array(monitorTargetValidator)]),
+              {
+                description: 'Only return monitor alerts watching one of these targets.'
+              }
             ),
             source: v.optional(
-              v.union([monitorAlertSourceValidator, v.array(monitorAlertSourceValidator)])
+              v.union([monitorAlertSourceValidator, v.array(monitorAlertSourceValidator)]),
+              {
+                description: 'Only return monitor alerts from one of these sources.'
+              }
             ),
-            provider_id: v.optional(stringOrArray()),
-            proto_guard_alert_id: v.optional(stringOrArray()),
-            proto_guard_run_id: v.optional(stringOrArray()),
-            proto_guard_filter_id: v.optional(stringOrArray()),
-            specification_change_notification_id: v.optional(stringOrArray()),
-            session_id: v.optional(stringOrArray()),
-            session_message_id: v.optional(stringOrArray()),
-            session_connection_id: v.optional(stringOrArray()),
-            provider_run_id: v.optional(stringOrArray()),
+            provider_id: v.optional(stringOrArray(), {
+              description: 'Only return monitor alerts for one of these providers.'
+            }),
+            proto_guard_alert_id: v.optional(stringOrArray(), {
+              description:
+                'Only return monitor alerts linked to one of these ProtoGuard alerts.'
+            }),
+            proto_guard_run_id: v.optional(stringOrArray(), {
+              description: 'Only return monitor alerts linked to one of these ProtoGuard runs.'
+            }),
+            proto_guard_filter_id: v.optional(stringOrArray(), {
+              description:
+                'Only return monitor alerts linked to one of these ProtoGuard filters.'
+            }),
+            specification_change_notification_id: v.optional(stringOrArray(), {
+              description:
+                'Only return monitor alerts linked to one of these specification change notifications.'
+            }),
+            session_id: v.optional(stringOrArray(), {
+              description: 'Only return monitor alerts linked to one of these sessions.'
+            }),
+            session_message_id: v.optional(stringOrArray(), {
+              description:
+                'Only return monitor alerts linked to one of these session messages.'
+            }),
+            session_connection_id: v.optional(stringOrArray(), {
+              description:
+                'Only return monitor alerts linked to one of these session connections.'
+            }),
+            provider_run_id: v.optional(stringOrArray(), {
+              description: 'Only return monitor alerts linked to one of these provider runs.'
+            }),
             created_at: dateFilterValidator('monitor alert creation time'),
             resolved_at: dateFilterValidator('monitor alert resolution time')
           })
@@ -99,7 +136,7 @@ export let monitorAlertController = Controller.create(
     get: monitorAlertGroup
       .get(instancePath('monitor-alerts/:monitorAlertId', 'monitorAlerts.get'), {
         name: 'Get monitor alert',
-        description: 'Retrieves a monitor alert by ID.'
+        description: 'Retrieves a monitor alert.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .output(monitorAlertPresenter)

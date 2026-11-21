@@ -28,16 +28,16 @@ export let chatEventController = Controller.create(
         Paginator.validate(
           v.object({
             chat_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat ID(s)'
+              description: 'Only return events for one of these chats.'
             }),
             chat_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat connection ID(s)'
+              description: 'Only return events for one of these chat connections.'
             }),
             chat_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat instance ID(s)'
+              description: 'Only return events for one of these chat instances.'
             }),
             type: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by event type(s)'
+              description: 'Only return events with one of these types.'
             }),
             created_at: dateFilterValidator('chat event creation time'),
             occurred_at: dateFilterValidator('chat event occurrence time')
@@ -65,7 +65,7 @@ export let chatEventController = Controller.create(
     get: instanceGroup
       .get(instancePath('chat/events/:chatEventId', 'chat.events.get'), {
         name: 'Get chat event',
-        description: 'Retrieves a specific chat event.'
+        description: 'Retrieves a chat event.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .output(chatEventPresenter)

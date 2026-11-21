@@ -26,42 +26,44 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
   .schema(
     v.object({
       object: v.literal('provider.auth_credentials', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique credentials identifier',
+        description: 'Unique ID.',
         examples: ['par_4sTuVwXyZaBcDeFg']
       }),
-      type: v.literal('oauth'),
+      type: v.literal('oauth', { description: 'Must be `oauth`.' }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Credentials status'
+        description:
+          'Archived once the credentials are archived. Archived credentials stay listable.'
       }),
       is_default: v.boolean({
         name: 'is_default',
-        description: 'Whether this is the default credentials for the provider',
+        description: "Used when a request doesn't name credentials.",
         examples: [true, false]
       }),
       is_managed: v.boolean({
         name: 'is_managed',
-        description: 'Whether these credentials are managed by Metorial',
+        description:
+          'Whether these use the OAuth app Metorial provides instead of a custom app you registered.',
         examples: [true, false]
       }),
       name: v.nullable(
-        v.string({ name: 'name', description: 'Display name', examples: ['GitHub OAuth'] })
+        v.string({ name: 'name', description: 'Display name.', examples: ['GitHub OAuth'] })
       ),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['OAuth credentials for GitHub API']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ app_name: 'My GitHub App', created_by: 'admin@company.com' }]
         })
       ),
@@ -74,17 +76,17 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
       ),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider these credentials belong to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

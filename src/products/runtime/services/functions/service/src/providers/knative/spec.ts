@@ -7,8 +7,7 @@ import type {
 import { db } from '../../db';
 import { encryption } from '../../encryption';
 import { env } from '../../env';
-import { internalObjectStorageUrl } from '../../lib/internalObjectStorageUrl';
-import { storage } from '../../storage';
+import { type BuildArtifactRef, copyBuildArtifact } from '../../lib/buildArtifact';
 import { getClusterManager } from './clusterManager';
 
 export let KNATIVE_RUNTIME = { identifier: 'nodejs' as const, version: '24' };
@@ -44,23 +43,13 @@ export let importBundle = async (d: {
     source: d.source
   });
 
-export let importBundleFromUrl = async (d: {
+export let importBundleFromArtifact = async (d: {
   functionVersion: { id: string };
-  zipFileUrl: string;
+  zipFile: BuildArtifactRef;
 }) => {
-  let res = await fetch(internalObjectStorageUrl(d.zipFileUrl));
-  if (!res.ok) {
-    throw new Error(`Failed to download function bundle: ${res.status} ${res.statusText}`);
-  }
-
   let bucket = env.storage.BUNDLE_BUCKET_NAME;
   let key = `knative/sources/${d.functionVersion.id}.zip`;
-  await storage.putObject(
-    bucket,
-    key,
-    Buffer.from(await res.arrayBuffer()),
-    'application/zip'
-  );
+  await copyBuildArtifact(d.zipFile, { bucket, key });
 
   return await importBundle({ functionVersion: d.functionVersion, source: { bucket, key } });
 };

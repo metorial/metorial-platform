@@ -93,7 +93,7 @@ export class S3Storage implements Storage {
 
   async get(key: string): Promise<Artifact | null> {
     let artifact = this.client.file(`${key}.artifact`);
-    if (!(await artifact.exists())) return null;
+    if (!(await withRetry(() => artifact.exists()))) return null;
     let metadata = await this.metadata(key);
     if (!metadata) return null;
     return { body: artifact.stream(), metadata };
@@ -101,18 +101,34 @@ export class S3Storage implements Storage {
 
   async metadata(key: string): Promise<ArtifactMetadata | null> {
     let metadata = this.client.file(`${key}.json`);
-    if (!(await metadata.exists())) return null;
-    return (await metadata.json()) as ArtifactMetadata;
+    if (!(await withRetry(() => metadata.exists()))) return null;
+    return await withRetry(async () => (await metadata.json()) as ArtifactMetadata);
   }
 
   async exists(key: string): Promise<boolean> {
-    return this.client.file(`${key}.artifact`).exists();
+    return withRetry(() => this.client.file(`${key}.artifact`).exists());
   }
 
   async put(key: string, body: ReadableStream, metadata: ArtifactMetadata): Promise<void> {
-    await this.client.file(`${key}.json`).write(JSON.stringify(metadata));
-    await this.client.file(`${key}.artifact`).write(await new Response(body).arrayBuffer());
+    let data = await new Response(body).arrayBuffer();
+    await withRetry(() => this.client.file(`${key}.json`).write(JSON.stringify(metadata)));
+    await withRetry(() => this.client.file(`${key}.artifact`).write(data));
   }
+}
+
+async function withRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 200 * 2 ** attempt + Math.random() * 100));
+      }
+    }
+  }
+  throw lastError;
 }
 import { dirname } from 'node:path';
 import { mkdir } from 'node:fs/promises';

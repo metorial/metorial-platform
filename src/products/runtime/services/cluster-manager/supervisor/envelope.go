@@ -37,5 +37,5 @@ func bootErrorEnvelope(reason string) json.RawMessage {
 }
 
 func responseTooLargeEnvelope(size int) json.RawMessage {
-	return errorEnvelope(500, "function_bay.response_too_large", fmt.Sprintf("Function response of %d bytes exceeds the %d byte limit", size, MaxPayloadBytes))
+	return errorEnvelope(500, "function_bay.response_too_large", fmt.Sprintf("Function response of %d bytes exceeds the %d byte limit", size, MaxResponseBytes))
 }

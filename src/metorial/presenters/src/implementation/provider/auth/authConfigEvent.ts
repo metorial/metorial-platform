@@ -59,55 +59,57 @@ export let v1ProviderAuthConfigEventPresenter = Presenter.create(providerAuthCon
   })
   .schema(
     v.object({
-      object: v.literal('provider.auth_config_event'),
+      object: v.literal('provider.auth_config_event', {
+        description: 'String representing the object’s type.'
+      }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider auth config event identifier',
+        description: 'Unique ID.',
         examples: ['acev_8hJkLmNpQrStUvWx']
       }),
       type: v.string({
         name: 'type',
-        description: 'Auth config event type',
+        description: 'What happened.',
         examples: ['oauth_token_refresh_failed']
       }),
       status: v.enumOf(['success', 'error'], {
         name: 'status',
-        description: 'Normalized event outcome status'
+        description: 'Whether the event succeeded or failed.'
       }),
       source_type: v.string({
         name: 'source_type',
-        description: 'Normalized source category for this event',
+        description: 'Which flow produced the event.',
         examples: ['oauth_setup_event']
       }),
       source_id: v.string({
         name: 'source_id',
-        description: 'Source-specific unique identifier',
+        description: 'Identifier of the event at its source.',
         examples: ['csace_8hJkLmNpQrStUvWx']
       }),
       provider_auth_config_id: v.nullable(
         v.string({
           name: 'provider_auth_config_id',
-          description: 'Associated provider auth config ID',
+          description: 'Auth config this event belongs to.',
           examples: ['pac_8pQrStUvWxYzAbCd']
         })
       ),
       provider_auth_credentials_id: v.nullable(
         v.string({
           name: 'provider_auth_credentials_id',
-          description: 'Associated provider auth credentials ID',
+          description: 'Credentials this event belongs to.',
           examples: ['pcr_8pQrStUvWxYzAbCd']
         })
       ),
       provider_oauth_setup_id: v.nullable(
         v.string({
           name: 'provider_oauth_setup_id',
-          description: 'Associated provider OAuth setup ID',
+          description: 'OAuth setup this event belongs to.',
           examples: ['pos_8pQrStUvWxYzAbCd']
         })
       ),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Associated provider ID',
+        description: 'Provider this event belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       provider_auth_error_id: v.nullable(
@@ -126,11 +128,11 @@ export let v1ProviderAuthConfigEventPresenter = Presenter.create(providerAuthCon
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created'
+        description: 'Creation time.'
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated'
+        description: 'Last update time.'
       })
     })
   )

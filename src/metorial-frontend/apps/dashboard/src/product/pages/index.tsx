@@ -1,5 +1,5 @@
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   MetorialEnterpriseWindow,
@@ -129,7 +129,7 @@ export let ProjectHomePage = () => {
                             <Avatar
                               entity={{
                                 ...p,
-                                imageUrl: `https://avatar-cdn.metorial.com/${p.id}`
+                                imageUrl: getAvatarUrl(p.id)
                               }}
                               size={30}
                             />

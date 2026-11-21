@@ -41,7 +41,13 @@ let notifyWaiters = (key: string) => {
 let ensureSubscribed = async () => {
   subscriptionPromise ??= (async () => {
     let subscriber = await subscriberFactory.eager();
-    await subscriber.subscribe(channel, (key: string) => notifyWaiters(key));
+
+    try {
+      await subscriber.subscribe(channel, (key: string) => notifyWaiters(key));
+    } catch (error) {
+      if (subscriber.isOpen) subscriber.destroy();
+      throw error;
+    }
   })().catch(error => {
     subscriptionPromise = undefined;
     throw error;

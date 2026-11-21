@@ -64,7 +64,7 @@ export let v1TokenPresenter = Presenter.create(tokenType)
   .schema(
     v.object({
       object: v.literal('token', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       type: v.enumOf(
@@ -79,140 +79,177 @@ export let v1TokenPresenter = Presenter.create(tokenType)
         ],
         {
           name: 'type',
-          description: `The token's type`
+          description:
+            'What kind of credential this is, for example `user_auth_token` or `oauth_access_token`.'
         }
       ),
 
       organization: v.nullable(
-        v.object({
-          object: v.literal('token.organization', {
-            description: "String representing the organization's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: `The organization's unique identifier`,
-            examples: ['org_7hNkPqRsTuVwXyZa']
-          }),
-          name: v.string({
-            name: 'name',
-            description: `The organization's name`,
-            examples: ['Acme Corporation']
-          }),
-          slug: v.string({
-            name: 'slug',
-            description: `The organization's slug`,
-            examples: ['acme-corporation']
-          })
-        })
+        v.object(
+          {
+            object: v.literal('token.organization', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['org_7hNkPqRsTuVwXyZa']
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name.',
+              examples: ['Acme Corporation']
+            }),
+            slug: v.string({
+              name: 'slug',
+              description: 'URL-safe name of the organization.',
+              examples: ['acme-corporation']
+            })
+          },
+          {
+            name: 'organization',
+            description: 'Organization the token is scoped to.'
+          }
+        )
       ),
 
       instance: v.nullable(
-        v.object({
-          object: v.literal('token.instance', {
-            description: "String representing the instance's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: `The instance's unique identifier`,
-            examples: ['ins_1a23BcDeFgHiJkLm']
-          }),
-          name: v.string({
-            name: 'name',
-            description: `The instance's name`,
-            examples: ['Production Instance']
-          }),
-          slug: v.string({
-            name: 'slug',
-            description: `The instance's slug`,
-            examples: ['production-instance']
-          }),
-          project_id: v.string({
-            name: 'project_id',
-            description: `The instance's project ID`,
-            examples: ['prj_4x5YzAbCdEfGhIj']
-          })
-        })
+        v.object(
+          {
+            object: v.literal('token.instance', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['ins_1a23BcDeFgHiJkLm']
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name.',
+              examples: ['Production Instance']
+            }),
+            slug: v.string({
+              name: 'slug',
+              description: 'URL-safe name of the instance.',
+              examples: ['production-instance']
+            }),
+            project_id: v.string({
+              name: 'project_id',
+              description: 'Project this instance belongs to.',
+              examples: ['prj_4x5YzAbCdEfGhIj']
+            })
+          },
+          {
+            name: 'instance',
+            description: 'Instance the token is scoped to. `null` for organization-level tokens.'
+          }
+        )
       ),
 
       project: v.nullable(
-        v.object({
-          object: v.literal('token.project', {
-            description: "String representing the project's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: `The project's unique identifier`,
-            examples: ['prj_4x5YzAbCdEfGhIj']
-          }),
-          name: v.string({
-            name: 'name',
-            description: `The project's name`,
-            examples: ['Acme Web App']
-          }),
-          slug: v.string({
-            name: 'slug',
-            description: `The project's slug`,
-            examples: ['acme-web-app']
-          })
-        })
+        v.object(
+          {
+            object: v.literal('token.project', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['prj_4x5YzAbCdEfGhIj']
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name.',
+              examples: ['Acme Web App']
+            }),
+            slug: v.string({
+              name: 'slug',
+              description: 'URL-safe name of the project.',
+              examples: ['acme-web-app']
+            })
+          },
+          {
+            name: 'project',
+            description: 'Project the token’s instance belongs to. `null` without an instance.'
+          }
+        )
       ),
 
       actor: v.nullable(
-        v.object({
-          object: v.literal('token.organization_actor', {
-            description: "String representing the organization actor's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: `The organization actor's unique identifier`,
-            examples: ['omem_5fGhJkLmNpQrStUv']
-          }),
-          type: v.enumOf(['member', 'machine_access'], {
-            name: 'type',
-            description: `The organization actor's type`
-          }),
-          name: v.string({
-            name: 'name',
-            description: `The organization actor's name`,
-            examples: ['Example']
-          })
-        })
+        v.object(
+          {
+            object: v.literal('token.organization_actor', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['omem_5fGhJkLmNpQrStUv']
+            }),
+            type: v.enumOf(['member', 'machine_access'], {
+              name: 'type',
+              description: 'Whether the actor is an organization member or a machine identity.'
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name.',
+              examples: ['Example']
+            })
+          },
+          {
+            name: 'actor',
+            description: 'Organization actor the token acts as.'
+          }
+        )
       ),
 
       member: v.nullable(
-        v.object({
-          object: v.literal('token.organization_member', {
-            description: "String representing the organization member's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: `The organization member's unique identifier`,
-            examples: ['omem_5fGhJkLmNpQrStUv']
-          }),
-          name: v.string({
-            name: 'name',
-            description: `The organization member's name`,
-            examples: ['Example']
-          })
-        })
+        v.object(
+          {
+            object: v.literal('token.organization_member', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['omem_5fGhJkLmNpQrStUv']
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name.',
+              examples: ['Example']
+            })
+          },
+          {
+            name: 'member',
+            description: 'Organization member the token belongs to, if any.'
+          }
+        )
       ),
 
       user: v.nullable(
-        v.object({
-          object: v.literal('token.user', {
-            description: "String representing the user's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: `The user's unique identifier`,
-            examples: ['user_1a2b3c4d5e6f7g8h']
-          }),
-          name: v.string({
-            name: 'name',
-            description: `The user's name`,
-            examples: ['Example User']
-          })
-        })
+        v.object(
+          {
+            object: v.literal('token.user', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['user_1a2b3c4d5e6f7g8h']
+            }),
+            name: v.string({
+              name: 'name',
+              description: 'Display name.',
+              examples: ['Example User']
+            })
+          },
+          {
+            name: 'user',
+            description: 'User the token belongs to, for user session tokens.'
+          }
+        )
       )
     })
   )

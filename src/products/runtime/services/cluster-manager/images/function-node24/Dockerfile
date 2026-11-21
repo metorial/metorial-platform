@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/go/pkg/mod --mount=type=cache,target=/root/.
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o /out/supervisor ./services/cluster-manager/supervisor/cmd/supervisor
 
-FROM oven/bun:1 AS bootstrap
+FROM oven/bun:1.4.2 AS bootstrap
 
 WORKDIR /src
 COPY src/products/runtime/services/functions/packages/runtime-node/package.json ./

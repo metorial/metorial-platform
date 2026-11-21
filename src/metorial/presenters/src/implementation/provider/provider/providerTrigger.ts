@@ -90,11 +90,11 @@ export let v1ProviderTriggerPresenter = Presenter.create(providerTriggerType)
   .schema(
     v.object({
       object: v.literal('provider.capabilities.trigger', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider trigger identifier',
+        description: 'Unique ID.',
         examples: ['ptr_4nOpQrStUvWxYzAb']
       }),
       key: v.string({
@@ -104,13 +104,13 @@ export let v1ProviderTriggerPresenter = Presenter.create(providerTriggerType)
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the trigger',
+        description: 'Display name.',
         examples: ['Messages Created']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Trigger description',
+          description: 'Free-text description.',
           examples: ['Fires whenever a new message is created in the provider']
         })
       ),
@@ -147,35 +147,35 @@ export let v1ProviderTriggerPresenter = Presenter.create(providerTriggerType)
           auto_registration: v.object({
             status: v.enumOf(['supported', 'unsupported'] as const, {
               name: 'status',
-              description: 'Whether automatic webhook registration is supported'
+              description: 'Whether Metorial registers the webhook for you.'
             })
           }),
           auto_unregistration: v.object({
             status: v.enumOf(['supported', 'unsupported'] as const, {
               name: 'status',
-              description: 'Whether automatic webhook removal is supported'
+              description: 'Whether Metorial removes the webhook for you.'
             })
           })
         })
       ]),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this trigger belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       provider_specification_id: v.string({
         name: 'provider_specification_id',
-        description: 'Provider specification ID',
+        description: 'Specification this trigger belongs to.',
         examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

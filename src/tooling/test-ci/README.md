@@ -51,15 +51,28 @@ artifacts required by selected E2E suites are always available.
 
 ### Control E2E groups
 
-Each `control test:e2e` suite is split into `groups` matrix jobs (four for OSS, two for
-enterprise), each booting its own stack. Selected test packages are balanced by the
-measured seconds in `.github/e2e-durations.json`; unmeasured packages count as the median.
-Because a stack runs four packages at once, a package longer than its group's expected
-wall time is split by test file into Vitest shards placed in different groups. Each job
-passes its packages as control filters, followed by `-- --package-shard=<pkg>=<i>/<n>`,
-which `metorial-e2e` turns into `--shard=<i>/<n>` for that package only.
+Each `control test:e2e` suite is split into `groups` matrix jobs (eight for OSS, four for
+enterprise), each booting its own stack. Selected test packages are balanced by measured
+seconds; unmeasured packages count as the median. A stack runs one test package at a time
+(packages sharing a stack's worker starve each other's fixtures), so a package longer than
+an even share of the total is split by test file into Vitest shards placed in different
+groups. Each job passes its packages as control filters, followed by
+`-- --package-shard=<pkg>=<i>/<n>`. The e2e runner hands those to `metorial-e2e` in
+`METORIAL_E2E_PACKAGE_SHARDS` rather than as Turbo arguments (Turbo hashes arguments into
+dependency builds too, which would rebuild them inside every sharded stack), and
+`metorial-e2e` turns its own entry into `--shard=<i>/<n>`. To make a suite faster, raise
+`groups` rather than the stack's concurrency (`CONTROL_E2E_CONCURRENCY`, which both the
+planner and the `control-e2e` action read).
 
-Refresh durations from the output of a single complete run (shards of one package are
+Durations come from two places. `.github/e2e-durations.json` is the committed baseline.
+On top of it, every successful push run records what its groups measured: `control-e2e`
+uploads each group's durations, the `Record E2E durations` job merges them into the Actions
+cache, and `detect-test-changes` restores the latest copy as
+`.github/e2e-durations.measured.json`, which takes precedence. Without a cache entry the
+baseline alone is used. A sharded package is only updated when every one of its shards
+reported, so a group that failed to upload cannot make it look short.
+
+Refresh the baseline from the output of a single complete run (shards of one package are
 summed across all logs given):
 
 ```sh

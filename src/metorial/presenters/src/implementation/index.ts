@@ -8,6 +8,7 @@ export * from './files';
 export * from './integrationNetworking';
 export * from './monitor';
 export * from './networking';
+export * from './observability';
 export * from './organization';
 export * from './outpost';
 export * from './platform';

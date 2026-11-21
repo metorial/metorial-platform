@@ -1,0 +1,9 @@
+{
+  "xiaomi/mimo-v2.6-pro": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "Name, omnimodal input (text/image/audio/video), and 1,048,576-token context match Xiaomi's active MiMo-V2.6-Pro. Cloudflare's $4/$8 rate has the same 1:2 input/output ratio as the usual $0.435/$0.87, so the price is a gateway markup rather than a different model.",
+    "by": "agent",
+    "at": "2026-11-16"
+  }
+}

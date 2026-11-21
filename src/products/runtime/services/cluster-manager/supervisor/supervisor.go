@@ -451,7 +451,7 @@ func (s *Supervisor) Invoke(ctx context.Context, in *functionruntimerpc.InvokeIn
 		payload = timeoutEnvelope(timeout)
 	case result.crashed != "":
 		payload = crashEnvelope(result.crashed)
-	case len(result.payload) > MaxPayloadBytes:
+	case len(result.payload) > MaxResponseBytes:
 		payload = responseTooLargeEnvelope(len(result.payload))
 	}
 

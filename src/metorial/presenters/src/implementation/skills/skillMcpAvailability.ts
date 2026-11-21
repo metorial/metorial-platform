@@ -17,10 +17,10 @@ export let v1SkillMcpAvailabilityPresenter = Presenter.create(skillMcpAvailabili
   .schema(
     v.object({
       object: v.literal('skill.mcp_availability', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       skill_id: v.string({
-        description: 'The ID of the skill.'
+        description: 'Skill this availability report is for.'
       }),
       available: v.boolean({
         description:

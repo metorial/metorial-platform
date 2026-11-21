@@ -44,8 +44,13 @@ runs:
         set -euo pipefail
         directory="$RUNNER_TEMP/regctl"
         mkdir -p "$directory"
-        curl --fail --retry 3 -L https://github.com/regclient/regclient/releases/download/v0.11.6/regctl-linux-amd64 -o "$directory/regctl"
-        echo "8e0e62a497fcdb8048d18aa927a139613176ba0531f412bc541044e28f9856bd  $directory/regctl" | sha256sum -c -
+        case "$(uname -m)" in
+          x86_64) arch=amd64; checksum=8e0e62a497fcdb8048d18aa927a139613176ba0531f412bc541044e28f9856bd ;;
+          aarch64) arch=arm64; checksum=a9b71a3ee79b2d1dbbd7d51fd5e8fa214722c192864235d3d8764463c751a1ff ;;
+          *) echo "::error::No regctl build for $(uname -m)"; exit 1 ;;
+        esac
+        curl --fail --retry 3 -L "https://github.com/regclient/regclient/releases/download/v0.11.6/regctl-linux-$arch" -o "$directory/regctl"
+        echo "$checksum  $directory/regctl" | sha256sum -c -
         chmod +x "$directory/regctl"
         echo "$directory" >> "$GITHUB_PATH"
     - id: metadata

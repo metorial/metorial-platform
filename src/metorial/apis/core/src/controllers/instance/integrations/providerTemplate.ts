@@ -11,10 +11,23 @@ import { integrationsGroup, instancePath } from '../../../middleware/instanceGro
 import { providerTemplatePresenter } from '@metorial/presenters';
 
 let providerTemplateCreateBodyValidator = v.object({
-  name: v.string(),
-  description: v.optional(v.string()),
-  metadata: v.optional(v.record(v.any())),
-  integration_id: v.string()
+  name: v.string({
+    description: 'Display name for the provider template.'
+  }),
+  description: v.optional(
+    v.string({
+      description: 'Free-text description.'
+    })
+  ),
+  metadata: v.optional(
+    v.record(v.any(), {
+      description: 'Custom data to identify or organize the provider template.'
+    })
+  ),
+  integration_id: v.string({
+    description: 'Integration the template is created from.',
+    examples: ['int_2bCdEfGhJkLmNpQr']
+  })
 });
 
 let providerTemplateGroup = integrationsGroup.use(async ctx => {
@@ -40,7 +53,7 @@ export let providerTemplateController = Controller.create(
   {
     name: 'Provider Templates',
     description:
-      'Provider templates are reusable, consumer-facing wrappers around integrations.'
+      'A provider template is a consumer-facing view of an integration. It is created from an existing integration.'
   },
   {
     list: integrationsGroup
@@ -62,14 +75,24 @@ export let providerTemplateController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string()),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return provider templates with one of these IDs.'
+            }),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return provider templates for one of these integrations.'
+            }),
+            search: v.optional(v.string(), {
+              description: 'Search provider templates by name or description.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return provider templates with one of these statuses. `deleted` templates are never listed.'
+              }
             )
           })
         )
@@ -94,7 +117,7 @@ export let providerTemplateController = Controller.create(
     get: providerTemplateGroup
       .get(instancePath('provider-templates/:providerTemplateId', 'providerTemplates.get'), {
         name: 'Get provider template',
-        description: 'Retrieves a specific provider template.'
+        description: 'Retrieves a provider template.'
       })
       .use(
         checkAccess({
@@ -115,7 +138,7 @@ export let providerTemplateController = Controller.create(
     create: integrationsGroup
       .post(instancePath('provider-templates', 'providerTemplates.create'), {
         name: 'Create provider template',
-        description: 'Creates a new provider template from an existing integration.'
+        description: 'Creates a provider template from an existing integration.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
@@ -144,7 +167,7 @@ export let providerTemplateController = Controller.create(
         instancePath('provider-templates/:providerTemplateId', 'providerTemplates.update'),
         {
           name: 'Update provider template',
-          description: 'Updates an existing provider template.'
+          description: 'Updates a provider template. Omitted fields keep their current value.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
@@ -152,9 +175,22 @@ export let providerTemplateController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          name: v.optional(
+            v.string({
+              description: 'Display name for the provider template.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the provider template. Replaces existing metadata.'
+            })
+          )
         })
       )
       .output(providerTemplatePresenter)
@@ -180,7 +216,7 @@ export let providerTemplateController = Controller.create(
         instancePath('provider-templates/:providerTemplateId', 'providerTemplates.delete'),
         {
           name: 'Archive provider template',
-          description: 'Archives an existing provider template.'
+          description: 'Archives a provider template.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))

@@ -64,51 +64,51 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
   .schema(
     v.object({
       object: v.literal('provider.config', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique config identifier',
+        description: 'Unique ID.',
         examples: ['pcf_7dEfGhJkLmNpQrSt']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Config status'
+        description: 'Archived once the config is archived. Archived configs stay listable.'
       }),
       is_default: v.boolean({
         name: 'is_default',
-        description: 'Whether this is the default config'
+        description: 'The deployment falls back to this config when none is specified.'
       }),
       name: v.nullable(
         v.string({
           name: 'name',
-          description: 'Display name',
+          description: 'Display name.',
           examples: ['Production Config']
         })
       ),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['Configuration for production environment']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ label: 'primary', notes: 'Default production config' }]
         })
       ),
       tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this config belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       specification_id: v.string({
         name: 'specification_id',
-        description: 'Specification ID',
+        description: 'Specification this config follows.',
         examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
@@ -116,12 +116,12 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
       access: resourceAccessSchema,
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

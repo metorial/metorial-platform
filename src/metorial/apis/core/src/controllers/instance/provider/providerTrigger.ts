@@ -35,7 +35,7 @@ export let providerTriggerController = Controller.create(
   {
     name: 'Provider Triggers',
     description:
-      'A provider trigger describes an event source a provider can emit for callbacks. Use triggers to discover which callback subscriptions a provider version supports.'
+      'A provider trigger is an event a provider can emit for callbacks. Each provider version has its own set of triggers.'
   },
   {
     list: integrationsGroup

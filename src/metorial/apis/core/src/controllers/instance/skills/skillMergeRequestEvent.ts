@@ -13,21 +13,26 @@ import {
   skillMergeRequestReadScopes
 } from './skillMergeRequest';
 
-let eventTypeValidator = v.enumOf([
-  'created',
-  'commented',
-  'all_conflicts_resolved',
-  'merge_started',
-  'merge_completed',
-  'merge_failed',
-  'closed',
-  'rolled_back'
-]);
+let eventTypeValidator = v.enumOf(
+  [
+    'created',
+    'commented',
+    'all_conflicts_resolved',
+    'merge_started',
+    'merge_completed',
+    'merge_failed',
+    'closed',
+    'rolled_back'
+  ],
+  {
+    description: 'What happened in the merge request.'
+  }
+);
 
 export let skillMergeRequestEventController = Controller.create(
   {
     name: 'Skill Merge Request Events',
-    description: 'Inspect the activity history of skill merge requests.',
+    description: 'A skill merge request event is one entry in a merge request activity history.',
     hideInDocs: true
   },
   {
@@ -48,7 +53,11 @@ export let skillMergeRequestEventController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            type: v.optional(v.union([eventTypeValidator, v.array(eventTypeValidator)])),
+            type: v.optional(
+              v.union([eventTypeValidator, v.array(eventTypeValidator)], {
+                description: 'Only return events of one of these types.'
+              })
+            ),
             created_at: dateFilterValidator('skill merge request event creation time')
           })
         )

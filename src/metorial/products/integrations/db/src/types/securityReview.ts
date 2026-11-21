@@ -160,6 +160,35 @@ export type SecurityReportFinding = {
   evidence: SecurityLedgerRef[];
 };
 
+export type SecurityControlKey =
+  | 'input_scoping'
+  | 'destination_restriction'
+  | 'destructive_targeting'
+  | 'untrusted_content_separation'
+  | 'secret_hygiene'
+  | 'least_privilege_access'
+  | 'accurate_annotations'
+  | 'transport_security'
+  | 'dependency_hygiene'
+  | 'path_scoping'
+  | 'egress_restriction'
+  | 'safe_command_construction'
+  | 'destructive_confirmation'
+  | 'minimal_permissions'
+  | 'credential_isolation'
+  | 'transparent_content'
+  | 'scoped_activation';
+
+export type SecurityControlDisposition = 'met' | 'partial' | 'not_met' | 'not_applicable';
+
+export type SecurityReportControl = {
+  key: SecurityControlKey;
+  disposition: SecurityControlDisposition;
+  reason: string;
+  evidence: SecurityLedgerRef[];
+  source?: 'platform' | 'agent';
+};
+
 export type SecurityReport = {
   checks?: {
     key: string;
@@ -171,6 +200,7 @@ export type SecurityReport = {
   provenance?: { class: SecurityProvenanceClass; body: string; evidence: SecurityLedgerRef[] };
   capabilities?: { tools: SecurityReportTool[]; behaviors?: SecurityReportBehavior[] };
   implementation?: { strengths: SecurityReportPoint[]; weaknesses: SecurityReportPoint[] };
+  controls?: SecurityReportControl[];
   findings?: SecurityReportFinding[];
   resolvedFindings?: { key: string; reason: string }[];
   changes?: { body: string };
@@ -189,6 +219,7 @@ export type SecurityReviewScoreCounts = {
   capabilities: Record<'read' | 'write' | 'destructive', number>;
   findings: Record<SecurityFindingSeverityLevel, number>;
   positives: number;
+  controls?: Record<SecurityControlDisposition, number>;
 };
 
 export type SecurityReviewComputedScores = {

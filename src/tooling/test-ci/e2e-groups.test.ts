@@ -1,5 +1,12 @@
 import { expect, test } from 'bun:test';
-import { e2eGroupArgs, parseE2EDurations, planE2EGroups } from './e2e-groups';
+import {
+  e2eGroupArgs,
+  mergeE2EGroupMeasurements,
+  parseE2EDurations,
+  parseE2EGroupShards,
+  planE2EGroups,
+  sumE2EDurations
+} from './e2e-groups';
 
 let names = (count: number) => Array.from({ length: count }, (_, index) => `@x/p${index}`);
 
@@ -98,5 +105,45 @@ test('reads durations from control output and sums shards of one package', () =>
   expect(parseE2EDurations([group, other])).toEqual({
     '@metorial/api-core': 600,
     '@metorial/module-user': 0.85
+  });
+});
+
+test('adds up the shards of a package measured by different groups of one run', () => {
+  expect(
+    sumE2EDurations([
+      { '@metorial/api-core': 300, '@metorial/module-user': 20 },
+      { '@metorial/api-core': 310 },
+      {}
+    ])
+  ).toEqual({ '@metorial/api-core': 610, '@metorial/module-user': 20 });
+});
+
+test('reads the package shards a group ran from its control arguments', () => {
+  expect(parseE2EGroupShards('@x/a @x/huge -- --package-shard=@x/huge=2/3')).toEqual({
+    '@x/huge': '2/3'
+  });
+  expect(parseE2EGroupShards('@x/a @x/b')).toEqual({});
+  expect(parseE2EGroupShards('')).toEqual({});
+});
+
+test('merges group measurements and leaves out packages with a missing shard', () => {
+  expect(
+    mergeE2EGroupMeasurements([
+      {
+        durations: { '@metorial/api-core': 300, '@metorial/module-user': 20 },
+        shards: { '@metorial/api-core': '1/2' }
+      },
+      {
+        durations: { '@metorial/api-core': 310, '@metorial/module-file': 90 },
+        shards: { '@metorial/api-core': '2/2', '@metorial/module-file': '1/3' }
+      },
+      {
+        durations: { '@metorial/module-file': 80 },
+        shards: { '@metorial/module-file': '3/3' }
+      }
+    ])
+  ).toEqual({
+    durations: { '@metorial/api-core': 610, '@metorial/module-user': 20 },
+    incomplete: ['@metorial/module-file']
   });
 });

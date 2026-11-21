@@ -55,7 +55,7 @@ let orderByUseMapper = {
 export let providerListingController = Controller.create(
   {
     name: 'Provider Listings',
-    description: 'A listing is a provider enriched with marketplace metadata.',
+    description: 'A provider listing is a provider with its marketplace details.',
     hideInDocs: true
   },
   {
@@ -70,19 +70,41 @@ export let providerListingController = Controller.create(
         'mt_2026_01_01_magnetar',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string(), {
+              description: 'Search listings by name, description, or readme.'
+            }),
 
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by listing ID(s).'
+            }),
+            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings in these categories.'
+            }),
+            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings in these collections.'
+            }),
+            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings in these groups.'
+            }),
+            publisher_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings from these publishers.'
+            }),
 
-            is_owner: v.optional(v.boolean()),
-            is_public: v.optional(v.boolean()),
-            is_verified: v.optional(v.boolean()),
-            is_official: v.optional(v.boolean()),
-            is_metorial: v.optional(v.boolean()),
+            is_owner: v.optional(v.boolean(), {
+              description: 'Only return listings published by your organization.'
+            }),
+            is_public: v.optional(v.boolean(), {
+              description: 'Only return public listings.'
+            }),
+            is_verified: v.optional(v.boolean(), {
+              description: 'Only return listings reviewed and trusted by Metorial.'
+            }),
+            is_official: v.optional(v.boolean(), {
+              description: 'Only return official listings.'
+            }),
+            is_metorial: v.optional(v.boolean(), {
+              description: 'Only return Metorial-maintained listings.'
+            }),
             created_at: dateFilterValidator('provider listing creation time'),
             updated_at: dateFilterValidator('provider listing last update time')
           })
@@ -96,19 +118,41 @@ export let providerListingController = Controller.create(
         'mt_2026_04_01_consumer',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string(), {
+              description: 'Search listings by name, description, or readme.'
+            }),
 
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            publisher_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by listing ID(s).'
+            }),
+            provider_category_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings in these categories.'
+            }),
+            provider_collection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings in these collections.'
+            }),
+            provider_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings in these groups.'
+            }),
+            publisher_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings from these publishers.'
+            }),
 
-            is_owner: v.optional(v.boolean()),
-            is_public: v.optional(v.boolean()),
-            is_verified: v.optional(v.boolean()),
-            is_official: v.optional(v.boolean()),
-            is_metorial: v.optional(v.boolean()),
+            is_owner: v.optional(v.boolean(), {
+              description: 'Only return listings published by your organization.'
+            }),
+            is_public: v.optional(v.boolean(), {
+              description: 'Only return public listings.'
+            }),
+            is_verified: v.optional(v.boolean(), {
+              description: 'Only return listings reviewed and trusted by Metorial.'
+            }),
+            is_official: v.optional(v.boolean(), {
+              description: 'Only return official listings.'
+            }),
+            is_metorial: v.optional(v.boolean(), {
+              description: 'Only return Metorial-maintained listings.'
+            }),
             created_at: dateFilterValidator('provider listing creation time'),
             updated_at: dateFilterValidator('provider listing last update time')
           })

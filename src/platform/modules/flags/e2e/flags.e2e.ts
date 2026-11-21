@@ -1,12 +1,15 @@
 import { useOrganization } from '@metorial/e2e';
 import { loadOrganizationFixture } from '@metorial/e2e/db';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  aiAvailabilityUnavailableReason,
+  applyAiAvailability,
   applyEnabledFlags,
   defaultFlags,
   disabledFlag,
   flagService,
   getFlagDisabledReason,
+  isAiAvailable,
   isFlagEnabled,
   setFlagProvider
 } from '../src';
@@ -15,6 +18,7 @@ describe('module-flags', () => {
   let org = useOrganization();
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     setFlagProvider(async () => defaultFlags);
   });
 
@@ -26,7 +30,12 @@ describe('module-flags', () => {
       project: fixture.project,
       user: fixture.user ?? undefined
     });
-    expect(flags).toEqual(applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS));
+    expect(flags).toEqual(
+      applyAiAvailability(
+        applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS),
+        isAiAvailable()
+      )
+    );
     expect(isFlagEnabled(flags['paid-audit-logs'])).toBe(true);
   });
 
@@ -57,5 +66,35 @@ describe('module-flags', () => {
     expect(isFlagEnabled(flags['test-flag'])).toBe(true);
     expect(isFlagEnabled(flags.outposts)).toBe(false);
     expect(getFlagDisabledReason(flags.outposts)).toBe('e2e');
+  });
+
+  it('treats a non-empty AI_GATEWAY_API_KEY as AI being available', () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', '');
+    expect(isAiAvailable()).toBe(false);
+
+    vi.stubEnv('AI_GATEWAY_API_KEY', '   ');
+    expect(isAiAvailable()).toBe(false);
+
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'key');
+    expect(isAiAvailable()).toBe(true);
+  });
+
+  it('disables AI-dependent flags when AI is unavailable, whatever the provider says', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    setFlagProvider(async () => applyEnabledFlags(defaultFlags, '*'));
+
+    vi.stubEnv('AI_GATEWAY_API_KEY', '');
+    let without = await flagService.getFlags({ organization: fixture.organization });
+    expect(isFlagEnabled(without['ai-available'])).toBe(false);
+    expect(isFlagEnabled(without['assistant-enabled'])).toBe(false);
+    expect(getFlagDisabledReason(without['ai-available'])).toBe(
+      aiAvailabilityUnavailableReason
+    );
+    expect(isFlagEnabled(without['skills-enabled'])).toBe(true);
+
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'key');
+    let withKey = await flagService.getFlags({ organization: fixture.organization });
+    expect(isFlagEnabled(withKey['ai-available'])).toBe(true);
+    expect(isFlagEnabled(withKey['assistant-enabled'])).toBe(true);
   });
 });

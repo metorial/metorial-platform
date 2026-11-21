@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "frontend:build": {
+      "outputs": ["dist/**", "frontend/*/dist/**", "src/frontends/*/dist/**", "../frontends/*/dist/**"]
+    }
+  }
+}

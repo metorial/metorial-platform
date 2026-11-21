@@ -31,13 +31,13 @@ export let storeParticipantGroup = storeGroup.use(async ctx => {
 export let storeParticipantController = Controller.create(
   {
     name: 'Store Participants',
-    description: 'Inspect participants assigned to an instance store.'
+    description: 'A store participant is an actor with access to a store and its contents.'
   },
   {
     list: storeGroup
       .get(instancePath('stores/:storeId/participants', 'stores.participants.list'), {
         name: 'List store participants',
-        description: 'Returns a paginated list of participants for a specific store.'
+        description: 'Returns a paginated list of participants in a store.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
@@ -73,8 +73,8 @@ export let storeParticipantController = Controller.create(
           'stores.participants.get'
         ),
         {
-          name: 'Get store participant by ID',
-          description: 'Retrieves a specific participant within a store.'
+          name: 'Get store participant',
+          description: 'Retrieves a participant in a store.'
         }
       )
       .use(

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   TableFilter,
@@ -37,6 +37,11 @@ let getManagedQueryString = (searchParams: URLSearchParams, filterKeys: Set<stri
   }
 
   return managedSearchParams.toString();
+};
+
+export let useInitialFilterState = (filters: TableFilter<any>[]) => {
+  let [searchParams] = useSearchParams();
+  return useState(() => deserializeFromQuery(searchParams, filters));
 };
 
 export let useFilterQuery = ({

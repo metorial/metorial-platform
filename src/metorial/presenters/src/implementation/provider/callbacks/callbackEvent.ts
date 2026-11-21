@@ -63,23 +63,25 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
   .schema(
     v.object({
       object: v.literal('callback_event', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique callback event identifier',
+        description: 'Unique ID.',
         examples: ['cbe_8kLmNpQrStUvWxYz']
       }),
 
       status: v.enumOf(['pending', 'processed', 'failed'], {
         name: 'status',
-        description: 'Processing status of this callback event within Metorial'
+        description:
+          'Processing status of this callback event within Metorial. `failed` when processing failed; the reason is in `details.error`.'
       }),
 
       source: v.enumOf(['webhook', 'polling'], {
         name: 'source',
-        description: 'How the provider trigger that produced this event was invoked'
+        description:
+          'How this event reached Metorial. `webhook` when the provider pushed it, `polling` when Metorial fetched it.'
       }),
 
       provider_trigger_key: v.string({
@@ -126,7 +128,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
         v.object(
           {
             object: v.literal('callback_event.details', {
-              description: "String representing the object's type"
+              description: 'String representing the object’s type.'
             }),
 
             status: v.string({
@@ -148,7 +150,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
               v.object(
                 {
                   object: v.literal('callback_event.details.error', {
-                    description: "String representing the object's type"
+                    description: 'String representing the object’s type.'
                   }),
 
                   code: v.string({
@@ -174,12 +176,12 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
               v.object(
                 {
                   object: v.literal('callback_event.details.webhook', {
-                    description: "String representing the object's type"
+                    description: 'String representing the object’s type.'
                   }),
 
                   id: v.string({
                     name: 'id',
-                    description: 'Incoming webhook identifier',
+                    description: 'Unique ID.',
                     examples: ['whke_7dEfGhJkLmNpQrSt']
                   }),
 
@@ -194,7 +196,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                     v.object(
                       {
                         object: v.literal('callback_event.details.webhook.request', {
-                          description: "String representing the object's type"
+                          description: 'String representing the object’s type.'
                         }),
 
                         method: v.string({
@@ -237,7 +239,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                       {
                         name: 'request',
                         description:
-                          'The inbound HTTP request as it was received. Null once the backend has aged the raw request out of hot storage.'
+                          'Inbound HTTP request as received. `null` once it is past its retention period.'
                       }
                     )
                   ),
@@ -272,7 +274,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the callback event was recorded',
+        description: 'Creation time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

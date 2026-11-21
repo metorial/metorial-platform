@@ -23,14 +23,18 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
   }))
   .schema(
     v.object({
-      object: v.literal('consumer'),
-      id: v.string(),
-      name: v.string(),
-      email: v.string(),
-      image_url: v.string(),
-      user_id: v.nullable(v.string()),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('consumer', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      name: v.string({ description: 'Display name.' }),
+      email: v.string({ description: 'Email address.' }),
+      image_url: v.string({ description: 'Avatar image URL.' }),
+      user_id: v.nullable(
+        v.string({ description: 'User this consumer is linked to. `null` when unlinked.' })
+      ),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();
@@ -50,8 +54,12 @@ export let dashboardConsumerPresenter = Presenter.create(consumerType)
     v.intersection([
       v1ConsumerPresenter.schema,
       v.object({
-        is_portal_consumer: v.boolean(),
-        is_organization_member: v.boolean(),
+        is_portal_consumer: v.boolean({
+          description: 'Whether this consumer signs in through a portal.'
+        }),
+        is_organization_member: v.boolean({
+          description: 'Whether this consumer is an organization member.'
+        }),
         is_service_account: v.boolean({
           name: 'is_service_account',
           description: 'Whether this consumer is the dedicated identity of a service account'

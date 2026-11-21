@@ -40,7 +40,7 @@ export let integrationFirewallAssignmentController = Controller.create(
   {
     name: 'Integration Firewall Assignments',
     description:
-      'Manage assignments that apply firewalls to integration enclaves, providers, or the integration internet gateway.'
+      'An integration firewall assignment is a firewall applied to one target. Targets are integration enclaves, providers, or the integration internet gateway.'
   },
   {
     list: networkingInstanceGroup
@@ -51,7 +51,8 @@ export let integrationFirewallAssignmentController = Controller.create(
         ),
         {
           name: 'List integration firewall assignments',
-          description: 'Returns a paginated list of integration firewall assignments.'
+          description:
+            'Returns a paginated list of integration firewall assignments in the instance.'
         }
       )
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
@@ -60,16 +61,30 @@ export let integrationFirewallAssignmentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            firewall_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            enclave_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            internet_gateway_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration firewall assignments with one of these IDs.'
+            }),
+            firewall_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return assignments applying one of these firewalls.'
+            }),
+            enclave_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return assignments targeting one of these enclaves.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return assignments targeting one of these providers.'
+            }),
+            internet_gateway_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return assignments targeting one of these internet gateways.'
+            }),
             target_type: v.optional(
               v.union([
                 v.enumOf(['enclave', 'provider', 'internet_gateway']),
                 v.array(v.enumOf(['enclave', 'provider', 'internet_gateway']))
-              ])
+              ]),
+              {
+                description: 'Only return assignments with one of these target types.'
+              }
             ),
             created_at: dateFilterValidator('integration firewall assignment creation time')
           })
@@ -104,7 +119,7 @@ export let integrationFirewallAssignmentController = Controller.create(
         ),
         {
           name: 'Get integration firewall assignment',
-          description: 'Retrieves a specific integration firewall assignment by ID.'
+          description: 'Retrieves an integration firewall assignment.'
         }
       )
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
@@ -123,7 +138,7 @@ export let integrationFirewallAssignmentController = Controller.create(
         ),
         {
           name: 'Create integration firewall assignment',
-          description: 'Creates an assignment that applies a firewall to a target.'
+          description: 'Creates an integration firewall assignment.'
         }
       )
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
@@ -131,7 +146,9 @@ export let integrationFirewallAssignmentController = Controller.create(
         'default',
         v.intersection([
           v.object({
-            firewall_id: v.string()
+            firewall_id: v.string({
+              description: 'Firewall to apply to the target.'
+            })
           }),
           firewallAssignmentTargetValidator
         ])
@@ -161,7 +178,8 @@ export let integrationFirewallAssignmentController = Controller.create(
         ),
         {
           name: 'Delete integration firewall assignment',
-          description: 'Deletes an integration firewall assignment.'
+          description:
+            'Permanently deletes an integration firewall assignment. The firewall stops applying to the target.'
         }
       )
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))

@@ -34,13 +34,14 @@ export let integrationEnclaveGroup = networkingInstanceGroup.use(async ctx => {
 export let integrationEnclaveController = Controller.create(
   {
     name: 'Integration Enclaves',
-    description: 'Read integration enclave records for provider deployments in an instance.'
+    description:
+      'An integration enclave is the isolated network a provider deployment runs in. It connects the deployment to its internet gateway and firewalls.'
   },
   {
     list: networkingInstanceGroup
       .get(instancePath('integration-enclaves', 'integrationEnclaves.list'), {
         name: 'List integration enclaves',
-        description: 'Returns a paginated list of integration enclaves.'
+        description: 'Returns a paginated list of integration enclaves in the instance.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .outputList(integrationEnclavePresenter)
@@ -48,12 +49,27 @@ export let integrationEnclaveController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            slug: v.optional(v.union([v.string(), v.array(v.string())])),
-            internet_gateway_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            firewall_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration enclaves with one of these IDs.'
+            }),
+            slug: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration enclaves with one of these slugs.'
+            }),
+            internet_gateway_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration enclaves using one of these internet gateways.'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration enclaves running one of these provider deployments.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration enclaves running one of these providers.'
+            }),
+            firewall_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration enclaves protected by one of these firewalls.'
+            }),
             created_at: dateFilterValidator('integration enclave creation time')
           })
         )
@@ -84,7 +100,7 @@ export let integrationEnclaveController = Controller.create(
         instancePath('integration-enclaves/:integrationEnclaveId', 'integrationEnclaves.get'),
         {
           name: 'Get integration enclave',
-          description: 'Retrieves a specific integration enclave by ID.'
+          description: 'Retrieves an integration enclave.'
         }
       )
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
@@ -120,7 +136,7 @@ export let dashboardIntegrationEnclaveController = Controller.create(
         v.object({
           limit: v.optional(
             v.number({
-              description: 'Maximum number of enclaves to return'
+              description: 'Maximum number of enclaves to return.'
               // modifiers: [v.positive(), v.integer(), v.maxValue(100)]
             })
           )

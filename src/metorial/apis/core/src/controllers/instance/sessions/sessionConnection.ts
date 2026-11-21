@@ -49,13 +49,13 @@ export let sessionConnectionController = Controller.create(
   {
     name: 'Session Connections',
     description:
-      'Session connections represent the MCP connections established within a session. This read-only resource provides visibility into the connection state and capabilities.'
+      'A session connection is one MCP connection in a session. Connections report their state, transport, and capabilities.'
   },
   {
     list: integrationsGroup
       .get(instancePath('session-connections', 'sessions.connections.list'), {
         name: 'List session connections',
-        description: 'Returns a paginated list of connections for a session.'
+        description: 'Returns a paginated list of session connections.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -163,7 +163,7 @@ export let sessionConnectionController = Controller.create(
         instancePath('session-connections/:sessionConnectionId', 'sessions.connections.get'),
         {
           name: 'Get session connection',
-          description: 'Retrieves a specific connection from a session.'
+          description: 'Retrieves a session connection.'
         }
       )
       .use(requireNonPublishableMachineAccess())

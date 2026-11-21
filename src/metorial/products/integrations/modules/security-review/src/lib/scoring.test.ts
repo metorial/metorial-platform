@@ -1,16 +1,27 @@
 import { describe, expect, it } from 'vitest';
+import type {
+  SecurityControlDisposition,
+  SecurityControlKey,
+  SecurityFindingCategoryKey
+} from '@metorial-subspace/db';
+import { assessableControlsFor } from '../definitions/controls';
+import { resolveControls } from './controls';
+import type { SubjectKind } from './evidence';
 import {
+  assuranceFactor,
   bandForScore,
   computeConfidence,
   computeExposure,
   computeRisk,
   computeScores,
-  computeSecurityScore
+  computeSecurityScore,
+  reachIndex
 } from './scoring';
 
 let finding = (kind: 'security' | 'capability' | 'positive', severity: any = 'info') => ({
   kind,
-  severity
+  severity,
+  category: 'implementation' as SecurityFindingCategoryKey
 });
 
 let tool = (...tags: any[]) => ({
@@ -28,86 +39,290 @@ let fullCoverage = {
   awaitingTools: false
 };
 
+let securityFinding = (
+  severity: 'low' | 'medium' | 'high' | 'critical',
+  category: SecurityFindingCategoryKey = 'implementation'
+) => ({ kind: 'security' as const, severity, category });
+
+let controls = (
+  kind: SubjectKind,
+  dispositions: Partial<Record<SecurityControlKey, SecurityControlDisposition>>
+) =>
+  resolveControls({
+    kind,
+    tools: null,
+    findings: [],
+    assessed: assessableControlsFor(kind).map(control => ({
+      key: control.key,
+      disposition: dispositions[control.key] ?? 'met',
+      reason: 'Assessed.',
+      evidence: []
+    }))
+  });
+
+let slateGaps = controls('slate', {
+  input_scoping: 'not_met',
+  destination_restriction: 'not_met',
+  destructive_targeting: 'not_met',
+  untrusted_content_separation: 'not_met'
+});
+
+let typicalSlate = controls('slate', { untrusted_content_separation: 'partial' });
+
+let typicalSkill = controls('skill', {
+  egress_restriction: 'partial',
+  safe_command_construction: 'not_met',
+  credential_isolation: 'not_applicable',
+  dependency_hygiene: 'not_met',
+  destructive_confirmation: 'partial',
+  minimal_permissions: 'partial'
+});
+
+let skillGaps = controls('skill', {
+  path_scoping: 'not_met',
+  egress_restriction: 'not_met',
+  safe_command_construction: 'not_met',
+  credential_isolation: 'not_met',
+  dependency_hygiene: 'not_met',
+  destructive_confirmation: 'not_met',
+  minimal_permissions: 'not_met',
+  transparent_content: 'partial',
+  scoped_activation: 'partial'
+});
+
+let incomplete = assuranceFactor({
+  provenance: 'imported_public_repo',
+  complete: false,
+  unresolvedObservations: 1,
+  unclassifiedActions: false
+});
+
 describe('security score', () => {
-  it('does not confuse origin uncertainty with a confirmed security defect', () => {
-    expect(computeSecurityScore({ provenance: 'metorial_built', findings: [] })).toBe(95);
-    expect(
-      computeSecurityScore({ provenance: 'tenant_remote_unverifiable', findings: [] })
-    ).toBe(95);
-  });
-
-  it('caps impersonation at 10 regardless of positives', () => {
-    let findings = Array.from({ length: 5 }, () => finding('positive'));
-    expect(computeSecurityScore({ provenance: 'impersonation_suspected', findings })).toBe(10);
-  });
-
-  it('caps critical findings at 25', () => {
+  it('keeps Metorial integrations above 90 whatever their reach and hardening gaps', () => {
     expect(
       computeSecurityScore({
         provenance: 'metorial_built',
-        findings: [finding('security', 'critical')]
+        findings: [],
+        controls: typicalSlate,
+        exposure: 'critical'
       })
-    ).toBe(25);
-  });
-
-  it('puts confirmed high-severity defects in the weak band', () => {
+    ).toBeGreaterThan(98);
     expect(
       computeSecurityScore({
         provenance: 'metorial_built',
-        findings: [finding('security', 'high')]
+        findings: [securityFinding('low'), securityFinding('low'), securityFinding('medium')],
+        controls: slateGaps,
+        exposure: 'critical'
       })
-    ).toBe(55);
+    ).toBeGreaterThan(90);
+    expect(
+      computeSecurityScore({
+        provenance: 'metorial_built',
+        findings: [securityFinding('critical')],
+        controls: typicalSlate,
+        exposure: 'high'
+      })
+    ).toBeGreaterThan(90);
+  });
+
+  it('still lets findings and gaps differentiate Metorial integrations', () => {
+    let clean = computeSecurityScore({
+      provenance: 'metorial_built',
+      findings: [],
+      controls: controls('slate', {}),
+      exposure: 'high'
+    });
+    let withLow = computeSecurityScore({
+      provenance: 'metorial_built',
+      findings: [securityFinding('low')],
+      controls: typicalSlate,
+      exposure: 'high'
+    });
+    let withGaps = computeSecurityScore({
+      provenance: 'metorial_built',
+      findings: [securityFinding('medium')],
+      controls: slateGaps,
+      exposure: 'high'
+    });
+
+    expect(clean).toBeGreaterThan(withLow);
+    expect(withLow).toBeGreaterThan(withGaps);
+  });
+
+  it('keeps good skills and integrations with small or medium mistakes above 80', () => {
+    expect(
+      computeSecurityScore({
+        provenance: 'imported_public_repo',
+        findings: [securityFinding('medium'), securityFinding('low')],
+        controls: typicalSkill,
+        exposure: 'high',
+        assurance: incomplete
+      })
+    ).toBeGreaterThan(80);
     expect(
       computeSecurityScore({
         provenance: 'tenant_code',
-        findings: [finding('security', 'high'), finding('security', 'high')]
+        findings: [
+          securityFinding('medium', 'input_validation'),
+          securityFinding('medium'),
+          securityFinding('low')
+        ],
+        controls: controls('function', {
+          input_scoping: 'partial',
+          secret_hygiene: 'partial'
+        }),
+        exposure: 'high'
       })
-    ).toBe(55);
+    ).toBeGreaterThan(80);
   });
 
-  it('caps medium and low deductions', () => {
-    let mediums = Array.from({ length: 6 }, () => finding('security', 'medium'));
-    expect(computeSecurityScore({ provenance: 'metorial_built', findings: mediums })).toBe(71);
+  it('rewards met safeguards a little', () => {
+    let hardened = computeSecurityScore({
+      provenance: 'tenant_authored',
+      findings: [],
+      controls: controls('skill', {}),
+      exposure: 'moderate'
+    });
+    let typical = computeSecurityScore({
+      provenance: 'tenant_authored',
+      findings: [],
+      controls: typicalSkill,
+      exposure: 'moderate'
+    });
 
-    let lows = Array.from({ length: 10 }, () => finding('security', 'low'));
-    expect(computeSecurityScore({ provenance: 'metorial_built', findings: lows })).toBe(87);
+    expect(hardened).toBeGreaterThan(typical);
+    expect(typical).toBeGreaterThan(90);
+  });
+
+  it('lets a single high-severity defect make a subject bad', () => {
+    for (let provenance of [
+      'tenant_code',
+      'imported_public_repo',
+      'tenant_authored'
+    ] as const) {
+      expect(
+        computeSecurityScore({
+          provenance,
+          findings: [securityFinding('high')],
+          controls: controls(provenance == 'tenant_code' ? 'function' : 'skill', {}),
+          exposure: 'low'
+        })
+      ).toBeLessThan(50);
+    }
+  });
+
+  it('drives badly implemented custom providers towards zero', () => {
+    expect(
+      computeSecurityScore({
+        provenance: 'tenant_code',
+        findings: [
+          securityFinding('critical', 'input_validation'),
+          securityFinding('critical', 'exfiltration'),
+          securityFinding('high', 'secrets')
+        ],
+        controls: controls('function', {
+          input_scoping: 'not_met',
+          destination_restriction: 'not_met',
+          secret_hygiene: 'not_met'
+        }),
+        exposure: 'critical'
+      })
+    ).toBeLessThanOrEqual(3);
+  });
+
+  it('puts impersonation and other deception at or near zero', () => {
+    expect(
+      computeSecurityScore({ provenance: 'impersonation_suspected', findings: [] })
+    ).toBeLessThanOrEqual(3);
+    expect(
+      computeSecurityScore({
+        provenance: 'impersonation_suspected',
+        findings: [securityFinding('high', 'impersonation')]
+      })
+    ).toBeLessThanOrEqual(1);
+    expect(
+      computeSecurityScore({
+        provenance: 'tenant_remote_third_party',
+        findings: [securityFinding('medium', 'tool_poisoning')]
+      })
+    ).toBeLessThanOrEqual(5);
+    expect(
+      computeSecurityScore({
+        provenance: 'imported_public_repo',
+        findings: [securityFinding('medium', 'reviewer_targeting')]
+      })
+    ).toBeLessThanOrEqual(5);
+  });
+
+  it('never raises the score when a finding is added', () => {
+    let severities = ['low', 'medium', 'high', 'critical'] as const;
+    for (let provenance of [
+      'metorial_built',
+      'tenant_code',
+      'imported_public_repo'
+    ] as const) {
+      let findings: ReturnType<typeof securityFinding>[] = [];
+      let previous = computeSecurityScore({ provenance, findings });
+      for (let severity of [...severities, ...severities]) {
+        findings = [...findings, securityFinding(severity)];
+        let next = computeSecurityScore({ provenance, findings });
+        expect(next).toBeLessThanOrEqual(previous);
+        previous = next;
+      }
+    }
+  });
+
+  it('orders control dispositions met over partial over not met', () => {
+    let score = (disposition: SecurityControlDisposition) =>
+      computeSecurityScore({
+        provenance: 'tenant_code',
+        findings: [],
+        controls: controls('function', {
+          input_scoping: disposition,
+          destination_restriction: disposition
+        }),
+        exposure: 'high'
+      });
+
+    expect(score('met')).toBeGreaterThan(score('partial'));
+    expect(score('partial')).toBeGreaterThan(score('not_met'));
+  });
+
+  it('weighs a missing safeguard by the reach it guards', () => {
+    let score = (exposure: 'low' | 'critical') =>
+      computeSecurityScore({
+        provenance: 'imported_public_repo',
+        findings: [],
+        controls: skillGaps,
+        exposure
+      });
+
+    expect(score('low')).toBeGreaterThan(score('critical'));
+  });
+
+  it('separates sloppy skills from good ones without calling them malicious', () => {
+    let score = computeSecurityScore({
+      provenance: 'imported_public_repo',
+      findings: [
+        securityFinding('medium'),
+        securityFinding('medium'),
+        securityFinding('medium'),
+        securityFinding('low')
+      ],
+      controls: skillGaps,
+      exposure: 'critical',
+      assurance: incomplete
+    });
+
+    expect(score).toBeLessThan(80);
+    expect(score).toBeGreaterThan(50);
   });
 
   it('does not reward a longer list of positive findings', () => {
     let positives = Array.from({ length: 8 }, () => finding('positive'));
-    expect(computeSecurityScore({ provenance: 'tenant_code', findings: positives })).toBe(95);
-    expect(
-      computeSecurityScore({
-        provenance: 'tenant_remote_vendor_verified',
-        findings: positives
-      })
-    ).toBe(95);
-    expect(computeSecurityScore({ provenance: 'metorial_built', findings: positives })).toBe(
-      95
+    expect(computeSecurityScore({ provenance: 'tenant_code', findings: positives })).toBe(
+      computeSecurityScore({ provenance: 'tenant_code', findings: [] })
     );
-  });
-
-  it('gives identical reviewed clean skills the same strong quality across origins', () => {
-    for (let provenance of [
-      'imported_public_repo',
-      'imported_private_repo',
-      'forked'
-    ] as const) {
-      expect(bandForScore(computeSecurityScore({ provenance, findings: [] }))).toBe('strong');
-    }
-    expect(computeSecurityScore({ provenance: 'imported_public_repo', findings: [] })).toBe(
-      95
-    );
-    expect(computeSecurityScore({ provenance: 'uploaded_archive', findings: [] })).toBe(95);
-  });
-
-  it('still penalizes findings on public-repo imports', () => {
-    expect(
-      computeSecurityScore({
-        provenance: 'imported_public_repo',
-        findings: [finding('security', 'high')]
-      })
-    ).toBe(55);
   });
 
   it('ignores capability findings', () => {
@@ -116,7 +331,186 @@ describe('security score', () => {
         provenance: 'tenant_code',
         findings: [finding('capability', 'info')]
       })
-    ).toBe(95);
+    ).toBe(100);
+  });
+});
+
+let toolsWith = (counts: Record<string, number>) =>
+  Object.entries(counts).flatMap(([tag, count]) =>
+    Array.from({ length: count }, () => tool(tag))
+  );
+
+let publicReadOnly = toolsWith({ read: 7, untrusted_input: 5 });
+
+let crm = toolsWith({
+  read: 7,
+  write: 7,
+  destructive: 3,
+  bulk_private_data: 5,
+  untrusted_input: 3
+});
+
+let workspaceChat = toolsWith({
+  read: 20,
+  write: 26,
+  untrusted_input: 14,
+  destructive: 8,
+  external_send: 4,
+  bulk_private_data: 10,
+  access_control: 3
+});
+
+let slateScore = (
+  tools: ReturnType<typeof tool>[],
+  findings: ReturnType<typeof securityFinding>[] = []
+) =>
+  computeSecurityScore({
+    provenance: 'metorial_built',
+    findings,
+    controls: controls('slate', {}),
+    exposure: 'high',
+    reach: reachIndex({ tools })
+  });
+
+describe('reach', () => {
+  it('is zero without capabilities', () => {
+    expect(reachIndex({ tools: null })).toBe(0);
+    expect(reachIndex({ tools: [] })).toBe(0);
+  });
+
+  it('weighs capabilities by how much harm they can do', () => {
+    expect(reachIndex({ tools: [tool('access_control')] })).toBeGreaterThan(
+      reachIndex({ tools: [tool('destructive')] })
+    );
+    expect(reachIndex({ tools: [tool('destructive')] })).toBeGreaterThan(
+      reachIndex({ tools: [tool('write')] })
+    );
+    expect(reachIndex({ tools: [tool('write')] })).toBeGreaterThan(
+      reachIndex({ tools: [tool('read')] })
+    );
+  });
+
+  it('adds less for every further tool with the same capability', () => {
+    let one = reachIndex({ tools: toolsWith({ destructive: 1 }) });
+    let two = reachIndex({ tools: toolsWith({ destructive: 2 }) });
+    let three = reachIndex({ tools: toolsWith({ destructive: 3 }) });
+
+    expect(two - one).toBeLessThan(one);
+    expect(three - two).toBeLessThan(two - one);
+    expect(reachIndex({ tools: toolsWith({ destructive: 200 }) })).toBeLessThan(1);
+  });
+
+  it('counts skill behaviors', () => {
+    expect(
+      reachIndex({
+        tools: [],
+        behaviors: [{ tag: 'code_execution' }, { tag: 'network_egress' }]
+      })
+    ).toBeGreaterThan(reachIndex({ tools: [], behaviors: [{ tag: 'subagents' }] }));
+  });
+
+  it('orders clean Metorial integrations by what they can do', () => {
+    let narrow = slateScore(publicReadOnly);
+    let medium = slateScore(crm);
+    let broad = slateScore(workspaceChat);
+
+    expect(narrow).toBeGreaterThan(medium);
+    expect(medium).toBeGreaterThan(broad);
+    expect(broad).toBeLessThan(100);
+    expect(broad).toBeGreaterThan(90);
+  });
+
+  it('keeps the broadest Metorial integration above 90 with a critical defect', () => {
+    expect(slateScore(workspaceChat, [securityFinding('critical')])).toBeGreaterThan(90);
+    expect(slateScore(workspaceChat, [securityFinding('critical')])).toBeLessThan(
+      slateScore(workspaceChat)
+    );
+  });
+
+  it('keeps a broad but well-built custom provider good', () => {
+    expect(
+      computeSecurityScore({
+        provenance: 'tenant_code',
+        findings: [securityFinding('medium'), securityFinding('low')],
+        controls: controls('function', {}),
+        exposure: 'critical',
+        reach: reachIndex({ tools: workspaceChat })
+      })
+    ).toBeGreaterThan(80);
+  });
+
+  it('never raises the score when a capability is added', () => {
+    let tags = ['read', 'write', 'destructive', 'external_send', 'access_control'];
+    for (let provenance of ['metorial_built', 'tenant_code'] as const) {
+      let tools: ReturnType<typeof tool>[] = [];
+      let previous = computeSecurityScore({ provenance, findings: [], reach: 0 });
+      for (let tag of [...tags, ...tags, ...tags]) {
+        tools = [...tools, tool(tag)];
+        let next = computeSecurityScore({
+          provenance,
+          findings: [],
+          reach: reachIndex({ tools })
+        });
+        expect(next).toBeLessThanOrEqual(previous);
+        previous = next;
+      }
+    }
+  });
+});
+
+describe('rounding', () => {
+  it('rounds scores up to the next integer', () => {
+    expect(
+      computeSecurityScore({ provenance: 'tenant_code', findings: [], reach: 0.04 })
+    ).toBe(100);
+    expect(
+      computeSecurityScore({ provenance: 'tenant_code', findings: [securityFinding('low')] })
+    ).toBe(99);
+  });
+
+  it('does not round a whole score up because of floating point error', () => {
+    expect(
+      computeSecurityScore({ provenance: 'metorial_built', findings: [], reach: 0.6 })
+    ).toBe(94);
+  });
+});
+
+describe('assurance', () => {
+  it('is ignored for Metorial integrations', () => {
+    expect(
+      assuranceFactor({
+        provenance: 'metorial_built',
+        complete: false,
+        unresolvedObservations: 3,
+        unclassifiedActions: true
+      })
+    ).toBe(1);
+  });
+
+  it('lowers the score for what could not be reviewed or verified', () => {
+    let complete = assuranceFactor({
+      provenance: 'tenant_code',
+      complete: true,
+      unresolvedObservations: 0,
+      unclassifiedActions: false
+    });
+    let partial = assuranceFactor({
+      provenance: 'tenant_code',
+      complete: false,
+      unresolvedObservations: 0,
+      unclassifiedActions: false
+    });
+    let unverifiable = assuranceFactor({
+      provenance: 'tenant_remote_unverifiable',
+      complete: true,
+      unresolvedObservations: 0,
+      unclassifiedActions: false
+    });
+
+    expect(complete).toBe(1);
+    expect(partial).toBeLessThan(complete);
+    expect(unverifiable).toBeLessThan(complete);
+    expect(unverifiable).toBeGreaterThan(0.9);
   });
 });
 
@@ -227,7 +621,7 @@ describe('computeScores', () => {
     expect(scores).toMatchObject({
       confidence: 'low',
       assessmentComplete: true,
-      security: 95
+      security: 96
     });
     expect(scores.headline[0]).toBe('No security issues found.');
   });
@@ -252,7 +646,7 @@ describe('computeScores', () => {
     });
 
     expect(scores).toMatchObject({
-      security: 93,
+      security: 99,
       band: 'strong',
       exposure: 'high',
       headline: ['Strong security quality.', 'Powerful permissions.'],
@@ -269,7 +663,7 @@ describe('computeScores', () => {
       coverage: fullCoverage
     });
 
-    expect(scores.security).toBe(95);
+    expect(scores.security).toBe(100);
     expect(scores.exposure).toBe('high');
     expect(scores.risk).toBe('low');
     expect(scores.headline).toEqual(['No security issues found.', 'Powerful permissions.']);
@@ -310,7 +704,7 @@ describe('skill scoring', () => {
       coverage: fullCoverage
     });
 
-    expect(scores.security).toBe(95);
+    expect(scores.security).toBe(100);
     expect(scores.exposure).toBe('low');
     expect(scores.risk).toBe('low');
     expect(scores.headline).toEqual([

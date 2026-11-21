@@ -55,54 +55,55 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
   .schema(
     v.object({
       object: v.literal('provider.deployment', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique deployment identifier',
+        description: 'Unique ID.',
         examples: ['pde_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Deployment status'
+        description:
+          'Archived once the deployment is archived. Archived deployments stay listable.'
       }),
       is_default: v.boolean({
         name: 'is_default',
-        description: 'Whether this is the default deployment'
+        description: "Used when a request doesn't name a deployment."
       }),
       name: v.nullable(
-        v.string({ name: 'name', description: 'Display name', examples: ['Production'] })
+        v.string({ name: 'name', description: 'Display name.', examples: ['Production'] })
       ),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['Production deployment']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ notes: 'Main deployment' }]
         })
       ),
       tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this deployment belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       locked_version: v.nullable(v1ProviderVersionPresenter.schema),
       default_config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

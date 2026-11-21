@@ -4,6 +4,8 @@ import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { css, styled } from 'styled-components';
 import {
   type FilterStateTuple,
+  getActiveHighlightValues,
+  getHighlightDefault,
   getHighlightLabel,
   getListValue,
   isExclusiveHighlight,
@@ -193,6 +195,9 @@ let MorePopoverContent = ({
   let [search, setSearch] = useState('');
   let selected = getListValue(filterState.find(f => f.id == filter.id));
   let options = useListFilterOptions(filter, search, filters, selected);
+  let fallback = getHighlightDefault(filter);
+  let active = getActiveHighlightValues(filter, selected);
+  let clearable = fallback ? active[0] != fallback : selected.length > 0;
 
   return (
     <>
@@ -203,7 +208,7 @@ let MorePopoverContent = ({
       <OptionList
         items={options.items}
         pinnedItems={options.pinnedItems}
-        selected={selected}
+        selected={active}
         isLoading={options.isLoading}
         empty={options.empty}
         search={search}
@@ -211,9 +216,10 @@ let MorePopoverContent = ({
         searchPlaceholder={`Search ${getHighlightLabel(filter).toLowerCase()}...`}
         onToggle={(id, checked) => {
           if (isExclusiveHighlight(filter)) {
+            let next = checked && id != fallback ? id : null;
             pillSelections?.clear(filter.id);
-            if (checked) pillSelections?.mark(filter.id, id, true);
-            setFilterState(prev => selectExclusive(prev, filter, checked ? id : null));
+            if (next) pillSelections?.mark(filter.id, next, true);
+            setFilterState(prev => selectExclusive(prev, filter, next));
             return;
           }
 
@@ -223,12 +229,12 @@ let MorePopoverContent = ({
       />
 
       <PopoverFooter>
-        <span>{selected.length ? `${selected.length} selected` : 'None selected'}</span>
+        <span>{active.length ? `${active.length} selected` : 'None selected'}</span>
 
         <Button
           size="1"
           variant="ghost"
-          disabled={!selected.length}
+          disabled={!clearable}
           onClick={() => {
             pillSelections?.clear(filter.id);
             setFilterState(prev => removeFilterState(prev, filter.id));
@@ -274,6 +280,9 @@ export let FilterHighlightRow = ({
   }, [options.items, options.pinnedItems, preserveOrder]);
 
   let exclusive = isExclusiveHighlight(filter);
+  let fallback = getHighlightDefault(filter);
+  let showAll = exclusive && !fallback;
+  let active = getActiveHighlightValues(filter, selected);
   let hideLabel = typeof filter.highlight == 'object' && !!filter.highlight.hideLabel;
 
   let trackRef = useRef<HTMLDivElement>(null);
@@ -288,7 +297,7 @@ export let FilterHighlightRow = ({
     let compute = () => {
       let children = Array.from(measure.children) as HTMLElement[];
       let more = children.pop();
-      let allPill = exclusive ? children.shift() : undefined;
+      let allPill = showAll ? children.shift() : undefined;
       let available = track.clientWidth;
       let moreWidth = (more?.offsetWidth ?? 0) + GAP;
       let used = allPill?.offsetWidth ?? 0;
@@ -310,16 +319,17 @@ export let FilterHighlightRow = ({
     let observer = new ResizeObserver(compute);
     observer.observe(track);
     return () => observer.disconnect();
-  }, [candidates, selected.join(','), filter.type, exclusive]);
+  }, [candidates, selected.join(','), filter.type, showAll]);
 
   let hiddenCount = candidates.length - visibleCount;
   let showMore = hiddenCount > 0 || filter.type == 'entity';
   let label = getHighlightLabel(filter);
   let toggle = (id: string) => {
     if (exclusive) {
+      let next = id == fallback ? null : id;
       pillSelections?.clear(filter.id);
-      pillSelections?.mark(filter.id, id, true);
-      setFilterState(prev => selectExclusive(prev, filter, id));
+      if (next) pillSelections?.mark(filter.id, next, true);
+      setFilterState(prev => selectExclusive(prev, filter, next));
       return;
     }
 
@@ -339,16 +349,16 @@ export let FilterHighlightRow = ({
 
       <Track ref={trackRef}>
         <Measure ref={measureRef} aria-hidden>
-          {exclusive && <HighlightPill item={{ label: 'All' }} active={!selected.length} />}
+          {showAll && <HighlightPill item={{ label: 'All' }} active={!selected.length} />}
           {candidates.map(item => (
-            <HighlightPill key={item.id} item={item} active={selected.includes(item.id)} />
+            <HighlightPill key={item.id} item={item} active={active.includes(item.id)} />
           ))}
           <MoreButton as="span">
             More <RiArrowDownSLine size={16} />
           </MoreButton>
         </Measure>
 
-        {exclusive && (
+        {showAll && (
           <HighlightPill
             item={{ label: 'All' }}
             active={!selected.length}
@@ -360,7 +370,7 @@ export let FilterHighlightRow = ({
           <HighlightPill
             key={item.id}
             item={item}
-            active={selected.includes(item.id)}
+            active={active.includes(item.id)}
             onClick={() => toggle(item.id)}
           />
         ))}

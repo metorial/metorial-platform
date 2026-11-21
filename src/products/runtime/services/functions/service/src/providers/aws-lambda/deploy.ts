@@ -14,6 +14,7 @@ import { lambdaNetworkConfig } from '../../env';
 import { getEgressGatewayProxyUrl } from './egressGateway';
 import { lambdaClient } from './lambda';
 import { ensureLambdaExecutionRole } from './role';
+import { type BuildArtifactRef, readBuildArtifact } from '../../lib/buildArtifact';
 
 let getRuntime = (runtime: FunctionBayRuntimeConfig): AwsRuntime => {
   switch (runtime.runtime.identifier) {
@@ -453,7 +454,7 @@ export let deployFunction = async (d: {
   runtimeConfig: FunctionBayRuntimeConfig;
   runtime: Runtime;
   env: Record<string, string>;
-  zipFileUrl: string;
+  zipFile: BuildArtifactRef;
 }) =>
   await deployFunctionZip({
     functionVersion: d.functionVersion,
@@ -461,7 +462,7 @@ export let deployFunction = async (d: {
     runtimeConfig: d.runtimeConfig,
     runtime: d.runtime,
     env: d.env,
-    zipFile: Buffer.from(await (await fetch(d.zipFileUrl)).arrayBuffer()),
+    zipFile: await readBuildArtifact(d.zipFile),
     config: d.functionDeployment.configuration
   });
 

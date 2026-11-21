@@ -29,7 +29,7 @@ export let v1SandboxRegionPresenter = Presenter.create(sandboxRegionType)
         description: "The region's identifier, used wherever a region is requested",
         examples: ['us-east-1']
       }),
-      name: v.string({ description: "The region's display name", examples: ['US East'] }),
+      name: v.string({ description: 'Display name.', examples: ['US East'] }),
       area: v.object({
         id: v.string({ description: "The geographic area's identifier", examples: ['us'] }),
         name: v.string({
@@ -38,7 +38,7 @@ export let v1SandboxRegionPresenter = Presenter.create(sandboxRegionType)
         })
       }),
       is_default: v.boolean({
-        description: 'Whether this is the default sandbox region for this Metorial region'
+        description: 'The default region for new machines in this Metorial region.'
       }),
       availability: v.enumOf(['available', 'unavailable'], {
         description: 'Whether the region is currently available for new machines'

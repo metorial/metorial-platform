@@ -16,8 +16,11 @@ import (
 
 const (
 	MaxPayloadBytes = 6 * 1024 * 1024
-	MaxLogBytes     = 1 << 20
-	MaxBodyBytes    = MaxPayloadBytes + MaxLogBytes
+	// Larger than Lambda's 6 MiB so slates can return attachments inline; it stays below the
+	// 64 MiB frame and RPC response limits along the way back to function-bay.
+	MaxResponseBytes = 50 * 1024 * 1024
+	MaxLogBytes      = 1 << 20
+	MaxBodyBytes     = MaxPayloadBytes + MaxLogBytes
 
 	DefaultPort          = 8080
 	DefaultTokenFile     = "/var/run/metorial/identity/token"

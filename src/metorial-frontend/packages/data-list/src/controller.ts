@@ -1,10 +1,5 @@
 import { memo } from '@lowerdeck/memo';
-import {
-  getFilterPayload,
-  type FilterPayload,
-  type TableFilter,
-  type TableFilterState
-} from '@metorial/filter-bar';
+import { getFilterPayload, type FilterPayload, type TableFilter } from '@metorial/filter-bar';
 import { confirm, toast } from '@metorial/ui';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { DataListConfig } from './config';
@@ -16,7 +11,7 @@ import {
   storeColumnLayout,
   useLayoutView
 } from './lib/layoutState';
-import { useFilterQuery } from './lib/query';
+import { useFilterQuery, useInitialFilterState } from './lib/query';
 import type {
   DataListCommonProps,
   DataListCustomLayout,
@@ -93,7 +88,6 @@ export let useDataListController = (
   let variant: DataListVariant = props.listVariant ?? 'page';
   let ctx = config.useContext ? config.useContext(props) : emptyContext;
 
-  let filterState = useState([] as TableFilterState[]);
   let [search, setSearch] = useState('');
   let [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -119,6 +113,9 @@ export let useDataListController = (
     [props.tableFilters, filterDefs, config.filters]
   );
 
+  let syncUrl = variant == 'page' && !props.hideToolbar;
+  let filterState = useInitialFilterState(syncUrl ? filters : noFilters);
+
   let filterPayload = useMemo(() => getFilterPayload(filterState[0]), [filterState[0]]);
 
   let parsedFilters = useMemo(() => {
@@ -131,8 +128,6 @@ export let useDataListController = (
       ])
     );
   }, [filterDefs, filterPayload]);
-
-  let syncUrl = variant == 'page' && !props.hideToolbar;
 
   useFilterQuery({
     filters: syncUrl ? filters : noFilters,

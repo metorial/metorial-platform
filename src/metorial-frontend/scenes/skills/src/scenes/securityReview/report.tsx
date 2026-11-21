@@ -33,6 +33,7 @@ import {
   getReviewSubject,
   getToolRank,
   isDeterministicRevision,
+  isNearDuplicateText,
   isRevisionRunning,
   isSkillRevision,
   levelLabels,
@@ -283,9 +284,11 @@ export let ProvenanceSection = ({
               <Text size="2" weight="strong">
                 {provenanceLabels[provenance.class]}
               </Text>
-              <Text size="2" color="gray700" style={{ marginTop: 4 }}>
-                {provenance.body}
-              </Text>
+              {!isNearDuplicateText(provenance.body, provenanceLabels[provenance.class]) && (
+                <Text size="2" color="gray700" style={{ marginTop: 4 }}>
+                  {provenance.body}
+                </Text>
+              )}
             </div>
           </IconRow>
 

@@ -12,3 +12,4 @@ export * from './user';
 export * from './userToken';
 export * from './workspace';
 export * from './slatePack';
+export * from './slateTooling';

@@ -31,18 +31,28 @@ export let v1MagicMcpTokenPresenter = Presenter.create(magicMcpTokenType)
   }))
   .schema(
     v.object({
-      object: v.literal('magic_mcp.token'),
-      id: v.string(),
-      status: v.enumOf(['active', 'deleted']),
-      secret: v.string(),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string()),
+      object: v.literal('magic_mcp.token', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'deleted'], {
+        description: '`deleted` once you delete the token.'
+      }),
+      secret: v.string({
+        description: 'Bearer token used against the connection API.'
+      }),
+      name: v.nullable(v.string({ description: 'Display name.' })),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
       server: v.nullable(v1MagicMcpServerPreview.schema),
       endpoint: v.nullable(v1MagicMcpEndpointPreview.schema),
-      groups: v.array(v1MagicMcpGroupPresenter.schema),
-      metadata: v.record(v.any()),
-      created_at: v.date(),
-      updated_at: v.date()
+      groups: v.array(v1MagicMcpGroupPresenter.schema, {
+        description: 'Groups the token is scoped to. Empty means the token is not scoped.'
+      }),
+      metadata: v.record(v.any(), {
+        description: 'Custom data you attach to identify or organize this record.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

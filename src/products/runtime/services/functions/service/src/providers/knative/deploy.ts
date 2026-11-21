@@ -9,7 +9,7 @@ import {
   createKnativeProviderData,
   ensureKnativeFunction,
   entrypointFromHandler,
-  importBundleFromUrl,
+  importBundleFromArtifact,
   type KnativeProviderData
 } from './spec';
 
@@ -30,9 +30,9 @@ let ensureSpeculatively = async (d: Parameters<typeof ensureKnativeFunction>[0])
 export let deployFunction = async (d: ProviderDeployFunctionParams) => {
   assertNoReservedEnv(d.env);
 
-  let bundle = await importBundleFromUrl({
+  let bundle = await importBundleFromArtifact({
     functionVersion: d.functionVersion,
-    zipFileUrl: d.zipFileUrl
+    zipFile: d.zipFile
   });
 
   let providerData = await createKnativeProviderData({

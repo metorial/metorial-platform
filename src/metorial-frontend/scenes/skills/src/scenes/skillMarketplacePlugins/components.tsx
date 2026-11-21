@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import {
   Button,
@@ -55,7 +56,13 @@ let ImageTile = styled.img<{ $size: number }>`
 
 export let SkillImage = (p: { src: string | null | undefined; size: number }) =>
   p.src ? (
-    <ImageTile src={p.src} $size={p.size} alt="" loading="lazy" draggable={false} />
+    <ImageTile
+      src={resolveImageUrl(p.src)}
+      $size={p.size}
+      alt=""
+      loading="lazy"
+      draggable={false}
+    />
   ) : (
     <ImageTile as="span" $size={p.size} />
   );

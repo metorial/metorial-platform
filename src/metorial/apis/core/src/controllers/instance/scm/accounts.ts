@@ -8,7 +8,8 @@ import { scmAccountPreviewPresenter } from '@metorial/presenters';
 export let scmAccountsController = Controller.create(
   {
     name: 'SCM Accounts',
-    description: 'Preview SCM accounts from an installation.'
+    description:
+      'An SCM account is a user or organization on a source control provider. This previews the accounts an installation can access.'
   },
   {
     preview: instanceGroup
@@ -20,7 +21,9 @@ export let scmAccountsController = Controller.create(
       .body(
         'default',
         v.object({
-          installation_id: v.string({ description: 'SCM installation ID' })
+          installation_id: v.string({
+            description: 'Installation to preview accounts for, by ID.'
+          })
         })
       )
       .output(scmAccountPreviewPresenter)
