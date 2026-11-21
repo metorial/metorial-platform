@@ -15,6 +15,8 @@ let mocks = vi.hoisted(() => ({
   get: vi.fn(),
   list: vi.fn(),
   fetchPage: vi.fn(),
+  resolveRef: vi.fn(),
+  findForRefs: vi.fn(),
   checkAccess: vi.fn(),
   checkTargetAccess: vi.fn(),
   getFlags: vi.fn()
@@ -23,6 +25,7 @@ let mocks = vi.hoisted(() => ({
 vi.mock('@metorial/rest', () => ({ Controller, Group, Handler, Path }));
 
 vi.mock('@metorial/module-ai-gateway', () => ({
+  aiGatewayConsumerService: { resolveRef: mocks.resolveRef, findForRefs: mocks.findForRefs },
   aiGatewayInferenceLogService: { get: mocks.get, list: mocks.list }
 }));
 vi.mock('@metorial/module-access', () => ({
@@ -69,6 +72,11 @@ let context = {
 let receivedAt = new Date('2026-11-20T10:00:00.000Z');
 let completedAt = new Date('2026-11-20T10:00:01.200Z');
 
+let consumerPreview = { id: 'icon_1', name: 'Ada Lovelace', email: 'ada@example.com' };
+let consumerLookup = (refs: Record<string, unknown> = { icon_1: consumerPreview }) => ({
+  get: (ref: string | null) => (ref ? (refs[ref] ?? null) : null)
+});
+
 let log = {
   object: 'ai_gateway#inference_log',
   id: 'ilog_2',
@@ -76,7 +84,7 @@ let log = {
   projectId: 'gwp_1',
   instanceId: 'gwi_1',
   tokenId: 'agtk_1',
-  consumerRef: 'user_7',
+  consumerRef: 'icon_1',
 
   dialect: 'openai_chat',
   operation: 'stream',
@@ -174,6 +182,8 @@ let presented = async (result: { response: any }) =>
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.getFlags.mockResolvedValue({ 'ai-gateway-enabled': true, 'paid-ai-gateway': true });
+  mocks.resolveRef.mockResolvedValue('icon_1');
+  mocks.findForRefs.mockResolvedValue(consumerLookup());
   mocks.get.mockResolvedValue(log);
   mocks.fetchPage.mockResolvedValue({ items: [log], hasMore: true, nextCursor: 'ilog_2' });
   mocks.list.mockImplementation(() => createGatewayLogPaginator(mocks.fetchPage));
@@ -188,6 +198,7 @@ describe('ai gateway inference logs', () => {
       object: 'ai_gateway.inference_log',
       id: 'ilog_2',
       token_id: 'agtk_1',
+      consumer: { object: 'consumer#preview', ...consumerPreview },
       requested_model: 'support-router',
       model: { id: 'mdl_1', slug: 'anthropic/claude-sonnet-4', lab_slug: 'anthropic' },
       virtual_model: {
@@ -277,7 +288,7 @@ describe('ai gateway inference logs', () => {
       request({
         query: {
           token_id: 'agtk_1',
-          consumer_ref: 'user_7',
+          consumer_id: 'con_1',
           model: 'anthropic/claude-sonnet-4',
           virtual_model_id: 'vm_1',
           status: 'failed'
@@ -289,7 +300,7 @@ describe('ai gateway inference logs', () => {
     expect(mocks.list).toHaveBeenCalledWith({
       instance,
       gatewayTokenId: 'agtk_1',
-      consumerRef: 'user_7',
+      consumerRef: 'icon_1',
       modelSlug: 'anthropic/claude-sonnet-4',
       virtualModelId: 'vm_1',
       status: 'failed'

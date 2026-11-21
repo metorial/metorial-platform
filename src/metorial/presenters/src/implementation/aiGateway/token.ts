@@ -1,17 +1,22 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { aiGatewayTokenType } from '../../types';
-import { aiGatewayLimitsSchema, presentAiGatewayLimit } from './_shared';
+import {
+  aiGatewayConsumerSchema,
+  aiGatewayLimitsSchema,
+  presentAiGatewayConsumer,
+  presentAiGatewayLimit
+} from './_shared';
 
 export let v1AiGatewayTokenPresenter = Presenter.create(aiGatewayTokenType)
-  .presenter(async ({ gatewayToken, secret }) => ({
+  .presenter(async ({ gatewayToken, consumer, secret }) => ({
     object: 'ai_gateway.token' as const,
 
     id: gatewayToken.id,
     name: gatewayToken.name,
     prefix: gatewayToken.prefix,
     secret: secret ?? null,
-    consumer_ref: gatewayToken.consumerRef,
+    consumer: presentAiGatewayConsumer(consumer),
 
     allowed_models: gatewayToken.allowedModels,
     limits: gatewayToken.limits.map(presentAiGatewayLimit),
@@ -39,11 +44,8 @@ export let v1AiGatewayTokenPresenter = Presenter.create(aiGatewayTokenType)
             'The secret to send as the API key of AI gateway requests. Only returned when the token is created.'
         })
       ),
-      consumer_ref: v.nullable(
-        v.string({
-          description:
-            'Your own identifier for who uses the token, e.g. a user or customer id. Inference logs and usage can be filtered by it.'
-        })
+      consumer: aiGatewayConsumerSchema(
+        'The consumer the token was created for. Inference logs and usage can be filtered by it. Null if the token has no consumer or the consumer no longer exists.'
       ),
 
       allowed_models: v.array(v.string(), {

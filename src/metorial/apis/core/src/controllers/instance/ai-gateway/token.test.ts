@@ -1,4 +1,4 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { declarePresenter } from '@metorial/presenter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -17,6 +17,8 @@ let mocks = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
   revoke: vi.fn(),
+  resolveRef: vi.fn(),
+  findForRefs: vi.fn(),
   checkAccess: vi.fn(),
   checkTargetAccess: vi.fn(),
   getFlags: vi.fn()
@@ -25,6 +27,7 @@ let mocks = vi.hoisted(() => ({
 vi.mock('@metorial/rest', () => ({ Controller, Group, Handler, Path }));
 
 vi.mock('@metorial/module-ai-gateway', () => ({
+  aiGatewayConsumerService: { resolveRef: mocks.resolveRef, findForRefs: mocks.findForRefs },
   aiGatewayTokenService: {
     get: mocks.get,
     list: mocks.list,
@@ -75,11 +78,16 @@ let context = {
   auditScope
 };
 
+let consumerPreview = { id: 'icon_1', name: 'Ada Lovelace', email: 'ada@example.com' };
+let consumerLookup = (refs: Record<string, unknown> = { icon_1: consumerPreview }) => ({
+  get: (ref: string | null) => (ref ? (refs[ref] ?? null) : null)
+});
+
 let gatewayToken = {
   id: 'agtk_1',
   prefix: 'mtag_abc',
   name: 'Production',
-  consumerRef: 'user_7',
+  consumerRef: 'icon_1',
   allowedModels: ['anthropic/claude-sonnet-4'],
   limits: [{ metric: 'tokens', amount: 1000, interval: '1d' }],
   metadata: { team: 'search' },
@@ -105,6 +113,8 @@ let presented = async (result: { response: any }) =>
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.getFlags.mockResolvedValue({ 'ai-gateway-enabled': true, 'paid-ai-gateway': true });
+  mocks.resolveRef.mockResolvedValue('icon_1');
+  mocks.findForRefs.mockResolvedValue(consumerLookup());
   mocks.get.mockResolvedValue(gatewayToken);
   mocks.list.mockReturnValue({
     run: vi.fn().mockResolvedValue({
@@ -123,7 +133,7 @@ describe('ai gateway tokens', () => {
       request({
         body: {
           name: 'Production',
-          consumer_ref: 'user_7',
+          consumer_id: 'con_1',
           allowed_models: ['anthropic/claude-sonnet-4'],
           limits: [{ metric: 'tokens', amount: 1000, interval: '1d' }]
         }
@@ -136,7 +146,7 @@ describe('ai gateway tokens', () => {
       auditScope,
       input: {
         name: 'Production',
-        consumerRef: 'user_7',
+        consumerRef: 'icon_1',
         allowedModels: ['anthropic/claude-sonnet-4'],
         limits: [{ metric: 'tokens', amount: 1000, interval: '1d' }],
         metadata: undefined,
@@ -147,8 +157,9 @@ describe('ai gateway tokens', () => {
       object: 'ai_gateway.token',
       id: 'agtk_1',
       secret: 'mtag_abc_secret',
-      consumer_ref: 'user_7'
+      consumer: { object: 'consumer#preview', ...consumerPreview }
     });
+    expect(mocks.resolveRef).toHaveBeenCalledWith({ instance, consumerId: 'con_1' });
     expect(mocks.checkAccess).toHaveBeenCalledWith(
       expect.objectContaining({ possibleScopes: ['instance.ai_gateway:write'] })
     );
@@ -161,10 +172,55 @@ describe('ai gateway tokens', () => {
     expect(await presented(result)).toMatchObject({ id: 'agtk_1', secret: null });
   });
 
-  it('filters the list by consumer reference', async () => {
-    await tokenHandler('list').run(request({ query: { consumer_ref: 'user_7' } }), context);
+  it('filters the list by consumer', async () => {
+    await tokenHandler('list').run(request({ query: { consumer_id: 'con_1' } }), context);
 
-    expect(mocks.list).toHaveBeenCalledWith({ instance, consumerRef: 'user_7' });
+    expect(mocks.resolveRef).toHaveBeenCalledWith({ instance, consumerId: 'con_1' });
+    expect(mocks.list).toHaveBeenCalledWith({ instance, consumerRef: 'icon_1' });
+  });
+
+  it('embeds the consumers of a whole page with one lookup', async () => {
+    let other = { ...gatewayToken, id: 'agtk_2', consumerRef: null };
+    mocks.list.mockReturnValue({
+      run: vi.fn().mockResolvedValue({
+        items: [gatewayToken, other, gatewayToken],
+        pagination: { hasMoreBefore: false, hasMoreAfter: false }
+      })
+    });
+
+    let result = await tokenHandler('list').run(request({}), context);
+    let list = await presented(result);
+
+    expect(mocks.findForRefs).toHaveBeenCalledTimes(1);
+    expect(mocks.findForRefs).toHaveBeenCalledWith({
+      instance,
+      refs: ['icon_1', null, 'icon_1']
+    });
+    expect(list.items.map((item: any) => item.consumer?.id ?? null)).toEqual([
+      'icon_1',
+      null,
+      'icon_1'
+    ]);
+  });
+
+  it('rejects a consumer that does not exist', async () => {
+    mocks.resolveRef.mockRejectedValue(new ServiceError(notFoundError('consumer')));
+
+    await expect(
+      tokenHandler('create').run(
+        request({ body: { name: 'Production', consumer_id: 'con_x' } }),
+        context
+      )
+    ).rejects.toMatchObject({ data: { status: 404 } });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('presents no consumer when the token has none', async () => {
+    mocks.get.mockResolvedValue({ ...gatewayToken, consumerRef: null });
+
+    let result = await tokenHandler('get').run(request({}), context);
+
+    expect((await presented(result)).consumer).toBeNull();
   });
 
   it('clears the expiry with null', async () => {

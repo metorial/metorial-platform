@@ -20,6 +20,8 @@ vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fire } }));
 
 vi.mock('../src/lib/client', () => ({ requireAiGateway: () => mocks.gateway }));
 
+vi.mock('@metorial/module-consumer-core', () => ({ consumerService: {} }));
+
 import {
   aiGatewayConfigService,
   aiGatewayInferenceLogService,

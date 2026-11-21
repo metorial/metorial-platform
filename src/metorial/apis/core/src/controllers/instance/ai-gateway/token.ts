@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { aiGatewayTokenService } from '@metorial/module-ai-gateway';
+import { aiGatewayConsumerService, aiGatewayTokenService } from '@metorial/module-ai-gateway';
 import { aiGatewayTokenPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { requireParam } from '../../../lib/requireParam';
@@ -49,21 +49,32 @@ export let aiGatewayTokenController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            consumer_ref: v.optional(
-              v.string({ description: 'Only tokens with this consumer reference' })
+            consumer_id: v.optional(
+              v.string({ description: 'Only tokens created for this consumer' })
             )
           })
         )
       )
       .do(async ctx => {
-        let paginator = aiGatewayTokenService.list({
-          instance: ctx.instance,
-          consumerRef: ctx.query.consumer_ref
-        });
+        let consumerRef = ctx.query.consumer_id
+          ? await aiGatewayConsumerService.resolveRef({
+              instance: ctx.instance,
+              consumerId: ctx.query.consumer_id
+            })
+          : undefined;
+
+        let paginator = aiGatewayTokenService.list({ instance: ctx.instance, consumerRef });
         let list = await paginator.run(ctx.query);
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: list.items.map(gatewayToken => gatewayToken.consumerRef)
+        });
 
         return Paginator.present(list, gatewayToken =>
-          aiGatewayTokenPresenter.present({ gatewayToken })
+          aiGatewayTokenPresenter.present({
+            gatewayToken,
+            consumer: consumers.get(gatewayToken.consumerRef)
+          })
         );
       }),
 
@@ -74,7 +85,17 @@ export let aiGatewayTokenController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: [...aiGatewayReadScopes] }))
       .output(aiGatewayTokenPresenter)
-      .do(async ctx => aiGatewayTokenPresenter.present({ gatewayToken: ctx.gatewayToken })),
+      .do(async ctx => {
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: [ctx.gatewayToken.consumerRef]
+        });
+
+        return aiGatewayTokenPresenter.present({
+          gatewayToken: ctx.gatewayToken,
+          consumer: consumers.get(ctx.gatewayToken.consumerRef)
+        });
+      }),
 
     create: aiGatewayInstanceGroup
       .post(instancePath('ai-gateway/tokens', 'aiGateway.tokens.create'), {
@@ -87,11 +108,10 @@ export let aiGatewayTokenController = Controller.create(
         'default',
         v.object({
           name: nameValidator,
-          consumer_ref: v.optional(
+          consumer_id: v.optional(
             v.string({
               description:
-                'Your own identifier for who uses the token, e.g. a user or customer id',
-              modifiers: [v.maxLength(200)]
+                'The consumer the token is for. Requests made with it can be filtered by this consumer in inference logs and usage, and virtual model rules can route on it. Cannot be changed afterwards.'
             })
           ),
           allowed_models: v.optional(allowedModelsValidator),
@@ -104,12 +124,19 @@ export let aiGatewayTokenController = Controller.create(
       )
       .output(aiGatewayTokenPresenter)
       .do(async ctx => {
+        let consumerRef = ctx.body.consumer_id
+          ? await aiGatewayConsumerService.resolveRef({
+              instance: ctx.instance,
+              consumerId: ctx.body.consumer_id
+            })
+          : undefined;
+
         let { secret, ...gatewayToken } = await aiGatewayTokenService.create({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
-            consumerRef: ctx.body.consumer_ref,
+            consumerRef,
             allowedModels: ctx.body.allowed_models,
             limits: ctx.body.limits,
             metadata: ctx.body.metadata,
@@ -117,7 +144,16 @@ export let aiGatewayTokenController = Controller.create(
           }
         });
 
-        return aiGatewayTokenPresenter.present({ gatewayToken, secret });
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: [gatewayToken.consumerRef]
+        });
+
+        return aiGatewayTokenPresenter.present({
+          gatewayToken,
+          secret,
+          consumer: consumers.get(gatewayToken.consumerRef)
+        });
       }),
 
     update: aiGatewayTokenGroup
@@ -157,7 +193,15 @@ export let aiGatewayTokenController = Controller.create(
           }
         });
 
-        return aiGatewayTokenPresenter.present({ gatewayToken });
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: [gatewayToken.consumerRef]
+        });
+
+        return aiGatewayTokenPresenter.present({
+          gatewayToken,
+          consumer: consumers.get(gatewayToken.consumerRef)
+        });
       }),
 
     revoke: aiGatewayTokenGroup
@@ -174,7 +218,15 @@ export let aiGatewayTokenController = Controller.create(
           auditScope: ctx.auditScope
         });
 
-        return aiGatewayTokenPresenter.present({ gatewayToken });
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: [gatewayToken.consumerRef]
+        });
+
+        return aiGatewayTokenPresenter.present({
+          gatewayToken,
+          consumer: consumers.get(gatewayToken.consumerRef)
+        });
       })
   }
 );

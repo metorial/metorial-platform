@@ -273,7 +273,7 @@ export let virtualModelDefinitionValidator = v.object(
         ),
         when: v.string({
           description:
-            'A CEL expression that selects the rule when it evaluates to true. It can read request (e.g. request.input_tokens, request.has_images, request.tool_count, request.last_user_text), metadata (the x-metorial-metadata header), token (id, consumer_ref, metadata), signals and now.',
+            'A CEL expression that selects the rule when it evaluates to true. It can read request (e.g. request.input_tokens, request.has_images, request.tool_count, request.last_user_text), metadata (the x-metorial-metadata header), token (id, consumer_ref, which is the ID of the consumer the token was created for, and metadata), signals and now.',
           examples: ['request.has_images || request.input_tokens > 50000'],
           modifiers: [v.minLength(1), v.maxLength(limits.expressionLength)]
         }),

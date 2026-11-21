@@ -39,7 +39,7 @@ let testFields = {
   token_id: v.optional(
     v.string({
       description:
-        "The AI gateway token to test as, so rules see its consumer_ref and metadata and its allowed models apply. Omit to test without a token's restrictions."
+        "The AI gateway token to test as, so rules see its consumer and metadata and its allowed models apply. Omit to test without a token's restrictions."
     })
   ),
   dialect: virtualModelDialectValidator,

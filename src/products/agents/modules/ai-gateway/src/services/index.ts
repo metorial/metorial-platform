@@ -1,5 +1,6 @@
 export * from './aiGatewayCatalog';
 export * from './aiGatewayConfig';
+export * from './aiGatewayConsumer';
 export * from './aiGatewayInferenceLog';
 export * from './aiGatewayProviderConnection';
 export * from './aiGatewayRouting';

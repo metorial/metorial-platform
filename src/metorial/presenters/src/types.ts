@@ -199,6 +199,7 @@ import type {
   AiGatewayCatalogProvider,
   aiGatewayCatalogService,
   aiGatewayConfigService,
+  AiGatewayConsumer,
   AiGatewayInferenceLog,
   AiGatewayLab,
   AiGatewayModel,
@@ -3419,6 +3420,7 @@ export let aiGatewayConfigType = PresentableType.create<{
 
 export let aiGatewayTokenType = PresentableType.create<{
   gatewayToken: AiGatewayToken;
+  consumer: AiGatewayConsumer | null;
   secret?: string;
 }>()('ai_gateway.token');
 
@@ -3476,6 +3478,7 @@ export let aiGatewayRoutePreviewType = PresentableType.create<{
 
 export let aiGatewayInferenceLogType = PresentableType.create<{
   log: AiGatewayInferenceLog;
+  consumer: AiGatewayConsumer | null;
 }>()('ai_gateway.inference_log');
 
 export let aiGatewayUsageTimelineType = PresentableType.create<{

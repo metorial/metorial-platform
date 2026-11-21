@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import type {
+  AiGatewayConsumer,
   aiGatewayCatalogService,
   AiGatewayModelOffering,
   aiGatewayRoutingService,
@@ -233,4 +234,29 @@ export let aiGatewayRouteCandidateSchema = <Fields extends Record<string, any>>(
       })
     ],
     { description: 'A provider the gateway would try' }
+  );
+
+export let presentAiGatewayConsumer = (consumer: AiGatewayConsumer | null) =>
+  consumer
+    ? {
+        object: 'consumer#preview' as const,
+        id: consumer.id,
+        name: consumer.name,
+        email: consumer.email
+      }
+    : null;
+
+export let aiGatewayConsumerSchema = (description: string) =>
+  v.nullable(
+    v.object(
+      {
+        object: v.literal('consumer#preview', {
+          description: "String representing the object's type"
+        }),
+        id: v.string({ description: "The consumer's unique identifier" }),
+        name: v.string({ description: "The consumer's name" }),
+        email: v.string({ description: "The consumer's email address" })
+      },
+      { description }
+    )
   );

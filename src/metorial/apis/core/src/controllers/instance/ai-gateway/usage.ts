@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { aiGatewayUsageService } from '@metorial/module-ai-gateway';
+import { aiGatewayConsumerService, aiGatewayUsageService } from '@metorial/module-ai-gateway';
 import { aiGatewayUsageTimelinePresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -36,10 +36,8 @@ export let aiGatewayUsageController = Controller.create(
           token_id: v.optional(
             v.string({ description: 'Only requests made with this AI gateway token' })
           ),
-          consumer_ref: v.optional(
-            v.string({
-              description: 'Only requests made with tokens of this consumer reference'
-            })
+          consumer_id: v.optional(
+            v.string({ description: 'Only requests made with tokens of this consumer' })
           ),
           model: v.optional(
             v.string({
@@ -54,6 +52,13 @@ export let aiGatewayUsageController = Controller.create(
       )
       .output(aiGatewayUsageTimelinePresenter)
       .do(async ctx => {
+        let consumerRef = ctx.query.consumer_id
+          ? await aiGatewayConsumerService.resolveRef({
+              instance: ctx.instance,
+              consumerId: ctx.query.consumer_id
+            })
+          : undefined;
+
         let usage = await aiGatewayUsageService.timeline({
           instance: ctx.instance,
           input: {
@@ -61,7 +66,7 @@ export let aiGatewayUsageController = Controller.create(
             to: ctx.query.to,
             interval: ctx.query.interval,
             gatewayTokenId: ctx.query.token_id,
-            consumerRef: ctx.query.consumer_ref,
+            consumerRef,
             modelSlug: ctx.query.model,
             virtualModelId: ctx.query.virtual_model_id
           }

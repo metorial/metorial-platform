@@ -1,6 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { aiGatewayInferenceLogService } from '@metorial/module-ai-gateway';
+import {
+  aiGatewayConsumerService,
+  aiGatewayInferenceLogService
+} from '@metorial/module-ai-gateway';
 import { aiGatewayInferenceLogPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { requireParam } from '../../../lib/requireParam';
@@ -30,10 +33,8 @@ export let aiGatewayInferenceLogController = Controller.create(
             token_id: v.optional(
               v.string({ description: 'Only requests made with this AI gateway token' })
             ),
-            consumer_ref: v.optional(
-              v.string({
-                description: 'Only requests made with tokens of this consumer reference'
-              })
+            consumer_id: v.optional(
+              v.string({ description: 'Only requests made with tokens of this consumer' })
             ),
             model: v.optional(
               v.string({
@@ -53,17 +54,33 @@ export let aiGatewayInferenceLogController = Controller.create(
         )
       )
       .do(async ctx => {
+        let consumerRef = ctx.query.consumer_id
+          ? await aiGatewayConsumerService.resolveRef({
+              instance: ctx.instance,
+              consumerId: ctx.query.consumer_id
+            })
+          : undefined;
+
         let paginator = aiGatewayInferenceLogService.list({
           instance: ctx.instance,
           gatewayTokenId: ctx.query.token_id,
-          consumerRef: ctx.query.consumer_ref,
+          consumerRef,
           modelSlug: ctx.query.model,
           virtualModelId: ctx.query.virtual_model_id,
           status: ctx.query.status
         });
         let list = await paginator.run(ctx.query);
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: list.items.map(log => log.consumerRef)
+        });
 
-        return Paginator.present(list, log => aiGatewayInferenceLogPresenter.present({ log }));
+        return Paginator.present(list, log =>
+          aiGatewayInferenceLogPresenter.present({
+            log,
+            consumer: consumers.get(log.consumerRef)
+          })
+        );
       }),
 
     get: aiGatewayInstanceGroup
@@ -98,7 +115,15 @@ export let aiGatewayInferenceLogController = Controller.create(
           includeContent: ctx.query.include_content ?? false
         });
 
-        return aiGatewayInferenceLogPresenter.present({ log });
+        let consumers = await aiGatewayConsumerService.findForRefs({
+          instance: ctx.instance,
+          refs: [log.consumerRef]
+        });
+
+        return aiGatewayInferenceLogPresenter.present({
+          log,
+          consumer: consumers.get(log.consumerRef)
+        });
       })
   }
 );

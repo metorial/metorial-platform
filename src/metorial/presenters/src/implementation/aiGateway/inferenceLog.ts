@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import type { AiGatewayInferenceLog } from '@metorial/module-ai-gateway';
 import { Presenter } from '@metorial/presenter';
 import { aiGatewayInferenceLogType } from '../../types';
+import { aiGatewayConsumerSchema, presentAiGatewayConsumer } from './_shared';
 
 type LogRoute = NonNullable<AiGatewayInferenceLog['route']>;
 type LogAttempt = AiGatewayInferenceLog['attempts'][number];
@@ -102,12 +103,12 @@ let costComponent = (description: string) =>
   v.number({ description: `USD for ${description}` });
 
 export let v1AiGatewayInferenceLogPresenter = Presenter.create(aiGatewayInferenceLogType)
-  .presenter(async ({ log }) => ({
+  .presenter(async ({ log, consumer }) => ({
     object: 'ai_gateway.inference_log' as const,
 
     id: log.id,
     token_id: log.tokenId,
-    consumer_ref: log.consumerRef,
+    consumer: presentAiGatewayConsumer(consumer),
 
     dialect: log.dialect,
     operation: log.operation,
@@ -198,8 +199,8 @@ export let v1AiGatewayInferenceLogPresenter = Presenter.create(aiGatewayInferenc
 
       id: v.string({ description: "The inference log's unique identifier" }),
       token_id: v.string({ description: 'The AI gateway token the request was made with' }),
-      consumer_ref: v.nullable(
-        v.string({ description: "The token's consumer reference at the time of the request" })
+      consumer: aiGatewayConsumerSchema(
+        'The consumer of the token at the time of the request. Null if the token had no consumer or the consumer no longer exists.'
       ),
 
       dialect: v.enumOf(['openai_chat', 'anthropic_messages', 'open_responses'], {

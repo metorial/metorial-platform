@@ -12,6 +12,7 @@ import { aiGatewayUsageTimelineType } from '../../../../../../presenters/src/typ
 
 let mocks = vi.hoisted(() => ({
   timeline: vi.fn(),
+  resolveRef: vi.fn(),
   checkAccess: vi.fn(),
   checkTargetAccess: vi.fn(),
   getFlags: vi.fn()
@@ -20,6 +21,7 @@ let mocks = vi.hoisted(() => ({
 vi.mock('@metorial/rest', () => ({ Controller, Group, Handler, Path }));
 
 vi.mock('@metorial/module-ai-gateway', () => ({
+  aiGatewayConsumerService: { resolveRef: mocks.resolveRef },
   aiGatewayUsageService: { timeline: mocks.timeline }
 }));
 vi.mock('@metorial/module-access', () => ({
@@ -119,6 +121,7 @@ let presented = async (result: { response: any }) =>
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.getFlags.mockResolvedValue({ 'ai-gateway-enabled': true, 'paid-ai-gateway': true });
+  mocks.resolveRef.mockResolvedValue('icon_1');
   mocks.timeline.mockResolvedValue(usage);
 });
 
@@ -130,7 +133,7 @@ describe('ai gateway usage timeline', () => {
         to: to.toISOString(),
         interval: '1h',
         token_id: 'agtk_1',
-        consumer_ref: 'user_7',
+        consumer_id: 'con_1',
         model: 'anthropic/claude-sonnet-4',
         virtual_model_id: 'vm_1'
       }),
@@ -144,7 +147,7 @@ describe('ai gateway usage timeline', () => {
         to,
         interval: '1h',
         gatewayTokenId: 'agtk_1',
-        consumerRef: 'user_7',
+        consumerRef: 'icon_1',
         modelSlug: 'anthropic/claude-sonnet-4',
         virtualModelId: 'vm_1'
       }
