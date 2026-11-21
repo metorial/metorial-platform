@@ -33,19 +33,19 @@ export let v1ChatMessageAttachmentPresenter = Presenter.create(chatMessageAttach
   .schema(
     v.object({
       object: v.literal('chat.message_attachment', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat message attachment identifier',
+        description: 'Unique ID.',
         examples: ['cma_3cDeFgHjKlMnPqRs']
       }),
 
       provider_attachment_id: v.nullable(
         v.string({
           name: 'provider_attachment_id',
-          description: "The attachment's identifier on the chat provider",
+          description: 'Identifier the chat provider uses for this attachment.',
           examples: ['F024BE7LH']
         })
       ),
@@ -121,7 +121,7 @@ export let v1ChatMessageAttachmentPresenter = Presenter.create(chatMessageAttach
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the attachment was recorded',
+        description: 'Creation time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

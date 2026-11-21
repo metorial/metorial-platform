@@ -36,7 +36,7 @@ export let chatContextSchema = v.nullable(
       description: v.optional(
         v.string({
           name: 'description',
-          description: 'Description of the resource'
+          description: 'Description of the external resource, as reported by the provider.'
         })
       ),
 
@@ -56,8 +56,14 @@ export let chatContextSchema = v.nullable(
         })
       ),
 
-      author: v.optional(chatContextActorSchema),
-      assignee: v.optional(chatContextActorSchema),
+      author: v.optional(chatContextActorSchema, {
+        name: 'author',
+        description: 'Author of the external resource, as reported by the provider.'
+      }),
+      assignee: v.optional(chatContextActorSchema, {
+        name: 'assignee',
+        description: 'Assignee of the external resource, as reported by the provider.'
+      }),
 
       labels: v.optional(
         v.array(v.string(), {
@@ -108,12 +114,12 @@ export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
   .schema(
     v.object({
       object: v.literal('chat.channel', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat channel identifier',
+        description: 'Unique ID.',
         examples: ['cch_2bCdEfGhJkLmNpQr']
       }),
 
@@ -148,14 +154,14 @@ export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
 
       provider_channel_id: v.string({
         name: 'provider_channel_id',
-        description: "The channel's identifier on the chat provider",
+        description: 'Identifier the chat provider uses for this channel.',
         examples: ['C024BE91L']
       }),
 
       name: v.nullable(
         v.string({
           name: 'name',
-          description: 'Display name of the channel',
+          description: 'Display name.',
           examples: ['support']
         })
       ),
@@ -181,7 +187,10 @@ export let v1ChatChannelPresenter = Presenter.create(chatChannelType)
         description: 'Whether the chat integration can read content from this channel'
       }),
 
-      recipient: v.nullable(v1ChatAuthorPresenter.schema),
+      recipient: v.nullable({
+        ...v1ChatAuthorPresenter.schema,
+        description: 'The DM recipient, when the provider reports one. `null` otherwise.'
+      }),
 
       member_count: v.nullable(
         v.number({

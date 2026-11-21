@@ -37,8 +37,10 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.device'),
-      id: v.string({ name: 'id', description: 'The device ID.' }),
+      object: v.literal('consumer.device', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ name: 'id', description: 'Unique ID.' }),
       status: v.enumOf(Object.values(ConsumerDeviceStatus), {
         name: 'status',
         description:
@@ -70,10 +72,12 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
       }),
       clients: v.array(
         v.object({
-          object: v.literal('consumer.device.client'),
+          object: v.literal('consumer.device.client', {
+            description: 'String representing the object’s type.'
+          }),
           key: v.string({
             name: 'key',
-            description: 'The AI tool identifier.',
+            description: 'Which AI tool this entry is for.',
             examples: ['claude-code', 'cursor']
           }),
           name: v.string({
@@ -119,12 +123,15 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
         description: 'When the device last checked in.'
       }),
       revoked_at: v.nullable(
-        v.date({ name: 'revoked_at', description: 'When the device was revoked.' })
+        v.date({
+          name: 'revoked_at',
+          description: 'When the device was revoked. Revoked devices stay listable.'
+        })
       ),
-      created_at: v.date({ name: 'created_at', description: 'When the device was enrolled.' }),
+      created_at: v.date({ name: 'created_at', description: 'Creation time.' }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'When the device was last updated.'
+        description: 'Last update time.'
       })
     })
   )

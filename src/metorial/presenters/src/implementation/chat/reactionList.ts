@@ -11,7 +11,7 @@ export let v1ChatReactionListPresenter = Presenter.create(chatReactionListType)
   .schema(
     v.object({
       object: v.literal('chat.reaction_list', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       reactions: v.array(reactionCountSchema, {

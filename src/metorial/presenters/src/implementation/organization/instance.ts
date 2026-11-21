@@ -23,48 +23,48 @@ export let v1InstancePresenter = Presenter.create(instanceType)
   .schema(
     v.object({
       object: v.literal('organization.instance', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: `The instance's unique identifier`,
+        description: 'Unique ID.',
         examples: ['ins_9sTuVwXyZaBcDeFg']
       }),
       slug: v.string({
         name: 'slug',
-        description: `The instance's slug`,
+        description: 'URL-safe name, unique across Metorial.',
         examples: ['production-env']
       }),
       name: v.string({
         name: 'name',
-        description: `The instance's name`,
+        description: 'Display name.',
         examples: ['Production Environment']
       }),
       organization_id: v.string({
         name: 'organization_id',
-        description: `The organization's unique identifier`,
+        description: 'Organization this instance belongs to.',
         examples: ['org_7hNkPqRsTuVwXyZa']
       }),
       sandbox_id: v.nullable(
         v.string({
           name: 'sandbox_id',
-          description: `The sandbox's unique identifier, if this instance is a sandbox`,
+          description: 'Sandbox backing this instance, if it is a sandbox.',
           examples: ['sbx_9sTuVwXyZaBcDeFg']
         })
       ),
       type: v.enumOf(['development', 'production'], {
         name: 'type',
-        description: `The instance's type`
+        description: 'Whether this instance is for development or production use.'
       }),
       created_at: v.date({
         name: 'created_at',
-        description: `The instance's creation date`,
+        description: 'Creation time.',
         examples: [new Date('2026-01-29T12:35:22.304Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: `The instance's last update date`,
+        description: 'Last update time.',
         examples: [new Date('2026-01-29T12:35:22.304Z')]
       }),
       project: v1ProjectPresenter.schema
@@ -83,7 +83,7 @@ export let v1InstanceListPresenter = Presenter.create(instanceListType)
   .schema(
     v.object({
       object: v.literal('list', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       items: v.array(v1InstancePresenter.schema, {
         name: 'items',

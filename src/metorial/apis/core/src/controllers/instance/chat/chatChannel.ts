@@ -66,9 +66,11 @@ export let chatChannelController = Controller.create(
         Paginator.validate(
           v.object({
             workspace_id: v.optional(
-              v.string({ description: 'Filter to channels in this workspace' })
+              v.string({ description: 'Only return channels in this workspace.' })
             ),
-            type: v.optional(channelTypeValidator, { description: 'Filter by channel type' }),
+            type: v.optional(channelTypeValidator, {
+              description: 'Only return channels of this type.'
+            }),
             search: v.optional(v.string({ description: 'Search by channel name or topic' })),
             has_access: v.optional(
               v.boolean({
@@ -99,7 +101,7 @@ export let chatChannelController = Controller.create(
     get: chatChannelGroup
       .get(instancePath('chats/:chatId/channels/:channelId', 'chats.channels.get'), {
         name: 'Get chat channel',
-        description: 'Retrieves a specific chat channel.'
+        description: 'Retrieves a chat channel.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .output(chatChannelPresenter)
@@ -141,7 +143,7 @@ export let chatChannelController = Controller.create(
         ),
         {
           name: 'Get chat channel member',
-          description: 'Retrieves a specific member of a chat channel.'
+          description: 'Retrieves a member of a chat channel.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
@@ -182,7 +184,7 @@ export let chatChannelController = Controller.create(
         'default',
         v.object({
           thread_id: v.optional(
-            v.string({ description: 'Show the typing indicator within this thread' })
+            v.string({ description: 'Thread to show the typing indicator in.' })
           ),
           status: v.optional(v.string({ description: 'Provider-specific typing status text' }))
         })

@@ -28,12 +28,12 @@ export let v1ChatWorkspacePresenter = Presenter.create(chatWorkspaceType)
   .schema(
     v.object({
       object: v.literal('chat.workspace', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat workspace identifier',
+        description: 'Unique ID.',
         examples: ['cws_5gHjKlMnPqRsTuVw']
       }),
 
@@ -45,14 +45,14 @@ export let v1ChatWorkspacePresenter = Presenter.create(chatWorkspaceType)
 
       provider_workspace_id: v.string({
         name: 'provider_workspace_id',
-        description: "The workspace's identifier on the chat provider",
+        description: 'Identifier the chat provider uses for this workspace.',
         examples: ['T024BE7LH']
       }),
 
       name: v.nullable(
         v.string({
           name: 'name',
-          description: 'Display name of the workspace',
+          description: 'Display name.',
           examples: ['Acme Inc']
         })
       ),

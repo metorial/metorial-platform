@@ -29,14 +29,15 @@ export let consumerSurfaceGroup = instanceGroup.use(async ctx => {
 export let consumerSurfaceController = Controller.create(
   {
     name: 'Consumer Surfaces',
-    description: 'List and retrieve consumer surfaces for an instance.',
+    description:
+      'A consumer surface is a portal, member directory, or CLI entry point consumers sign in through.',
     hideInDocs: true
   },
   {
     list: instanceGroup
       .get(instancePath('consumer-surfaces', 'consumerSurfaces.list'), {
         name: 'List consumer surfaces',
-        description: 'Returns a paginated list of consumer surfaces for an instance.',
+        description: 'Returns a paginated list of consumer surfaces.',
         hideInDocs: true
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
@@ -57,7 +58,7 @@ export let consumerSurfaceController = Controller.create(
     get: consumerSurfaceGroup
       .get(instancePath('consumer-surfaces/:consumerSurfaceId', 'consumerSurfaces.get'), {
         name: 'Get consumer surface',
-        description: 'Retrieves a consumer surface by ID.'
+        description: 'Retrieves a consumer surface.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-identity']))

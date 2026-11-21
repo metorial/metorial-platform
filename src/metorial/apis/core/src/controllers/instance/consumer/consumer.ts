@@ -116,7 +116,7 @@ export let consumerController = Controller.create(
   {
     name: 'Consumers',
     description:
-      'Manage instance consumers independently from portals and inspect the profiles linked to each consumer.',
+      'A consumer is a person or system that uses an instance. Each consumer has profiles linking them to the surfaces they can access.',
     hideInDocs: true
   },
   {
@@ -132,14 +132,17 @@ export let consumerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string(), { description: 'Search by name or email.' }),
             email: v.optional(
               v.union([
                 v.string({ modifiers: [v.email()] }),
                 v.array(v.string({ modifiers: [v.email()] }))
-              ])
+              ]),
+              { description: 'Only return consumers with one of these emails.' }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())]))
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return consumers with one of these IDs.'
+            })
           })
         )
       )
@@ -158,7 +161,7 @@ export let consumerController = Controller.create(
     get: consumerGroup
       .get(instancePath('consumers/:consumerId', 'consumers.get'), {
         name: 'Get consumer',
-        description: 'Retrieves a consumer by ID.'
+        description: 'Retrieves a consumer.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-identity']))
@@ -175,8 +178,12 @@ export let consumerController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          email: v.string({ modifiers: [v.email()] })
+          name: v.string({ description: 'Display name.' }),
+          email: v.string({
+            description:
+              'Email address. An existing consumer with this email is linked to the instance.',
+            modifiers: [v.email()]
+          })
         })
       )
       .output(consumerPresenter)
@@ -209,7 +216,9 @@ export let consumerController = Controller.create(
       .body(
         'default',
         v.object({
-          surface_identifier: v.optional(v.enumOf(['cli']))
+          surface_identifier: v.optional(
+            v.enumOf(['cli'], { description: 'Surface to create the profile on.' })
+          )
         })
       )
       .output(consumerAndProfilePresenter)
@@ -285,14 +294,30 @@ export let consumerController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .use(hasFlags(['paid-identity', 'paid-integrations', 'magic-mcp-enabled']))
-      .body('default', v.object({ integration_id: v.optional(v.string()) }))
+      .body(
+        'default',
+        v.object({
+          integration_id: v.optional(
+            v.string({
+              description: "Integration to grant the member's consumer profile access to."
+            })
+          )
+        })
+      )
       .output({
         introspect: () => ({
           name: 'member_consumer_session',
           object: introspectType(
             v.object({
-              access_token: v.string(),
-              catalog_item_id: v.optional(v.string())
+              access_token: v.string({
+                description: "Short-lived credential for the member's own consumer profile."
+              }),
+              catalog_item_id: v.optional(
+                v.string({
+                  description:
+                    'Provider template created for the given integration. Omitted without one.'
+                })
+              )
             })
           )
         })
@@ -378,15 +403,20 @@ export let consumerController = Controller.create(
     update: consumerGroup
       .patch(instancePath('consumers/:consumerId', 'consumers.update'), {
         name: 'Update consumer',
-        description: 'Updates a consumer for an instance.'
+        description: 'Updates a consumer. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
       .use(hasFlags(['paid-identity']))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          email: v.optional(v.string({ modifiers: [v.email()] }))
+          name: v.optional(v.string({ description: 'Display name.' })),
+          email: v.optional(
+            v.string({
+              description: 'Email address. Must be unique within the organization.',
+              modifiers: [v.email()]
+            })
+          )
         })
       )
       .output(consumerPresenter)
@@ -406,7 +436,7 @@ export let consumerController = Controller.create(
     listProfiles: consumerGroup
       .get(instancePath('consumers/:consumerId/profiles', 'consumers.profiles.list'), {
         name: 'List consumer profiles',
-        description: 'Returns a paginated list of profiles for a consumer in an instance.'
+        description: 'Returns a paginated list of profiles for a consumer.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-identity']))
@@ -438,7 +468,7 @@ export let consumerController = Controller.create(
         ),
         {
           name: 'Get consumer profile',
-          description: 'Retrieves a consumer profile by ID for a consumer.'
+          description: 'Retrieves a consumer profile.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
