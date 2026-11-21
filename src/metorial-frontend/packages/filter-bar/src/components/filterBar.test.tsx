@@ -85,12 +85,11 @@ describe('filter state helpers', () => {
       ...statusFilter,
       highlight: { exclusive: true, defaultValue: 'active' }
     };
-    let ids = ['active', 'archived'];
 
-    expect(getActiveHighlightValues(withDefault, [], ids)).toEqual(['active']);
-    expect(getActiveHighlightValues(withDefault, ['bogus'], ids)).toEqual(['active']);
-    expect(getActiveHighlightValues(withDefault, ['archived'], ids)).toEqual(['archived']);
-    expect(getActiveHighlightValues(statusFilter, ['bogus'], ids)).toEqual(['bogus']);
+    expect(getActiveHighlightValues(withDefault, [])).toEqual(['active']);
+    expect(getActiveHighlightValues(withDefault, ['bogus'])).toEqual(['active']);
+    expect(getActiveHighlightValues(withDefault, ['archived'])).toEqual(['archived']);
+    expect(getActiveHighlightValues(statusFilter, ['bogus'])).toEqual(['bogus']);
   });
 
   it('summarizes long label lists', () => {

@@ -46,6 +46,7 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('@metorial/db', () => {
   let db = {
+    $queryRaw: vi.fn(),
     consumerDevice: {
       findUniqueOrThrow: vi.fn(async () => ({
         oid: 20n,

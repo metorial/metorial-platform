@@ -6,7 +6,7 @@ import { Callout } from '@metorial/ui';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { lastActivePhrase, memberListLimit, MemberIdentity, memberPath } from './memberParts';
-import { lastActiveRangeFilter, useLastActiveRange } from './range';
+import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
 
 type TeamMember = DashboardInstanceAgentTrackingMembersListOutput['items'][number];
 
@@ -17,11 +17,10 @@ let useTeamContext = () => ({ ...useInstanceContext(), ...useLastActiveRange() }
 let AgentTrackingTeamList = createDataList<{ instanceId: string }>('agent-tracking-team')
   .context(useTeamContext)
   .filters(() => teamFilters)
-  .paginated(({ props, ctx, limit }) =>
+  .paginated(({ props, filters, limit }) =>
     useAgentTrackingMembers(props.instanceId, {
       limit,
-      range: ctx.range,
-      timeZone: ctx.timeZone
+      ...lastActiveRangeQuery(filters.range?.[0])
     })
   )
   .columns([

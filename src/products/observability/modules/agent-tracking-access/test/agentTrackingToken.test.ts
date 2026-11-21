@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@metorial/db', async () =>
   (await import('./_mocks')).dbModule(
     {
+      $queryRaw: vi.fn(),
       consumerDevice: { findUniqueOrThrow: vi.fn() },
       instance: { findUniqueOrThrow: vi.fn() },
       agentTrackingIngestToken: {
@@ -177,6 +178,9 @@ describe('agentTrackingTokenService', () => {
         expiresAt: null,
         ingestToken: { id: 'atit_1', serviceIngestTokenId: 'git_new' }
       });
+
+      await Promise.all(mocks.afterCommit.map(hook => hook()));
+
       expect(mocks.syncEntities).toHaveBeenCalledWith({
         entities: [
           { type: 'consumer', id: 'con_1' },
@@ -262,6 +266,60 @@ describe('agentTrackingTokenService', () => {
       expect(revokeIngestTokenQueue.addManyWithOps).toHaveBeenCalledWith([
         { data: { ingestTokenId: 'atit_old' }, opts: { id: 'atit_old' } }
       ]);
+    });
+
+    it('locks the device before reading the tokens it replaces', async () => {
+      vi.mocked(db.consumerDevice.findUniqueOrThrow).mockResolvedValue(createDevice() as any);
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+
+      await agentTrackingTokenService.issueDeviceToken({
+        consumerDevice: { oid: 20n },
+        auditScope
+      });
+
+      let [query, deviceOid] = vi.mocked(db.$queryRaw).mock.calls[0]! as any;
+      expect(query.join('?')).toMatch(/FROM "ConsumerDevice" WHERE "oid" = \? FOR UPDATE/);
+      expect(deviceOid).toBe(20n);
+      expect(vi.mocked(db.$queryRaw).mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(db.agentTrackingIngestToken.findMany).mock.invocationCallOrder[0]!
+      );
+    });
+
+    it('returns the secret when the sync after commit fails', async () => {
+      vi.mocked(db.consumerDevice.findUniqueOrThrow).mockResolvedValue(createDevice() as any);
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+      mocks.syncEntities.mockRejectedValueOnce(new Error('Queue unavailable'));
+
+      let result = await agentTrackingTokenService.issueDeviceToken({
+        consumerDevice: { oid: 20n },
+        auditScope
+      });
+
+      expect(result.secret).toBe('metorial_agit_secret');
+      expect(mocks.syncEntities).not.toHaveBeenCalled();
+      await Promise.allSettled(mocks.afterCommit.map(hook => hook()));
+      expect(mocks.syncEntities).toHaveBeenCalled();
+    });
+
+    it('revokes the new token in the service when it cannot be stored', async () => {
+      vi.mocked(db.consumerDevice.findUniqueOrThrow).mockResolvedValue(createDevice() as any);
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+      vi.mocked(db.agentTrackingIngestToken.create).mockRejectedValueOnce(
+        new Error('Database unavailable')
+      );
+
+      await expect(
+        agentTrackingTokenService.issueDeviceToken({
+          consumerDevice: { oid: 20n },
+          auditScope
+        })
+      ).rejects.toThrow('Database unavailable');
+
+      expect(mocks.agentTracking.ingestToken.revoke).toHaveBeenCalledWith(
+        { organizationId: 'org_1', ingestTokenId: 'git_new' },
+        { timeoutMs: 3_000 }
+      );
+      expect(mocks.afterCommit).toHaveLength(0);
     });
 
     it('rejects a device that is no longer signed in', async () => {
@@ -353,10 +411,34 @@ describe('agentTrackingTokenService', () => {
       expect(db.agentTrackingIngestToken.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ deviceMode: 'ephemeral', consumerOid: 10n })
       });
+
+      await Promise.all(mocks.afterCommit.map(hook => hook()));
+
       expect(mocks.syncEntities).toHaveBeenCalledWith({
         entities: [{ type: 'consumer', id: 'con_sa' }]
       });
       expect(result.secret).toBe('metorial_agit_secret');
+    });
+
+    it('revokes a service token in the service when it cannot be stored', async () => {
+      vi.mocked(db.instance.findUniqueOrThrow).mockResolvedValue(instance as any);
+      vi.mocked(db.agentTrackingIngestToken.create).mockRejectedValueOnce(
+        new Error('Database unavailable')
+      );
+      mocks.agentTracking.ingestToken.revoke.mockRejectedValueOnce(new Error('Service down'));
+
+      await expect(
+        agentTrackingTokenService.issueServiceToken({
+          consumer: serviceAccount as any,
+          instance: instance as any,
+          input: { name: 'CI' }
+        })
+      ).rejects.toThrow('Database unavailable');
+
+      expect(mocks.agentTracking.ingestToken.revoke).toHaveBeenCalledWith(
+        { organizationId: 'org_1', ingestTokenId: 'git_new' },
+        { timeoutMs: 3_000 }
+      );
     });
 
     it('rejects consumers that are not service accounts', async () => {

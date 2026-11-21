@@ -74,15 +74,14 @@ export let getHighlightDefault = (filter: TableFilter<any>) =>
     ? filter.highlight.defaultValue
     : undefined;
 
-export let getActiveHighlightValues = (
-  filter: TableFilter<any>,
-  selected: string[],
-  optionIds: string[]
-) => {
+export let getActiveHighlightValues = (filter: TableFilter<any>, selected: string[]) => {
   let fallback = getHighlightDefault(filter);
   if (!fallback) return selected;
 
-  let known = selected.filter(id => optionIds.includes(id));
+  let known =
+    filter.type == 'select'
+      ? selected.filter(id => filter.options.some(option => option.id == id))
+      : selected;
   return known.length ? known : [fallback];
 };
 

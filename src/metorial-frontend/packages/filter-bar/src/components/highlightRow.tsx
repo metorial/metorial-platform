@@ -196,11 +196,7 @@ let MorePopoverContent = ({
   let selected = getListValue(filterState.find(f => f.id == filter.id));
   let options = useListFilterOptions(filter, search, filters, selected);
   let fallback = getHighlightDefault(filter);
-  let active = getActiveHighlightValues(
-    filter,
-    selected,
-    [...options.items, ...options.pinnedItems].map(item => item.id)
-  );
+  let active = getActiveHighlightValues(filter, selected);
   let clearable = fallback ? active[0] != fallback : selected.length > 0;
 
   return (
@@ -286,11 +282,7 @@ export let FilterHighlightRow = ({
   let exclusive = isExclusiveHighlight(filter);
   let fallback = getHighlightDefault(filter);
   let showAll = exclusive && !fallback;
-  let active = getActiveHighlightValues(
-    filter,
-    selected,
-    candidates.map(item => item.id)
-  );
+  let active = getActiveHighlightValues(filter, selected);
   let hideLabel = typeof filter.highlight == 'object' && !!filter.highlight.hideLabel;
 
   let trackRef = useRef<HTMLDivElement>(null);

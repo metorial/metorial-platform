@@ -20,7 +20,7 @@ import {
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
 import { issuedKeyContentPolicy } from '../lib/contentPolicy';
-import { revokeAgentTrackingIngestToken } from '../lib/ingestToken';
+import { mirrorIngestToken, revokeAgentTrackingIngestToken } from '../lib/ingestToken';
 import { issueCallOpts, issueInScope } from '../lib/issue';
 import { revokeIngestTokenQueue } from '../queues/revokeTokens';
 
@@ -82,7 +82,7 @@ class AgentTrackingTokenServiceImpl {
     let { instance } = consumerDevice;
     let { consumer } = consumerDevice.consumerProfile;
 
-    let { created, ingestUrl } = await issueInScope({
+    let { agentTracking, created, ingestUrl } = await issueInScope({
       organization: instance.organization,
       project: instance.project,
       instance,
@@ -102,49 +102,63 @@ class AgentTrackingTokenServiceImpl {
         )
     });
 
-    let ingestToken = await withTransaction(async db => {
-      let previous = await db.agentTrackingIngestToken.findMany({
-        where: { consumerDeviceOid: consumerDevice.oid, status: 'active' },
-        select: { id: true }
-      });
+    let ingestToken = await mirrorIngestToken(
+      {
+        agentTracking,
+        organization: instance.organization,
+        serviceIngestTokenId: created.id
+      },
+      () =>
+        withTransaction(async db => {
+          // Row lock, so two issues for one device replace each other's token.
+          await db.$queryRaw`
+            SELECT 1 FROM "ConsumerDevice" WHERE "oid" = ${consumerDevice.oid} FOR UPDATE
+          `;
 
-      let ingestToken = await db.agentTrackingIngestToken.create({
-        data: {
-          id: await ID.generateId('agentTrackingIngestToken'),
-          deviceMode: 'bound',
-          serviceIngestTokenId: created.id,
-          name: consumerDevice.name,
-          instanceOid: instance.oid,
-          consumerOid: consumer.oid,
-          consumerDeviceOid: consumerDevice.oid
-        }
-      });
+          let previous = await db.agentTrackingIngestToken.findMany({
+            where: { consumerDeviceOid: consumerDevice.oid, status: 'active' },
+            select: { id: true }
+          });
 
-      // Old tokens are revoked after commit, so a rotation cannot lose the new secret.
-      addAfterTransactionHook(() =>
-        revokeIngestTokenQueue.addManyWithOps(
-          previous.map(token => ({
-            data: { ingestTokenId: token.id },
-            opts: { id: token.id }
-          }))
-        )
-      );
+          let ingestToken = await db.agentTrackingIngestToken.create({
+            data: {
+              id: await ID.generateId('agentTrackingIngestToken'),
+              deviceMode: 'bound',
+              serviceIngestTokenId: created.id,
+              name: consumerDevice.name,
+              instanceOid: instance.oid,
+              consumerOid: consumer.oid,
+              consumerDeviceOid: consumerDevice.oid
+            }
+          });
 
-      await Fabric.fire('agent_tracking.ingest_token.created:after', {
-        ingestToken: { ...ingestToken, consumer, consumerDevice },
-        replacedIngestTokenIds: previous.map(token => token.id),
-        auditScope: d.auditScope
-      });
+          // After commit, so neither the revokes nor a failed sync can cost the new secret.
+          addAfterTransactionHook(() =>
+            revokeIngestTokenQueue.addManyWithOps(
+              previous.map(token => ({
+                data: { ingestTokenId: token.id },
+                opts: { id: token.id }
+              }))
+            )
+          );
+          addAfterTransactionHook(() =>
+            agentTrackingSyncService.syncEntities({
+              entities: [
+                { type: 'consumer', id: consumer.id },
+                { type: 'device', id: consumerDevice.id }
+              ]
+            })
+          );
 
-      return ingestToken;
-    });
+          await Fabric.fire('agent_tracking.ingest_token.created:after', {
+            ingestToken: { ...ingestToken, consumer, consumerDevice },
+            replacedIngestTokenIds: previous.map(token => token.id),
+            auditScope: d.auditScope
+          });
 
-    await agentTrackingSyncService.syncEntities({
-      entities: [
-        { type: 'consumer', id: consumer.id },
-        { type: 'device', id: consumerDevice.id }
-      ]
-    });
+          return ingestToken;
+        })
+    );
 
     return {
       ingestToken,
@@ -177,7 +191,7 @@ class AgentTrackingTokenServiceImpl {
       include: { organization: true, project: true }
     });
 
-    let { created } = await issueInScope({
+    let { agentTracking, created } = await issueInScope({
       organization: instance.organization,
       project: instance.project,
       instance,
@@ -197,20 +211,34 @@ class AgentTrackingTokenServiceImpl {
         )
     });
 
-    let ingestToken = await db.agentTrackingIngestToken.create({
-      data: {
-        id: await ID.generateId('agentTrackingIngestToken'),
-        deviceMode: 'ephemeral',
-        serviceIngestTokenId: created.id,
-        name: d.input.name,
-        instanceOid: instance.oid,
-        consumerOid: d.consumer.oid
-      }
-    });
+    let ingestToken = await mirrorIngestToken(
+      {
+        agentTracking,
+        organization: instance.organization,
+        serviceIngestTokenId: created.id
+      },
+      () =>
+        withTransaction(async db => {
+          let ingestToken = await db.agentTrackingIngestToken.create({
+            data: {
+              id: await ID.generateId('agentTrackingIngestToken'),
+              deviceMode: 'ephemeral',
+              serviceIngestTokenId: created.id,
+              name: d.input.name,
+              instanceOid: instance.oid,
+              consumerOid: d.consumer.oid
+            }
+          });
 
-    await agentTrackingSyncService.syncEntities({
-      entities: [{ type: 'consumer', id: d.consumer.id }]
-    });
+          addAfterTransactionHook(() =>
+            agentTrackingSyncService.syncEntities({
+              entities: [{ type: 'consumer', id: d.consumer.id }]
+            })
+          );
+
+          return ingestToken;
+        })
+    );
 
     return { ingestToken, secret: created.secret };
   }
