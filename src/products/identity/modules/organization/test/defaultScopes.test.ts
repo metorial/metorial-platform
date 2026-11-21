@@ -16,6 +16,7 @@ let sensitiveScopes = [
   'organization.access_role:write',
   'organization.access_policy:write',
   'instance.network:write',
+  'instance.ai_gateway.inference_log:read',
   'instance.monitor:manage',
   'instance.portal:write',
   'instance.portal.auth:write',

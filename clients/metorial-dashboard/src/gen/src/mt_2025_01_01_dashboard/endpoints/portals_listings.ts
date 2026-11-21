@@ -65,7 +65,7 @@ export class MetorialPortalsListingsEndpoint {
     query?: DashboardInstancePortalsListingsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsListingsListOutput> {
-    let path = `portals/${portalId}/listings`;
+    let path = `portals/${encodeURIComponent(portalId)}/listings`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialPortalsListingsEndpoint {
     listingId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsListingsGetOutput> {
-    let path = `portals/${portalId}/listings/${listingId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/listings/${encodeURIComponent(listingId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialPortalsListingsEndpoint {
     body: DashboardInstancePortalsListingsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsListingsCreateOutput> {
-    let path = `portals/${portalId}/listings`;
+    let path = `portals/${encodeURIComponent(portalId)}/listings`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialPortalsListingsEndpoint {
     body: DashboardInstancePortalsListingsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsListingsUpdateOutput> {
-    let path = `portals/${portalId}/listings/${listingId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/listings/${encodeURIComponent(listingId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialPortalsListingsEndpoint {
     listingId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsListingsDeleteOutput> {
-    let path = `portals/${portalId}/listings/${listingId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/listings/${encodeURIComponent(listingId)}`;
 
     let request = {
       path,

@@ -55,7 +55,7 @@ export class MetorialDashboardOrganizationsLayoutsEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsLayoutsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/layouts`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/layouts`;
 
     let request = {
       path,
@@ -84,7 +84,7 @@ export class MetorialDashboardOrganizationsLayoutsEndpoint {
     selector: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsLayoutsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/layouts/${selector}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/layouts/${encodeURIComponent(selector)}`;
 
     let request = {
       path,
@@ -115,7 +115,7 @@ export class MetorialDashboardOrganizationsLayoutsEndpoint {
     body: DashboardOrganizationsLayoutsSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsLayoutsSetOutput> {
-    let path = `dashboard/organizations/${organizationId}/layouts/${selector}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/layouts/${encodeURIComponent(selector)}`;
 
     let request = {
       path,

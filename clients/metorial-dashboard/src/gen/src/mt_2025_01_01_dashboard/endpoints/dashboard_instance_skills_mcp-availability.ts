@@ -51,7 +51,7 @@ export class MetorialDashboardInstanceSkillsMcpAvailabilityEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMcpAvailabilityGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/mcp-availability`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/mcp-availability`;
 
     let request = {
       path,

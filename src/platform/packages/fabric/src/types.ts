@@ -851,6 +851,37 @@ export type AuditSandboxImageBuild = {
   status: string;
 };
 
+export type AuditAiGatewayConfig = {
+  logRetentionDays: number;
+  settings: Record<string, unknown>;
+  limits: unknown[];
+};
+
+export type AuditAiGatewayToken = {
+  id: string;
+  name: string;
+  consumerRef: string | null;
+  allowedModels: string[];
+  expiresAt: Date | null;
+  revokedAt: Date | null;
+};
+
+export type AuditAiGatewayProviderConnection = {
+  id: string;
+  name: string;
+  providerSlug: string;
+  status: string;
+  priority: number;
+};
+
+export type AuditAiGatewayVirtualModel = {
+  id: string;
+  slug: string;
+  name: string;
+  versionId: string | null;
+  versionNumber: number | null;
+};
+
 export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
 export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
 export type SandboxMachineExecOutcome = 'exited' | 'deadline' | 'disconnected' | 'rejected';
@@ -964,6 +995,18 @@ export type MagicMcpServerMembershipFabricChange = {
 // prettier-ignore
 export interface FabricEvents {
   'sandbox.tenant.created:after': { tenant: SandboxTenant };
+
+  'ai_gateway.project.created:after': { organization: Organization; project: Project; gatewayProjectId: string };
+  'ai_gateway.config.updated:after': { auditScope: AuditScope; instance: Instance; config: AuditAiGatewayConfig; previousConfig: AuditAiGatewayConfig };
+  'ai_gateway.token.created:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken };
+  'ai_gateway.token.updated:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken; previousToken: AuditAiGatewayToken };
+  'ai_gateway.token.revoked:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken };
+  'ai_gateway.provider_connection.created:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection };
+  'ai_gateway.provider_connection.updated:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection; previousConnection: AuditAiGatewayProviderConnection };
+  'ai_gateway.provider_connection.archived:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection };
+  'ai_gateway.virtual_model.created:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel };
+  'ai_gateway.virtual_model.updated:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel; previousVirtualModel: AuditAiGatewayVirtualModel };
+  'ai_gateway.virtual_model.archived:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel };
 
   'sandbox.machine.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.updated:after': { auditScope: AuditScope; machine: AuditSandboxMachine; previousMachine: AuditSandboxMachine };

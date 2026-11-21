@@ -49,7 +49,7 @@ export class MetorialConsumerConsumerInternalOauthClientsEndpoint {
     portalAuthClientId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerConsumerInternalOauthClientsGetOutput> {
-    let path = `consumer/portal-oauth-clients/${portalAuthClientId}`;
+    let path = `consumer/portal-oauth-clients/${encodeURIComponent(portalAuthClientId)}`;
 
     let request = {
       path,

@@ -85,7 +85,7 @@ export class MetorialManagementOrganizationEventDeliveryAttemptsEndpoint {
     eventDeliveryAttemptId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDeliveryAttemptsGetOutput> {
-    let path = `organization/event-delivery-attempts/${eventDeliveryAttemptId}`;
+    let path = `organization/event-delivery-attempts/${encodeURIComponent(eventDeliveryAttemptId)}`;
 
     let request = {
       path,

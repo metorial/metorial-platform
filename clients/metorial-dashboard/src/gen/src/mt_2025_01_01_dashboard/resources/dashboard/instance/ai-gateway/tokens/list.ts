@@ -1,0 +1,61 @@
+import { createMapper } from '@metorial/util-resource-mapper/compact';
+
+export type DashboardInstanceAiGatewayTokensListOutput = {
+  items: {
+    object: 'ai_gateway.token';
+    id: string;
+    name: string;
+    prefix: string;
+    secret: string | null;
+    consumer: {
+      object: 'consumer#preview';
+      id: string;
+      name: string;
+      email: string;
+    } | null;
+    allowedModels: string[];
+    limits: {
+      metric: 'requests' | 'tokens' | 'spend_usd';
+      amount: number;
+      interval: '1m' | '1h' | '1d' | '1mo';
+    }[];
+    metadata: Record<string, string>;
+    lastUsedAt: Date | null;
+    expiresAt: Date | null;
+    revokedAt: Date | null;
+    createdAt: Date;
+  }[];
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+};
+
+export let mapDashboardInstanceAiGatewayTokensListOutput =
+  /* @__PURE__ */ createMapper<DashboardInstanceAiGatewayTokensListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'allowed_models',
+          'last_used_at',
+          'expires_at',
+          'revoked_at',
+          'created_at'
+        ]
+      ]
+    ],
+    1
+  );
+
+export type DashboardInstanceAiGatewayTokensListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & { consumerId?: string | undefined };
+
+export let mapDashboardInstanceAiGatewayTokensListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceAiGatewayTokensListQuery>([
+    3,
+    [[0, [1, ['consumer_id']]]]
+  ]);

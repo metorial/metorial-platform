@@ -63,7 +63,7 @@ export class MetorialDashboardOrganizationsSandboxesEndpoint {
     query?: DashboardOrganizationsSandboxesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsSandboxesListOutput> {
-    let path = `dashboard/organizations/${organizationId}/sandboxes`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/sandboxes`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardOrganizationsSandboxesEndpoint {
     sandboxId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsSandboxesGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/sandboxes/${sandboxId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/sandboxes/${encodeURIComponent(sandboxId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialDashboardOrganizationsSandboxesEndpoint {
     body: DashboardOrganizationsSandboxesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsSandboxesCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/sandboxes`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/sandboxes`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardOrganizationsSandboxesEndpoint {
     body: DashboardOrganizationsSandboxesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsSandboxesUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/sandboxes/${sandboxId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/sandboxes/${encodeURIComponent(sandboxId)}`;
 
     let request = {
       path,

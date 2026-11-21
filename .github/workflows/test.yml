@@ -25,7 +25,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/platform/packages/* --filter=./src/platform/modules/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=./src/products/integrations/services/mcp-runtime/** --filter=@metorial/slates --filter=@mtsrc/email-service
+          tasks: test --filter=./src/platform/packages/* --filter=./src/platform/modules/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=./src/products/integrations/services/mcp-runtime/** --filter=@metorial/slates --filter=@mtsrc/email-service --filter=./src/products/agents/services/ai-gateway/** --filter=@metorial/module-ai-gateway --filter=@metorial/api-core --filter=@metorial/presenters --filter=@metorial/audit-listeners
 
   build-and-test-ts:
     needs: changes

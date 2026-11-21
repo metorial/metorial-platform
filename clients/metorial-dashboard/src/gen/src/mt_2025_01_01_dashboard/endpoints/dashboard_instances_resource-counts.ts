@@ -53,7 +53,7 @@ export class MetorialDashboardInstancesResourceCountsEndpoint {
     query?: DashboardInstancesResourceCountsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancesResourceCountsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/resource-counts`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/resource-counts`;
 
     let request = {
       path,

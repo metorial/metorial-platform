@@ -99,7 +99,7 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
     providerConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsGetOutput> {
-    let path = `provider-configs/${providerConfigId}`;
+    let path = `provider-configs/${encodeURIComponent(providerConfigId)}`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
     body: DashboardInstanceProviderDeploymentsConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsUpdateOutput> {
-    let path = `provider-configs/${providerConfigId}`;
+    let path = `provider-configs/${encodeURIComponent(providerConfigId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialProviderDeploymentsConfigsEndpoint {
     providerConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsDeleteOutput> {
-    let path = `provider-configs/${providerConfigId}`;
+    let path = `provider-configs/${encodeURIComponent(providerConfigId)}`;
 
     let request = {
       path,

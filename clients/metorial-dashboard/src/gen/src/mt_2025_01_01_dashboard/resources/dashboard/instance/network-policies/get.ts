@@ -28,6 +28,7 @@ export type DashboardInstanceNetworkPoliciesGetOutput = {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
+  warnings: string[];
 };
 
 export let mapDashboardInstanceNetworkPoliciesGetOutput =

@@ -51,7 +51,7 @@ export class MetorialManagementInstanceCustomProvidersCodeEndpoint {
     customProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCodeGetCodeEditorTokenOutput> {
-    let path = `instances/${instanceId}/custom-providers/${customProviderId}/code-editor-token`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-providers/${encodeURIComponent(customProviderId)}/code-editor-token`;
 
     let request = {
       path,

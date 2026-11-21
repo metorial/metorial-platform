@@ -57,7 +57,7 @@ export class MetorialManagementInstanceConsumersDevicesEndpoint {
     query?: DashboardInstanceConsumersDevicesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersDevicesListOutput> {
-    let path = `instances/${instanceId}/consumer-devices`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumer-devices`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialManagementInstanceConsumersDevicesEndpoint {
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersDevicesGetOutput> {
-    let path = `instances/${instanceId}/consumer-devices/${consumerDeviceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumer-devices/${encodeURIComponent(consumerDeviceId)}`;
 
     let request = {
       path,
@@ -118,7 +118,7 @@ export class MetorialManagementInstanceConsumersDevicesEndpoint {
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersDevicesRevokeOutput> {
-    let path = `instances/${instanceId}/consumer-devices/${consumerDeviceId}/revoke`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumer-devices/${encodeURIComponent(consumerDeviceId)}/revoke`;
 
     let request = {
       path,

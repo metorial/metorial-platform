@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceSessionsMessagesEndpoint {
     query?: DashboardInstanceSessionsMessagesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsMessagesListOutput> {
-    let path = `dashboard/instances/${instanceId}/session-messages`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-messages`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceSessionsMessagesEndpoint {
     sessionMessageId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsMessagesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/session-messages/${sessionMessageId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-messages/${encodeURIComponent(sessionMessageId)}`;
 
     let request = {
       path,

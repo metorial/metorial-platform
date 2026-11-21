@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceCustomProvidersVersionsEndpoint {
     query?: DashboardInstanceCustomProvidersVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-versions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-versions`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardInstanceCustomProvidersVersionsEndpoint {
     customProviderVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-versions/${customProviderVersionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-versions/${encodeURIComponent(customProviderVersionId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialDashboardInstanceCustomProvidersVersionsEndpoint {
     customProviderVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsGetEnvOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-versions/${customProviderVersionId}/env`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-versions/${encodeURIComponent(customProviderVersionId)}/env`;
 
     let request = {
       path,
@@ -153,7 +153,7 @@ export class MetorialDashboardInstanceCustomProvidersVersionsEndpoint {
     body: DashboardInstanceCustomProvidersVersionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-versions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-versions`;
 
     let request = {
       path,

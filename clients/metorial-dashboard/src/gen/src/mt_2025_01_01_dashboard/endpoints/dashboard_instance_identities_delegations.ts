@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegations`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
     identityDelegationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegations/${identityDelegationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegations/${encodeURIComponent(identityDelegationId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
     body: DashboardInstanceIdentitiesDelegationsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegations`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
     identityDelegationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationsRevokeOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegations/${identityDelegationId}/revoke`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegations/${encodeURIComponent(identityDelegationId)}/revoke`;
 
     let request = {
       path,

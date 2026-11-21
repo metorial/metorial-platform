@@ -29,6 +29,7 @@ export type Flags = {
   'key-providers-azure-key-vault-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
+  'ai-gateway-enabled': FlagValue;
   'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   'devices-enabled': FlagValue;
@@ -56,6 +57,7 @@ export type Flags = {
   'paid-networking': FlagValue;
   'paid-network-ip-access': FlagValue;
   'paid-sandboxes': FlagValue;
+  'paid-ai-gateway': FlagValue;
   'paid-advanced-org-management': FlagValue;
   'paid-ai-reviews': FlagValue;
   'paid-protoguard': FlagValue;
@@ -97,6 +99,7 @@ export let defaultFlags: Flags = {
   'key-providers-azure-key-vault-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
+  'ai-gateway-enabled': false,
   'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   'devices-enabled': false,
@@ -124,6 +127,7 @@ export let defaultFlags: Flags = {
   'paid-networking': true,
   'paid-network-ip-access': true,
   'paid-sandboxes': true,
+  'paid-ai-gateway': true,
   'paid-advanced-org-management': true,
   'paid-ai-reviews': true,
   'paid-protoguard': true,

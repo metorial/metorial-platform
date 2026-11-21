@@ -1,0 +1,33 @@
+model GatewayToken {
+  oid BigInt @id
+  id  String @unique
+
+  prefix     String @unique
+  secretHash String
+
+  name        String
+  consumerRef String?
+
+  allowedModels String[]
+
+  /// [GatewayLimits]
+  limits Json @default("[]")
+
+  /// [GatewayTokenMetadata]
+  metadata Json @default("{}")
+
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+}

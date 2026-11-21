@@ -123,7 +123,10 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.scm.repo:write' as const,
 
   'instance.chat:read' as const,
-  'instance.chat:write' as const
+  'instance.chat:write' as const,
+
+  'instance.ai_gateway:read' as const,
+  'instance.ai_gateway:write' as const
 ];
 
 export let instancePublishableTokenScopes: Scope[] = [

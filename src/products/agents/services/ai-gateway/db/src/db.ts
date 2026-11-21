@@ -2,6 +2,7 @@ import {
   provideExecutionContext,
   withExecutionContextOptional
 } from '@lowerdeck/execution-context';
+import type * as Spec from '@mtsrc/ai-gateway-spec';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { AsyncLocalStorage } from 'async_hooks';
@@ -11,7 +12,7 @@ import { PrismaClient } from '../prisma/generated/client';
 export * from '../prisma/generated/client';
 
 let mainAdapter = new PrismaPg({
-  connectionString: process.env.SYNTHESIS_DATABASE_URL ?? process.env.DATABASE_URL
+  connectionString: process.env.AI_GATEWAY_DATABASE_URL ?? process.env.DATABASE_URL
 });
 
 let replicaAdapter = process.env.DATABASE_URL_READER
@@ -40,13 +41,18 @@ export let db = baseClient;
 
 declare global {
   namespace PrismaJson {
-    type AssistantConversationInput = unknown;
-    type AssistantMessageStateContent = import('./types').State;
-    type AssistantMessageSerializedContent =
-      import('./types').AssistantMessageSerializedContent;
-    type AssistantRunCost = import('./types').AssistantRunCost;
-    type AssistantRunMetadata = import('./types').AssistantRunMetadata;
-    type SubspaceMcpToolList = import('./types').SubspaceMcpToolList;
+    type GatewayInstanceSettings = Spec.InstanceSettings;
+    type GatewayLimits = Spec.GatewayLimit[];
+    type PlatformLimits = Spec.PlatformLimit[];
+    type GatewayTokenMetadata = Spec.GatewayTokenMetadata;
+    type CatalogSyncCounts = Spec.CatalogSyncCounts;
+    type ModelCapabilities = Spec.ModelCapabilities;
+    type OfferingVariant = Spec.OfferingVariant;
+    type Pricing = Spec.Pricing;
+    type ProviderConnectionConfig = Spec.ProviderConnectionConfig;
+    type ProviderFeatures = Spec.ProviderFeatures;
+    type ConnectionPricingOverride = Spec.ConnectionPricingOverride;
+    type VirtualModelDefinition = Spec.VirtualModelDefinition;
   }
 }
 

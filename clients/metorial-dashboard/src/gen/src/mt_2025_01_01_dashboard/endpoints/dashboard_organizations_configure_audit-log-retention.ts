@@ -53,7 +53,7 @@ export class MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsConfigureAuditLogRetentionGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/configure/audit-log-retention`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/configure/audit-log-retention`;
 
     let request = {
       path,
@@ -82,7 +82,7 @@ export class MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint {
     body: DashboardOrganizationsConfigureAuditLogRetentionUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsConfigureAuditLogRetentionUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/configure/audit-log-retention`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/configure/audit-log-retention`;
 
     let request = {
       path,

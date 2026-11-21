@@ -52,6 +52,10 @@ export let instanceScopes = [
   'instance.sandbox:read' as const,
   'instance.sandbox:write' as const,
 
+  'instance.ai_gateway:read' as const,
+  'instance.ai_gateway:write' as const,
+  'instance.ai_gateway.inference_log:read' as const,
+
   'instance.server.config_vault:read' as const,
   'instance.server.config_vault:write' as const,
 

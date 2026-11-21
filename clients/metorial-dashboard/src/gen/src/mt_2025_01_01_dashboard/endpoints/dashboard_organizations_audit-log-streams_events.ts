@@ -57,7 +57,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint {
     query?: DashboardOrganizationsAuditLogStreamsEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsEventsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams/${auditLogStreamId}/events`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams/${encodeURIComponent(auditLogStreamId)}/events`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint {
     auditLogStreamEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsEventsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams/${auditLogStreamId}/events/${auditLogStreamEventId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams/${encodeURIComponent(auditLogStreamId)}/events/${encodeURIComponent(auditLogStreamEventId)}`;
 
     let request = {
       path,

@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceSandboxMachinesUsageEndpoint {
     query?: DashboardInstanceSandboxMachinesUsageTimelineQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesUsageTimelineOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/usage/timeline`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/usage/timeline`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardInstanceSandboxMachinesUsageEndpoint {
     query?: DashboardInstanceSandboxMachinesUsageSummaryQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesUsageSummaryOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/usage/summary`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/usage/summary`;
 
     let request = {
       path,

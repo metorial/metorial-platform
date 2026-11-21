@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceNetworkPoliciesRulesEndpoint {
     body: DashboardInstanceNetworkPoliciesRulesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesRulesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies/${networkPolicyId}/rules`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies/${encodeURIComponent(networkPolicyId)}/rules`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceNetworkPoliciesRulesEndpoint {
     body: DashboardInstanceNetworkPoliciesRulesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesRulesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies/${networkPolicyId}/rules/${ruleId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies/${encodeURIComponent(networkPolicyId)}/rules/${encodeURIComponent(ruleId)}`;
 
     let request = {
       path,
@@ -131,7 +131,7 @@ export class MetorialDashboardInstanceNetworkPoliciesRulesEndpoint {
     ruleId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesRulesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies/${networkPolicyId}/rules/${ruleId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies/${encodeURIComponent(networkPolicyId)}/rules/${encodeURIComponent(ruleId)}`;
 
     let request = {
       path,

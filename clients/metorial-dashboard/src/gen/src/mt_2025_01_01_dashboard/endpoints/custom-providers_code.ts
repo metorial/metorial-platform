@@ -49,7 +49,7 @@ export class MetorialCustomProvidersCodeEndpoint {
     customProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCodeGetCodeEditorTokenOutput> {
-    let path = `custom-providers/${customProviderId}/code-editor-token`;
+    let path = `custom-providers/${encodeURIComponent(customProviderId)}/code-editor-token`;
 
     let request = {
       path,

@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceSandboxDisksMountsEndpoint {
     query?: DashboardInstanceSandboxDisksMountsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksMountsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}/mounts`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}/mounts`;
 
     let request = {
       path,

@@ -93,7 +93,7 @@ export class MetorialIdentityActorsEndpoint {
     identityActorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsGetOutput> {
-    let path = `identity-actors/${identityActorId}`;
+    let path = `identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialIdentityActorsEndpoint {
     body: DashboardInstanceIdentityActorsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsUpdateOutput> {
-    let path = `identity-actors/${identityActorId}`;
+    let path = `identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialIdentityActorsEndpoint {
     identityActorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsDeleteOutput> {
-    let path = `identity-actors/${identityActorId}`;
+    let path = `identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,

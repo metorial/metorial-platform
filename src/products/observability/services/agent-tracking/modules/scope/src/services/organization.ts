@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Organization } from '@mtsrc/agent-tracking-db';
 import { db } from '@mtsrc/agent-tracking-db';
-import { getId } from '@mtsrc/agent-tracking-db';
+import { snowflake } from '@mtsrc/agent-tracking-db';
 import { mergeSettings } from '../lib/settings';
 import { Events } from '@mtsrc/agent-tracking-events';
 import type { OrganizationSettings } from '@mtsrc/agent-tracking-spec';
@@ -17,7 +17,8 @@ class OrganizationServiceImpl {
     let organization = await db.organization.upsert({
       where: { ref: d.input.ref },
       create: {
-        ...getId('organization'),
+        oid: snowflake.nextId(),
+        id: d.input.ref,
         ref: d.input.ref,
         name: d.input.name,
         settings

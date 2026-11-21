@@ -2,9 +2,6 @@ import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
-  organization: idType.sorted('ator_'),
-  project: idType.sorted('atpr_'),
-  instance: idType.sorted('atin_'),
   ingestToken: idType.sorted('atit_'),
   ingestSource: idType.sorted('atis_'),
   entityKind: idType.sorted('atek_'),

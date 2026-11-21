@@ -95,7 +95,7 @@ export class MetorialManagementOrganizationInvitesEndpoint {
     inviteId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesGetOutput> {
-    let path = `organization/invites/${inviteId}`;
+    let path = `organization/invites/${encodeURIComponent(inviteId)}`;
 
     let request = {
       path,
@@ -175,7 +175,7 @@ export class MetorialManagementOrganizationInvitesEndpoint {
     inviteId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesDeleteOutput> {
-    let path = `organization/invites/${inviteId}`;
+    let path = `organization/invites/${encodeURIComponent(inviteId)}`;
 
     let request = {
       path,
@@ -204,7 +204,7 @@ export class MetorialManagementOrganizationInvitesEndpoint {
     body: DashboardOrganizationsInvitesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesUpdateOutput> {
-    let path = `organization/invites/${inviteId}`;
+    let path = `organization/invites/${encodeURIComponent(inviteId)}`;
 
     let request = {
       path,

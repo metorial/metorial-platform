@@ -49,7 +49,7 @@ export class MetorialDashboardOrganizationsWebhookEventsEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsWebhookEventsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/webhook-events`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/webhook-events`;
 
     let request = {
       path,

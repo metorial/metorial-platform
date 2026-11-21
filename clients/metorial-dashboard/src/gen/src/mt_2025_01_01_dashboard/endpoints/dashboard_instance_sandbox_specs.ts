@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceSandboxSpecsEndpoint {
     query?: DashboardInstanceSandboxSpecsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxSpecsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/specs`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/specs`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceSandboxSpecsEndpoint {
     specId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxSpecsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/specs/${specId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/specs/${encodeURIComponent(specId)}`;
 
     let request = {
       path,

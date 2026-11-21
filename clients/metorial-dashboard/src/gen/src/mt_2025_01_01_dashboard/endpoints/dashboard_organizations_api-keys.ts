@@ -71,7 +71,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     query?: DashboardOrganizationsApiKeysListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysListOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys`;
 
     let request = {
       path,
@@ -103,7 +103,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     apiKeyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys/${encodeURIComponent(apiKeyId)}`;
 
     let request = {
       path,
@@ -132,7 +132,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     body: DashboardOrganizationsApiKeysCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     body: DashboardOrganizationsApiKeysUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys/${encodeURIComponent(apiKeyId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     apiKeyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysRevokeOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys/${encodeURIComponent(apiKeyId)}`;
 
     let request = {
       path,
@@ -225,7 +225,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     body: DashboardOrganizationsApiKeysRotateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysRotateOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}/rotate`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys/${encodeURIComponent(apiKeyId)}/rotate`;
 
     let request = {
       path,
@@ -255,7 +255,7 @@ export class MetorialDashboardOrganizationsApiKeysEndpoint {
     apiKeyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsApiKeysRevealOutput> {
-    let path = `dashboard/organizations/${organizationId}/api-keys/${apiKeyId}/reveal`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/api-keys/${encodeURIComponent(apiKeyId)}/reveal`;
 
     let request = {
       path,

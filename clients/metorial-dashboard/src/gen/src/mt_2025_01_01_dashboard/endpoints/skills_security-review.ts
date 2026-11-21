@@ -55,7 +55,7 @@ export class MetorialSkillsSecurityReviewEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSecurityReviewGetOutput> {
-    let path = `skills/${skillId}/security-review`;
+    let path = `skills/${encodeURIComponent(skillId)}/security-review`;
 
     let request = {
       path,
@@ -82,7 +82,7 @@ export class MetorialSkillsSecurityReviewEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSecurityReviewReassessOutput> {
-    let path = `skills/${skillId}/security-review/reassess`;
+    let path = `skills/${encodeURIComponent(skillId)}/security-review/reassess`;
 
     let request = {
       path,
@@ -109,7 +109,7 @@ export class MetorialSkillsSecurityReviewEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSecurityReviewDismissOutput> {
-    let path = `skills/${skillId}/security-review/dismiss`;
+    let path = `skills/${encodeURIComponent(skillId)}/security-review/dismiss`;
 
     let request = {
       path,
@@ -136,7 +136,7 @@ export class MetorialSkillsSecurityReviewEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSecurityReviewRestoreOutput> {
-    let path = `skills/${skillId}/security-review/restore`;
+    let path = `skills/${encodeURIComponent(skillId)}/security-review/restore`;
 
     let request = {
       path,

@@ -83,7 +83,7 @@ export class MetorialSessionsEventsEndpoint {
     sessionEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsEventsGetOutput> {
-    let path = `session-events/${sessionEventId}`;
+    let path = `session-events/${encodeURIComponent(sessionEventId)}`;
 
     let request = {
       path,

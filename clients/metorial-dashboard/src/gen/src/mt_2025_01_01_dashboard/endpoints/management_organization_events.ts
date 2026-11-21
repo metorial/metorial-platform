@@ -83,7 +83,7 @@ export class MetorialManagementOrganizationEventsEndpoint {
     eventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventsGetOutput> {
-    let path = `organization/events/${eventId}`;
+    let path = `organization/events/${encodeURIComponent(eventId)}`;
 
     let request = {
       path,

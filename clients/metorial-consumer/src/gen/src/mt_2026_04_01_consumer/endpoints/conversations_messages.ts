@@ -65,7 +65,7 @@ export class MetorialConversationsMessagesEndpoint {
     query?: DashboardInstanceConversationsMessagesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsMessagesListOutput> {
-    let path = `conversations/${assistantConversationId}/messages`;
+    let path = `conversations/${encodeURIComponent(assistantConversationId)}/messages`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialConversationsMessagesEndpoint {
     body: DashboardInstanceConversationsMessagesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsMessagesCreateOutput> {
-    let path = `conversations/${assistantConversationId}/messages`;
+    let path = `conversations/${encodeURIComponent(assistantConversationId)}/messages`;
 
     let request = {
       path,
@@ -129,7 +129,7 @@ export class MetorialConversationsMessagesEndpoint {
     assistantMessageId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsMessagesGetOutput> {
-    let path = `conversations/${assistantConversationId}/messages/${assistantMessageId}`;
+    let path = `conversations/${encodeURIComponent(assistantConversationId)}/messages/${encodeURIComponent(assistantMessageId)}`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialConversationsMessagesEndpoint {
     body: DashboardInstanceConversationsMessagesHandoffResponsesBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsMessagesHandoffResponsesOutput> {
-    let path = `conversations/${assistantConversationId}/messages/${assistantMessageId}/handoff-responses`;
+    let path = `conversations/${encodeURIComponent(assistantConversationId)}/messages/${encodeURIComponent(assistantMessageId)}/handoff-responses`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialConversationsMessagesEndpoint {
     assistantMessageId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsMessagesCancelOutput> {
-    let path = `conversations/${assistantConversationId}/messages/${assistantMessageId}/cancel`;
+    let path = `conversations/${encodeURIComponent(assistantConversationId)}/messages/${encodeURIComponent(assistantMessageId)}/cancel`;
 
     let request = {
       path,

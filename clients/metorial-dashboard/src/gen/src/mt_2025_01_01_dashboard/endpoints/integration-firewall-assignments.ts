@@ -91,7 +91,7 @@ export class MetorialIntegrationFirewallAssignmentsEndpoint {
     integrationFirewallAssignmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationFirewallAssignmentsGetOutput> {
-    let path = `integration-firewall-assignments/${integrationFirewallAssignmentId}`;
+    let path = `integration-firewall-assignments/${encodeURIComponent(integrationFirewallAssignmentId)}`;
 
     let request = {
       path,
@@ -148,7 +148,7 @@ export class MetorialIntegrationFirewallAssignmentsEndpoint {
     integrationFirewallAssignmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationFirewallAssignmentsDeleteOutput> {
-    let path = `integration-firewall-assignments/${integrationFirewallAssignmentId}`;
+    let path = `integration-firewall-assignments/${encodeURIComponent(integrationFirewallAssignmentId)}`;
 
     let request = {
       path,
