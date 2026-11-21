@@ -654,6 +654,13 @@
     "by": "agent",
     "at": "2026-11-16"
   },
+  "thinkingmachines/inkling-2-mini": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Inkling 2 Mini is a new Thinking Machines model (3.4B active/26.4B total MoE, released 2026-11-20 per the vendor listing and HF card thinkingmachines/Inkling-2-Mini). The index has no entry for it — inkling-2-small (2026-11-05) is a different, earlier sibling — so defer until the catalog adds it.",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
   "unbiased/pareto-26.10": {
     "decision": "defer",
     "until": "2026-12-12",
