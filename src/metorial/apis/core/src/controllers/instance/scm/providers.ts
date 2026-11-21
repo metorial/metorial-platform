@@ -32,7 +32,7 @@ let scmProviderGroup = instanceGroup.use(async ctx => {
 export let scmProvidersController = Controller.create(
   {
     name: 'SCM Providers',
-    description: 'Manage SCM providers configured for an instance.'
+    description: 'An SCM provider is a source control server an instance connects to.'
   },
   {
     list: instanceGroup
@@ -67,7 +67,7 @@ export let scmProvidersController = Controller.create(
     get: scmProviderGroup
       .get(instancePath('scm/providers/:scmProviderId', 'scm.providers.get'), {
         name: 'Get SCM provider',
-        description: 'Retrieves a specific SCM provider by ID.'
+        description: 'Retrieves an SCM provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:read'] }))
       .output(scmProviderPresenter)
@@ -80,7 +80,7 @@ export let scmProvidersController = Controller.create(
     create: instanceGroup
       .post(instancePath('scm/providers', 'scm.providers.create'), {
         name: 'Create SCM provider',
-        description: 'Initiates a setup session for a self-hosted SCM provider.'
+        description: 'Creates a setup session for an SCM provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.installation:write'] }))
       .body(
@@ -103,7 +103,7 @@ export let scmProvidersController = Controller.create(
               ] as const
             }),
             {
-              description: 'Type of self-hosted SCM provider to configure'
+              description: 'Type of SCM provider to configure.'
             }
           )
         })

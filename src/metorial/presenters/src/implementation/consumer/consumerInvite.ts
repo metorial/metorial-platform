@@ -27,26 +27,44 @@ export let v1ConsumerInvitePresenter = Presenter.create(consumerInviteType)
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.invite'),
-      id: v.string(),
-      status: v.enumOf(['pending', 'accepted']),
-      portal_url: v.nullable(v.string()),
-      consumer_profile: v.object({
-        object: v.literal('consumer.profile#preview'),
-        id: v.string(),
-        name: v.string(),
-        email: v.string()
+      object: v.literal('consumer.invite', {
+        description: 'String representing the object’s type.'
       }),
-      invited_by: v.object({
-        object: v.literal('organization.actor#preview'),
-        id: v.string(),
-        name: v.string(),
-        email: v.nullable(v.string())
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['pending', 'accepted'], {
+        description: '`accepted` once the consumer joins.'
       }),
-      message: v.nullable(v.string()),
-      accepted_at: v.nullable(v.date()),
-      created_at: v.date(),
-      updated_at: v.date()
+      portal_url: v.nullable(
+        v.string({ description: 'Where the invited consumer signs up. `null` outside portals.' })
+      ),
+      consumer_profile: v.object(
+        {
+          object: v.literal('consumer.profile#preview', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ description: 'Unique ID.' }),
+          name: v.string({ description: 'Display name.' }),
+          email: v.string({ description: 'Email address of the consumer.' })
+        },
+        { description: 'Consumer the invite was sent to.' }
+      ),
+      invited_by: v.object(
+        {
+          object: v.literal('organization.actor#preview', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ description: 'Unique ID.' }),
+          name: v.string({ description: 'Display name.' }),
+          email: v.nullable(v.string({ description: 'Email address.' }))
+        },
+        { description: 'Organization member who sent the invite.' }
+      ),
+      message: v.nullable(v.string({ description: 'Personal message included in the invite.' })),
+      accepted_at: v.nullable(
+        v.date({ description: 'When the invite was accepted. `null` while pending.' })
+      ),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

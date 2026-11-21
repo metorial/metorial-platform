@@ -15,14 +15,19 @@ import { getSkillPluginAccess } from './skillPlugin';
 let readScopes = ['instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write'] as const;
 
-let statusValidator = v.enumOf([
-  'pending',
-  'completed',
-  'failed',
-  'processing',
-  'waiting_for_review',
-  'canceled'
-]);
+let statusValidator = v.enumOf(
+  [
+    'pending',
+    'completed',
+    'failed',
+    'processing',
+    'waiting_for_review',
+    'canceled'
+  ],
+  {
+    description: 'What stage the sync is in.'
+  }
+);
 
 export let skillSyncGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))
@@ -48,7 +53,8 @@ export let skillSyncGroup = instanceGroup
 export let skillSyncController = Controller.create(
   {
     name: 'Skill Syncs',
-    description: 'View skill plugin and marketplace syncs for an instance.',
+    description:
+      'A skill sync is one run propagating a skill plugin or marketplace to its linked repositories.',
     hideInDocs: true
   },
   {
@@ -71,10 +77,26 @@ export let skillSyncController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_marketplace_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_plugin_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(v.union([statusValidator, v.array(statusValidator)])),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return syncs with these IDs.'
+              })
+            ),
+            skill_marketplace_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return syncs for one of these marketplaces.'
+              })
+            ),
+            skill_plugin_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return syncs for one of these plugins.'
+              })
+            ),
+            status: v.optional(
+              v.union([statusValidator, v.array(statusValidator)], {
+                description: 'Only return syncs with one of these statuses.'
+              })
+            ),
             created_at: dateFilterValidator('skill sync creation time')
           })
         )

@@ -39,7 +39,7 @@ export let skillGroupGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use
 export let skillGroupController = Controller.create(
   {
     name: 'Skill Groups',
-    description: 'Skill groups organize skills into reusable collections.'
+    description: 'A skill group is a reusable collection of skills.'
   },
   {
     list: instanceGroup
@@ -59,15 +59,32 @@ export let skillGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
-            status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+            search: v.optional(
+              v.string({
+                description: 'Only return skill groups matching this search text.'
+              })
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            status: v.optional(
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skill groups with one of these statuses.'
+                }
+              )
+            ),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill groups with these IDs.'
+              })
+            ),
+            skill_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill groups containing one of these skills.'
+              })
+            ),
             created_at: dateFilterValidator('skill group creation time'),
             updated_at: dateFilterValidator('skill group last update time')
           })
@@ -98,7 +115,7 @@ export let skillGroupController = Controller.create(
     get: skillGroupGroup
       .get(instancePath('skill-groups/:skillGroupId', 'skills.groups.get'), {
         name: 'Get skill group',
-        description: 'Retrieves a specific skill group.'
+        description: 'Retrieves a skill group.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(
@@ -122,11 +139,25 @@ export let skillGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          skill_ids: v.optional(v.array(v.string())),
-          allow_consumer_skill_assignment: v.optional(v.boolean())
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(
+            v.string({ description: 'Free-text description.' })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the skill group.'
+            })
+          ),
+          skill_ids: v.optional(
+            v.array(v.string(), {
+              description: 'Skills to add to the group, by ID.'
+            })
+          ),
+          allow_consumer_skill_assignment: v.optional(
+            v.boolean({
+              description: 'Allow consumers to assign their skills to the group.'
+            })
+          )
         })
       )
       .output(skillGroupPresenter)
@@ -152,27 +183,45 @@ export let skillGroupController = Controller.create(
     update: skillGroupGroup
       .patch(instancePath('skill-groups/:skillGroupId', 'skills.groups.update'), {
         name: 'Update skill group',
-        description: 'Updates a skill group.'
+        description: 'Updates a skill group. Omitted fields keep their current value.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          metadata: v.optional(v.nullable(v.record(v.any()))),
-          skill_ids: v.optional(v.array(v.string())),
-          allow_consumer_skill_assignment: v.optional(v.boolean()),
-          image_file_id: v.optional(v.nullable(v.string())),
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.nullable(v.string()), {
+            description: 'Free-text description. `null` clears it.'
+          }),
+          metadata: v.optional(v.nullable(v.record(v.any())), {
+            description:
+              'Custom data to identify or organize the skill group. Replaces existing metadata. `null` clears it.'
+          }),
+          skill_ids: v.optional(
+            v.array(v.string(), {
+              description: 'Skills in the group, by ID. Replaces existing membership.'
+            })
+          ),
+          allow_consumer_skill_assignment: v.optional(
+            v.boolean({
+              description: 'Allow consumers to assign their skills to the group.'
+            })
+          ),
+          image_file_id: v.optional(v.nullable(v.string()), {
+            description:
+              'Image file for the skill group, by ID. `null` resets to the default image. Cannot be combined with `image_icon`.'
+          }),
           image_icon: v.optional(
             v.nullable(
               v.object({
                 icon: v.string({
-                  description: 'Library icon id, e.g. rocket-2-line'
+                  description: 'ID of the library icon.',
+                  examples: ['rocket-2-line']
                 }),
                 color: v.string({
-                  description: 'Tile color: gray, blue, green, yellow, orange, red or purple'
+                  description:
+                    'Tile color. One of `gray`, `blue`, `green`, `yellow`, `orange`, `red`, or `purple`.'
                 })
               })
             ),
@@ -208,7 +257,7 @@ export let skillGroupController = Controller.create(
 
     delete: skillGroupGroup
       .delete(instancePath('skill-groups/:skillGroupId', 'skills.groups.delete'), {
-        name: 'Delete skill group',
+        name: 'Archive skill group',
         description: 'Archives a skill group.'
       })
       .use(hasFlags(['skills-enabled']))

@@ -1484,6 +1484,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "radixark/daisyrose-27b": {
+    "decision": "defer",
+    "until": "2026-12-20",
+    "reason": "RadixArk DaisyRose-27B is an RL-only fine-tune of Qwen3.8-27B (HF card: 'built on Qwen3.8-27B with reinforcement learning'), so it is not the Qwen checkpoint itself; the index has no RadixArk/DaisyRose entry. Released 2026-11-18, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "ricursiveai/ripple-65b-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1581,6 +1588,13 @@
     "reason": "unsloth/gemma-3-12b-it is Unsloth's mirror of Google's Gemma 3 12B IT instruction-tuned checkpoint (image-text-to-text, released 2025-03-12); same model as google/gemma-3-12b-it, and NanoGPT's flat 0.272 rate is above the model's median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "unsloth/gemma-3-4b-it": {
+    "decision": "link",
+    "model": "google/gemma-3-4b-it",
+    "reason": "Unsloth's gemma-3-4b-it repo is a faithful mirror of Google's Gemma 3 4B IT checkpoint (same 2025-03-12 release date, image-text-to-text pipeline, gemma license per its Hugging Face metadata), not a fine-tune, so the current link is right; NanoGPT's flat 0.2006 input/output rate is its own aggregator markup over the model's 0.04 median, not a different model.",
+    "by": "agent",
+    "at": "2026-11-20"
   },
   "venice-uncensored": {
     "decision": "link",

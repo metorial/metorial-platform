@@ -31,13 +31,13 @@ export let documentGroup = instanceGroup.use(async ctx => {
 export let documentController = Controller.create(
   {
     name: 'Documents',
-    description: 'Create and manage instance documents backed by Cargo.'
+    description: 'A document is rich text with comments, versions, and participants.'
   },
   {
     list: instanceGroup
       .get(instancePath('documents', 'documents.list'), {
         name: 'List documents',
-        description: 'Returns a paginated list of documents owned by the instance.',
+        description: 'Returns a paginated list of documents.',
         confidential: true
       })
       .use(
@@ -50,12 +50,16 @@ export let documentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by document ID'),
-            file_id: stringArrayFilterSchema('Filter by file ID'),
-            store_id: stringArrayFilterSchema('Filter by store ID'),
-            parent_document_id: stringArrayFilterSchema('Filter by parent document ID'),
-            created_at: dateFilterValidator('Filter by creation time'),
-            updated_at: dateFilterValidator('Filter by update time')
+            id: stringArrayFilterSchema('Only return documents with one of these IDs.'),
+            file_id: stringArrayFilterSchema(
+              'Only return documents stored in one of these files.'
+            ),
+            store_id: stringArrayFilterSchema('Only return documents in one of these stores.'),
+            parent_document_id: stringArrayFilterSchema(
+              'Only return documents cloned from one of these documents.'
+            ),
+            created_at: dateFilterValidator('document creation time'),
+            updated_at: dateFilterValidator('document last update time')
           })
         )
       )
@@ -77,7 +81,7 @@ export let documentController = Controller.create(
     create: instanceGroup
       .post(instancePath('documents', 'documents.create'), {
         name: 'Create document',
-        description: 'Creates a new document for the instance.',
+        description: 'Creates a document.',
         confidential: true
       })
       .use(
@@ -93,8 +97,8 @@ export let documentController = Controller.create(
       .body(
         'default',
         v.object({
-          title: v.string(),
-          content: v.string()
+          title: v.string({ description: 'Title of the document.' }),
+          content: v.string({ description: 'Content of the document.' })
         })
       )
       .output(documentPresenter)
@@ -118,8 +122,8 @@ export let documentController = Controller.create(
 
     get: documentGroup
       .get(instancePath('documents/:documentId', 'documents.get'), {
-        name: 'Get document by ID',
-        description: 'Retrieves a document by its ID.',
+        name: 'Get document',
+        description: 'Retrieves a document.',
         confidential: true
       })
       .use(
@@ -133,8 +137,7 @@ export let documentController = Controller.create(
     permissions: documentGroup
       .get(instancePath('documents/:documentId/permissions', 'documents.permissions.get'), {
         name: 'Get document permissions',
-        description:
-          'Returns the effective Cargo permissions for the current actor on a specific document.'
+        description: 'Returns what the caller can do with a document.'
       })
       .use(
         checkAccess({
@@ -155,7 +158,7 @@ export let documentController = Controller.create(
       .get(instancePath('documents/:documentId/edit-token', 'documents.editToken.get'), {
         name: 'Get document edit token',
         description:
-          'Returns a short-lived read or write token for establishing a live document session.',
+          'Returns a short-lived read or write token for establishing a live document session. Requires write scopes, even when the issued token only grants read access.',
         confidential: true
       })
       .use(
@@ -209,8 +212,8 @@ export let documentController = Controller.create(
 
     update: documentGroup
       .patch(instancePath('documents/:documentId', 'documents.update'), {
-        name: 'Update document by ID',
-        description: 'Updates a specific document.',
+        name: 'Update document',
+        description: 'Updates a document.',
         confidential: true
       })
       .use(
@@ -221,8 +224,8 @@ export let documentController = Controller.create(
       .body(
         'default',
         v.object({
-          title: v.optional(v.string()),
-          content: v.optional(v.string())
+          title: v.optional(v.string({ description: 'Title of the document.' })),
+          content: v.optional(v.string({ description: 'Content of the document.' }))
         })
       )
       .output(documentPresenter)
@@ -246,8 +249,8 @@ export let documentController = Controller.create(
 
     delete: documentGroup
       .delete(instancePath('documents/:documentId', 'documents.delete'), {
-        name: 'Delete document by ID',
-        description: 'Deletes a specific document.',
+        name: 'Delete document',
+        description: 'Deletes a document.',
         confidential: true
       })
       .use(
@@ -267,16 +270,18 @@ export let documentController = Controller.create(
 
     clone: documentGroup
       .post(instancePath('documents/:documentId/clone', 'documents.clone'), {
-        name: 'Clone document by ID',
-        description: 'Clones a specific document.',
+        name: 'Clone document',
+        description: 'Creates a copy of a document.',
         confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .body(
         'default',
         v.object({
-          target_document_id: v.optional(v.string()),
-          title: v.optional(v.string())
+          target_document_id: v.optional(
+            v.string({ description: 'ID to use for the cloned document.' })
+          ),
+          title: v.optional(v.string({ description: 'Title of the cloned document.' }))
         })
       )
       .output(documentPresenter)

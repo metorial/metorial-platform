@@ -28,27 +28,75 @@ export let v1AgentInstancePresenter = Presenter.create(agentInstanceType)
   }))
   .schema(
     v.object({
-      object: v.literal('agent.instance'),
-      id: v.string(),
-      type: v.enumOf(['mcp_client', 'tool_call'] as const),
-      name: v.string(),
-      version: v.nullable(v.string()),
-      description: v.nullable(v.string()),
-      agent_id: v.string(),
-      agent_client: v.nullable(
-        v.object({
-          object: v.literal('agent.client'),
-          id: v.string(),
-          type: v.enumOf(['mcp_client_oauth'] as const),
-          name: v.string(),
-          created_at: v.date(),
-          updated_at: v.date(),
-          last_connected_at: v.nullable(v.date())
+      object: v.literal('agent.instance', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.'
+      }),
+      type: v.enumOf(['mcp_client', 'tool_call'] as const, {
+        description: 'How the agent instance connects and runs.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      version: v.nullable(
+        v.string({
+          description: 'Client version. `null` when the instance reports no version.'
         })
       ),
-      created_at: v.date(),
-      updated_at: v.date(),
-      last_connected_at: v.nullable(v.date())
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      agent_id: v.string({
+        description: 'Agent this instance belongs to.',
+        examples: ['agt_4mNoPq8rSt2uVx6y']
+      }),
+      agent_client: v.nullable(
+        v.object(
+          {
+            object: v.literal('agent.client', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              description: 'Unique ID.'
+            }),
+            type: v.enumOf(['mcp_client_oauth'] as const, {
+              description: 'How the client connects.'
+            }),
+            name: v.string({
+              description: 'Display name.'
+            }),
+            created_at: v.date({
+              description: 'Creation time.'
+            }),
+            updated_at: v.date({
+              description: 'Last update time.'
+            }),
+            last_connected_at: v.nullable(
+              v.date({
+                description: 'When the client last connected. `null` when never connected.'
+              })
+            )
+          },
+          {
+            description: 'Client this instance connects with.'
+          }
+        )
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      last_connected_at: v.nullable(
+        v.date({
+          description: 'When the instance last connected. `null` when never connected.'
+        })
+      )
     })
   )
   .build();

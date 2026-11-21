@@ -33,7 +33,8 @@ let portalConsumerAccessRequestGroup = portalGroup.use(async ctx => {
 export let portalConsumerAccessRequestController = Controller.create(
   {
     name: 'Portal Access Requests',
-    description: 'Review and resolve access requests for a portal.'
+    description:
+      "A portal access request is a consumer's request for access to a listing. Approving it grants access through a consumer group."
   },
   {
     list: portalGroup
@@ -52,10 +53,14 @@ export let portalConsumerAccessRequestController = Controller.create(
               v.union([
                 v.enumOf(['pending', 'approved', 'rejected']),
                 v.array(v.enumOf(['pending', 'approved', 'rejected']))
-              ])
+              ]),
+              { description: 'Only return requests with one of these statuses.' }
             ),
-            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string())
+            consumer_profile_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return requests from these consumer profiles.' }
+            ),
+            search: v.optional(v.string({ description: 'Search by name or description.' }))
           })
         )
       )
@@ -82,7 +87,7 @@ export let portalConsumerAccessRequestController = Controller.create(
         ),
         {
           name: 'Get portal access request',
-          description: 'Retrieves a access request by ID.'
+          description: 'Retrieves a portal access request.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -103,7 +108,8 @@ export let portalConsumerAccessRequestController = Controller.create(
         ),
         {
           name: 'Review portal access request',
-          description: 'Approves or rejects a access request.'
+          description:
+            'Approves or rejects a portal access request. Approving with a consumer group grants access through that group.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -112,9 +118,15 @@ export let portalConsumerAccessRequestController = Controller.create(
       .body(
         'default',
         v.object({
-          status: v.enumOf(['approved', 'rejected']),
-          resolution_message: v.optional(v.string()),
-          consumer_group_id: v.optional(v.string())
+          status: v.enumOf(['approved', 'rejected'], {
+            description: 'Whether to approve or reject the request.'
+          }),
+          resolution_message: v.optional(
+            v.string({ description: 'Message shown to the consumer about the decision.' })
+          ),
+          consumer_group_id: v.optional(
+            v.string({ description: 'Consumer group the approval grants access through.' })
+          )
         })
       )
       .output(consumerAccessRequestPresenter)

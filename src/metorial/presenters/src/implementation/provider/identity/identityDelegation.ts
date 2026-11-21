@@ -16,16 +16,16 @@ let mapPermissionsFromStorage = (permissions: ('provider_call' | 'provider_read'
 
 let identityDelegationCredentialOverrideSchema = v.object({
   object: v.literal('identity.delegation_credential_override', {
-    description: "String representing the object's type"
+    description: 'String representing the object’s type.'
   }),
   id: v.string({
     name: 'id',
-    description: 'Unique credential override identifier.',
+    description: 'Unique ID.',
     examples: ['idco_9pQrStUvWxYzAbCd']
   }),
   status: v.enumOf(['active', 'expired'], {
     name: 'status',
-    description: 'Current status of the credential override.'
+    description: 'Current status of the credential override. `expired` once past `expires_at`.'
   }),
   permissions: v.array(v.enumOf(['provider:call', 'provider:read']), {
     name: 'permissions',
@@ -39,13 +39,13 @@ let identityDelegationCredentialOverrideSchema = v.object({
   }),
   created_at: v.date({
     name: 'created_at',
-    description: 'Timestamp when the credential override was created.',
+    description: 'Creation time.',
     examples: [new Date('2026-02-03T10:15:00Z')]
   }),
   expires_at: v.nullable(
     v.date({
       name: 'expires_at',
-      description: 'Timestamp when the credential override expires, if set.',
+      description: 'When the override expires. `null` when it never expires.',
       examples: [new Date('2026-03-03T10:15:00Z')]
     })
   )
@@ -53,11 +53,11 @@ let identityDelegationCredentialOverrideSchema = v.object({
 
 let identityDelegationPartySchema = v.object({
   object: v.literal('identity.delegation_party', {
-    description: "String representing the object's type"
+    description: 'String representing the object’s type.'
   }),
   id: v.string({
     name: 'id',
-    description: 'Unique delegation party identifier.',
+    description: 'Unique ID.',
     examples: ['idp_4dEfGhJkLmNpQrSt']
   }),
   roles: v.array(v.enumOf(['owner', 'delegator', 'delegatee']), {
@@ -68,18 +68,18 @@ let identityDelegationPartySchema = v.object({
   actor: v1IdentityActorPresenter.schema,
   created_at: v.date({
     name: 'created_at',
-    description: 'Timestamp when the party was attached to the delegation.',
+    description: 'Creation time.',
     examples: [new Date('2026-02-03T10:15:00Z')]
   })
 });
 
 let identityDelegationRequestPreviewSchema = v.object({
   object: v.literal('identity.delegation_request', {
-    description: "String representing the object's type"
+    description: 'String representing the object’s type.'
   }),
   id: v.string({
     name: 'id',
-    description: 'Unique delegation request identifier.',
+    description: 'Unique ID.',
     examples: ['idr_2mNpQrStUvWxYzAb']
   }),
   status: v.enumOf(['pending', 'approved', 'denied', 'canceled'], {
@@ -100,12 +100,12 @@ let identityDelegationRequestPreviewSchema = v.object({
   }),
   expires_at: v.date({
     name: 'expires_at',
-    description: 'Timestamp when the request expires.',
+    description: 'Deadline for approving or denying the request.',
     examples: [new Date('2026-03-03T10:15:00Z')]
   }),
   created_at: v.date({
     name: 'created_at',
-    description: 'Timestamp when the request was created.',
+    description: 'Creation time.',
     examples: [new Date('2026-02-03T10:15:00Z')]
   })
 });
@@ -191,16 +191,17 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
   .schema(
     v.object({
       object: v.literal('identity.delegation', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique delegation identifier.',
+        description: 'Unique ID.',
         examples: ['idd_7gHjKlMnPqRsTuVw']
       }),
       status: v.enumOf(['waiting_for_consent', 'denied', 'active', 'revoked', 'expired'], {
         name: 'status',
-        description: 'Current status of the delegation.'
+        description:
+          'Current status of the delegation. `waiting_for_consent` until the delegation is approved.'
       }),
       denied_reason: v.nullable(
         v.enumOf(
@@ -222,28 +223,33 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
         examples: [['provider:read', 'provider:call']]
       }),
       attestation: v.nullable(
-        v.object({
-          object: v.literal('identity.delegation_attestation', {
-            description: "String representing the object's type"
-          }),
-          id: v.string({
-            name: 'id',
-            description: 'Unique attestation identifier.',
-            examples: ['ida_3xYzAbCdEfGhIjKl']
-          }),
-          type: v.enumOf(
-            ['api', 'request_approval', 'covered_by_previously_approved_delegation'],
-            {
-              name: 'type',
-              description: 'Type of attestation, if any.'
-            }
-          ),
-          created_at: v.date({
-            name: 'created_at',
-            description: 'Timestamp when the attestation was created.',
-            examples: [new Date('2026-02-03T10:15:00Z')]
-          })
-        })
+        v.object(
+          {
+            object: v.literal('identity.delegation_attestation', {
+              description: 'String representing the object’s type.'
+            }),
+            id: v.string({
+              name: 'id',
+              description: 'Unique ID.',
+              examples: ['ida_3xYzAbCdEfGhIjKl']
+            }),
+            type: v.enumOf(
+              ['api', 'request_approval', 'covered_by_previously_approved_delegation'],
+              {
+                name: 'type',
+                description: 'How the delegation was approved.'
+              }
+            ),
+            created_at: v.date({
+              name: 'created_at',
+              description: 'Creation time.',
+              examples: [new Date('2026-02-03T10:15:00Z')]
+            })
+          },
+          {
+            description: 'How the delegation was approved. `null` when not recorded.'
+          }
+        )
       ),
       note: v.nullable(
         v.string({
@@ -255,36 +261,41 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Additional metadata associated with the delegation.',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ incident: 'INC-2048', requested_by: 'support' }]
         })
       ),
-      identity: v.object({
-        object: v.literal('identity#preview', {
-          description: "String representing the identity object's type"
-        }),
-        id: v.string({
-          name: 'id',
-          description: 'Unique identity identifier.',
-          examples: ['idn_5gHjKlMnPqRsTuVw']
-        }),
-        name: v.string({
-          name: 'name',
-          description: 'Display name of the identity.',
-          examples: ['Jane Doe']
-        }),
-        description: v.string({
-          name: 'description',
-          description: 'Optional description of the identity.',
-          examples: ['Customer support engineer']
-        }),
-        metadata: v.nullable(
-          v.record(v.any(), {
-            name: 'metadata',
-            description: 'Additional metadata associated with the identity.'
-          })
-        )
-      }),
+      identity: v.object(
+        {
+          object: v.literal('identity#preview', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({
+            name: 'id',
+            description: 'Unique ID.',
+            examples: ['idn_5gHjKlMnPqRsTuVw']
+          }),
+          name: v.string({
+            name: 'name',
+            description: 'Display name.',
+            examples: ['Jane Doe']
+          }),
+          description: v.string({
+            name: 'description',
+            description: 'Free-text description.',
+            examples: ['Customer support engineer']
+          }),
+          metadata: v.nullable(
+            v.record(v.any(), {
+              name: 'metadata',
+              description: 'Custom data you attach to identify or organize this record.'
+            })
+          )
+        },
+        {
+          description: 'Identity the delegation grants access to.'
+        }
+      ),
       delegation_config_id: v.nullable(
         v.string({
           name: 'delegation_config_id',
@@ -296,27 +307,30 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
         name: 'parties',
         description: 'Actors involved in the delegation and their roles.'
       }),
-      request: v.nullable(identityDelegationRequestPreviewSchema),
+      request: v.nullable({
+        ...identityDelegationRequestPreviewSchema,
+        description: 'Request that created this delegation. `null` for direct delegations.'
+      }),
       credential_overrides: v.array(identityDelegationCredentialOverrideSchema, {
         name: 'credential_overrides',
         description: 'Per-credential permission overrides attached to the delegation.'
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the delegation was created.',
+        description: 'Creation time.',
         examples: [new Date('2026-02-03T10:15:00Z')]
       }),
       expires_at: v.nullable(
         v.date({
           name: 'expires_at',
-          description: 'Timestamp when the delegation expires, if set.',
+          description: 'When the delegation expires. `null` when it never expires.',
           examples: [new Date('2026-03-03T10:15:00Z')]
         })
       ),
       revoked_at: v.nullable(
         v.date({
           name: 'revoked_at',
-          description: 'Timestamp when the delegation was revoked, if revoked.',
+          description: 'When the delegation was revoked. `null` unless revoked.',
           examples: [new Date('2026-02-12T17:45:00Z')]
         })
       )

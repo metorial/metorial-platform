@@ -128,15 +128,26 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.endpoint'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      slug: v.string(),
-      url: v.string(),
-      servers: v.array(endpointServerSchema),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
+      object: v.literal('magic_mcp.endpoint', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you delete the endpoint. Archived endpoints stay listable.'
+      }),
+      slug: v.string({
+        description: 'URL-safe name, unique within the instance.',
+        examples: ['my-endpoint']
+      }),
+      url: v.string({ description: 'Connection URL for the endpoint.' }),
+      servers: v.array(endpointServerSchema, {
+        description: 'Servers the endpoint routes to.'
+      }),
+      name: v.nullable(v.string({ description: 'Display name.' })),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      metadata: v.record(v.any(), {
+        description: 'Custom data you attach to identify or organize this record.'
+      }),
       enable_skill_editing: v.boolean({
         description:
           'Whether consumers connecting through this endpoint with a consumer magic MCP token get tools to read and edit the skills they have access to. The tools are hidden while skills are disabled for the instance.',
@@ -149,8 +160,8 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       }),
       skill_selection: skillSelectionSchema,
       access: resourceAccessSchema,
-      created_at: v.date(),
-      updated_at: v.date()
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

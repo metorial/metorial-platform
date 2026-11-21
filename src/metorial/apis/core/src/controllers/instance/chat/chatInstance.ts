@@ -43,7 +43,7 @@ export let chatInstanceController = Controller.create(
   {
     name: 'Chat Instances',
     description:
-      'Chat instances materialize a chat connection for a specific runtime configuration.'
+      'A chat instance is a chat connection running with its own configuration and identity.'
   },
   {
     list: instanceGroup
@@ -63,13 +63,13 @@ export let chatInstanceController = Controller.create(
                 v.enumOf(['draft', 'active', 'archived', 'deleted']),
                 v.array(v.enumOf(['draft', 'active', 'archived', 'deleted']))
               ]),
-              { description: 'Filter by status' }
+              { description: 'Only return chat instances with one of these statuses.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat instance ID(s)'
+              description: 'Only return chat instances with one of these IDs.'
             }),
             chat_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat connection ID(s)'
+              description: 'Only return chat instances for one of these chat connections.'
             }),
             created_at: dateFilterValidator('chat instance creation time'),
             updated_at: dateFilterValidator('chat instance last update time')
@@ -98,7 +98,7 @@ export let chatInstanceController = Controller.create(
     get: chatInstanceGroup
       .get(instancePath('chat/instances/:chatInstanceId', 'chat.instances.get'), {
         name: 'Get chat instance',
-        description: 'Retrieves a specific chat instance.'
+        description: 'Retrieves a chat instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .output(chatInstancePresenter)
@@ -115,15 +115,19 @@ export let chatInstanceController = Controller.create(
         v.object({
           chat_connection_id: v.string({
             name: 'chat_connection_id',
-            description: 'The chat connection to create this instance for'
+            description: 'Chat connection to create this instance for.'
           }),
-          name: v.optional(v.string({ description: 'Display name of the chat instance' })),
-          description: v.optional(v.string({ description: 'Description of the instance' })),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
           metadata: v.optional(
-            v.record(v.any(), { description: 'Metadata for the instance' })
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the chat instance.'
+            })
           ),
           private_metadata: v.optional(
-            v.record(v.any(), { description: 'Private metadata for the instance' })
+            v.record(v.any(), {
+              description: 'Private data stored with the instance. Never returned by the API.'
+            })
           ),
           identity_actor_id: v.optional(
             v.nullable(v.string({ description: 'Identity actor to run this instance as' }))
@@ -167,19 +171,30 @@ export let chatInstanceController = Controller.create(
     update: chatInstanceGroup
       .patch(instancePath('chat/instances/:chatInstanceId', 'chat.instances.update'), {
         name: 'Update chat instance',
-        description: 'Updates a specific chat instance.'
+        description: 'Updates a chat instance. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ description: 'Display name of the chat instance' })),
+          name: v.optional(v.string({ description: 'Display name.' })),
           description: v.optional(
-            v.nullable(v.string({ description: 'Description of the instance' }))
+            v.nullable(v.string({ description: 'Free-text description. `null` clears it.' }))
           ),
-          metadata: v.optional(v.nullable(v.record(v.any(), { description: 'Metadata' }))),
+          metadata: v.optional(
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Custom data to identify or organize the chat instance. Replaces existing metadata.'
+              })
+            )
+          ),
           private_metadata: v.optional(
-            v.nullable(v.record(v.any(), { description: 'Private metadata' }))
+            v.nullable(
+              v.record(v.any(), {
+                description: 'Private data stored with the instance. Never returned by the API.'
+              })
+            )
           )
         })
       )
@@ -201,8 +216,8 @@ export let chatInstanceController = Controller.create(
 
     delete: chatInstanceGroup
       .delete(instancePath('chat/instances/:chatInstanceId', 'chat.instances.delete'), {
-        name: 'Delete chat instance',
-        description: 'Archives a specific chat instance.'
+        name: 'Archive chat instance',
+        description: 'Archives a chat instance. It stays listable with `status=archived`.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .output(chatInstancePresenter)
@@ -264,7 +279,7 @@ export let chatInstanceController = Controller.create(
         v.object({
           provider_id: v.string({
             name: 'provider_id',
-            description: 'The chat provider to use for this instance'
+            description: 'Chat provider to use for this instance.'
           }),
           provider_deployment_id: v.optional(
             v.string({ description: 'Provider deployment to use' })

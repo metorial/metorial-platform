@@ -51,36 +51,97 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
   }))
   .schema(
     v.object({
-      object: v.literal('integration'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      slug: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
-      configuration: v.object({
-        can_attach_custom_tool_filters: v.boolean(),
-        can_attach_custom_provider_config: v.boolean(),
-        can_override_tool_filters: v.boolean(),
-        enable_callback_tools: v.boolean(),
-        use_integration_name_in_tool_names: v.nullable(v.boolean())
+      object: v.literal('integration', {
+        description: 'String representing the object’s type.'
       }),
-      implementation: v.nullable(
-        v.union([
-          v.object({
-            type: v.literal('provider_template'),
-            provider_template_id: v.string()
-          }),
-          v.object({
-            type: v.literal('magic_mcp_server'),
-            magic_mcp_server_id: v.string()
-          })
-        ])
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['int_2bCdEfGhJkLmNpQr']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you archive the integration.'
+      }),
+      slug: v.string({
+        description: 'URL-safe name, unique across Metorial.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
       ),
-      providers: v.array(v1IntegrationProviderPresenter.schema),
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
+      configuration: v.object(
+        {
+          can_attach_custom_tool_filters: v.boolean({
+            description: 'Lets integration instances attach their own tool filters.'
+          }),
+          can_attach_custom_provider_config: v.boolean({
+            description: 'Lets integration instances use their own provider configs.'
+          }),
+          can_override_tool_filters: v.boolean({
+            description: 'Lets integration instances ignore the integration tool filters.'
+          }),
+          enable_callback_tools: v.boolean({
+            description: 'Makes callback event tools available for this integration.'
+          }),
+          use_integration_name_in_tool_names: v.nullable(
+            v.boolean({
+              description:
+                'Names session providers after the integration instead of the provider. `null` uses the default.'
+            })
+          )
+        },
+        { description: 'Which settings integration instances may customize.' }
+      ),
+      implementation: v.nullable(
+        v.union(
+          [
+            v.object({
+              type: v.literal('provider_template', {
+                description: 'Which kind of backing this is.'
+              }),
+              provider_template_id: v.string({
+                description: 'Provider template this integration is built on.',
+                examples: ['ptm_4dEfGhJkLmNpQrSt']
+              })
+            }),
+            v.object({
+              type: v.literal('magic_mcp_server', {
+                description: 'Which kind of backing this is.'
+              }),
+              magic_mcp_server_id: v.string({
+                description: 'Magic MCP server this integration is built on.'
+              })
+            })
+          ],
+          {
+            description:
+              'What this integration is built on. `null` for a standalone integration.'
+          }
+        )
+      ),
+      providers: v.array(v1IntegrationProviderPresenter.schema, {
+        description:
+          'Providers in this integration, with the deployment, credentials, and tool filters each runs with.'
+      }),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   )
   .build();
@@ -124,22 +185,63 @@ export let v1IntegrationPreviewPresenter = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('integration#preview'),
-      id: v.string(),
-      slug: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
-      configuration: v.object({
-        can_attach_custom_tool_filters: v.boolean(),
-        can_attach_custom_provider_config: v.boolean(),
-        can_override_tool_filters: v.boolean(),
-        enable_callback_tools: v.boolean(),
-        use_integration_name_in_tool_names: v.nullable(v.boolean())
+      object: v.literal('integration#preview', {
+        description: 'String representing the object’s type.'
       }),
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['int_2bCdEfGhJkLmNpQr']
+      }),
+      slug: v.string({
+        description: 'URL-safe name, unique across Metorial.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
+      configuration: v.object(
+        {
+          can_attach_custom_tool_filters: v.boolean({
+            description: 'Lets integration instances attach their own tool filters.'
+          }),
+          can_attach_custom_provider_config: v.boolean({
+            description: 'Lets integration instances use their own provider configs.'
+          }),
+          can_override_tool_filters: v.boolean({
+            description: 'Lets integration instances ignore the integration tool filters.'
+          }),
+          enable_callback_tools: v.boolean({
+            description: 'Makes callback event tools available for this integration.'
+          }),
+          use_integration_name_in_tool_names: v.nullable(
+            v.boolean({
+              description:
+                'Names session providers after the integration instead of the provider. `null` uses the default.'
+            })
+          )
+        },
+        { description: 'Which settings integration instances may customize.' }
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   }
 );

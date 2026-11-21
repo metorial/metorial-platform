@@ -43,23 +43,57 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
   }))
   .schema(
     v.object({
-      object: v.literal('integration.instance.group'),
-      id: v.string(),
-      status: v.enumOf(['draft', 'active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
-      implementation: v.nullable(
-        v.object({
-          type: v.literal('magic_mcp_endpoint'),
-          magic_mcp_endpoint_id: v.string()
+      object: v.literal('integration.instance.group', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['dii_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['draft', 'active', 'archived', 'deleted'], {
+        description: '`draft` when created. `archived` once you archive the group.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
         })
       ),
-      providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
+      implementation: v.nullable(
+        v.object(
+          {
+            type: v.literal('magic_mcp_endpoint', {
+              description: 'Which kind of backing this is.'
+            }),
+            magic_mcp_endpoint_id: v.string({
+              description: 'Magic MCP endpoint backing this group.'
+            })
+          },
+          { description: 'What backs this group. `null` for a standalone group.' }
+        )
+      ),
+      providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema, {
+        description: 'Providers linked into this group.'
+      }),
       access: resourceAccessSchema,
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   )
   .build();

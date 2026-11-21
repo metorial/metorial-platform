@@ -23,23 +23,24 @@ export let v1ChatPresenter = Presenter.create(chatType)
   .schema(
     v.object({
       object: v.literal('chat', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat identifier',
+        description: 'Unique ID.',
         examples: ['cht_4dEfGhJkLmNpQrSt']
       }),
 
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'The chat status'
+        description:
+          '`archived` once the chat or its connection is archived. Archived chats stay listable.'
       }),
 
       name: v.string({
         name: 'name',
-        description: 'Display name of the chat',
+        description: 'Display name.',
         examples: ['Acme Inc']
       }),
 
@@ -77,13 +78,13 @@ export let v1ChatPresenter = Presenter.create(chatType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the chat was created',
+        description: 'Creation time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the chat was last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

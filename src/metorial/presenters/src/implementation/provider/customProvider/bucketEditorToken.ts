@@ -12,11 +12,11 @@ export let v1BucketEditorTokenPresenter = Presenter.create(bucketEditorTokenType
   .schema(
     v.object({
       object: v.literal('bucket.editor_token', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string({ description: 'The code bucket ID' }),
-      url: v.string({ description: 'The code editor URL' }),
-      expires_at: v.date({ description: 'When the token expires' })
+      id: v.string({ description: 'ID of the code bucket.' }),
+      url: v.string({ description: 'Browser editor URL this token opens.' }),
+      expires_at: v.date({ description: 'When the token expires.' })
     })
   )
   .build();

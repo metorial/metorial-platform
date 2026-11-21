@@ -23,21 +23,40 @@ let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as c
 let statusValidator = v.enumOf(['pending', 'processing', 'completed', 'failed']);
 let sourceValidator = v.union([
   v.object({
-    type: v.literal('public'),
-    repository_url: v.string({ modifiers: [v.url()] }),
-    ref: v.optional(v.string())
+    type: v.literal('public', {
+      description: 'Import from a public repository URL.'
+    }),
+    repository_url: v.string({
+      modifiers: [v.url()],
+      description: 'Public repository URL to import from.'
+    }),
+    ref: v.optional(
+      v.string({ description: 'Branch, tag, or commit to import. Defaults to the default branch.' })
+    )
   }),
   v.object({
-    type: v.literal('origin'),
-    repository_id: v.string(),
-    ref: v.optional(v.string()),
-    path: v.optional(v.string())
+    type: v.literal('origin', {
+      description: 'Import from a connected repository.'
+    }),
+    repository_id: v.string({
+      description: 'Connected repository to import from, by ID.'
+    }),
+    ref: v.optional(
+      v.string({ description: 'Branch, tag, or commit to import. Defaults to the default branch.' })
+    ),
+    path: v.optional(
+      v.string({ description: 'Directory within the repository to import.' })
+    )
   }),
   v.object({
-    type: v.literal('file'),
-    file_id: v.string()
+    type: v.literal('file', {
+      description: 'Import from an uploaded file.'
+    }),
+    file_id: v.string({ description: 'Uploaded file to import, by ID.' })
   })
-]);
+], {
+  description: 'Where to import skills from.'
+});
 
 let getAccess = (ctx: any) => getInstanceCargoAccess(ctx);
 
@@ -99,7 +118,7 @@ export let skillImportGroup = instanceGroup
 export let skillImportController = Controller.create(
   {
     name: 'Skill Imports',
-    description: 'Import skills from public repositories or uploaded files.'
+    description: 'A skill import is a queued import of skills from a repository or uploaded file.'
   },
   {
     list: instanceGroup
@@ -115,8 +134,16 @@ export let skillImportController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(v.union([statusValidator, v.array(statusValidator)]))
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill imports with these IDs.'
+              })
+            ),
+            status: v.optional(
+              v.union([statusValidator, v.array(statusValidator)], {
+                description: 'Only return skill imports with one of these statuses.'
+              })
+            )
           })
         )
       )
@@ -138,7 +165,7 @@ export let skillImportController = Controller.create(
     get: skillImportGroup
       .get(instancePath('skill-imports/:skillImportId', 'skills.imports.get'), {
         name: 'Get skill import',
-        description: 'Retrieves an individual skill import and its results.'
+        description: 'Retrieves a skill import and its results.'
       })
       .use(checkAccess({ possibleScopes: [...readScopes] }))
       .output(skillImportPresenter)

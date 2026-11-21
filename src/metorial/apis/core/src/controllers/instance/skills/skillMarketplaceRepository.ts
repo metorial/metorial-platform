@@ -15,7 +15,7 @@ let writeScopes = ['instance.skill:write'] as const;
 export let skillMarketplaceRepositoryController = Controller.create(
   {
     name: 'Skill Marketplace Repositories',
-    description: 'Manage repositories linked to skill marketplaces for an instance.'
+    description: 'A skill marketplace repository is a repository linked to a skill marketplace.'
   },
   {
     list: skillMarketplaceGroup
@@ -90,7 +90,9 @@ export let skillMarketplaceRepositoryController = Controller.create(
       .body(
         'default',
         v.object({
-          repo_id: v.string()
+          repo_id: v.string({
+            description: 'Repository to link to the marketplace, by ID.'
+          })
         })
       )
       .output(skillMarketplaceRepositoryPresenter)

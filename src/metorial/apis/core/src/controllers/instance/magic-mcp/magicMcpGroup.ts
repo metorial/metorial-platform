@@ -34,7 +34,7 @@ let magicMcpGroupStatusValues = ['active', 'archived', 'deleted'] as const;
 export let magicMcpGroupController = Controller.create(
   {
     name: 'Magic MCP Groups',
-    description: 'Magic MCP groups categorize servers and can be bound to token access.',
+    description: 'A magic MCP group is a set of magic MCP servers that a token can be scoped to.',
     hideInDocs: true
   },
   {
@@ -54,10 +54,13 @@ export let magicMcpGroupController = Controller.create(
               v.union([
                 v.enumOf([...magicMcpGroupStatusValues]),
                 v.array(v.enumOf([...magicMcpGroupStatusValues]))
-              ])
+              ]),
+              { description: 'Only return groups with one of these statuses.' }
             ),
-            search: v.optional(v.string()),
-            id: v.optional(v.union([v.string(), v.array(v.string())]))
+            search: v.optional(v.string({ description: 'Search by name or description.' })),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return groups with these IDs.'
+            })
           })
         )
       )
@@ -104,9 +107,14 @@ export let magicMcpGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the group. Replaces existing metadata.'
+            })
+          )
         })
       )
       .output(magicMcpGroupPresenter)
@@ -154,7 +162,7 @@ export let magicMcpGroupController = Controller.create(
     update: magicMcpGroupGroup
       .patch(instancePath('magic-mcp-groups/:magicMcpGroupId', 'magicMcpGroups.update'), {
         name: 'Update magic MCP group',
-        description: 'Updates a magic MCP group.'
+        description: 'Updates a magic MCP group. Omitted fields keep their current value.'
       })
       .use(
         checkAccess({
@@ -165,9 +173,14 @@ export let magicMcpGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the group. Replaces existing metadata.'
+            })
+          )
         })
       )
       .output(magicMcpGroupPresenter)
@@ -206,7 +219,9 @@ export let magicMcpGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_server_ids: v.array(v.string())
+          magic_mcp_server_ids: v.array(v.string(), {
+            description: 'Servers to add to the group.'
+          })
         })
       )
       .output(magicMcpGroupPresenter)
@@ -241,7 +256,9 @@ export let magicMcpGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_server_ids: v.array(v.string())
+          magic_mcp_server_ids: v.array(v.string(), {
+            description: 'Servers to remove from the group.'
+          })
         })
       )
       .output(magicMcpGroupPresenter)

@@ -26,13 +26,14 @@ let monitorGroup = integrationsGroup.use(async ctx => {
 export let monitorController = Controller.create(
   {
     name: 'Monitors',
-    description: 'Monitors track automated observability checks for this instance.'
+    description:
+      'A monitor is an automated observability check for an instance. It raises alerts when its target misbehaves.'
   },
   {
     list: integrationsGroup
       .get(instancePath('monitors', 'monitors.list'), {
         name: 'List monitors',
-        description: 'Returns a paginated list of monitors for this instance.'
+        description: 'Returns a paginated list of monitors in the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .outputList(monitorPresenter)
@@ -40,16 +41,32 @@ export let monitorController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(stringOrArray(), { description: 'Filter by monitor ID(s)' }),
+            id: v.optional(stringOrArray(), {
+              description: 'Only return monitors with one of these IDs.'
+            }),
             target: v.optional(
-              v.union([monitorTargetValidator, v.array(monitorTargetValidator)])
+              v.union([monitorTargetValidator, v.array(monitorTargetValidator)]),
+              {
+                description: 'Only return monitors watching one of these targets.'
+              }
             ),
             status: v.optional(
-              v.union([monitorStatusValidator, v.array(monitorStatusValidator)])
+              v.union([monitorStatusValidator, v.array(monitorStatusValidator)]),
+              {
+                description: 'Only return monitors with one of these statuses.'
+              }
             ),
-            provider_id: v.optional(stringOrArray()),
-            proto_guard_filter_id: v.optional(stringOrArray()),
-            search: v.optional(v.string()),
+            provider_id: v.optional(stringOrArray(), {
+              description: 'Only return monitors watching one of these providers.'
+            }),
+            proto_guard_filter_id: v.optional(stringOrArray(), {
+              description: 'Only return monitors watching one of these ProtoGuard filters.'
+            }),
+            search: v.optional(
+              v.string({
+                description: 'Filter monitors by name or description.'
+              })
+            ),
             created_at: dateFilterValidator('monitor creation time'),
             updated_at: dateFilterValidator('monitor last update time'),
             first_alert_at: dateFilterValidator('first monitor alert time'),
@@ -80,7 +97,7 @@ export let monitorController = Controller.create(
     get: monitorGroup
       .get(instancePath('monitors/:monitorId', 'monitors.get'), {
         name: 'Get monitor',
-        description: 'Retrieves a monitor by ID.'
+        description: 'Retrieves a monitor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .output(monitorPresenter)

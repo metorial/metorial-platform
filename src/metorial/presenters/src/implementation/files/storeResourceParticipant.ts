@@ -15,15 +15,20 @@ let storeParticipantRoles = [
   'forker'
 ] as const;
 
-export let storeParticipantRolesSchema = v.array(v.enumOf([...storeParticipantRoles]));
-
-export let storeParticipantSurfaceSchema = v.object({
-  id: v.string(),
-  roles: storeParticipantRolesSchema,
-  actor: documentParticipantActorSchema,
-  last_active_at: v.nullable(v.date()),
-  created_at: v.date()
+export let storeParticipantRolesSchema = v.array(v.enumOf([...storeParticipantRoles]), {
+  description: 'Roles the participant holds.'
 });
+
+export let storeParticipantSurfaceSchema = v.object(
+  {
+    id: v.string({ description: 'Unique ID.' }),
+    roles: storeParticipantRolesSchema,
+    actor: documentParticipantActorSchema,
+    last_active_at: v.nullable(v.date({ description: 'When this identity was last active.' })),
+    created_at: v.date({ description: 'Creation time.' })
+  },
+  { description: 'Identity linked to a store participant.' }
+);
 
 export type StoreParticipantSurface = Awaited<
   ReturnType<typeof presentStoreResourceParticipantSurfaces>

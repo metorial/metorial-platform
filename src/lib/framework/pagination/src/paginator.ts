@@ -66,13 +66,29 @@ export class Paginator<T> {
       v.object({
         limit: v.optional(
           v.number({
-            modifiers: [v.minValue(1), v.maxValue(100)]
+            modifiers: [v.minValue(1), v.maxValue(100)],
+            description: 'Page size, from 1 to 100. Defaults to 20.'
           })
         ),
-        after: v.optional(v.string()),
-        before: v.optional(v.string()),
-        cursor: v.optional(v.string()),
-        order: v.optional(v.enumOf(['asc', 'desc']))
+        after: v.optional(
+          v.string({
+            description:
+              'Return the page after this point. Pass `pagination.after` if the previous response has it, otherwise the `id` of its last item.'
+          })
+        ),
+        before: v.optional(
+          v.string({
+            description:
+              'Return the page before this point. Pass `pagination.before` if the previous response has it, otherwise the `id` of its first item.'
+          })
+        ),
+        cursor: v.optional(
+          v.string({
+            description:
+              'A `cur_` cursor from `pagination.after` or `pagination.before`. Alternative to `after` and `before`.'
+          })
+        ),
+        order: v.optional(v.enumOf(['asc', 'desc'], { description: 'Sort direction.' }))
       }),
       inner ?? v.object({})
     ]) as ValidationType<

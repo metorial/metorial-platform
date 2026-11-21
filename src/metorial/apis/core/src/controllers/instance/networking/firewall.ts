@@ -36,13 +36,13 @@ export let firewallController = Controller.create(
   {
     name: 'Firewalls',
     description:
-      'Manage firewalls and their attached network policies. Firewalls apply to integration enclaves, providers, and sandbox machines.'
+      'A firewall is a set of network policies applied to targets. Firewalls apply to integration enclaves, providers, and sandbox machines.'
   },
   {
     list: networkingInstanceGroup
       .get(instancePath('firewalls', 'firewalls.list'), {
         name: 'List firewalls',
-        description: 'Returns a paginated list of firewalls.'
+        description: 'Returns a paginated list of firewalls in the instance.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .outputList(firewallPresenter)
@@ -51,21 +51,34 @@ export let firewallController = Controller.create(
         Paginator.validate(
           v.object({
             search: v.optional(v.string(), {
-              description: 'Search firewalls by name and description'
+              description: 'Filter firewalls by name or description.'
             }),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            slug: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return firewalls with one of these IDs.'
+            }),
+            slug: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return firewalls with one of these slugs.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description: 'Only return firewalls with one of these statuses.'
+              }
             ),
-            enclave_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            network_policy_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            enclave_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return firewalls applied to one of these enclaves.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return firewalls applied to one of these providers.'
+            }),
+            network_policy_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return firewalls with one of these network policies attached.'
+            }),
             machine_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Only firewalls applied to these sandbox machines'
+              description: 'Only return firewalls applied to one of these sandbox machines.'
             }),
             created_at: dateFilterValidator('firewall creation time'),
             updated_at: dateFilterValidator('firewall last update time')
@@ -100,7 +113,7 @@ export let firewallController = Controller.create(
     get: firewallGroup
       .get(instancePath('firewalls/:firewallId', 'firewalls.get'), {
         name: 'Get firewall',
-        description: 'Retrieves a specific firewall by ID.'
+        description: 'Retrieves a firewall.'
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(firewallPresenter)
@@ -109,16 +122,31 @@ export let firewallController = Controller.create(
     create: networkingInstanceGroup
       .post(instancePath('firewalls', 'firewalls.create'), {
         name: 'Create firewall',
-        description: 'Creates a new firewall.'
+        description: 'Creates a firewall.'
       })
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          slug: v.optional(v.string()),
-          network_policy_ids: v.optional(v.array(v.string()))
+          name: v.string({
+            description: 'Display name.'
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          slug: v.optional(
+            v.string({
+              description:
+                'URL-safe name, unique within the instance. Generated from the name when omitted.'
+            })
+          ),
+          network_policy_ids: v.optional(
+            v.array(v.string(), {
+              description: 'Network policies to attach to the firewall, in order.'
+            })
+          )
         })
       )
       .output(firewallPresenter)
@@ -140,16 +168,33 @@ export let firewallController = Controller.create(
     update: firewallGroup
       .patch(instancePath('firewalls/:firewallId', 'firewalls.update'), {
         name: 'Update firewall',
-        description: 'Updates a firewall definition.'
+        description: 'Updates a firewall. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          slug: v.optional(v.string()),
-          network_policy_ids: v.optional(v.array(v.string()))
+          name: v.optional(
+            v.string({
+              description: 'Display name.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          slug: v.optional(
+            v.string({
+              description: 'URL-safe name, unique within the instance.'
+            })
+          ),
+          network_policy_ids: v.optional(
+            v.array(v.string(), {
+              description:
+                'Network policies attached to the firewall, in order. Replaces existing attachments.'
+            })
+          )
         })
       )
       .output(firewallPresenter)
@@ -171,8 +216,8 @@ export let firewallController = Controller.create(
 
     delete: firewallGroup
       .delete(instancePath('firewalls/:firewallId', 'firewalls.delete'), {
-        name: 'Delete firewall',
-        description: 'Archives a firewall.'
+        name: 'Archive firewall',
+        description: 'Archives a firewall. It stays listable with `status=archived`.'
       })
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .output(firewallPresenter)
@@ -207,8 +252,14 @@ export let firewallController = Controller.create(
       .body(
         'default',
         v.object({
-          network_policy_id: v.string(),
-          position: v.optional(v.number())
+          network_policy_id: v.string({
+            description: 'Network policy to attach to the firewall.'
+          }),
+          position: v.optional(
+            v.number({
+              description: 'Position to insert the policy at. Omitted appends it last.'
+            })
+          )
         })
       )
       .output(firewallPresenter)

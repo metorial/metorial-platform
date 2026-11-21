@@ -78,11 +78,25 @@ let moveChangeFields = {
   if_match: existingIfMatchValidator
 };
 
-let skillFileChangeValidator = v.union([
-  v.object({ type: v.literal('put'), ...putChangeFields }),
-  v.object({ type: v.literal('delete'), ...deleteChangeFields }),
-  v.object({ type: v.literal('move'), ...moveChangeFields })
-]);
+let skillFileChangeValidator = v.union(
+  [
+    v.object({
+      type: v.literal('put', { description: 'Create or replace the file.' }),
+      ...putChangeFields
+    }),
+    v.object({
+      type: v.literal('delete', { description: 'Delete the file.' }),
+      ...deleteChangeFields
+    }),
+    v.object({
+      type: v.literal('move', { description: 'Move or rename the file.' }),
+      ...moveChangeFields
+    })
+  ],
+  {
+    description: 'File change to apply.'
+  }
+);
 
 let toSkillFileChange = (
   change: ValidationTypeValue<typeof skillFileChangeValidator>
@@ -111,7 +125,7 @@ let toSkillFileChange = (
 export let skillFileController = Controller.create(
   {
     name: 'Skill Files',
-    description: 'Read and edit the files of a skill by path.'
+    description: 'Skill files are the versioned files that make up a skill, addressed by path.'
   },
   {
     list: skillGroup

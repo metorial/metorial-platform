@@ -24,22 +24,37 @@ export let skillMergeRequestWriteScopes = [
   'consumer#instance.skill:write'
 ] as const;
 let statusValidator = v.enumOf(['open', 'closed', 'merging', 'merged']);
-let resolutionTypeValidator = v.enumOf([
-  'accept_source',
-  'keep_target',
-  'remove',
-  'edit_document',
-  'replace_file',
-  'skip'
-]);
+let resolutionTypeValidator = v.enumOf(
+  [
+    'accept_source',
+    'keep_target',
+    'remove',
+    'edit_document',
+    'replace_file',
+    'skip'
+  ],
+  {
+    description: 'How to resolve the proposed change.'
+  }
+);
 let resolutionValidator = v.optional(
   v.nullable(
     v.object({
-      title: v.optional(v.string()),
-      content: v.optional(v.string()),
-      fileId: v.optional(v.string())
+      title: v.optional(
+        v.string({ description: 'Document title for the resolution.' })
+      ),
+      content: v.optional(
+        v.string({ description: 'Document or file content for the resolution.' })
+      ),
+      fileId: v.optional(
+        v.string({ description: 'Replacement file for the resolution, by ID.' })
+      )
     })
-  )
+  ),
+  {
+    description:
+      'Custom content for the resolution. Required for `edit_document` and `replace_file`.'
+  }
 );
 
 export let getSkillMergeRequestAccess = (ctx: any) => getInstanceCargoAccess(ctx);
@@ -67,7 +82,7 @@ export let skillMergeRequestGroup = instanceGroup
 export let skillMergeRequestController = Controller.create(
   {
     name: 'Skill Merge Requests',
-    description: 'Review, resolve, and apply changes between skills.',
+    description: 'A skill merge request is a proposed change from one skill into another.',
     hideInDocs: true
   },
   {
@@ -83,11 +98,31 @@ export let skillMergeRequestController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            source_skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            target_skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(v.union([statusValidator, v.array(statusValidator)])),
-            created_by_actor_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return merge requests with these IDs.'
+              })
+            ),
+            source_skill_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return merge requests from one of these source skills.'
+              })
+            ),
+            target_skill_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return merge requests into one of these target skills.'
+              })
+            ),
+            status: v.optional(
+              v.union([statusValidator, v.array(statusValidator)], {
+                description: 'Only return merge requests with one of these statuses.'
+              })
+            ),
+            created_by_actor_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return merge requests created by one of these actors.'
+              })
+            ),
             created_at: dateFilterValidator('skill merge request creation time')
           })
         )
@@ -119,10 +154,19 @@ export let skillMergeRequestController = Controller.create(
       .body(
         'default',
         v.object({
-          source_skill_id: v.string(),
-          target_skill_id: v.optional(v.string()),
-          title: v.string(),
-          description: v.optional(v.nullable(v.string()))
+          source_skill_id: v.string({
+            description: 'Skill to merge from, by ID.'
+          }),
+          target_skill_id: v.optional(
+            v.string({
+              description:
+                'Skill to merge into, by ID. Defaults to the upstream skill of the source skill.'
+            })
+          ),
+          title: v.string({ description: 'Display name.' }),
+          description: v.optional(v.nullable(v.string()), {
+            description: 'Free-text description. `null` clears it.'
+          })
         })
       )
       .output(skillMergeRequestPresenter)
@@ -181,7 +225,8 @@ export let skillMergeRequestController = Controller.create(
         ),
         {
           name: 'Resolve skill merge request item',
-          description: 'Saves a resolution for one proposed skill change.'
+          description:
+            'Saves a resolution for one proposed skill change. The merge request must be open.'
         }
       )
       .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
@@ -214,7 +259,8 @@ export let skillMergeRequestController = Controller.create(
         ),
         {
           name: 'Resolve skill merge request items',
-          description: 'Saves resolutions for multiple proposed skill changes.'
+          description:
+            'Saves resolutions for multiple proposed skill changes. The merge request must be open.'
         }
       )
       .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
@@ -223,10 +269,15 @@ export let skillMergeRequestController = Controller.create(
         v.object({
           items: v.array(
             v.object({
-              item_id: v.string(),
+              item_id: v.string({
+                description: 'Proposed change to resolve, by ID.'
+              }),
               resolution_type: resolutionTypeValidator,
               resolution: resolutionValidator
-            })
+            }),
+            {
+              description: 'Resolutions to save.'
+            }
           )
         })
       )

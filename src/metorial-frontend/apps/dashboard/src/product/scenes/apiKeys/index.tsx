@@ -32,15 +32,11 @@ import styled from 'styled-components';
 import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 
 type ApiKeyType = ApiKeysGetOutput['type'];
-type InstanceApiKeyType = Exclude<ApiKeyType, 'organization_management_token'>;
 type InstanceApiKeysFilter = Extract<ApiKeysFilter, { type: 'instance_access_token' }>;
 
 let normalizeOptionalString = (value: string | undefined) => value || undefined;
 let normalizeIpFilters = (value: string[] | undefined) =>
   Array.from(new Set((value ?? []).map(item => item.trim()).filter(Boolean)));
-
-let isInstanceApiKeyType = (value: string): value is InstanceApiKeyType =>
-  value === 'instance_access_token_secret' || value === 'instance_access_token_publishable';
 
 let getApiKeyTypeLabel = (type: ApiKeyType) => {
   switch (type) {
@@ -68,17 +64,6 @@ export let ApiKeysScene = ({
   tableLayout?: 'product';
 }) => {
   let name = 'API Key';
-  let apiKeyTypeItems: Array<{ id: InstanceApiKeyType; label: string }> = [
-    {
-      id: 'instance_access_token_secret',
-      label: getApiKeyTypeLabel('instance_access_token_secret')
-    },
-    {
-      id: 'instance_access_token_publishable',
-      label: getApiKeyTypeLabel('instance_access_token_publishable')
-    }
-  ];
-
   let apiKeys = useApiKeysWithAutoInit(filter);
   let org = useCurrentOrganization();
 
@@ -90,12 +75,11 @@ export let ApiKeysScene = ({
         initialValues: {
           name: '',
           description: '',
-          expiresAt: undefined,
-          type: 'instance_access_token_secret' as InstanceApiKeyType
+          expiresAt: undefined
         },
         onSubmit: async values => {
           let [res] = await mutator.mutate({
-            type: values.type,
+            type: 'instance_access_token_secret',
             instanceId: filter.instanceId,
             name: values.name,
             description: normalizeOptionalString(values.description),
@@ -138,11 +122,7 @@ export let ApiKeysScene = ({
             expiresAt: yup
               .date()
               .optional()
-              .min(new Date(), 'Expires at must be in the future'),
-            type: yup
-              .mixed<InstanceApiKeyType>()
-              .oneOf(['instance_access_token_secret', 'instance_access_token_publishable'])
-              .required('Type is required')
+              .min(new Date(), 'Expires at must be in the future')
           }) as any
       });
 
@@ -170,20 +150,6 @@ export let ApiKeysScene = ({
               resettable
             />
             <form.RenderError field="expiresAt" />
-
-            <Spacer height={15} />
-
-            <Select
-              label="Type"
-              value={form.values.type}
-              items={apiKeyTypeItems}
-              onChange={v => {
-                if (isInstanceApiKeyType(v)) {
-                  form.setFieldValue('type', v);
-                }
-              }}
-            />
-            <form.RenderError field="type" />
 
             <Spacer height={15} />
 
@@ -222,8 +188,7 @@ export let ApiKeysScene = ({
           name: apiKey?.name ?? undefined,
           description: apiKey?.description ?? '',
           expiresAt: apiKey?.expiresAt ?? undefined,
-          ipFilters: apiKey?.ipFilters ?? [],
-          type: apiKey?.type ?? undefined
+          ipFilters: apiKey?.ipFilters ?? []
         },
         onSubmit: async values => {
           let [res] = await mutator.mutate({
@@ -243,11 +208,7 @@ export let ApiKeysScene = ({
               .date()
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
-            ipFilters: yup.array(yup.string().trim()).required(),
-            type: yup
-              .mixed<InstanceApiKeyType>()
-              .oneOf(['instance_access_token_secret', 'instance_access_token_publishable'])
-              .optional()
+            ipFilters: yup.array(yup.string().trim()).required()
           }) as any
       });
 
@@ -286,20 +247,6 @@ export let ApiKeysScene = ({
               onChange={v => form.setFieldValue('ipFilters', v)}
             />
             <form.RenderError field="ipFilters" />
-
-            <Spacer height={15} />
-
-            <Select
-              label="Type"
-              value={form.values.type ?? ''}
-              items={apiKeyTypeItems}
-              onChange={v => {
-                if (isInstanceApiKeyType(v)) {
-                  form.setFieldValue('type', v);
-                }
-              }}
-            />
-            <form.RenderError field="type" />
 
             <Spacer height={15} />
 

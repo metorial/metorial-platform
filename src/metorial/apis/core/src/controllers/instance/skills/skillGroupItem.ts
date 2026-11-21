@@ -44,13 +44,13 @@ export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
 export let skillGroupItemController = Controller.create(
   {
     name: 'Skill Group Items',
-    description: 'Skill group items link groups to skills.'
+    description: 'A skill group item is one skill in a skill group.'
   },
   {
     list: skillGroupGroup
       .get(instancePath('skill-groups/:skillGroupId/items', 'skills.groups.items.list'), {
         name: 'List skill group items',
-        description: 'Returns a paginated list of items for a skill group.'
+        description: 'Returns a paginated list of skill group items.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(
@@ -65,13 +65,26 @@ export let skillGroupItemController = Controller.create(
         Paginator.validate(
           v.object({
             status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skill group items with one of these statuses.'
+                }
+              )
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill group items with these IDs.'
+              })
+            ),
+            skill_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill group items for one of these skills.'
+              })
+            ),
             created_at: dateFilterValidator('skill group item creation time')
           })
         )
@@ -106,7 +119,7 @@ export let skillGroupItemController = Controller.create(
         ),
         {
           name: 'Get skill group item',
-          description: 'Retrieves a specific skill group item.'
+          description: 'Retrieves a skill group item.'
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -132,7 +145,7 @@ export let skillGroupItemController = Controller.create(
       .body(
         'default',
         v.object({
-          skill_id: v.string()
+          skill_id: v.string({ description: 'Skill to add to the group, by ID.' })
         })
       )
       .output(skillGroupItemPresenter)
@@ -171,7 +184,7 @@ export let skillGroupItemController = Controller.create(
           'skills.groups.items.delete'
         ),
         {
-          name: 'Delete skill group item',
+          name: 'Archive skill group item',
           description: 'Archives a skill group item.'
         }
       )

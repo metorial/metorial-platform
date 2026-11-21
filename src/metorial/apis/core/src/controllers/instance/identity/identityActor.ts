@@ -34,7 +34,7 @@ export let identityActorController = Controller.create(
   {
     name: 'Identity Actors',
     description:
-      'Identity actors represent people or agents that can own identities and participate in delegations.',
+      'An identity actor is a person or agent that can own identities and take part in delegations.',
     hideInDocs: true
   },
   {
@@ -62,24 +62,25 @@ export let identityActorController = Controller.create(
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ]),
               {
-                description: 'Filter by one or more actor statuses.'
+                description: 'Only return identity actors with one of these statuses.'
               }
             ),
 
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by identity actor ID or IDs.',
+              description: 'Only return identity actors with one of these IDs.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
             }),
             agent_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by linked agent ID or IDs.',
+              description: 'Only return identity actors linked to one of these agents.',
               examples: ['agt_4mNoPq8rSt2uVx6y']
             }),
             consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by linked consumer profile ID or IDs.',
+              description:
+                'Only return identity actors linked to one of these consumer profiles.',
               examples: ['cop_7nR8sK2mZa1pYx4b']
             }),
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by linked consumer ID or IDs.',
+              description: 'Only return identity actors linked to one of these consumers.',
               examples: ['csm_7nR8sK2mZa1pYx4b']
             }),
 
@@ -131,7 +132,7 @@ export let identityActorController = Controller.create(
     get: identityActorGroup
       .get(instancePath('identity-actors/:identityActorId', 'identityActors.get'), {
         name: 'Get identity actor',
-        description: 'Retrieves a specific identity actor by ID.'
+        description: 'Retrieves an identity actor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -141,7 +142,7 @@ export let identityActorController = Controller.create(
     create: instanceGroup
       .post(instancePath('identity-actors', 'identityActors.create'), {
         name: 'Create identity actor',
-        description: 'Creates a new identity actor.'
+        description: 'Creates an identity actor.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -152,18 +153,18 @@ export let identityActorController = Controller.create(
             description: 'Whether this actor is a person or an agent.'
           }),
           name: v.string({
-            description: 'Human-readable display name for the actor.',
+            description: 'Display name.',
             examples: ['Release Bot']
           }),
           description: v.optional(
             v.string({
-              description: 'Optional description of the actor.',
+              description: 'Free-text description.',
               examples: ['Agent used for production releases']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Additional metadata to store on the actor.',
+              description: 'Custom data to identify or organize the identity actor.',
               examples: [{ team: 'platform', managed_by: 'ops' }]
             })
           )
@@ -188,7 +189,7 @@ export let identityActorController = Controller.create(
     update: identityActorGroup
       .patch(instancePath('identity-actors/:identityActorId', 'identityActors.update'), {
         name: 'Update identity actor',
-        description: 'Updates mutable fields on an existing identity actor.'
+        description: 'Updates an identity actor. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -197,19 +198,20 @@ export let identityActorController = Controller.create(
         v.object({
           name: v.optional(
             v.string({
-              description: 'Updated display name for the actor.',
+              description: 'Display name.',
               examples: ['Updated Release Bot']
             })
           ),
           description: v.optional(
             v.string({
-              description: 'Updated description for the actor.',
+              description: 'Free-text description.',
               examples: ['Updated release automation actor']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Updated metadata for the actor.',
+              description:
+                'Custom data to identify or organize the identity actor. Replaces existing metadata.',
               examples: [{ team: 'platform', rotation: 'primary' }]
             })
           )
@@ -233,8 +235,8 @@ export let identityActorController = Controller.create(
 
     delete: identityActorGroup
       .delete(instancePath('identity-actors/:identityActorId', 'identityActors.delete'), {
-        name: 'Delete identity actor',
-        description: 'Archives an identity actor.'
+        name: 'Archive identity actor',
+        description: 'Archives an identity actor. It stays listable with `status=archived`.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))

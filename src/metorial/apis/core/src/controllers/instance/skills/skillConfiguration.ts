@@ -13,9 +13,17 @@ let skillReadScopes = ['instance.skill:read'] as const;
 let skillWriteScopes = ['instance.skill:write'] as const;
 
 let skillConfigurationInput = {
-  allow_scripts: v.optional(v.boolean()),
-  allowed_file_extensions: v.optional(v.nullable(v.array(v.string()))),
-  allow_non_standard_directories: v.optional(v.boolean()),
+  allow_scripts: v.optional(
+    v.boolean({ description: 'Allow skills to run scripts.' })
+  ),
+  allowed_file_extensions: v.optional(v.nullable(v.array(v.string())), {
+    description: 'File extensions skills may use.'
+  }),
+  allow_non_standard_directories: v.optional(
+    v.boolean({
+      description: 'Allow skills to write outside the standard directories.'
+    })
+  ),
   security_review_policy: v.optional(
     v.enumOf(['off', 'warn', 'block'], {
       description:
@@ -50,7 +58,7 @@ export let skillConfigurationGroup = instanceGroup
 export let skillConfigurationController = Controller.create(
   {
     name: 'Skill Configurations',
-    description: 'Manage configuration profiles for skill execution.'
+    description: 'A skill configuration is a profile controlling how skills execute.'
   },
   {
     create: instanceGroup
@@ -104,7 +112,8 @@ export let skillConfigurationController = Controller.create(
         ),
         {
           name: 'Get skill configuration',
-          description: 'Retrieves a specific skill configuration by ID, or the default.'
+          description:
+            'Retrieves a skill configuration. Pass `default` for the default configuration.'
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -123,7 +132,7 @@ export let skillConfigurationController = Controller.create(
         {
           name: 'Update skill configuration',
           description:
-            'Updates a specific skill configuration. Updating default creates it first if needed.'
+            'Updates a skill configuration. Omitted fields keep their current value. Updating `default` creates it first if needed.'
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -153,7 +162,8 @@ export let skillConfigurationController = Controller.create(
         ),
         {
           name: 'Delete skill configuration',
-          description: 'Soft deletes a specific non-internal skill configuration.'
+          description:
+            'Deletes a skill configuration. The default and internal configurations cannot be deleted.'
         }
       )
       .use(hasFlags(['skills-enabled']))

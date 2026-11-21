@@ -18,33 +18,33 @@ let isRawProviderAuthMethod = (
 
 let providerAuthMethodSchemaShape = {
   object: v.literal('provider.capabilities.auth_method', {
-    description: "String representing the object's type"
+    description: 'String representing the object’s type.'
   }),
   id: v.string({
     name: 'id',
-    description: 'Unique auth method identifier',
+    description: 'Unique ID.',
     examples: ['pam_2mNpQrStUvWxYzAb']
   }),
   type: v.enumOf(['oauth', 'token', 'custom'], {
     name: 'type',
-    description: 'Authentication type'
+    description: 'How the user authenticates with the provider.'
   }),
   key: v.string({
     name: 'key',
-    description: 'Auth method key',
+    description: 'Stable key for the auth method.',
     examples: ['oauth2']
   }),
-  name: v.string({ name: 'name', description: 'Display name', examples: ['OAuth 2.0'] }),
+  name: v.string({ name: 'name', description: 'Display name.', examples: ['OAuth 2.0'] }),
   description: v.nullable(
     v.string({
       name: 'description',
-      description: 'Auth method description',
+      description: 'Free-text description.',
       examples: ['Authenticate using OAuth 2.0']
     })
   ),
   capabilities: v.record(v.any(), {
     name: 'capabilities',
-    description: 'Auth method capabilities'
+    description: 'What this auth method supports.'
   }),
   input_schema: v.nullable(
     v.object({
@@ -68,27 +68,27 @@ let providerAuthMethodSchemaShape = {
     v.array(
       v.object({
         object: v.literal('provider.capabilities.auth_method.scope', {
-          description: "String representing the object's type"
+          description: 'String representing the object’s type.'
         }),
         id: v.string({
           name: 'id',
-          description: 'Unique scope identifier',
+          description: 'Unique ID.',
           examples: ['pams_8tUvWxYzAbCdEfGh']
         }),
         scope: v.string({
           name: 'scope',
-          description: 'OAuth scope string',
+          description: 'The scope value sent to the provider.',
           examples: ['repo', 'user:email']
         }),
         name: v.string({
           name: 'name',
-          description: 'Display name of the scope',
+          description: 'Display name.',
           examples: ['Repository Access']
         }),
         description: v.nullable(
           v.string({
             name: 'description',
-            description: 'Scope description',
+            description: 'Free-text description.',
             examples: ['Full control of private repositories']
           })
         )
@@ -107,22 +107,22 @@ let providerAuthMethodSchemaShape = {
   ),
   provider_id: v.string({
     name: 'provider_id',
-    description: 'Provider ID',
+    description: 'Provider this auth method belongs to.',
     examples: ['pro_5gHjKlMnPqRsTuVw']
   }),
   provider_specification_id: v.string({
     name: 'provider_specification_id',
-    description: 'Specification ID',
+    description: 'Specification this auth method belongs to.',
     examples: ['psp_9gHjKlMnPqRsTuVw']
   }),
   created_at: v.date({
     name: 'created_at',
-    description: 'Timestamp when created',
+    description: 'Creation time.',
     examples: [new Date('2025-09-15T10:30:00Z')]
   }),
   updated_at: v.date({
     name: 'updated_at',
-    description: 'Timestamp when last updated',
+    description: 'Last update time.',
     examples: [new Date('2026-01-10T14:45:00Z')]
   })
 };

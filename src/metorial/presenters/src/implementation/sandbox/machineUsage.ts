@@ -34,7 +34,7 @@ export let v1SandboxMachineUsagePresenter = Presenter.create(sandboxMachineUsage
       cores_used: v.number({ description: 'The number of cores in use' }),
       cores_available: v.number({ description: 'The number of cores available' }),
       memory_used_bytes: v.number({ description: 'Memory in use, in bytes' }),
-      memory_total_bytes: v.number({ description: 'Total memory, in bytes' }),
+      memory_total_bytes: v.number({ description: 'Memory installed on the machine, in bytes' }),
       network_rx_bytes: v.number({ description: 'Total bytes received over the network' }),
       network_tx_bytes: v.number({ description: 'Total bytes sent over the network' }),
       disk_read_bytes: v.number({ description: 'Total bytes read from disk' }),

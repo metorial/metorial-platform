@@ -11,7 +11,9 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 
 let portalAllowedRedirectUrlFilterValidator = v.object({
-  url: v.string()
+  url: v.string({
+    description: 'A redirect URL pattern consumers may return to after signing in.'
+  })
 });
 
 let presentPortal = async (
@@ -29,9 +31,19 @@ let presentPortal = async (
 };
 
 let skillConfigurationValidator = v.object({
-  allow_scripts: v.optional(v.boolean()),
-  allowed_file_extensions: v.optional(v.nullable(v.array(v.string()))),
-  allow_non_standard_directories: v.optional(v.boolean())
+  allow_scripts: v.optional(
+    v.boolean({ description: 'Whether skills on the portal can run scripts.' })
+  ),
+  allowed_file_extensions: v.optional(
+    v.nullable(
+      v.array(v.string(), {
+        description: 'File extensions skills on the portal can use.'
+      })
+    )
+  ),
+  allow_non_standard_directories: v.optional(
+    v.boolean({ description: 'Whether skills can use directories outside the standard layout.' })
+  )
 });
 
 export let portalGroup = instanceGroup
@@ -57,7 +69,7 @@ export let portalController = Controller.create(
   {
     name: 'Portal',
     description:
-      'Use Portals to create custom branded MCP server marketplaces for your organization.'
+      'A portal is a branded catalog of integrations and skills for your consumers. Each portal has its own consumers, groups, and access rules.'
   },
   {
     list: instanceGroup
@@ -109,7 +121,7 @@ export let portalController = Controller.create(
     get: portalGroup
       .get(instancePath('portals/:portalId', 'portals.get'), {
         name: 'Get portal',
-        description: 'Retrieves details for a specific portal.'
+        description: 'Retrieves a portal.'
       })
       .use(
         checkAccess({
@@ -123,25 +135,32 @@ export let portalController = Controller.create(
     create: instanceGroup
       .post(instancePath('portals', 'portals.create'), {
         name: 'Create portal',
-        description: 'Creates a new portal for the instance.'
+        description: 'Creates a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
           allowed_redirect_url_filters: v.optional(
-            v.array(portalAllowedRedirectUrlFilterValidator)
+            v.array(portalAllowedRedirectUrlFilterValidator, {
+              description: 'Redirect URL patterns consumers may return to after signing in.'
+            })
           ),
           session_expiry_time_in_seconds: v.optional(
             v.number({
+              description: 'How long consumer sessions stay valid, in seconds.',
               modifiers: [v.minValue(600), v.maxValue(60 * 60 * 24 * 30 * 2)]
             })
           ),
-          allow_consumer_skill_authoring: v.optional(v.boolean()),
-          allow_consumer_skill_publishing: v.optional(v.boolean())
+          allow_consumer_skill_authoring: v.optional(
+            v.boolean({ description: 'Whether consumers can create skills on the portal.' })
+          ),
+          allow_consumer_skill_publishing: v.optional(
+            v.boolean({ description: 'Whether consumers can publish skills on the portal.' })
+          )
         })
       )
       .output(portalPresenter)
@@ -167,26 +186,35 @@ export let portalController = Controller.create(
     update: portalGroup
       .patch(instancePath('portals/:portalId', 'portals.update'), {
         name: 'Update portal',
-        description: 'Updates an existing portal for the instance.'
+        description: 'Updates a portal. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
           allowed_redirect_url_filters: v.optional(
-            v.array(portalAllowedRedirectUrlFilterValidator)
+            v.array(portalAllowedRedirectUrlFilterValidator, {
+              description: 'Redirect URL patterns consumers may return to after signing in.'
+            })
           ),
           session_expiry_time_in_seconds: v.optional(
             v.number({
+              description: 'How long consumer sessions stay valid, in seconds.',
               modifiers: [v.minValue(600), v.maxValue(60 * 60 * 24 * 30 * 2)]
             })
           ),
-          allow_consumer_skill_authoring: v.optional(v.boolean()),
-          allow_consumer_skill_publishing: v.optional(v.boolean()),
-          skill_configuration: v.optional(skillConfigurationValidator)
+          allow_consumer_skill_authoring: v.optional(
+            v.boolean({ description: 'Whether consumers can create skills on the portal.' })
+          ),
+          allow_consumer_skill_publishing: v.optional(
+            v.boolean({ description: 'Whether consumers can publish skills on the portal.' })
+          ),
+          skill_configuration: v.optional(skillConfigurationValidator, {
+            description: 'Skill settings for the portal.'
+          })
         })
       )
       .output(portalPresenter)
@@ -217,7 +245,7 @@ export let portalController = Controller.create(
 
     delete: portalGroup
       .delete(instancePath('portals/:portalId', 'portals.delete'), {
-        name: 'Delete portal',
+        name: 'Archive portal',
         description: 'Archives a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal:write'] }))

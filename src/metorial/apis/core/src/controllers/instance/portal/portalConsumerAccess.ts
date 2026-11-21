@@ -40,7 +40,7 @@ export let portalConsumerAccessController = Controller.create(
   {
     name: 'Portal Access',
     description:
-      'Manage which consumer groups can access portal provider templates and MCP servers.'
+      'A portal access rule grants one consumer group access to one listing target, such as an integration, skill, or skill set.'
   },
   {
     list: portalGroup
@@ -55,28 +55,45 @@ export let portalConsumerAccessController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
-            consumer_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_marketplace_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_plugin_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            consumer_access_listing_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            search: v.optional(v.string({ description: 'Search by name or description.' })),
+            consumer_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these consumer groups.' }
+            ),
+            provider_template_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these provider templates.' }
+            ),
+            magic_mcp_server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these magic MCP servers.' }
+            ),
+            skill_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return rules for these skills.'
+            }),
+            skill_template_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these skill templates.' }
+            ),
+            skill_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these skill groups.' }
+            ),
+            skill_marketplace_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these skill marketplaces.' }
+            ),
+            skill_plugin_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules for these skill plugins.' }
+            ),
+            consumer_access_listing_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return rules attached to these listings.' }
+            ),
             type: v.optional(
-              v.union([
-                v.enumOf([
-                  'provider_template',
-                  'magic_mcp_server',
-                  'skill',
-                  'skill_template',
-                  'skill_group',
-                  'skill_marketplace',
-                  'skill_plugin'
-                ]),
-                v.array(
+              v.union(
+                [
                   v.enumOf([
                     'provider_template',
                     'magic_mcp_server',
@@ -85,9 +102,21 @@ export let portalConsumerAccessController = Controller.create(
                     'skill_group',
                     'skill_marketplace',
                     'skill_plugin'
-                  ])
-                )
-              ])
+                  ]),
+                  v.array(
+                    v.enumOf([
+                      'provider_template',
+                      'magic_mcp_server',
+                      'skill',
+                      'skill_template',
+                      'skill_group',
+                      'skill_marketplace',
+                      'skill_plugin'
+                    ])
+                  )
+                ],
+                { description: 'Only return rules of these types.' }
+              )
             )
           })
         )
@@ -117,7 +146,7 @@ export let portalConsumerAccessController = Controller.create(
     get: consumerAccessGroup
       .get(instancePath('portals/:portalId/access/:accessId', 'portals.access.get'), {
         name: 'Get portal access',
-        description: 'Retrieves a portal access rule by ID.'
+        description: 'Retrieves a portal access rule.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
@@ -131,51 +160,86 @@ export let portalConsumerAccessController = Controller.create(
     create: portalGroup
       .post(instancePath('portals/:portalId/access', 'portals.access.create'), {
         name: 'Create portal access',
-        description: 'Creates a new consumer access rule for the portal.'
+        description: 'Creates a consumer access rule for a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
-          consumer_group_id: v.string(),
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          readme: v.optional(v.nullable(v.string())),
-          access: v.union([
-            v.object({
-              type: v.literal('provider_template'),
-              provider_template_id: v.string()
-            }),
-            v.object({
-              type: v.literal('magic_mcp_server'),
-              magic_mcp_server_id: v.string()
-            }),
-            v.object({
-              type: v.literal('skill'),
-              skill_id: v.string(),
-              permission: v.optional(v.enumOf(['read', 'write', 'manage']))
-            }),
-            v.object({
-              type: v.literal('skill_template'),
-              skill_template_id: v.string()
-            }),
-            v.object({
-              type: v.literal('skill_group'),
-              skill_group_id: v.string(),
-              permission: v.optional(v.enumOf(['read', 'write', 'manage']))
-            }),
-            v.object({
-              type: v.literal('skill_marketplace'),
-              skill_marketplace_id: v.string(),
-              permission: v.optional(v.enumOf(['read', 'manage']))
-            }),
-            v.object({
-              type: v.literal('skill_plugin'),
-              skill_marketplace_id: v.string(),
-              skill_plugin_id: v.string()
-            })
-          ])
+          consumer_group_id: v.string({
+            description: 'Consumer group the rule grants access to.'
+          }),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(
+            v.nullable(v.string({ description: 'Free-text description.' }))
+          ),
+          readme: v.optional(
+            v.nullable(v.string({ description: 'Longer guide shown to consumers.' }))
+          ),
+          access: v.union(
+            [
+              v.object({
+                type: v.literal('provider_template'),
+                provider_template_id: v.string({
+                  description: 'Provider template the rule grants access to.'
+                })
+              }),
+              v.object({
+                type: v.literal('magic_mcp_server'),
+                magic_mcp_server_id: v.string({
+                  description: 'Magic MCP server the rule grants access to.'
+                })
+              }),
+              v.object({
+                type: v.literal('skill'),
+                skill_id: v.string({ description: 'Skill the rule grants access to.' }),
+                permission: v.optional(
+                  v.enumOf(['read', 'write', 'manage'], {
+                    description: 'What the group can do with the skill.'
+                  })
+                )
+              }),
+              v.object({
+                type: v.literal('skill_template'),
+                skill_template_id: v.string({
+                  description: 'Skill template the rule grants access to.'
+                })
+              }),
+              v.object({
+                type: v.literal('skill_group'),
+                skill_group_id: v.string({
+                  description: 'Skill group the rule grants access to.'
+                }),
+                permission: v.optional(
+                  v.enumOf(['read', 'write', 'manage'], {
+                    description: 'What the group can do with the skill group.'
+                  })
+                )
+              }),
+              v.object({
+                type: v.literal('skill_marketplace'),
+                skill_marketplace_id: v.string({
+                  description: 'Skill marketplace the rule grants access to.'
+                }),
+                permission: v.optional(
+                  v.enumOf(['read', 'manage'], {
+                    description: 'What the group can do with the skill marketplace.'
+                  })
+                )
+              }),
+              v.object({
+                type: v.literal('skill_plugin'),
+                skill_marketplace_id: v.string({
+                  description: 'Skill marketplace the plugin is published in.'
+                }),
+                skill_plugin_id: v.string({
+                  description: 'Skill plugin the rule grants access to.'
+                })
+              })
+            ],
+            { description: 'The integration, skill, or skill set the rule grants access to.' }
+          )
         })
       )
       .output(consumerAccessPresenter)
@@ -358,17 +422,25 @@ export let portalConsumerAccessController = Controller.create(
       .patch(instancePath('portals/:portalId/access/:accessId', 'portals.access.update'), {
         name: 'Update portal access',
         description:
-          'Updates the shared listing fields of a portal access rule, and the access level of skill and skill group rules.'
+          'Updates a portal access rule. Only skill and skill group rules use `permission`. Omitted fields keep their current value.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          readme: v.optional(v.nullable(v.string())),
-          permission: v.optional(v.enumOf(['read', 'write', 'manage']))
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(
+            v.nullable(v.string({ description: 'Free-text description.' }))
+          ),
+          readme: v.optional(
+            v.nullable(v.string({ description: 'Longer guide shown to consumers.' }))
+          ),
+          permission: v.optional(
+            v.enumOf(['read', 'write', 'manage'], {
+              description: 'What the group can do with the skill or skill group.'
+            })
+          )
         })
       )
       .output(consumerAccessPresenter)
@@ -390,7 +462,7 @@ export let portalConsumerAccessController = Controller.create(
     delete: consumerAccessGroup
       .delete(instancePath('portals/:portalId/access/:accessId', 'portals.access.delete'), {
         name: 'Delete portal access',
-        description: 'Deletes a consumer access rule from the portal.'
+        description: 'Deletes a portal access rule.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))

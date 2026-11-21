@@ -56,7 +56,7 @@ export let providerAuthConfigErrorController = Controller.create(
   {
     name: 'Provider Auth Config Errors',
     description:
-      'Provider auth config errors capture provider-side authentication failures and group repeated failures into reusable diagnostics.'
+      'Provider auth config errors are records of provider-side authentication failures, grouped by type for diagnostics.'
   },
   {
     list: integrationsGroup

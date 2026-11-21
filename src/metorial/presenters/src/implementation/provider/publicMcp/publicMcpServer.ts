@@ -75,11 +75,11 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
   .schema(
     v.object({
       object: v.literal('provider.public_mcp_server', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique public MCP server identifier',
+        description: 'Unique ID.',
         examples: ['pmsv_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['active', 'disabled', 'archived', 'deleted'] as const, {
@@ -98,12 +98,12 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
         examples: ['Acme CRM']
       }),
       description: v.nullable(
-        v.string({ name: 'description', description: 'Description of the server' })
+        v.string({ name: 'description', description: 'Free-text description.' })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information'
+          description: 'Custom data you attach to identify or organize this record.'
         })
       ),
       connect_url: v.string({
@@ -117,7 +117,7 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider exposed by this server.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
@@ -148,10 +148,20 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
         examples: [7776000]
       }),
       access: resourceAccessSchema,
-      disabled_at: v.nullable(v.date({ name: 'disabled_at', description: 'When disabled' })),
-      archived_at: v.nullable(v.date({ name: 'archived_at', description: 'When archived' })),
-      created_at: v.date({ name: 'created_at', description: 'Timestamp when created' }),
-      updated_at: v.date({ name: 'updated_at', description: 'Timestamp when last updated' })
+      disabled_at: v.nullable(
+        v.date({
+          name: 'disabled_at',
+          description: 'When the server was disabled. `null` while active.'
+        })
+      ),
+      archived_at: v.nullable(
+        v.date({
+          name: 'archived_at',
+          description: 'When this was archived. `null` while active.'
+        })
+      ),
+      created_at: v.date({ name: 'created_at', description: 'Creation time.' }),
+      updated_at: v.date({ name: 'updated_at', description: 'Last update time.' })
     })
   )
   .build();
@@ -171,7 +181,7 @@ let clientSummary = (client: {
 });
 
 let clientSummarySchema = v.object({
-  id: v.string({ name: 'id', description: 'Client record ID' }),
+  id: v.string({ name: 'id', description: 'Unique ID.' }),
   client_id: v.string({ name: 'client_id', description: 'OAuth client_id' }),
   name: v.string({
     name: 'name',
@@ -203,16 +213,16 @@ export let dashboardPublicMcpServerGrantPresenter = Presenter.create(publicMcpSe
   .schema(
     v.object({
       object: v.literal('provider.public_mcp_server.grant', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique grant identifier',
+        description: 'Unique ID.',
         examples: ['pmgr_1aBcDeFgHjKlMnPq']
       }),
       status: v.enumOf(['pending_exchange', 'active', 'revoked', 'expired'] as const, {
         name: 'status',
-        description: 'Status of the grant'
+        description: '`pending_exchange` until the OAuth exchange completes.'
       }),
       revoked_reason: v.nullable(
         v.enumOf(
@@ -225,19 +235,39 @@ export let dashboardPublicMcpServerGrantPresenter = Presenter.create(publicMcpSe
             'idle_expired',
             'exchange_expired'
           ] as const,
-          { name: 'revoked_reason', description: 'Why the grant ended' }
+          {
+            name: 'revoked_reason',
+            description: 'Why the grant ended. `null` unless the grant ended.'
+          }
         )
       ),
       public_mcp_server_id: v.string({
         name: 'public_mcp_server_id',
-        description: 'Public MCP server ID'
+        description: 'Public MCP server this grant belongs to.'
       }),
-      client: clientSummarySchema,
-      last_used_at: v.nullable(v.date({ name: 'last_used_at', description: 'Last use' })),
-      revoked_at: v.nullable(v.date({ name: 'revoked_at', description: 'When revoked' })),
-      expires_at: v.date({ name: 'expires_at', description: 'When the grant expires' }),
-      created_at: v.date({ name: 'created_at', description: 'Timestamp when created' }),
-      updated_at: v.date({ name: 'updated_at', description: 'Timestamp when last updated' })
+      client: {
+        ...clientSummarySchema,
+        name: 'client',
+        description: 'OAuth client this grant was issued to.'
+      },
+      last_used_at: v.nullable(
+        v.date({
+          name: 'last_used_at',
+          description: 'When the grant was last used. `null` if never used.'
+        })
+      ),
+      revoked_at: v.nullable(
+        v.date({
+          name: 'revoked_at',
+          description: 'When the grant was revoked. `null` unless revoked.'
+        })
+      ),
+      expires_at: v.date({
+        name: 'expires_at',
+        description: 'When the grant expires and stops working.'
+      }),
+      created_at: v.date({ name: 'created_at', description: 'Creation time.' }),
+      updated_at: v.date({ name: 'updated_at', description: 'Last update time.' })
     })
   )
   .build();
@@ -262,7 +292,7 @@ export let dashboardPublicMcpServerClientPresenter = Presenter.create(
       clientSummarySchema,
       v.object({
         object: v.literal('provider.public_mcp_server.client', {
-          description: "String representing the object's type"
+          description: 'String representing the object’s type.'
         }),
 
         redirect_uris: v.array(v.string(), {
@@ -271,14 +301,23 @@ export let dashboardPublicMcpServerClientPresenter = Presenter.create(
         }),
         token_endpoint_auth_method: v.enumOf(
           ['client_secret_basic', 'client_secret_post', 'none'],
-          { name: 'token_endpoint_auth_method', description: 'Token endpoint auth method' }
+          {
+            name: 'token_endpoint_auth_method',
+            description:
+              'How the client authenticates at the token endpoint. `none` for public clients that hold no secret.'
+          }
         ),
-        last_used_at: v.nullable(v.date({ name: 'last_used_at', description: 'Last use' })),
+        last_used_at: v.nullable(
+          v.date({
+            name: 'last_used_at',
+            description: 'When the client was last used. `null` if never used.'
+          })
+        ),
         expires_at: v.date({
           name: 'expires_at',
-          description: 'The registration expires after this long without use'
+          description: 'When the registration expires without further use.'
         }),
-        created_at: v.date({ name: 'created_at', description: 'Timestamp when registered' })
+        created_at: v.date({ name: 'created_at', description: 'Creation time.' })
       })
     ])
   )
@@ -295,7 +334,7 @@ export let dashboardPublicMcpServerSlugAvailabilityPresenter = Presenter.create(
   .schema(
     v.object({
       object: v.literal('provider.public_mcp_server.slug_availability', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       slug: v.string({ name: 'slug', description: 'Normalized slug that was checked' }),
       is_available: v.boolean({

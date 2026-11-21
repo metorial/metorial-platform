@@ -56,7 +56,7 @@ export let v1ChatAuthenticatedUserPresenter = Presenter.create(chatAuthenticated
   .schema(
     v.object({
       object: v.literal('chat.authenticated_user', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.nullable(
@@ -96,7 +96,7 @@ export let v1ChatAuthenticatedUserPresenter = Presenter.create(chatAuthenticated
 
       provider_author_id: v.string({
         name: 'provider_author_id',
-        description: "The author's identifier on the chat provider",
+        description: 'Identifier the chat provider uses for this author.',
         examples: ['U024BE7LH']
       }),
 
@@ -139,16 +139,16 @@ export let v1ChatAuthenticatedUserPresenter = Presenter.create(chatAuthenticated
           {
             id: v.string({
               name: 'id',
-              description: 'Unique chat workspace identifier',
+              description: 'Unique ID.',
               examples: ['cws_5gHjKlMnPqRsTuVw']
             }),
             provider_workspace_id: v.string({
               name: 'provider_workspace_id',
-              description: "The workspace's identifier on the chat provider",
+              description: 'Identifier the chat provider uses for this workspace.',
               examples: ['T024BE7LH']
             }),
             name: v.nullable(
-              v.string({ name: 'name', description: 'Display name of the workspace' })
+              v.string({ name: 'name', description: 'Display name.' })
             ),
             domain: v.nullable(
               v.string({

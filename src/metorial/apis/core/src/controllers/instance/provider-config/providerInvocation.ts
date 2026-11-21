@@ -16,7 +16,7 @@ export let providerInvocationController = Controller.create(
   {
     name: 'Provider Invocations',
     description:
-      'Provider invocations expose normalized provider-side tracing for tool calls, OAuth flows, and auth config events across Shuttle and Slates.'
+      'Provider invocations are trace records for tool calls, OAuth flows, and authentication events.'
   },
   {
     get: integrationsGroup
@@ -24,7 +24,7 @@ export let providerInvocationController = Controller.create(
         instancePath('provider-invocations/:providerInvocationId', 'providerInvocations.get'),
         {
           name: 'Get provider invocation',
-          description: 'Returns a single normalized provider invocation by ID.',
+          description: 'Retrieves a provider invocation.',
           confidential: true
         }
       )
@@ -49,8 +49,7 @@ export let providerInvocationController = Controller.create(
     list: integrationsGroup
       .get(instancePath('provider-invocations', 'providerInvocations.list'), {
         name: 'List provider invocations',
-        description:
-          'Returns normalized provider invocations and their logs for dashboard diagnostics.',
+        description: 'Returns provider invocations and their logs for dashboard diagnostics.',
         confidential: true
       })
       .use(isDashboardGroup())

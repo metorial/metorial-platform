@@ -55,10 +55,12 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
   })
   .schema(
     v.object({
-      object: v.literal('provider.auth_config_error'),
+      object: v.literal('provider.auth_config_error', {
+        description: 'String representing the object’s type.'
+      }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider auth config error identifier',
+        description: 'Unique ID.',
         examples: ['acer_8hJkLmNpQrStUvWx']
       }),
       status: v.enumOf(['processing', 'processed'], {
@@ -67,12 +69,12 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
       }),
       type: v.string({
         name: 'type',
-        description: 'Auth config error type',
+        description: 'Category of the failure.',
         examples: ['oauth_token_refresh_failed']
       }),
       code: v.string({
         name: 'code',
-        description: 'Error code',
+        description: 'Machine-readable code for the failure.',
         examples: ['token_refresh_failed']
       }),
       message: v.string({
@@ -83,30 +85,30 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
       auth_config_event_id: v.nullable(
         v.string({
           name: 'auth_config_event_id',
-          description: 'Associated auth config event ID'
+          description: 'Event this error came from.'
         })
       ),
       provider_auth_config_id: v.nullable(
         v.string({
           name: 'provider_auth_config_id',
-          description: 'Associated provider auth config ID'
+          description: 'Auth config this error came from.'
         })
       ),
       provider_auth_credentials_id: v.nullable(
         v.string({
           name: 'provider_auth_credentials_id',
-          description: 'Associated provider auth credentials ID'
+          description: 'Credentials this error came from.'
         })
       ),
       provider_oauth_setup_id: v.nullable(
         v.string({
           name: 'provider_oauth_setup_id',
-          description: 'Associated provider OAuth setup ID'
+          description: 'OAuth setup this error came from.'
         })
       ),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Associated provider ID'
+        description: 'Provider this error belongs to.'
       }),
       provider_invocation_id: v.nullable(
         v.string({
@@ -117,7 +119,7 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
       group_id: v.nullable(
         v.string({
           name: 'group_id',
-          description: 'Error group ID'
+          description: 'Group this error belongs to.'
         })
       ),
       similar_error_count: v.number({
@@ -134,7 +136,7 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created'
+        description: 'Creation time.'
       })
     })
   )

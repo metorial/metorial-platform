@@ -28,16 +28,22 @@ export let previewConsumerProfilePresenter = Presenter.create(consumerProfileTyp
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.profile'),
-      id: v.string(),
-      name: v.string(),
-      email: v.string(),
-      image_url: v.string(),
-      consumer_id: v.string(),
-      user_id: v.nullable(v.string()),
-      status: v.enumOf(['active', 'invited']),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('consumer.profile', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      name: v.string({ description: 'Display name.' }),
+      email: v.string({ description: 'Email address.' }),
+      image_url: v.string({ description: 'Avatar image URL.' }),
+      consumer_id: v.string({ description: 'Consumer this profile belongs to.' }),
+      user_id: v.nullable(
+        v.string({ description: 'User this profile is linked to. `null` when unlinked.' })
+      ),
+      status: v.enumOf(['active', 'invited'], {
+        description: '`invited` while the invitation is pending.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();
@@ -71,19 +77,27 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
     v.intersection([
       previewConsumerProfilePresenter.schema,
       v.object({
-        groups: v.nullable(
-          v.array(
-            v.object({
-              object: v.literal('consumer.profile.group_assignment'),
+      groups: v.nullable(
+        v.array(
+          v.object(
+            {
+              object: v.literal('consumer.profile.group_assignment', {
+                description: 'String representing the object’s type.'
+              }),
               group: v1ConsumerGroupPresenter.schema,
-              assigned_via: v.enumOf(['default', 'manual', 'sso', 'user']),
+              assigned_via: v.enumOf(['default', 'manual', 'sso', 'user'], {
+                description: 'How the profile joined the group.'
+              }),
               sso_group_ids: v.array(v.string(), {
                 description:
                   'Identity provider group ids that placed this profile in the group. Empty unless assigned via SSO.'
               })
-            })
-          )
+            },
+            { description: 'Group the profile belongs to and how it joined.' }
+          ),
+          { description: 'Groups the profile belongs to. `null` when not loaded.' }
         )
+      )
       })
     ])
   )

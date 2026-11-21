@@ -37,7 +37,7 @@ export let providerAuthExportController = Controller.create(
   {
     name: 'Provider Auth Exports',
     description:
-      'An auth export lets you extract OAuth tokens or credentials from Metorial to use in other systems, avoiding duplicate authentication flows.'
+      'A provider auth export is a copy of authentication credentials taken out of Metorial for use in another system.'
   },
   {
     list: integrationsGroup
@@ -128,7 +128,8 @@ export let providerAuthExportController = Controller.create(
         ),
         {
           name: 'Create provider auth export',
-          description: 'Exports authentication credentials from a provider.',
+          description:
+            'Exports the credentials of a provider auth config for use outside Metorial.',
           confidential: true
         }
       )
@@ -138,12 +139,13 @@ export let providerAuthExportController = Controller.create(
         'default',
         v.object({
           provider_auth_config_id: v.string({
-            description: 'Provider auth config ID',
+            description: 'Auth config to export credentials from.',
             examples: ['pacf_4sTuVwXyZaBcDeFg']
           }),
-          note: v.string(),
+          note: v.string({ description: 'Why the credentials are exported.' }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the provider auth export. Replaces existing metadata.'
           })
         })
       )

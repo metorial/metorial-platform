@@ -47,90 +47,101 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
   }))
   .schema(
     v.object({
-      object: v.literal('session', { description: "String representing the object's type" }),
+      object: v.literal('session', { description: "String representing the object’s type." }),
       id: v.string({
         name: 'id',
-        description: 'Unique session identifier',
+        description: 'Unique ID.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Session status'
+        description: '`archived` once the session is deleted. Archived sessions stay listable.'
       }),
       name: v.nullable(
         v.string({
           name: 'name',
-          description: 'Display name',
+          description: 'Display name.',
           examples: ['Production Session']
         })
       ),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['Session for production environment']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
         })
       ),
       connection_state: v.enumOf(['connected', 'disconnected'], {
         name: 'connection_state',
-        description: 'Session connection state'
+        description: 'Whether the session currently holds an open connection.'
       }),
       connection_url: v.string({
         name: 'connection_url',
-        description: 'MCP connection URL for this session',
+        description: 'MCP connection URL for this session.',
         examples: ['https://mcp.metorial.com/mcp/ses_4dEfGhJkLmNpQrSt']
       }),
       client_secret: v.nullable(
         v.string({
           name: 'client_secret',
-          description: 'Session-scoped fine grained client secret token',
+          description: 'Secret for scoped client access. `null` when the caller cannot use this session.',
           examples: ['metorial_fk_4eC39HqLyjWDarjtT1zdp7dc']
         })
       ),
-      usage: v.object({
-        total_productive_client_message_count: v.number({
-          name: 'total_productive_client_message_count',
-          description: 'Total productive client messages'
-        }),
-        total_productive_provider_message_count: v.number({
-          name: 'total_productive_provider_message_count',
-          description: 'Total productive provider messages'
-        })
-      }),
+      usage: v.object(
+        {
+          total_productive_client_message_count: v.number({
+            name: 'total_productive_client_message_count',
+            description: 'Total productive client messages'
+          }),
+          total_productive_provider_message_count: v.number({
+            name: 'total_productive_provider_message_count',
+            description: 'Total productive provider messages'
+          })
+        },
+        { name: 'usage', description: 'Usage statistics.' }
+      ),
       providers: v.array(v1SessionProviderPresenter.schema, {
         name: 'providers',
-        description: 'Session providers'
+        description: 'Providers connected to this session.'
       }),
       from_template_ids: v.array(v.string(), {
         name: 'from_template_ids',
-        description: 'Template IDs this session was created from'
+        description: 'Templates the session was created from. Empty when created without one.'
       }),
       has_errors: v.boolean({
         name: 'has_errors',
-        description: 'Whether the session has any errors'
+        description: '`true` when the session has errors.'
       }),
       has_warnings: v.boolean({
         name: 'has_warnings',
-        description: 'Whether the session has any warnings'
+        description: '`true` when the session has warnings.'
       }),
-      identity_actor_id: v.nullable(v.string()),
+      identity_actor_id: v.nullable(
+        v.string({
+          description: 'Identity actor connected to the session. `null` when there is none.'
+        })
+      ),
       access: resourceAccessSchema,
-      identity_id: v.nullable(v.string()),
+      identity_id: v.nullable(
+        v.string({
+          description: 'Identity connected to the session. `null` when there is none.'
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

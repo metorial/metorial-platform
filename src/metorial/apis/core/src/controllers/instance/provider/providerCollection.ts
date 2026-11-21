@@ -29,8 +29,7 @@ let providerCollectionGroup = integrationsGroup.use(async ctx => {
 export let providerCollectionController = Controller.create(
   {
     name: 'Provider Collections',
-    description:
-      "A collection is a curated set of providers like 'Featured', 'Most Popular', or 'New Arrivals'.",
+    description: 'A provider collection is a curated set of providers.',
     hideInDocs: true
   },
   {

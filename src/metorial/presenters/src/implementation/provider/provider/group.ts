@@ -15,38 +15,38 @@ export let v1ProviderListingGroupPresenter = Presenter.create(providerListingGro
   .schema(
     v.object({
       object: v.literal('provider.listing_group', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique group identifier',
+        description: 'Unique ID.',
         examples: ['pgr_3nPqRsTuVwXyZaBc']
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the group',
+        description: 'Display name.',
         examples: ['Sales Integrations']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description of the group',
+          description: 'Free-text description.',
           examples: ['CRM and sales pipeline integrations for sales agents']
         })
       ),
       slug: v.string({
         name: 'slug',
-        description: 'URL-friendly identifier',
+        description: 'URL-safe name for the group.',
         examples: ['sales-integrations']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

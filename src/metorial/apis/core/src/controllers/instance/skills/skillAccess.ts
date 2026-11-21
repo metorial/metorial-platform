@@ -11,13 +11,13 @@ import { skillGroup } from './skill';
 export let skillAccessController = Controller.create(
   {
     name: 'Skill Access',
-    description: 'Inspect who has been granted access to an instance skill.'
+    description: 'Skill access is the record of who can view or edit a skill.'
   },
   {
     get: skillGroup
       .get(instancePath('skills/:skillId/access', 'skills.access.get'), {
         name: 'Get skill access',
-        description: 'Returns the access grants of a specific skill.'
+        description: 'Returns the access grants for a skill.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(

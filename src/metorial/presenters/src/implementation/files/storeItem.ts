@@ -26,17 +26,25 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
   .schema(
     v.object({
       object: v.literal('store.item', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string(),
-      kind: v.enumOf(['file', 'document', 'directory']),
-      path: v.string(),
-      store_id: v.string(),
-      directory_id: v.nullable(v.string()),
-      file: v.nullable(v1FilePresenter.schema),
-      document: v.nullable(v1DocumentPresenter.schema),
-      created_at: v.date(),
-      updated_at: v.date()
+      id: v.string({ description: 'Unique ID.' }),
+      kind: v.enumOf(['file', 'document', 'directory'], {
+        description: 'What the item holds: `file`, `document`, or `directory`.'
+      }),
+      path: v.string({ description: 'Path of the item within the store.' }),
+      store_id: v.string({ description: 'Store the item belongs to.' }),
+      directory_id: v.nullable(
+        v.string({ description: 'Parent directory, by ID. `null` for top-level items.' })
+      ),
+      file: v.nullable(v1FilePresenter.schema, {
+        description: 'File at this item. `null` unless `kind` is `file`.'
+      }),
+      document: v.nullable(v1DocumentPresenter.schema, {
+        description: 'Document at this item. `null` unless `kind` is `document`.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();
@@ -51,9 +59,11 @@ export let v1StoreItemListPresenter = Presenter.create(storeItemListType)
   .schema(
     v.object({
       object: v.literal('list(store.item)', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      items: v.array(v1StoreItemPresenter.schema)
+      items: v.array(v1StoreItemPresenter.schema, {
+        description: 'Resulting store items.'
+      })
     })
   )
   .build();

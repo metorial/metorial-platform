@@ -53,7 +53,8 @@ export let v1SandboxMachineOperationPresenter = Presenter.create(sandboxMachineO
         { description: 'What requested the operation' }
       ),
       outcome: v.enumOf(['active', 'completed', 'superseded', 'failed'], {
-        description: "The operation's outcome"
+        description:
+          '`active` while the operation runs. `superseded` when a newer operation replaced it.'
       }),
       failure: v.nullable(sandboxFailureSchema),
 

@@ -116,7 +116,7 @@ export let sandboxMachineController = Controller.create(
   {
     name: 'Sandbox machines',
     description:
-      'Create and operate sandbox machines. A machine boots from an image, can mount disks, and moves between running, paused, and hibernated states.'
+      'A sandbox machine is a virtual machine that boots from an image and can mount disks. Machines move between running, paused, and hibernated states.'
   },
   {
     list: sandboxInstanceGroup

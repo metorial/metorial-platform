@@ -34,7 +34,7 @@ export let identityDelegationConfigController = Controller.create(
   {
     name: 'Identity Delegation Configs',
     description:
-      'Delegation configs define the default policy for sub-delegation behavior and delegation depth.',
+      'An identity delegation config is the default policy for sub-delegation. It controls whether delegates can delegate further, and how deep.',
     hideInDocs: true
   },
   {
@@ -62,11 +62,12 @@ export let identityDelegationConfigController = Controller.create(
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ]),
               {
-                description: 'Filter by one or more config statuses.'
+                description:
+                  'Only return identity delegation configs with one of these statuses.'
               }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by config ID or IDs.',
+              description: 'Only return identity delegation configs with one of these IDs.',
               examples: ['idc_2mNpQrStUvWxYzAb']
             }),
             created_at: dateFilterValidator('identity delegation config creation time'),
@@ -102,7 +103,7 @@ export let identityDelegationConfigController = Controller.create(
         ),
         {
           name: 'Get identity delegation config',
-          description: 'Retrieves a specific identity delegation config by ID.'
+          description: 'Retrieves an identity delegation config.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
@@ -119,7 +120,7 @@ export let identityDelegationConfigController = Controller.create(
         instancePath('identity-delegation-configs', 'identities.delegationConfigs.create'),
         {
           name: 'Create identity delegation config',
-          description: 'Creates a new identity delegation config.'
+          description: 'Creates an identity delegation config.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -129,28 +130,30 @@ export let identityDelegationConfigController = Controller.create(
         v.object({
           name: v.optional(
             v.string({
-              description: 'Optional display name for the delegation config.',
+              description: 'Display name.',
               examples: ['Default External Sharing Policy']
             })
           ),
           description: v.optional(
             v.string({
-              description: 'Optional description of the delegation policy.',
+              description: 'Free-text description.',
               examples: ['Allows one level of reviewed sub-delegation']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Additional metadata to store on the delegation config.',
+              description:
+                'Custom data to identify or organize the identity delegation config.',
               examples: [{ team: 'security', policy_version: '2026-02' }]
             })
           ),
           sub_delegation_behavior: v.enumOf(['allow', 'deny', 'require_consent'], {
-            description: 'How sub-delegations should be handled.'
+            description:
+              'Whether delegates can delegate further. `require_consent` asks the owner for approval first.'
           }),
           sub_delegation_depth: v.optional(
             v.number({
-              description: 'Maximum allowed sub-delegation depth.',
+              description: 'Maximum sub-delegation depth. `0` blocks sub-delegation.',
               examples: [1]
             })
           )
@@ -182,7 +185,8 @@ export let identityDelegationConfigController = Controller.create(
         ),
         {
           name: 'Update identity delegation config',
-          description: 'Updates mutable fields on an existing identity delegation config.'
+          description:
+            'Updates an identity delegation config. Omitted fields keep their current value.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -192,30 +196,32 @@ export let identityDelegationConfigController = Controller.create(
         v.object({
           name: v.optional(
             v.string({
-              description: 'Updated display name for the delegation config.',
+              description: 'Display name.',
               examples: ['Updated Sharing Policy']
             })
           ),
           description: v.optional(
             v.string({
-              description: 'Updated description for the delegation config.',
+              description: 'Free-text description.',
               examples: ['Updated reviewed sub-delegation policy']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Updated metadata for the delegation config.',
+              description:
+                'Custom data to identify or organize the identity delegation config. Replaces existing metadata.',
               examples: [{ team: 'security', change_ticket: 'SEC-1234' }]
             })
           ),
           sub_delegation_behavior: v.optional(
             v.enumOf(['allow', 'deny', 'require_consent'], {
-              description: 'How sub-delegations should be handled.'
+              description:
+                'Whether delegates can delegate further. `require_consent` asks the owner for approval first.'
             })
           ),
           sub_delegation_depth: v.optional(
             v.number({
-              description: 'Maximum allowed sub-delegation depth.',
+              description: 'Maximum sub-delegation depth. `0` blocks sub-delegation.',
               examples: [1]
             })
           )
@@ -247,8 +253,9 @@ export let identityDelegationConfigController = Controller.create(
           'identities.delegationConfigs.delete'
         ),
         {
-          name: 'Delete identity delegation config',
-          description: 'Archives an identity delegation config.'
+          name: 'Archive identity delegation config',
+          description:
+            'Archives an identity delegation config. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

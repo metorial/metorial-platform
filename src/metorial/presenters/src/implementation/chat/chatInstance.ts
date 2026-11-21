@@ -24,18 +24,19 @@ export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
   .schema(
     v.object({
       object: v.literal('chat.instance', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat instance identifier',
+        description: 'Unique ID.',
         examples: ['cii_2bCdEfGhJkLmNpQr']
       }),
 
       status: v.enumOf(['draft', 'active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'The chat instance status'
+        description:
+          '`archived` once you archive the instance. Archived instances stay listable.'
       }),
 
       chat_connection_id: v.string({
@@ -46,21 +47,21 @@ export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
 
       name: v.string({
         name: 'name',
-        description: 'Display name of the chat instance',
+        description: 'Display name.',
         examples: ['Production']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description of the chat instance',
+          description: 'Free-text description.',
           examples: ['Production Slack instance']
         })
       ),
 
       metadata: v.record(v.any(), {
         name: 'metadata',
-        description: 'Metadata set on the chat instance',
+        description: 'Custom data you attach to identify or organize this record.',
         examples: [{}]
       }),
 
@@ -68,13 +69,13 @@ export let v1ChatInstancePresenter = Presenter.create(chatInstanceType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the chat instance was created',
+        description: 'Creation time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the chat instance was last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

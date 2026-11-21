@@ -13,7 +13,7 @@ export let v1ChatCommandResponsePresenter = Presenter.create(chatCommandResponse
   .schema(
     v.object({
       object: v.literal('chat.command_response', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       message: v.nullable({

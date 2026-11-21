@@ -15,7 +15,7 @@ import {
 export let skillMergeRequestCommentController = Controller.create(
   {
     name: 'Skill Merge Request Comments',
-    description: 'Discuss skill merge requests and individual proposed changes.',
+    description: 'A skill merge request comment is a comment on a merge request or one of its proposed changes.',
     hideInDocs: true
   },
   {
@@ -27,12 +27,23 @@ export let skillMergeRequestCommentController = Controller.create(
         ),
         {
           name: 'List skill merge request comments',
-          description: 'Lists comments on a skill merge request or one of its items.'
+          description: 'Returns a paginated list of skill merge request comments.'
         }
       )
       .use(checkAccess({ possibleScopes: [...skillMergeRequestReadScopes] }))
       .outputList(skillMergeRequestCommentPresenter)
-      .query('default', Paginator.validate(v.object({ item_id: v.optional(v.string()) })))
+      .query(
+        'default',
+        Paginator.validate(
+          v.object({
+            item_id: v.optional(
+              v.string({
+                description: 'Only return comments on this proposed change.'
+              })
+            )
+          })
+        )
+      )
       .do(async ctx => {
         let paginator = await skillMergeRequestCommentService.listComments({
           ...(await getSkillMergeRequestAccess(ctx)),
@@ -54,17 +65,27 @@ export let skillMergeRequestCommentController = Controller.create(
         ),
         {
           name: 'Create skill merge request comment',
-          description: 'Adds a comment to a skill merge request or one of its items.'
+          description: 'Creates a comment on a skill merge request or one of its items.'
         }
       )
       .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .body(
         'default',
         v.object({
-          item_id: v.optional(v.string()),
-          in_reply_to_comment_id: v.optional(v.string()),
-          body: v.string(),
-          path: v.optional(v.nullable(v.string()))
+          item_id: v.optional(
+            v.string({
+              description: 'Proposed change to comment on. Omit to comment on the merge request.'
+            })
+          ),
+          in_reply_to_comment_id: v.optional(
+            v.string({
+              description: 'Comment this replies to, by ID.'
+            })
+          ),
+          body: v.string({ description: 'Comment text.' }),
+          path: v.optional(v.nullable(v.string()), {
+            description: 'File path the comment refers to. `null` for general comments.'
+          })
         })
       )
       .output(skillMergeRequestCommentPresenter)
@@ -119,7 +140,7 @@ export let skillMergeRequestCommentController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
-      .body('default', v.object({ body: v.string() }))
+      .body('default', v.object({ body: v.string({ description: 'Comment text.' }) }))
       .output(skillMergeRequestCommentPresenter)
       .do(async ctx => {
         let access = await getSkillMergeRequestAccess(ctx);
