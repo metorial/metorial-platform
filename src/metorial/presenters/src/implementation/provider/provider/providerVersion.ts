@@ -26,60 +26,60 @@ export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
   .schema(
     v.object({
       object: v.literal('provider.version', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique version identifier',
+        description: 'Unique ID.',
         examples: ['prv_4dEfGhJkLmNpQrSt']
       }),
       version: v.string({
         name: 'identifier',
-        description: 'Version identifier string',
+        description: 'Release label for the version.',
         examples: ['1.0.0']
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this version belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       is_current: v.boolean({
         name: 'is_current',
-        description: 'Whether this is the current version'
+        description: 'The version deployments follow unless locked to another.'
       }),
       name: v.string({
         name: 'name',
-        description: 'Version name',
+        description: 'Display name.',
         examples: ['Version 1.0.0']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Version description'
+          description: 'Free-text description.'
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
         })
       ),
       specification_id: v.nullable(
         v.string({
           name: 'specification_id',
-          description: 'Specification ID',
+          description: 'Specification this version belongs to.',
           examples: ['psp_9gHjKlMnPqRsTuVw']
         })
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

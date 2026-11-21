@@ -31,7 +31,7 @@ export let providerSpecificationController = Controller.create(
   {
     name: 'Provider Specifications',
     description:
-      'A specification defines what a provider version can do: its tools, auth methods, and required configuration fields.'
+      'A provider specification is the set of tools, auth methods, and configuration fields a provider version offers.'
   },
   {
     list: integrationsGroup

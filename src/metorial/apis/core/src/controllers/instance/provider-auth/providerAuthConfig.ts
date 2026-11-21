@@ -38,7 +38,7 @@ export let providerAuthConfigController = Controller.create(
   {
     name: 'Provider Auth Configs',
     description:
-      "An auth config is a user's authenticated connection to a provider. Created when a user completes OAuth or manually enters an API token."
+      "A provider auth config is a user's authenticated connection to a provider. It is created when a user completes OAuth or enters an API token."
   },
   {
     list: integrationsGroup
@@ -170,22 +170,28 @@ export let providerAuthConfigController = Controller.create(
     create: integrationsGroup
       .post(instancePath('provider-auth-configs', 'providerDeployments.authConfigs.create'), {
         name: 'Create provider auth config',
-        description: 'Creates a new provider auth config.',
+        description: 'Creates a provider auth config.',
         confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] })),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['OAuth token for GitHub API access'] })
+            v.string({ examples: ['OAuth token for GitHub API access'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider auth config. Replaces existing metadata.'
+            }
           ),
           tool_filters: toolFiltersValidator,
 
@@ -213,15 +219,21 @@ export let providerAuthConfigController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] })),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['OAuth token for GitHub API access'] })
+            v.string({ examples: ['OAuth token for GitHub API access'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider auth config. Replaces existing metadata.'
+            }
           ),
           tool_filters: toolFiltersValidator,
 
@@ -312,15 +324,21 @@ export let providerAuthConfigController = Controller.create(
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
+          name: v.optional(v.string({ examples: ['Updated Auth Config Name'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['Updated description for auth configuration'] })
+            v.string({ examples: ['Updated description for auth configuration'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ connected_by: 'alex@company.com', purpose: 'production' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider auth config. Replaces existing metadata.'
+            }
           ),
           tool_filters: toolFiltersValidator
         }),
@@ -329,15 +347,21 @@ export let providerAuthConfigController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
+          name: v.optional(v.string({ examples: ['Updated Auth Config Name'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['Updated description for auth configuration'] })
+            v.string({ examples: ['Updated description for auth configuration'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ connected_by: 'alex@company.com', purpose: 'production' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider auth config. Replaces existing metadata.'
+            }
           ),
           tool_filters: toolFiltersValidator,
           source: v.optional(v.enumOf(['explorer']), {
@@ -384,8 +408,9 @@ export let providerAuthConfigController = Controller.create(
           'providerDeployments.authConfigs.delete'
         ),
         {
-          name: 'Delete provider auth config',
-          description: 'Permanently deletes a provider auth config.'
+          name: 'Archive provider auth config',
+          description:
+            'Archives a provider auth config. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

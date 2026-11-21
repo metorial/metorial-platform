@@ -60,7 +60,7 @@ export let providerIssueController = Controller.create(
   {
     name: 'Provider Issues',
     description:
-      'Provider issues aggregate repeated provider errors, authentication failures and ProtoGuard warnings into one record per distinct problem.'
+      'A provider issue is a group of repeated provider errors, authentication failures, or ProtoGuard warnings sharing one underlying problem.'
   },
   {
     list: issueAccessGroup

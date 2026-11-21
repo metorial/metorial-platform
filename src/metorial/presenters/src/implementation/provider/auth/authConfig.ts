@@ -76,52 +76,54 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
   .schema(
     v.object({
       object: v.literal('provider.auth_config', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique auth config identifier',
+        description: 'Unique ID.',
         examples: ['pac_8pQrStUvWxYzAbCd']
       }),
       type: v.enumOf(['manual', 'oauth_automated', 'oauth_manual'], {
         name: 'type',
-        description: 'Authentication type'
+        description:
+          'How the auth config was created. `oauth_automated` configs are created automatically and cannot be updated.'
       }),
       source: v.enumOf(['manual', 'setup_session', 'system', 'explorer'], {
         name: 'source',
-        description: 'Auth config source'
+        description: 'Where the auth config was created.'
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Auth config status'
+        description:
+          'Archived once the auth config is archived. Archived auth configs stay listable.'
       }),
       is_default: v.boolean({
         name: 'is_default',
-        description: 'Whether this is the default auth config'
+        description: "Used when a request doesn't name an auth config."
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this auth config belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       name: v.nullable(
         v.string({
           name: 'name',
-          description: 'Display name',
+          description: 'Display name.',
           examples: ['GitHub OAuth Token']
         })
       ),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description',
+          description: 'Free-text description.',
           examples: ['OAuth token for GitHub API access']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
         })
       ),
@@ -132,12 +134,12 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       access: resourceAccessSchema,
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })
