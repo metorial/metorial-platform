@@ -41,7 +41,7 @@ export let db = baseClient;
 
 declare global {
   namespace PrismaJson {
-    type InstanceSettings = Spec.InstanceSettings;
+    type GatewayInstanceSettings = Spec.InstanceSettings;
     type GatewayLimits = Spec.GatewayLimit[];
     type PlatformLimits = Spec.PlatformLimit[];
     type GatewayTokenMetadata = Spec.GatewayTokenMetadata;

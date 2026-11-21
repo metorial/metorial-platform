@@ -57,7 +57,7 @@ model Instance {
 
   logRetentionDays Int @default(90)
 
-  /// [InstanceSettings]
+  /// [GatewayInstanceSettings]
   settings Json @default("{}")
 
   /// [GatewayLimits]
