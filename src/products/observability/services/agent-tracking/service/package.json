@@ -45,7 +45,7 @@
     "@mtsrc/agent-tracking-module-sessions": "workspace:*",
     "@mtsrc/agent-tracking-spec": "workspace:*",
     "@mtsrc/agent-tracking-store": "workspace:*",
-    "@sentry/bun": "^11.9.0",
+    "@sentry/bun": "^11.12.0",
     "@sentry/cli": "^3.8.2"
   },
   "devDependencies": {
@@ -62,7 +62,7 @@
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.45.0",
-    "mongoose": "^9.11.4",
+    "mongoose": "^9.12.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
   }
