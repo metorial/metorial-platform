@@ -354,6 +354,7 @@ export class Handler<
             nullable: false,
             examples: [
               {
+                object: 'list',
                 items: res.object.examples,
                 pagination: {
                   has_more_after: false,
@@ -363,6 +364,10 @@ export class Handler<
             ],
 
             properties: {
+              object: introspectType(
+                v.literal('list', { description: 'String representing the object’s type.' })
+              ),
+
               items: {
                 type: 'array',
                 examples: [
@@ -376,8 +381,24 @@ export class Handler<
 
               pagination: introspectType(
                 v.object({
-                  has_more_before: v.boolean(),
-                  has_more_after: v.boolean()
+                  has_more_before: v.boolean({
+                    description: 'Whether there are items before this page.'
+                  }),
+                  has_more_after: v.boolean({
+                    description: 'Whether there are items after this page.'
+                  }),
+                  before: v.optional(
+                    v.string({
+                      description:
+                        'Cursor for the previous page, returned by lists that page by cursor. Pass it as `before`.'
+                    })
+                  ),
+                  after: v.optional(
+                    v.string({
+                      description:
+                        'Cursor for the next page, returned by lists that page by cursor. Pass it as `after`.'
+                    })
+                  )
                 })
               )
             }
