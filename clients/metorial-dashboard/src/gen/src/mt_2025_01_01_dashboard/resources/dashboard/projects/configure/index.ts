@@ -1,3 +1,4 @@
+export * from './agent-tracking';
 export * from './ai-analysis';
 export * from './auth-config';
 export * from './data-retention';

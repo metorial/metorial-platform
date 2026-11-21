@@ -86,7 +86,8 @@ import {
   AccessTag,
   AccessTagEntity,
   AccessTagPolicy,
-  AgentTelemetryIngestToken,
+  AgentTrackingIngestSource,
+  AgentTrackingIngestToken,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -194,7 +195,26 @@ import {
   UserType,
   WebhookDestination
 } from '@metorial/db';
+import type {
+  AgentTrackingInstanceSettingsValues,
+  AgentTrackingOrganizationSettingsValues,
+  AgentTrackingProjectSettingsValues
+} from '@metorial/fabric';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
+import type {
+  AgentTrackingFilterValues,
+  AgentTrackingSeenMember,
+  AgentTrackingSessionDetail,
+  AgentTrackingSessionView,
+  AgentTrackingSetupStatus,
+  AgentTrackingSpendBreakdown,
+  AgentTrackingSpendTimeline
+} from '@metorial/module-agent-tracking-query';
+import type {
+  AgentTrackingPrivacy,
+  AgentTrackingSettingsServiceStatus,
+  serviceRetentionDefaults
+} from '@metorial/module-agent-tracking-sync';
 import type {
   AiGatewayCatalogProvider,
   aiGatewayCatalogService,
@@ -2692,15 +2712,70 @@ export let consumerDeviceType = PresentableType.create<{
     })[];
     consumerProfile: ConsumerProfile;
   };
+  telemetry?: { enabled: boolean; tokenId: string | null };
 }>()('consumer.device');
 
 export let consumerDeviceTelemetryTokenType = PresentableType.create<{
   consumerDevice: Pick<ConsumerDevice, 'id'>;
-  ingestToken: AgentTelemetryIngestToken;
+  ingestToken: AgentTrackingIngestToken;
   secret: string;
   ingestUrl: string;
   expiresAt: Date | null;
 }>()('consumer.device.telemetry_token');
+
+export let agentTrackingIngestSourceType = PresentableType.create<{
+  ingestSource: AgentTrackingIngestSource;
+  ingestUrl: string | null;
+  lastUsedAt: Date | null;
+  lastUsedStatus: 'used' | 'never_used' | 'unknown';
+  secret: string | null;
+}>()('agent_tracking.ingest_source');
+
+export let agentTrackingSpendTimelineType = PresentableType.create<{
+  timeline: AgentTrackingSpendTimeline;
+}>()('agent_tracking.spend_timeline');
+
+export let agentTrackingSpendBreakdownType = PresentableType.create<{
+  breakdown: AgentTrackingSpendBreakdown;
+}>()('agent_tracking.spend_breakdown');
+
+export let agentTrackingSessionType = PresentableType.create<{
+  session: AgentTrackingSessionView;
+}>()('agent_tracking.session');
+
+export let agentTrackingSessionDetailType = PresentableType.create<{
+  session: AgentTrackingSessionDetail;
+}>()('agent_tracking.session_detail');
+
+export let agentTrackingFilterValuesType = PresentableType.create<{
+  filterValues: AgentTrackingFilterValues;
+}>()('agent_tracking.filter_values');
+
+export let agentTrackingMemberType = PresentableType.create<{
+  member: AgentTrackingSeenMember;
+  listTruncated: boolean;
+}>()('agent_tracking.member');
+
+export let agentTrackingSetupStatusType = PresentableType.create<{
+  setupStatus: AgentTrackingSetupStatus;
+}>()('agent_tracking.setup_status');
+
+export let agentTrackingOrganizationSettingsType = PresentableType.create<{
+  settings: AgentTrackingOrganizationSettingsValues;
+  serviceStatus: AgentTrackingSettingsServiceStatus;
+}>()('agent_tracking.organization_settings');
+
+export let agentTrackingProjectSettingsType = PresentableType.create<{
+  settings: AgentTrackingProjectSettingsValues;
+  serviceStatus: AgentTrackingSettingsServiceStatus;
+  retentionDefaults: typeof serviceRetentionDefaults;
+}>()('agent_tracking.project_settings');
+
+export let agentTrackingInstanceSettingsType = PresentableType.create<{
+  settings: AgentTrackingInstanceSettingsValues;
+  serviceStatus: AgentTrackingSettingsServiceStatus;
+  privacy: AgentTrackingPrivacy;
+}>()('agent_tracking.instance_settings');
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;

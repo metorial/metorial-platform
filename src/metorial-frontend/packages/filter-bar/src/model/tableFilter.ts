@@ -13,14 +13,16 @@ export type TableFilterSelectOption = {
   count?: number;
 };
 
+type TableFilterHighlightOptions = {
+  label?: string;
+  hideLabel?: boolean;
+  preserveOrder?: boolean;
+};
+
 export type TableFilterHighlight =
   | boolean
-  | {
-      label?: string;
-      hideLabel?: boolean;
-      exclusive?: boolean;
-      preserveOrder?: boolean;
-    };
+  | (TableFilterHighlightOptions & { exclusive?: boolean; defaultValue?: undefined })
+  | (TableFilterHighlightOptions & { exclusive: true; defaultValue: string });
 
 export type TableFilterEntityOptions = {
   items: TableFilterEntityOption[];

@@ -42,6 +42,8 @@ model Organization {
   cargoTenantId      String?
   cargoEnvironmentId String?
 
+  agentTrackingLinkedAt DateTime?
+
   resourceTenantOid BigInt?         @unique
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
 
@@ -124,6 +126,8 @@ model Organization {
   systemEvents                           SystemEvent[]
   eventDeliveryIntents                   EventDeliveryIntent[]
   eventDeliveryAttempts                  EventDeliveryAttempt[]
+
+  agentTrackingSettings AgentTrackingOrganizationSettings?
 
   @@index([authVersion])
   @@index([previousSlugs])

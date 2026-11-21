@@ -1,5 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { contentPolicySchema } from '@mtsrc/agent-tracking-spec';
 import { instancePresenter } from './presenters/instance';
 import {
   instanceService,
@@ -25,7 +26,8 @@ let instanceSettingsSchema = v.object({
         })
       )
     })
-  )
+  ),
+  contentPolicy: v.optional(contentPolicySchema)
 });
 
 export let instanceController = app.controller({

@@ -18,6 +18,8 @@ let sensitiveScopes = [
   'instance.network:write',
   'instance.ai_gateway.inference_log:read',
   'instance.monitor:manage',
+  'instance.agent_tracking:read',
+  'instance.agent_tracking:write',
   'instance.portal:write',
   'instance.portal.auth:write',
   'instance.ssoTenant:write',

@@ -3,6 +3,12 @@ import { env } from './env';
 import { defaultLaneLimits } from './admission';
 import { assertQueryEngineSupported } from './version';
 import {
+  createStoreUnreachableLog,
+  reportStoreProblem,
+  storeFailureReason,
+  StoreUnreachableError
+} from './unreachable';
+import {
   collectionNames,
   ContentTextSchema,
   EventSchema,
@@ -24,6 +30,53 @@ import {
 
 let serverSelectionTimeoutMs = 5000;
 let poolHeadroom = 4;
+
+// `await` builds indexes before the store is ready, `background` after connecting, `skip`
+// leaves them to the worker so role starts do not race.
+export type StoreIndexMode = 'await' | 'background' | 'skip';
+
+let indexMode: StoreIndexMode = 'await';
+
+let indexBuildAttempts = 5;
+let indexRetryBaseMs = 5_000;
+
+let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export let buildIndexesWithRetry = async (d: {
+  build: () => Promise<void>;
+  attempts?: number;
+  baseDelayMs?: number;
+  wait?: (ms: number) => Promise<unknown>;
+  random?: () => number;
+}) => {
+  let attempts = d.attempts ?? indexBuildAttempts;
+  let baseDelayMs = d.baseDelayMs ?? indexRetryBaseMs;
+  let wait = d.wait ?? sleep;
+  let random = d.random ?? Math.random;
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await d.build();
+      return true;
+    } catch (error) {
+      if (attempt >= attempts) {
+        console.error(
+          `[agent-tracking] record store indexes are not in place after ${attempts} attempts`,
+          error
+        );
+        reportStoreProblem({ problem: 'indexes_failed', attempts });
+        return false;
+      }
+
+      console.warn(`[agent-tracking] record store index build failed, retrying`, error);
+      await wait(baseDelayMs * 2 ** (attempt - 1) * (1 + random()));
+    }
+  }
+};
+
+export let setStoreIndexMode = (mode: StoreIndexMode) => {
+  indexMode = mode;
+};
 
 export type StoreCollections = {
   events: mongoose.mongo.Collection<RecordDocument>;
@@ -47,6 +100,10 @@ export type Store = {
   collections: () => StoreCollections;
   assertQuerySupport: () => Promise<string>;
 
+  hasConnected: () => boolean;
+  logUnreachable: (error: unknown) => void;
+
+  ensureIndexes: () => Promise<void>;
   ready: () => Promise<void>;
   close: () => Promise<void>;
 };
@@ -87,28 +144,64 @@ export let createStore = (url: string): Store => {
   );
 
   let opening: Promise<void> | null = null;
+  let connected = false;
+  let hasConnected = () => connected;
+  let logUnreachable = createStoreUnreachableLog({ hasConnected });
 
   // DocumentDB has no retryable writes. Undefined fields are skipped rather than stored as null,
   // because the mapper leaves optional fields undefined instead of deleting them.
   let open = async () => {
-    await connection.openUri(url, {
-      bufferCommands: false,
-      autoIndex: false,
-      retryWrites: false,
-      ignoreUndefined: true,
-      serverSelectionTimeoutMS: serverSelectionTimeoutMs,
-      maxPoolSize: defaultLaneLimits.live + defaultLaneLimits.backfill + poolHeadroom
-    });
+    try {
+      await connection.openUri(url, {
+        bufferCommands: false,
+        autoIndex: false,
+        retryWrites: false,
+        ignoreUndefined: true,
+        serverSelectionTimeoutMS: serverSelectionTimeoutMs,
+        maxPoolSize: defaultLaneLimits.live + defaultLaneLimits.backfill + poolHeadroom
+      });
+    } catch (error) {
+      throw new StoreUnreachableError(storeFailureReason(error), error);
+    }
 
-    await Promise.all([
-      events.createIndexes(),
-      measurements.createIndexes(),
-      contentTexts.createIndexes(),
-      sessions.createIndexes(),
-      sessionLinks.createIndexes(),
-      usageSlices.createIndexes(),
-      sourceHealth.createIndexes()
-    ]);
+    connected = true;
+
+    if (indexMode == 'await') await ensureIndexes();
+    if (indexMode == 'background') {
+      void buildIndexesWithRetry({ build: ensureIndexes });
+    }
+  };
+
+  let ensureIndexes = async () => {
+    let models = [
+      events,
+      measurements,
+      contentTexts,
+      sessions,
+      sessionLinks,
+      usageSlices,
+      sourceHealth
+    ];
+    let startedAt = Date.now();
+
+    console.log('[agent-tracking] ensuring record store indexes');
+
+    let results = await Promise.allSettled(models.map(model => model.createIndexes()));
+    let failed = results.flatMap((result, index) =>
+      result.status == 'rejected'
+        ? [{ collection: models[index]!.collection.collectionName, error: result.reason }]
+        : []
+    );
+
+    if (failed.length) {
+      throw new Error(
+        `Record store indexes failed on ${failed.map(item => item.collection).join(', ')}: ${failed.map(item => String(item.error)).join('; ')}`
+      );
+    }
+
+    console.log(
+      `[agent-tracking] record store indexes in place after ${Date.now() - startedAt} ms`
+    );
   };
 
   return {
@@ -134,6 +227,10 @@ export let createStore = (url: string): Store => {
         sourceHealth: db.collection<SourceHealthDocument>(derivedCollectionNames.sourceHealth)
       };
     },
+
+    hasConnected,
+    logUnreachable,
+    ensureIndexes,
 
     assertQuerySupport: () => {
       let db = connection.db;

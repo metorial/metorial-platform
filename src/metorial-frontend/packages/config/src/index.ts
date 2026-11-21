@@ -27,6 +27,7 @@ export let awaitConfig = async () => {
 
 export { setNexusManifest, type NexusSlices } from './nexus';
 export * from './paths';
+export * from './scopes';
 export { loadRuntimeConfig, runtimeEnv } from './runtime';
 
 export {

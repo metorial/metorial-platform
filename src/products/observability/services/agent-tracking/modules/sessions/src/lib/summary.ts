@@ -29,7 +29,14 @@ import { documentCorrelations, type Correlation } from './keys';
 import { sourceKindOf, usageRank } from '@mtsrc/agent-tracking-module-usage';
 import { bucketStart } from '@mtsrc/agent-tracking-layers';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
-import { type Amount, parseAmount, toDecimal, type Tokens } from '@mtsrc/agent-tracking-cost';
+import {
+  addTokens,
+  type Amount,
+  emptyTokens,
+  parseAmount,
+  toDecimal,
+  type Tokens
+} from '@mtsrc/agent-tracking-cost';
 
 let preferredBases = ['billed', 'contract', 'server_estimate', 'client_estimate'] as const;
 let centsPerUsd = 100n;
@@ -132,22 +139,6 @@ let text = (value: unknown) => (typeof value == 'string' && value ? value : unde
 
 let count = (value: unknown) =>
   typeof value == 'number' && Number.isFinite(value) && value > 0 ? value : 0;
-
-export let emptyTokens = (): Tokens => ({
-  inputUncached: 0,
-  cacheRead: 0,
-  cacheWrite: 0,
-  output: 0,
-  reasoning: 0
-});
-
-export let addTokens = (target: Tokens, tokens: Tokens) => {
-  target.inputUncached += tokens.inputUncached;
-  target.cacheRead += tokens.cacheRead;
-  target.cacheWrite += tokens.cacheWrite;
-  target.output += tokens.output;
-  target.reasoning += tokens.reasoning;
-};
 
 export let readTokens = (value: unknown): RequestTokens | undefined => {
   let usage = record(value);
@@ -501,7 +492,6 @@ export let aggregateSession = async (d: {
 
     let source = sourceKindOf({
       channel: document.source.channel,
-      credentialKind: document.ingest.credentialKind,
       type: document.type,
       data
     });

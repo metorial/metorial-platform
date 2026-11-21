@@ -1,4 +1,6 @@
+import { contentRoles, ingestChannels } from '@mtsrc/agent-tracking-spec';
 import {
+  arrayField,
   boolField,
   commonFields,
   enumField,
@@ -157,6 +159,17 @@ export let toolCallsDataset: DatasetDef = {
       cardinality: 'high'
     }),
     outcome: enumField('data.outcome', outcomes, 'How the call ended.'),
+    'source.channel': enumField(
+      'source.channel',
+      ingestChannels,
+      'How the call arrived, such as otlp.logs (OpenTelemetry logs) or hook.'
+    ),
+    'content.roles': arrayField(
+      'content.role',
+      'enum',
+      'The kinds of content recorded with the call, such as tool_input. The agent decides what it sends: Claude Code sends tool inputs only with tool details turned on.',
+      { enumValues: contentRoles, cardinality: 'low' }
+    ),
     decision: enumField(
       'data.decision.value',
       ['allow', 'deny', 'abort', 'ask'],

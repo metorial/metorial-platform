@@ -3,7 +3,12 @@ import React, { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createEntityFilter } from '../model/entityFilter';
-import { getFilterText, summarizeLabels, type ListFilter } from '../model/state';
+import {
+  getActiveHighlightValues,
+  getFilterText,
+  summarizeLabels,
+  type ListFilter
+} from '../model/state';
 import type { TableFilter, TableFilterState } from '../model/tableFilter';
 import { FilterHighlightRow } from './highlightRow';
 import { OptionList } from './optionList';
@@ -75,6 +80,18 @@ let useStateProbe = (initial: TableFilterState[]) => {
 };
 
 describe('filter state helpers', () => {
+  it('falls back to the highlight default when no selected value is an option', () => {
+    let withDefault: TableFilter<any> = {
+      ...statusFilter,
+      highlight: { exclusive: true, defaultValue: 'active' }
+    };
+
+    expect(getActiveHighlightValues(withDefault, [])).toEqual(['active']);
+    expect(getActiveHighlightValues(withDefault, ['bogus'])).toEqual(['active']);
+    expect(getActiveHighlightValues(withDefault, ['archived'])).toEqual(['archived']);
+    expect(getActiveHighlightValues(statusFilter, ['bogus'])).toEqual(['bogus']);
+  });
+
   it('summarizes long label lists', () => {
     expect(summarizeLabels(['A'])).toBe('A');
     expect(summarizeLabels(['A', 'B', 'C', 'D'])).toBe('A, B +2');
@@ -148,6 +165,46 @@ describe('FilterHighlightRow', () => {
 
     clickPill('All');
     expect(probe.current).toEqual([]);
+  });
+
+  it('shows the default instead of All and clears the value when the default is picked', () => {
+    let rangeFilter = {
+      ...statusFilter,
+      highlight: { exclusive: true, defaultValue: 'active' }
+    } as ListFilter;
+    let { probe, Harness } = useStateProbe([{ ...statusState, value: ['unknown'] }]);
+    let container = render(
+      <Harness>
+        {tuple => <FilterHighlightRow filter={rangeFilter} filterState={tuple} />}
+      </Harness>
+    );
+    let pills = () =>
+      Array.from(container.querySelectorAll('button[aria-pressed]')).filter(
+        b => !b.closest('[aria-hidden]')
+      ) as HTMLButtonElement[];
+    let pressed = () =>
+      pills()
+        .filter(b => b.getAttribute('aria-pressed') == 'true')
+        .map(b => b.textContent?.replace(/\d+$/, ''));
+    let clickPill = (label: string) =>
+      act(() =>
+        pills()
+          .find(b => b.textContent?.startsWith(label))!
+          .click()
+      );
+
+    expect(pills().map(b => b.textContent)).not.toContain('All');
+    expect(pressed()).toEqual(['Active']);
+
+    clickPill('Archived');
+    expect(probe.current).toEqual([
+      expect.objectContaining({ id: 'status', value: ['archived'] })
+    ]);
+    expect(pressed()).toEqual(['Archived']);
+
+    clickPill('Active');
+    expect(probe.current).toEqual([]);
+    expect(pressed()).toEqual(['Active']);
   });
 
   it('moves selected pills to the start unless the highlight preserves the order', () => {

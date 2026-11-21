@@ -4,7 +4,11 @@ import { createOrganizationKeyDeriver } from '@mtsrc/agent-tracking-crypto';
 import type { PipelineContext } from '@mtsrc/agent-tracking-module-ingest';
 import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { createRuntime, setRuntime } from '@mtsrc/agent-tracking-module-ingest';
-import { createMongoSink, setRecordSink } from '@mtsrc/agent-tracking-module-records';
+import {
+  createMongoSink,
+  recordWriteService,
+  setRecordSink
+} from '@mtsrc/agent-tracking-module-records';
 import { defaultStoragePolicy } from '@mtsrc/agent-tracking-store';
 import { createContentCipher } from '@mtsrc/agent-tracking-crypto';
 import { getStore } from '@mtsrc/agent-tracking-store';
@@ -38,6 +42,7 @@ export let createSessionHarness = async (
   d: {
     settings?: InstanceSettings;
     principal?: Partial<IngestPrincipal['binding']>;
+    credential?: Partial<IngestPrincipal['credential']>;
     scope?: Parameters<typeof createTestScope>[0];
   } = {}
 ) => {
@@ -47,7 +52,8 @@ export let createSessionHarness = async (
     organization: { id: scope.organization.id },
     project: { id: scope.project.id },
     instance: { id: scope.instance.id, settings: d.settings ?? {} },
-    binding: d.principal
+    binding: d.principal,
+    credential: d.credential
   });
 
   let sink = createMongoSink({
@@ -85,13 +91,15 @@ export let createSessionHarness = async (
 
     await stage.beforeWrite!(context, records);
 
-    await sink.write({
-      lane: 'live',
-      organizationId: principal.organization.id,
-      projectId: principal.project.id,
-      instanceId: principal.instance.id,
-      storage: defaultStoragePolicy,
-      records
+    await recordWriteService.write({
+      batch: {
+        lane: 'live',
+        organizationId: principal.organization.id,
+        projectId: principal.project.id,
+        instanceId: principal.instance.id,
+        storage: defaultStoragePolicy,
+        records
+      }
     });
 
     await stage.afterWrite!(context, records);

@@ -12,6 +12,7 @@ import type { RecordDraft, RecordSource } from './draft';
 import { sanitizeExtras } from './extras';
 
 let maxIdLength = 256;
+let maxEmailLength = 254;
 let maxLabelLength = 128;
 let minPlausibleTime = Date.UTC(2015, 0, 1);
 let maxPlausibleTime = Date.UTC(2100, 0, 1);
@@ -56,6 +57,32 @@ let clampId = (value: string | undefined, label: string, warnings: string[]) => 
   warnings.push(`truncated:${label}`);
 
   return value.slice(0, maxIdLength);
+};
+
+// A shortened email would be another address, which identity resolution could match, so an
+// overlong one is dropped instead.
+let boundEmail = (value: string | undefined, dropped: string[]) => {
+  if (value === undefined || value.length <= maxEmailLength) return value;
+
+  dropped.push('actor.user.email');
+
+  return undefined;
+};
+
+let clampModel = (data: Record<string, unknown>, warnings: string[]) => {
+  let model = data.model;
+
+  if (typeof model == 'string') {
+    return { ...data, model: clampId(model, 'data.model', warnings) };
+  }
+  if (model && typeof model == 'object' && typeof (model as { id?: unknown }).id == 'string') {
+    let id = (model as { id: string }).id;
+    if (id.length <= maxIdLength) return data;
+
+    return { ...data, model: { ...model, id: clampId(id, 'data.model.id', warnings) } };
+  }
+
+  return data;
 };
 
 let compact = <T extends Record<string, unknown>>(value: T): T => {
@@ -168,7 +195,40 @@ export let buildRecord = (
     factKey = ctx.session_key ? factKey.replace('{session_key}', ctx.session_key) : null;
   }
 
-  let data = draft.data ?? {};
+  let data = clampModel(draft.data ?? {}, warnings);
+
+  let client = compact({
+    ...draft.client,
+    surface: clampId(draft.client.surface, 'client.surface', warnings),
+    version: clampId(draft.client.version, 'client.version', warnings),
+    auth_mode: clampId(draft.client.auth_mode, 'client.auth_mode', warnings),
+    terminal: clampId(draft.client.terminal, 'client.terminal', warnings)
+  });
+
+  let user = draft.actor?.user
+    ? compact({
+        id: clampId(draft.actor.user.id, 'actor.user.id', warnings),
+        email: boundEmail(draft.actor.user.email, dropped)
+      })
+    : undefined;
+
+  let actor = draft.actor
+    ? compact({
+        ...draft.actor,
+        install_id: clampId(draft.actor.install_id, 'actor.install_id', warnings),
+        org_claim: clampId(draft.actor.org_claim, 'actor.org_claim', warnings),
+        user: user && Object.keys(user).length ? user : undefined
+      })
+    : undefined;
+
+  let agent = context.agent
+    ? {
+        name: clampId(context.agent.name, 'ingest.agent.name', warnings) ?? '',
+        version: clampId(context.agent.version, 'ingest.agent.version', warnings) ?? '',
+        install_id:
+          clampId(context.agent.install_id, 'ingest.agent.install_id', warnings) ?? ''
+      }
+    : undefined;
 
   if (draft.type == sessionContextType) {
     let context = finishSessionContext({
@@ -210,7 +270,7 @@ export let buildRecord = (
       request_id: context.requestId,
       backfill: context.lane == 'backfill',
       batch_id: context.batchId,
-      agent: context.agent
+      agent
     }),
 
     source: compact({
@@ -223,8 +283,8 @@ export let buildRecord = (
       native_version: draft.nativeVersion
     }),
 
-    client: compact({ ...draft.client }),
-    ...(draft.actor ? { actor: compact({ ...draft.actor }) } : {}),
+    client,
+    ...(actor ? { actor } : {}),
     ctx,
     ...(draft.workspace ? { workspace: compact({ ...draft.workspace }) } : {}),
 

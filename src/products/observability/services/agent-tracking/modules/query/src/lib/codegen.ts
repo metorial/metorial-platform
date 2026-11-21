@@ -426,7 +426,7 @@ let accumulators = (scan: GroupScan, weight: Expression) => {
         result[name] = { [`$${measure.fn}`]: guarded(fieldValue(measure.field!), null) };
         break;
       case 'countDistinct':
-        result[name] = { $addToSet: guarded(distinctValue(scan, measure.field!), '$$REMOVE') };
+        result[name] = { $addToSet: guarded(distinctValue(scan, measure.field!), null) };
         break;
       case 'percentile':
         result[name] = {

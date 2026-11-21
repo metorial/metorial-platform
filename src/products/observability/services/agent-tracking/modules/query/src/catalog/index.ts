@@ -33,7 +33,7 @@ export type KindInfo = {
 export type CatalogContext = { kinds: Map<string, KindInfo> };
 
 let own = <T>(record: Record<string, T>, key: string) =>
-  Object.hasOwn(record, key) ? record[key] : undefined;
+  Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
 
 let kindField = (dataset: DatasetDef, kind: KindInfo): FieldDef => ({
   type: 'id',

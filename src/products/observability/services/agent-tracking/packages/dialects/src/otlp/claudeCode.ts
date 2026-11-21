@@ -112,6 +112,10 @@ let purposeOf = (querySource: string | undefined) => {
   return name ? { purpose: 'subagent', agent_name: name } : {};
 };
 
+// What Claude Code sends in place of a prompt or response while content logging is off (seen
+// on 2.1.328).
+let claudeCodeRedactionMarkers = ['<REDACTED>'];
+
 let contentFrom = (
   fields: FieldReader,
   role: ContentInput['role'],
@@ -133,7 +137,8 @@ let contentFrom = (
       ...(truncated && originalLength !== undefined
         ? { clientTruncated: { originalLength } }
         : {}),
-      ...(options.hints ? { hints: options.hints } : {})
+      ...(options.hints ? { hints: options.hints } : {}),
+      redactionMarkers: claudeCodeRedactionMarkers
     } as ContentInput
   ];
 };

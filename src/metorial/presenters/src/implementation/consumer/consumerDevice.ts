@@ -136,3 +136,48 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
     })
   )
   .build();
+
+export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType)
+  .presenter(async ({ consumerDevice, telemetry }, opts) => {
+    if (!telemetry) {
+      throw new Error(
+        'The consumer device presenter needs the telemetry state of the device.'
+      );
+    }
+
+    let inner = await v1ConsumerDevicePresenter.present({ consumerDevice }, opts).run();
+
+    return {
+      ...inner,
+      telemetry: {
+        enabled: telemetry.enabled,
+        token_id: telemetry.tokenId
+      }
+    };
+  })
+  .schema(
+    v.object({
+      ...v1ConsumerDevicePresenter.schema.properties,
+      telemetry: v.object(
+        {
+          enabled: v.boolean({
+            name: 'enabled',
+            description:
+              'Whether agent telemetry is collected for this device now. Metorial Desktop sends telemetry only while this is true.'
+          }),
+          token_id: v.nullable(
+            v.string({
+              name: 'token_id',
+              description:
+                'The ID of the active telemetry token of the device, the `token_id` the telemetry token endpoint returned. Null when the device has no active token or telemetry is not collected. When it differs from the token the device holds, that token no longer works.'
+            })
+          )
+        },
+        {
+          name: 'telemetry',
+          description: 'Whether the device sends agent telemetry, and with which token.'
+        }
+      )
+    }) as any
+  )
+  .build();

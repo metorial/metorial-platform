@@ -326,6 +326,7 @@ export let createLoader = <
       error: state?.error
         ? ({
             ...state.error,
+            data: state.error.data,
             message: state.error.data.message ?? state.error.message
           } as typeof state.error)
         : null,
