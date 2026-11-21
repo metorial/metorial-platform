@@ -131,7 +131,11 @@ let collectedOutput = (
   let output: unknown[] = [];
   let counter = 0;
   let itemId = (prefix: string) => `${prefix}_${context.id}_${counter++}`;
-  let lastText = content.findLastIndex(part => part.type == 'text' && part.text.length);
+  let lastText = -1;
+  for (let position = 0; position < content.length; position++) {
+    let part = content[position]!;
+    if (part.type == 'text' && part.text.length) lastText = position;
+  }
 
   for (let position = 0; position < content.length; position++) {
     let part = content[position]!;
