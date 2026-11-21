@@ -7,6 +7,7 @@
   "scripts": {
     "introspect": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect.ts",
     "introspect:configs": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect-configs.ts",
+    "test": "vitest run --passWithNoTests src/controllers/instance/ai-gateway",
     "test:e2e": "metorial-e2e --no-isolate"
   },
   "dependencies": {

@@ -8,6 +8,7 @@ export let env = defineSettings({
     AI_GATEWAY_INFERENCE_PORT: v.number(),
     AI_GATEWAY_HEALTH_PORT: v.number(),
     DATABASE_URL: v.string(),
-    REDIS_URL: redisUrl
+    REDIS_URL: redisUrl,
+    AI_GATEWAY_UPSTREAM_PROXY_URL: v.optional(v.string())
   }
 });

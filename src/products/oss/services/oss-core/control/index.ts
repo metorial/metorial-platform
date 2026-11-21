@@ -86,6 +86,7 @@ export default project({
       '@mtsrc/mcp-runtime-service',
       '@mtsrc/search-service',
       '@mtsrc/email-service',
+      '@mtsrc/ai-gateway-service',
       '@metorial-subspace/app-worker'
     ],
     healthTimeout: 300,

@@ -19,7 +19,8 @@
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
-    "e2e:start": "bun ./src/server.ts"
+    "e2e:start": "bun ./src/server.ts",
+    "test:e2e": "metorial-e2e"
   },
   "dependencies": {
     "@lowerdeck/queue": "workspace:2.0.0",
@@ -36,13 +37,20 @@
     "@mtsrc/ai-gateway-module-catalog": "workspace:*",
     "@mtsrc/ai-gateway-module-credentials": "workspace:*",
     "@mtsrc/ai-gateway-module-logs": "workspace:*",
+    "@mtsrc/ai-gateway-providers": "workspace:*",
     "@sentry/bun": "^11.11.0"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial/e2e": "1.0.0",
+    "@mtsrc/ai-gateway-store": "workspace:*",
+    "@mtsrc/ai-gateway-testing": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.45.0",
-    "vitest": "^5.0.4",
-    "typescript": "5.9.3"
+    "openai": "7.56.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

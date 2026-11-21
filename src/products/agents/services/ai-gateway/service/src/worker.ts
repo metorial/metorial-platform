@@ -1,3 +1,4 @@
+import './upstream';
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { billingQueueProcessor } from '@mtsrc/ai-gateway-module-billing';
 import { catalogQueueProcessor, onCatalogWorkerStart } from '@mtsrc/ai-gateway-module-catalog';

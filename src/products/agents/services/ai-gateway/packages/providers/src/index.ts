@@ -1,5 +1,6 @@
 export type { ProviderDefinition, ProviderKind } from './lib/definition';
 export { ProviderModelUnavailableError } from './lib/model';
+export { routeProviderTrafficThrough } from './lib/upstream';
 export {
   checkProviderConnection,
   countProviderTokens,

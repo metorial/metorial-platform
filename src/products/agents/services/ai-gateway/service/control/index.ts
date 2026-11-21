@@ -1,6 +1,7 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
@@ -69,7 +70,17 @@ export default project({
       })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'ai-gateway' }),
+  e2e: e2e({
+    start: ['e2e:start'],
+    image: 'ai-gateway',
+    tests: ['.'],
+    env: {
+      AI_GATEWAY_CATALOG_URL: 'http://localhost:52199',
+      AI_GATEWAY_UPSTREAM_PROXY_URL: 'http://localhost:52198',
+      AI_GATEWAY_PLATFORM_ANTHROPIC_API_KEY: 'e2e-platform-anthropic-key',
+      AI_GATEWAY_PLATFORM_OPENAI_API_KEY: 'e2e-platform-openai-key'
+    }
+  }),
   ci: {
     images: [
       ciImage({
@@ -91,6 +102,7 @@ export default project({
           ]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'ai-gateway', groups: 1 })
   }
 });

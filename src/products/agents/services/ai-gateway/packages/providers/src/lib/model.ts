@@ -5,6 +5,7 @@ import type {
 } from '@ai-sdk/provider';
 import type { ProviderConnectionConfig, ProviderCredentials } from '@mtsrc/ai-gateway-spec';
 import type { ProviderDefinition } from './definition';
+import { providerFetch } from './upstream';
 
 export class ProviderModelUnavailableError extends Error {
   constructor(providerSlug: string) {
@@ -25,7 +26,7 @@ export let createLanguageModelFor = (d: {
     credentials: d.credentials,
     config: d.config,
     modelId: d.modelId,
-    fetch: d.fetch ?? fetch
+    fetch: d.fetch ?? providerFetch
   });
 };
 

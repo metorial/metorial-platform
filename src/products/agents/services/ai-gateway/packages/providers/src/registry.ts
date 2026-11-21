@@ -28,6 +28,7 @@ import {
 import { googleAiStudioProvider } from './definitions/google';
 import type { ProviderDefinition, ProviderKind } from './lib/definition';
 import { createLanguageModelFor, prepareCallOptions } from './lib/model';
+import { providerFetch } from './lib/upstream';
 
 let checkTimeoutMs = 10_000;
 
@@ -195,7 +196,7 @@ export let countProviderTokens = async (d: {
     modelId: d.modelId,
     body: d.body,
     signal: d.signal,
-    fetch: d.fetch ?? fetch
+    fetch: d.fetch ?? providerFetch
   });
 };
 
@@ -218,6 +219,6 @@ export let checkProviderConnection = async (d: {
     credentials: d.credentials,
     config: d.config,
     signal: AbortSignal.timeout(checkTimeoutMs),
-    fetch: d.fetch ?? fetch
+    fetch: d.fetch ?? providerFetch
   });
 };
