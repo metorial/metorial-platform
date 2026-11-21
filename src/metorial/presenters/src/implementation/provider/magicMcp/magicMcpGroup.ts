@@ -16,15 +16,23 @@ export let v1MagicMcpGroupPresenter = Presenter.create(magicMcpGroupType)
   }))
   .schema(
     v.object({
-      object: v.literal('magic_mcp.group'),
-      id: v.string(),
-      status: v.enumOf(['active', 'deleted', 'archived']),
-      slug: v.string(),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('magic_mcp.group', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'deleted', 'archived'], {
+        description: '`deleted` once you delete the group.'
+      }),
+      slug: v.string({
+        description: 'URL-safe name, unique within the instance.'
+      }),
+      name: v.nullable(v.string({ description: 'Display name.' })),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      metadata: v.record(v.any(), {
+        description: 'Custom data you attach to identify or organize this record.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

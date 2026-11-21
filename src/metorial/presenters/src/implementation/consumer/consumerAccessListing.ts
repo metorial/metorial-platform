@@ -108,12 +108,15 @@ let localSkillPluginPreview = Object.assign(
   }
 );
 
-let consumerSurfaceProviderGroupPreviewSchema = v.object({
-  id: v.string(),
-  name: v.string(),
-  description: v.nullable(v.string()),
-  index: v.number()
-});
+let consumerSurfaceProviderGroupPreviewSchema = v.object(
+  {
+    id: v.string({ description: 'Unique ID.' }),
+    name: v.string({ description: 'Display name.' }),
+    description: v.nullable(v.string({ description: 'Free-text description.' })),
+    index: v.number({ description: 'Order of the group in the portal catalog.' })
+  },
+  { description: 'Catalog section the listing appears in.' }
+);
 
 export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessListingType)
   .presenter(async ({ consumerAccessListing }) => ({
@@ -182,48 +185,55 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.access_listing'),
-      id: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      readme: v.nullable(v.string()),
+      object: v.literal('consumer.access_listing', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      name: v.string({ description: 'Display name.' }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      readme: v.nullable(v.string({ description: 'Longer guide shown to consumers.' })),
       is_discoverable: v.boolean({
         description:
           'Whether every consumer on the portal can find this listing in the catalog and request access. When false, only consumers who already have access through one of their groups see it.'
       }),
-      access: v.union([
-        v.object({
-          type: v.literal('provider_template'),
-          provider_template: v1ProviderTemplatePreview.schema
-        }),
-        v.object({
-          type: v.literal('magic_mcp_server'),
-          magic_mcp_server: v1MagicMcpServerPreview.schema
-        }),
-        v.object({
-          type: v.literal('skill'),
-          skill: localSkillPreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_template'),
-          skill_template: localSkillTemplatePreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_group'),
-          skill_group: localSkillGroupPreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_marketplace'),
-          skill_marketplace: localSkillMarketplacePreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_plugin'),
-          skill_plugin: localSkillPluginPreview.schema
-        })
-      ]),
-      groups: v.array(consumerSurfaceProviderGroupPreviewSchema),
-      created_at: v.date(),
-      updated_at: v.date()
+      access: v.union(
+        [
+          v.object({
+            type: v.literal('provider_template'),
+            provider_template: v1ProviderTemplatePreview.schema
+          }),
+          v.object({
+            type: v.literal('magic_mcp_server'),
+            magic_mcp_server: v1MagicMcpServerPreview.schema
+          }),
+          v.object({
+            type: v.literal('skill'),
+            skill: localSkillPreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_template'),
+            skill_template: localSkillTemplatePreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_group'),
+            skill_group: localSkillGroupPreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_marketplace'),
+            skill_marketplace: localSkillMarketplacePreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_plugin'),
+            skill_plugin: localSkillPluginPreview.schema
+          })
+        ],
+        { description: 'The integration, skill, or skill set the listing is for.' }
+      ),
+      groups: v.array(consumerSurfaceProviderGroupPreviewSchema, {
+        description: 'Catalog sections the listing appears in, in display order.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

@@ -11,11 +11,15 @@ export let v1MagicMcpServerPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('magic_mcp.server#preview'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string())
+      object: v.literal('magic_mcp.server#preview', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once the server is deleted.'
+      }),
+      name: v.nullable(v.string({ description: 'Display name.' })),
+      description: v.nullable(v.string({ description: 'Free-text description.' }))
     })
   }
 );

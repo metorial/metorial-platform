@@ -31,7 +31,8 @@ let consumerAccessListingGroup = portalGroup.use(async ctx => {
 export let portalConsumerAccessListingController = Controller.create(
   {
     name: 'Portal Listings',
-    description: 'Read the shared listings available on a portal surface.'
+    description:
+      'A portal listing is the shared catalog entry for one integration, skill, or skill set on a portal. Access rules decide which consumer groups see it.'
   },
   {
     list: portalGroup
@@ -46,27 +47,37 @@ export let portalConsumerAccessListingController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string({ description: 'Search by name or description.' })),
             consumer_surface_provider_group_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return listings in these provider groups.' }
             ),
-            provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_marketplace_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_template_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return listings for these provider templates.' }
+            ),
+            magic_mcp_server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return listings for these magic MCP servers.' }
+            ),
+            skill_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return listings for these skills.'
+            }),
+            skill_template_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return listings for these skill templates.' }
+            ),
+            skill_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return listings for these skill groups.' }
+            ),
+            skill_marketplace_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return listings for these skill marketplaces.' }
+            ),
             type: v.optional(
-              v.union([
-                v.enumOf([
-                  'provider_template',
-                  'magic_mcp_server',
-                  'skill',
-                  'skill_template',
-                  'skill_group',
-                  'skill_marketplace'
-                ]),
-                v.array(
+              v.union(
+                [
                   v.enumOf([
                     'provider_template',
                     'magic_mcp_server',
@@ -74,9 +85,20 @@ export let portalConsumerAccessListingController = Controller.create(
                     'skill_template',
                     'skill_group',
                     'skill_marketplace'
-                  ])
-                )
-              ])
+                  ]),
+                  v.array(
+                    v.enumOf([
+                      'provider_template',
+                      'magic_mcp_server',
+                      'skill',
+                      'skill_template',
+                      'skill_group',
+                      'skill_marketplace'
+                    ])
+                  )
+                ],
+                { description: 'Only return listings of these types.' }
+              )
             ),
             has_access: v.optional(
               v.boolean({
@@ -113,7 +135,7 @@ export let portalConsumerAccessListingController = Controller.create(
     get: consumerAccessListingGroup
       .get(instancePath('portals/:portalId/listings/:listingId', 'portals.listings.get'), {
         name: 'Get portal listing',
-        description: 'Retrieves one shared listing for a portal.'
+        description: 'Retrieves a shared listing for a portal.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
@@ -127,48 +149,64 @@ export let portalConsumerAccessListingController = Controller.create(
     create: portalGroup
       .post(instancePath('portals/:portalId/listings', 'portals.listings.create'), {
         name: 'Create portal listing',
-        description: 'Creates a shared listing for a portal.'
+        description:
+          'Creates or updates the shared listing for one target on a portal. A portal has at most one listing per target.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          readme: v.optional(v.nullable(v.string())),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(
+            v.nullable(v.string({ description: 'Free-text description.' }))
+          ),
+          readme: v.optional(
+            v.nullable(v.string({ description: 'Longer guide shown to consumers.' }))
+          ),
           is_discoverable: v.optional(
             v.boolean({
               description:
                 'Whether every consumer on the portal can find this listing in the catalog and request access. When false, only consumers who already have access through one of their groups see it. Defaults to true.'
             })
           ),
-          access: v.union([
-            v.object({
-              type: v.literal('provider_template'),
-              provider_template_id: v.string()
-            }),
-            v.object({
-              type: v.literal('magic_mcp_server'),
-              magic_mcp_server_id: v.string()
-            }),
-            v.object({
-              type: v.literal('skill'),
-              skill_id: v.string()
-            }),
-            v.object({
-              type: v.literal('skill_template'),
-              skill_template_id: v.string()
-            }),
-            v.object({
-              type: v.literal('skill_group'),
-              skill_group_id: v.string()
-            }),
-            v.object({
-              type: v.literal('skill_marketplace'),
-              skill_marketplace_id: v.string()
-            })
-          ])
+          access: v.union(
+            [
+              v.object({
+                type: v.literal('provider_template'),
+                provider_template_id: v.string({
+                  description: 'Provider template the listing is for.'
+                })
+              }),
+              v.object({
+                type: v.literal('magic_mcp_server'),
+                magic_mcp_server_id: v.string({
+                  description: 'Magic MCP server the listing is for.'
+                })
+              }),
+              v.object({
+                type: v.literal('skill'),
+                skill_id: v.string({ description: 'Skill the listing is for.' })
+              }),
+              v.object({
+                type: v.literal('skill_template'),
+                skill_template_id: v.string({
+                  description: 'Skill template the listing is for.'
+                })
+              }),
+              v.object({
+                type: v.literal('skill_group'),
+                skill_group_id: v.string({ description: 'Skill group the listing is for.' })
+              }),
+              v.object({
+                type: v.literal('skill_marketplace'),
+                skill_marketplace_id: v.string({
+                  description: 'Skill marketplace the listing is for.'
+                })
+              })
+            ],
+            { description: 'The integration, skill, or skill set the listing is for.' }
+          )
         })
       )
       .output(consumerAccessListingPresenter)
@@ -223,7 +261,7 @@ export let portalConsumerAccessListingController = Controller.create(
         instancePath('portals/:portalId/listings/:listingId', 'portals.listings.update'),
         {
           name: 'Update portal listing',
-          description: 'Updates listing metadata for a portal listing.'
+          description: 'Updates a portal listing. Omitted fields keep their current value.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -231,9 +269,13 @@ export let portalConsumerAccessListingController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          readme: v.optional(v.nullable(v.string())),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(
+            v.nullable(v.string({ description: 'Free-text description.' }))
+          ),
+          readme: v.optional(
+            v.nullable(v.string({ description: 'Longer guide shown to consumers.' }))
+          ),
           is_discoverable: v.optional(
             v.boolean({
               description:

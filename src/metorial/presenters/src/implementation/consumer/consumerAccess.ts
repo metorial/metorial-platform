@@ -199,61 +199,69 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.access'),
-      id: v.string(),
+      object: v.literal('consumer.access', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
       access_level: v.nullable(
         v.enumOf(['read', 'write', 'manage'], {
           description:
             'What the consumer group can do with the resource. Skills and skill groups support read, write and manage (share with others); skill marketplaces support read and manage.'
         })
       ),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      readme: v.nullable(v.string()),
+      name: v.string({ description: 'Display name.' }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      readme: v.nullable(v.string({ description: 'Longer guide shown to consumers.' })),
       listing: v.nullable(
-        v.object({
-          id: v.string(),
-          name: v.string(),
-          description: v.nullable(v.string()),
-          is_discoverable: v.boolean({
-            description:
-              'Whether every consumer on the portal can find the listing in the catalog and request access.'
-          })
-        })
+        v.object(
+          {
+            id: v.string({ description: 'Unique ID.' }),
+            name: v.string({ description: 'Display name.' }),
+            description: v.nullable(v.string({ description: 'Free-text description.' })),
+            is_discoverable: v.boolean({
+              description:
+                'Whether every consumer on the portal can find the listing in the catalog and request access.'
+            })
+          },
+          { description: 'Shared listing this rule was created from, if any.' }
+        )
       ),
-      access: v.union([
-        v.object({
-          type: v.literal('provider_template'),
-          provider_template: v1ProviderTemplatePreview.schema
-        }),
-        v.object({
-          type: v.literal('magic_mcp_server'),
-          magic_mcp_server: v1MagicMcpServerPreview.schema
-        }),
-        v.object({
-          type: v.literal('skill'),
-          skill: localSkillPreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_template'),
-          skill_template: localSkillTemplatePreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_group'),
-          skill_group: localSkillGroupPreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_marketplace'),
-          skill_marketplace: localSkillMarketplacePreview.schema
-        }),
-        v.object({
-          type: v.literal('skill_plugin'),
-          skill_plugin: localSkillPluginPreview.schema
-        })
-      ]),
+      access: v.union(
+        [
+          v.object({
+            type: v.literal('provider_template'),
+            provider_template: v1ProviderTemplatePreview.schema
+          }),
+          v.object({
+            type: v.literal('magic_mcp_server'),
+            magic_mcp_server: v1MagicMcpServerPreview.schema
+          }),
+          v.object({
+            type: v.literal('skill'),
+            skill: localSkillPreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_template'),
+            skill_template: localSkillTemplatePreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_group'),
+            skill_group: localSkillGroupPreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_marketplace'),
+            skill_marketplace: localSkillMarketplacePreview.schema
+          }),
+          v.object({
+            type: v.literal('skill_plugin'),
+            skill_plugin: localSkillPluginPreview.schema
+          })
+        ],
+        { description: 'The integration, skill, or skill set the group can access.' }
+      ),
       consumer_group: v1ConsumerGroupPresenter.schema,
-      created_at: v.date(),
-      updated_at: v.date()
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

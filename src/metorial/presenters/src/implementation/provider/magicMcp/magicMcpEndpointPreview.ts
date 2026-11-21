@@ -12,12 +12,16 @@ export let v1MagicMcpEndpointPreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('magic_mcp.endpoint#preview'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      slug: v.string(),
-      name: v.nullable(v.string()),
-      description: v.nullable(v.string())
+      object: v.literal('magic_mcp.endpoint#preview', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once the endpoint is deleted.'
+      }),
+      slug: v.string({ description: 'URL-safe name, unique within the instance.' }),
+      name: v.nullable(v.string({ description: 'Display name.' })),
+      description: v.nullable(v.string({ description: 'Free-text description.' }))
     })
   }
 );

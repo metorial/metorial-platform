@@ -31,7 +31,8 @@ export let consumerGroupGroup = portalGroup.use(async ctx => {
 export let portalConsumerGroupController = Controller.create(
   {
     name: 'Portal Consumer Groups',
-    description: 'Manage the consumer groups that drive portal visibility and access rules.'
+    description:
+      'A portal consumer group is a set of consumers on a portal. Groups decide which listings each consumer sees.'
   },
   {
     list: portalGroup
@@ -50,9 +51,10 @@ export let portalConsumerGroupController = Controller.create(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              { description: 'Only return groups with one of these statuses.' }
             ),
-            search: v.optional(v.string())
+            search: v.optional(v.string({ description: 'Search by name or description.' }))
           })
         )
       )
@@ -77,7 +79,7 @@ export let portalConsumerGroupController = Controller.create(
         ),
         {
           name: 'Get portal consumer group',
-          description: 'Retrieves a portal consumer group by ID.'
+          description: 'Retrieves a portal consumer group.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
@@ -94,7 +96,7 @@ export let portalConsumerGroupController = Controller.create(
         instancePath('portals/:portalId/consumer-groups', 'portals.consumerGroups.create'),
         {
           name: 'Create portal consumer group',
-          description: 'Creates a new consumer group for the portal.'
+          description: 'Creates a consumer group for a portal.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -102,9 +104,11 @@ export let portalConsumerGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          is_default: v.optional(v.boolean())
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          is_default: v.optional(
+            v.boolean({ description: 'Whether this is a default group on the portal.' })
+          )
         })
       )
       .output(consumerGroupPresenter)
@@ -130,7 +134,7 @@ export let portalConsumerGroupController = Controller.create(
         ),
         {
           name: 'Update portal consumer group',
-          description: 'Updates a consumer group for the portal.'
+          description: 'Updates a portal consumer group. Omitted fields keep their current value.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -138,9 +142,11 @@ export let portalConsumerGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          is_default: v.optional(v.boolean())
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          is_default: v.optional(
+            v.boolean({ description: 'Whether this is a default group on the portal.' })
+          )
         })
       )
       .output(consumerGroupPresenter)
@@ -166,8 +172,8 @@ export let portalConsumerGroupController = Controller.create(
           'portals.consumerGroups.delete'
         ),
         {
-          name: 'Delete portal consumer group',
-          description: 'Archives a consumer group for the portal.'
+          name: 'Archive portal consumer group',
+          description: 'Archives a portal consumer group.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))

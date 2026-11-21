@@ -40,40 +40,78 @@ export let v1PortalPresenter = Presenter.create(portalType)
   }))
   .schema(
     v.object({
-      object: v.literal('portal'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      slug: v.string(),
-      description: v.nullable(v.string()),
-      allow_consumer_skill_authoring: v.boolean(),
-      allow_consumer_skill_publishing: v.boolean(),
-      skill_configuration: v.object({
-        object: v.literal('portal.skill_configuration'),
-        id: v.string(),
-        is_default: v.boolean(),
-        allow_scripts: v.boolean(),
-        allowed_file_extensions: v.array(v.string()),
-        allow_non_standard_directories: v.boolean()
+      object: v.literal('portal', { description: 'String representing the object’s type.' }),
+      id: v.string({ description: 'Unique ID.', examples: ['ptl_7hNkPqRsTuVwXyZa'] }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you delete the portal.'
       }),
-      auth: v.object({
-        object: v.literal('portal.auth'),
-        session_expiry_time_in_seconds: v.number(),
-        allowed_redirect_url_filters: v.array(
-          v.object({
-            url: v.string()
+      name: v.string({ description: 'Display name.' }),
+      slug: v.string({
+        description: 'URL-safe name, unique across Metorial.',
+        examples: ['acme-portal']
+      }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      allow_consumer_skill_authoring: v.boolean({
+        description: 'Whether consumers can create skills on the portal.'
+      }),
+      allow_consumer_skill_publishing: v.boolean({
+        description: 'Whether consumers can publish skills on the portal.'
+      }),
+      skill_configuration: v.object(
+        {
+          object: v.literal('portal.skill_configuration', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ description: 'Unique ID.' }),
+          is_default: v.boolean({
+            description: 'Whether the portal uses the default skill settings.'
+          }),
+          allow_scripts: v.boolean({
+            description: 'Whether skills on the portal can run scripts.'
+          }),
+          allowed_file_extensions: v.array(v.string(), {
+            description: 'File extensions skills on the portal can use.'
+          }),
+          allow_non_standard_directories: v.boolean({
+            description: 'Whether skills can use directories outside the standard layout.'
           })
-        )
-      }),
+        },
+        { description: 'Skill settings for the portal.' }
+      ),
+      auth: v.object(
+        {
+          object: v.literal('portal.auth', {
+            description: 'String representing the object’s type.'
+          }),
+          session_expiry_time_in_seconds: v.number({
+            description: 'How long consumer sessions stay valid, in seconds.'
+          }),
+          allowed_redirect_url_filters: v.array(
+            v.object({
+              url: v.string({
+                description: 'A redirect URL pattern consumers may return to after signing in.'
+              })
+            }),
+            { description: 'Redirect URL patterns consumers may return to after signing in.' }
+          )
+        },
+        { description: 'Consumer authentication settings for the portal.' }
+      ),
       urls: v.array(
         v.object({
-          type: v.enumOf(['default', 'namespace']),
-          url: v.string()
-        })
+          type: v.enumOf(['default', 'namespace'], {
+            description: '`namespace` for namespace-specific URLs, `default` otherwise.'
+          }),
+          url: v.string({ description: 'Where consumers open the portal.' })
+        }),
+        { description: 'Addresses consumers open the portal at.' }
       ),
-      magic_mcp_url: v.string(),
-      created_at: v.date(),
-      updated_at: v.date()
+      magic_mcp_url: v.string({
+        description: 'The MCP connection URL for the portal.',
+        examples: ['https://api.metorial.com/connect/portal/acme-portal']
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();
@@ -94,7 +132,9 @@ export let dashboardPortalPresenter = Presenter.create(portalType)
     v.intersection([
       v1PortalPresenter.schema,
       v.object({
-        managed_everyone_group_id: v.nullable(v.string())
+        managed_everyone_group_id: v.nullable(
+          v.string({ description: 'The default group every consumer on the portal belongs to.' })
+        )
       })
     ])
   )
