@@ -85,7 +85,7 @@ export class MetorialManagementOrganizationEventDeliveriesEndpoint {
     eventDeliveryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDeliveriesGetOutput> {
-    let path = `organization/event-deliveries/${eventDeliveryId}`;
+    let path = `organization/event-deliveries/${encodeURIComponent(eventDeliveryId)}`;
 
     let request = {
       path,
@@ -112,7 +112,7 @@ export class MetorialManagementOrganizationEventDeliveriesEndpoint {
     eventDeliveryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDeliveriesRetryOutput> {
-    let path = `organization/event-deliveries/${eventDeliveryId}/retry`;
+    let path = `organization/event-deliveries/${encodeURIComponent(eventDeliveryId)}/retry`;
 
     let request = {
       path,

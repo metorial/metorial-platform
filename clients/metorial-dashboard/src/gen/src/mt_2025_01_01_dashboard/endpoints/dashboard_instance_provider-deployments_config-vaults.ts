@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
     query?: DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-config-vaults`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-config-vaults`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
     providerConfigVaultId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-config-vaults/${providerConfigVaultId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-config-vaults/${encodeURIComponent(providerConfigVaultId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
     body: DashboardInstanceProviderDeploymentsConfigVaultsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-config-vaults`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-config-vaults`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
     body: DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-config-vaults/${providerConfigVaultId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-config-vaults/${encodeURIComponent(providerConfigVaultId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint {
     providerConfigVaultId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-config-vaults/${providerConfigVaultId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-config-vaults/${encodeURIComponent(providerConfigVaultId)}`;
 
     let request = {
       path,

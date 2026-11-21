@@ -57,7 +57,7 @@ export class MetorialDashboardProjectsKeyProvidersErrorsEndpoint {
     query?: DashboardProjectsKeyProvidersErrorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersErrorsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers/${keyProviderId}/errors`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers/${encodeURIComponent(keyProviderId)}/errors`;
 
     let request = {
       path,

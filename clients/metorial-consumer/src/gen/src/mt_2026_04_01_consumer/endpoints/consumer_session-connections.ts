@@ -83,7 +83,7 @@ export class MetorialConsumerSessionConnectionsEndpoint {
     sessionConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerSessionConnectionsGetOutput> {
-    let path = `consumer/session-connections/${sessionConnectionId}`;
+    let path = `consumer/session-connections/${encodeURIComponent(sessionConnectionId)}`;
 
     let request = {
       path,

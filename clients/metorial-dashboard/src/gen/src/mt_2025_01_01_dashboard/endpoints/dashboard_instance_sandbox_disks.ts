@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     query?: DashboardInstanceSandboxDisksListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks`;
 
     let request = {
       path,
@@ -105,7 +105,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     diskId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}`;
 
     let request = {
       path,
@@ -134,7 +134,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     body: DashboardInstanceSandboxDisksCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks`;
 
     let request = {
       path,
@@ -166,7 +166,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     body: DashboardInstanceSandboxDisksUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}`;
 
     let request = {
       path,
@@ -196,7 +196,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     diskId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}`;
 
     let request = {
       path,
@@ -227,7 +227,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     body: DashboardInstanceSandboxDisksCloneBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksCloneOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}/clone`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}/clone`;
 
     let request = {
       path,
@@ -259,7 +259,7 @@ export class MetorialDashboardInstanceSandboxDisksEndpoint {
     body: DashboardInstanceSandboxDisksResizeBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxDisksResizeOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/disks/${diskId}/resize`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/disks/${encodeURIComponent(diskId)}/resize`;
 
     let request = {
       path,

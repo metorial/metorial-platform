@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
     query?: DashboardInstanceNetworkPoliciesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesListOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
     networkPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies/${networkPolicyId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
     body: DashboardInstanceNetworkPoliciesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
     body: DashboardInstanceNetworkPoliciesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies/${networkPolicyId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
     networkPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/network-policies/${networkPolicyId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,

@@ -63,7 +63,7 @@ export class MetorialManagementInstanceSkillsMarketplacesRepositoriesEndpoint {
     query?: DashboardInstanceSkillsMarketplacesRepositoriesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesListOutput> {
-    let path = `instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialManagementInstanceSkillsMarketplacesRepositoriesEndpoint {
     skillMarketplaceRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesGetOutput> {
-    let path = `instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories/${skillMarketplaceRepositoryId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories/${encodeURIComponent(skillMarketplaceRepositoryId)}`;
 
     let request = {
       path,
@@ -130,7 +130,7 @@ export class MetorialManagementInstanceSkillsMarketplacesRepositoriesEndpoint {
     body: DashboardInstanceSkillsMarketplacesRepositoriesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesCreateOutput> {
-    let path = `instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialManagementInstanceSkillsMarketplacesRepositoriesEndpoint {
     skillMarketplaceRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput> {
-    let path = `instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories/${skillMarketplaceRepositoryId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories/${encodeURIComponent(skillMarketplaceRepositoryId)}`;
 
     let request = {
       path,

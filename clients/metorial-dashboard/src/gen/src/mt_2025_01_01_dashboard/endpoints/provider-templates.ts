@@ -93,7 +93,7 @@ export class MetorialProviderTemplatesEndpoint {
     providerTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesGetOutput> {
-    let path = `provider-templates/${providerTemplateId}`;
+    let path = `provider-templates/${encodeURIComponent(providerTemplateId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialProviderTemplatesEndpoint {
     body: DashboardInstanceProviderTemplatesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesUpdateOutput> {
-    let path = `provider-templates/${providerTemplateId}`;
+    let path = `provider-templates/${encodeURIComponent(providerTemplateId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialProviderTemplatesEndpoint {
     providerTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesDeleteOutput> {
-    let path = `provider-templates/${providerTemplateId}`;
+    let path = `provider-templates/${encodeURIComponent(providerTemplateId)}`;
 
     let request = {
       path,

@@ -69,7 +69,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
     query?: DashboardInstanceProviderDeploymentsConfigsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsListOutput> {
-    let path = `instances/${instanceId}/provider-configs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-configs`;
 
     let request = {
       path,
@@ -103,7 +103,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
     providerConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsGetOutput> {
-    let path = `instances/${instanceId}/provider-configs/${providerConfigId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-configs/${encodeURIComponent(providerConfigId)}`;
 
     let request = {
       path,
@@ -132,7 +132,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
     body: DashboardInstanceProviderDeploymentsConfigsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsCreateOutput> {
-    let path = `instances/${instanceId}/provider-configs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-configs`;
 
     let request = {
       path,
@@ -166,7 +166,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
     body: DashboardInstanceProviderDeploymentsConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsUpdateOutput> {
-    let path = `instances/${instanceId}/provider-configs/${providerConfigId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-configs/${encodeURIComponent(providerConfigId)}`;
 
     let request = {
       path,
@@ -198,7 +198,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
     providerConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsDeleteOutput> {
-    let path = `instances/${instanceId}/provider-configs/${providerConfigId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-configs/${encodeURIComponent(providerConfigId)}`;
 
     let request = {
       path,
@@ -227,7 +227,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
     query?: DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaOutput> {
-    let path = `instances/${instanceId}/provider-config-schema`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-config-schema`;
 
     let request = {
       path,

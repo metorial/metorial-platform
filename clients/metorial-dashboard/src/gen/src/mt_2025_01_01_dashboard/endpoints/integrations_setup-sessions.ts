@@ -89,7 +89,7 @@ export class MetorialIntegrationsSetupSessionsEndpoint {
     integrationSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsSetupSessionsGetOutput> {
-    let path = `integration-setup-sessions/${integrationSetupSessionId}`;
+    let path = `integration-setup-sessions/${encodeURIComponent(integrationSetupSessionId)}`;
 
     let request = {
       path,

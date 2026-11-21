@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceSandboxImageBuildsEndpoint {
     query?: DashboardInstanceSandboxImageBuildsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/image-builds`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/image-builds`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceSandboxImageBuildsEndpoint {
     buildId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/image-builds/${buildId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/image-builds/${encodeURIComponent(buildId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceSandboxImageBuildsEndpoint {
     buildId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsCancelOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/image-builds/${buildId}/cancel`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/image-builds/${encodeURIComponent(buildId)}/cancel`;
 
     let request = {
       path,
@@ -153,7 +153,7 @@ export class MetorialDashboardInstanceSandboxImageBuildsEndpoint {
     query?: DashboardInstanceSandboxImageBuildsLogsQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsLogsOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/image-builds/${buildId}/logs`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/image-builds/${encodeURIComponent(buildId)}/logs`;
 
     let request = {
       path,

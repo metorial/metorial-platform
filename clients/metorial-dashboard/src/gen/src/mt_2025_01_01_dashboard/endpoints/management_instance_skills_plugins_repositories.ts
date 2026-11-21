@@ -63,7 +63,7 @@ export class MetorialManagementInstanceSkillsPluginsRepositoriesEndpoint {
     query?: DashboardInstanceSkillsPluginsRepositoriesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesListOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/repositories`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/repositories`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialManagementInstanceSkillsPluginsRepositoriesEndpoint {
     skillPluginRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesGetOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/repositories/${skillPluginRepositoryId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/repositories/${encodeURIComponent(skillPluginRepositoryId)}`;
 
     let request = {
       path,
@@ -130,7 +130,7 @@ export class MetorialManagementInstanceSkillsPluginsRepositoriesEndpoint {
     body: DashboardInstanceSkillsPluginsRepositoriesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesCreateOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/repositories`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/repositories`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialManagementInstanceSkillsPluginsRepositoriesEndpoint {
     skillPluginRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesDeleteOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/repositories/${skillPluginRepositoryId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/repositories/${encodeURIComponent(skillPluginRepositoryId)}`;
 
     let request = {
       path,

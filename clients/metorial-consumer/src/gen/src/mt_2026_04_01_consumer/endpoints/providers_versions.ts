@@ -83,7 +83,7 @@ export class MetorialProvidersVersionsEndpoint {
     providerVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersVersionsGetOutput> {
-    let path = `provider-versions/${providerVersionId}`;
+    let path = `provider-versions/${encodeURIComponent(providerVersionId)}`;
 
     let request = {
       path,

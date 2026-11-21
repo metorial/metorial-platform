@@ -65,7 +65,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
     query?: DashboardInstanceProviderDeploymentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsListOutput> {
-    let path = `instances/${instanceId}/provider-deployments`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-deployments`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
     providerDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsGetOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-deployments/${encodeURIComponent(providerDeploymentId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
     body: DashboardInstanceProviderDeploymentsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsCreateOutput> {
-    let path = `instances/${instanceId}/provider-deployments`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-deployments`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
     body: DashboardInstanceProviderDeploymentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsUpdateOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-deployments/${encodeURIComponent(providerDeploymentId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceProviderDeploymentsEndpoint {
     providerDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsDeleteOutput> {
-    let path = `instances/${instanceId}/provider-deployments/${providerDeploymentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-deployments/${encodeURIComponent(providerDeploymentId)}`;
 
     let request = {
       path,

@@ -93,7 +93,7 @@ export class MetorialManagementOrganizationProjectsEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsGetOutput> {
-    let path = `organization/projects/${projectId}`;
+    let path = `organization/projects/${encodeURIComponent(projectId)}`;
 
     let request = {
       path,
@@ -148,7 +148,7 @@ export class MetorialManagementOrganizationProjectsEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsDeleteOutput> {
-    let path = `organization/projects/${projectId}`;
+    let path = `organization/projects/${encodeURIComponent(projectId)}`;
 
     let request = {
       path,
@@ -177,7 +177,7 @@ export class MetorialManagementOrganizationProjectsEndpoint {
     body: DashboardOrganizationsProjectsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsUpdateOutput> {
-    let path = `organization/projects/${projectId}`;
+    let path = `organization/projects/${encodeURIComponent(projectId)}`;
 
     let request = {
       path,

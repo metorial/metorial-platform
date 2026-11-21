@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceProtoGuardSuppressionsEndpoint {
     query?: DashboardInstanceProtoGuardSuppressionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardSuppressionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-suppressions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-suppressions`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceProtoGuardSuppressionsEndpoint {
     suppressionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardSuppressionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-suppressions/${suppressionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-suppressions/${encodeURIComponent(suppressionId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceProtoGuardSuppressionsEndpoint {
     body: DashboardInstanceProtoGuardSuppressionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardSuppressionsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-suppressions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-suppressions`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialDashboardInstanceProtoGuardSuppressionsEndpoint {
     suppressionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardSuppressionsArchiveOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-suppressions/${suppressionId}/archive`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-suppressions/${encodeURIComponent(suppressionId)}/archive`;
 
     let request = {
       path,

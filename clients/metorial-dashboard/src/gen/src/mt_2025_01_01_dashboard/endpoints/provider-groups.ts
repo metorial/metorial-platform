@@ -97,7 +97,7 @@ export class MetorialProviderGroupsEndpoint {
     providerGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderGroupsGetOutput> {
-    let path = `provider-groups/${providerGroupId}`;
+    let path = `provider-groups/${encodeURIComponent(providerGroupId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialProviderGroupsEndpoint {
     body: DashboardInstanceProviderGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderGroupsUpdateOutput> {
-    let path = `provider-groups/${providerGroupId}`;
+    let path = `provider-groups/${encodeURIComponent(providerGroupId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialProviderGroupsEndpoint {
     body: DashboardInstanceProviderGroupsAddListingBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderGroupsAddListingOutput> {
-    let path = `provider-groups/${providerGroupId}/listings`;
+    let path = `provider-groups/${encodeURIComponent(providerGroupId)}/listings`;
 
     let request = {
       path,
@@ -214,7 +214,7 @@ export class MetorialProviderGroupsEndpoint {
     providerListingId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderGroupsRemoveListingOutput> {
-    let path = `provider-groups/${providerGroupId}/listings/${providerListingId}`;
+    let path = `provider-groups/${encodeURIComponent(providerGroupId)}/listings/${encodeURIComponent(providerListingId)}`;
 
     let request = {
       path,

@@ -55,7 +55,7 @@ export class MetorialConsumersProfilesEndpoint {
     query?: DashboardInstanceConsumersProfilesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersProfilesListOutput> {
-    let path = `consumers/${consumerId}/profiles`;
+    let path = `consumers/${encodeURIComponent(consumerId)}/profiles`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialConsumersProfilesEndpoint {
     consumerProfileId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersProfilesGetOutput> {
-    let path = `consumers/${consumerId}/profiles/${consumerProfileId}`;
+    let path = `consumers/${encodeURIComponent(consumerId)}/profiles/${encodeURIComponent(consumerProfileId)}`;
 
     let request = {
       path,

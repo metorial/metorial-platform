@@ -85,7 +85,7 @@ export class MetorialProviderSpecificationChangeNotificationsEndpoint {
     notificationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderSpecificationChangeNotificationsGetOutput> {
-    let path = `provider-specification-change-notifications/${notificationId}`;
+    let path = `provider-specification-change-notifications/${encodeURIComponent(notificationId)}`;
 
     let request = {
       path,

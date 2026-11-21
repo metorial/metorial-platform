@@ -49,7 +49,7 @@ export class MetorialSkillsMergeRequestsPlanEndpoint {
     skillMergeRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsPlanGetOutput> {
-    let path = `skill-merge-requests/${skillMergeRequestId}/plan`;
+    let path = `skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/plan`;
 
     let request = {
       path,

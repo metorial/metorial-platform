@@ -97,7 +97,7 @@ export class MetorialManagementOrganizationEventDestinationsEndpoint {
     eventDestinationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationsGetOutput> {
-    let path = `organization/event-destinations/${eventDestinationId}`;
+    let path = `organization/event-destinations/${encodeURIComponent(eventDestinationId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialManagementOrganizationEventDestinationsEndpoint {
     body: DashboardOrganizationsEventDestinationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationsUpdateOutput> {
-    let path = `organization/event-destinations/${eventDestinationId}`;
+    let path = `organization/event-destinations/${encodeURIComponent(eventDestinationId)}`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialManagementOrganizationEventDestinationsEndpoint {
     eventDestinationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationsArchiveOutput> {
-    let path = `organization/event-destinations/${eventDestinationId}/archive`;
+    let path = `organization/event-destinations/${encodeURIComponent(eventDestinationId)}/archive`;
 
     let request = {
       path,
@@ -213,7 +213,7 @@ export class MetorialManagementOrganizationEventDestinationsEndpoint {
     eventDestinationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationsRotateWebhookSecretOutput> {
-    let path = `organization/event-destinations/${eventDestinationId}/rotate-webhook-secret`;
+    let path = `organization/event-destinations/${encodeURIComponent(eventDestinationId)}/rotate-webhook-secret`;
 
     let request = {
       path,
@@ -240,7 +240,7 @@ export class MetorialManagementOrganizationEventDestinationsEndpoint {
     eventDestinationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationsPingOutput> {
-    let path = `organization/event-destinations/${eventDestinationId}/ping`;
+    let path = `organization/event-destinations/${encodeURIComponent(eventDestinationId)}/ping`;
 
     let request = {
       path,

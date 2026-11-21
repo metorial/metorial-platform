@@ -65,7 +65,7 @@ export class MetorialDashboardOrganizationsEventDestinationListenersEndpoint {
     query?: DashboardOrganizationsEventDestinationListenersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersListOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-destination-listeners`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-destination-listeners`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardOrganizationsEventDestinationListenersEndpoint {
     eventDestinationListenerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-destination-listeners/${eventDestinationListenerId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-destination-listeners/${encodeURIComponent(eventDestinationListenerId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardOrganizationsEventDestinationListenersEndpoint {
     body: DashboardOrganizationsEventDestinationListenersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-destination-listeners`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-destination-listeners`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDashboardOrganizationsEventDestinationListenersEndpoint {
     body: DashboardOrganizationsEventDestinationListenersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-destination-listeners/${eventDestinationListenerId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-destination-listeners/${encodeURIComponent(eventDestinationListenerId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDashboardOrganizationsEventDestinationListenersEndpoint {
     eventDestinationListenerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-destination-listeners/${eventDestinationListenerId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-destination-listeners/${encodeURIComponent(eventDestinationListenerId)}`;
 
     let request = {
       path,

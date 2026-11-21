@@ -53,7 +53,7 @@ export class MetorialDashboardInstancePublicMcpServersSlugsEndpoint {
     query?: DashboardInstancePublicMcpServersSlugsCheckQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersSlugsCheckOutput> {
-    let path = `dashboard/instances/${instanceId}/public-mcp-server-slugs/availability`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/public-mcp-server-slugs/availability`;
 
     let request = {
       path,

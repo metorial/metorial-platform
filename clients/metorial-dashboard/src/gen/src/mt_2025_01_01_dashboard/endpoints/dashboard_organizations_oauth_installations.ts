@@ -57,7 +57,7 @@ export class MetorialDashboardOrganizationsOauthInstallationsEndpoint {
     query?: DashboardOrganizationsOauthInstallationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthInstallationsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/installations`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/installations`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardOrganizationsOauthInstallationsEndpoint {
     oauthInstallationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthInstallationsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/installations/${oauthInstallationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/installations/${encodeURIComponent(oauthInstallationId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialDashboardOrganizationsOauthInstallationsEndpoint {
     oauthInstallationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthInstallationsRevokeOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/installations/${oauthInstallationId}/revoke`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/installations/${encodeURIComponent(oauthInstallationId)}/revoke`;
 
     let request = {
       path,

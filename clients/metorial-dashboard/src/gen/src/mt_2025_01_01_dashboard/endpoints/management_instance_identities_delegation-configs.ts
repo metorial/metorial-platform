@@ -65,7 +65,7 @@ export class MetorialManagementInstanceIdentitiesDelegationConfigsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationConfigsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsListOutput> {
-    let path = `instances/${instanceId}/identity-delegation-configs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-delegation-configs`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialManagementInstanceIdentitiesDelegationConfigsEndpoint {
     identityDelegationConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsGetOutput> {
-    let path = `instances/${instanceId}/identity-delegation-configs/${identityDelegationConfigId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-delegation-configs/${encodeURIComponent(identityDelegationConfigId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialManagementInstanceIdentitiesDelegationConfigsEndpoint {
     body: DashboardInstanceIdentitiesDelegationConfigsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsCreateOutput> {
-    let path = `instances/${instanceId}/identity-delegation-configs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-delegation-configs`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialManagementInstanceIdentitiesDelegationConfigsEndpoint {
     body: DashboardInstanceIdentitiesDelegationConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsUpdateOutput> {
-    let path = `instances/${instanceId}/identity-delegation-configs/${identityDelegationConfigId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-delegation-configs/${encodeURIComponent(identityDelegationConfigId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialManagementInstanceIdentitiesDelegationConfigsEndpoint {
     identityDelegationConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationConfigsDeleteOutput> {
-    let path = `instances/${instanceId}/identity-delegation-configs/${identityDelegationConfigId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-delegation-configs/${encodeURIComponent(identityDelegationConfigId)}`;
 
     let request = {
       path,

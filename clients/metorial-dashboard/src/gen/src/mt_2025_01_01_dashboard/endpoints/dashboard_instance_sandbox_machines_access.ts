@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceSandboxMachinesAccessEndpoint {
     body: DashboardInstanceSandboxMachinesAccessShellBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesAccessShellOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/access/shell`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/access/shell`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSandboxMachinesAccessEndpoint {
     body: DashboardInstanceSandboxMachinesAccessFilesBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesAccessFilesOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/access/files`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/access/files`;
 
     let request = {
       path,
@@ -131,7 +131,7 @@ export class MetorialDashboardInstanceSandboxMachinesAccessEndpoint {
     body: DashboardInstanceSandboxMachinesAccessPortsBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesAccessPortsOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/access/ports`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/access/ports`;
 
     let request = {
       path,

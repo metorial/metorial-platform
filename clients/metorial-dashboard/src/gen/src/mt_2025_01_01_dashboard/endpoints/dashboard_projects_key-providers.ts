@@ -73,7 +73,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     query?: DashboardProjectsKeyProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersListOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers`;
 
     let request = {
       path,
@@ -107,7 +107,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     body: DashboardProjectsKeyProvidersCreateManagedBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersCreateManagedOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers`;
 
     let request = {
       path,
@@ -139,7 +139,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     body: DashboardProjectsKeyProvidersImportBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersImportOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers/import`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers/import`;
 
     let request = {
       path,
@@ -171,7 +171,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     keyProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers/${keyProviderId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers/${encodeURIComponent(keyProviderId)}`;
 
     let request = {
       path,
@@ -204,7 +204,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     query?: DashboardProjectsKeyProvidersGetSetupInfoQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersGetSetupInfoOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers/${keyProviderId}/setup-info`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers/${encodeURIComponent(keyProviderId)}/setup-info`;
 
     let request = {
       path,
@@ -238,7 +238,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     keyProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersValidateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers/${keyProviderId}/validate`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers/${encodeURIComponent(keyProviderId)}/validate`;
 
     let request = {
       path,
@@ -269,7 +269,7 @@ export class MetorialDashboardProjectsKeyProvidersEndpoint {
     keyProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsKeyProvidersSetDefaultOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/key-providers/${keyProviderId}/set-default`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/key-providers/${encodeURIComponent(keyProviderId)}/set-default`;
 
     let request = {
       path,

@@ -63,7 +63,7 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
     query?: DashboardOrganizationsTeamsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/teams`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/teams`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
     teamId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/teams/${teamId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/teams/${encodeURIComponent(teamId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
     body: DashboardOrganizationsTeamsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/teams/${teamId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/teams/${encodeURIComponent(teamId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardOrganizationsTeamsEndpoint {
     body: DashboardOrganizationsTeamsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/teams`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/teams`;
 
     let request = {
       path,

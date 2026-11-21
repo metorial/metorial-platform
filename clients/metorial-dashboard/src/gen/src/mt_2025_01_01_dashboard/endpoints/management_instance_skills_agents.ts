@@ -67,7 +67,7 @@ export class MetorialManagementInstanceSkillsAgentsEndpoint {
     body: DashboardInstanceSkillsAgentsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsAgentsCreateOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/agents`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/agents`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialManagementInstanceSkillsAgentsEndpoint {
     query?: DashboardInstanceSkillsAgentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsAgentsListOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/agents`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/agents`;
 
     let request = {
       path,
@@ -133,7 +133,7 @@ export class MetorialManagementInstanceSkillsAgentsEndpoint {
     skillAgentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsAgentsGetOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/agents/${skillAgentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/agents/${encodeURIComponent(skillAgentId)}`;
 
     let request = {
       path,
@@ -166,7 +166,7 @@ export class MetorialManagementInstanceSkillsAgentsEndpoint {
     body: DashboardInstanceSkillsAgentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsAgentsUpdateOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/agents/${skillAgentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/agents/${encodeURIComponent(skillAgentId)}`;
 
     let request = {
       path,
@@ -198,7 +198,7 @@ export class MetorialManagementInstanceSkillsAgentsEndpoint {
     skillAgentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsAgentsDeleteOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/agents/${skillAgentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/agents/${encodeURIComponent(skillAgentId)}`;
 
     let request = {
       path,

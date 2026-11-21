@@ -55,7 +55,7 @@ export class MetorialDashboardOrganizationsAuditLogsEndpoint {
     query?: DashboardOrganizationsAuditLogsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-logs`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-logs`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardOrganizationsAuditLogsEndpoint {
     auditLogId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-logs/${auditLogId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-logs/${encodeURIComponent(auditLogId)}`;
 
     let request = {
       path,

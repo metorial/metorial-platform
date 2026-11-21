@@ -99,7 +99,7 @@ export class MetorialConsumerProvidersEndpoint {
     catalogItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerProvidersGetOutput> {
-    let path = `consumer/providers/${catalogItemId}`;
+    let path = `consumer/providers/${encodeURIComponent(catalogItemId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialConsumerProvidersEndpoint {
     body: ConsumerProvidersRequestAccessBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerProvidersRequestAccessOutput> {
-    let path = `consumer/providers/${catalogItemId}/request-access`;
+    let path = `consumer/providers/${encodeURIComponent(catalogItemId)}/request-access`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialConsumerProvidersEndpoint {
     body: ConsumerProvidersSetupBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerProvidersSetupOutput> {
-    let path = `consumer/providers/${catalogItemId}/setup`;
+    let path = `consumer/providers/${encodeURIComponent(catalogItemId)}/setup`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialConsumerProvidersEndpoint {
     providerSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerProvidersGetSetupOutput> {
-    let path = `consumer/providers/${catalogItemId}/setup/${providerSetupSessionId}`;
+    let path = `consumer/providers/${encodeURIComponent(catalogItemId)}/setup/${encodeURIComponent(providerSetupSessionId)}`;
 
     let request = {
       path,
@@ -211,7 +211,7 @@ export class MetorialConsumerProvidersEndpoint {
     body: ConsumerProvidersDeployBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerProvidersDeployOutput> {
-    let path = `consumer/providers/${catalogItemId}/deploy`;
+    let path = `consumer/providers/${encodeURIComponent(catalogItemId)}/deploy`;
 
     let request = {
       path,
@@ -239,7 +239,7 @@ export class MetorialConsumerProvidersEndpoint {
     body: ConsumerProvidersReconnectBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerProvidersReconnectOutput> {
-    let path = `consumer/providers/${catalogItemId}/reconnect`;
+    let path = `consumer/providers/${encodeURIComponent(catalogItemId)}/reconnect`;
 
     let request = {
       path,
