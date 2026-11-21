@@ -26,14 +26,14 @@ export let integrationInternetGatewayController = Controller.create(
   {
     name: 'Integration Internet Gateway',
     description:
-      'Read the internet gateway that integration enclaves use to reach and be reached from the internet.'
+      'An integration internet gateway is the shared network exit for integration enclaves in an instance. Enclaves use it to reach the internet and be reached from it.'
   },
   {
     get: networkingInstanceGroup
       .get(instancePath('integration-internet-gateway', 'integrationInternetGateway.get'), {
         name: 'Get integration internet gateway',
         description:
-          'Retrieves the integration internet gateway of the instance, including its public IPs.'
+          "Retrieves the instance's integration internet gateway. Public IPs are masked as `x.x.x.x` unless your plan includes IP access."
       })
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
       .output(integrationInternetGatewayPresenter)
@@ -55,7 +55,7 @@ export let integrationInternetGatewayController = Controller.create(
         {
           name: 'List integration internet gateway network logs',
           description:
-            'Returns ingress or egress network logs for integration enclaves in the instance environment.'
+            'Returns network logs for integration enclaves in the instance. Set `direction` to choose ingress or egress logs.'
         }
       )
       .use(checkAccess({ possibleScopes: [...networkReadScopes] }))
@@ -63,13 +63,33 @@ export let integrationInternetGatewayController = Controller.create(
       .query(
         'default',
         v.object({
-          direction: v.enumOf(['ingress', 'egress']),
-          enclave_id: v.optional(v.union([v.string(), v.array(v.string())])),
-          hostname: v.optional(v.union([v.string(), v.array(v.string())])),
-          ip: v.optional(v.union([v.string(), v.array(v.string())])),
-          from: v.optional(v.string()),
-          to: v.optional(v.string()),
-          interval_minutes: v.optional(v.number())
+          direction: v.enumOf(['ingress', 'egress'], {
+            description: 'Whether to return ingress or egress logs.'
+          }),
+          enclave_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+            description: 'Only return logs for one of these enclaves.'
+          }),
+          hostname: v.optional(v.union([v.string(), v.array(v.string())]), {
+            description: 'Only return logs for one of these hostnames.'
+          }),
+          ip: v.optional(v.union([v.string(), v.array(v.string())]), {
+            description: 'Only return logs for one of these IPs.'
+          }),
+          from: v.optional(
+            v.string({
+              description: 'Only return logs at or after this time, as an ISO timestamp.'
+            })
+          ),
+          to: v.optional(
+            v.string({
+              description: 'Only return logs at or before this time, as an ISO timestamp.'
+            })
+          ),
+          interval_minutes: v.optional(
+            v.number({
+              description: 'Bucket size in minutes.'
+            })
+          )
         })
       )
       .do(async ctx => {

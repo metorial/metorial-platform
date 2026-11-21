@@ -14,13 +14,13 @@ export let protoGuardSuppressionController = Controller.create(
   {
     name: 'ProtoGuard Suppression',
     description:
-      'ProtoGuard suppressions mark known-benign findings so they no longer raise alerts.'
+      'A ProtoGuard suppression is a rule that hides known-benign findings. Matching findings no longer raise alerts.'
   },
   {
     list: instanceGroup
       .get(instancePath('protoguard-suppressions', 'protoGuardSuppressions.list'), {
         name: 'List ProtoGuard suppressions',
-        description: 'Returns the ProtoGuard suppressions of this instance.'
+        description: 'Returns a paginated list of ProtoGuard suppressions in the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .query(

@@ -51,7 +51,8 @@ let agentInstanceGroup = agentGroup.use(async ctx => {
 export let agentController = Controller.create(
   {
     name: 'Agents',
-    description: 'Inspect agents and their linked clients and instances.',
+    description:
+      'An agent is an identity that acts in your instance. It links to the clients and instances it runs as.',
     hideInDocs: true
   },
   {
@@ -67,20 +68,32 @@ export let agentController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(
+              v.string({
+                description: 'Filter agents by name or description.'
+              })
+            ),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description: 'Only return agents with one of these statuses.'
+              }
             ),
             type: v.optional(
               v.union([
                 v.enumOf(['mcp_client', 'custom', 'tool_call']),
                 v.array(v.enumOf(['mcp_client', 'custom', 'tool_call']))
-              ])
+              ]),
+              {
+                description: 'Only return agents with one of these types.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return agents with one of these IDs.'
+            }),
             created_at: dateFilterValidator('agent creation time'),
             updated_at: dateFilterValidator('agent last update time')
           })
@@ -106,7 +119,7 @@ export let agentController = Controller.create(
     get: agentGroup
       .get(instancePath('agents/:agentId', 'agents.get'), {
         name: 'Get agent',
-        description: 'Retrieves a specific agent by ID.'
+        description: 'Retrieves an agent.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .use(hasFlags(['identity-management', 'paid-identity']))
@@ -129,10 +142,17 @@ export let agentController = Controller.create(
               v.union([
                 v.enumOf(['mcp_client', 'tool_call']),
                 v.array(v.enumOf(['mcp_client', 'tool_call']))
-              ])
+              ]),
+              {
+                description: 'Only return agent instances with one of these types.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            agent_client_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return agent instances with one of these IDs.'
+            }),
+            agent_client_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return agent instances linked to one of these agent clients.'
+            }),
             created_at: dateFilterValidator('agent instance creation time'),
             updated_at: dateFilterValidator('agent instance last update time')
           })
@@ -161,7 +181,7 @@ export let agentController = Controller.create(
         instancePath('agents/:agentId/instances/:agentInstanceId', 'agents.instances.get'),
         {
           name: 'Get agent instance',
-          description: 'Retrieves a specific agent instance by ID.'
+          description: 'Retrieves an agent instance.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
