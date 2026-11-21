@@ -90,19 +90,15 @@ describe('api-core providers: catalog', () => {
       `/provider-specifications/${version.specification_id}`,
       `/provider-tools?provider_version_id=${version.id}`,
       `/provider-tools/${toolNamed('echo').id}`,
-      `/provider-auth-methods?provider_version_id=${version.id}`
-    ]) {
-      expectError(await publishable.get(path), 404);
-    }
-
-    for (let path of [
-      '/provider-specification-change-notifications',
+      `/provider-auth-methods?provider_version_id=${version.id}`,
       `/providers/${remote.providerId}/security-review`,
       '/security-reviews/unknown',
       '/security-reviews/unknown/revisions'
     ]) {
-      expectError(await publishable.get(path), 401);
+      expectError(await publishable.get(path), 404);
     }
+
+    expectError(await publishable.get('/provider-specification-change-notifications'), 401);
 
     for (let path of [
       `/provider-versions/${version.id}`,
