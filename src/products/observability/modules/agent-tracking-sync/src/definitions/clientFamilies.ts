@@ -9,7 +9,7 @@ export let agentTrackingClientFamilyKeys = Object.keys(
 ) as AgentTrackingClientFamily[];
 
 let isClientFamily = (family: string): family is AgentTrackingClientFamily =>
-  Object.hasOwn(agentTrackingClientFamilies, family);
+  Object.prototype.hasOwnProperty.call(agentTrackingClientFamilies, family);
 
 export let toServiceFamily = (family: string) =>
   isClientFamily(family) ? agentTrackingClientFamilies[family].serviceFamily : family;
