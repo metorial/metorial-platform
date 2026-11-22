@@ -37,6 +37,8 @@ let consumerProfileInclude = {
     }
   },
   resourceActors: true,
+  // getOwnershipActor needs this to resolve consumer-owned resources for the caller.
+  organizationActor: true,
   surface: {
     include: {
       portal: true
