@@ -2,6 +2,7 @@ import { Spacer, Spinner, Text, Title, theme } from '@metorial/ui';
 import { useEffect } from 'react';
 import styled from 'styled-components';
 import { SuccessIcon } from '../../../components/statusIcon';
+import { isHttpUrl } from '../../../lib/isHttpUrl';
 
 let CROSS_ORIGIN_REDIRECT_DELAY_MS = 1500;
 
@@ -33,7 +34,7 @@ let Redirecting = styled.div`
 
 export let CompletedStep = ({ redirectUrl }: { redirectUrl: string | null }) => {
   useEffect(() => {
-    if (!redirectUrl) return;
+    if (!redirectUrl || !isHttpUrl(redirectUrl)) return;
 
     let isSameOrigin = new URL(redirectUrl).origin === window.location.origin;
     let timeout = setTimeout(

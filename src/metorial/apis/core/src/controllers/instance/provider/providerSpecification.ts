@@ -5,6 +5,7 @@ import { providerSpecificationService } from '@metorial-subspace/module-catalog'
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { isPublicCatalogOnly } from '../../../lib/publicCatalogOnly';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '@metorial/presenters';
@@ -21,7 +22,8 @@ let providerSpecificationGroup = integrationsGroup.use(async ctx => {
 
   let specification = await providerSpecificationService.getProviderSpecificationById({
     instance: ctx.instance,
-    providerSpecificationId: ctx.params.providerSpecificationId
+    providerSpecificationId: ctx.params.providerSpecificationId,
+    publicCatalogOnly: isPublicCatalogOnly(ctx)
   });
 
   return { specification };
@@ -71,6 +73,7 @@ export let providerSpecificationController = Controller.create(
       .do(async ctx => {
         let paginator = await providerSpecificationService.listProviderSpecifications({
           instance: ctx.instance,
+          publicCatalogOnly: isPublicCatalogOnly(ctx),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),

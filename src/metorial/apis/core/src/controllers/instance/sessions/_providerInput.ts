@@ -8,7 +8,7 @@ import {
 } from '@metorial-subspace/module-deployment';
 import type { SessionProviderInput } from '@metorial-subspace/module-session';
 import type { AuditScope } from '@metorial/audit-scope';
-import type { Instance } from '@metorial/db';
+import type { Instance, OrganizationActor } from '@metorial/db';
 
 export type SessionProviderDeploymentSource =
   | { type: 'reference'; providerDeploymentId: string }
@@ -43,6 +43,7 @@ export type SessionProviderAuthConfigSource =
 
 export let resolveSessionProviderInput = async (d: {
   instance: Instance;
+  organizationActor?: OrganizationActor;
   auditScope?: AuditScope;
   ownerActorId?: string;
   source?: 'explorer';
@@ -100,6 +101,7 @@ export let resolveSessionProviderInput = async (d: {
   if (d.providerConfig?.type === 'reference') {
     let providerConfig = await providerConfigService.getProviderConfigById({
       instance: d.instance,
+      organizationActor: d.organizationActor,
       providerConfigId: d.providerConfig.providerConfigId
     });
     configId = providerConfig.id;
@@ -127,6 +129,7 @@ export let resolveSessionProviderInput = async (d: {
             type: 'vault' as const,
             vault: await providerConfigVaultService.getProviderConfigVaultById({
               instance: d.instance,
+              organizationActor: d.organizationActor,
               providerConfigVaultId: d.providerConfig.config.providerConfigVaultId
             })
           };
@@ -154,6 +157,7 @@ export let resolveSessionProviderInput = async (d: {
   if (d.providerAuthConfig?.type === 'reference') {
     let providerAuthConfig = await providerAuthConfigService.getProviderAuthConfigById({
       instance: d.instance,
+      organizationActor: d.organizationActor,
       providerAuthConfigId: d.providerAuthConfig.providerAuthConfigId
     });
     authConfigId = providerAuthConfig.id;

@@ -11,6 +11,7 @@ import { providerDeploymentService } from '@metorial-subspace/module-deployment'
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
@@ -214,6 +215,7 @@ export let providerAuthImportController = Controller.create(
         let authImport = await providerAuthImportService.createProviderAuthImport({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           provider,
           providerDeployment,
           providerAuthConfig,

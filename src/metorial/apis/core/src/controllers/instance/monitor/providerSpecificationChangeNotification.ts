@@ -6,6 +6,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { providerSpecificationChangeNotificationPresenter } from '@metorial/presenters';
 import { getRequiredParam, notificationTargetValidator, stringOrArray } from './_shared';
 
@@ -40,6 +41,7 @@ export let providerSpecificationChangeNotificationController = Controller.create
             'Returns a paginated list of provider specification change notifications in the instance.'
         }
       )
+      .use(requireConsumerTokenForPublishableKey())
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerSpecificationChangeNotificationPresenter)
       .query(
@@ -105,6 +107,7 @@ export let providerSpecificationChangeNotificationController = Controller.create
           description: 'Retrieves a provider specification change notification.'
         }
       )
+      .use(requireConsumerTokenForPublishableKey())
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerSpecificationChangeNotificationPresenter)
       .do(async ctx =>

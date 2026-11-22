@@ -2,6 +2,7 @@ import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { setupSessionRedirectUrlPattern } from '@metorial-subspace/module-auth';
 import {
   integrationInstanceService,
   integrationService,
@@ -15,6 +16,16 @@ import { requireNonPublishableMachineAccess } from '../../../middleware/requireN
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationSetupSessionPresenter } from '@metorial/presenters';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
+
+let redirectUrlValidator = v.optional(
+  v.string({
+    description: 'Where to send the user once setup completes.',
+    modifiers: [
+      v.url(),
+      v.regex(setupSessionRedirectUrlPattern, { message: 'Must be an http or https URL' })
+    ]
+  })
+);
 
 let setupSessionConfigurationValidator = v.optional(
   v.object(
@@ -295,11 +306,7 @@ export let integrationSetupSessionController = Controller.create(
               description: 'When the session expires. Defaults to 30 minutes after creation.'
             })
           ),
-          redirect_url: v.optional(
-            v.string({
-              description: 'Where to send the user once setup completes.'
-            })
-          ),
+          redirect_url: redirectUrlValidator,
           configuration: setupSessionConfigurationValidator
         })
       )

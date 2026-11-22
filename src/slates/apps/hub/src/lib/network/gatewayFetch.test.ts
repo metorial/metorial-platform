@@ -52,13 +52,21 @@ describe('gatewayFetch', () => {
     });
   });
 
-  it('sends every redirect hop through the gateway', async () => {
+  it('sends every redirect hop through the gateway and strips cross-origin headers', async () => {
     fetchMock
       .mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: '/b' } }))
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: 'https://other.example/c' }
+        })
+      )
       .mockResolvedValueOnce(new Response('moved'));
 
+    let headers = { 'x-upstream-auth': 'value' };
     let response = await gatewayFetch('https://files.example/a', {
       subject,
+      headers,
       maxRedirects: 3,
       lifetime: 'stream'
     });
@@ -66,9 +74,15 @@ describe('gatewayFetch', () => {
     expect(await response.text()).toBe('moved');
     expect(fetchMock.mock.calls.map(call => String(call[0]))).toEqual([
       'https://files.example/a',
-      'https://files.example/b'
+      'https://files.example/b',
+      'https://other.example/c'
     ]);
     expect(fetchMock.mock.calls.every(call => call[1].proxy)).toBe(true);
+    expect(fetchMock.mock.calls.map(call => call[1].headers)).toEqual([
+      headers,
+      headers,
+      undefined
+    ]);
   });
 
   it('stops after the redirect limit', async () => {

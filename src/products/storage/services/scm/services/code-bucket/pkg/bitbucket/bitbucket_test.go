@@ -218,6 +218,18 @@ func TestWriteCloudChangesWithExplicitDeletesKeepsExportedPath(t *testing.T) {
 	}
 }
 
+func openRoot(t *testing.T, dir string) *os.Root {
+	t.Helper()
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatalf("open root: %v", err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+
+	return root
+}
+
 func TestRemoveDataCenterPathsOnlyRemovesListedFiles(t *testing.T) {
 	targetDir := t.TempDir()
 
@@ -235,7 +247,7 @@ func TestRemoveDataCenterPathsOnlyRemovesListedFiles(t *testing.T) {
 	removed := write("skills/gone/a.md")
 	unmanaged := write("README.md")
 
-	if err := removeDataCenterPaths(targetDir, []string{"skills/gone/a.md"}); err != nil {
+	if err := removeDataCenterPaths(openRoot(t, targetDir), "", []string{"skills/gone/a.md"}); err != nil {
 		t.Fatalf("remove paths: %v", err)
 	}
 
@@ -255,7 +267,7 @@ func TestRemoveDataCenterPathsOnlyRemovesListedFiles(t *testing.T) {
 func TestRemoveDataCenterPathsIgnoresMissingFiles(t *testing.T) {
 	targetDir := t.TempDir()
 
-	if err := removeDataCenterPaths(targetDir, []string{"never-existed.md"}); err != nil {
+	if err := removeDataCenterPaths(openRoot(t, targetDir), "", []string{"never-existed.md"}); err != nil {
 		t.Fatalf("expected a missing path to be ignored, got %v", err)
 	}
 }
@@ -263,7 +275,135 @@ func TestRemoveDataCenterPathsIgnoresMissingFiles(t *testing.T) {
 func TestRemoveDataCenterPathsRejectsEscapingPath(t *testing.T) {
 	targetDir := t.TempDir()
 
-	if err := removeDataCenterPaths(targetDir, []string{"../outside.md"}); err == nil {
+	if err := removeDataCenterPaths(openRoot(t, targetDir), "", []string{"../outside.md"}); err == nil {
 		t.Fatal("expected a path outside the target directory to be rejected")
 	}
+}
+
+func TestRemoveDataCenterPathsStaysInsideANestedTarget(t *testing.T) {
+	worktreeDir := t.TempDir()
+
+	for _, relativePath := range []string{"skills/gone/a.md", "skills/kept.md", "README.md"} {
+		full := filepath.Join(worktreeDir, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("create directory: %v", err)
+		}
+		if err := os.WriteFile(full, []byte("content"), 0o644); err != nil {
+			t.Fatalf("write file: %v", err)
+		}
+	}
+
+	if err := removeDataCenterPaths(openRoot(t, worktreeDir), "skills", []string{"gone/a.md"}); err != nil {
+		t.Fatalf("remove paths: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(worktreeDir, "skills", "gone")); !os.IsNotExist(err) {
+		t.Fatalf("expected the emptied directory to be pruned, got %v", err)
+	}
+	for _, kept := range []string{"skills/kept.md", "README.md"} {
+		if _, err := os.Stat(filepath.Join(worktreeDir, filepath.FromSlash(kept))); err != nil {
+			t.Fatalf("expected %s to survive: %v", kept, err)
+		}
+	}
+}
+
+func worktreeWithOutsideLink(t *testing.T) (worktreeDir, outsideDir string) {
+	t.Helper()
+
+	outsideDir = t.TempDir()
+	worktreeDir = t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(outsideDir, "hosts"), []byte("original"), 0o644); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+	if err := os.Symlink(outsideDir, filepath.Join(worktreeDir, "skills")); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+
+	return worktreeDir, outsideDir
+}
+
+func expectUntouched(t *testing.T, outsideDir string) {
+	t.Helper()
+
+	content, err := os.ReadFile(filepath.Join(outsideDir, "hosts"))
+	if err != nil || string(content) != "original" {
+		t.Fatalf("expected the file outside the worktree to be untouched, got %q, %v", content, err)
+	}
+	entries, err := os.ReadDir(outsideDir)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("expected nothing else outside the worktree, got %d entries, %v", len(entries), err)
+	}
+}
+
+func TestWriteDataCenterFileStaysInsideTheWorktree(t *testing.T) {
+	worktreeDir, outsideDir := worktreeWithOutsideLink(t)
+	root := openRoot(t, worktreeDir)
+
+	for _, file := range []FileToUpload{
+		{Path: "hosts", Content: []byte("changed")},
+		{Path: "nested/new.md", Content: []byte("changed")},
+	} {
+		if err := writeDataCenterFile(root, "skills", file); err == nil {
+			t.Fatalf("expected writing %s through the link to fail", file.Path)
+		}
+	}
+	if err := writeDataCenterFile(root, "", FileToUpload{Path: "skills/hosts", Content: []byte("changed")}); err == nil {
+		t.Fatal("expected writing through the link to fail")
+	}
+
+	expectUntouched(t, outsideDir)
+}
+
+func TestWriteDataCenterFileWritesNestedFiles(t *testing.T) {
+	worktreeDir := t.TempDir()
+	root := openRoot(t, worktreeDir)
+
+	if err := writeDataCenterFile(root, "", FileToUpload{Path: "README.md", Content: []byte("root")}); err != nil {
+		t.Fatalf("write root file: %v", err)
+	}
+	if err := writeDataCenterFile(root, "skills/docs", FileToUpload{Path: "guides/a.md", Content: []byte("nested")}); err != nil {
+		t.Fatalf("write nested file: %v", err)
+	}
+
+	for relativePath, want := range map[string]string{
+		"README.md":               "root",
+		"skills/docs/guides/a.md": "nested",
+	} {
+		content, err := os.ReadFile(filepath.Join(worktreeDir, filepath.FromSlash(relativePath)))
+		if err != nil || string(content) != want {
+			t.Fatalf("expected %s to hold %q, got %q, %v", relativePath, want, content, err)
+		}
+	}
+}
+
+func TestRemoveDataCenterPathsStaysInsideTheWorktree(t *testing.T) {
+	worktreeDir, outsideDir := worktreeWithOutsideLink(t)
+	root := openRoot(t, worktreeDir)
+
+	if err := removeDataCenterPaths(root, "skills", []string{"hosts"}); err == nil {
+		t.Fatal("expected deleting through the link to fail")
+	}
+	if err := removeDataCenterPaths(root, "", []string{"skills/hosts"}); err == nil {
+		t.Fatal("expected deleting through the link to fail")
+	}
+
+	expectUntouched(t, outsideDir)
+}
+
+func TestWorktreeRootRemovesALinkWithoutFollowingIt(t *testing.T) {
+	worktreeDir, outsideDir := worktreeWithOutsideLink(t)
+	root := openRoot(t, worktreeDir)
+
+	if err := root.RemoveAll("skills"); err != nil {
+		t.Fatalf("remove link: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(worktreeDir, "skills")); !os.IsNotExist(err) {
+		t.Fatalf("expected the link itself to be removed, got %v", err)
+	}
+	if err := root.RemoveAll("skills/nested"); err != nil {
+		t.Fatalf("remove missing path: %v", err)
+	}
+
+	expectUntouched(t, outsideDir)
 }

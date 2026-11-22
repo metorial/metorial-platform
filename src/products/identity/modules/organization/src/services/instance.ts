@@ -630,6 +630,7 @@ class InstanceService {
   async getManyInstancesForOrganization(d: {
     organization: Organization;
     instanceIds?: string[];
+    accessFilter?: { projectIds: string[]; instanceIds: string[] };
   }) {
     return await db.instance.findMany({
       where: {
@@ -638,6 +639,16 @@ class InstanceService {
               { id: { in: d.instanceIds } },
               { slug: { in: d.instanceIds } },
               { previousSlugs: { hasSome: d.instanceIds } }
+            ]
+          : undefined,
+        AND: d.accessFilter
+          ? [
+              {
+                OR: [
+                  { project: { id: { in: d.accessFilter.projectIds } } },
+                  { id: { in: d.accessFilter.instanceIds } }
+                ]
+              }
             ]
           : undefined,
         organizationOid: d.organization.oid

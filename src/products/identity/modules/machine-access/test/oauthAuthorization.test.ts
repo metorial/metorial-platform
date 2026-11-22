@@ -556,11 +556,16 @@ describe('oauthAuthorizationService', () => {
         status: 'active'
       }
     }));
-    mockDb.oAuthToken.update.mockImplementation(async ({ where, data }: any) => ({
+    let rotatedTokenData: Record<string, unknown> = {};
+    mockDb.oAuthToken.updateMany.mockImplementation(async ({ data }: any) => {
+      rotatedTokenData = data;
+      return { count: 1 };
+    });
+    mockDb.oAuthToken.findUniqueOrThrow.mockImplementation(async ({ where }: any) => ({
       oid: where.oid ?? 601n,
       id: 'oauthToken-generated-id',
       oauthAuthorizationOid: 300n,
-      ...data,
+      ...rotatedTokenData,
       oauthAuthorization: {
         oid: 300n,
         oauthInstallationOid: 200n,
@@ -749,7 +754,10 @@ describe('oauthAuthorizationService', () => {
     expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
   });
 
-  let mockAcceptedAuthorizationCode = () => {
+  let mockAcceptedAuthorizationCode = (codeChallengeMethod: 'none' | 's256' = 's256') => {
+    let codeChallenge =
+      codeChallengeMethod == 's256' ? 'zlxhzi2oXcwctSMRn0OqyEVcKJPGyt9nEWTCdXRuWlA' : null;
+
     oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByCode.mockResolvedValue({
       id: 'oarf_1',
       oauthApplicationId: 'oauthApplication-generated-id',
@@ -757,8 +765,8 @@ describe('oauthAuthorizationService', () => {
       status: 'accepted',
       code: 'code-1',
       redirectUri: 'https://example.com/callback',
-      codeChallengeMethod: 'none',
-      codeChallenge: null,
+      codeChallengeMethod,
+      codeChallenge,
       expiresAt: new Date(Date.now() + 60_000)
     });
     mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue({
@@ -767,8 +775,8 @@ describe('oauthAuthorizationService', () => {
       type: 'interactive',
       status: 'accepted',
       redirectUri: 'https://example.com/callback',
-      codeChallengeMethod: 'none',
-      codeChallenge: null,
+      codeChallengeMethod,
+      codeChallenge,
       expiresAt: new Date(Date.now() + 60_000),
       oauthApplication: {
         oid: 100n,
@@ -822,21 +830,24 @@ describe('oauthAuthorizationService', () => {
     });
   };
 
-  let exchangeAuthorizationCode = () =>
+  let exchangeAuthorizationCode = (input: { clientSecret?: string; codeVerifier?: string }) =>
     oauthAuthorizationService.exchangeOAuthToken({
       context: baseContext,
       input: {
         grantType: 'authorization_code',
         clientId: 'client-1',
         code: 'code-1',
-        redirectUri: 'https://example.com/callback'
+        redirectUri: 'https://example.com/callback',
+        ...input
       }
     });
 
-  it('exchanges authorization codes into access and refresh tokens', async () => {
+  let codeVerifier = 'code-verifier-1-abcdefghijklmnopqrstuvwxyz0123';
+
+  it('exchanges a PKCE authorization code for an access token without a client secret', async () => {
     mockAcceptedAuthorizationCode();
 
-    let result = await exchangeAuthorizationCode();
+    let result = await exchangeAuthorizationCode({ codeVerifier });
 
     expect(mockDb.oAuthAuthorizationFlow.updateMany).toHaveBeenCalledWith({
       where: { oid: 500n, status: 'accepted' },
@@ -852,10 +863,32 @@ describe('oauthAuthorizationService', () => {
     mockAcceptedAuthorizationCode();
     mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 0 });
 
-    await expect(exchangeAuthorizationCode()).rejects.toMatchObject({
+    await expect(exchangeAuthorizationCode({ codeVerifier })).rejects.toMatchObject({
       data: { message: 'Invalid authorization code', oauth: { error: 'invalid_grant' } }
     });
     expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+  });
+
+  it('requires PKCE when no client secret is presented', async () => {
+    mockAcceptedAuthorizationCode('none');
+
+    await expect(exchangeAuthorizationCode({})).rejects.toMatchObject({
+      data: {
+        message: 'PKCE with S256 is required when no client secret is presented',
+        oauth: { error: 'invalid_grant' }
+      }
+    });
+    expect(mockDb.oAuthAuthorizationFlow.updateMany).not.toHaveBeenCalled();
+    expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+  });
+
+  it('exchanges an authorization code without PKCE when a client secret is presented', async () => {
+    mockAcceptedAuthorizationCode('none');
+
+    let result = await exchangeAuthorizationCode({ clientSecret: 'secret-1' });
+
+    expect(mockDb.oAuthToken.create).toHaveBeenCalled();
+    expect(result.oauthToken.refreshToken).toContain('metorial_or_');
   });
 
   let refreshableAuthorization = {

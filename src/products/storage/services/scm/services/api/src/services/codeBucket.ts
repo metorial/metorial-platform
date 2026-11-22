@@ -11,6 +11,7 @@ import { codeBucketClient } from '../lib/codeWorkspace';
 import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../lib/githubApp';
 import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
 import { normalizePath } from '../lib/normalizePath';
+import { assertScmUrlsReachable } from '../lib/scmFetch';
 import { getBitbucketCloneUrl } from '../queues/codeBucket/bitbucket';
 import { cloneBucketQueue } from '../queues/codeBucket/cloneBucket';
 import { copyFromToBucketQueue } from '../queues/codeBucket/copyFromToBucket';
@@ -84,6 +85,7 @@ class codeBucketServiceImpl {
     isSynced?: boolean;
   }) {
     let ref = d.ref ?? d.repo.defaultBranch ?? 'main';
+    let path = normalizePath(d.path ?? '/');
 
     let codeBucket = await db.codeBucket.create({
       data: {
@@ -91,7 +93,7 @@ class codeBucketServiceImpl {
         tenantOid: d.tenant.oid,
         purposeOid: await codeBucketPurposeService.ensurePurpose(d),
         repositoryOid: d.repo.oid,
-        path: normalizePath(d.path ?? '/'),
+        path,
         status: 'importing',
         isReadOnly: d.isReadOnly,
         isSynced: d.isSynced ?? false,
@@ -104,7 +106,7 @@ class codeBucketServiceImpl {
       await importGithubQueue.add({
         newBucketId: codeBucket.id,
         owner: d.repo.externalOwner,
-        path: d.path ?? '/',
+        path,
         repo: d.repo.externalName,
         ref,
         repoId: d.repo.id
@@ -113,7 +115,7 @@ class codeBucketServiceImpl {
       await importGitlabQueue.add({
         newBucketId: codeBucket.id,
         owner: d.repo.externalOwner,
-        path: d.path ?? '/',
+        path,
         repo: d.repo.externalName,
         ref,
         repoId: d.repo.id
@@ -121,7 +123,7 @@ class codeBucketServiceImpl {
     } else if (d.repo.provider === 'bitbucket') {
       await importBitbucketQueue.add({
         newBucketId: codeBucket.id,
-        path: d.path ?? '/',
+        path,
         ref,
         repoId: d.repo.id
       });
@@ -145,6 +147,8 @@ class codeBucketServiceImpl {
       );
     }
 
+    let path = normalizePath(d.codeBucket.path ?? '/');
+
     // Set status to importing to prevent clone conflicts
     await db.codeBucket.update({
       where: { oid: d.codeBucket.oid },
@@ -155,7 +159,7 @@ class codeBucketServiceImpl {
       await importGithubQueue.add({
         newBucketId: d.codeBucket.id,
         owner: d.repo.externalOwner,
-        path: d.codeBucket.path ?? '/',
+        path,
         repo: d.repo.externalName,
         ref: d.codeBucket.syncRef ?? d.repo.defaultBranch ?? 'main',
         repoId: d.repo.id
@@ -164,7 +168,7 @@ class codeBucketServiceImpl {
       await importGitlabQueue.add({
         newBucketId: d.codeBucket.id,
         owner: d.repo.externalOwner,
-        path: d.codeBucket.path ?? '/',
+        path,
         repo: d.repo.externalName,
         ref: d.codeBucket.syncRef ?? d.repo.defaultBranch ?? 'main',
         repoId: d.repo.id
@@ -172,7 +176,7 @@ class codeBucketServiceImpl {
     } else if (d.repo.provider === 'bitbucket') {
       await importBitbucketQueue.add({
         newBucketId: d.codeBucket.id,
-        path: d.codeBucket.path ?? '/',
+        path,
         ref: d.codeBucket.syncRef ?? d.repo.defaultBranch ?? 'main',
         repoId: d.repo.id
       });
@@ -272,11 +276,13 @@ class codeBucketServiceImpl {
     commitMessage?: string;
     gitLfsThresholdBytes?: number;
   }) {
+    let path = normalizePath(d.path);
+
     if (d.repo.provider === 'github') {
       await exportGithubQueue.add({
         bucketId: d.codeBucket.id,
         repoId: d.repo.id,
-        path: d.path,
+        path,
         branchName: d.branchName,
         commitMessage: d.commitMessage,
         gitLfsThresholdBytes: d.gitLfsThresholdBytes
@@ -285,7 +291,7 @@ class codeBucketServiceImpl {
       await exportGitlabQueue.add({
         bucketId: d.codeBucket.id,
         repoId: d.repo.id,
-        path: d.path,
+        path,
         branchName: d.branchName,
         commitMessage: d.commitMessage
       });
@@ -293,7 +299,7 @@ class codeBucketServiceImpl {
       await exportBitbucketQueue.add({
         bucketId: d.codeBucket.id,
         repoId: d.repo.id,
-        path: d.path,
+        path,
         branchName: d.branchName,
         commitMessage: d.commitMessage
       });
@@ -322,7 +328,8 @@ class codeBucketServiceImpl {
     });
     let branch = d.branchName ?? repo.defaultBranch ?? 'main';
     let commitMessage = d.commitMessage ?? `Export code bucket ${d.codeBucket.id}`;
-    let deletePaths = d.deletePaths ?? [];
+    let path = normalizePath(d.path);
+    let deletePaths = (d.deletePaths ?? []).map(normalizePath);
     let explicitDeletesOnly = d.explicitDeletesOnly ?? false;
 
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
@@ -339,14 +346,14 @@ class codeBucketServiceImpl {
 
       await codeBucketClient.exportBucketToGithub({
         bucketId: d.codeBucket.id,
-        ...getGitHubTransferEndpoints(
+        ...(await getGitHubTransferEndpoints(
           repo.installation.backend,
           repo.externalOwner,
           repo.externalName
-        ),
+        )),
         owner: repo.externalOwner,
         repo: repo.externalName,
-        path: d.path,
+        path,
         token,
         branch,
         commitMessage,
@@ -359,11 +366,12 @@ class codeBucketServiceImpl {
 
     if (repo.provider === 'gitlab') {
       let token = await getGitLabAccessTokenWithInstallation(repo.installation);
+      await assertScmUrlsReachable(repo.installation.backend.apiUrl);
 
       await codeBucketClient.exportBucketToGitlab({
         bucketId: d.codeBucket.id,
         projectId: Long.fromString(repo.externalId),
-        path: d.path,
+        path,
         token,
         gitlabApiUrl: repo.installation.backend.apiUrl,
         branch,
@@ -378,10 +386,13 @@ class codeBucketServiceImpl {
     if (repo.provider === 'bitbucket') {
       let token = await getBitbucketAccessTokenWithInstallation(repo.installation);
       if (repo.installation.backend.type === 'bitbucket_data_center') {
+        let cloneUrl = getBitbucketCloneUrl(repo);
+        await assertScmUrlsReachable(cloneUrl);
+
         await codeBucketClient.exportBucketToBitbucketDataCenter({
           bucketId: d.codeBucket.id,
-          cloneUrl: getBitbucketCloneUrl(repo),
-          path: d.path,
+          cloneUrl,
+          path,
           username: '',
           token,
           branch,
@@ -395,7 +406,7 @@ class codeBucketServiceImpl {
           bucketId: d.codeBucket.id,
           workspace: repo.externalOwner,
           repo: repo.externalName,
-          path: d.path,
+          path,
           token,
           bitbucketApiUrl: repo.installation.backend.apiUrl,
           bitbucketWebUrl: repo.installation.backend.webUrl,

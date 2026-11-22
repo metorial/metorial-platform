@@ -11,12 +11,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
+	"github.com/metorial/metorial/services/code-bucket/pkg/util"
 )
 
 var httpClient = &http.Client{
 	Timeout: 10 * time.Minute,
 	Transport: &http.Transport{
+		DialContext:         egress.NewDialer().DialContext,
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 10,
 		IdleConnTimeout:     90 * time.Second,
@@ -33,24 +36,42 @@ func DownloadZipContext(ctx context.Context, url, path string, headers map[strin
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 
+	targetPath, err := downloadAndExtract(ctx, tmpDir, url, path, headers)
+	if err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return nil, err
+	}
+
+	return newZipFileIterator(targetPath, tmpDir), nil
+}
+
+func downloadAndExtract(ctx context.Context, tmpDir, url, path string, headers map[string]string) (string, error) {
 	zipPath := filepath.Join(tmpDir, "repo.zip")
 	if err := downloadFile(ctx, url, zipPath, headers); err != nil {
-		return nil, fmt.Errorf("failed to download zip: %w", err)
+		return "", fmt.Errorf("failed to download zip: %w", err)
 	}
 
 	extractDir := filepath.Join(tmpDir, "unzipped")
 	if err := unzip(zipPath, extractDir); err != nil {
-		return nil, fmt.Errorf("failed to unzip archive: %w", err)
+		return "", fmt.Errorf("failed to unzip archive: %w", err)
 	}
 
+	return resolveImportRoot(extractDir, path)
+}
+
+func resolveImportRoot(extractDir, path string) (string, error) {
 	topDirs, err := os.ReadDir(extractDir)
 	if err != nil || len(topDirs) == 0 {
-		return nil, fmt.Errorf("unexpected archive structure")
+		return "", fmt.Errorf("unexpected archive structure")
 	}
 	repoRoot := filepath.Join(extractDir, topDirs[0].Name())
 
-	targetPath := filepath.Join(repoRoot, path)
-	return NewZipFileIterator(targetPath), nil
+	targetPath, err := util.ResolveWithin(repoRoot, path)
+	if err != nil {
+		return "", fmt.Errorf("invalid import path: %w", err)
+	}
+
+	return targetPath, nil
 }
 
 func downloadFile(ctx context.Context, url, dest string, headers map[string]string) error {

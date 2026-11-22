@@ -7,6 +7,7 @@ import {
 } from '@metorial-subspace/module-catalog';
 import { providerTriggerPresenter } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
+import { isPublicCatalogOnly } from '../../../lib/publicCatalogOnly';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
@@ -23,7 +24,8 @@ let providerTriggerGroup = integrationsGroup.use(async ctx => {
 
   let trigger = await providerTriggerService.getProviderTriggerById({
     instance: ctx.instance,
-    providerTriggerId: ctx.params.providerTriggerId
+    providerTriggerId: ctx.params.providerTriggerId,
+    publicCatalogOnly: isPublicCatalogOnly(ctx)
   });
 
   return { trigger };
@@ -67,7 +69,8 @@ export let providerTriggerController = Controller.create(
       .do(async ctx => {
         let providerVersion = await providerVersionService.getProviderVersionById({
           instance: ctx.instance,
-          providerVersionId: ctx.query.provider_version_id
+          providerVersionId: ctx.query.provider_version_id,
+          publicCatalogOnly: isPublicCatalogOnly(ctx)
         });
         let paginator = await providerTriggerService.listProviderTriggers({
           instance: ctx.instance,

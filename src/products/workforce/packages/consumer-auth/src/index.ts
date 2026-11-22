@@ -382,6 +382,7 @@ export let authenticateWithConsumerToken = async (d: {
       loggedOutAt: null,
       consumerProfile: {
         organizationOid: d.organization.oid,
+        status: 'active',
         surface: {
           id: payload.data.surfaceId,
           status: 'active'
@@ -390,7 +391,11 @@ export let authenticateWithConsumerToken = async (d: {
     },
     include: consumerSessionInclude
   });
-  if (!session) {
+  if (
+    !session ||
+    (session.consumerProfile.surface.portal &&
+      session.consumerProfile.surface.portal.status != 'active')
+  ) {
     throw new ServiceError(
       unauthorizedError({
         message: 'Invalid consumer token.'

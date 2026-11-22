@@ -7,6 +7,7 @@ import type {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { loadStoredSlateInvocation } from '../lib/invocation/loadStored';
+import { redactWebhookInvocationMessages } from '../lib/invocation/webhookContent';
 import type { StoredSlateInvocation } from '../lib/invocation/types';
 import { slateInvocationAttachmentsPresenter } from './slateAttachment';
 
@@ -58,6 +59,12 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
       logs: []
     } satisfies StoredSlateInvocation);
 
+  let { requests, responses, requestTraces } = redactWebhookInvocationMessages({
+    requests: output.requests,
+    responses: output.responses,
+    requestTraces: output.requestTraces
+  });
+
   return {
     object: 'slate.invocation',
 
@@ -70,9 +77,9 @@ export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttach
           ? ('message_failed' as const)
           : ('succeeded' as const),
 
-    requests: output.requests,
-    responses: output.responses,
-    requestTraces: output.requestTraces,
+    requests,
+    responses,
+    requestTraces,
     error: output.provider?.error,
     logs: (output.logs ?? []).map(([timestamp, message]) => ({
       timestamp,

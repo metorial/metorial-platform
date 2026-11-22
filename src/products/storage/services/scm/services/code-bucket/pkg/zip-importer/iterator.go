@@ -11,12 +11,13 @@ import (
 )
 
 type ZipFileIterator struct {
-	files     chan string
-	done      chan struct{}
-	closeOnce sync.Once
-	err       error
-	tempDir   string
-	mutex     sync.Mutex
+	files      chan string
+	done       chan struct{}
+	closeOnce  sync.Once
+	err        error
+	root       string
+	cleanupDir string
+	mutex      sync.Mutex
 }
 
 type ZipFileItem struct {
@@ -37,7 +38,7 @@ func (it *ZipFileIterator) Next() (*ZipFileItem, bool) {
 		return nil, false
 	}
 
-	relative := util.MustOrFallback(filePath)(filepath.Rel(it.tempDir, filePath))
+	relative := util.MustOrFallback(filePath)(filepath.Rel(it.root, filePath))
 
 	info, err := os.Stat(filePath)
 	if err != nil {
@@ -86,32 +87,37 @@ func (it *ZipFileIterator) Close() error {
 	it.mutex.Lock()
 	defer it.mutex.Unlock()
 
-	if it.tempDir != "" {
-		if err := os.RemoveAll(it.tempDir); err != nil {
-			return fmt.Errorf("failed to clean up temp directory %s: %w", it.tempDir, err)
+	if it.cleanupDir != "" {
+		if err := os.RemoveAll(it.cleanupDir); err != nil {
+			return fmt.Errorf("failed to clean up temp directory %s: %w", it.cleanupDir, err)
 		}
 
-		it.tempDir = ""
+		it.cleanupDir = ""
 	}
 
 	return nil
 }
 
 func NewZipFileIterator(tempDir string) *ZipFileIterator {
+	return newZipFileIterator(tempDir, tempDir)
+}
+
+func newZipFileIterator(root, cleanupDir string) *ZipFileIterator {
 	it := &ZipFileIterator{
-		files:   make(chan string),
-		done:    make(chan struct{}),
-		tempDir: tempDir,
+		files:      make(chan string),
+		done:       make(chan struct{}),
+		root:       root,
+		cleanupDir: cleanupDir,
 	}
 
 	go func() {
 		defer close(it.files)
 
-		err := filepath.WalkDir(tempDir, func(p string, entry os.DirEntry, err error) error {
+		err := filepath.WalkDir(root, func(p string, entry os.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
-			if entry.IsDir() {
+			if !entry.Type().IsRegular() {
 				return nil
 			}
 

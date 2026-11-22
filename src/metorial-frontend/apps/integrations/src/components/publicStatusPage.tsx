@@ -2,6 +2,7 @@ import { Title, theme } from '@metorial/ui';
 import { useEffect, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { useHideBootSpinner } from '../lib/bootSpinner';
+import { isHttpUrl } from '../lib/isHttpUrl';
 import { SecuredByFooter } from './securedByFooter';
 import { ErrorIcon } from './statusIcon';
 
@@ -118,9 +119,15 @@ export let PublicErrorPage = ({ error }: { error: { message: string } }) => (
 );
 
 export let Redirect = ({ url }: { url: string }) => {
+  let canRedirect = isHttpUrl(url);
+
   useEffect(() => {
-    window.location.href = url;
-  }, [url]);
+    if (canRedirect) window.location.href = url;
+  }, [url, canRedirect]);
+
+  if (!canRedirect) {
+    return <PublicErrorPage error={{ message: 'This redirect link is not valid.' }} />;
+  }
 
   return null;
 };

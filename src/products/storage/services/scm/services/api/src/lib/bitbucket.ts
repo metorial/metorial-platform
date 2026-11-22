@@ -9,6 +9,7 @@ import {
   readInstallationTokens,
   writeRefreshedInstallationTokens
 } from './scmCredentials';
+import { scmFetch } from './scmFetch';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
 
@@ -92,7 +93,7 @@ export class BitbucketClient {
     }
 
     let isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
-    let response = await fetch(url, {
+    let response = await scmFetch(url, {
       method: options?.method ?? 'GET',
       headers: {
         Accept: 'application/json',
@@ -177,14 +178,14 @@ export class BitbucketClient {
     }
 
     let identityUrl = `${trimSlash(this.backend.webUrl)}/plugins/servlet/applinks/whoami`;
-    let identityResponse = await fetch(identityUrl, {
+    let identityResponse = await scmFetch(identityUrl, {
       headers: { Authorization: `Bearer ${this.accessToken}` }
     });
     let username =
       identityResponse.headers.get('x-ausername') ?? (await identityResponse.text()).trim();
 
     if (!username) {
-      let propertiesResponse = await fetch(
+      let propertiesResponse = await scmFetch(
         `${trimSlash(this.backend.apiUrl)}/application-properties`,
         { headers: { Authorization: `Bearer ${this.accessToken}` } }
       );
@@ -962,7 +963,7 @@ let exchangeBitbucketToken = async (i: {
   );
 
   let response = await withScmProviderError('bitbucket', 'exchange the OAuth token', () =>
-    fetch(tokenUrl, {
+    scmFetch(tokenUrl, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(`${i.backend.clientId}:${clientSecret}`).toString('base64')}`,

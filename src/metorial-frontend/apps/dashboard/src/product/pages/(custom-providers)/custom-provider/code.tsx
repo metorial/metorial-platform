@@ -29,6 +29,7 @@ import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { isHttpUrl } from '../../../lib/isHttpUrl';
 import {
   getCustomProviderLinkedRepo,
   getFunctionProviderVersionFrom,
@@ -180,7 +181,9 @@ export let CustomProviderCodePage = () => {
                 as="span"
                 size="2"
                 onClick={async () => {
-                  if (linkedRepo.url) window.open(linkedRepo.url, '_blank');
+                  if (!linkedRepo.url || !isHttpUrl(linkedRepo.url)) return;
+
+                  window.open(linkedRepo.url, '_blank', 'noopener,noreferrer');
                 }}
                 iconRight={<RiArrowRightSLine />}
               >

@@ -1,10 +1,21 @@
 import ipaddr from 'ipaddr.js';
 import { isIP } from 'node:net';
 
+let credentialHeaders = ['authorization', 'cookie', 'proxy-authorization'];
+
+let requestBodyHeaders = [
+  'content-encoding',
+  'content-language',
+  'content-length',
+  'content-location',
+  'content-type'
+];
+
 export type SafeFetchOptions = BunFetchRequestInit & {
   maxRedirects?: number;
   assertUrl?: (url: URL) => Promise<void> | void;
   isIpAllowed?: ((ip: string) => boolean) | false;
+  crossOriginRedirectStripHeaders?: string[];
 };
 
 export class SsrfBlockedError extends Error {
@@ -24,15 +35,25 @@ export let isPublicIp = (ip: string) => {
   }
 };
 
+export let assertUrlIpAllowed = async (
+  input: string,
+  isIpAllowed: (ip: string) => boolean = isPublicIp
+) => {
+  await resolveAllowedAddress(validateUrl(input), isIpAllowed);
+};
+
 export let safeFetch = async (input: string, options: SafeFetchOptions = {}) => {
   let {
     maxRedirects: maxRedirectsOption,
     assertUrl,
     isIpAllowed = isPublicIp,
-    ...fetchOptions
+    crossOriginRedirectStripHeaders = [],
+    ...initialFetchOptions
   } = options;
   let maxRedirects = maxRedirectsOption ?? 5;
   let currentUrl = validateUrl(input);
+  let fetchOptions: BunFetchRequestInit = initialFetchOptions;
+  let stripHeaders = [...credentialHeaders, ...crossOriginRedirectStripHeaders];
 
   for (let i = 0; i <= maxRedirects; i++) {
     let pinnedAddress = isIpAllowed
@@ -55,7 +76,15 @@ export let safeFetch = async (input: string, options: SafeFetchOptions = {}) => 
         throw new Error('Redirect with empty location');
       }
 
-      currentUrl = validateUrl(new URL(location, currentUrl).toString());
+      let nextUrl = validateUrl(new URL(location, currentUrl).toString());
+
+      fetchOptions = getRedirectFetchOptions({
+        status: response.status,
+        fetchOptions,
+        isCrossOrigin: nextUrl.origin != currentUrl.origin,
+        stripHeaders
+      });
+      currentUrl = nextUrl;
       continue;
     }
 
@@ -63,6 +92,33 @@ export let safeFetch = async (input: string, options: SafeFetchOptions = {}) => 
   }
 
   throw new Error('Unreachable');
+};
+
+let getRedirectFetchOptions = (d: {
+  status: number;
+  fetchOptions: BunFetchRequestInit;
+  isCrossOrigin: boolean;
+  stripHeaders: string[];
+}): BunFetchRequestInit => {
+  let headers = new Headers(d.fetchOptions.headers);
+  let method = (d.fetchOptions.method ?? 'GET').toUpperCase();
+  let body = d.fetchOptions.body;
+
+  let switchesToGet =
+    ((d.status == 301 || d.status == 302) && method == 'POST') ||
+    (d.status == 303 && method != 'GET' && method != 'HEAD');
+
+  if (switchesToGet) {
+    method = 'GET';
+    body = undefined;
+    for (let name of requestBodyHeaders) headers.delete(name);
+  }
+
+  if (d.isCrossOrigin) {
+    for (let name of d.stripHeaders) headers.delete(name);
+  }
+
+  return { ...d.fetchOptions, method, body, headers };
 };
 
 let validateUrl = (input: string) => {
@@ -122,7 +178,9 @@ let fetchPinned = async (
   let response = await fetch(pinnedUrl.toString(), {
     ...fetchOptions,
     headers,
-    tls: isHttps ? { ...fetchOptions.tls, serverName: unbracketHostname(url) } : fetchOptions.tls,
+    tls: isHttps
+      ? { ...fetchOptions.tls, serverName: unbracketHostname(url) }
+      : fetchOptions.tls,
     // Pooled sockets are keyed by the pinned IP, so a TLS connection verified for one hostname
     // could be reused for another hostname on the same (shared CDN) IP.
     ...(isHttps ? { keepalive: false } : {}),
