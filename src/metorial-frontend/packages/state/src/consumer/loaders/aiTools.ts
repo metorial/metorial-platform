@@ -5,6 +5,7 @@ import {
   DashboardInstanceConsumerDeviceSettingsUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -39,9 +40,29 @@ export let useAiToolDetections = (
     instanceId ? JSON.stringify({ instanceId, ...query }) : null
   );
 
+export let allAiToolDetectionsLoader = createLoader({
+  name: 'allAiToolDetections',
+  parents: [],
+  fetch: (
+    i: { instanceId: string } & Omit<DashboardInstanceAiToolDetectionsListQuery, 'limit'>
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, ...query } = i;
+      return autoPaginate(cursor =>
+        sdk.aiToolDetections.list(instanceId, { ...query, ...cursor })
+      );
+    }),
+  mutators: {}
+});
+
+export let useAllAiToolDetections = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceAiToolDetectionsListQuery, 'limit'>
+) => allAiToolDetectionsLoader.use(instanceId ? { instanceId, ...query } : null);
+
 export let aiToolLoader = createLoader({
   name: 'aiTool',
-  parents: [aiToolsLoader, aiToolDetectionsLoader],
+  parents: [aiToolsLoader, aiToolDetectionsLoader, allAiToolDetectionsLoader],
   fetch: (i: { instanceId: string; toolKey: string }) =>
     withAuth(sdk => sdk.aiTools.get(i.instanceId, i.toolKey)),
   mutators: {
@@ -66,7 +87,7 @@ export let useAiTool = (
 
 export let consumerDeviceSettingsLoader = createLoader({
   name: 'consumerDeviceSettings',
-  parents: [aiToolsLoader, aiToolDetectionsLoader],
+  parents: [aiToolsLoader, aiToolDetectionsLoader, allAiToolDetectionsLoader],
   fetch: (i: { instanceId: string }) =>
     withAuth(sdk => sdk.consumerDeviceSettings.get(i.instanceId)),
   mutators: {
