@@ -22,6 +22,14 @@ let consumerDevicePayload = (
   revokedAt: consumerDevice.revokedAt
 });
 
+let consumerDeviceSettingsPayload = (
+  settings: FabricEvents['consumer.device_settings.updated:after']['consumerDeviceSettings']
+) => ({
+  id: settings.id,
+  aiToolDetectionEnabled: settings.aiToolDetectionEnabled,
+  privacyNoticeAcceptedAt: settings.privacyNoticeAcceptedAt
+});
+
 export let recordConsumerDeviceEnrolled = async (
   event: FabricEvents['consumer.device.enrolled:after']
 ) => {
@@ -65,6 +73,34 @@ export let recordConsumerDeviceEnded = async (
   });
 };
 
+export let recordConsumerDeviceSettingsUpdated = async (
+  event: FabricEvents['consumer.device_settings.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    if (!event.previousConsumerDeviceSettings) {
+      await auditTrackerService.recordEvent(
+        event.auditScope,
+        'consumer_device_settings',
+        'create',
+        { payload: consumerDeviceSettingsPayload(event.consumerDeviceSettings), recordedAt }
+      );
+      return;
+    }
+
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'consumer_device_settings',
+      'update',
+      {
+        payload: consumerDeviceSettingsPayload(event.consumerDeviceSettings),
+        previousPayload: consumerDeviceSettingsPayload(event.previousConsumerDeviceSettings),
+        recordedAt
+      }
+    );
+  });
+};
+
 Fabric.listen('consumer.device.enrolled:after', recordConsumerDeviceEnrolled);
 Fabric.listen('consumer.device.updated:after', recordConsumerDeviceUpdated);
 Fabric.listen('consumer.device.ended:after', recordConsumerDeviceEnded);
+Fabric.listen('consumer.device_settings.updated:after', recordConsumerDeviceSettingsUpdated);

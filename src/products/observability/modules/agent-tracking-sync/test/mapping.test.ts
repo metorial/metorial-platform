@@ -1,14 +1,7 @@
-import { findDetectionTool } from '@metorial/model-catalog/detection';
 import { describe, expect, it } from 'vitest';
-import {
-  catalogAgentForMcpClient,
-  mcpClientCatalogAgents,
-  mcpClientForCatalogAgent
-} from '../src/definitions/clientFamilies';
 import {
   clientAgentEntityInput,
   consumerEntityInput,
-  detectedAgentEntityInput,
   deviceEntityInput,
   normalizeEmail
 } from '../src/lib/mapping';
@@ -141,43 +134,5 @@ describe('clientAgentEntityInput', () => {
       attributes: {},
       identifiers: [{ type: 'client_family', value: 'claude-code' }]
     });
-  });
-});
-
-describe('detectedAgentEntityInput', () => {
-  it('resolves a detected tool to the agent of the client Metorial Desktop configures', () => {
-    expect(
-      detectedAgentEntityInput({
-        organization,
-        tool: { key: 'claude-desktop', name: 'Claude' }
-      })
-    ).toMatchObject({ source: 'metorial.client', ref: 'claude-desktop', name: 'Claude' });
-  });
-
-  it('keys other detected tools by their catalog id', () => {
-    expect(
-      detectedAgentEntityInput({ organization, tool: { key: 'ollama', name: 'Ollama' } })
-    ).toMatchObject({
-      ref: 'ollama',
-      identifiers: [{ type: 'client_family', value: 'ollama' }]
-    });
-  });
-});
-
-describe('mcpClientCatalogAgents', () => {
-  it('maps every tool Metorial Desktop configures to its catalog agent', () => {
-    expect(
-      ['claude-code', 'claude-desktop', 'codex', 'cursor', 'vscode'].map(
-        catalogAgentForMcpClient
-      )
-    ).toEqual(['claude-code', 'claude-desktop', 'codex', 'cursor', null]);
-    expect(catalogAgentForMcpClient('toString')).toBeNull();
-    expect(mcpClientForCatalogAgent('codex')).toBe('codex');
-    expect(mcpClientForCatalogAgent('ollama')).toBeNull();
-  });
-
-  it('only points at agents the catalog has', () => {
-    for (let agentId of Object.values(mcpClientCatalogAgents))
-      if (agentId) expect(findDetectionTool(agentId), agentId).not.toBeNull();
   });
 });

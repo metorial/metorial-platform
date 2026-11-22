@@ -9,7 +9,8 @@ import {
 } from '@metorial/module-consumer-core';
 import { aiToolDetectionPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
-import { getAiToolConsumerActivity } from '../../../lib/aiToolActivity';
+import { getAiToolActivity } from '../../../lib/aiToolActivity';
+import { aiToolDetectionFlags } from '../../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
@@ -46,9 +47,7 @@ export let aiToolDetectionController = Controller.create(
           'Returns a paginated list of AI tool detections on signed-in devices. By default only tools the devices still report are returned.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(
-        hasFlags(['paid-portals', 'portals-access', 'devices-enabled', 'ai-tool-detection'])
-      )
+      .use(hasFlags(aiToolDetectionFlags))
       .query(
         'default',
         Paginator.validate(
@@ -103,19 +102,19 @@ export let aiToolDetectionController = Controller.create(
           policyStatuses: normalizeArrayParam(ctx.query.policy_status),
           statuses: normalizeArrayParam(ctx.query.status)
         });
-        let [list, policies] = await Promise.all([
+        let [list, policyStatus] = await Promise.all([
           paginator.run(ctx.query),
-          aiToolPolicyService.listPolicies({ instance: ctx.instance })
+          aiToolPolicyService.getPolicyStatuses({ instance: ctx.instance })
         ]);
-        let activity = await getAiToolConsumerActivity(
-          ctx,
-          list.items.map(detection => detection.toolKey)
-        );
+        let activity = await getAiToolActivity(ctx, {
+          toolKeys: list.items.map(detection => detection.toolKey),
+          byConsumer: true
+        });
 
         return Paginator.present(list, detection =>
           aiToolDetectionPresenter.present({
             detection,
-            policy: policies.get(detection.toolKey) ?? null,
+            policyStatus: policyStatus(detection.toolKey),
             telemetry: getLastUsed(
               activity,
               consumerAgentKey(

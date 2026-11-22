@@ -5,11 +5,8 @@ let sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
 
 vi.mock('@lowerdeck/sentry', () => ({ getSentry: () => sentry }));
 
-import {
-  agentTrackingAgentActivityService,
-  consumerAgentKey,
-  getLastUsed
-} from '../src/services/agentTrackingAgentActivity';
+import { consumerAgentKey, getLastUsed } from '../src/lib/agentActivity';
+import { agentTrackingAgentActivityService } from '../src/services/agentTrackingAgentActivity';
 import {
   agentTrackingEnabled,
   callsTo,

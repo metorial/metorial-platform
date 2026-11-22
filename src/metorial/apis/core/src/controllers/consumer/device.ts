@@ -10,11 +10,11 @@ import {
   type Organization,
   type Project
 } from '@metorial/db';
+import { getDetectionCatalog } from '@metorial/model-catalog/detection';
 import {
   consumerDeviceDetectionService,
   consumerDeviceService,
   consumerDeviceStatuses,
-  getAiToolCatalog,
   maxDetectionFindings
 } from '@metorial/module-consumer-core';
 import { flagService } from '@metorial/module-flags';
@@ -24,17 +24,17 @@ import {
   consumerDevicePresenter,
   consumerDeviceTelemetryTokenPresenter
 } from '@metorial/presenters';
-import { Controller, NotModified } from '@metorial/rest';
-import { withVisibleDetections } from '../../lib/aiToolDetection';
+import { Controller } from '@metorial/rest';
+import {
+  getDeviceMonitor,
+  requireDetectionCatalog,
+  requireDetectionReporting,
+  withVisibleDetections
+} from '../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { requireParam } from '../../lib/requireParam';
 import { getSignedInOAuthToken } from '../../lib/signedInOAuthToken';
 import { checkAccess } from '../../middleware/checkAccess';
-import {
-  getDeviceMonitor,
-  requireDetectionCatalog,
-  requireDetectionReporting
-} from './deviceDetection';
 import { requireDeviceTelemetry } from './deviceTelemetry';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 
@@ -81,25 +81,29 @@ type PresentableDevice = Parameters<
   typeof consumerDevicePresenter.present
 >[0]['consumerDevice'];
 
-let presentDevice = async (
-  ctx: { organization: Organization; project: Project; instance: Instance },
-  consumerDevice: PresentableDevice
-) => {
+type DeviceContext = { organization: Organization; project: Project; instance: Instance };
+
+let presentDevices = async (ctx: DeviceContext, consumerDevices: PresentableDevice[]) => {
   let [telemetry, monitor] = await Promise.all([
     agentTrackingTokenService.listDeviceTelemetry({
       organization: ctx.organization,
       project: ctx.project,
-      consumerDevices: [consumerDevice]
+      consumerDevices
     }),
     getDeviceMonitor(ctx)
   ]);
 
-  return consumerDevicePresenter.present({
-    consumerDevice: withVisibleDetections(consumerDevice, monitor.aiToolDetection),
-    telemetry: telemetry.get(consumerDevice.oid),
-    monitor
-  });
+  return consumerDevices.map(consumerDevice =>
+    consumerDevicePresenter.present({
+      consumerDevice: withVisibleDetections(consumerDevice, monitor.aiToolDetection),
+      telemetry: telemetry.get(consumerDevice.oid),
+      monitor
+    })
+  );
 };
+
+let presentDevice = async (ctx: DeviceContext, consumerDevice: PresentableDevice) =>
+  (await presentDevices(ctx, [consumerDevice]))[0]!;
 
 export let consumerDeviceController = Controller.create(
   {
@@ -248,22 +252,9 @@ export let consumerDeviceController = Controller.create(
           statuses: normalizeArrayParam(ctx.query.status)
         });
         let list = await paginator.run(ctx.query);
-        let [telemetry, monitor] = await Promise.all([
-          agentTrackingTokenService.listDeviceTelemetry({
-            organization: ctx.organization,
-            project: ctx.project,
-            consumerDevices: list.items
-          }),
-          getDeviceMonitor(ctx)
-        ]);
+        let items = await presentDevices(ctx, list.items);
 
-        return Paginator.present(list, consumerDevice =>
-          consumerDevicePresenter.present({
-            consumerDevice: withVisibleDetections(consumerDevice, monitor.aiToolDetection),
-            telemetry: telemetry.get(consumerDevice.oid),
-            monitor
-          })
-        );
+        return Paginator.present({ ...list, items }, device => device);
       }),
 
     get: consumerDeviceGroup
@@ -366,23 +357,13 @@ export let consumerDeviceController = Controller.create(
       .get(consumerPath('device-detection-catalog', 'deviceDetectionCatalog.get'), {
         name: 'Get device detection catalog',
         description:
-          'Returns the signals Metorial Desktop matches to find AI tools on a device. The response carries an `ETag`; send it back in `If-None-Match` to get a 304 while the catalog is unchanged. Returns 404 when AI tool detection is not available to the organization.'
+          'Returns the signals Metorial Desktop matches to find AI tools on a device. Fetch it again when `monitor.catalog_version` on the device changes. Returns 404 when AI tool detection is not available to the organization.'
       })
       .use(checkAccess({ possibleScopes: ['consumer#instance.device:read'] }))
       .output(consumerDeviceDetectionCatalogPresenter)
-      .do(async ctx => {
-        let catalog = getAiToolCatalog();
-        let etag = `"${catalog.version}"`;
-
-        let requested = ctx.headers['if-none-match']?.split(',').map(tag => tag.trim());
-        if (requested?.some(tag => tag == etag || tag == `W/${etag}` || tag == '*')) {
-          throw new NotModified({ etag });
-        }
-
-        ctx.appendHeaders({ etag });
-
-        return consumerDeviceDetectionCatalogPresenter.present({ catalog });
-      }),
+      .do(async () =>
+        consumerDeviceDetectionCatalogPresenter.present({ catalog: getDetectionCatalog() })
+      ),
 
     reportDetections: consumerDeviceDetectionGroup
       .post(
@@ -408,12 +389,15 @@ export let consumerDeviceController = Controller.create(
             description:
               'When the device collected the snapshot. Times in the future count as the time the report arrived, and times more than 7 days back as 7 days back.'
           }),
-          catalog_version: v.string({
-            name: 'catalog_version',
-            description: 'Version of the detection catalog the device matched against.',
-            examples: ['5b8e7bd62ccb7f44'],
-            modifiers: [v.maxLength(64)]
-          }),
+          catalog_version: v.optional(
+            v.string({
+              name: 'catalog_version',
+              description:
+                'Version of the detection catalog the device matched against. Informational only; the report is matched against the current catalog.',
+              examples: ['5b8e7bd62ccb7f44'],
+              modifiers: [v.maxLength(64)]
+            })
+          ),
           findings: v.array(
             v.object({
               tool_key: v.string({

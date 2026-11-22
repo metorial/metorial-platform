@@ -171,14 +171,7 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       monitor: {
         ai_tool_detection: monitor.aiToolDetection,
         catalog_version: monitor.catalogVersion,
-        intervals: {
-          config_dirs: monitor.intervals.configDirs,
-          apps: monitor.intervals.apps,
-          binaries: monitor.intervals.binaries,
-          ide_extensions: monitor.intervals.ideExtensions,
-          processes: monitor.intervals.processes,
-          report: monitor.intervals.report
-        }
+        intervals: monitor.intervals
       }
     };
   })

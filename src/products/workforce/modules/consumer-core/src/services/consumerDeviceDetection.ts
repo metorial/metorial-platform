@@ -19,6 +19,7 @@ import {
   detectionObservedAt,
   diffDetections,
   normalizeFindings,
+  visibleDetectionWhere,
   type DetectionFinding
 } from '../lib/aiToolDetection';
 import { aiToolPolicyService } from './aiToolPolicy';
@@ -134,9 +135,14 @@ class ConsumerDeviceDetectionServiceImpl {
       });
 
       if (diff.added.length || diff.removed.length) {
+        let consumerDevice = await db.consumerDevice.findUniqueOrThrow({
+          where: { oid: device.oid },
+          include: consumerDeviceInclude
+        });
+
         addAfterTransactionHook(() =>
           Fabric.fire('consumer.device.detections.changed:after', {
-            consumerDevice: device,
+            consumerDevice,
             added: diff.added,
             removed: diff.removed,
             auditScope: d.auditScope
@@ -178,13 +184,10 @@ class ConsumerDeviceDetectionServiceImpl {
               AND: [
                 {
                   instanceOid: d.instance.oid,
-                  instance: {
-                    consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } }
-                  }
+                  ...visibleDetectionWhere({ includeGone: true })
                 },
                 {
                   consumerDevice: {
-                    status: 'active',
                     id: d.consumerDeviceIds ? { in: d.consumerDeviceIds } : undefined,
                     consumerProfile:
                       d.consumerProfileIds || d.consumerIds

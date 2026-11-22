@@ -4,8 +4,10 @@ export * from './agentTrackingMember';
 export * from './agentTrackingSession';
 export * from './agentTrackingSetupStatus';
 export * from './agentTrackingSpend';
+export * from '../lib/agentActivity';
 export { maxFilterValueLength } from '../lib/filterValues';
 export {
+  agentActiveWindowDays,
   breakdownGroupKeys,
   filterFieldKeys,
   maxMembers,

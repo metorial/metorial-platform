@@ -1,16 +1,16 @@
 import { db } from '@metorial/db';
-import { findDetectionTool, isDetectionReportStale } from '@metorial/model-catalog/detection';
+import { findDetectionTool } from '@metorial/model-catalog/detection';
+import {
+  consumerDeviceSettingsService,
+  visibleDetectionWhere
+} from '@metorial/module-consumer-core';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { getAgentTracking, ignoreNotFound } from '../lib/client';
-import {
-  isAgentTrackingEnabledForOrganization,
-  isAiToolDetectionOnForInstance
-} from '../lib/flag';
+import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
 import { withOrganizationScope } from '../lib/scope';
 import {
   clientAgentEntityInput,
   consumerEntityInput,
-  detectedAgentEntityInput,
   deviceEntityInput,
   deviceEntitySource
 } from '../lib/mapping';
@@ -67,7 +67,7 @@ let syncEntity = async (data: EntitySyncTarget) => {
         where: { reported: true, detected: true },
         include: { mcpClientType: true }
       },
-      detections: { where: { goneAt: null } }
+      detections: { where: visibleDetectionWhere({ excludeStale: true }) }
     }
   });
   if (!consumerDevice || consumerDevice.instance.organization.status != 'active') return;
@@ -94,11 +94,10 @@ let syncEntity = async (data: EntitySyncTarget) => {
 
   let detections =
     consumerDevice.detections.length &&
-    !isDetectionReportStale(consumerDevice.detectionReportedAt) &&
-    (await isAiToolDetectionOnForInstance({
+    (await consumerDeviceSettingsService.isAiToolDetectionActive({
       organization,
       project: consumerDevice.instance.project,
-      instanceOid: consumerDevice.instanceOid
+      instance: consumerDevice.instance
     }))
       ? consumerDevice.detections
       : [];
@@ -130,7 +129,10 @@ let syncEntity = async (data: EntitySyncTarget) => {
       let tool = findDetectionTool(detection.toolKey);
       if (!tool) continue;
 
-      let input = detectedAgentEntityInput({ organization, tool });
+      let input = clientAgentEntityInput({
+        organization,
+        client: { name: tool.name, mcpClientType: { key: tool.key } }
+      });
       if (!agents.has(input.ref)) agents.set(input.ref, input);
     }
 

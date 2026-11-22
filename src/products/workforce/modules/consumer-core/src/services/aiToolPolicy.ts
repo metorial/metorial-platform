@@ -13,11 +13,11 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
-  detectionStaleBefore,
-  findAiTool,
-  getAiToolCatalog,
-  type AiToolCatalogEntry
-} from '../lib/aiToolDetection';
+  findDetectionTool,
+  getDetectionCatalog,
+  type DetectionCatalogTool
+} from '@metorial/model-catalog/detection';
+import { detectionStaleBefore } from '../lib/aiToolDetection';
 
 export let aiToolPolicyStatuses = Object.values(AiToolPolicyStatus);
 
@@ -30,13 +30,15 @@ export type AiToolUsage = {
 };
 
 export type AiToolSummary = {
-  tool: AiToolCatalogEntry;
+  tool: DetectionCatalogTool;
   policy: AiToolPolicy | null;
+  policyStatus: AiToolPolicyStatus;
   usage: AiToolUsage | null;
 };
 
-let policyStatus = (policy: Pick<AiToolPolicy, 'status'> | null | undefined) =>
-  policy?.status ?? 'unreviewed';
+let policyStatus = (
+  policy: Pick<AiToolPolicy, 'status'> | null | undefined
+): AiToolPolicyStatus => policy?.status ?? 'unreviewed';
 
 class AiToolPolicyServiceImpl {
   async listTools(d: {
@@ -49,15 +51,18 @@ class AiToolPolicyServiceImpl {
       this.listPolicies({ instance: d.instance })
     ]);
 
-    return getAiToolCatalog()
-      .tools.map(tool => ({
-        tool,
-        policy: policies.get(tool.key) ?? null,
-        usage: usage.get(tool.key) ?? null
-      }))
-      .filter(
-        entry => !d.policyStatuses || d.policyStatuses.includes(policyStatus(entry.policy))
-      )
+    return getDetectionCatalog()
+      .tools.map(tool => {
+        let policy = policies.get(tool.key) ?? null;
+
+        return {
+          tool,
+          policy,
+          policyStatus: policyStatus(policy),
+          usage: usage.get(tool.key) ?? null
+        };
+      })
+      .filter(entry => !d.policyStatuses || d.policyStatuses.includes(entry.policyStatus))
       .filter(entry => d.detected === undefined || !!entry.usage == d.detected)
       .sort(
         (a, b) =>
@@ -79,7 +84,12 @@ class AiToolPolicyServiceImpl {
       })
     ]);
 
-    return { tool, policy, usage: usage.get(tool.key) ?? null };
+    return {
+      tool,
+      policy,
+      policyStatus: policyStatus(policy),
+      usage: usage.get(tool.key) ?? null
+    };
   }
 
   async updatePolicy(d: {
@@ -95,7 +105,7 @@ class AiToolPolicyServiceImpl {
         where: { instanceOid_toolKey: { instanceOid: d.instance.oid, toolKey: tool.key } }
       });
 
-      let status = d.input.status ?? previous?.status ?? 'unreviewed';
+      let status = d.input.status ?? policyStatus(previous);
       let note = d.input.note === undefined ? (previous?.note ?? null) : d.input.note;
       if (previous && previous.status == status && previous.note == note) return;
 
@@ -138,8 +148,14 @@ class AiToolPolicyServiceImpl {
     return new Map(policies.map(policy => [policy.toolKey, policy]));
   }
 
-  // Counts only what signed-in devices reported last, while detection is on and the report
-  // isn't stale.
+  async getPolicyStatuses(d: { instance: Pick<Instance, 'oid'> }) {
+    let policies = await this.listPolicies(d);
+
+    return (toolKey: string) => policyStatus(policies.get(toolKey));
+  }
+
+  // Same rule as visibleDetectionWhere({ excludeStale: true }), which Prisma can't group by
+  // consumer.
   private async getUsage(d: { instance: Pick<Instance, 'oid'>; toolKey?: string }) {
     let rows = await db.$queryRaw<AiToolUsage[]>`
       SELECT
@@ -165,7 +181,7 @@ class AiToolPolicyServiceImpl {
   }
 
   private assertKnownTool(toolKey: string) {
-    let tool = findAiTool(toolKey);
+    let tool = findDetectionTool(toolKey);
     if (!tool) throw new ServiceError(notFoundError('ai_tool', toolKey));
 
     return tool;

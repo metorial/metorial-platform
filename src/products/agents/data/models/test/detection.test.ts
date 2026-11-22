@@ -5,8 +5,7 @@ import {
   buildDetectionCatalog,
   detectionPlatforms,
   findDetectionTool,
-  getDetectionCatalog,
-  isDetectionReportStale
+  getDetectionCatalog
 } from '../src/detection';
 import { agentSeeds } from '../src/registry/agents';
 import { detectionSeeds } from '../src/registry/detection';
@@ -135,17 +134,6 @@ describe('detection registry', () => {
       for (let id of tool.ide_extension_ids)
         expect(id, tool.key).toMatch(/^[a-z0-9-]+\.[a-z0-9-]+$/);
     }
-  });
-});
-
-describe('isDetectionReportStale', () => {
-  let now = new Date('2026-11-22T00:00:00Z');
-
-  it('treats devices silent for 30 days or that never reported as stale', () => {
-    expect(isDetectionReportStale(new Date('2026-11-01T00:00:00Z'), now)).toBe(false);
-    expect(isDetectionReportStale(new Date('2026-10-23T00:00:00Z'), now)).toBe(false);
-    expect(isDetectionReportStale(new Date('2026-10-22T23:59:59Z'), now)).toBe(true);
-    expect(isDetectionReportStale(null, now)).toBe(true);
   });
 });
 

@@ -7,27 +7,21 @@ import {
   type ConsumerDeviceDetection
 } from '@metorial/db';
 import {
-  detectionStaleAfterDays,
+  agentSurfaces,
   findDetectionTool,
-  getDetectionCatalog,
-  isDetectionReportStale
+  getDetectionCatalog
 } from '@metorial/model-catalog/detection';
+import {
+  detectionStaleAfterDays,
+  isDetectionReportStale
+} from '@metorial/module-consumer-core';
 import { Presenter } from '@metorial/presenter';
 import {
   consumerDeviceDetectionCatalogType,
   consumerDeviceDetectionReportType
 } from '../../types';
 
-export let aiToolSurfaces = [
-  'cli',
-  'ide',
-  'ide-extension',
-  'desktop',
-  'web',
-  'cloud'
-] as const;
-
-export let aiToolSurfacesSchema = v.array(v.enumOf([...aiToolSurfaces]), {
+export let aiToolSurfacesSchema = v.array(v.enumOf([...agentSurfaces]), {
   name: 'surfaces',
   description:
     'Where the tool runs: `cli`, `ide`, `ide-extension`, `desktop`, `web` or `cloud`.'
@@ -205,7 +199,7 @@ export let v1ConsumerDeviceDetectionCatalogPresenter = Presenter.create(
       version: v.string({
         name: 'version',
         description:
-          'Content hash of the catalog, also sent as the `ETag` header. Pass it in `If-None-Match` to get a 304 while the catalog is unchanged.',
+          'Content hash of the catalog. It changes whenever a tool or signal changes, and devices see it in `monitor.catalog_version` at check-in.',
         examples: ['5b8e7bd62ccb7f44']
       }),
       tools: v.array(

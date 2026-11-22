@@ -19,6 +19,7 @@ import {
   oauthAuthorizationService,
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
+import { visibleDetectionWhere } from '../lib/aiToolDetection';
 
 // The AI tools Metorial Desktop reports. Client types are shared by every
 // instance, so other keys are skipped rather than stored. A newer app that
@@ -37,14 +38,7 @@ export let consumerDeviceInclude = {
       excludedSkills: { orderBy: { oid: 'asc' }, include: { skill: true } }
     }
   },
-  detections: {
-    where: {
-      goneAt: null,
-      consumerDevice: { status: 'active' },
-      instance: { consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } } }
-    },
-    orderBy: { toolKey: 'asc' }
-  },
+  detections: { where: visibleDetectionWhere(), orderBy: { toolKey: 'asc' } },
   consumerProfile: true
 } satisfies Prisma.ConsumerDeviceInclude;
 

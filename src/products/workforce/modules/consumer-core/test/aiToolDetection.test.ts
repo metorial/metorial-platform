@@ -3,7 +3,9 @@ import {
   detectionObservedAt,
   deviceMonitor,
   diffDetections,
+  isDetectionReportStale,
   normalizeFindings,
+  visibleDetectionWhere,
   type DetectionFinding
 } from '../src/lib/aiToolDetection';
 
@@ -144,5 +146,36 @@ describe('deviceMonitor', () => {
     expect(monitor.aiToolDetection).toBe(true);
     expect(monitor.catalogVersion).toMatch(/^[0-9a-f]{16}$/);
     expect(monitor.intervals.report).toBe(86400);
+  });
+});
+
+describe('isDetectionReportStale', () => {
+  let now = new Date('2026-11-22T00:00:00Z');
+
+  it('treats devices silent for 30 days or that never reported as stale', () => {
+    expect(isDetectionReportStale(new Date('2026-11-01T00:00:00Z'), now)).toBe(false);
+    expect(isDetectionReportStale(new Date('2026-10-23T00:00:00Z'), now)).toBe(false);
+    expect(isDetectionReportStale(new Date('2026-10-22T23:59:59Z'), now)).toBe(true);
+    expect(isDetectionReportStale(null, now)).toBe(true);
+  });
+});
+
+describe('visibleDetectionWhere', () => {
+  it('keeps present detections on signed-in devices of instances with detection on', () => {
+    expect(visibleDetectionWhere()).toEqual({
+      goneAt: null,
+      consumerDevice: { status: 'active' },
+      instance: { consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } } }
+    });
+  });
+
+  it('can include gone detections and drop stale reports', () => {
+    let where = visibleDetectionWhere({ includeGone: true, excludeStale: true });
+
+    expect(where).not.toHaveProperty('goneAt');
+    expect(where.consumerDevice).toMatchObject({
+      status: 'active',
+      detectionReportedAt: { gte: expect.any(Date) }
+    });
   });
 });

@@ -3,30 +3,28 @@ import type {
   ConsumerDeviceDetection,
   ConsumerDeviceDetectionConfidence,
   ConsumerDeviceDetectionSignalKind,
-  ConsumerDeviceDetectionState
+  ConsumerDeviceDetectionState,
+  Prisma
 } from '@metorial/db';
-import {
-  findDetectionTool,
-  getDetectionCatalog,
-  type DetectionCatalog,
-  type DetectionCatalogTool
-} from '@metorial/model-catalog/detection';
+import { findDetectionTool, getDetectionCatalog } from '@metorial/model-catalog/detection';
 
-export {
-  detectionStaleAfterDays,
-  detectionStaleBefore,
-  isDetectionReportStale
-} from '@metorial/model-catalog/detection';
+export let aiToolDetectionFlag = 'ai-tool-detection-enabled' as const;
 
 export let maxDetectionFindings = 200;
 
-let maxReportAgeMs = 7 * 24 * 60 * 60 * 1000;
+// Devices report at least daily while detection is on; one that stayed silent this long is
+// probably gone, so its last report no longer counts.
+export let detectionStaleAfterDays = 30;
+
+let dayMs = 24 * 60 * 60 * 1000;
+
+let maxReportAgeMs = 7 * dayMs;
 
 export let aiToolDetectionIntervals = {
-  configDirs: 300,
+  config_dirs: 300,
   apps: 3600,
   binaries: 3600,
-  ideExtensions: 3600,
+  ide_extensions: 3600,
   processes: 900,
   report: 86400
 };
@@ -56,13 +54,25 @@ let confidenceRank: Record<ConsumerDeviceDetectionConfidence, number> = {
 
 let sortedUnique = <T extends string>(values: T[]) => [...new Set(values)].sort();
 
-export let getAiToolCatalog = getDetectionCatalog;
+export let detectionStaleBefore = (now = new Date()) =>
+  new Date(now.getTime() - detectionStaleAfterDays * dayMs);
 
-export let findAiTool = findDetectionTool;
+export let isDetectionReportStale = (reportedAt: Date | null, now = new Date()) =>
+  !reportedAt || reportedAt < detectionStaleBefore(now);
 
-export type AiToolCatalog = DetectionCatalog;
-
-export type AiToolCatalogEntry = DetectionCatalogTool;
+// Detections only count while the instance has detection on and the device is still signed
+// in. getUsage in aiToolPolicy.ts applies the same rule in SQL.
+export let visibleDetectionWhere = (
+  d: { excludeStale?: boolean; includeGone?: boolean } = {}
+) =>
+  ({
+    ...(d.includeGone ? {} : { goneAt: null }),
+    consumerDevice: {
+      status: 'active',
+      ...(d.excludeStale ? { detectionReportedAt: { gte: detectionStaleBefore() } } : {})
+    },
+    instance: { consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } } }
+  }) satisfies Prisma.ConsumerDeviceDetectionWhereInput;
 
 export type DeviceMonitor = {
   aiToolDetection: boolean;

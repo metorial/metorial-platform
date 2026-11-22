@@ -12,14 +12,6 @@ let aiToolPolicyPayload = (
   decidedAt: aiToolPolicy.decidedAt
 });
 
-let consumerDeviceSettingsPayload = (
-  settings: FabricEvents['consumer.device_settings.updated:after']['consumerDeviceSettings']
-) => ({
-  id: settings.id,
-  aiToolDetectionEnabled: settings.aiToolDetectionEnabled,
-  privacyNoticeAcceptedAt: settings.privacyNoticeAcceptedAt
-});
-
 export let recordAiToolPolicyUpdated = async (
   event: FabricEvents['ai_tool.policy.updated:after']
 ) => {
@@ -40,32 +32,4 @@ export let recordAiToolPolicyUpdated = async (
   });
 };
 
-export let recordConsumerDeviceSettingsUpdated = async (
-  event: FabricEvents['consumer.device_settings.updated:after']
-) => {
-  await recordAuditEventAfterCommit(async recordedAt => {
-    if (!event.previousConsumerDeviceSettings) {
-      await auditTrackerService.recordEvent(
-        event.auditScope,
-        'consumer_device_settings',
-        'create',
-        { payload: consumerDeviceSettingsPayload(event.consumerDeviceSettings), recordedAt }
-      );
-      return;
-    }
-
-    await auditTrackerService.recordEvent(
-      event.auditScope,
-      'consumer_device_settings',
-      'update',
-      {
-        payload: consumerDeviceSettingsPayload(event.consumerDeviceSettings),
-        previousPayload: consumerDeviceSettingsPayload(event.previousConsumerDeviceSettings),
-        recordedAt
-      }
-    );
-  });
-};
-
 Fabric.listen('ai_tool.policy.updated:after', recordAiToolPolicyUpdated);
-Fabric.listen('consumer.device_settings.updated:after', recordConsumerDeviceSettingsUpdated);

@@ -1434,7 +1434,7 @@ export interface FabricEvents {
   'consumer.device.enrolled:after': { consumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.updated:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.ended:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
-  'consumer.device.detections.changed:after': { consumerDevice: ConsumerDevice; added: string[]; removed: string[]; auditScope: AuditScope };
+  'consumer.device.detections.changed:after': { consumerDevice: AuditConsumerDevice; added: string[]; removed: string[]; auditScope: AuditScope };
   'consumer.device_settings.updated:after': { consumerDeviceSettings: ConsumerDeviceSettings; previousConsumerDeviceSettings: ConsumerDeviceSettings | null; auditScope: AuditScope };
 
   'ai_tool.policy.updated:after': { aiToolPolicy: AiToolPolicy; previousAiToolPolicy: AiToolPolicy | null; auditScope: AuditScope };

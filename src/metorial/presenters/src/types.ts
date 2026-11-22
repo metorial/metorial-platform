@@ -102,7 +102,7 @@ import {
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
   ConsumerAuthTestAuthorization,
-  AiToolPolicy,
+  AiToolPolicyStatus,
   ConsumerDevice,
   ConsumerDeviceClient,
   ConsumerDeviceDetection,
@@ -218,10 +218,10 @@ import type {
   AgentTrackingSettingsServiceStatus,
   serviceRetentionDefaults
 } from '@metorial/module-agent-tracking-sync';
+import type { DetectionCatalog } from '@metorial/model-catalog/detection';
 import type { AuditLog } from '@metorial/module-audit-log';
 import {
   EnrichedConsumerSurface,
-  type AiToolCatalog,
   type AiToolSummary,
   type DeviceMonitor
 } from '@metorial/module-consumer-core';
@@ -2713,7 +2713,7 @@ export let consumerDeviceDetectionReportType = PresentableType.create<{
 }>()('consumer.device.detection_report');
 
 export let consumerDeviceDetectionCatalogType = PresentableType.create<{
-  catalog: AiToolCatalog;
+  catalog: DetectionCatalog;
 }>()('consumer.device.detection_catalog');
 
 export let consumerDeviceSettingsType = PresentableType.create<{
@@ -2736,7 +2736,7 @@ export let aiToolDetectionType = PresentableType.create<{
       };
     };
   };
-  policy: Pick<AiToolPolicy, 'status'> | null;
+  policyStatus: AiToolPolicyStatus;
   telemetry: AiToolTelemetry | null;
 }>()('ai_tool.detection');
 

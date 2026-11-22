@@ -8,7 +8,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./detection": "./src/detection.ts",
-    "./detection.json": "./detection.json",
     "./src/*": "./src/*.ts"
   },
   "files": [

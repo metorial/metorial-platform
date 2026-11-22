@@ -339,7 +339,9 @@ export interface UnitPrice {
   price: number;
 }
 
-export type AgentSurface = 'cli' | 'ide' | 'ide-extension' | 'desktop' | 'web' | 'cloud';
+export let agentSurfaces = ['cli', 'ide', 'ide-extension', 'desktop', 'web', 'cloud'] as const;
+
+export type AgentSurface = (typeof agentSurfaces)[number];
 
 // `default` is the vendor the agent calls out of the box, `subscription` a plan sold for the
 // agent that bundles model access, and `supported` a vendor the agent can be configured to use.

@@ -8,7 +8,6 @@ export {
   type IntrospectedApi,
   type IntrospectionSnapshot
 } from './introspect';
-export { NotModified } from './notModified';
 export * from './ratelimit';
 export * from './server';
 export * from './types';

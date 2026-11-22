@@ -430,10 +430,8 @@ describe('module-consumer-core AI tool detections', () => {
     expect(enabled).toMatchObject({ aiToolDetectionEnabled: true });
     expect(enabled!.privacyNoticeAcceptedAt).toEqual(accepted!.privacyNoticeAcceptedAt);
     expect(
-      await consumerDeviceSettingsService.isAiToolDetectionEnabled({
-        instance: settingsFixture.instance
-      })
-    ).toBe(true);
+      await consumerDeviceSettingsService.getSettings({ instance: settingsFixture.instance })
+    ).toMatchObject({ aiToolDetectionEnabled: true });
 
     await expectServiceError(update({ privacyNoticeAccepted: false }), 'precondition_failed');
     let withdrawn = await update({

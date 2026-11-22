@@ -22,6 +22,11 @@ vi.mock('../src/lib/client', async () => (await import('./_mocks')).clientModule
 
 vi.mock('../src/lib/flag', async () => (await import('./_mocks')).flagModule);
 
+vi.mock(
+  '@metorial/module-consumer-core',
+  async () => (await import('./_mocks')).consumerCoreModule
+);
+
 vi.mock('../src/queues/syncScope', () => ({
   syncScopeQueue: { add: vi.fn(), addMany: vi.fn() }
 }));
@@ -389,7 +394,7 @@ describe('agent-tracking/reconcile', () => {
     });
     vi.mocked(db.mcpClientType.findMany).mockResolvedValue([{ key: 'cursor' }] as any);
     vi.mocked(db.consumerDeviceDetection.findMany).mockResolvedValue([
-      { toolKey: 'ollama', instance: { project: { oid: 2n, id: 'proj_1' } } }
+      { toolKey: 'ollama', instance: { oid: 3n, project: { oid: 2n, id: 'proj_1' } } }
     ] as any);
 
     await (reconcileEntitiesQueueProcessor as any).handler({
@@ -413,7 +418,7 @@ describe('agent-tracking/reconcile', () => {
     });
     vi.mocked(db.mcpClientType.findMany).mockResolvedValue([]);
     vi.mocked(db.consumerDeviceDetection.findMany).mockResolvedValue([
-      { toolKey: 'ollama', instance: { project: { oid: 2n, id: 'proj_1' } } }
+      { toolKey: 'ollama', instance: { oid: 3n, project: { oid: 2n, id: 'proj_1' } } }
     ] as any);
 
     await (reconcileEntitiesQueueProcessor as any).handler({

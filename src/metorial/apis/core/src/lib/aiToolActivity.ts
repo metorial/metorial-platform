@@ -13,35 +13,30 @@ type ActivityContext = {
   instance: Instance;
 };
 
+export let isHumanDashboardUser = (auth: AuthInfo) =>
+  auth.type == 'user' && !auth.machineAccess;
+
 // Mirrors the access rules of the agent usage endpoints, so usage never shows up here for
 // callers who could not read it there.
 export let canReadAgentUsage = async (ctx: ActivityContext) =>
-  ctx.auth.type == 'user' &&
-  !ctx.auth.machineAccess &&
+  isHumanDashboardUser(ctx.auth) &&
   (await hasAccess(ctx, { possibleScopes: [agentTrackingReadScope] }));
 
-let canShowActivity = async (ctx: ActivityContext) =>
-  (await canReadAgentUsage(ctx)) &&
-  (await consumerDeviceSettingsService.isAiToolDetectionEnabled({ instance: ctx.instance }));
+export let getAiToolActivity = async (
+  ctx: ActivityContext,
+  d: { toolKeys: string[]; byConsumer?: boolean }
+) => {
+  if (!(await canReadAgentUsage(ctx))) return null;
+  if (!(await consumerDeviceSettingsService.isAiToolDetectionActive(ctx))) return null;
 
-export let getAiToolActivity = async (ctx: ActivityContext, toolKeys: string[]) => {
-  if (!(await canShowActivity(ctx))) return null;
-
-  return await agentTrackingAgentActivityService.getAgentActivity({
+  let input = {
     organization: ctx.organization,
     project: ctx.project,
     instance: ctx.instance,
-    agentKeys: toolKeys
-  });
-};
+    agentKeys: d.toolKeys
+  };
 
-export let getAiToolConsumerActivity = async (ctx: ActivityContext, toolKeys: string[]) => {
-  if (!(await canShowActivity(ctx))) return null;
-
-  return await agentTrackingAgentActivityService.getConsumerAgentActivity({
-    organization: ctx.organization,
-    project: ctx.project,
-    instance: ctx.instance,
-    agentKeys: toolKeys
-  });
+  return d.byConsumer
+    ? await agentTrackingAgentActivityService.getConsumerAgentActivity(input)
+    : await agentTrackingAgentActivityService.getAgentActivity(input);
 };

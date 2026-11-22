@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getDetectionCatalog } from '@metorial/model-catalog/detection';
+
+vi.mock('@metorial/module-consumer-core', async () =>
+  await import('@metorial/module-consumer-core/src/lib/aiToolDetection')
+);
+
+vi.mock('@metorial/module-agent-tracking-query', () => ({ agentActiveWindowDays: 30 }));
+
 import { consumerConsumerDevicePresenter, v1ConsumerDevicePresenter } from './consumerDevice';
 
 let context = {
@@ -11,10 +18,10 @@ let deviceMonitor = (d: { aiToolDetection: boolean }) => ({
   aiToolDetection: d.aiToolDetection,
   catalogVersion: getDetectionCatalog().version,
   intervals: {
-    configDirs: 300,
+    config_dirs: 300,
     apps: 3600,
     binaries: 3600,
-    ideExtensions: 3600,
+    ide_extensions: 3600,
     processes: 900,
     report: 86400
   }

@@ -37,9 +37,23 @@ export let flagModule = {
   isAgentTrackingEnabledForOrganization: async (d: unknown) => {
     mocks.flagChecks.push(d);
     return mocks.enabled.value && mocks.flagged.value;
-  },
-  isAiToolDetectionOnForInstance: async () => mocks.aiToolDetection.value,
-  isAiToolDetectionFlagged: async () => mocks.aiToolDetection.value
+  }
+};
+
+export let staleCutoff = new Date('2026-10-23T00:00:00Z');
+
+export let consumerCoreModule = {
+  visibleDetectionWhere: (d: { excludeStale?: boolean } = {}) => ({
+    goneAt: null,
+    consumerDevice: {
+      status: 'active',
+      ...(d.excludeStale ? { detectionReportedAt: { gte: staleCutoff } } : {})
+    },
+    instance: { consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } } }
+  }),
+  consumerDeviceSettingsService: {
+    isAiToolDetectionActive: async () => mocks.aiToolDetection.value
+  }
 };
 
 export let storedSettings = {

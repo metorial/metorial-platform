@@ -1,9 +1,13 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerDeviceService, consumerDeviceStatuses } from '@metorial/module-consumer-core';
+import {
+  consumerDeviceService,
+  consumerDeviceSettingsService,
+  consumerDeviceStatuses
+} from '@metorial/module-consumer-core';
 import { consumerDevicePresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
-import { isAiToolDetectionFlagged, withVisibleDetections } from '../../../lib/aiToolDetection';
+import { withVisibleDetections } from '../../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -72,7 +76,7 @@ export let consumerDeviceManagementController = Controller.create(
         });
         let [list, detectionFlagged] = await Promise.all([
           paginator.run(ctx.query),
-          isAiToolDetectionFlagged(ctx)
+          consumerDeviceSettingsService.isAiToolDetectionFlagged(ctx)
         ]);
 
         return Paginator.present(list, consumerDevice =>
@@ -94,7 +98,7 @@ export let consumerDeviceManagementController = Controller.create(
         consumerDevicePresenter.present({
           consumerDevice: withVisibleDetections(
             ctx.consumerDevice,
-            await isAiToolDetectionFlagged(ctx)
+            await consumerDeviceSettingsService.isAiToolDetectionFlagged(ctx)
           )
         })
       ),
@@ -120,7 +124,7 @@ export let consumerDeviceManagementController = Controller.create(
         return consumerDevicePresenter.present({
           consumerDevice: withVisibleDetections(
             consumerDevice,
-            await isAiToolDetectionFlagged(ctx)
+            await consumerDeviceSettingsService.isAiToolDetectionFlagged(ctx)
           )
         });
       })

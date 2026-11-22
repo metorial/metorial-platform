@@ -1,11 +1,11 @@
 import { v } from '@lowerdeck/validation';
+import { AiToolPolicyStatus } from '@metorial/db';
+import { agentActiveWindowDays } from '@metorial/module-agent-tracking-query';
 import { Presenter } from '@metorial/presenter';
 import { type AiToolTelemetry, aiToolType } from '../../types';
 import { aiToolSurfacesSchema } from './consumerDeviceDetection';
 
-export let aiToolPolicyStatusValues = ['sanctioned', 'not_sanctioned', 'unreviewed'] as const;
-
-export let activeUseWindowDays = 30;
+export let aiToolPolicyStatusValues = Object.values(AiToolPolicyStatus);
 
 export let presentActiveUse = (running: boolean, telemetry: AiToolTelemetry | null) => ({
   actively_used: running || (telemetry ? !!telemetry.lastUsedAt : null),
@@ -16,7 +16,7 @@ export let aiToolPolicyStatusDescription =
   '`sanctioned` tools are approved for use, `not_sanctioned` tools are not. Tools nobody has decided on yet are `unreviewed`.';
 
 export let v1AiToolPresenter = Presenter.create(aiToolType)
-  .presenter(async ({ aiTool: { tool, policy, usage }, telemetry }) => ({
+  .presenter(async ({ aiTool: { tool, policy, policyStatus, usage }, telemetry }) => ({
     object: 'ai_tool' as const,
     key: tool.key,
     name: tool.name,
@@ -26,7 +26,7 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
     surfaces: tool.surfaces,
 
     policy: {
-      status: policy?.status ?? ('unreviewed' as const),
+      status: policyStatus,
       note: policy?.note ?? null,
       decided_at: policy?.decidedAt ?? null
     },
@@ -59,7 +59,7 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
       surfaces: aiToolSurfacesSchema,
       policy: v.object(
         {
-          status: v.enumOf([...aiToolPolicyStatusValues], {
+          status: v.enumOf(aiToolPolicyStatusValues, {
             name: 'status',
             description: aiToolPolicyStatusDescription
           }),
@@ -95,13 +95,13 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
       actively_used: v.nullable(
         v.boolean({
           name: 'actively_used',
-          description: `\`true\` when a device reports the tool running or agent usage tracking saw it used in the last ${activeUseWindowDays} days, \`false\` when neither happened. \`null\` when no device reports it running and its usage is unknown: agent usage tracking is off, AI tool detection is off, you can't read agent usage, or agent usage tracking cannot answer.`
+          description: `\`true\` when a device reports the tool running or agent usage tracking saw it used in the last ${agentActiveWindowDays} days, \`false\` when neither happened. \`null\` when no device reports it running and its usage is unknown: agent usage tracking is off, AI tool detection is off, you can't read agent usage, or agent usage tracking cannot answer.`
         })
       ),
       last_used_at: v.nullable(
         v.date({
           name: 'last_used_at',
-          description: `When agent usage tracking last saw the tool in use in the last ${activeUseWindowDays} days. \`null\` when it saw no use or its usage is unknown.`
+          description: `When agent usage tracking last saw the tool in use in the last ${agentActiveWindowDays} days. \`null\` when it saw no use or its usage is unknown.`
         })
       )
     })

@@ -13,7 +13,6 @@ let publishedEntries = [
   'offerings.json',
   'names.json',
   'agents.json',
-  'detection.json',
   'organizations',
   'families',
   'models',

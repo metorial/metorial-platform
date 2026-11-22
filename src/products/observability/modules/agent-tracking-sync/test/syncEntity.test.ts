@@ -19,6 +19,11 @@ vi.mock('../src/lib/client', async () => (await import('./_mocks')).clientModule
 
 vi.mock('../src/lib/flag', async () => (await import('./_mocks')).flagModule);
 
+vi.mock(
+  '@metorial/module-consumer-core',
+  async () => (await import('./_mocks')).consumerCoreModule
+);
+
 import { db } from '@metorial/db';
 import {
   backfillSyncEntityQueue,
@@ -26,7 +31,7 @@ import {
   syncEntityQueueProcessor
 } from '../src/queues/syncEntity';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { links, mocks, resetMocks } from './_mocks';
+import { links, mocks, resetMocks, staleCutoff } from './_mocks';
 
 mocks.agentTracking = {
   organization: { upsert: vi.fn(async () => ({ id: 'org_1' })) },
@@ -241,17 +246,10 @@ describe('agent-tracking/sync/entity', () => {
     ]);
   });
 
-  it.each([
-    ['detection is off', { detectionReportedAt: new Date() }, false],
-    [
-      'the last report is stale',
-      { detectionReportedAt: new Date('2020-01-01T00:00:00Z') },
-      true
-    ]
-  ])('leaves detected agents out when %s', async (_, overrides, detectionOn) => {
-    mocks.aiToolDetection.value = detectionOn;
+  it('leaves detected agents out while detection is not active', async () => {
+    mocks.aiToolDetection.value = false;
     vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(
-      createDevice({ detections: [{ toolKey: 'ollama' }], ...overrides }) as any
+      createDevice({ detections: [{ toolKey: 'ollama' }] }) as any
     );
 
     await run({ type: 'device', id: 'codv_1' });
@@ -261,6 +259,23 @@ describe('agent-tracking/sync/entity', () => {
       .filter(input => input.kind == 'agent')
       .map(input => input.ref);
     expect(agents).toEqual(['claude-code', 'cursor']);
+  });
+
+  it('only loads detections from reports that are not stale', async () => {
+    vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(createDevice() as any);
+
+    await run({ type: 'device', id: 'codv_1' });
+
+    expect(vi.mocked(db.consumerDevice.findUnique).mock.calls[0]![0]).toMatchObject({
+      include: {
+        detections: {
+          where: {
+            goneAt: null,
+            consumerDevice: { detectionReportedAt: { gte: staleCutoff } }
+          }
+        }
+      }
+    });
   });
 
   it('archives the entity of an ended device', async () => {

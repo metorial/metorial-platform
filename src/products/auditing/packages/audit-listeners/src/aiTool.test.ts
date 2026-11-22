@@ -15,7 +15,7 @@ vi.mock('@metorial/fabric', () => ({
   Fabric: { listen: vi.fn() }
 }));
 
-import { recordAiToolPolicyUpdated, recordConsumerDeviceSettingsUpdated } from './aiTool';
+import { recordAiToolPolicyUpdated } from './aiTool';
 
 let auditScope = {
   organizationOid: 1n,
@@ -35,17 +35,6 @@ let policy = {
   note: 'Use the approved gateway instead.',
   decidedAt,
   decidedByActorOid: 4n,
-  instanceOid: 3n,
-  createdAt: decidedAt,
-  updatedAt: decidedAt
-};
-
-let settings = {
-  oid: 6n,
-  id: 'cods_1',
-  aiToolDetectionEnabled: true,
-  privacyNoticeAcceptedAt: decidedAt,
-  privacyNoticeAcceptedByActorOid: 4n,
   instanceOid: 3n,
   createdAt: decidedAt,
   updatedAt: decidedAt
@@ -92,22 +81,5 @@ describe('AI tool audit listeners', () => {
         previousPayload: expect.objectContaining({ status: 'not_sanctioned' })
       })
     );
-  });
-
-  it('records device settings without actor internals', async () => {
-    await recordConsumerDeviceSettingsUpdated({
-      consumerDeviceSettings: settings,
-      previousConsumerDeviceSettings: { ...settings, aiToolDetectionEnabled: false },
-      auditScope
-    } as any);
-
-    let [, resource, action, data] = recordEvent.mock.calls[0]!;
-    expect([resource, action]).toEqual(['consumer_device_settings', 'update']);
-    expect(data.payload).toEqual({
-      id: 'cods_1',
-      aiToolDetectionEnabled: true,
-      privacyNoticeAcceptedAt: decidedAt
-    });
-    expect(data.previousPayload.aiToolDetectionEnabled).toBe(false);
   });
 });

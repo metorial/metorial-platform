@@ -3,6 +3,7 @@ import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Organization, Project } from '@metorial/db';
 import { isAgentTrackingEnabledForOrganization } from '@metorial/module-agent-tracking-sync';
+import { consumerAgentKey, type AgentActivity } from '../lib/agentActivity';
 import { resolveConsumerRefs, unique } from '../lib/members';
 import { loadPrivacy } from '../lib/privacy';
 import {
@@ -25,24 +26,6 @@ type ActivityScope = {
 
 type ActivityRow = { agentKey: string; memberId: string | null; lastUsedAt: string };
 
-export type AgentActivity = {
-  lastUsed: Map<string, Date>;
-  complete: boolean;
-};
-
-export let consumerAgentKey = (consumerId: string, agentKey: string) =>
-  `${consumerId}:${agentKey}`;
-
-// A key missing from a truncated result may still have been used, so it stays unknown.
-export let getLastUsed = (activity: AgentActivity | null, key: string) => {
-  if (!activity) return null;
-
-  let lastUsedAt = activity.lastUsed.get(key);
-  if (lastUsedAt) return { lastUsedAt };
-
-  return activity.complete ? { lastUsedAt: null } : null;
-};
-
 let latest = (map: Map<string, Date>, key: string, date: Date) => {
   let current = map.get(key);
   if (!current || current < date) map.set(key, date);
@@ -55,10 +38,10 @@ class AgentTrackingAgentActivityServiceImpl {
     let result = await this.loadActivity({ ...d, byMember: false });
     if (!result) return null;
 
-    let lastUsed = new Map<string, Date>();
-    for (let row of result.rows) latest(lastUsed, row.agentKey, new Date(row.lastUsedAt));
-
-    return { lastUsed, complete: !result.truncated };
+    return {
+      lastUsed: new Map(result.rows.map(row => [row.agentKey, new Date(row.lastUsedAt)])),
+      complete: !result.truncated
+    };
   }
 
   async getConsumerAgentActivity(

@@ -28,7 +28,7 @@ export let v1ConsumerDeviceSettingsPresenter = Presenter.create(consumerDeviceSe
         v.date({
           name: 'privacy_notice_accepted_at',
           description:
-            'When an admin accepted the privacy notice for AI tool detection. `null` until accepted; detection can only be turned on after that.'
+            'When an admin accepted the privacy notice for AI tool detection. `null` until accepted; detection can only be turned on after that. The notice governs what detection collects per person: detections name the consumer and email address of each device, even where agent usage hides individuals.'
         })
       ),
       updated_at: v.nullable(

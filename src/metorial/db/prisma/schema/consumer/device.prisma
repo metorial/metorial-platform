@@ -159,3 +159,20 @@ model ConsumerDeviceDetection {
   @@unique([consumerDeviceOid, toolKey])
   @@index([instanceOid, toolKey, goneAt])
 }
+
+model ConsumerDeviceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aiToolDetectionEnabled Boolean @default(false)
+
+  privacyNoticeAcceptedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  privacyNoticeAcceptedByActorOid BigInt?
+  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
+}

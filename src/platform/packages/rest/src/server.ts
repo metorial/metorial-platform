@@ -27,7 +27,6 @@ import {
 import { introspectVersion, introspectVersionList } from './introspect';
 import { parseBody } from './parseBody';
 import { RateLimiter } from './ratelimit';
-import { NotModified } from './notModified';
 import { isSensitiveLogField, redactSensitiveFields, redactSensitiveUrl } from './redact';
 import { Authenticator, RequestFlags } from './types';
 
@@ -291,7 +290,6 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         status: 200,
                         body: null
                       };
-                      let notModifiedHeaders: Record<string, string> | null = null;
                       let error: unknown;
                       let startedAt = Date.now();
 
@@ -381,17 +379,13 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         };
                         // objects = handlerRes.objects;
                       } catch (e) {
-                        if (e instanceof NotModified) {
-                          notModifiedHeaders = e.headers;
-                          response = { status: 304, body: null };
-                        } else if (isServiceError(e)) {
-                          error = e;
+                        error = e;
+                        if (isServiceError(e)) {
                           response = {
                             status: e.data.status,
                             body: e.toResponse()
                           };
                         } else {
-                          error = e;
                           if (process.env.NODE_ENV != 'production') console.log(e);
 
                           Sentry.captureException(e);
@@ -460,13 +454,6 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         } catch (e) {
                           console.error('Error in request logger', e);
                         }
-                      }
-
-                      if (notModifiedHeaders) {
-                        return new Response(null, {
-                          status: 304,
-                          headers: notModifiedHeaders
-                        });
                       }
 
                       return new Response(jsonBody, {

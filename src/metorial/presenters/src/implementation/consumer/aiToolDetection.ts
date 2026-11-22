@@ -1,16 +1,16 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { aiToolDetectionType } from '../../types';
+import { agentActiveWindowDays } from '@metorial/module-agent-tracking-query';
 import {
   aiToolPolicyStatusDescription,
   aiToolPolicyStatusValues,
-  activeUseWindowDays,
   presentActiveUse
 } from './aiTool';
 import { detectionFieldSchemas, presentDeviceDetection } from './consumerDeviceDetection';
 
 export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
-  .presenter(async ({ detection, policy, telemetry }) => {
+  .presenter(async ({ detection, policyStatus, telemetry }) => {
     let { object: _object, ...fields } = presentDeviceDetection(
       detection,
       detection.consumerDevice
@@ -20,7 +20,7 @@ export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
       object: 'ai_tool.detection' as const,
       ...fields,
 
-      policy_status: policy?.status ?? ('unreviewed' as const),
+      policy_status: policyStatus,
 
       consumer_device_id: detection.consumerDevice.id,
       consumer_device_name: detection.consumerDevice.name,
@@ -42,7 +42,7 @@ export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
       }),
       id: v.string({ name: 'id', description: 'Unique ID.', examples: ['codd_0mfz6q2xbb'] }),
       ...detectionFieldSchemas,
-      policy_status: v.enumOf([...aiToolPolicyStatusValues], {
+      policy_status: v.enumOf(aiToolPolicyStatusValues, {
         name: 'policy_status',
         description: `Approval status of the tool in this instance. ${aiToolPolicyStatusDescription}`
       }),
@@ -86,13 +86,13 @@ export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
       actively_used: v.nullable(
         v.boolean({
           name: 'actively_used',
-          description: `\`true\` when the device reports the tool running or agent usage tracking saw this consumer use it in the last ${activeUseWindowDays} days, \`false\` when neither happened. \`null\` when the device doesn't report it running and the consumer's usage is unknown: agent usage tracking is off, the organization hides individuals in agent usage, you can't read agent usage, or agent usage tracking cannot answer.`
+          description: `\`true\` when the device reports the tool running or agent usage tracking saw this consumer use it in the last ${agentActiveWindowDays} days, \`false\` when neither happened. \`null\` when the device doesn't report it running and the consumer's usage is unknown: agent usage tracking is off, the organization hides individuals in agent usage, you can't read agent usage, or agent usage tracking cannot answer.`
         })
       ),
       last_used_at: v.nullable(
         v.date({
           name: 'last_used_at',
-          description: `When agent usage tracking last saw this consumer use the tool, on any device, in the last ${activeUseWindowDays} days. \`null\` when it saw no use or the usage is unknown.`
+          description: `When agent usage tracking last saw this consumer use the tool, on any device, in the last ${agentActiveWindowDays} days. \`null\` when it saw no use or the usage is unknown.`
         })
       )
     })

@@ -1,4 +1,4 @@
-import { addAfterTransactionHook, db, type Organization } from '@metorial/db';
+import { addAfterTransactionHook, db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { isAgentTrackingEnabled } from '../lib/client';
 import { shouldSyncOrganization } from '../lib/flag';
@@ -35,20 +35,16 @@ let enqueueEntitySync = async (target: EntitySyncTarget) => {
   });
 };
 
-let instanceOrganization = async (instanceOid: bigint) =>
-  (
-    await db.instance.findUnique({
-      where: { oid: instanceOid },
-      include: { organization: true }
-    })
-  )?.organization ?? null;
-
 // Agents that only a detection kept around are dropped by the agent reconcile.
-let enqueueAgentCleanup = async (loadOrganization: () => Promise<Organization | null>) => {
+let enqueueAgentCleanup = async (instanceOid: bigint) => {
   if (!isAgentTrackingEnabled()) return;
 
   await addAfterTransactionHook(async () => {
-    let organization = await loadOrganization();
+    let instance = await db.instance.findUnique({
+      where: { oid: instanceOid },
+      include: { organization: true }
+    });
+    let organization = instance?.organization;
     if (!organization || !(await shouldSyncOrganization(async () => organization))) return;
 
     await enqueueAgentReconcile(organization.id);
@@ -96,13 +92,13 @@ Fabric.listen(
   async ({ consumerDevice, added, removed }) => {
     if (added.length) await enqueueEntitySync({ type: 'device', id: consumerDevice.id });
     if (removed.length) {
-      await enqueueAgentCleanup(() => instanceOrganization(consumerDevice.instanceOid));
+      await enqueueAgentCleanup(consumerDevice.instanceOid);
     }
   }
 );
 
 Fabric.listen('consumer.device.ended:after', async ({ consumerDevice }) =>
-  enqueueAgentCleanup(() => instanceOrganization(consumerDevice.instanceOid))
+  enqueueAgentCleanup(consumerDevice.instanceOid)
 );
 
 Fabric.listen(
@@ -115,6 +111,6 @@ Fabric.listen(
       return;
     }
 
-    await enqueueAgentCleanup(() => instanceOrganization(consumerDeviceSettings.instanceOid));
+    await enqueueAgentCleanup(consumerDeviceSettings.instanceOid);
   }
 );

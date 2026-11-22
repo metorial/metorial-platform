@@ -32,7 +32,7 @@ export type Flags = {
   'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   'devices-enabled': FlagValue;
-  'ai-tool-detection': FlagValue;
+  'ai-tool-detection-enabled': FlagValue;
   'agent-tracking-enabled': FlagValue;
   outposts: FlagValue;
 
@@ -102,7 +102,7 @@ export let defaultFlags: Flags = {
   'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   'devices-enabled': false,
-  'ai-tool-detection': false,
+  'ai-tool-detection-enabled': false,
   'agent-tracking-enabled': false,
   outposts: false,
 

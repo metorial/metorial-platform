@@ -1,8 +1,18 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import { addAfterTransactionHook, db, ID, Instance, withTransaction } from '@metorial/db';
+import {
+  addAfterTransactionHook,
+  db,
+  ID,
+  Instance,
+  Organization,
+  Project,
+  withTransaction
+} from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { flagService } from '@metorial/module-flags';
+import { aiToolDetectionFlag } from '../lib/aiToolDetection';
 
 class ConsumerDeviceSettingsServiceImpl {
   async getSettings(d: { instance: Pick<Instance, 'oid'> }) {
@@ -15,10 +25,23 @@ class ConsumerDeviceSettingsServiceImpl {
     );
   }
 
-  async isAiToolDetectionEnabled(d: { instance: Pick<Instance, 'oid'> }) {
-    let settings = await this.getSettings(d);
+  async isAiToolDetectionActive(d: {
+    organization: Organization;
+    project: Project;
+    instance: Pick<Instance, 'oid'>;
+  }) {
+    let settings = await this.getSettings({ instance: d.instance });
+    if (!settings?.aiToolDetectionEnabled) return false;
 
-    return !!settings?.aiToolDetectionEnabled;
+    return await this.isAiToolDetectionFlagged(d);
+  }
+
+  async isAiToolDetectionFlagged(d: { organization: Organization; project: Project }) {
+    return await flagService.isFlagEnabledForScope({
+      organization: d.organization,
+      project: d.project,
+      flag: aiToolDetectionFlag
+    });
   }
 
   async updateSettings(d: {

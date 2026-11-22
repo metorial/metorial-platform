@@ -1,17 +1,13 @@
 export { getConsumerInviteExpiresAt } from '../lib/consumerInviteExpiry';
 export {
-  type AiToolCatalog,
-  type AiToolCatalogEntry,
   type DeviceMonitor,
-  aiToolDetectionIntervals,
+  aiToolDetectionFlag,
   detectionDisabledError,
   detectionStaleAfterDays,
-  detectionStaleBefore,
-  isDetectionReportStale,
   deviceMonitor,
-  findAiTool,
-  getAiToolCatalog,
-  maxDetectionFindings
+  isDetectionReportStale,
+  maxDetectionFindings,
+  visibleDetectionWhere
 } from '../lib/aiToolDetection';
 export * from './aiToolPolicy';
 export * from './consumer';

@@ -37,9 +37,12 @@ let reportBody = (seq: number, findings: unknown[]) => ({
   findings
 });
 
+let settingsPath = (org: BootstrappedOrganization) =>
+  instancePathFor(org, 'session', '/consumer-device-settings');
+
 let enableDetection = async (org: BootstrappedOrganization) =>
   expectOk(
-    await org.clients.instance.patch('/consumer-device-settings', {
+    await org.clients.rest.patch(settingsPath(org), {
       privacy_notice_accepted: true,
       ai_tool_detection_enabled: true
     })
@@ -97,11 +100,27 @@ describe('api-core consumer: AI tool detection', () => {
       'invalid_data'
     );
     expectError(
-      await settingsOrg.clients.instance.patch('/consumer-device-settings', {
+      await settingsOrg.clients.rest.patch(settingsPath(settingsOrg), {
         ai_tool_detection_enabled: true
       }),
       412
     );
+    for (let body of [
+      { ai_tool_detection_enabled: true },
+      { privacy_notice_accepted: true }
+    ]) {
+      expectError(
+        await settingsOrg.clients.instance.patch('/consumer-device-settings', body),
+        403
+      );
+      expectError(
+        await settingsOrg.clients.management.patch(
+          instancePathFor(settingsOrg, 'management', '/consumer-device-settings'),
+          body
+        ),
+        403
+      );
+    }
 
     let enabled = await enableDetection(settingsOrg);
     expect(enabled.ai_tool_detection_enabled).toBe(true);
@@ -141,7 +160,7 @@ describe('api-core consumer: AI tool detection', () => {
     expect(enabled.device.detections).toEqual([]);
   });
 
-  it('serves the detection catalog with an ETag the device can revalidate', async () => {
+  it('serves the detection catalog the device matches against', async () => {
     let desktop = await enrollDesktop(org);
 
     expectError(
@@ -151,30 +170,15 @@ describe('api-core consumer: AI tool detection', () => {
       401
     );
 
-    let response = await desktop.client.get('/consumer/device-detection-catalog');
-    let catalog = expectPresented(expectOk(response), 'consumer.device.detection_catalog');
+    let catalog = expectPresented(
+      expectOk(await desktop.client.get('/consumer/device-detection-catalog')),
+      'consumer.device.detection_catalog'
+    );
     expect(catalog.version).toBe(desktop.device.monitor.catalog_version);
-    expect(response.headers.get('etag')).toBe(`"${catalog.version}"`);
     expect(catalog.tools.map((tool: any) => tool.key)).toEqual(
       expect.arrayContaining(['claude-code', 'codex', 'cursor'])
     );
     expect(JSON.stringify(catalog)).not.toContain('slates');
-
-    let revalidated = await desktop.client.get('/consumer/device-detection-catalog', {
-      headers: { 'if-none-match': `"${catalog.version}"` }
-    });
-    expect(revalidated.status).toBe(304);
-    expect(revalidated.text).toBe('');
-    expect(revalidated.headers.get('etag')).toBe(`"${catalog.version}"`);
-    expect(revalidated.headers.get('metorial-version')).toBe(
-      response.headers.get('metorial-version')
-    );
-    expect(revalidated.headers.get('metorial-req-id')).toBeTruthy();
-
-    let stale = await desktop.client.get('/consumer/device-detection-catalog', {
-      headers: { 'if-none-match': '"stale"' }
-    });
-    expect(stale.status).toBe(200);
   });
 
   it('stores reported tools once per sequence number', async () => {

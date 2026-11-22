@@ -10,21 +10,12 @@ import { organizationSeeds, type OrganizationSeed } from './registry/organizatio
 import type { AgentSurface } from './types';
 
 export type { DetectionPlatform } from './registry/detection';
+export { agentSurfaces, type AgentSurface } from './types';
 
 // Bumped when the shape of the published catalog changes, not when its entries do.
 export let detectionCatalogSchema = 1;
 
 export let detectionPlatforms: DetectionPlatform[] = ['macos', 'windows', 'linux'];
-
-// Devices report at least daily while detection is on; one that stayed silent this long is
-// probably gone, so its last report no longer counts.
-export let detectionStaleAfterDays = 30;
-
-export let detectionStaleBefore = (now = new Date()) =>
-  new Date(now.getTime() - detectionStaleAfterDays * 24 * 60 * 60 * 1000);
-
-export let isDetectionReportStale = (reportedAt: Date | null, now = new Date()) =>
-  !reportedAt || reportedAt < detectionStaleBefore(now);
 
 export interface DetectionCatalogSignatures {
   config_dirs: string[];

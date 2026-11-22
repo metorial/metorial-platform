@@ -1,4 +1,3 @@
-import { mcpClientForCatalogAgent } from '../definitions/clientFamilies';
 import type {
   Consumer,
   ConsumerDevice,
@@ -101,17 +100,3 @@ export let clientAgentEntityInput = (d: {
   attributes: {},
   identifiers: [{ type: 'client_family', value: d.client.mcpClientType.key }]
 });
-
-// A detected tool that Metorial Desktop also configures resolves to the same agent entity as the
-// configured client, so an agent is never listed twice.
-export let detectedAgentEntityInput = (d: {
-  organization: Pick<Organization, 'id'>;
-  tool: { key: string; name: string };
-}) =>
-  clientAgentEntityInput({
-    organization: d.organization,
-    client: {
-      name: d.tool.name,
-      mcpClientType: { key: mcpClientForCatalogAgent(d.tool.key) ?? d.tool.key }
-    }
-  });

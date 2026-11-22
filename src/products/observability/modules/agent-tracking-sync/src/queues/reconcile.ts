@@ -1,13 +1,12 @@
 import { createCron } from '@metorial/cron';
 import { db, type Organization } from '@metorial/db';
-import { detectionStaleBefore } from '@metorial/model-catalog/detection';
 import {
-  catalogAgentForMcpClient,
-  mcpClientForCatalogAgent
-} from '../definitions/clientFamilies';
+  consumerDeviceSettingsService,
+  visibleDetectionWhere
+} from '@metorial/module-consumer-core';
 import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/queue';
 import { getAgentTracking, ignoreNotFound, isAgentTrackingEnabled } from '../lib/client';
-import { isAgentTrackingEnabledForOrganization, isAiToolDetectionFlagged } from '../lib/flag';
+import { isAgentTrackingEnabledForOrganization } from '../lib/flag';
 import { archivableStatuses, syncedEntitySources } from '../lib/mapping';
 import { unlinkOrganizationTree } from '../lib/links';
 import { backfillOrganizationQueue } from './backfill';
@@ -265,35 +264,31 @@ let liveAgentRefs = async (d: { organization: Organization; refs: string[] }) =>
   });
   let live = new Set(configured.map(clientType => clientType.key));
 
+  let visible = visibleDetectionWhere({ excludeStale: true });
   let detected = await db.consumerDeviceDetection.findMany({
     where: {
-      toolKey: { in: d.refs.map(ref => catalogAgentForMcpClient(ref) ?? ref) },
-      goneAt: null,
-      consumerDevice: {
-        status: 'active',
-        detectionReportedAt: { gte: detectionStaleBefore() }
-      },
-      instance: {
-        organizationOid: d.organization.oid,
-        consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } }
-      }
+      ...visible,
+      toolKey: { in: d.refs },
+      instance: { ...visible.instance, organizationOid: d.organization.oid }
     },
     distinct: ['toolKey', 'instanceOid'],
-    select: { toolKey: true, instance: { select: { project: true } } }
+    select: { toolKey: true, instance: { include: { project: true } } }
   });
 
-  let flagged = new Map<bigint, Promise<boolean>>();
+  let active = new Map<bigint, Promise<boolean>>();
   for (let detection of detected) {
-    let project = detection.instance.project;
-    if (!flagged.has(project.oid)) {
-      flagged.set(
-        project.oid,
-        isAiToolDetectionFlagged({ organization: d.organization, project })
+    let instance = detection.instance;
+    if (!active.has(instance.oid)) {
+      active.set(
+        instance.oid,
+        consumerDeviceSettingsService.isAiToolDetectionActive({
+          organization: d.organization,
+          project: instance.project,
+          instance
+        })
       );
     }
-    if (await flagged.get(project.oid)) {
-      live.add(mcpClientForCatalogAgent(detection.toolKey) ?? detection.toolKey);
-    }
+    if (await active.get(instance.oid)) live.add(detection.toolKey);
   }
 
   return live;

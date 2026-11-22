@@ -1,5 +1,11 @@
-import { getDetectionCatalog as getAiToolCatalog } from '@metorial/model-catalog/detection';
-import { describe, expect, it } from 'vitest';
+import { getDetectionCatalog } from '@metorial/model-catalog/detection';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('@metorial/module-consumer-core', async () =>
+  await import('@metorial/module-consumer-core/src/lib/aiToolDetection')
+);
+
+vi.mock('@metorial/module-agent-tracking-query', () => ({ agentActiveWindowDays: 30 }));
+
 import { v1AiToolPresenter } from './aiTool';
 import { v1AiToolDetectionPresenter } from './aiToolDetection';
 import {
@@ -13,7 +19,7 @@ let context = {
   accessType: 'user_auth_token'
 } as const;
 
-let tool = getAiToolCatalog().tools.find(entry => entry.key == 'cursor')!;
+let tool = getDetectionCatalog().tools.find(entry => entry.key == 'cursor')!;
 
 let seenAt = new Date('2026-11-22T10:00:00Z');
 
@@ -44,7 +50,10 @@ describe('AI tool presenter', () => {
   it('shows an undecided tool nobody has reported as unreviewed and unused', async () => {
     let presented = await v1AiToolPresenter
       .present(
-        { aiTool: { tool, policy: null, usage: null }, telemetry: { lastUsedAt: null } },
+        {
+          aiTool: { tool, policy: null, policyStatus: 'unreviewed', usage: null },
+          telemetry: { lastUsedAt: null }
+        },
         context
       )
       .run();
@@ -70,6 +79,7 @@ describe('AI tool presenter', () => {
           aiTool: {
             tool,
             policy: { status: 'sanctioned', note: 'Approved', decidedAt: seenAt } as any,
+            policyStatus: 'sanctioned',
             usage: {
               toolKey: 'cursor',
               deviceCount: 3,
@@ -102,6 +112,7 @@ describe('AI tool presenter', () => {
           aiTool: {
             tool,
             policy: null,
+            policyStatus: 'unreviewed',
             usage: {
               toolKey: 'cursor',
               deviceCount: 1,
@@ -121,7 +132,13 @@ describe('AI tool presenter', () => {
 
   it('reports unknown use for a tool that is not running when usage is unknown', async () => {
     let presented = await v1AiToolPresenter
-      .present({ aiTool: { tool, policy: null, usage: null }, telemetry: null }, context)
+      .present(
+        {
+          aiTool: { tool, policy: null, policyStatus: 'unreviewed', usage: null },
+          telemetry: null
+        },
+        context
+      )
       .run();
 
     expect(presented).toMatchObject({ actively_used: null, last_used_at: null });
@@ -132,7 +149,7 @@ describe('AI tool detection presenter', () => {
   it('names the device, its consumer and the tool status, and flags a silent device as stale', async () => {
     let presented = await v1AiToolDetectionPresenter
       .present(
-        { detection, policy: { status: 'not_sanctioned' }, telemetry: { lastUsedAt: null } },
+        { detection, policyStatus: 'not_sanctioned', telemetry: { lastUsedAt: null } },
         context
       )
       .run();
@@ -170,7 +187,7 @@ describe('AI tool detection presenter', () => {
     ) =>
       v1AiToolDetectionPresenter
         .present(
-          { detection: { ...detection, ...overrides }, policy: null, telemetry },
+          { detection: { ...detection, ...overrides }, policyStatus: 'unreviewed', telemetry },
           context
         )
         .run();
@@ -211,13 +228,13 @@ describe('detection report and catalog presenters', () => {
       consumer_device_id: 'codv_1',
       applied: false,
       seq: 7,
-      catalog_version: getAiToolCatalog().version,
+      catalog_version: getDetectionCatalog().version,
       detections: [{ object: 'consumer.device.detection', tool_key: 'cursor', stale: false }]
     });
   });
 
   it('publishes the catalog the device matches against', async () => {
-    let catalog = getAiToolCatalog();
+    let catalog = getDetectionCatalog();
     let presented = await v1ConsumerDeviceDetectionCatalogPresenter
       .present({ catalog }, context)
       .run();

@@ -1,10 +1,15 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { getLastUsed } from '@metorial/module-agent-tracking-query';
-import { aiToolPolicyService, aiToolPolicyStatuses } from '@metorial/module-consumer-core';
+import {
+  aiToolPolicyService,
+  aiToolPolicyStatuses,
+  type AiToolSummary
+} from '@metorial/module-consumer-core';
 import { aiToolPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { getAiToolActivity } from '../../../lib/aiToolActivity';
+import { aiToolDetectionFlags } from '../../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -13,12 +18,19 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 
 let maxNoteLength = 1000;
 
-let aiToolFlags = hasFlags([
-  'paid-portals',
-  'portals-access',
-  'devices-enabled',
-  'ai-tool-detection'
-]);
+let aiToolFlags = hasFlags(aiToolDetectionFlags);
+
+let presentAiTool = async (
+  ctx: Parameters<typeof getAiToolActivity>[0],
+  aiTool: AiToolSummary
+) => {
+  let activity = await getAiToolActivity(ctx, { toolKeys: [aiTool.tool.key] });
+
+  return aiToolPresenter.present({
+    aiTool,
+    telemetry: getLastUsed(activity, aiTool.tool.key)
+  });
+};
 
 export let aiToolController = Controller.create(
   {
@@ -65,10 +77,9 @@ export let aiToolController = Controller.create(
           policyStatuses: normalizeArrayParam(ctx.query.policy_status),
           detected: ctx.query.detected
         });
-        let activity = await getAiToolActivity(
-          ctx,
-          aiTools.map(aiTool => aiTool.tool.key)
-        );
+        let activity = await getAiToolActivity(ctx, {
+          toolKeys: aiTools.map(aiTool => aiTool.tool.key)
+        });
 
         return Paginator.present(
           { items: aiTools, pagination: { hasNextPage: false, hasPreviousPage: false } },
@@ -93,12 +104,8 @@ export let aiToolController = Controller.create(
           instance: ctx.instance,
           toolKey: requireParam(ctx.params, 'toolKey')
         });
-        let activity = await getAiToolActivity(ctx, [aiTool.tool.key]);
 
-        return aiToolPresenter.present({
-          aiTool,
-          telemetry: getLastUsed(activity, aiTool.tool.key)
-        });
+        return await presentAiTool(ctx, aiTool);
       }),
 
     updatePolicy: instanceGroup
@@ -138,12 +145,8 @@ export let aiToolController = Controller.create(
           auditScope: ctx.auditScope,
           input: { status: ctx.body.status, note: ctx.body.note }
         });
-        let activity = await getAiToolActivity(ctx, [aiTool.tool.key]);
 
-        return aiToolPresenter.present({
-          aiTool,
-          telemetry: getLastUsed(activity, aiTool.tool.key)
-        });
+        return await presentAiTool(ctx, aiTool);
       })
   }
 );
