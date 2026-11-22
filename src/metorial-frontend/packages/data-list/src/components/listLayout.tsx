@@ -18,6 +18,7 @@ let List = styled('ul')`
 `;
 
 let Row = styled('li')<{ $interactive: boolean; $dimmed: boolean; $selected: boolean }>`
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -45,6 +46,12 @@ let RowLink = styled(Link)`
   min-width: 0;
   color: inherit;
   text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
 `;
 
 let RowBody = styled('div')`
@@ -74,6 +81,10 @@ let Side = styled('div')`
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+`;
+
+let RowMenuButton = styled(Button)`
+  z-index: 1;
 `;
 
 export let DataListListLayout = ({ controller }: { controller: DataListController }) => {
@@ -140,7 +151,7 @@ export let DataListListLayout = ({ controller }: { controller: DataListControlle
                     menu.find(item => item.id == id)?.onClick();
                   }}
                 >
-                  <Button size="1" variant="outline" iconLeft={<RiMore2Line />} />
+                  <RowMenuButton size="1" variant="outline" iconLeft={<RiMore2Line />} />
                 </Menu>
               )}
 
