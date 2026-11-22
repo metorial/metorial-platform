@@ -5,11 +5,13 @@ import { aiToolSurfacesSchema } from './consumerDeviceDetection';
 
 export let aiToolPolicyStatusValues = ['sanctioned', 'not_sanctioned', 'unreviewed'] as const;
 
+export let activeUseWindowDays = 30;
+
 export let aiToolPolicyStatusDescription =
   '`sanctioned` tools are approved for use, `not_sanctioned` tools are not. Tools nobody has decided on yet are `unreviewed`.';
 
 export let v1AiToolPresenter = Presenter.create(aiToolType)
-  .presenter(async ({ aiTool: { tool, policy, usage } }) => ({
+  .presenter(async ({ aiTool: { tool, policy, usage }, lastUsedAt }) => ({
     object: 'ai_tool' as const,
     key: tool.key,
     name: tool.name,
@@ -26,7 +28,10 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
 
     device_count: usage?.deviceCount ?? 0,
     people_count: usage?.peopleCount ?? 0,
-    last_seen_at: usage?.lastSeenAt ?? null
+    last_seen_at: usage?.lastSeenAt ?? null,
+
+    actively_used: !!usage?.running || !!lastUsedAt,
+    last_used_at: lastUsedAt
   }))
   .schema(
     v.object({
@@ -81,6 +86,16 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
         v.date({
           name: 'last_seen_at',
           description: 'When a device last reported the tool. `null` when no device has.'
+        })
+      ),
+      actively_used: v.boolean({
+        name: 'actively_used',
+        description: `\`true\` when a device reports the tool running, or when \`last_used_at\` is set. Without agent usage tracking, only running tools count.`
+      }),
+      last_used_at: v.nullable(
+        v.date({
+          name: 'last_used_at',
+          description: `When agent usage tracking last saw the tool in use in the last ${activeUseWindowDays} days. \`null\` when it saw no use, or when agent usage tracking is off for the organization or cannot answer.`
         })
       )
     })

@@ -26,6 +26,7 @@ export type AiToolUsage = {
   deviceCount: number;
   peopleCount: number;
   lastSeenAt: Date | null;
+  running: boolean;
 };
 
 export type AiToolSummary = {
@@ -145,7 +146,8 @@ class AiToolPolicyServiceImpl {
         d."toolKey" AS "toolKey",
         COUNT(DISTINCT d."consumerDeviceOid")::int AS "deviceCount",
         COUNT(DISTINCT p."consumerOid")::int AS "peopleCount",
-        MAX(d."lastSeenAt") AS "lastSeenAt"
+        MAX(d."lastSeenAt") AS "lastSeenAt",
+        BOOL_OR(d."state" = 'running') AS "running"
       FROM "ConsumerDeviceDetection" d
       JOIN "ConsumerDevice" cd ON cd."oid" = d."consumerDeviceOid"
       JOIN "ConsumerProfile" p ON p."oid" = cd."consumerProfileOid"

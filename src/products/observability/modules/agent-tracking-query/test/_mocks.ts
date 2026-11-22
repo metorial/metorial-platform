@@ -57,11 +57,14 @@ export let withInstanceScope = vi.fn(
 
 export let privacy = { hideIndividuals: false, minGroupUsers: 5 };
 
+export let agentTrackingEnabled = vi.fn(async (_d: any) => true);
+
 export let syncModule = {
   ...clientFamilies,
   consumerEntitySource: 'metorial.consumer',
   requireAgentTracking: () => client,
   withInstanceScope,
+  isAgentTrackingEnabledForOrganization: agentTrackingEnabled,
   agentTrackingSettingsService: { getPrivacy: async () => ({ ...privacy }) }
 };
 
@@ -105,6 +108,8 @@ export let resetMocks = () => {
   consumers.findMany.mockReset();
   consumers.findMany.mockImplementation(async () => []);
   withInstanceScope.mockClear();
+  agentTrackingEnabled.mockReset();
+  agentTrackingEnabled.mockImplementation(async () => true);
   privacy.hideIndividuals = false;
   privacy.minGroupUsers = 5;
 };

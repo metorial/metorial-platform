@@ -30,15 +30,20 @@ let detection = {
   goneAt: null,
   consumerDevice: {
     id: 'codv_1',
+    name: 'Ada’s MacBook Pro',
+    os: 'macos',
     detectionReportedAt: new Date('2020-01-01T00:00:00Z'),
-    consumerProfile: { id: 'cpr_1', consumer: { id: 'con_1' } }
+    consumerProfile: {
+      id: 'cpr_1',
+      consumer: { id: 'con_1', name: 'Ada', email: 'ada@example.com' }
+    }
   }
 } as any;
 
 describe('AI tool presenter', () => {
   it('shows an undecided tool nobody has reported as unreviewed and unused', async () => {
     let presented = await v1AiToolPresenter
-      .present({ aiTool: { tool, policy: null, usage: null } }, context)
+      .present({ aiTool: { tool, policy: null, usage: null }, lastUsedAt: null }, context)
       .run();
 
     expect(presented).toMatchObject({
@@ -49,7 +54,9 @@ describe('AI tool presenter', () => {
       policy: { status: 'unreviewed', note: null, decided_at: null },
       device_count: 0,
       people_count: 0,
-      last_seen_at: null
+      last_seen_at: null,
+      actively_used: false,
+      last_used_at: null
     });
   });
 
@@ -60,8 +67,15 @@ describe('AI tool presenter', () => {
           aiTool: {
             tool,
             policy: { status: 'sanctioned', note: 'Approved', decidedAt: seenAt } as any,
-            usage: { toolKey: 'cursor', deviceCount: 3, peopleCount: 2, lastSeenAt: seenAt }
-          }
+            usage: {
+              toolKey: 'cursor',
+              deviceCount: 3,
+              peopleCount: 2,
+              lastSeenAt: seenAt,
+              running: false
+            }
+          },
+          lastUsedAt: seenAt
         },
         context
       )
@@ -71,16 +85,42 @@ describe('AI tool presenter', () => {
       policy: { status: 'sanctioned', note: 'Approved', decided_at: seenAt },
       device_count: 3,
       people_count: 2,
-      last_seen_at: seenAt
+      last_seen_at: seenAt,
+      actively_used: true,
+      last_used_at: seenAt
     });
     expect(JSON.stringify(presented)).not.toContain('oid');
+  });
+
+  it('counts a running tool as actively used without usage tracking', async () => {
+    let presented = await v1AiToolPresenter
+      .present(
+        {
+          aiTool: {
+            tool,
+            policy: null,
+            usage: {
+              toolKey: 'cursor',
+              deviceCount: 1,
+              peopleCount: 1,
+              lastSeenAt: seenAt,
+              running: true
+            }
+          },
+          lastUsedAt: null
+        },
+        context
+      )
+      .run();
+
+    expect(presented).toMatchObject({ actively_used: true, last_used_at: null });
   });
 });
 
 describe('AI tool detection presenter', () => {
   it('names the device, its consumer and the tool status, and flags a silent device as stale', async () => {
     let presented = await v1AiToolDetectionPresenter
-      .present({ detection, policy: { status: 'not_sanctioned' } }, context)
+      .present({ detection, policy: { status: 'not_sanctioned' }, lastUsedAt: null }, context)
       .run();
 
     expect(presented).toEqual({
@@ -97,9 +137,34 @@ describe('AI tool detection presenter', () => {
       last_seen_at: seenAt,
       policy_status: 'not_sanctioned',
       consumer_device_id: 'codv_1',
+      consumer_device_name: 'Ada’s MacBook Pro',
+      consumer_device_os: 'macos',
       consumer_profile_id: 'cpr_1',
       consumer_id: 'con_1',
-      gone_at: null
+      consumer_name: 'Ada',
+      consumer_email: 'ada@example.com',
+      gone_at: null,
+      actively_used: false,
+      last_used_at: null
+    });
+  });
+
+  it('counts a running tool or recent usage as actively used, but not a gone one', async () => {
+    let present = (overrides: Record<string, unknown>, lastUsedAt: Date | null) =>
+      v1AiToolDetectionPresenter
+        .present(
+          { detection: { ...detection, ...overrides }, policy: null, lastUsedAt },
+          context
+        )
+        .run();
+
+    expect((await present({ state: 'running' }, null)).actively_used).toBe(true);
+    expect((await present({ state: 'running', goneAt: seenAt }, null)).actively_used).toBe(
+      false
+    );
+    expect(await present({}, seenAt)).toMatchObject({
+      actively_used: true,
+      last_used_at: seenAt
     });
   });
 });

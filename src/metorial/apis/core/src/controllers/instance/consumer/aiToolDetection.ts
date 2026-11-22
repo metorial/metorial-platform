@@ -1,6 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
+  agentTrackingAgentActivityService,
+  consumerAgentKey
+} from '@metorial/module-agent-tracking-query';
+import {
   aiToolPolicyService,
   aiToolPolicyStatuses,
   consumerDeviceDetectionService,
@@ -105,11 +109,24 @@ export let aiToolDetectionController = Controller.create(
           paginator.run(ctx.query),
           aiToolPolicyService.listPolicies({ instance: ctx.instance })
         ]);
+        let lastUsed = await agentTrackingAgentActivityService.getConsumerAgentActivity({
+          organization: ctx.organization,
+          project: ctx.project,
+          instance: ctx.instance,
+          agentKeys: list.items.map(detection => detection.toolKey)
+        });
 
         return Paginator.present(list, detection =>
           aiToolDetectionPresenter.present({
             detection,
-            policy: policies.get(detection.toolKey) ?? null
+            policy: policies.get(detection.toolKey) ?? null,
+            lastUsedAt:
+              lastUsed?.get(
+                consumerAgentKey(
+                  detection.consumerDevice.consumerProfile.consumer.id,
+                  detection.toolKey
+                )
+              ) ?? null
           })
         );
       })

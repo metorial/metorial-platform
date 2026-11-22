@@ -21,6 +21,8 @@ export type DashboardInstanceAiToolsListOutput = {
     deviceCount: number;
     peopleCount: number;
     lastSeenAt: Date | null;
+    activelyUsed: boolean;
+    lastUsedAt: Date | null;
   }[];
   pagination: {
     hasMoreBefore: boolean;
@@ -40,7 +42,9 @@ export let mapDashboardInstanceAiToolsListOutput =
           ['policy', 0, [1, ['decided_at']]],
           'device_count',
           'people_count',
-          'last_seen_at'
+          'last_seen_at',
+          'actively_used',
+          'last_used_at'
         ]
       ]
     ],

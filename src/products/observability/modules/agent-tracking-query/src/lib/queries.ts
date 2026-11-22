@@ -19,6 +19,10 @@ export let memberWindowDays = 400;
 
 export let maxMembers = 1000;
 
+export let agentActiveWindowDays = 30;
+
+export let agentActivityLookbackDays = 60;
+
 let sessionModelsLimit = 50;
 
 export let sessionCountColumn = 'sessions_active';
@@ -248,6 +252,33 @@ export let toolDetailsQuery = (range: { from: Date; to: Date }) => ({
     ]
   },
   measures: [{ fn: 'count', as: 'tool_calls_with_details' }],
+  labels: false
+});
+
+// The sessions dataset is ranged by start, so the window reaches further back than the activity
+// filter to catch long sessions that are still active.
+export let agentActivityQuery = (d: {
+  window: { from: Date; to: Date };
+  activeSince: Date;
+  agentKeys: string[];
+  byMember: boolean;
+}) => ({
+  atq: '0',
+  dataset: 'sessions',
+  range: queryRange(d.window),
+  where: {
+    and: [
+      { field: 'lastActivityAt', op: 'gte', value: d.activeSince.toISOString() },
+      { field: 'agent', op: 'in', value: d.agentKeys }
+    ]
+  },
+  dimensions: [
+    { field: 'agent', missing: 'exclude' },
+    ...(d.byMember ? [{ field: 'user', missing: 'exclude' }] : [])
+  ],
+  measures: ['last_activity'],
+  orderBy: [{ by: 'last_activity', direction: 'desc' }],
+  limit: maxMembers,
   labels: false
 });
 

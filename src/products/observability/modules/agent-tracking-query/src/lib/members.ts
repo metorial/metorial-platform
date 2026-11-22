@@ -87,6 +87,16 @@ let fetchRemoteMembers = async (d: { organizationId: string; ids: string[] }) =>
   return resolved;
 };
 
+export let resolveConsumerRefs = async (d: { organizationId: string; ids: string[] }) => {
+  let resolved = await fetchRemoteMembers(d);
+
+  return new Map(
+    [...resolved.entries()]
+      .filter(([, member]) => member.source == consumerEntitySource && member.ref)
+      .map(([id, member]) => [id, member.ref!] as const)
+  );
+};
+
 let presentMembers = async (d: {
   scope: Pick<ReadScope, 'organization' | 'instance'>;
   remote: RemoteMember[];

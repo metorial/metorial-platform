@@ -15,6 +15,9 @@ import {
   MetorialDashboardInstanceAgentTrackingSettingsEndpoint,
   MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint,
   MetorialDashboardInstanceAgentTrackingSpendEndpoint,
+  MetorialDashboardInstanceAiToolDetectionsEndpoint,
+  MetorialDashboardInstanceAiToolsEndpoint,
+  MetorialDashboardInstanceAiToolsPolicyEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
   MetorialDashboardInstanceCallbackEventsEndpoint,
   MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint,
@@ -31,6 +34,7 @@ import {
   MetorialDashboardInstanceChatsMessagesReactionsEndpoint,
   MetorialDashboardInstanceChatsThreadsEndpoint,
   MetorialDashboardInstanceChatWorkspacesEndpoint,
+  MetorialDashboardInstanceConsumerDeviceSettingsEndpoint,
   MetorialDashboardInstanceConsumersDevicesEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
@@ -1064,6 +1068,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     devices: new MetorialDashboardInstanceConsumersDevicesEndpoint(manager)
   }),
   consumerSurfaces: new MetorialDashboardInstanceConsumerSurfacesEndpoint(manager),
+  consumerDeviceSettings: new MetorialDashboardInstanceConsumerDeviceSettingsEndpoint(manager),
+
+  aiTools: Object.assign(new MetorialDashboardInstanceAiToolsEndpoint(manager), {
+    policy: new MetorialDashboardInstanceAiToolsPolicyEndpoint(manager)
+  }),
+  aiToolDetections: new MetorialDashboardInstanceAiToolDetectionsEndpoint(manager),
 
   agentTracking: {
     ingestSources: new MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint(manager),

@@ -1,3 +1,4 @@
+export * from './agentTrackingAgentActivity';
 export * from './agentTrackingFilterValue';
 export * from './agentTrackingMember';
 export * from './agentTrackingSession';

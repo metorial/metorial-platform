@@ -2723,15 +2723,19 @@ export let consumerDeviceSettingsType = PresentableType.create<{
 
 export let aiToolType = PresentableType.create<{
   aiTool: AiToolSummary;
+  lastUsedAt: Date | null;
 }>()('ai_tool');
 
 export let aiToolDetectionType = PresentableType.create<{
   detection: ConsumerDeviceDetection & {
-    consumerDevice: Pick<ConsumerDevice, 'id' | 'detectionReportedAt'> & {
-      consumerProfile: Pick<ConsumerProfile, 'id'> & { consumer: Pick<Consumer, 'id'> };
+    consumerDevice: Pick<ConsumerDevice, 'id' | 'name' | 'os' | 'detectionReportedAt'> & {
+      consumerProfile: Pick<ConsumerProfile, 'id'> & {
+        consumer: Pick<Consumer, 'id' | 'name' | 'email'>;
+      };
     };
   };
   policy: Pick<AiToolPolicy, 'status'> | null;
+  lastUsedAt: Date | null;
 }>()('ai_tool.detection');
 
 export let consumerDeviceTelemetryTokenType = PresentableType.create<{

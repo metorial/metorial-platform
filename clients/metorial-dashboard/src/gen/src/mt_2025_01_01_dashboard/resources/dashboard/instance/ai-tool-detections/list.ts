@@ -21,6 +21,8 @@ export type DashboardInstanceAiToolDetectionsListOutput = {
     consumerProfileId: string;
     consumerId: string;
     goneAt: Date | null;
+    activelyUsed: boolean;
+    lastUsedAt: Date | null;
   }[];
   pagination: {
     hasMoreBefore: boolean;
@@ -46,7 +48,9 @@ export let mapDashboardInstanceAiToolDetectionsListOutput =
           'consumer_device_id',
           'consumer_profile_id',
           'consumer_id',
-          'gone_at'
+          'gone_at',
+          'actively_used',
+          'last_used_at'
         ]
       ]
     ],
