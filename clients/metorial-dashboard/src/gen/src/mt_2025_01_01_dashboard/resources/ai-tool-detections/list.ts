@@ -18,8 +18,12 @@ export type AiToolDetectionsListOutput = {
     lastSeenAt: Date;
     policyStatus: 'sanctioned' | 'not_sanctioned' | 'unreviewed';
     consumerDeviceId: string;
+    consumerDeviceName: string;
+    consumerDeviceOs: string;
     consumerProfileId: string;
     consumerId: string;
+    consumerName: string;
+    consumerEmail: string;
     goneAt: Date | null;
     activelyUsed: boolean;
     lastUsedAt: Date | null;
@@ -46,8 +50,12 @@ export let mapAiToolDetectionsListOutput =
           'last_seen_at',
           'policy_status',
           'consumer_device_id',
+          'consumer_device_name',
+          'consumer_device_os',
           'consumer_profile_id',
           'consumer_id',
+          'consumer_name',
+          'consumer_email',
           'gone_at',
           'actively_used',
           'last_used_at'

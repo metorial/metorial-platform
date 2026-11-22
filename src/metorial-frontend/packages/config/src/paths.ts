@@ -1846,6 +1846,14 @@ let OrganizationPaths = Object.assign(
             ...subPages
           ),
 
+        devices: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'devices', ...subPages),
+
         providerDeployments: (
           organization: EntityParam,
           project: EntityParam,
