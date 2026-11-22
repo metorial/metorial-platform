@@ -16,7 +16,8 @@
     "react-use": "^17.6.1",
     "copy-to-clipboard": "^4.0.2",
     "styled-components": "^6.6.0",
-    "@remixicon/react": "^4.9.0"
+    "@remixicon/react": "^4.9.0",
+    "@metorial/frontend-config": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

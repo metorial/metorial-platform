@@ -1,11 +1,11 @@
-import { GetMetorialSDKConfig, MetorialSDKBuilder } from '@metorial/util-endpoint';
+import {
+  GetMetorialSDKConfig,
+  MetorialSDKBuilder,
+  resolveApiHost
+} from '@metorial/util-endpoint';
 
 export type MetorialKeyPrefix =
-  | 'metorial_uk_'
-  | 'metorial_mk_'
-  | 'metorial_sk_'
-  | 'metorial_ak_'
-  | 'metorial_pk_';
+  'metorial_uk_' | 'metorial_mk_' | 'metorial_sk_' | 'metorial_ak_' | 'metorial_pk_';
 
 export let sdkBuilder = MetorialSDKBuilder.create<
   '2025-01-01-dashboard',
@@ -16,7 +16,7 @@ export let sdkBuilder = MetorialSDKBuilder.create<
     apiHost?: string;
   }
 >('metorial-management-api', '2025-01-01-dashboard')
-  .setGetApiHost(config => config.apiHost ?? 'https://api.metorial.com')
+  .setGetApiHost(resolveApiHost)
   .setGetHeaders(config => ({
     'Metorial-Version': config.apiVersion,
     ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),

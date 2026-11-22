@@ -32,11 +32,15 @@ let optionsPresenter = Presenter.create(optionsType)
               'bitbucket',
               'bitbucket_data_center'
             ],
-            { description: 'SCM provider type accepted by this installation' }
+            { description: 'Provider type this option sets up.' }
           ),
-          label: v.string({ description: 'Provider display name' }),
+          label: v.string({ description: 'Display name.' }),
           allowed_domains: v.nullable(
-            v.array(v.string({ description: 'An allowed provider hostname' }))
+            v.array(v.string({ description: 'Hostname accepted for this provider.' })),
+            {
+              description:
+                'Hostnames accepted for this provider. `null` when any domain is allowed.'
+            }
           )
         })
       )
@@ -52,7 +56,8 @@ let presenter = declarePresenter(optionsType, {
 export let scmProviderOptionsController = Controller.create(
   {
     name: 'SCM Provider Options',
-    description: 'Available source control provider setup options'
+    description:
+      'SCM provider options are the provider types an instance can set up, with any domain restrictions.'
   },
   {
     list: instanceGroup

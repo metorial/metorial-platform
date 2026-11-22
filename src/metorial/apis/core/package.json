@@ -7,7 +7,7 @@
   "scripts": {
     "introspect": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect.ts",
     "introspect:configs": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect-configs.ts",
-    "test:e2e": "metorial-e2e"
+    "test:e2e": "metorial-e2e --no-isolate"
   },
   "dependencies": {
     "@lowerdeck/delay": "workspace:2.0.0",
@@ -23,7 +23,9 @@
     "@metorial/presenter": "^1.0.0",
     "@metorial/presenters": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
-    "@metorial/module-agent-telemetry": "^1.0.0",
+    "@metorial/module-agent-tracking-access": "^1.0.0",
+    "@metorial/module-agent-tracking-query": "^1.0.0",
+    "@metorial/module-agent-tracking-sync": "workspace:*",
     "@metorial/module-audit-log": "workspace:*",
     "@metorial/module-community": "^1.0.0",
     "@metorial/module-audit-log-stream": "workspace:*",
@@ -83,10 +85,12 @@
     "@metorial/editions": "workspace:*"
   },
   "devDependencies": {
+    "@metorial/agent-tracking-e2e": "1.0.0",
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.9.3",
     "vitest": "^5.0.4",
-    "@metorial/e2e": "1.0.0"
+    "@metorial/e2e": "1.0.0",
+    "@mtsrc/agent-tracking-client-internal": "workspace:*"
   },
   "metorial": {
     "editionDependencies": {

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/pkg/commitbatch"
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/export"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitremote"
@@ -18,7 +19,7 @@ import (
 
 const manifestAPITimeout = 10 * time.Minute
 
-var manifestAPIClient = &http.Client{Timeout: manifestAPITimeout}
+var manifestAPIClient = egress.NewClient(manifestAPITimeout)
 
 // ManifestExportOptions drives a manifest export. UploadOptions.DeletePaths is ignored:
 // deletes come from the manifest scope and the previous manifest.

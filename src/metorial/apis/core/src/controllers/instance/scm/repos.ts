@@ -30,7 +30,7 @@ let scmRepoGroup = instanceGroup.use(async ctx => {
 export let scmReposController = Controller.create(
   {
     name: 'SCM Repos',
-    description: 'Manage source control repositories.'
+    description: 'An SCM repo is a source control repository linked to an instance.'
   },
   {
     list: instanceGroup
@@ -45,10 +45,10 @@ export let scmReposController = Controller.create(
         Paginator.validate(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by repository ID(s)'
+              description: 'Only return repos with one of these IDs.'
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by SCM provider ID(s)'
+              description: 'Only return repos on one of these SCM providers.'
             }),
             created_at: dateFilterValidator('SCM repository creation time'),
             updated_at: dateFilterValidator('SCM repository last update time')
@@ -76,7 +76,7 @@ export let scmReposController = Controller.create(
     get: scmRepoGroup
       .get(instancePath('scm/repos/:scmRepositoryId', 'scm.repos.get'), {
         name: 'Get SCM repo',
-        description: 'Retrieves a specific SCM repository by ID.'
+        description: 'Retrieves an SCM repo.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.repo:read'] }))
       .output(scmRepoPresenter)
@@ -95,14 +95,18 @@ export let scmReposController = Controller.create(
       .body(
         'default',
         v.object({
-          installation_id: v.string({ description: 'SCM installation ID' }),
+          installation_id: v.string({
+            description: 'Installation to preview repositories for, by ID.'
+          }),
           external_account_id: v.optional(
-            v.string({ description: 'Filter by external account ID' })
+            v.string({ description: 'Only preview repositories owned by this account.' })
           ),
-          cursor: v.optional(v.string({ description: 'Cursor from a previous repository preview page' })),
+          cursor: v.optional(
+            v.string({ description: 'Cursor from a previous repository preview page.' })
+          ),
           limit: v.optional(
             v.number({
-              description: 'Maximum number of repositories to return (defaults to 50)',
+              description: 'Maximum number of repositories to return. Defaults to 50.',
               modifiers: [v.minValue(1), v.maxValue(100)]
             })
           )
@@ -128,29 +132,35 @@ export let scmReposController = Controller.create(
     create: instanceGroup
       .post(instancePath('scm/repos', 'scm.repos.create'), {
         name: 'Create SCM repo',
-        description: 'Links or creates a repository in an SCM installation.'
+        description:
+          'Links an existing repository or creates a new one in an SCM installation.'
       })
       .use(checkAccess({ possibleScopes: ['instance.scm.repo:write'] }))
       .body(
         'default',
         v.intersection([
           v.object({
-            installation_id: v.string({ description: 'SCM installation ID' })
+            installation_id: v.string({
+              description: 'Installation to link or create the repository in, by ID.'
+            })
           }),
           v.union([
             v.object({
               external_repo_id: v.string({
-                description: 'External repo ID to link an existing repo'
+                description: 'Existing repository to link, by external ID.'
               })
             }),
 
             v.object({
               external_account_id: v.string({
-                description: 'External account ID for creating a new repo'
+                description: 'Account to create the repository under, by external ID.'
               }),
-              name: v.string({ description: 'Name for a new repository' }),
+              name: v.string({ description: 'Name for the new repository.' }),
               is_private: v.optional(
-                v.boolean({ description: 'Whether the new repo is private' })
+                v.boolean({
+                  description:
+                    'Whether the new repository is private. The repository is public when omitted.'
+                })
               )
             })
           ])

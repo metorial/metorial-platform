@@ -44,7 +44,7 @@ export let magicMcpTokenController = Controller.create(
   {
     name: 'Magic MCP Tokens',
     description:
-      'Magic MCP tokens authorize access to Magic MCP servers via the /magic connection API.',
+      'A magic MCP token is a credential that authorizes access to magic MCP servers and endpoints.',
     hideInDocs: true
   },
   {
@@ -72,11 +72,21 @@ export let magicMcpTokenController = Controller.create(
               v.union([
                 v.enumOf(magicMcpTokenStatusValues),
                 v.array(v.enumOf(magicMcpTokenStatusValues))
-              ])
+              ]),
+              { description: 'Only return tokens with one of these statuses.' }
             ),
-            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_server_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            magic_mcp_endpoint_id: v.optional(v.union([v.string(), v.array(v.string())]))
+            magic_mcp_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return tokens scoped to one of these groups.' }
+            ),
+            magic_mcp_server_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return tokens bound to one of these servers.' }
+            ),
+            magic_mcp_endpoint_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return tokens bound to one of these endpoints.' }
+            )
           })
         )
       )
@@ -122,7 +132,7 @@ export let magicMcpTokenController = Controller.create(
     create: integrationsGroup
       .post(instancePath('magic-mcp-tokens', 'magicMcpTokens.create'), {
         name: 'Create magic MCP token',
-        description: 'Creates a new magic MCP token.',
+        description: 'Creates a magic MCP token.',
         confidential: true
       })
       .use(
@@ -136,12 +146,23 @@ export let magicMcpTokenController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          magic_mcp_group_ids: v.optional(v.array(v.string())),
-          magic_mcp_server_id: v.optional(v.string()),
-          magic_mcp_endpoint_id: v.optional(v.string())
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the token. Replaces existing metadata.'
+            })
+          ),
+          magic_mcp_group_ids: v.optional(
+            v.array(v.string(), { description: 'Groups to scope the token to.' })
+          ),
+          magic_mcp_server_id: v.optional(
+            v.string({ description: 'Server to bind the token to.' })
+          ),
+          magic_mcp_endpoint_id: v.optional(
+            v.string({ description: 'Endpoint to bind the token to.' })
+          )
         })
       )
       .output(magicMcpTokenPresenter)
@@ -246,7 +267,7 @@ export let magicMcpTokenController = Controller.create(
     update: magicMcpTokenGroup
       .patch(instancePath('magic-mcp-tokens/:magicMcpTokenId', 'magicMcpTokens.update'), {
         name: 'Update magic MCP token',
-        description: 'Updates a magic MCP token.'
+        description: 'Updates a magic MCP token. Omitted fields keep their current value.'
       })
       .use(
         checkAccess({
@@ -259,9 +280,14 @@ export let magicMcpTokenController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the token. Replaces existing metadata.'
+            })
+          )
         })
       )
       .output(magicMcpTokenPresenter)
@@ -301,7 +327,9 @@ export let magicMcpTokenController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_group_ids: v.array(v.string())
+          magic_mcp_group_ids: v.array(v.string(), {
+            description: 'Groups to scope the token to.'
+          })
         })
       )
       .output(magicMcpTokenPresenter)
@@ -336,7 +364,9 @@ export let magicMcpTokenController = Controller.create(
       .body(
         'default',
         v.object({
-          magic_mcp_group_ids: v.array(v.string())
+          magic_mcp_group_ids: v.array(v.string(), {
+            description: 'Groups to remove from the token.'
+          })
         })
       )
       .output(magicMcpTokenPresenter)

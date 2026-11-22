@@ -7,7 +7,7 @@ export let chatIdentitySchema = v.nullable(
     {
       id: v.string({
         name: 'id',
-        description: 'Unique chat author identifier',
+        description: 'Unique ID.',
         examples: ['cau_7dEfGhJkLmNpQrSt']
       }),
       user_id: v.string({
@@ -49,7 +49,7 @@ export let chatIdentitySchema = v.nullable(
     {
       name: 'identity',
       description:
-        'The identity this connection is authorized as on the chat provider (e.g. the connected bot or user). Null until this account has been observed on the provider (e.g. through a synced message or channel membership).'
+        'Account this instance is authorized as on the chat provider. `null` until observed.'
     }
   )
 );

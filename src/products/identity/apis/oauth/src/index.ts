@@ -273,7 +273,9 @@ export let oauthApi = createOAuthAppSkeleton({
         });
       }
 
-      return c.json(oauthOidcService.buildUserInfoClaims(auth.oauthToken.oauthAuthorization));
+      return c.json(
+        await oauthOidcService.buildUserInfoClaims(auth.oauthToken.oauthAuthorization)
+      );
     }
   },
 

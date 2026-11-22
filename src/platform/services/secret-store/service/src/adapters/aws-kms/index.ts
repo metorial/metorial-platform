@@ -131,6 +131,56 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
     }
   }
 
+  override async verifySystemKeyAccess(keyInfo: any) {
+    let keyId = keyInfo?.keyArn ?? keyInfo?.keyId;
+    if (!keyId) {
+      throw new KeyProviderAdapterError(
+        'kms_default_key_missing',
+        'Default KMS key is missing'
+      );
+    }
+
+    let client = getKmsClient(keyInfo?.region ?? env.kms.KMS_AWS_REGION);
+    let encryptionContext = { purpose: 'metorial-key-provider-validation' };
+
+    try {
+      let generated = await client.send(
+        new GenerateDataKeyCommand({
+          KeyId: keyId,
+          KeySpec: 'AES_256',
+          EncryptionContext: encryptionContext
+        })
+      );
+
+      if (!generated.Plaintext || !generated.CiphertextBlob) {
+        throw new KeyProviderAdapterError(
+          'kms_data_key_missing',
+          'KMS did not return a data key'
+        );
+      }
+
+      let decrypted = await client.send(
+        new DecryptCommand({
+          KeyId: keyId,
+          CiphertextBlob: generated.CiphertextBlob,
+          EncryptionContext: encryptionContext
+        })
+      );
+
+      if (
+        !decrypted.Plaintext ||
+        !Buffer.from(decrypted.Plaintext).equals(Buffer.from(generated.Plaintext))
+      ) {
+        throw new KeyProviderAdapterError(
+          'kms_validation_failed',
+          'AWS KMS key did not return the expected plaintext'
+        );
+      }
+    } catch (err) {
+      throw normalizeAdapterError(err);
+    }
+  }
+
   async createSystemKeyProvider() {
     let region = env.kms.KMS_AWS_REGION;
     if (!region)

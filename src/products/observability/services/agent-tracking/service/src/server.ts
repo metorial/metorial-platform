@@ -9,8 +9,26 @@ async function main() {
   await import('./instrument');
   await import('./listeners');
   await import('./stages');
-  await import('./endpoints');
-  await import('./worker');
+
+  let { env } = await import('./env');
+  let roles = new Set(env.process.roles);
+  if (!roles.size) throw new Error('AGENT_TRACKING_ROLES names no role to run');
+
+  console.log(`Agent tracking roles: ${[...roles].join(', ')}`);
+
+  let { getSentry } = await import('@lowerdeck/sentry');
+  getSentry().setTag('roles', [...roles].join(','));
+
+  let { setStoreIndexMode } = await import('@mtsrc/agent-tracking-store');
+  setStoreIndexMode(roles.has('worker') ? 'background' : 'skip');
+
+  if (roles.has('api')) await import('./api');
+  if (roles.has('ingest')) await import('./ingest');
+
+  let { startHealthServer } = await import('./health');
+  startHealthServer(roles);
+
+  if (roles.has('worker')) await import('./worker');
 }
 
 main().catch(err => {

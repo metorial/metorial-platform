@@ -22,11 +22,20 @@ let delegatorRowCacheByOid = new Map<string, FileContentDelegator>();
 export let registerFileContentDelegate = async (delegate: FileContentDelegate) => {
   registry.set(delegate.key, delegate);
 
-  let row = await db.fileContentDelegator.upsert({
-    where: { key: delegate.key },
-    create: { id: await ID.generateId('fileContentDelegator'), key: delegate.key },
-    update: {}
-  });
+  let row: FileContentDelegator;
+  try {
+    row = await db.fileContentDelegator.upsert({
+      where: { key: delegate.key },
+      create: { id: await ID.generateId('fileContentDelegator'), key: delegate.key },
+      update: {}
+    });
+  } catch (error) {
+    if ((error as { code?: string })?.code != 'P2002') throw error;
+
+    // Several services start at once and all register the same key; the loser of the insert race
+    // just reads the row the winner created.
+    row = await db.fileContentDelegator.findUniqueOrThrow({ where: { key: delegate.key } });
+  }
   delegatorRowCacheByOid.set(row.oid.toString(), row);
 };
 

@@ -14,6 +14,8 @@ import {
 import { recordUsageEvents } from '@metorial/module-usage/e2e/_fixtures';
 import { describe, expect, it } from 'vitest';
 
+let aiConfigured = !!process.env.AI_GATEWAY_API_KEY?.trim();
+
 describe('api-core dashboard: instance resources, usage, key providers and oauth', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
@@ -272,24 +274,34 @@ describe('api-core dashboard: instance resources, usage, key providers and oauth
     );
   });
 
-  it('lists the assistants and conversations of an instance', async () => {
-    let assistants = expectOk(await org.clients.rest.get(instancePath('/assistants')));
-    expect(Array.isArray(assistants.items)).toBe(true);
-    for (let assistant of assistants.items) expectPresented(assistant);
+  it('refuses assistants and conversations while AI is not configured', async () => {
+    if (aiConfigured) return;
 
-    let conversations = expectOk(await org.clients.rest.get(instancePath('/conversations')));
-    expect(conversations.items).toEqual([]);
-
-    expectError(
-      await org.clients.rest.get(instancePath(`/assistants/${uniqueId('asst')}`)),
-      404,
-      'not_found'
-    );
-    expectError(await outsider().get(instancePath('/assistants')), 404, 'not_found');
-    expectError(
-      await org.clients.rest.post(instancePath('/conversations'), {}),
-      400,
-      'invalid_data'
-    );
+    expectError(await org.clients.rest.get(instancePath('/assistants')), 403, 'forbidden');
+    expectError(await org.clients.rest.get(instancePath('/conversations')), 403, 'forbidden');
   });
+
+  it.skipIf(!aiConfigured)(
+    'lists the assistants and conversations of an instance',
+    async () => {
+      let assistants = expectOk(await org.clients.rest.get(instancePath('/assistants')));
+      expect(Array.isArray(assistants.items)).toBe(true);
+      for (let assistant of assistants.items) expectPresented(assistant);
+
+      let conversations = expectOk(await org.clients.rest.get(instancePath('/conversations')));
+      expect(conversations.items).toEqual([]);
+
+      expectError(
+        await org.clients.rest.get(instancePath(`/assistants/${uniqueId('asst')}`)),
+        404,
+        'not_found'
+      );
+      expectError(await outsider().get(instancePath('/assistants')), 404, 'not_found');
+      expectError(
+        await org.clients.rest.post(instancePath('/conversations'), {}),
+        400,
+        'invalid_data'
+      );
+    }
+  );
 });

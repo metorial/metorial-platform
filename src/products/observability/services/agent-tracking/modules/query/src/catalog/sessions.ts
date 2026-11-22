@@ -232,7 +232,14 @@ export let sessionsDataset: DatasetDef = {
       { div: ['tokens.total', 'requests'] },
       'number',
       'Tokens per request.'
-    )
+    ),
+    last_activity: {
+      kind: 'aggregate',
+      fn: 'max',
+      field: 'lastActivityAt',
+      type: 'date',
+      description: 'When any session in the group was last active.'
+    }
   },
   indexes: [
     { name: 'organizationId_startedAt', keys: ['organizationId', 'startedAt'] },

@@ -15,7 +15,7 @@ export let v1CallbackTriggerSelectionOptionPresenter = Presenter.create(
   .schema(
     v.object({
       object: v.literal('callback.trigger_selection_option', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       value: v.union([v.string(), v.number()], {
@@ -26,7 +26,7 @@ export let v1CallbackTriggerSelectionOptionPresenter = Presenter.create(
 
       label: v.string({
         name: 'label',
-        description: 'Display name of the option',
+        description: 'Text shown for the option in the dashboard.',
         examples: ['Customer Orders']
       }),
 

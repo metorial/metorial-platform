@@ -127,11 +127,11 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
   .schema(
     v.object({
       object: v.literal('provider.listing', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique listing identifier',
+        description: 'Unique ID.',
         examples: ['plg_8kLmNpQrStUvWxYz']
       }),
       attributes: v.object(
@@ -145,7 +145,10 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
             name: 'is_metorial',
             description: 'Whether Metorial-maintained'
           }),
-          is_verified: v.boolean({ name: 'is_verified', description: 'Whether verified' }),
+          is_verified: v.boolean({
+            name: 'is_verified',
+            description: 'Reviewed and trusted by Metorial.'
+          }),
           is_official: v.boolean({
             name: 'is_official',
             description: 'Whether official integration'
@@ -153,17 +156,17 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
         },
         { name: 'attributes', description: 'Listing attribute flags' }
       ),
-      name: v.string({ name: 'name', description: 'Display name', examples: ['GitHub'] }),
+      name: v.string({ name: 'name', description: 'Display name.', examples: ['GitHub'] }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Full description',
+          description: 'Free-text description.',
           examples: ['Connect to GitHub repositories, issues, and pull requests']
         })
       ),
       slug: v.string({
         name: 'slug',
-        description: 'URL-friendly identifier',
+        description: 'URL-safe name for the provider.',
         examples: ['github']
       }),
       image_url: v.string({
@@ -194,16 +197,16 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
       }),
       groups: v.array(v1ProviderListingGroupPresenter.schema, {
         name: 'groups',
-        description: 'User groups with access to this provider'
+        description: 'Provider groups this listing is organized into.'
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

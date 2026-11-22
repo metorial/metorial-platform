@@ -72,7 +72,8 @@ export let documentCommentGroup = documentCommentThreadGroup.use(async ctx => {
 export let documentCommentThreadController = Controller.create(
   {
     name: 'Document Comment Threads',
-    description: 'Discuss selected text in a document through comment threads.'
+    description:
+      'A document comment thread is a discussion anchored to a text selection in a document.'
   },
   {
     list: documentGroup
@@ -80,7 +81,7 @@ export let documentCommentThreadController = Controller.create(
         instancePath('documents/:documentId/comment-threads', 'documents.commentThreads.list'),
         {
           name: 'List document comment threads',
-          description: 'Returns a paginated list of comment threads for a specific document.'
+          description: 'Returns a paginated list of comment threads in a document.'
         }
       )
       .use(readScopes)
@@ -89,15 +90,15 @@ export let documentCommentThreadController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by comment thread ID'),
+            id: stringArrayFilterSchema('Only return threads with one of these IDs.'),
             status: v.optional(v.union([threadStatusSchema, v.array(threadStatusSchema)]), {
-              description: 'Filter by thread status'
+              description: 'Only return threads with one of these statuses.'
             }),
             anchor_status: v.optional(
               v.union([anchorStatusSchema, v.array(anchorStatusSchema)]),
               { description: 'Filter by whether the commented text still exists' }
             ),
-            created_at: dateFilterValidator('Filter by creation time')
+            created_at: dateFilterValidator('thread creation time')
           })
         )
       )
@@ -123,8 +124,8 @@ export let documentCommentThreadController = Controller.create(
           'documents.commentThreads.get'
         ),
         {
-          name: 'Get document comment thread by ID',
-          description: 'Retrieves a specific comment thread with its comments.'
+          name: 'Get document comment thread',
+          description: 'Retrieves a document comment thread with its comments.'
         }
       )
       .use(readScopes)
@@ -206,7 +207,9 @@ export let documentCommentThreadController = Controller.create(
       .body(
         'default',
         v.object({
-          status: v.optional(threadStatusSchema)
+          status: v.optional(threadStatusSchema, {
+            description: 'New status for the thread.'
+          })
         })
       )
       .output(documentCommentThreadPresenter)
@@ -250,7 +253,7 @@ export let documentCommentThreadController = Controller.create(
 export let documentCommentController = Controller.create(
   {
     name: 'Document Comments',
-    description: 'Reply to, edit, and delete comments in a document comment thread.'
+    description: 'A document comment is a message in a document comment thread.'
   },
   {
     create: documentCommentThreadGroup
@@ -260,8 +263,8 @@ export let documentCommentController = Controller.create(
           'documents.commentThreads.comments.create'
         ),
         {
-          name: 'Reply to document comment thread',
-          description: 'Adds a comment to an existing comment thread.'
+          name: 'Create document comment',
+          description: 'Creates a comment in a document comment thread.'
         }
       )
       .use(readScopes)

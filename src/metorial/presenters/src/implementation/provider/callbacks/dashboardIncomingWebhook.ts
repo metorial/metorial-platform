@@ -29,7 +29,7 @@ export let dashboardIncomingWebhookPresenter = Presenter.create(incomingWebhookT
         v.object(
           {
             object: v.literal('incoming_webhook.details', {
-              description: "String representing the object's type"
+              description: 'String representing the object’s type.'
             }),
 
             method: v.string({

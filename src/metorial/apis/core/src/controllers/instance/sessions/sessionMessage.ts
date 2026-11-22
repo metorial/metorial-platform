@@ -48,13 +48,13 @@ export let sessionMessageController = Controller.create(
   {
     name: 'Session Messages',
     description:
-      'Session messages represent the MCP protocol messages exchanged during a session. This read-only resource provides visibility into the communication between clients and providers.'
+      'A session message is one MCP message exchanged between a client and a provider. Messages are recorded automatically as the session runs.'
   },
   {
     list: integrationsGroup
       .get(instancePath('session-messages', 'sessions.messages.list'), {
         name: 'List session messages',
-        description: 'Returns a paginated list of messages for a session.'
+        description: 'Returns a paginated list of session messages.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -157,7 +157,7 @@ export let sessionMessageController = Controller.create(
     get: sessionMessageGroup
       .get(instancePath('session-messages/:sessionMessageId', 'sessions.messages.get'), {
         name: 'Get session message',
-        description: 'Retrieves a specific message from a session.'
+        description: 'Retrieves a session message.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(

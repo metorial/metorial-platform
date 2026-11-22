@@ -366,7 +366,6 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
       }
 
       await agent?.close();
-      await publisher.close();
     }
   }
 );

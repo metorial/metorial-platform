@@ -28,6 +28,7 @@ export type ManagementInstanceNetworkPoliciesGetOutput = {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
+  warnings: string[];
 };
 
 export let mapManagementInstanceNetworkPoliciesGetOutput =

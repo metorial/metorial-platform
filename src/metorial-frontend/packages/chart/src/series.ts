@@ -143,7 +143,7 @@ export let fillTimeBuckets = (
       ...item,
       entries: Array.from({ length: count }, (_, i) => {
         let stamp = start + i * stepMs;
-        return { key: new Date(stamp), value: byStamp.get(stamp) ?? 0 };
+        return { key: new Date(stamp), value: byStamp.has(stamp) ? byStamp.get(stamp)! : 0 };
       })
     };
   });

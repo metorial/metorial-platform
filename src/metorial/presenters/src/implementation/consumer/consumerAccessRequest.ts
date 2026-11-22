@@ -35,30 +35,48 @@ export let v1ConsumerAccessRequestPresenter = Presenter.create(consumerAccessReq
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.access_request'),
-      id: v.string(),
-      status: v.enumOf(['pending', 'approved', 'rejected']),
-      message: v.nullable(v.string()),
-      resolution_message: v.nullable(v.string()),
-      consumer_profile: v.object({
-        object: v.literal('consumer.profile#preview'),
-        id: v.string(),
-        name: v.string(),
-        email: v.string()
+      object: v.literal('consumer.access_request', {
+        description: 'String representing the object’s type.'
       }),
-      target: v.union([
-        v.object({
-          type: v.literal('provider_template'),
-          provider_template: v1ProviderTemplatePreview.schema
-        }),
-        v.object({
-          type: v.literal('magic_mcp_server'),
-          magic_mcp_server: v1MagicMcpServerPreview.schema
-        })
-      ]),
-      created_at: v.date(),
-      updated_at: v.date(),
-      reviewed_at: v.nullable(v.date())
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['pending', 'approved', 'rejected'], {
+        description: 'Whether the request still waits for review.'
+      }),
+      message: v.nullable(
+        v.string({ description: 'Message the consumer sent with the request.' })
+      ),
+      resolution_message: v.nullable(
+        v.string({ description: 'Message shown to the consumer about the decision.' })
+      ),
+      consumer_profile: v.object(
+        {
+          object: v.literal('consumer.profile#preview', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ description: 'Unique ID.' }),
+          name: v.string({ description: 'Display name.' }),
+          email: v.string({ description: 'Email address of the consumer.' })
+        },
+        { description: 'Consumer who requested access.' }
+      ),
+      target: v.union(
+        [
+          v.object({
+            type: v.literal('provider_template'),
+            provider_template: v1ProviderTemplatePreview.schema
+          }),
+          v.object({
+            type: v.literal('magic_mcp_server'),
+            magic_mcp_server: v1MagicMcpServerPreview.schema
+          })
+        ],
+        { description: 'The integration the consumer requested access to.' }
+      ),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' }),
+      reviewed_at: v.nullable(
+        v.date({ description: 'When the request was reviewed. `null` while pending.' })
+      )
     })
   )
   .build();

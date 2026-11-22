@@ -5,6 +5,7 @@ import type { SlateInvocation } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { invocationsBucketRecord, storage } from '../../storage';
 import { deepClone } from '../deepClone';
+import { redactWebhookInvocationMessages } from './webhookContent';
 import type {
   SlateInvocationBaseParams,
   SlatesRequest,
@@ -61,7 +62,7 @@ export let storeSlateInvocation = (
 
       let idToMethodMap = new Map<string, SlatesRequest['method']>();
 
-      let sanitizedRequests = d.requestMessages.map(m => {
+      let methodRedactedRequests = d.requestMessages.map(m => {
         if ('id' in m && m.id) idToMethodMap.set(m.id, m.method);
 
         let fieldsToRedact = getFieldsToRedact(m.method);
@@ -82,7 +83,7 @@ export let storeSlateInvocation = (
 
       let hasResponseError = false;
 
-      let sanitizedResponses = d.responseMessages?.map(m => {
+      let methodRedactedResponses = d.responseMessages?.map(m => {
         if (typeof m !== 'object' || m == null) console.log('Non-object response message:', m);
 
         let method = 'id' in m && m.id ? idToMethodMap.get(m.id) : null;
@@ -112,10 +113,20 @@ export let storeSlateInvocation = (
         return Array.isArray(traces) ? traces : [];
       };
 
-      let requestTraces = (d.responseMessages ?? []).flatMap(m => {
+      let responseRequestTraces = (d.responseMessages ?? []).flatMap(m => {
         let result = 'result' in m ? m.result : undefined;
         let error = 'error' in m ? (m as { error?: unknown }).error : undefined;
         return [...extractRequestTraces(result), ...extractRequestTraces(error)];
+      });
+
+      let {
+        requests: sanitizedRequests,
+        responses: sanitizedResponses,
+        requestTraces
+      } = redactWebhookInvocationMessages({
+        requests: methodRedactedRequests,
+        responses: methodRedactedResponses ?? [],
+        requestTraces: responseRequestTraces
       });
 
       if (!d.invocationResult.id) {

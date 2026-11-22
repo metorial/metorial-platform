@@ -6,7 +6,7 @@ import { organizationActorService } from '@metorial/module-organization/src/serv
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 import { notifyExpiredApiKeyAdminsQueue } from '../queues/expired/notifyExpiredApiKeyAdmins';
 
-let expireCron = createCron(
+export let expireCron = createCron(
   {
     name: 'macc/apiKey/expire',
     cron: '* * * * *'

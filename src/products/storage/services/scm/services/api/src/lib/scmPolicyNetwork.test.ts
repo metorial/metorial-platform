@@ -86,7 +86,7 @@ it('uses only configured app credentials and endpoints for an allowed backend', 
       auth: { appId: 'configured-app-id', privateKey: 'configured-private-key' }
     })
   );
-  expect(github.getGitHubTransferEndpoints(backend, 'owner', 'repo')).toEqual({
+  await expect(github.getGitHubTransferEndpoints(backend, 'owner', 'repo')).resolves.toEqual({
     githubApiUrl: backend.apiUrl,
     githubLfsEndpoint: 'https://git.example.com/owner/repo.git/info/lfs'
   });

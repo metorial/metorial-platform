@@ -23,6 +23,7 @@ import { ID, snowflake } from '../../id';
 import { getMetorialApiUrl } from '../../metorialApiUrl';
 import { invocationsBucketRecord } from '../../storage';
 import { retryOnOidCollision } from '../retryOnOidCollision';
+import { SLATES_PROTOCOL } from '../protocol';
 import { mintLiveInvocationToken } from './liveToken';
 import { isJsonRpcServerError, reportSlateInvocationServerError } from './report';
 import { storeSlateInvocation } from './store';
@@ -102,7 +103,7 @@ export class SlateInvocationStack {
         : null;
 
     let messages: SlatesRequest[] = [
-      { jsonrpc: '2.0', method: 'slates/hello', params: { protocol: 'slates@2026-01-01' } },
+      { jsonrpc: '2.0', method: 'slates/hello', params: { protocol: SLATES_PROTOCOL } },
       {
         jsonrpc: '2.0',
         method: 'slates/participant.set',

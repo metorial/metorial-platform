@@ -1,6 +1,7 @@
 import { getAuditEventsByIds } from '@metorial/audit-models';
 import {
   eventually,
+  eventuallyAudited,
   expectOk,
   expectServiceError,
   uniqueId,
@@ -65,24 +66,21 @@ describe('module-audit-log trail', () => {
     );
     expect(revealed.secret).toBe(memberKey.secret);
 
-    let trail = await eventually(
-      async () => {
-        let items = await listAllAuditLogs(org.ids.organizationId);
-        let recorded = items
-          .filter(item => item.resource == 'api_key')
-          .map(item => `${payloadId(item)}.${item.action}`);
-        expect(recorded).toEqual(
-          expect.arrayContaining([
-            `${memberKey.id}.create`,
-            `${memberKey.id}.update`,
-            `${memberKey.id}.reveal`,
-            `${managementKey.id}.create`
-          ])
-        );
-        return items;
-      },
-      { timeoutMs: 150_000, intervalMs: 2_000 }
-    );
+    let trail = await eventuallyAudited(async () => {
+      let items = await listAllAuditLogs(org.ids.organizationId);
+      let recorded = items
+        .filter(item => item.resource == 'api_key')
+        .map(item => `${payloadId(item)}.${item.action}`);
+      expect(recorded).toEqual(
+        expect.arrayContaining([
+          `${memberKey.id}.create`,
+          `${memberKey.id}.update`,
+          `${memberKey.id}.reveal`,
+          `${managementKey.id}.create`
+        ])
+      );
+      return items;
+    });
 
     state = { memberKey, managementKey, originalName, renamedName, trail };
   }, 180_000);

@@ -1,10 +1,10 @@
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import type {
   DashboardInstanceSkillsMarketplacesListOutput,
   DashboardInstanceSkillsMarketplacesListQuery
 } from '@metorial/dashboard-sdk';
 import { col, createDataList, f, lifecycleStatus, withDefaults } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
-import { Paths } from '@metorial/frontend-config';
 import { useSkillMarketplaces } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
@@ -117,7 +117,7 @@ export let SkillMarketplacesList = createDataList<{
         entity={{
           name: marketplace.name,
           photoUrl: marketplace.imageUrl ?? undefined,
-          imageUrl: `https://avatar-cdn.metorial.com/${marketplace.id}`
+          imageUrl: getAvatarUrl(marketplace.id)
         }}
         size={30}
         imageFit="contain"

@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
 import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../../lib/githubApp';
+import { normalizePath } from '../../lib/normalizePath';
 import { codeBucketService } from '../../services/codeBucket';
 
 export let exportGithubQueue = createQueue<{
@@ -38,14 +39,14 @@ export let exportGithubQueueProcessor = exportGithubQueue.process(async data => 
 
   await codeBucketClient.exportBucketToGithub({
     bucketId: data.bucketId,
-    ...getGitHubTransferEndpoints(
+    ...(await getGitHubTransferEndpoints(
       repo.installation.backend,
       repo.externalOwner,
       repo.externalName
-    ),
+    )),
     owner: repo.externalOwner,
     repo: repo.externalName,
-    path: data.path,
+    path: normalizePath(data.path),
     token,
     branch: data.branchName ?? repo.defaultBranch ?? 'main',
     commitMessage: data.commitMessage ?? `Export code bucket ${data.bucketId}`,

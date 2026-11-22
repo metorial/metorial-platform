@@ -39,6 +39,7 @@ export type CollectedEvidence = {
   skill?: { fileCount: number; analyzedFileCount: number; kinds: Record<string, number> };
   codeReadable?: boolean;
   contentComplete?: boolean;
+  transportEncrypted?: boolean | null;
   census?: SecuritySpecCensus;
   specificationOid?: bigint;
   limitations: string[];

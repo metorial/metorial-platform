@@ -1,3 +1,4 @@
+import { generateText } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { createReviewModels, selectReviewModelProvider } from '../src';
 
@@ -42,15 +43,18 @@ describe('review model providers', () => {
       return new Response('{}', { status: 500 });
     }) as typeof fetch;
 
+    let call = { model: models.balanced.model, prompt: 'hi', maxRetries: 0 };
     try {
-      await (models.balanced.model as any)
-        .doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] })
-        .catch(() => {});
+      await generateText(call).catch(() => {});
+      await generateText({ ...call, reasoning: 'low' }).catch(() => {});
     } finally {
       globalThis.fetch = originalFetch;
     }
 
+    expect(models.balanced.reasoningEffort).toBe('medium');
+    expect(models.balanced.fallback?.reasoningEffort).toBe('medium');
     expect(seen[0]).toMatchObject({ reasoning_effort: 'medium' });
+    expect(seen[1]).toMatchObject({ reasoning_effort: 'low' });
   });
 
   it('creates gateway models when only Vercel is configured', () => {
@@ -59,5 +63,6 @@ describe('review model providers', () => {
     expect(models.provider).toBe('vercel');
     expect(models.fast.model).toMatchObject({ modelId: 'anthropic/claude-haiku-5.5' });
     expect(models.balanced.model).toMatchObject({ modelId: 'anthropic/claude-sonnet-5.5' });
+    expect(models.fast.reasoningEffort).toBeUndefined();
   });
 });

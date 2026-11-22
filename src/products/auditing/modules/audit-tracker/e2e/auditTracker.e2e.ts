@@ -5,13 +5,11 @@ import { auditResources } from '@metorial/audit-schema';
 import { createAuditScope, createSystemAuditScope } from '@metorial/audit-scope';
 import { buildStashedAuditEvent } from '@metorial/audit-stash';
 import { getConfig } from '@metorial/config';
-import { eventually, uniqueId, useOrganization } from '@metorial/e2e';
+import { eventually, eventuallyAudited, uniqueId, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { Queue } from 'bullmq';
 import { describe, expect, it } from 'vitest';
 import { auditTrackerService, processAuditEventQueue } from '../src';
-
-let INGEST_TIMEOUT_MS = 150_000;
 
 let scopeWith = (fixture: OrganizationFixture, ua: string) => ({
   ...fixture.auditScope,
@@ -19,14 +17,11 @@ let scopeWith = (fixture: OrganizationFixture, ua: string) => ({
 });
 
 let waitForRows = async (ua: string, count: number) =>
-  await eventually(
-    async () => {
-      let rows = await db.auditLog.findMany({ where: { ua }, orderBy: { oid: 'asc' } });
-      expect(rows).toHaveLength(count);
-      return rows;
-    },
-    { timeoutMs: INGEST_TIMEOUT_MS, intervalMs: 2_000 }
-  );
+  await eventuallyAudited(async () => {
+    let rows = await db.auditLog.findMany({ where: { ua }, orderBy: { oid: 'asc' } });
+    expect(rows).toHaveLength(count);
+    return rows;
+  });
 
 let waitForQueueJob = async (queueName: string, jobId: string) => {
   let queue = new Queue(queueName, { connection: parseRedisUrl(getConfig().redisUrl) });

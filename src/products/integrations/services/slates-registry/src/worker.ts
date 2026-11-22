@@ -1,11 +1,17 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { bootstrapRegistry } from './bootstrap';
+import {
+  backfillArtifactSizeSingleProcessor,
+  backfillArtifactSizesCron,
+  backfillArtifactSizesManyProcessor
+} from './queues/artifactSizes';
 import { cleanupProcessor } from './queues/cleanup';
 import { expireTokensProcessor } from './queues/expiresTokens';
 import {
   mirrorImportUpstreamVersionProcessor,
   mirrorSyncAllProcessor,
   mirrorSyncCron,
+  mirrorSyncToolingProcessor,
   mirrorSyncUpstreamProcessor
 } from './queues/mirror/sync';
 import { cleanupSlatePackBatchesCron, processSlatePackProcessor } from './queues/mirror/packs';
@@ -20,10 +26,14 @@ await runQueueProcessors([
   backfillSignaturesProcessor,
   backfillChecksumsCron,
   backfillChecksumsProcessor,
+  backfillArtifactSizesCron,
+  backfillArtifactSizesManyProcessor,
+  backfillArtifactSizeSingleProcessor,
   mirrorSyncCron,
   mirrorSyncAllProcessor,
   mirrorSyncUpstreamProcessor,
   mirrorImportUpstreamVersionProcessor,
+  mirrorSyncToolingProcessor,
   processSlatePackProcessor,
   cleanupSlatePackBatchesCron,
   slatePackChannelCron,

@@ -20,7 +20,9 @@ import { getSkillPluginAccess } from './skillPlugin';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 
-let targetValidator = v.enumOf(['skill', 'plugin', 'marketplace']);
+let targetValidator = v.enumOf(['skill', 'plugin', 'marketplace'], {
+  description: 'What to export: a skill, plugin, or marketplace.'
+});
 let statusValidator = v.enumOf(['pending', 'completed', 'failed']);
 
 export let skillExportGroup = instanceGroup
@@ -120,7 +122,7 @@ let assertConsumerCanCreateExport = async (
 export let skillExportController = Controller.create(
   {
     name: 'Skill Exports',
-    description: 'Export skills, skill plugins, and skill marketplaces as zip files.'
+    description: 'A skill export is a zip file containing a skill, plugin, or marketplace.'
   },
   {
     list: instanceGroup
@@ -136,9 +138,21 @@ export let skillExportController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            target: v.optional(v.union([targetValidator, v.array(targetValidator)])),
-            status: v.optional(v.union([statusValidator, v.array(statusValidator)]))
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill exports with these IDs.'
+              })
+            ),
+            target: v.optional(
+              v.union([targetValidator, v.array(targetValidator)], {
+                description: 'Only return skill exports of one of these types.'
+              })
+            ),
+            status: v.optional(
+              v.union([statusValidator, v.array(statusValidator)], {
+                description: 'Only return skill exports with one of these statuses.'
+              })
+            )
           })
         )
       )
@@ -181,9 +195,23 @@ export let skillExportController = Controller.create(
         'default',
         v.object({
           target: targetValidator,
-          skill_id: v.optional(v.string()),
-          skill_plugin_id: v.optional(v.string()),
-          skill_marketplace_id: v.optional(v.string())
+          skill_id: v.optional(
+            v.string({
+              description: 'Skill to export, by ID. Required when `target` is `skill`.'
+            })
+          ),
+          skill_plugin_id: v.optional(
+            v.string({
+              description:
+                'Skill plugin to export, by ID. Required when `target` is `plugin`.'
+            })
+          ),
+          skill_marketplace_id: v.optional(
+            v.string({
+              description:
+                'Skill marketplace to export, by ID. Required when `target` is `marketplace`.'
+            })
+          )
         })
       )
       .output(skillExportPresenter)

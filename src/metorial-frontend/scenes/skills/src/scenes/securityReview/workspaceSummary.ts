@@ -1,7 +1,13 @@
 import type { SkillWorkspaceSecurity } from '@metorial/scene-skills';
 import type { SkillSecurityReview } from '@metorial/state';
 import { getDisplayedRevision } from './body';
-import { bandColors, bandLabels, isRevisionRunning, type SecurityReviewFinding } from './lib';
+import {
+  bandColors,
+  bandLabels,
+  isDeterministicRevision,
+  isRevisionRunning,
+  type SecurityReviewFinding
+} from './lib';
 import { getSkillVerdictLabel } from './skillVerdictBadge';
 
 let severityRank: Record<SecurityReviewFinding['severity'], number> = {
@@ -19,6 +25,7 @@ export let getSkillWorkspaceSecurity = (
 
   let revision = getDisplayedRevision(review);
   let scores = revision?.scores ?? null;
+  let isBasic = !!revision && isDeterministicRevision(revision);
 
   let issues = (revision?.findings ?? [])
     .filter(
@@ -37,8 +44,8 @@ export let getSkillWorkspaceSecurity = (
   return {
     status: isRevisionRunning(revision) || review.verdict == 'pending' ? 'pending' : 'ready',
     score: scores?.securityScore ?? null,
-    color: scores ? bandColors[scores.band] : 'gray',
-    scoreLabel: scores ? bandLabels[scores.band] : null,
+    color: scores && !isBasic ? bandColors[scores.band] : 'gray',
+    scoreLabel: scores ? (isBasic ? 'Basic Checks Only' : bandLabels[scores.band]) : null,
     verdictLabel: isRevisionRunning(revision)
       ? 'Review In Progress'
       : getSkillVerdictLabel(review),

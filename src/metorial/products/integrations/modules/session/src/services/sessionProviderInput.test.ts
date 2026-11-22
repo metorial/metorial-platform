@@ -76,10 +76,15 @@ vi.mock('./sessionTemplateProvider', () => ({
   sessionTemplateProviderInclude: {}
 }));
 
+import {
+  assertCanUseOwnedResources,
+  internalOwnershipAccessor
+} from '@metorial-subspace/module-tenant';
 import { sessionProviderInputService } from './sessionProviderInput';
 
 let linkedTenant = { oid: 10n, projectOid: 20n };
 let linkedEnvironment = { oid: 30n, instanceOid: 40n };
+let memberAccessor = { kind: 'member', isEnforced: true } as any;
 
 describe('sessionProviderInputService double writes', () => {
   beforeEach(() => {
@@ -179,6 +184,58 @@ describe('sessionProviderInputService double writes', () => {
     expect(mocks.sessionProviderCreatedAddMany).toHaveBeenCalledWith([
       { sessionProviderId: 'sessionProvider_1' }
     ]);
+  });
+
+  it("checks providers added to an existing session against the caller's accessor", async () => {
+    await sessionProviderInputService.createSessionProvidersForInput({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      session: { oid: 60n, isEphemeral: false } as any,
+      providers: [{ configId: 'pc_1' }],
+      ownershipAccessor: memberAccessor
+    });
+
+    expect(assertCanUseOwnedResources).toHaveBeenCalledWith(memberAccessor, [{ oid: 53n }], {
+      resource: 'provider config'
+    });
+    expect(assertCanUseOwnedResources).not.toHaveBeenCalledWith(
+      internalOwnershipAccessor,
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  it('creates no session provider when the caller cannot use a referenced resource', async () => {
+    vi.mocked(assertCanUseOwnedResources).mockRejectedValueOnce(
+      new Error('ownership_restricted')
+    );
+
+    await expect(
+      sessionProviderInputService.createSessionProvidersForInput({
+        tenant: linkedTenant as any,
+        environment: linkedEnvironment as any,
+        session: { oid: 60n, isEphemeral: false } as any,
+        providers: [{ configId: 'pc_1' }],
+        ownershipAccessor: memberAccessor
+      })
+    ).rejects.toThrow('ownership_restricted');
+
+    expect(mocks.sessionProviderCreateManyAndReturn).not.toHaveBeenCalled();
+  });
+
+  it('uses the internal accessor when no caller accessor is given', async () => {
+    await sessionProviderInputService.createSessionProvidersForInput({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      session: { oid: 60n, isEphemeral: false } as any,
+      providers: [{ configId: 'pc_1' }]
+    });
+
+    expect(assertCanUseOwnedResources).toHaveBeenCalledWith(
+      internalOwnershipAccessor,
+      [{ oid: 53n }],
+      { resource: 'provider config' }
+    );
   });
 
   it('loads every referenced template in one scoped query', async () => {

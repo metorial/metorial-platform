@@ -3,12 +3,13 @@ import { v } from '@lowerdeck/validation';
 import { productAssistantService } from '@metorial/module-product-assistant';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { assistantPresenter } from '@metorial/presenters';
+import { assistantInstanceGroup } from './context';
 
 export let assistantHandlers = {
-  listAssistants: instanceGroup
+  listAssistants: assistantInstanceGroup
     .get(instancePath('assistants', 'assistants.list'), {
       name: 'List assistants',
       description: 'List assistants available in an instance.'
@@ -32,7 +33,7 @@ export let assistantHandlers = {
       );
     }),
 
-  getAssistant: instanceGroup
+  getAssistant: assistantInstanceGroup
     .get(instancePath('assistants/:assistantId', 'assistants.get'), {
       name: 'Get assistant',
       description: 'Get an assistant available in an instance.'

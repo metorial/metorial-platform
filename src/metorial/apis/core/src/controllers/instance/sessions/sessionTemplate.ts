@@ -36,7 +36,7 @@ export let sessionTemplateController = Controller.create(
   {
     name: 'Session Templates',
     description:
-      'Session templates define reusable configurations for sessions, including which providers to include. Templates can be used to quickly create new sessions with consistent settings.'
+      'A session template is a reusable configuration for creating sessions with the same providers.'
   },
   {
     list: integrationsGroup
@@ -116,7 +116,7 @@ export let sessionTemplateController = Controller.create(
     get: sessionTemplateGroup
       .get(instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.get'), {
         name: 'Get session template',
-        description: 'Retrieves a specific session template by ID.'
+        description: 'Retrieves a session template.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
@@ -130,20 +130,26 @@ export let sessionTemplateController = Controller.create(
     create: integrationsGroup
       .post(instancePath('session-templates', 'sessionTemplates.create'), {
         name: 'Create session template',
-        description: 'Creates a new session template.'
+        description: 'Creates a session template.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
-          name: v.string({ examples: ['Production Template'] }),
+          name: v.string({
+            examples: ['Production Template'],
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['Template for production sessions'] })
+            v.string({
+              examples: ['Template for production sessions'],
+              description: 'Free-text description.'
+            })
           ),
           metadata: v.optional(
             v.record(v.any(), { examples: [{ environment: 'production' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            { description: 'Custom data to identify or organize the session template.' }
           ),
           providers: v.optional(
             v.array(
@@ -186,17 +192,28 @@ export let sessionTemplateController = Controller.create(
     update: sessionTemplateGroup
       .patch(instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.update'), {
         name: 'Update session template',
-        description: 'Updates a specific session template.'
+        description: 'Updates a session template. Omitted fields keep their current value.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Template Name'] })),
-          description: v.optional(v.string({ examples: ['Updated description'] })),
+          name: v.optional(
+            v.string({
+              examples: ['Updated Template Name'],
+              description: 'Display name.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              examples: ['Updated description'],
+              description: 'Free-text description.'
+            })
+          ),
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the session template. Replaces existing metadata.'
           })
         }),
         v => v
@@ -204,10 +221,21 @@ export let sessionTemplateController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Template Name'] })),
-          description: v.optional(v.string({ examples: ['Updated description'] })),
+          name: v.optional(
+            v.string({
+              examples: ['Updated Template Name'],
+              description: 'Display name.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              examples: ['Updated description'],
+              description: 'Free-text description.'
+            })
+          ),
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the session template. Replaces existing metadata.'
           }),
           source: v.optional(v.enumOf(['explorer']), {
             description:
@@ -241,8 +269,8 @@ export let sessionTemplateController = Controller.create(
       .delete(
         instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.delete'),
         {
-          name: 'Delete session template',
-          description: 'Deletes a specific session template.'
+          name: 'Archive session template',
+          description: 'Archives a session template. It stays listable with `status=archived`.'
         }
       )
       .use(requireNonPublishableMachineAccess())

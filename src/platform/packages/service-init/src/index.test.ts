@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildMongoUrl,
   buildPostgresUrl,
   initializeMetorialServiceEnvironment,
   initializeRedisUrl,
@@ -91,5 +92,20 @@ describe('service environment initialization', () => {
     });
 
     expect(env.GLOBAL_DATABASE_URL).toContain('global-user:signed%2Ftoken@');
+  });
+
+  it('builds the usage store URL as before', () => {
+    expect(
+      buildMongoUrl({
+        username: 'usage user',
+        password: 'p@ss/word',
+        host: 'usage.cluster-example.docdb.amazonaws.com',
+        port: '27017',
+        database: 'usage',
+        readPreference: 'secondaryPreferred'
+      })
+    ).toBe(
+      'mongodb://usage%20user:p%40ss%2Fword@usage.cluster-example.docdb.amazonaws.com:27017/usage?authSource=admin&authMechanism=SCRAM-SHA-1&tls=true&tlsAllowInvalidCertificates=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false'
+    );
   });
 });

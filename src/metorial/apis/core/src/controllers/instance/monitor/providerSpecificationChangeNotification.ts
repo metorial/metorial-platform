@@ -6,6 +6,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { providerSpecificationChangeNotificationPresenter } from '@metorial/presenters';
 import { getRequiredParam, notificationTargetValidator, stringOrArray } from './_shared';
 
@@ -25,7 +26,7 @@ export let providerSpecificationChangeNotificationController = Controller.create
   {
     name: 'Provider Specification Change Notifications',
     description:
-      'Provider specification change notifications describe provider schema changes.'
+      'A provider specification change notification is a record of a provider schema change. It captures the before and after specification and version.'
   },
   {
     list: integrationsGroup
@@ -37,22 +38,39 @@ export let providerSpecificationChangeNotificationController = Controller.create
         {
           name: 'List provider specification change notifications',
           description:
-            'Returns a paginated list of provider specification change notifications for this instance.'
+            'Returns a paginated list of provider specification change notifications in the instance.'
         }
       )
+      .use(requireConsumerTokenForPublishableKey())
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .outputList(providerSpecificationChangeNotificationPresenter)
       .query(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(stringOrArray()),
+            id: v.optional(stringOrArray(), {
+              description:
+                'Only return provider specification change notifications with one of these IDs.'
+            }),
             target: v.optional(
-              v.union([notificationTargetValidator, v.array(notificationTargetValidator)])
+              v.union([notificationTargetValidator, v.array(notificationTargetValidator)]),
+              {
+                description:
+                  'Only return provider specification change notifications with one of these targets.'
+              }
             ),
-            provider_id: v.optional(stringOrArray()),
-            provider_version_id: v.optional(stringOrArray()),
-            provider_specification_id: v.optional(stringOrArray()),
+            provider_id: v.optional(stringOrArray(), {
+              description:
+                'Only return provider specification change notifications for one of these providers.'
+            }),
+            provider_version_id: v.optional(stringOrArray(), {
+              description:
+                'Only return provider specification change notifications for one of these provider versions.'
+            }),
+            provider_specification_id: v.optional(stringOrArray(), {
+              description:
+                'Only return provider specification change notifications for one of these provider specifications.'
+            }),
             created_at: dateFilterValidator('provider specification change notification time')
           })
         )
@@ -86,9 +104,10 @@ export let providerSpecificationChangeNotificationController = Controller.create
         ),
         {
           name: 'Get provider specification change notification',
-          description: 'Retrieves a provider specification change notification by ID.'
+          description: 'Retrieves a provider specification change notification.'
         }
       )
+      .use(requireConsumerTokenForPublishableKey())
       .use(checkAccess({ possibleScopes: ['instance.provider.specification:read'] }))
       .output(providerSpecificationChangeNotificationPresenter)
       .do(async ctx =>

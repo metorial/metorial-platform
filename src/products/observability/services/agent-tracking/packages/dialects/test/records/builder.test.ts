@@ -498,6 +498,71 @@ describe('buildRecord id clamping', () => {
   });
 });
 
+describe('buildRecord free-text clamping', () => {
+  let long = 'x'.repeat(5000);
+
+  it('clamps the model name, whether a model object or a bare name', () => {
+    let request = buildDraft(
+      draft({ type: 'model.request', data: { model: { id: long, provider: 'anthropic' } } })
+    );
+    let start = buildDraft(draft({ data: { model: long } }));
+
+    expect(request.data.model).toEqual({ id: 'x'.repeat(256), provider: 'anthropic' });
+    expect(request.quality.warnings).toContain('truncated:data.model.id');
+    expect(start.data.model).toBe('x'.repeat(256));
+    expect(start.quality.warnings).toContain('truncated:data.model');
+  });
+
+  it('keeps a model name at the limit untouched', () => {
+    let record = buildDraft(draft({ data: { model: { id: 'm'.repeat(256) } } }));
+
+    expect(record.data.model).toEqual({ id: 'm'.repeat(256) });
+    expect(record.quality.warnings).toEqual(['time_unknown']);
+  });
+
+  it('clamps client and actor strings and drops an overlong email', () => {
+    let record = buildDraft(
+      draft({
+        client: { family: 'claude-code', surface: long, version: long, terminal: long },
+        actor: {
+          install_id: long,
+          org_claim: long,
+          user: { id: long, email: `${long}@example.com` },
+          identity_source: 'client_claim'
+        }
+      })
+    );
+
+    expect(record.client).toEqual({
+      family: 'claude-code',
+      surface: 'x'.repeat(256),
+      version: 'x'.repeat(256),
+      terminal: 'x'.repeat(256)
+    });
+    expect(record.actor).toEqual({
+      install_id: 'x'.repeat(256),
+      org_claim: 'x'.repeat(256),
+      user: { id: 'x'.repeat(256) },
+      identity_source: 'client_claim'
+    });
+    expect(record.quality.dropped).toContain('actor.user.email');
+  });
+
+  it('keeps an ordinary email and leaves no empty user behind', () => {
+    let kept = buildDraft(
+      draft({ actor: { user: { email: 'ada@example.com' }, identity_source: 'client_claim' } })
+    );
+    let dropped = buildDraft(
+      draft({
+        actor: { user: { email: `${long}@example.com` }, identity_source: 'client_claim' }
+      })
+    );
+
+    expect(kept.actor?.user).toEqual({ email: 'ada@example.com' });
+    expect(dropped.actor).toEqual({ identity_source: 'client_claim' });
+  });
+});
+
 describe('buildRecord content and extras', () => {
   it('builds content entries under the principal policy and drops empty ones', () => {
     let principal = unitPrincipal({ contentPolicy: { defaultMode: 'full' } });

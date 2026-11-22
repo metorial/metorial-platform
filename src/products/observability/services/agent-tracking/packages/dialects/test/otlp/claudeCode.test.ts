@@ -312,7 +312,8 @@ describe('claudeCodeOtlp api events', () => {
         role: 'error_message',
         value: 'short',
         clientLength: undefined,
-        clientTruncated: { originalLength: 9000 }
+        clientTruncated: { originalLength: 9000 },
+        redactionMarkers: ['<REDACTED>']
       }
     ]);
   });
@@ -617,6 +618,42 @@ describe('claudeCodeOtlp conversation events', () => {
 
     expect(draft.content).toEqual([]);
     expect(draft.data).toMatchObject({ length_chars: 20 });
+  });
+
+  it('stores the placeholder sent while prompt logging is off as redacted, not as content', () => {
+    let records = [
+      ['user_prompt', { prompt: '<REDACTED>', prompt_length: 75 }],
+      ['user_prompt', { prompt: '[REDACTED]', prompt_length: 75 }],
+      ['assistant_response', { response: '<REDACTED>', response_length: 4, model: 'm' }],
+      ['assistant_response', { response: '[REDACTED]', response_length: 4, model: 'm' }]
+    ] as const;
+
+    for (let [event, attributes] of records) {
+      let [mapped] = claudeCodeOtlp.mapLog!(
+        ctx('logs'),
+        logRecord({ 'event.name': event, ...attributes })
+      );
+
+      expect(buildMapped(mapped!).content).toEqual([
+        {
+          role: event == 'user_prompt' ? 'prompt' : 'response',
+          mode: 'basic',
+          state: 'redacted_by_client'
+        }
+      ]);
+    }
+  });
+
+  it('still hashes text that merely contains the placeholder', () => {
+    let [mapped] = claudeCodeOtlp.mapLog!(
+      ctx('logs'),
+      logRecord({ 'event.name': 'user_prompt', prompt: 'why does <REDACTED> show up?' })
+    );
+
+    expect(buildMapped(mapped!).content[0]).toMatchObject({
+      state: 'present',
+      hash: expect.any(Object)
+    });
   });
 
   it('maps assistant responses', () => {

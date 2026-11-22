@@ -236,6 +236,11 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Monitoring',
     description: 'These endpoints read monitors and manage monitor alerts.'
   },
+  'instance.agent_tracking': {
+    name: 'Agent Tracking',
+    description:
+      'These endpoints manage the ingestion keys AI coding agents send usage with, and read the usage and cost they report.'
+  },
   'instance.provider.config': {
     name: 'Provider Configs',
     description: 'These endpoints manage provider configuration records and schemas.'

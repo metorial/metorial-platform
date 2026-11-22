@@ -9,6 +9,8 @@ import {
   readInstallationTokens,
   writeRefreshedInstallationTokens
 } from './scmCredentials';
+import { gitlabRequesterFn } from './gitlabRequester';
+import { scmFetch } from './scmFetch';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
 
@@ -24,7 +26,8 @@ export let createGitLabClient = (backend?: ScmBackend) => {
 
   return new Gitlab({
     host,
-    oauthToken
+    oauthToken,
+    requesterFn: gitlabRequesterFn
   });
 };
 
@@ -35,7 +38,8 @@ export let createGitLabClientWithToken = (token: string, backend?: ScmBackend) =
 
   return new Gitlab({
     host,
-    oauthToken: token
+    oauthToken: token,
+    requesterFn: gitlabRequesterFn
   });
 };
 
@@ -71,7 +75,7 @@ export let exchangeGitLabOAuthCode = async (i: {
   let clientSecret = await readBackendSecret(i.backend, 'clientSecret', 'origin:gitlab:oauth');
 
   let response = await withScmProviderError('gitlab', 'exchange the OAuth token', () =>
-    fetch(`${webUrl}/oauth/token`, {
+    scmFetch(`${webUrl}/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -121,7 +125,7 @@ export let refreshGitLabAccessToken = async (i: {
   let clientSecret = await readBackendSecret(i.backend, 'clientSecret', 'origin:gitlab:oauth');
 
   let response = await withScmProviderError('gitlab', 'refresh the OAuth token', () =>
-    fetch(`${webUrl}/oauth/token`, {
+    scmFetch(`${webUrl}/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

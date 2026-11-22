@@ -36,13 +36,13 @@ export let fileController = Controller.create(
   {
     name: 'Files',
     description:
-      'Represents files that you have uploaded to Metorial. Files can be linked to various resources based on their purpose. Metorial can also automatically extract files for you, for example for data exports.'
+      'A file is content uploaded to an instance, such as an image or an attachment. Its purpose controls what it can be linked to.'
   },
   {
     list: instanceGroup
       .get(instancePath('files', 'files.list'), {
-        name: 'List instance files',
-        description: 'Returns a paginated list of files owned by the instance.'
+        name: 'List files',
+        description: 'Returns a paginated list of files.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.file:read'] })
@@ -52,18 +52,22 @@ export let fileController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by file ID'),
+            id: stringArrayFilterSchema('Only return files with one of these IDs.'),
             purpose: v.optional(
               v.union([v.enumOf(purposeSlugs as any), v.array(v.enumOf(purposeSlugs as any))]),
               {
-                description: 'Filter by file purpose'
+                description: 'Only return files with one of these purposes.'
               }
             ),
-            store_id: stringArrayFilterSchema('Filter by store ID'),
-            document_id: stringArrayFilterSchema('Filter by document ID'),
-            file_link_id: stringArrayFilterSchema('Filter by file link ID'),
-            created_at: dateFilterValidator('Filter by creation time'),
-            updated_at: dateFilterValidator('Filter by update time')
+            store_id: stringArrayFilterSchema('Only return files in one of these stores.'),
+            document_id: stringArrayFilterSchema(
+              'Only return files attached to one of these documents.'
+            ),
+            file_link_id: stringArrayFilterSchema(
+              'Only return files shared through one of these file links.'
+            ),
+            created_at: dateFilterValidator('file creation time'),
+            updated_at: dateFilterValidator('file last update time')
           })
         )
       )
@@ -86,8 +90,8 @@ export let fileController = Controller.create(
 
     get: fileGroup
       .get(instancePath('files/:fileId', 'files.get'), {
-        name: 'Get file by ID',
-        description: 'Retrieves details for a specific file by its ID.'
+        name: 'Get file',
+        description: 'Retrieves a file.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.file:read'] })
@@ -97,8 +101,8 @@ export let fileController = Controller.create(
 
     delete: fileGroup
       .delete(instancePath('files/:fileId', 'files.delete'), {
-        name: 'Delete file by ID',
-        description: 'Deletes a specific file by its ID.'
+        name: 'Delete file',
+        description: 'Deletes a file.'
       })
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(filePresenter)

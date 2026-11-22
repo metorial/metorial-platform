@@ -39,13 +39,13 @@ export let skillVersionGroup = skillGroup.use(async ctx => {
 export let skillVersionController = Controller.create(
   {
     name: 'Skill Versions',
-    description: 'Inspect version history and snapshots for a skill.'
+    description: 'A skill version is a snapshot of a skill at a point in time.'
   },
   {
     list: skillGroup
       .get(instancePath('skills/:skillId/versions', 'skills.versions.list'), {
         name: 'List skill versions',
-        description: 'Returns a paginated list of versions for a specific skill.'
+        description: 'Returns a paginated list of skill versions.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -64,8 +64,8 @@ export let skillVersionController = Controller.create(
 
     get: skillVersionGroup
       .get(instancePath('skills/:skillId/versions/:skillVersionId', 'skills.versions.get'), {
-        name: 'Get skill version by ID',
-        description: 'Retrieves a specific skill version by its ID.'
+        name: 'Get skill version',
+        description: 'Retrieves a skill version.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
@@ -80,7 +80,7 @@ export let skillVersionController = Controller.create(
         ),
         {
           name: 'Get skill version snapshot',
-          description: 'Retrieves the store-backed snapshot for a specific skill version.'
+          description: 'Retrieves the content snapshot for a skill version.'
         }
       )
       .use(hasFlags(['skills-enabled']))

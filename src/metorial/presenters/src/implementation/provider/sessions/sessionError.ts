@@ -48,26 +48,26 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
   .schema(
     v.object({
       object: v.literal('session.error', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session error identifier',
+        description: 'Unique ID.',
         examples: ['ser_6fGhJkLmNpQrStUv']
       }),
       code: v.string({
         name: 'code',
-        description: 'Error code',
+        description: 'Machine-readable error code.',
         examples: ['CONNECTION_TIMEOUT']
       }),
       message: v.string({
         name: 'message',
-        description: 'Error message',
+        description: 'Human-readable summary of the failure.',
         examples: ['Connection timed out after 30 seconds']
       }),
       data: v.record(v.any(), {
         name: 'data',
-        description: 'Error payload data',
+        description: 'Additional error details.',
         examples: [{ timeout_ms: 30000 }]
       }),
       status: v.enumOf(['processing', 'processed'], {
@@ -77,45 +77,45 @@ export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
       }),
       session_id: v.string({
         name: 'session_id',
-        description: 'Parent session ID',
+        description: 'Session the error occurred in.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       provider_run_id: v.nullable(
         v.string({
           name: 'provider_run_id',
-          description: 'Provider run ID',
+          description: 'Provider run the error belongs to. `null` when there is none.',
           examples: ['prn_8hJkLmNpQrStUvWx']
         })
       ),
       connection_id: v.nullable(
         v.string({
           name: 'connection_id',
-          description: 'Connection ID',
+          description: 'Connection the error belongs to. `null` when there is none.',
           examples: ['scn_8hJkLmNpQrStUvWx']
         })
       ),
       group_id: v.nullable(
         v.string({
           name: 'group_id',
-          description: 'Error group ID',
+          description: 'Group this error belongs to. `null` while the error is still processing.',
           examples: ['seg_7gHjKlMnPqRsTuVw']
         })
       ),
       similar_error_count: v.number({
         name: 'similar_error_count',
-        description: 'Count of similar errors in the group',
+        description: 'How many errors are in this group.',
         examples: [5]
       }),
       issue_id: v.nullable(
         v.string({
           name: 'issue_id',
-          description: 'The provider issue this occurrence is aggregated into',
+          description: 'Provider issue this error is aggregated into. `null` when there is none.',
           examples: ['pis_9kLmNpQrStUvWxYz']
         })
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

@@ -1,0 +1,21 @@
+{
+  "name": "@metorial/agent-tracking-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@metorial/e2e": "1.0.0",
+    "@mtsrc/agent-tracking-client-internal": "workspace:*",
+    "vitest": "^5.0.4"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.9.3"
+  }
+}

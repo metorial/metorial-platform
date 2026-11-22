@@ -1,4 +1,13 @@
 import { assets } from './assets';
+
+let escapeHtml = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
 export let installationSessionHtml = (d: {
   sessionId: string;
   backends: Array<{
@@ -171,20 +180,22 @@ export let installationSessionHtml = (d: {
     <h1>Connect Repository Provider</h1>
     <p class="subtitle">Choose a provider to connect your repositories</p>
 
-    <div class="backends">
+    ${
+      d.backends.length > 0
+        ? `<div class="backends">
       ${d.backends
         .map(
           backend => `
         <a href="/origin/scm/installation-session/${d.sessionId}/select-backend/${backend.id}" class="backend-button">
           <div class="backend-icon">
-            <img src="${getBackendIconUrl(backend.type)}" alt="${backend.name}" />
+            <img src="${getBackendIconUrl(backend.type)}" alt="${escapeHtml(backend.name)}" />
           </div>
           <div class="backend-info">
             <div class="backend-name">
-              ${backend.name}
+              ${escapeHtml(backend.name)}
               ${backend.isDefault ? '<span class="backend-badge">Default</span>' : ''}
             </div>
-            ${backend.description ? `<div class="backend-description">${backend.description}</div>` : ''}
+            ${backend.description ? `<div class="backend-description">${escapeHtml(backend.description)}</div>` : ''}
           </div>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M7.5 15L12.5 10L7.5 5" stroke="#86868b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -195,7 +206,9 @@ export let installationSessionHtml = (d: {
         .join('')}
     </div>
 
-    <div class="divider"></div>
+    <div class="divider"></div>`
+        : ''
+    }
 
     <a href="/origin/scm/installation-session/${d.sessionId}/setup-backend" class="create-backend-button">
       + Add Custom Provider

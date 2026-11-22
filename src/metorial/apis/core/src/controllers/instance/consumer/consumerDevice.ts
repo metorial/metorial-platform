@@ -21,15 +21,15 @@ let consumerDeviceGroup = instanceGroup.use(async ctx => {
 export let consumerDeviceManagementController = Controller.create(
   {
     name: 'Consumer Devices',
-    description: 'Inspect and revoke the Metorial Desktop devices consumers have enrolled.',
+    description:
+      'A consumer device is a Metorial Desktop installation a consumer has enrolled. Revoking a device signs it out and removes its access.',
     hideInDocs: true
   },
   {
     list: instanceGroup
       .get(instancePath('consumer-devices', 'consumers.devices.list'), {
         name: 'List consumer devices',
-        description:
-          'Returns the Metorial Desktop devices enrolled by consumers of an instance.'
+        description: 'Returns a paginated list of consumer devices.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
@@ -79,7 +79,7 @@ export let consumerDeviceManagementController = Controller.create(
     get: consumerDeviceGroup
       .get(instancePath('consumer-devices/:consumerDeviceId', 'consumers.devices.get'), {
         name: 'Get consumer device',
-        description: 'Retrieves a Metorial Desktop device enrolled by a consumer.'
+        description: 'Retrieves a consumer device.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))

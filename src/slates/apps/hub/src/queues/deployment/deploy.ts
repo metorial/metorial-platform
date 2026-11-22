@@ -10,6 +10,7 @@ import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
 import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
+import { fetchSlatesRuntime } from '../../lib/slatesRuntime';
 import { getRegistryClient, getRegistryDownloadQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
 import { resolveSlateDeploymentConfig } from './config';
@@ -160,9 +161,24 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           buffer: await file.buffer()
         }))
       );
-      let deploymentFiles = buildSlateDeploymentFiles(archiveFiles, {
-        npmRegistryUrl: env.registry.SLATE_DEPLOYMENT_NPM_REGISTRY_URL
-      });
+      let npmRegistryUrl = env.registry.SLATE_DEPLOYMENT_NPM_REGISTRY_URL;
+      let deploymentFiles = buildSlateDeploymentFiles(archiveFiles, { npmRegistryUrl });
+
+      if (deploymentFiles.usesPrebuiltDist) {
+        let runtime = await fetchSlatesRuntime({
+          client: reg,
+          pinnedVersion: env.registry.SLATES_RUNTIME_VERSION,
+          downloadQuery: getRegistryDownloadQuery()
+        });
+
+        if (runtime) {
+          deploymentFiles = buildSlateDeploymentFiles(archiveFiles, {
+            npmRegistryUrl,
+            runtime
+          });
+          await log(deployment, `Using slates runtime ${runtime.version} from the registry`);
+        }
+      }
 
       await log(deployment, `Using entrypoint ./${deploymentFiles.slateEntrypoint}`);
 
@@ -208,7 +224,10 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
         data: {
           providerDeploymentInfo: {
             functionId: func.id,
-            functionDeploymentId: functionDeployment.id
+            functionDeploymentId: functionDeployment.id,
+            ...(deploymentFiles.runtimeVersion
+              ? { runtimeVersion: deploymentFiles.runtimeVersion }
+              : {})
           }
         }
       });

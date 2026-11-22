@@ -26,6 +26,14 @@ export type UpstreamSlateVersion = {
   signatures?: { kid: string; signature: string }[];
 };
 
+export type UpstreamTooling = {
+  kind: string;
+  version: string;
+  protocol: string;
+  contentChecksum: string;
+  signatures?: { kid: string; signature: string }[];
+};
+
 export class UpstreamRequestError extends Error {
   constructor(
     message: string,
@@ -116,6 +124,23 @@ export let createUpstreamClient = (
       upstream,
       `/slates/${scope}/${slate}/versions/${encodeURIComponent(version)}/download`,
       { supports_prebuilt: 'true', proxy: 'true' },
+      downloadTimeoutMs
+    );
+
+    return Buffer.from(await response.arrayBuffer());
+  },
+
+  listTooling: async () => {
+    let response = await request(upstream, '/tooling', {});
+
+    return (await response.json()) as { items: UpstreamTooling[] };
+  },
+
+  downloadTooling: async (kind: string, version: string) => {
+    let response = await request(
+      upstream,
+      `/tooling/${encodeURIComponent(kind)}/${encodeURIComponent(version)}/download`,
+      { proxy: 'true' },
       downloadTimeoutMs
     );
 

@@ -137,7 +137,7 @@ describe('tokenPrincipal', () => {
   it('carries the credential, policy, tags and scope of the token', () => {
     expect(tokenPrincipal(token())).toEqual({
       credential: { kind: 'token', id: 'atit_1' },
-      contentPolicy: { defaultMode: 'full' },
+      contentPolicy: { defaultMode: 'basic' },
       limits: { itemsPerSecond: 5 },
       allowedClients: ['codex'],
       allowedChannels: ['hook'],
@@ -182,6 +182,41 @@ describe('tokenPrincipal', () => {
     });
   });
 
+  it('captures the least while the instance has no content policy, whatever the key allows', () => {
+    expect(tokenPrincipal(token()).contentPolicy).toEqual({ defaultMode: 'basic' });
+  });
+
+  it('lets the instance policy govern a key that allows everything', () => {
+    let principal = tokenPrincipal(
+      token({
+        instance: { ...instance, settings: { contentPolicy: { defaultMode: 'full' } } }
+      })
+    );
+
+    expect(principal.contentPolicy).toEqual({ defaultMode: 'full' });
+  });
+
+  it('narrows the content policy of the token to the one of the instance', () => {
+    let principal = tokenPrincipal(
+      token({
+        instance: { ...instance, settings: { contentPolicy: { defaultMode: 'shape' } } }
+      })
+    );
+
+    expect(principal.contentPolicy).toEqual({ defaultMode: 'shape' });
+  });
+
+  it('keeps the stricter role rules of the token under a wider instance policy', () => {
+    let principal = tokenPrincipal(
+      token({
+        contentPolicy: { defaultMode: 'full', roles: { path: 'basic' } },
+        instance: { ...instance, settings: { contentPolicy: { defaultMode: 'full' } } }
+      })
+    );
+
+    expect(principal.contentPolicy).toEqual({ defaultMode: 'full', roles: { path: 'basic' } });
+  });
+
   it('binds the agent entity when the token has one', () => {
     let principal = tokenPrincipal(
       token({ agentRef: 'client_1', agentEntity: entity(22n, 'aten_agent', 'agent') })
@@ -202,6 +237,16 @@ describe('sourcePrincipal', () => {
     expect(principal.newUserLimitPerDay).toBe(25);
     expect(principal.instance.id).toBe('atin_1');
     expect(principal.organization.hashKeyVersion).toBe(2);
+    expect(principal.contentPolicy).toEqual({ defaultMode: 'basic' });
+  });
+
+  it('never widens the content policy of the source through the instance', () => {
+    let principal = sourcePrincipal({
+      ...source(),
+      instance: { ...instance, settings: { contentPolicy: { defaultMode: 'full' } } }
+    });
+
+    expect(principal.contentPolicy).toEqual({ defaultMode: 'basic' });
   });
 });
 

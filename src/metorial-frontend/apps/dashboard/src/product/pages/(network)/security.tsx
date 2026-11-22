@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { dynamicComponent } from '@metorial/dynamic-component';
+import { checkEdition } from '@metorial/editions';
 import { getConfig } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -69,10 +70,9 @@ export let SecurityOverviewPage = () => {
                         </span>
                       )
                     },
-                    {
-                      label: 'Public IP',
-                      content: displayedPublicIp
-                    },
+                    ...(checkEdition('on-prem')
+                      ? []
+                      : [{ label: 'Public IP', content: displayedPublicIp }]),
                     {
                       label: 'Region',
                       content: networkPublicIp?.region ?? '-'

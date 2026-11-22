@@ -38,31 +38,43 @@ export let v1ScmPushPresenter = Presenter.create(scmPushType)
   .schema(
     v.object({
       object: v.literal('scm.push', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique SCM push identifier'
+        description: 'Unique ID.'
       }),
-      actor: v.object({
-        object: v.literal('scm.actor'),
-        id: v.string({ description: 'Actor identifier' }),
-        external_id: v.nullable(v.string({ description: 'External actor identifier' })),
-        name: v.nullable(v.string({ description: 'Actor name' })),
-        email: v.nullable(v.string({ description: 'Actor email' }))
-      }),
-      commit: v.object({
-        object: v.literal('scm.commit'),
-        id: v.string({ description: 'Commit identifier' }),
-        sha: v.string({ description: 'Commit SHA' }),
-        branch: v.string({ description: 'Branch name' }),
-        message: v.nullable(v.string({ description: 'Commit message' })),
-        created_at: v.date({ description: 'Timestamp when commit was created' })
-      }),
+      actor: v.object(
+        {
+          object: v.literal('scm.actor', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ description: 'Stable ID for the actor.' }),
+          external_id: v.nullable(
+            v.string({ description: 'ID of the actor on the provider.' })
+          ),
+          name: v.nullable(v.string({ description: 'Name of the actor.' })),
+          email: v.nullable(v.string({ description: 'Email of the actor.' }))
+        },
+        { description: 'Actor that pushed.' }
+      ),
+      commit: v.object(
+        {
+          object: v.literal('scm.commit', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ description: 'Unique ID.' }),
+          sha: v.string({ description: 'SHA hash of the commit.' }),
+          branch: v.string({ description: 'Branch the commit was pushed to.' }),
+          message: v.nullable(v.string({ description: 'Full message of the commit.' })),
+          created_at: v.date({ description: 'Creation time.' })
+        },
+        { description: 'Commit that was pushed.' }
+      ),
       repository: v1ScmRepoPresenter.schema,
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created'
+        description: 'Creation time.'
       })
     })
   )

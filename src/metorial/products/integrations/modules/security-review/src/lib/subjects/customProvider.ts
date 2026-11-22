@@ -306,6 +306,7 @@ export let collectCustomProviderEvidence = async (d: {
   let limitations: string[] = [];
   let codeReadable: boolean | undefined;
   let contentComplete: boolean | undefined;
+  let transportEncrypted: boolean | null = null;
 
   if (from.type == 'function') {
     let code = await codeEvidence({
@@ -326,6 +327,7 @@ export let collectCustomProviderEvidence = async (d: {
     let remote = buildRemoteEvidence(from);
     Object.assign(files, remote.files);
     facts.push(...remote.facts);
+    transportEncrypted = remote.httpsEnabled;
   }
 
   if (from.type == 'container') {
@@ -383,6 +385,7 @@ export let collectCustomProviderEvidence = async (d: {
           : 'tenant_image',
     codeReadable,
     contentComplete,
+    transportEncrypted,
     census: census ?? undefined,
     specificationOid: specification?.oid,
     limitations

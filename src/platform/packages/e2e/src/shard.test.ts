@@ -20,9 +20,27 @@ describe('resolvePackageShardArgs', () => {
     ).toEqual(['e2e/users.e2e.ts']);
   });
 
+  test('reads shards from the environment the e2e runner sets', () => {
+    let shards = '@metorial/api-core=2/3 @metorial/module-user=1/2';
+
+    expect(resolvePackageShardArgs(['-t', 'boots'], '@metorial/api-core', shards)).toEqual([
+      '-t',
+      'boots',
+      '--shard=2/3',
+      '--passWithNoTests'
+    ]);
+    expect(resolvePackageShardArgs([], '@metorial/module-file', shards)).toEqual([]);
+    expect(() =>
+      resolvePackageShardArgs([], '@metorial/api-core', '@metorial/api-core')
+    ).toThrow();
+  });
+
   test('leaves arguments without shards unchanged', () => {
-    expect(resolvePackageShardArgs([], '@metorial/api-core')).toEqual([]);
-    expect(resolvePackageShardArgs(['-t', 'x'], '@metorial/api-core')).toEqual(['-t', 'x']);
+    expect(resolvePackageShardArgs([], '@metorial/api-core', '')).toEqual([]);
+    expect(resolvePackageShardArgs(['-t', 'x'], '@metorial/api-core', '')).toEqual([
+      '-t',
+      'x'
+    ]);
   });
 
   test('rejects malformed shard arguments', () => {

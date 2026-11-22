@@ -17,7 +17,7 @@ export let v1SkillContentPreviewPresenter = Presenter.create(skillContentPreview
   .schema(
     v.object({
       object: v.literal('skill.content_preview', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       type: v.enumOf(['skill', 'skill_template'], {
         description: 'Whether the preview belongs to a skill or a skill template.'

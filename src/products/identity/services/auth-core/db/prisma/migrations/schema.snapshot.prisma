@@ -198,6 +198,10 @@ model App {
   isSessionless    Boolean @default(false)
   disableEmailAuth Boolean @default(false)
 
+  restrictSignupToRegisteredDomains Boolean  @default(false)
+  registeredDomainOwner             String?
+  registeredDomains                 String[] @default([])
+
   defaultRedirectUrl String
   redirectDomains    String[] @default([])
 

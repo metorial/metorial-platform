@@ -149,10 +149,9 @@ test('control suites run as duration-balanced matrix groups with per-package sha
   }
   let shardArgs = matrix.flatMap(entry => entry.args.match(/--package-shard=\S+/g) ?? []);
   expect(shardArgs.sort()).toEqual([
-    '--package-shard=@metorial/api-core=1/4',
-    '--package-shard=@metorial/api-core=2/4',
-    '--package-shard=@metorial/api-core=3/4',
-    '--package-shard=@metorial/api-core=4/4'
+    '--package-shard=@metorial/api-core=1/3',
+    '--package-shard=@metorial/api-core=2/3',
+    '--package-shard=@metorial/api-core=3/3'
   ]);
 
   let single = new Map([...packages].slice(0, 1));

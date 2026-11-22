@@ -1,3 +1,4 @@
+import { getAvatarUrl } from '@metorial/frontend-config';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import {
   type IntegrationPreview,
@@ -169,7 +170,7 @@ let getSkillItemEntity = (
   if (item.integration) {
     return {
       name: item.integration.name ?? item.integration.slug,
-      imageUrl: `https://avatar-cdn.metorial.com/${item.integration.id}`,
+      imageUrl: getAvatarUrl(item.integration.id),
       kind: 'Integration'
     };
   }

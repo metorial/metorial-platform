@@ -26,7 +26,7 @@ export let v1SetupSessionEmailPresenter = Presenter.create(providerSetupSessionE
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique setup session email identifier',
+        description: 'Unique ID.',
         examples: ['pasem_6eFgHjKlMnPqRsTu']
       }),
       deduplicated: v.boolean({

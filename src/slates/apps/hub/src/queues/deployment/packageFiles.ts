@@ -10,12 +10,22 @@ type SlatePackageJson = {
   scripts?: Record<string, string | undefined>;
 };
 
+type BundledRuntime = {
+  version: string;
+  main: string;
+  files: DeploymentArchiveFile[];
+};
+
 let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
-let wrapperDependencies = {
+let runtimeDirectory = '_slates_runtime';
+let runtimeDependencies = {
   '@slates/provider-handler': 'latest',
   '@slates/proto': 'latest',
-  slates: 'latest',
   '@lowerdeck/serialize': 'latest'
+};
+let wrapperDependencies = {
+  ...runtimeDependencies,
+  slates: 'latest'
 };
 let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
 let fallbackEntrypoints = [
@@ -141,6 +151,23 @@ let getMergedPackageJson = (packageJson: SlatePackageJson | null) => {
   };
 };
 
+let getPrebuiltPackageJson = (
+  packageJson: SlatePackageJson | null,
+  runtime: BundledRuntime | undefined
+) => ({
+  name: packageJson?.name ?? 'slate-version-function',
+  version: packageJson?.version ?? '1.0.0',
+  private: true,
+  ...(runtime ? {} : { dependencies: runtimeDependencies })
+});
+
+let getRuntimeImports = (runtime: BundledRuntime | undefined) =>
+  runtime
+    ? `import { createProviderHandler, SlatesProviderProtoHandlerManager, serialize } from './${runtimeDirectory}/${normalizeArchivePath(runtime.main)}';`
+    : `import { createProviderHandler } from '@slates/provider-handler';
+          import { SlatesProviderProtoHandlerManager } from '@slates/proto';
+          import { serialize } from '@lowerdeck/serialize';`;
+
 let getFunctionBayConfig = (providerImportPath: string) => ({
   entrypoint: 'slates_entry_point.js',
   ...(providerImportPath.startsWith('dist/')
@@ -154,7 +181,7 @@ let getFunctionBayConfig = (providerImportPath: string) => ({
 
 export let buildSlateDeploymentFiles = (
   files: DeploymentArchiveFile[],
-  opts: { npmRegistryUrl?: string } = {}
+  opts: { npmRegistryUrl?: string; runtime?: BundledRuntime } = {}
 ) => {
   let packageJsonFile = getArchiveFile(files, 'package.json');
   let packageJson: SlatePackageJson | null = null;
@@ -173,6 +200,9 @@ export let buildSlateDeploymentFiles = (
   let slateEntrypoint = getSlateEntrypoint(files, packageJson);
   let providerImportPath = getProviderImportPath(files, slateEntrypoint);
   let usePrebuiltDist = providerImportPath.startsWith('dist/');
+  // Source slates are compiled against their own declared packages, so only prebuilt slates
+  // take the registry-delivered runtime.
+  let runtime = usePrebuiltDist ? opts.runtime : undefined;
 
   console.log(`[Deployment]: Using slate entrypoint: ${slateEntrypoint}`);
   if (providerImportPath !== slateEntrypoint) {
@@ -182,7 +212,13 @@ export let buildSlateDeploymentFiles = (
   let generatedFiles = [
     {
       filename: 'package.json',
-      content: JSON.stringify(getMergedPackageJson(packageJson), null, 2)
+      content: JSON.stringify(
+        usePrebuiltDist
+          ? getPrebuiltPackageJson(packageJson, runtime)
+          : getMergedPackageJson(packageJson),
+        null,
+        2
+      )
     },
     {
       filename: 'function-bay.json',
@@ -193,9 +229,7 @@ export let buildSlateDeploymentFiles = (
       content: `
           import { createRequire } from 'node:module';
           import { provider } from './${providerImportPath}';
-          import { createProviderHandler } from '@slates/provider-handler';
-          import { SlatesProviderProtoHandlerManager } from '@slates/proto';
-          import { serialize } from '@lowerdeck/serialize';
+          ${getRuntimeImports(runtime)}
 
           let handler = createProviderHandler(provider, [
             e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))
@@ -272,13 +306,23 @@ export let buildSlateDeploymentFiles = (
   }
   let generatedFilenames = new Set(generatedFiles.map(file => file.filename));
 
+  let runtimeFiles = (runtime?.files ?? []).map(file => ({
+    filename: `${runtimeDirectory}/${normalizeArchivePath(file.path)}`,
+    content: file.buffer.toString('base64'),
+    encoding: 'base64' as const
+  }));
+
   return {
     slateEntrypoint,
     providerImportPath,
+    usesPrebuiltDist: usePrebuiltDist,
+    runtimeVersion: runtime?.version ?? null,
     files: [
       ...generatedFiles,
+      ...runtimeFiles,
       ...files
         .filter(file => file.path !== 'package.json')
+        .filter(file => !normalizeArchivePath(file.path).startsWith(`${runtimeDirectory}/`))
         .filter(file => !logoFiles.some(logo => file.path.endsWith(logo)))
         .filter(file => usePrebuiltDist || !isPrebuiltNccArtifact(file.path))
         .map(file => {

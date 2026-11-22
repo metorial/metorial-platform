@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => ({
   create: vi.fn(),
   createSystemKeyProvider: vi.fn(),
   matchesLegacySystemKeyInfo: vi.fn(),
+  verifySystemKeyAccess: vi.fn(),
   fingerprint: 'gcp_kms:projects/p/locations/l/keyRings/r/cryptoKeys/k'
 }));
 
@@ -27,6 +28,7 @@ vi.mock('../adapters', () => ({
   getKeyProviderAdapter: () => ({
     getSystemFingerprint: () => mocks.fingerprint,
     matchesLegacySystemKeyInfo: mocks.matchesLegacySystemKeyInfo,
+    verifySystemKeyAccess: mocks.verifySystemKeyAccess,
     createSystemKeyProvider: mocks.createSystemKeyProvider
   })
 }));
@@ -50,6 +52,7 @@ describe('keyProviderService.ensureSystemDefaultProvider', () => {
     };
     mocks.findMany.mockResolvedValue([legacy]);
     mocks.matchesLegacySystemKeyInfo.mockResolvedValue(true);
+    mocks.verifySystemKeyAccess.mockResolvedValue(undefined);
 
     expect(await keyProviderService.ensureSystemDefaultProvider()).toBe(legacy);
     expect(mocks.create).not.toHaveBeenCalled();

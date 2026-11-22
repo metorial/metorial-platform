@@ -10,6 +10,7 @@ import {
   type InstanceCargoAccessContext
 } from '../../../lib/cargoAccess';
 import { requireParam } from '../../../lib/requireParam';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup } from '../../../middleware/instanceGroup';
 
 type AssistantAccessContext = {
@@ -63,7 +64,9 @@ export let getAssistantAccess = async (
   };
 };
 
-export let assistantConversationGroup = instanceGroup.use(async ctx => {
+export let assistantInstanceGroup = instanceGroup.use(hasFlags(['ai-available']));
+
+export let assistantConversationGroup = assistantInstanceGroup.use(async ctx => {
   let assistantConversationId = requireParam(ctx.params, 'assistantConversationId');
 
   let assistantConversation =

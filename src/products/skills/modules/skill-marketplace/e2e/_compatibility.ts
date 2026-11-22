@@ -37,7 +37,7 @@ import {
   type FakeOrigin
 } from './_fixtures';
 
-export let syncTimeout = { timeoutMs: 240_000, intervalMs: 1000 };
+export let syncTimeout = { timeoutMs: 240_000, intervalMs: 250 };
 
 let activeSyncStatuses = ['pending', 'processing', 'waiting_for_review'] as const;
 

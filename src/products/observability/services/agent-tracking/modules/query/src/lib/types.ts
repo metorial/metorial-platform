@@ -55,6 +55,29 @@ export type BoundMeasure =
   | { kind: 'reported'; name: string; hidden: boolean; path: string; where?: BoundFilter }
   | { kind: 'derived'; name: string; hidden: boolean; expr: Expr; format?: DerivedFormat };
 
+export let isDateMeasure = (measure: BoundMeasure) =>
+  measure.kind == 'aggregate' && measure.type == 'date';
+
+export let compareColumns = (name: string) => ({
+  previous: `${name}@previous`,
+  delta: `${name}@delta`,
+  change: `${name}@change`
+});
+
+export let measureColumns = (measure: BoundMeasure, compare: boolean) => {
+  if (!compare) return [measure.name];
+
+  let columns = compareColumns(measure.name);
+  return isDateMeasure(measure)
+    ? [measure.name, columns.previous, columns.delta]
+    : [measure.name, columns.previous, columns.delta, columns.change];
+};
+
+export let dateColumns = (measures: BoundMeasure[]) =>
+  measures
+    .filter(measure => !measure.hidden && isDateMeasure(measure))
+    .flatMap(measure => [measure.name, compareColumns(measure.name).previous]);
+
 export type QueryWarning = { code: string; message: string };
 
 export type PrivacySettings = { hideIndividuals: boolean; minGroupUsers: number };

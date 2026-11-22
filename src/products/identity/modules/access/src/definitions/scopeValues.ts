@@ -126,7 +126,10 @@ export let instanceScopes = [
   'instance.scm.repo:write' as const,
 
   'instance.chat:read' as const,
-  'instance.chat:write' as const
+  'instance.chat:write' as const,
+
+  'instance.agent_tracking:read' as const,
+  'instance.agent_tracking:write' as const
 ] satisfies readonly `instance.${string}`[];
 
 export let consumerScopes = [

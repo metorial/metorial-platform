@@ -108,6 +108,14 @@ export let resolveReportCitations = (report: SecurityReport, sources: CitationSo
         }
       }
     : {}),
+  ...(report.controls
+    ? {
+        controls: report.controls.map(control => ({
+          ...control,
+          evidence: resolveAll(control.evidence, sources)
+        }))
+      }
+    : {}),
   ...(report.findings
     ? {
         findings: report.findings.map(finding => resolveFindingCitations(finding, sources))

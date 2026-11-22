@@ -45,16 +45,16 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
   .schema(
     v.object({
       object: v.literal('session.connection', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session connection identifier',
+        description: 'Unique ID.',
         examples: ['scn_8hJkLmNpQrStUvWx']
       }),
       connection_state: v.enumOf(['connected', 'disconnected'], {
         name: 'connection_state',
-        description: 'Connection state'
+        description: 'Whether the connection is currently open.'
       }),
       transport: v.enumOf(['mcp', 'tool_call', 'metorial_protocol', 'system'] as const, {
         name: 'transport',
@@ -78,16 +78,16 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
           {
             capabilities: v.record(v.any(), {
               name: 'capabilities',
-              description: 'MCP capabilities'
+              description: 'Capabilities the client reported.'
             }),
             protocol_version: v.string({
               name: 'protocol_version',
-              description: 'MCP protocol version',
+              description: 'Negotiated MCP version.',
               examples: ['2024-11-05']
             }),
             transport: v.enumOf(['none', 'sse', 'streamable_http', 'sessionless'] as const, {
               name: 'transport',
-              description: 'MCP transport type'
+              description: 'How the MCP connection is carried.'
             })
           },
           { name: 'mcp', description: 'MCP connection details' }
@@ -95,32 +95,32 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
       ),
       session_id: v.string({
         name: 'session_id',
-        description: 'Parent session ID',
+        description: 'Session this connection belongs to.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       participant: v.nullable(v1SessionParticipantPresenter.schema),
       has_errors: v.boolean({
         name: 'has_errors',
-        description: 'Whether the connection has any errors'
+        description: '`true` when the connection has errors.'
       }),
       has_warnings: v.boolean({
         name: 'has_warnings',
-        description: 'Whether the connection has any warnings'
+        description: '`true` when the connection has warnings.'
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       last_message_at: v.date({
         name: 'last_message_at',
-        description: 'Timestamp of last message',
+        description: 'When the connection last exchanged a message.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       last_active_at: v.nullable(
         v.date({
           name: 'last_active_at',
-          description: 'Timestamp when last active',
+          description: 'Last time the connection showed activity.',
           examples: [new Date('2025-09-15T10:30:00Z')]
         })
       )

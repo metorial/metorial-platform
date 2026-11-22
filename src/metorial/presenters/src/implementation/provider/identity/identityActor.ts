@@ -25,11 +25,11 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
   .schema(
     v.object({
       object: v.literal('identity.actor', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique identity actor identifier.',
+        description: 'Unique ID.',
         examples: ['iac_6wQpLk2mZa8nYx4b']
       }),
       type: v.enumOf(['person', 'agent', 'consumer', 'organization_member'], {
@@ -38,24 +38,25 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Current lifecycle status of the identity actor.'
+        description:
+          'Current lifecycle status of the identity actor. `archived` once you archive the actor.'
       }),
       name: v.string({
         name: 'name',
-        description: 'Human-readable name of the identity actor.',
+        description: 'Display name.',
         examples: ['Build Bot']
       }),
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Optional description of the actor.',
+          description: 'Free-text description.',
           examples: ['CI agent used for release automation']
         })
       ),
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Additional metadata associated with the actor.',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ team: 'platform', source: 'automation' }]
         })
       ),
@@ -84,12 +85,12 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the actor was created.',
+        description: 'Creation time.',
         examples: [new Date('2026-02-03T10:15:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the actor was last updated.',
+        description: 'Last update time.',
         examples: [new Date('2026-02-10T14:30:00Z')]
       })
     })

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/pkg/commitbatch"
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/export"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitpush"
@@ -20,7 +21,7 @@ import (
 // and Git LFS; "oauth2" is the documented one.
 const tokenUsername = "oauth2"
 
-var manifestAPIClient = &http.Client{Timeout: 10 * time.Minute}
+var manifestAPIClient = egress.NewClient(10 * time.Minute)
 
 // ManifestExportOptions drives a manifest export. UploadOptions.DeletePaths is ignored:
 // deletes come from the manifest scope and the previous manifest.

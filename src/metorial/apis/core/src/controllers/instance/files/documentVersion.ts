@@ -32,13 +32,13 @@ export let documentVersionGroup = documentGroup.use(async ctx => {
 export let documentVersionController = Controller.create(
   {
     name: 'Document Versions',
-    description: 'Inspect document version history for an instance document.'
+    description: "A document version is a snapshot of a document's content."
   },
   {
     list: documentGroup
       .get(instancePath('documents/:documentId/versions', 'documents.versions.list'), {
         name: 'List document versions',
-        description: 'Returns a paginated list of versions for a specific document.',
+        description: 'Returns a paginated list of versions of a document.',
         confidential: true
       })
       .use(
@@ -51,9 +51,9 @@ export let documentVersionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by document version ID'),
-            created_at: dateFilterValidator('Filter by creation time'),
-            last_edited_at: dateFilterValidator('Filter by last edit time')
+            id: stringArrayFilterSchema('Only return versions with one of these IDs.'),
+            created_at: dateFilterValidator('version creation time'),
+            last_edited_at: dateFilterValidator('version last edit time')
           })
         )
       )
@@ -79,8 +79,8 @@ export let documentVersionController = Controller.create(
           'documents.versions.get'
         ),
         {
-          name: 'Get document version by ID',
-          description: 'Retrieves a specific document version by its ID.',
+          name: 'Get document version',
+          description: 'Retrieves a version of a document.',
           confidential: true
         }
       )

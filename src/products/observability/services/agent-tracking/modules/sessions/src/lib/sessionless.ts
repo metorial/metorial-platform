@@ -18,7 +18,7 @@ import {
   type CatalogIndex,
   type ModelRequest
 } from '@mtsrc/agent-tracking-model-resolver';
-import { sessionlessKey } from '@mtsrc/agent-tracking-module-usage';
+import { isVendorChannel, sessionlessKey } from '@mtsrc/agent-tracking-module-usage';
 import { usageSliceService, type BaseSlice } from '@mtsrc/agent-tracking-module-usage';
 import { db } from '@mtsrc/agent-tracking-db';
 import { organizationPricingService } from '@mtsrc/agent-tracking-module-pricing';
@@ -32,8 +32,6 @@ import { recordReadbackService, toRecordDocument } from '@mtsrc/agent-tracking-m
 import type { RecordDocument } from '@mtsrc/agent-tracking-store';
 import {
   addCost,
-  addTokens,
-  emptyTokens,
   readCost,
   readTokens,
   reportedCosts,
@@ -42,7 +40,13 @@ import {
   type CostEntry
 } from './summary';
 import { type BucketMinutes, bucketStart } from '@mtsrc/agent-tracking-layers';
-import { type Amount, parseAmount, toDecimal } from '@mtsrc/agent-tracking-cost';
+import {
+  addTokens,
+  type Amount,
+  emptyTokens,
+  parseAmount,
+  toDecimal
+} from '@mtsrc/agent-tracking-cost';
 
 let dayMs = 24 * 60 * 60 * 1000;
 
@@ -305,7 +309,7 @@ export let sessionlessBaseSlices = async (d: {
       if (unit && amount !== undefined) {
         addCost(totals.costs, {
           unit: costUnit(unit),
-          basis: document.ingest.credentialKind == 'source' ? 'billed' : 'client_estimate',
+          basis: isVendorChannel(document.source.channel) ? 'billed' : 'client_estimate',
           amount
         });
       }

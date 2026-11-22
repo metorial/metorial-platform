@@ -27,24 +27,30 @@ let createProviderConfigBody = (d: { includeSource: boolean }) =>
   v.intersection([
     v.object({
       provider_id: v.string({
-        description: 'Provider ID',
+        description: 'Provider to create the config for.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       provider_deployment_id: v.optional(
         v.string({
-          description: 'Optional provider deployment ID',
+          description: 'Deployment the config is locked to.',
           examples: ['pdp_4dEfGhJkLmNpQrSt']
         })
       ),
-      name: v.optional(v.string({ examples: ['Production Config'] })),
+      name: v.optional(v.string({ examples: ['Production Config'] }), {
+        description: 'Display name.'
+      }),
       description: v.optional(
-        v.string({ examples: ['Configuration for production environment'] })
+        v.string({ examples: ['Configuration for production environment'] }),
+        { description: 'Free-text description.' }
       ),
       metadata: v.optional(
         v.record(v.any(), {
           examples: [{ label: 'primary', notes: 'Default production config' }]
         }),
-        { description: 'Custom key-value pairs for storing additional information' }
+        {
+          description:
+            'Custom data to identify or organize the provider config. Replaces existing metadata.'
+        }
       ),
       tool_filters: toolFiltersValidator,
       ...(d.includeSource
@@ -95,7 +101,7 @@ export let providerConfigController = Controller.create(
   {
     name: 'Provider Configs',
     description:
-      'A config holds settings for a deployment, like API endpoints or feature flags. Create configs with values directly, or from a saved config vault with pre-saved values.'
+      'A provider config is a set of configuration values for a provider. It holds values directly or references a config vault.'
   },
   {
     list: integrationsGroup
@@ -208,7 +214,7 @@ export let providerConfigController = Controller.create(
     create: integrationsGroup
       .post(instancePath('provider-configs', 'providerDeployments.configs.create'), {
         name: 'Create provider config',
-        description: 'Creates a new provider config.',
+        description: 'Creates a provider config.',
         confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
@@ -285,10 +291,11 @@ export let providerConfigController = Controller.create(
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.string(), { description: 'Free-text description.' }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the provider config. Replaces existing metadata.'
           }),
           tool_filters: toolFiltersValidator
         }),
@@ -297,10 +304,11 @@ export let providerConfigController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.string(), { description: 'Free-text description.' }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the provider config. Replaces existing metadata.'
           }),
           tool_filters: toolFiltersValidator,
           source: v.optional(v.enumOf(['explorer']), {
@@ -339,8 +347,8 @@ export let providerConfigController = Controller.create(
           'providerDeployments.configs.delete'
         ),
         {
-          name: 'Delete provider config',
-          description: 'Permanently deletes a provider config.'
+          name: 'Archive provider config',
+          description: 'Archives a provider config. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
@@ -361,17 +369,25 @@ export let providerConfigController = Controller.create(
         {
           name: 'Get config schema',
           description:
-            'Retrieves the JSON Schema for configuration of this provider deployment.'
+            'Returns the JSON Schema for provider configuration, resolved from the given provider, version, deployment, or config.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.config:read'] }))
       .query(
         'default',
         v.object({
-          provider_id: v.optional(v.string()),
-          provider_config_id: v.optional(v.string()),
-          provider_version_id: v.optional(v.string()),
-          provider_deployment_id: v.optional(v.string())
+          provider_id: v.optional(
+            v.string({ description: 'Provider to resolve the schema for.' })
+          ),
+          provider_config_id: v.optional(
+            v.string({ description: 'Config to resolve the schema for.' })
+          ),
+          provider_version_id: v.optional(
+            v.string({ description: 'Version to resolve the schema for.' })
+          ),
+          provider_deployment_id: v.optional(
+            v.string({ description: 'Deployment to resolve the schema for.' })
+          )
         })
       )
       .output(configSchemaPresenter)

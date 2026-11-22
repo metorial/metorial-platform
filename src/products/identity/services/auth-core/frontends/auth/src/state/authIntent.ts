@@ -73,6 +73,7 @@ export let authIntentState = createLoader({
         firstName: string;
         lastName: string;
         timezone: string;
+        password?: string;
       },
       { input, output }
     ) => {
@@ -83,7 +84,8 @@ export let authIntentState = createLoader({
         input: {
           acceptedTerms: d.termsAccepted,
           firstName: d.firstName,
-          lastName: d.lastName
+          lastName: d.lastName,
+          password: d.password
         }
       });
     },

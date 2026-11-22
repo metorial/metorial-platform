@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import React, { useRef, useState } from 'react';
 import { useInterval } from 'react-use';
 import { Tooltip } from '../tooltip';
@@ -23,7 +24,7 @@ export let Avatar = ({
   radius?: number | 'round';
   imageFit?: 'cover' | 'contain';
 }) => {
-  let src = entity?.photoUrl || entity?.imageUrl;
+  let src = resolveImageUrl(entity?.photoUrl || entity?.imageUrl);
   let name = entity?.name;
   let ref = useRef<HTMLImageElement>(null);
 

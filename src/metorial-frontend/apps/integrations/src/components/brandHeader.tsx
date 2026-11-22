@@ -1,3 +1,4 @@
+import { resolveImageUrl } from '@metorial/frontend-config';
 import { Title, theme } from '@metorial/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
@@ -86,7 +87,7 @@ export let BrandHeader = ({
 }) => (
   <Wrapper $align={align}>
     <IconsRow>
-      {!hideBrand && <Icon src={brand.imageUrl} alt={brand.name} />}
+      {!hideBrand && <Icon src={resolveImageUrl(brand.imageUrl)} alt={brand.name} />}
 
       <AnimatePresence>
         {providerImageUrl && (

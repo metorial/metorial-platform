@@ -13,8 +13,19 @@ import { getMetorialLauncher } from './launcher';
 import { readBuildLayer } from './layer';
 import { cleanup } from './lib/cleanup';
 import { fileExistsSync, readJsonFileOptional } from './lib/fs';
+import {
+  describeInstallFailure,
+  probeRegistry,
+  resolveNpmRegistry
+} from './lib/registryProbe';
 import { commandExists } from './lib/runCommand';
 import { sanitizeLambdaBundle } from './lib/sanitizeLambdaBundle';
+import {
+  installVendorPackages,
+  planDependencyInstall,
+  readVendorManifest,
+  type DependencyPackageJson
+} from './lib/vendor';
 
 let KNATIVE_NODE_VERSION = '24.x' as const;
 
@@ -46,7 +57,7 @@ type Spec = {
   nodeJsVersion?: string;
 };
 
-type PackageJson = {
+type PackageJson = DependencyPackageJson & {
   main?: string;
   scripts?: { build?: string };
 };
@@ -203,6 +214,56 @@ let buildForLambda = async (layer: FunctionBayLayer) => {
   });
 };
 
+let runPackageManagerInstall = async (env: Record<string, string>) => {
+  if (fileExistsSync('yarn.lock')) {
+    console.log('Detected yarn.lock, installing dependencies with Yarn...');
+    await $`bash -c "npx -y yarn@1 install"`.env(env);
+  } else if (fileExistsSync('pnpm-lock.yaml')) {
+    console.log('Detected pnpm-lock.yaml, installing dependencies with pnpm...');
+    await $`bash -c "npx -y pnpm install"`.env(env);
+  } else if (fileExistsSync('bun.lock')) {
+    console.log('Detected bun.lock, installing dependencies with Bun...');
+    await $`bash -c "bun install"`.env(env);
+  } else {
+    console.log('Installing dependencies with npm...');
+    await $`bash -c "npm install"`.env(env);
+  }
+};
+
+let installKnativeDependencies = async (
+  packageJson: PackageJson,
+  env: Record<string, string>
+) => {
+  let plan = planDependencyInstall({ packageJson, manifest: await readVendorManifest() });
+
+  if (plan.mode == 'vendor') {
+    console.log(
+      `Using ${plan.packages} preinstalled packages, skipping dependency installation.`
+    );
+    await installVendorPackages({ directory: plan.directory });
+    return;
+  }
+
+  try {
+    await runPackageManagerInstall(env);
+  } catch (err) {
+    if (!plan.missing?.length) throw err;
+
+    let registry = await resolveNpmRegistry({ env });
+    console.log(
+      `Dependency installation failed, checking whether builds can reach ${registry}...`
+    );
+    let probe = await probeRegistry({ registry, packages: plan.missing });
+
+    let description = describeInstallFailure({ probe, missing: plan.missing });
+    if (!description) throw err;
+
+    let message = `Dependency installation failed. ${description}`;
+    console.error(message);
+    throw new Error(message, { cause: err });
+  }
+};
+
 let buildForKnative = async (layer: FunctionBayLayer) => {
   // `.env()` replaces the environment; package managers need the egress proxy settings.
   let env = { ...process.env } as Record<string, string>;
@@ -222,19 +283,7 @@ let buildForKnative = async (layer: FunctionBayLayer) => {
   }
 
   if (packageJson) {
-    if (fileExistsSync('yarn.lock')) {
-      console.log('Detected yarn.lock, installing dependencies with Yarn...');
-      await $`bash -c "npx -y yarn@1 install"`.env(env);
-    } else if (fileExistsSync('pnpm-lock.yaml')) {
-      console.log('Detected pnpm-lock.yaml, installing dependencies with pnpm...');
-      await $`bash -c "npx -y pnpm install"`.env(env);
-    } else if (fileExistsSync('bun.lock')) {
-      console.log('Detected bun.lock, installing dependencies with Bun...');
-      await $`bash -c "bun install"`.env(env);
-    } else {
-      console.log('Installing dependencies with npm...');
-      await $`bash -c "npm install"`.env(env);
-    }
+    await installKnativeDependencies(packageJson, env);
   } else {
     console.log('No package.json found, skipping dependency installation.');
   }

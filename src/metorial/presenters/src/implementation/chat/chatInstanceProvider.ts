@@ -61,18 +61,18 @@ export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProvid
   .schema(
     v.object({
       object: v.literal('chat.instance_provider', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat instance provider identifier',
+        description: 'Unique ID.',
         examples: ['ciip_6hJkLmNpQrStUvWx']
       }),
 
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'The chat instance provider status'
+        description: '`archived` once the instance is archived.'
       }),
 
       chat_instance_id: v.string({
@@ -97,14 +97,14 @@ export let v1ChatInstanceProviderPresenter = Presenter.create(chatInstanceProvid
 
       name: v.string({
         name: 'name',
-        description: 'Display name of the provider link',
+        description: 'Display name.',
         examples: ['Slack']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Description of the provider link',
+          description: 'Free-text description.',
           examples: ['Production Slack connection']
         })
       ),

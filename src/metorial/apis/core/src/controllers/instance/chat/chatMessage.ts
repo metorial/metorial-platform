@@ -22,45 +22,45 @@ let tableAlignSchema = v.enumOf(['left', 'center', 'right'], {
 });
 
 let markdownPartSchema = v.object({
-  type: v.literal('markdown'),
+  type: v.literal('markdown', { description: 'Markdown content part.' }),
   markdown: v.string({ description: 'Markdown source for this part' })
 });
 
 let textPartSchema = v.object({
-  type: v.literal('text'),
+  type: v.literal('text', { description: 'Plain text part.' }),
   content: v.string({ description: 'Text content' }),
   style: v.optional(textStyleSchema)
 });
 
 let imagePartSchema = v.object({
-  type: v.literal('image'),
+  type: v.literal('image', { description: 'Image part.' }),
   url: v.string({ description: 'URL of the image' }),
   alt: v.optional(v.string({ description: 'Alt text for the image' }))
 });
 
 let dividerPartSchema = v.object({
-  type: v.literal('divider')
+  type: v.literal('divider', { description: 'Visual divider part.' })
 });
 
 let linkPartSchema = v.object({
-  type: v.literal('link'),
+  type: v.literal('link', { description: 'Link part.' }),
   url: v.string({ description: 'URL to link to' }),
   label: v.string({ description: 'Label to display for the link' })
 });
 
 let fieldPartSchema = v.object({
-  type: v.literal('field'),
+  type: v.literal('field', { description: 'Labelled value part.' }),
   label: v.string({ description: 'Field label' }),
   value: v.string({ description: 'Field value' })
 });
 
 let fieldsPartSchema = v.object({
-  type: v.literal('fields'),
+  type: v.literal('fields', { description: 'Group of labelled values part.' }),
   children: v.array(fieldPartSchema, { description: 'Fields in this group' })
 });
 
 let tablePartSchema = v.object({
-  type: v.literal('table'),
+  type: v.literal('table', { description: 'Table part.' }),
   headers: v.array(v.string(), { description: 'Column headers' }),
   rows: v.array(v.array(v.string()), {
     description: 'Table rows, each a list of cell values'
@@ -76,7 +76,7 @@ let chartValueSchema = v.object({
 });
 
 let pieChartSchema = v.object({
-  type: v.literal('pie'),
+  type: v.literal('pie', { description: 'Pie chart.' }),
   segments: v.array(chartValueSchema, { description: 'Segments of the pie chart' })
 });
 
@@ -95,9 +95,11 @@ let seriesChartSchema = v.object({
 });
 
 let chartPartSchema = v.object({
-  type: v.literal('chart'),
+  type: v.literal('chart', { description: 'Chart part.' }),
   title: v.string({ description: 'Title of the chart' }),
-  chart: v.union([pieChartSchema, seriesChartSchema])
+  chart: v.union([pieChartSchema, seriesChartSchema], {
+    description: 'Chart to render.'
+  })
 });
 
 let chatLeafParts = [
@@ -114,12 +116,12 @@ let chatLeafParts = [
 let chatLeafPartSchema = v.union(chatLeafParts as any);
 
 let sectionPartSchema = v.object({
-  type: v.literal('section'),
+  type: v.literal('section', { description: 'Section grouping several parts.' }),
   children: v.array(chatLeafPartSchema, { description: 'Parts in this section' })
 });
 
 let cardPartSchema = v.object({
-  type: v.literal('card'),
+  type: v.literal('card', { description: 'Card with nested parts.' }),
   title: v.optional(v.string({ description: 'Title of the card' })),
   subtitle: v.optional(v.string({ description: 'Subtitle of the card' })),
   imageUrl: v.optional(v.string({ description: 'Image shown on the card' })),
@@ -147,19 +149,22 @@ let chatPartsValidator = v.array(chatPartSchema, {
   examples: [[{ type: 'text', content: 'Hello there' }]]
 });
 
-let emojiInputValidator: ValidationType<EmojiInput> = v.union([
-  v.string({ description: 'A unicode emoji shortcode, e.g. "tada"' }),
-  v.object({
-    type: v.literal('unicode'),
-    value: v.string({ description: 'The unicode emoji shortcode' })
-  }),
-  v.object({
-    type: v.literal('custom'),
-    name: v.string({ description: 'The custom emoji name' }),
-    url: v.optional(v.string({ description: 'URL of the custom emoji image' })),
-    id: v.optional(v.string({ description: "The custom emoji's identifier on the provider" }))
-  })
-]);
+let emojiInputValidator: ValidationType<EmojiInput> = v.union(
+  [
+    v.string({ description: 'A unicode emoji shortcode, e.g. "tada"' }),
+    v.object({
+      type: v.literal('unicode', { description: 'Standard unicode emoji.' }),
+      value: v.string({ description: 'The unicode emoji shortcode' })
+    }),
+    v.object({
+      type: v.literal('custom', { description: 'Provider-specific custom emoji.' }),
+      name: v.string({ description: 'The custom emoji name' }),
+      url: v.optional(v.string({ description: 'URL of the custom emoji image' })),
+      id: v.optional(v.string({ description: "The custom emoji's identifier on the provider" }))
+    })
+  ],
+  { description: 'Emoji to react with, as a shortcode or custom emoji.' }
+);
 
 let chatMessageGroup = chatGroup.use(async ctx => {
   if (!ctx.params.messageId) {
@@ -197,7 +202,7 @@ export let chatMessageController = Controller.create(
               examples: ['cch_2bCdEfGhJkLmNpQr']
             }),
             thread_id: v.optional(
-              v.string({ description: 'Filter to messages in this thread' })
+              v.string({ description: 'Only return messages in this thread.' })
             ),
             search: v.optional(v.string({ description: 'Search message content' }))
           })
@@ -222,7 +227,7 @@ export let chatMessageController = Controller.create(
     get: chatMessageGroup
       .get(instancePath('chats/:chatId/messages/:messageId', 'chats.messages.get'), {
         name: 'Get chat message',
-        description: 'Retrieves a specific chat message.'
+        description: 'Retrieves a chat message.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .query(
@@ -262,7 +267,7 @@ export let chatMessageController = Controller.create(
             examples: ['cch_2bCdEfGhJkLmNpQr']
           }),
           thread_id: v.optional(
-            v.string({ description: 'Send the message within this thread' })
+            v.string({ description: 'Thread to send the message in.' })
           ),
           parts: chatPartsValidator,
           alt_text: v.optional(
@@ -273,11 +278,16 @@ export let chatMessageController = Controller.create(
               v.object({
                 file_id: v.string({ description: 'The Metorial file to attach' })
               })
-            )
+            ),
+            { description: 'Files to attach to the message.' }
           ),
-          reply_message_id: v.optional(v.string({ description: 'Reply to this message' })),
+          reply_message_id: v.optional(
+            v.string({ description: 'Message this one replies to.' })
+          ),
           ephemeral_target_user_id: v.optional(
-            v.string({ description: 'Send this message so only this user can see it' })
+            v.string({
+              description: 'Only this user can see the message. Omit to send it to the channel.'
+            })
           )
         })
       )
@@ -350,7 +360,7 @@ export let chatMessageController = Controller.create(
     update: chatMessageGroup
       .patch(instancePath('chats/:chatId/messages/:messageId', 'chats.messages.update'), {
         name: 'Edit chat message',
-        description: 'Edits a specific chat message.'
+        description: 'Edits a chat message.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .body(
@@ -386,7 +396,7 @@ export let chatMessageController = Controller.create(
     delete: chatMessageGroup
       .delete(instancePath('chats/:chatId/messages/:messageId', 'chats.messages.delete'), {
         name: 'Delete chat message',
-        description: 'Deletes a specific chat message.'
+        description: 'Deletes a chat message.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .query(
@@ -421,7 +431,7 @@ export let chatMessageController = Controller.create(
     markRead: chatMessageGroup
       .post(instancePath('chats/:chatId/messages/:messageId/read', 'chats.messages.read'), {
         name: 'Mark chat message read',
-        description: 'Marks a specific chat message as read.'
+        description: 'Marks a chat message as read.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
       .body(
@@ -465,7 +475,7 @@ export let chatMessageController = Controller.create(
         ),
         {
           name: 'List chat message reactions',
-          description: 'Returns the reactions left on a specific chat message.'
+          description: 'Returns the reactions left on a chat message.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
@@ -499,7 +509,7 @@ export let chatMessageController = Controller.create(
         ),
         {
           name: 'Add chat message reaction',
-          description: 'Adds a reaction to a specific chat message.'
+          description: 'Adds a reaction to a chat message.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))
@@ -542,7 +552,7 @@ export let chatMessageController = Controller.create(
         ),
         {
           name: 'Remove chat message reaction',
-          description: 'Removes a reaction from a specific chat message.'
+          description: 'Removes a reaction from a chat message.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.chat:write'] }))

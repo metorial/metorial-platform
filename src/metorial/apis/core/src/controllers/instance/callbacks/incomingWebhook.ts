@@ -12,7 +12,7 @@ export let incomingWebhookController = Controller.create(
   {
     name: 'Incoming Webhooks',
     description:
-      'The raw inbound HTTP requests behind your callback events. Useful for confirming a provider is actually delivering, including for requests that matched no trigger. You see every request received on your own webhook registrations, plus requests received on endpoints Metorial operates for a provider that produced a callback event of yours.'
+      'An incoming webhook is a raw inbound HTTP request received for a provider. You see every request received on your own webhook registrations, plus requests received on endpoints Metorial operates for a provider when they produced one of your callback events.'
   },
   {
     list: instanceGroup
@@ -27,17 +27,17 @@ export let incomingWebhookController = Controller.create(
         Paginator.validate(
           v.object({
             webhook_registration_id: v.optional(stringOrArray(), {
-              description: 'Filter by webhook registration ID(s)'
+              description: 'Only return webhooks received on one of these registrations.'
             }),
             provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by the provider the request was received for'
+              description: 'Only return webhooks received for one of these providers.'
             }),
             status: v.optional(
               v.union([
                 incomingWebhookStatusValidator,
                 v.array(incomingWebhookStatusValidator)
               ]),
-              { description: 'Filter by inbound delivery status' }
+              { description: 'Only return webhooks with one of these statuses.' }
             )
           })
         )
@@ -58,7 +58,7 @@ export let incomingWebhookController = Controller.create(
     get: instanceGroup
       .get(instancePath('incoming-webhooks/:incomingWebhookId', 'incomingWebhooks.get'), {
         name: 'Get incoming webhook',
-        description: 'Retrieves a specific incoming webhook.'
+        description: 'Retrieves an incoming webhook.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(incomingWebhookPresenter)

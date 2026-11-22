@@ -33,14 +33,14 @@ export let customProviderEnvironmentController = Controller.create(
   {
     name: 'Custom Provider Environments',
     description:
-      'Environments represent deployment targets for custom provider versions (e.g., staging, production).',
+      'A custom provider environment is a deployment target for custom provider versions, such as staging or production.',
     hideInDocs: true
   },
   {
     list: integrationsGroup
       .get(instancePath('custom-provider-environments', 'customProviders.environments.list'), {
         name: 'List custom provider environments',
-        description: 'Returns a paginated list of environments for a custom provider.'
+        description: 'Returns a paginated list of custom provider environments.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
@@ -50,14 +50,14 @@ export let customProviderEnvironmentController = Controller.create(
         Paginator.validate(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by environment IDs'
+              description: 'Only return environments with one of these IDs.'
             }),
             custom_provider_version_id: v.optional(
               v.union([v.string(), v.array(v.string())]),
-              { description: 'Filter by version IDs' }
+              { description: 'Only return environments running one of these versions.' }
             ),
             custom_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by custom provider IDs'
+              description: 'Only return environments of one of these custom providers.'
             }),
             created_at: dateFilterValidator('custom provider environment creation time'),
             updated_at: dateFilterValidator('custom provider environment last update time')
@@ -91,7 +91,7 @@ export let customProviderEnvironmentController = Controller.create(
         ),
         {
           name: 'Get custom provider environment',
-          description: 'Retrieves a specific environment.'
+          description: 'Retrieves a custom provider environment.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.environment:read'] }))

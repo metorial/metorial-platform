@@ -8,7 +8,9 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@metorial/editions": "workspace:*"
+  },
   "devDependencies": {
     "@lowerdeck/programmable-promise": "workspace:2.0.0",
     "@lowerdeck/join-paths": "workspace:2.0.0",

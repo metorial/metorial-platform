@@ -34,21 +34,52 @@ export let v1IntegrationInternetGatewayPresenter = Presenter.create(
   })
   .schema(
     v.object({
-      object: v.literal('integration.internet_gateway'),
-      id: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      created_at: v.date(),
-      updated_at: v.date(),
+      object: v.literal('integration.internet_gateway', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
       public_ips: v.array(
         v.object({
-          object: v.literal('integration.internet_gateway.public_ip'),
-          id: v.string(),
-          ip: v.string(),
-          region: v.string(),
-          created_at: v.date(),
-          updated_at: v.date()
-        })
+          object: v.literal('integration.internet_gateway.public_ip', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({
+            description: 'Unique ID.'
+          }),
+          ip: v.string({
+            description:
+              'Public IP address. Masked as `x.x.x.x` unless your plan includes IP access.'
+          }),
+          region: v.string({
+            description: 'Region the IP belongs to.'
+          }),
+          created_at: v.date({
+            description: 'Creation time.'
+          }),
+          updated_at: v.date({
+            description: 'Creation time.'
+          })
+        }),
+        {
+          description:
+            'Public IPs of the gateway. Masked as `x.x.x.x` unless your plan includes IP access.'
+        }
       )
     })
   )

@@ -26,20 +26,27 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
   }))
   .schema(
     v.object({
-      object: v.literal('scm.account.list#preview'),
+      object: v.literal('scm.account.list#preview', {
+        description: 'String representing the object’s type.'
+      }),
       accounts: v.array(
         v.object({
           object: v.literal('scm.account.item#preview', {
-            description: "String representing the account preview item's type"
+            description: 'String representing the object’s type.'
           }),
           provider: v.enumOf(['github', 'gitlab', 'bitbucket'], {
-            description: 'SCM provider type'
+            description: 'Provider the account belongs to.'
           }),
-          external_id: v.string({ description: 'External account identifier' }),
-          name: v.string({ description: 'Account name' }),
-          identifier: v.string({ description: 'Account identifier (e.g. username)' }),
-          image_url: v.nullable(v.string({ description: 'Account profile image URL' }))
-        })
+          external_id: v.string({ description: 'ID of the account on the provider.' }),
+          name: v.string({ description: 'Name of the account on the provider.' }),
+          identifier: v.string({ description: 'Username of the account on the provider.' }),
+          image_url: v.nullable(
+            v.string({
+              description: 'Profile image URL. `null` when the account has no image.'
+            })
+          )
+        }),
+        { description: 'Accounts the installation can access.' }
       )
     })
   )

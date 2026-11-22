@@ -230,6 +230,20 @@ class MagicMcpEndpointImpl {
     }
   }
 
+  private async assertSkillSelectionAvailable(d: { instance: Pick<Instance, 'oid'> }) {
+    let instance = await db.instance.findUniqueOrThrow({
+      where: { oid: d.instance.oid },
+      include: { project: true }
+    });
+    if (!instance.project.allowConsumerSkillSelection) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Skill selection is turned off for this project'
+        })
+      );
+    }
+  }
+
   async getMagicMcpEndpointById(d: {
     instance: Instance;
     magicMcpEndpointId: string;
@@ -375,6 +389,10 @@ class MagicMcpEndpointImpl {
 
     if (d.input.enableSkillResources) {
       await this.assertSkillsEnabled({ instance: d.instance, feature: 'Skill sharing' });
+    }
+
+    if (d.input.skillSelection && d.input.consumerProfile) {
+      await this.assertSkillSelectionAvailable({ instance: d.instance });
     }
 
     await Fabric.fire('magic_mcp.endpoint.created:before', {
@@ -641,6 +659,10 @@ class MagicMcpEndpointImpl {
         instance: { oid: d.endpoint.instanceOid },
         feature: 'Skill sharing'
       });
+    }
+
+    if (d.input.skillSelection && d.endpoint.consumerProfileOid) {
+      await this.assertSkillSelectionAvailable({ instance: { oid: d.endpoint.instanceOid } });
     }
 
     let skillSelection =

@@ -30,3 +30,21 @@ updates:
       dependencies:
         patterns:
           - '*'
+
+  # Base images of the services and runtime images. Bun moves with the repository's Bun version and
+  # Node's major with the runtime support matrix; patch and distro updates keep the images scan-clean.
+  - package-ecosystem: 'docker'
+    directories:
+      - '/src/**/*'
+    schedule:
+      interval: 'weekly'
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: 'oven/bun'
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
+    groups:
+      base-images:
+        patterns:
+          - '*'

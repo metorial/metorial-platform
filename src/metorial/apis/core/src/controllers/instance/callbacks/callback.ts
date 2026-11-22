@@ -47,20 +47,25 @@ export let callbackController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(stringOrArray(), { description: 'Filter by callback ID(s)' }),
+            id: v.optional(stringOrArray(), { description: 'Only return callbacks with one of these IDs.' }),
             integration_id: v.optional(stringOrArray(), {
-              description: 'Filter by integration ID(s)'
+              description: 'Only return callbacks for one of these integrations.'
             }),
             integration_provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by integration provider ID(s)'
+              description: 'Only return callbacks for one of these integration providers.'
             }),
             provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by provider ID(s)'
+              description: 'Only return callbacks for one of these providers.'
             }),
-            search: v.optional(v.string(), { description: 'Search callbacks by name' }),
+            search: v.optional(v.string(), {
+              description: 'Search callbacks by name, description, integration, or provider.'
+            }),
             status: v.optional(
               v.union([callbackStatusValidator, v.array(callbackStatusValidator)]),
-              { description: 'Filter by callback lifecycle status' }
+              {
+                description:
+                  'Only return callbacks with one of these statuses. `deleted` callbacks are never listed.'
+              }
             ),
             created_at: dateFilterValidator('callback creation time'),
             updated_at: dateFilterValidator('callback last update time')
@@ -153,7 +158,7 @@ export let callbackController = Controller.create(
     get: callbackGroup
       .get(instancePath('callbacks/:callbackId', 'callbacks.get'), {
         name: 'Get callback',
-        description: 'Retrieves a specific callback by ID.'
+        description: 'Retrieves a callback.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .use(hasFlags(['callbacks-enabled']))
@@ -164,7 +169,7 @@ export let callbackController = Controller.create(
       .patch(instancePath('callbacks/:callbackId', 'callbacks.update'), {
         name: 'Update callback',
         description:
-          'Updates the name, description, metadata or trigger group selections of a callback. Changing the selections re-registers the affected triggers. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.'
+          'Updates a callback. Omitted fields keep their current value. Changing the selections re-registers the affected triggers. Only an active callback can be updated.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .use(hasFlags(['callbacks-enabled']))
@@ -180,7 +185,7 @@ export let callbackController = Controller.create(
           description: v.optional(
             v.nullable(
               v.string({
-                description: 'Updated description',
+                description: 'Updated free-text description. `null` clears it.',
                 examples: ['Repository events for the staging workspace']
               })
             )
@@ -188,7 +193,8 @@ export let callbackController = Controller.create(
           metadata: v.optional(
             v.nullable(
               v.record(v.any(), {
-                description: 'Updated custom metadata',
+                description:
+                  'Custom data to identify or organize the callback. Replaces existing metadata. `null` clears it.',
                 examples: [{ environment: 'staging', owner: 'qa-team' }]
               })
             )
@@ -215,9 +221,9 @@ export let callbackController = Controller.create(
 
     delete: callbackGroup
       .delete(instancePath('callbacks/:callbackId', 'callbacks.delete'), {
-        name: 'Delete callback',
+        name: 'Archive callback',
         description:
-          'Disables callbacks on the underlying integration provider, tearing down this callback and every callback instance registered for it.'
+          'Archives a callback by disabling callbacks on its integration provider. Callback instances are torn down in the background. Only an active callback can be archived.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .use(hasFlags(['callbacks-enabled']))

@@ -58,8 +58,12 @@ export let dependencies = (context: RenderContext): string[] => [
     ? [`COPY --from=${nodeImage} /usr/local/bin/node /usr/local/bin/node`]
     : []),
   'COPY --from=pruned /json/ ./',
-  `RUN ${bunCache} bun install --linker=hoisted`
+  bunInstall('--linker=hoisted')
 ];
+
+// Postinstall scripts such as grpc-tools download binaries from third-party hosts that reset connections now and then.
+let bunInstall = (flags: string) =>
+  `RUN ${bunCache} for attempt in 1 2 3; do bun install ${flags} && break; [ "$attempt" = 3 ] && exit 1; sleep 10; done`;
 
 let turboRuns = (context: RenderContext) => {
   let { build } = context;
@@ -121,7 +125,7 @@ export let productionDependencies = (context: RenderContext): string[] => [
     ? [`COPY --from=${nodeImage} /usr/local/bin/node /usr/local/bin/node`]
     : []),
   'COPY --from=pruned /json/ ./',
-  `RUN ${bunCache} bun install --linker=hoisted --production`,
+  bunInstall('--linker=hoisted --production'),
   ...stripModules(context.build.strip)
 ];
 

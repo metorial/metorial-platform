@@ -2,6 +2,8 @@ let extension = ['.js', '.ts', '.cjs', '.mjs'];
 let commonNames = ['index', 'main', 'app', 'server', 'function'];
 let commonDirs = ['', 'src/', 'dist/'];
 
+let entrypointRuntimeDependencies = { '@metorial/mcp-server': 'latest' };
+
 let removeExtension = (filename: string) => {
   for (let ext of extension) {
     if (filename.endsWith(ext)) {
@@ -24,6 +26,18 @@ let decodeFileContent = (file: FunctionFile) =>
 
 let encodeFileContent = (file: FunctionFile, content: string) =>
   file.encoding === 'base64' ? Buffer.from(content, 'utf-8').toString('base64') : content;
+
+let getMissingRuntimeDependencies = (pkg: {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}) => {
+  let declared = { ...pkg.devDependencies, ...pkg.dependencies };
+  let missing = Object.entries(entrypointRuntimeDependencies).filter(
+    ([name]) => !(name in declared)
+  );
+
+  return missing.length ? Object.fromEntries(missing) : null;
+};
 
 export let getFunctionFs = (d: {
   payload: McpRuntimePrismaJson.UpcomingFunctionServerPayload;
@@ -105,9 +119,13 @@ export let getFunctionFs = (d: {
 
     try {
       let pkg = JSON.parse(decodeFileContent(packageJson));
-      if (pkg.type !== 'module') return file;
+      let missingDependencies = getMissingRuntimeDependencies(pkg);
+      if (pkg.type !== 'module' && !missingDependencies) return file;
 
       delete pkg.type;
+      if (missingDependencies) {
+        pkg.dependencies = { ...pkg.dependencies, ...missingDependencies };
+      }
 
       return {
         ...file,
@@ -117,6 +135,22 @@ export let getFunctionFs = (d: {
       return file;
     }
   });
+
+  if (!packageJson) {
+    packagedFiles.push({
+      filename: 'package.json',
+      content: JSON.stringify(
+        {
+          name: 'function-server',
+          version: '1.0.0',
+          private: true,
+          dependencies: entrypointRuntimeDependencies
+        },
+        null,
+        2
+      )
+    });
+  }
 
   return {
     ok: true as const,

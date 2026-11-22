@@ -23,6 +23,7 @@ export type Flags = {
   'portals-access': FlagValue;
   'skills-enabled': FlagValue;
   'assistant-enabled': FlagValue;
+  'ai-available': FlagValue;
   'advanced-security-management-enabled': FlagValue;
   'key-providers-gcp-kms-enabled': FlagValue;
   'key-providers-azure-key-vault-enabled': FlagValue;
@@ -31,6 +32,7 @@ export type Flags = {
   'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   'devices-enabled': FlagValue;
+  'agent-tracking-enabled': FlagValue;
   outposts: FlagValue;
 
   'skills-manifest-sync': FlagValue;
@@ -90,6 +92,7 @@ export let defaultFlags: Flags = {
   'identity-management': false,
   'skills-enabled': false,
   'assistant-enabled': false,
+  'ai-available': false,
   'advanced-security-management-enabled': false,
   'key-providers-gcp-kms-enabled': false,
   'key-providers-azure-key-vault-enabled': false,
@@ -98,6 +101,7 @@ export let defaultFlags: Flags = {
   'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   'devices-enabled': false,
+  'agent-tracking-enabled': false,
   outposts: false,
 
   'skills-manifest-sync': false,
@@ -166,6 +170,27 @@ export let setFlagProvider = (provider: (params: FlagProviderParams) => Promise<
   flagProviderRef.current = provider;
 };
 
-export let getFlags = (params: FlagProviderParams): Promise<Flags> => {
-  return flagProviderRef.current(params);
+export let isAiAvailable = () => !!process.env.AI_GATEWAY_API_KEY?.trim();
+
+export let aiAvailabilityUnavailableReason =
+  'AI features are not available because AI_GATEWAY_API_KEY is not configured';
+
+let aiDependentFlags = ['assistant-enabled'] as const satisfies readonly (keyof Flags)[];
+
+export let applyAiAvailability = (flags: Flags, available: boolean): Flags => {
+  if (available) return { ...flags, 'ai-available': true };
+
+  let result: Flags = {
+    ...flags,
+    'ai-available': disabledFlag(aiAvailabilityUnavailableReason)
+  };
+  for (let flag of aiDependentFlags) {
+    result[flag] = disabledFlag(aiAvailabilityUnavailableReason);
+  }
+  return result;
+};
+
+export let getFlags = async (params: FlagProviderParams): Promise<Flags> => {
+  let flags = await flagProviderRef.current(params);
+  return applyAiAvailability(flags, isAiAvailable());
 };

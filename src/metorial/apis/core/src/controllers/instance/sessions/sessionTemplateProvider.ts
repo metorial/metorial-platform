@@ -38,13 +38,13 @@ export let sessionTemplateProviderController = Controller.create(
   {
     name: 'Session Template Providers',
     description:
-      'Session template providers define which providers should be included when a session is created from a template.'
+      'A session template provider is one provider in a session template, with its deployment, config, auth config, and tool filters.'
   },
   {
     list: integrationsGroup
       .get(instancePath('session-template-providers', 'sessionTemplates.providers.list'), {
         name: 'List session template providers',
-        description: 'Returns a paginated list of providers configured for a session template.'
+        description: 'Returns a paginated list of session template providers.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
@@ -57,7 +57,11 @@ export let sessionTemplateProviderController = Controller.create(
               v.union([
                 v.enumOf(['active', 'archived']),
                 v.array(v.enumOf(['active', 'archived']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return session template providers with one of these statuses.'
+              }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session template provider ID(s)'
@@ -112,7 +116,7 @@ export let sessionTemplateProviderController = Controller.create(
         ),
         {
           name: 'Get session template provider',
-          description: 'Retrieves a specific provider configuration from a session template.'
+          description: 'Retrieves a session template provider.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -127,18 +131,26 @@ export let sessionTemplateProviderController = Controller.create(
     create: integrationsGroup
       .post(instancePath('session-template-providers', 'sessionTemplates.providers.create'), {
         name: 'Create session template provider',
-        description: 'Adds a new provider configuration to a session template.'
+        description: 'Creates a session template provider.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
         v.object({
-          session_template_id: v.string(),
-          provider_deployment_id: v.optional(v.string()),
-          provider_config_id: v.optional(v.string()),
+          session_template_id: v.string({
+            description: 'Session template to add the provider to.'
+          }),
+          provider_deployment_id: v.optional(v.string(), {
+            description: 'Deployment the template provider runs with.'
+          }),
+          provider_config_id: v.optional(v.string(), {
+            description: 'Config the template provider runs with.'
+          }),
           provider_config_vault_id: v.optional(v.string()),
-          provider_auth_config_id: v.optional(v.string()),
+          provider_auth_config_id: v.optional(v.string(), {
+            description: 'Auth config the template provider runs with.'
+          }),
           tool_filters: toolFiltersValidator
         })
       )
@@ -173,7 +185,7 @@ export let sessionTemplateProviderController = Controller.create(
         ),
         {
           name: 'Update session template provider',
-          description: 'Updates a provider configuration in a session template.'
+          description: 'Updates a session template provider.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -207,8 +219,9 @@ export let sessionTemplateProviderController = Controller.create(
           'sessionTemplates.providers.delete'
         ),
         {
-          name: 'Delete session template provider',
-          description: 'Removes a provider configuration from a session template.'
+          name: 'Archive session template provider',
+          description:
+            'Archives a session template provider. It stays listable with `status=archived`.'
         }
       )
       .use(requireNonPublishableMachineAccess())

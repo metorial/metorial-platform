@@ -292,7 +292,10 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
 
       metadata: v.record(v.any(), { description: 'User-defined metadata stored in Metorial' }),
       id: v.string({ description: "The machine's unique identifier" }),
-      status: v.enumOf([...machineStatuses], { description: "The machine's current status" }),
+      status: v.enumOf([...machineStatuses], {
+        description:
+          'The machine’s runtime state, for example `running` or `paused`. `terminated` once the machine is deleted.'
+      }),
       name: v.nullable(v.string({ description: "The machine's name" })),
       slug: v.nullable(
         v.string({
@@ -444,11 +447,15 @@ export let v1SandboxMachinePresenter = Presenter.create(sandboxMachineType)
 
       created_at: v.date({ description: "The machine's creation date" }),
       running_at: v.nullable(v.date({ description: 'When the machine last started running' })),
-      paused_at: v.nullable(v.date({ description: 'When the machine was last paused' })),
-      hibernated_at: v.nullable(
-        v.date({ description: 'When the machine was last hibernated' })
+      paused_at: v.nullable(
+        v.date({ description: 'When the machine last paused. `null` if it never paused.' })
       ),
-      terminated_at: v.nullable(v.date({ description: 'When the machine was terminated' }))
+      hibernated_at: v.nullable(
+        v.date({ description: 'When the machine last hibernated. `null` if it never hibernated.' })
+      ),
+      terminated_at: v.nullable(
+        v.date({ description: 'When the machine terminated. `null` while it exists.' })
+      )
     })
   )
   .build();

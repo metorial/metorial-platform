@@ -410,12 +410,16 @@ export let createSnowflakeWorkerLease = async (
   let ttlMs = opts.ttlMs ?? 30_000;
   let renewIntervalMs = opts.renewIntervalMs ?? Math.floor(ttlMs / 3);
   let autoRenew = opts.autoRenew ?? true;
+
   let claimed = await claimWorkerId({
     redis,
     keyPrefix,
     ownerId,
     ttlMs,
     startWorkerId: opts.startWorkerId
+  }).catch(error => {
+    if (ownsRedisClient) redis.disconnect();
+    throw error;
   });
 
   let generator = createSnowflake(claimed.workerId);

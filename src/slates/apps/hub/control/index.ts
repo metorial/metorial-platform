@@ -73,6 +73,7 @@ export default project({
         SUPPORTS_PREBUILT_SLATES: 'true',
         SLATES_SUB_REGISTRY_ID: 'local-hub',
         SLATE_DEPLOYMENT_NPM_REGISTRY_URL: inherit(),
+        SLATES_RUNTIME_VERSION: inherit(),
         SLATES_WEBHOOK_TRIGGER_HOST: inherit(),
         NEBULA_CONSUMER_IDENTIFIER: 'dev-slates-hub',
         NEBULA_CONSUMER_TOKEN: 'local-dev-nebula-slates-registration-secret',

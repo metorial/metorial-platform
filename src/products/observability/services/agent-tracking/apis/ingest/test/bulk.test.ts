@@ -649,7 +649,7 @@ describe('bulk handler', () => {
 
       expect(response.status).toBe(200);
       expect(((await response.json()) as BulkResponse).accepted).toBe(20_000);
-      expect(pipeline.records()).toHaveLength(20_000);
+      expect(pipeline.seen()).toHaveLength(20_000);
     });
 
     it('rejects more items than the limit without writing anything', async () => {

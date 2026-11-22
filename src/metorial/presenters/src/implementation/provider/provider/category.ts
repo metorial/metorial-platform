@@ -18,16 +18,16 @@ export let v1ProviderListingCategoryPresenter = Presenter.create(providerListing
   .schema(
     v.object({
       object: v.literal('provider.listing_category', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique category identifier',
+        description: 'Unique ID.',
         examples: ['pca_2mNpQrStUvWxYzAb']
       }),
       name: v.string({
         name: 'name',
-        description: 'Display name of the category',
+        description: 'Display name.',
         examples: ['Developer Tools']
       }),
       description: v.string({
@@ -37,17 +37,17 @@ export let v1ProviderListingCategoryPresenter = Presenter.create(providerListing
       }),
       slug: v.string({
         name: 'slug',
-        description: 'URL-friendly identifier',
+        description: 'URL-safe name for the category.',
         examples: ['developer-tools']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

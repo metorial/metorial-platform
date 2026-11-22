@@ -6,6 +6,8 @@ let redis = vi.hoisted(() => {
   let state = { failConnect: false };
 
   let client = {
+    isOpen: true,
+    destroy: vi.fn(),
     get: vi.fn(async (key: string) => values.get(key) ?? null),
     set: vi.fn(async (key: string, value: string) => {
       values.set(key, value);
@@ -127,5 +129,22 @@ describe('discoverySignal', () => {
     await waitForDiscovery({ kind: 'pairVersion', oid: 5n, timeoutMs: 2_000, isFinished });
 
     expect(isFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes a failed subscriber and retries on the next wait', async () => {
+    redis.client.subscribe.mockRejectedValueOnce(new Error('subscription failed'));
+    let { getDiscoveryMarkerKey, waitForDiscovery } = await loadSignal();
+    let isFinished = vi.fn(async () => true);
+    let wait = () =>
+      waitForDiscovery({ kind: 'pairVersion', oid: 7n, timeoutMs: 2_000, isFinished });
+
+    await wait();
+    expect(redis.client.destroy).toHaveBeenCalledTimes(1);
+    expect(isFinished).toHaveBeenCalledTimes(1);
+
+    redis.values.set(getDiscoveryMarkerKey('pairVersion', 7n), 'discovered');
+    await wait();
+    expect(redis.client.subscribe).toHaveBeenCalledTimes(2);
+    expect(redis.client.destroy).toHaveBeenCalledTimes(1);
   });
 });

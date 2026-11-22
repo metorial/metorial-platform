@@ -1,4 +1,5 @@
 import { badRequestError, createError, isServiceError, ServiceError } from '@lowerdeck/error';
+import { once } from '@lowerdeck/once';
 import { v, type ValidationType, type ValidationTypeValue } from '@lowerdeck/validation';
 import type {
   RequestScopedTool,
@@ -12,6 +13,7 @@ import {
   type SkillFileChange,
   type SkillFileChangeResult
 } from '@metorial/module-skill';
+import { buildPortalPageUrl, getPrimaryPortalUrl } from '@metorial/portal-url';
 import { consumerSkillService } from '../services/consumerSkill';
 import {
   createConsumerSkillAccess,
@@ -29,6 +31,9 @@ let readFileToolKey = 'metorial_skill_read_file';
 let writeFileToolKey = 'metorial_skill_write_file';
 let deleteFileToolKey = 'metorial_skill_delete_file';
 let moveFileToolKey = 'metorial_skill_move_file';
+
+let skillUrlDescription =
+  'The result includes a url that opens the skill in the portal, or null when there is no portal to link to.';
 
 export type SkillEditingTools = RequestScopedTools &
   Required<Pick<RequestScopedTools, 'redactForLog'>>;
@@ -100,7 +105,10 @@ let listTool: RequestScopedTool = {
 let createTool: RequestScopedTool = {
   key: createToolKey,
   name: 'Metorial: create skill',
-  description: 'Create a new Metorial skill. It starts with a /SKILL.md you can then edit.',
+  description: [
+    'Create a new Metorial skill. It starts with a /SKILL.md you can then edit.',
+    skillUrlDescription
+  ].join(' '),
   inputJsonSchema: {
     type: 'object',
     additionalProperties: false,
@@ -122,7 +130,10 @@ let createTool: RequestScopedTool = {
 let getTool: RequestScopedTool = {
   key: getToolKey,
   name: 'Metorial: get skill',
-  description: 'Get a skill and the list of its files with their sizes and etags.',
+  description: [
+    'Get a skill and the list of its files with their sizes and etags.',
+    skillUrlDescription
+  ].join(' '),
   inputJsonSchema: {
     type: 'object',
     additionalProperties: false,
@@ -160,7 +171,8 @@ let writeFileTool: RequestScopedTool = {
   name: 'Metorial: write skill file',
   description: [
     'Create or replace a text file of a skill. Markdown files become collaboratively editable documents. Pass the etag from metorial_skill_read_file as if_match.',
-    'Pass if_match "absent" when creating a file that must not exist yet. If the write fails because the file changed, read it again, merge your edits and retry.'
+    'Pass if_match "absent" when creating a file that must not exist yet. If the write fails because the file changed, read it again, merge your edits and retry.',
+    skillUrlDescription
   ].join('\n\n'),
   inputJsonSchema: {
     type: 'object',
@@ -292,17 +304,24 @@ let redactForLog: SkillEditingTools['redactForLog'] = d => {
   return { input, output };
 };
 
-let presentSkill = (skill: {
-  id: string;
-  name: string;
-  slug: string | null;
-  description: string | null;
-}) => ({
+let presentSkill = (
+  skill: {
+    id: string;
+    name: string;
+    slug: string | null;
+    description: string | null;
+  },
+  url: string | null
+) => ({
   id: skill.id,
   name: skill.name,
   slug: skill.slug,
-  description: skill.description
+  description: skill.description,
+  url
 });
+
+let getSkillUrl = (portalUrl: string | null, skill: { id: string }) =>
+  portalUrl ? buildPortalPageUrl({ portalUrl, path: `skill/${skill.id}` }) : null;
 
 let presentFile = (file: SkillFile) => ({
   path: file.path,
@@ -311,11 +330,12 @@ let presentFile = (file: SkillFile) => ({
   etag: file.etag
 });
 
-let presentChange = (change: SkillFileChangeResult) => ({
+let presentChange = (change: SkillFileChangeResult, url: string | null) => ({
   type: change.type,
   path: change.path,
   previous_path: change.previousPath,
-  file: change.file ? presentFile(change.file) : null
+  file: change.file ? presentFile(change.file) : null,
+  url
 });
 
 export let createSkillEditingTools = async (
@@ -326,8 +346,16 @@ export let createSkillEditingTools = async (
 
   let { canCreateSkills, getAccess, resolveSkill } = skillAccess;
 
+  let getPortalUrl = once(async () => {
+    let { consumerProfile } = await getAccess();
+    let portal = consumerProfile.surface.portal;
+
+    return portal ? await getPrimaryPortalUrl({ portal }) : null;
+  });
+
   let applyFileChange = async (reference: string, change: SkillFileChange) => {
     let { access, skill } = await resolveSkill(reference);
+    let portalUrl = await getPortalUrl();
 
     let result = await skillFileService
       .applySkillFileChange({
@@ -339,7 +367,7 @@ export let createSkillEditingTools = async (
       })
       .catch(explainFileChanged);
 
-    return presentChange(result);
+    return presentChange(result, getSkillUrl(portalUrl, skill));
   };
 
   let listSkills = async (input: { search?: string }) => {
@@ -359,17 +387,19 @@ export let createSkillEditingTools = async (
       select: { id: true, name: true, slug: true, description: true }
     });
     let recordsById = new Map(records.map(record => [record.id, record]));
+    let portalUrl = await getPortalUrl();
 
     return {
       skills: list.items.flatMap(item => {
         let record = recordsById.get(item.id);
-        return record ? [presentSkill(record)] : [];
+        return record ? [presentSkill(record, getSkillUrl(portalUrl, record))] : [];
       })
     };
   };
 
   let createSkill = async (input: ValidationTypeValue<typeof createInputValidator>) => {
     let access = await getAccess();
+    let portalUrl = await getPortalUrl();
 
     let skill = await consumerSkillService.createConsumerSkill({
       ...access.scope,
@@ -385,11 +415,12 @@ export let createSkillEditingTools = async (
       }
     });
 
-    return presentSkill(skill);
+    return presentSkill(skill, getSkillUrl(portalUrl, skill));
   };
 
   let getSkill = async (input: ValidationTypeValue<typeof skillInputValidator>) => {
     let { access, skill } = await resolveSkill(input.skill);
+    let portalUrl = await getPortalUrl();
 
     let files = await skillFileService.listSkillFiles({
       ...access.scope,
@@ -397,7 +428,10 @@ export let createSkillEditingTools = async (
       authorization: access.authorization
     });
 
-    return { skill: presentSkill(skill), files: files.map(presentFile) };
+    return {
+      skill: presentSkill(skill, getSkillUrl(portalUrl, skill)),
+      files: files.map(presentFile)
+    };
   };
 
   let readFile = async (input: ValidationTypeValue<typeof readFileInputValidator>) => {

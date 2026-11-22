@@ -118,3 +118,35 @@ describe('explorer caller ownership', () => {
     expect(mocks.ensureDefaultConsumerActor).not.toHaveBeenCalled();
   });
 });
+
+describe('ownership actor', () => {
+  let memberActor = { id: 'oac_member', oid: 4n, type: 'member' } as any;
+  let consumerActor = { id: 'oac_consumer', oid: 9n, type: 'consumer_profile' } as any;
+  let consumerProfile = { id: 'cpf_1', organizationActor: consumerActor };
+
+  it('uses the calling actor when no consumer profile is involved', () => {
+    expect(getOwnershipActor({ actor: memberActor })).toBe(memberActor);
+    expect(getOwnershipActor({})).toBeUndefined();
+  });
+
+  it('uses the consumer actor for a consumer that authenticated itself', () => {
+    expect(getOwnershipActor({ consumerProfile })).toBe(consumerActor);
+    expect(
+      getOwnershipActor({
+        actor: memberActor,
+        consumerProfile,
+        consumerProfileFromHeader: false
+      })
+    ).toBe(consumerActor);
+  });
+
+  it('keeps the calling actor when the consumer profile was selected by header', () => {
+    expect(
+      getOwnershipActor({
+        actor: memberActor,
+        consumerProfile,
+        consumerProfileFromHeader: true
+      })
+    ).toBe(memberActor);
+  });
+});

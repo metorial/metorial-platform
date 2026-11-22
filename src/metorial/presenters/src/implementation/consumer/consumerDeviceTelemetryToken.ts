@@ -11,7 +11,7 @@ export let v1ConsumerDeviceTelemetryTokenPresenter = Presenter.create(
     consumer_device_id: consumerDevice.id,
 
     token: secret,
-    token_id: ingestToken.groundstationIngestTokenId,
+    token_id: ingestToken.serviceIngestTokenId,
     ingest_url: ingestUrl,
 
     expires_at: expiresAt,
@@ -36,7 +36,7 @@ export let v1ConsumerDeviceTelemetryTokenPresenter = Presenter.create(
       ingest_url: v.string({
         name: 'ingest_url',
         description: 'The base URL the device sends agent telemetry to with this token.',
-        examples: ['https://ingest.groundstation.metorial.com']
+        examples: ['https://agent-tracking-ingest-us1.metorial.com']
       }),
       expires_at: v.nullable(
         v.date({

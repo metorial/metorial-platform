@@ -17,3 +17,4 @@ export * from './workspace';
 export * from './slatePackBatch';
 export * from './artifactChecksum';
 export * from './slatePackBuild';
+export * from './slateTooling';

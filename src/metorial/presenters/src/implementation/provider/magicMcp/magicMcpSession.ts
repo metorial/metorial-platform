@@ -41,16 +41,24 @@ export let v1MagicMcpSessionPresenter = Presenter.create(magicMcpSessionType)
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.session'),
-      id: v.string(),
+      object: v.literal('magic_mcp.session', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
       magic_mcp_server: v.nullable(v1MagicMcpServerPresenter.schema),
       magic_mcp_endpoint: v.nullable(v1MagicMcpEndpointPresenter.schema),
-      consumer_profile_id: v.nullable(v.string()),
-      consumer_integration_ids: v.array(v.string()),
-      session_id: v.string(),
-      expires_at: v.nullable(v.date()),
-      created_at: v.date(),
-      updated_at: v.date()
+      consumer_profile_id: v.nullable(
+        v.string({ description: 'Consumer profile the session connects as, if any.' })
+      ),
+      consumer_integration_ids: v.array(v.string(), {
+        description: 'Consumer integrations the session connects with.'
+      }),
+      session_id: v.string({ description: 'Session backing the connection.' }),
+      expires_at: v.nullable(
+        v.date({ description: 'When the session expires. `null` if it never expires.' })
+      ),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

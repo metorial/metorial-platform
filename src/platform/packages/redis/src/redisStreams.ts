@@ -10,6 +10,7 @@ import { parseRedisUrl } from './utils/parseRedisUrl';
 let Sentry = getSentry();
 
 let MIN_IDLE_TIME_FOR_AUTOCLAIM = 1000 * 60 * 5;
+let STREAM_TRIM_DELAY_MS = 1000 * 60 * 15;
 
 export class RedisStreams<Message> {
   constructor(
@@ -20,7 +21,7 @@ export class RedisStreams<Message> {
     this.redisUrl = redisUrl ?? config.redisUrl;
   }
 
-  private async createRedis() {
+  private createRedis() {
     return new Redis(parseRedisUrl(this.redisUrl!));
   }
 
@@ -28,7 +29,7 @@ export class RedisStreams<Message> {
     opts: { groupId: string; consumerId?: string; concurrency?: number },
     processor: (msg: Message) => Promise<any>
   ) {
-    let redis = await this.createRedis();
+    let redis = this.createRedis();
 
     let queue = new PQueue({ concurrency: opts.concurrency ?? 10 });
 
@@ -38,6 +39,7 @@ export class RedisStreams<Message> {
     } catch (e: any) {
       // Ignore BUSYGROUP errors -> group already exists
       if (!e.message.includes('BUSYGROUP')) {
+        redis.disconnect();
         Sentry.captureException(e);
         throw e;
       }
@@ -47,98 +49,96 @@ export class RedisStreams<Message> {
 
     let iteration = 0;
     let randomClaimIteration = randomNumber(50, 100);
+    let reader = this.createRedis();
 
-    // Create the consumer
-    while (true) {
-      // Create a new redis instance for each read group
-      // To avoid blocking the main redis instance (e.g., for ACKs)
-      let isolatedRedis = await this.createRedis();
-
-      let response = await isolatedRedis.xreadgroup(
-        'GROUP',
-        opts.groupId,
-        consumerId,
-        'COUNT',
-        20, // Maximum number of entries to read
-        'BLOCK',
-        100, // Block for 100ms to wait for new entries (avoid polling)
-        'STREAMS',
-        this.name,
-        '>' // Next entry ID that no consumer in this group has read
-      );
-
-      // Close the isolated connection after reading
-      isolatedRedis.disconnect();
-
-      let messages: any[] = [];
-
-      if (response && response.length > 0) {
-        messages = response.flatMap(([streamName, entries]: any) =>
-          entries.map(([id, fields]: any) => ({
-            id,
-            message: {
-              payload: fields[1] // ioredis returns fields as ['key', 'value', ...]
-            }
-          }))
-        );
-      }
-
-      if (iteration++ % randomClaimIteration == 0) {
-        let claimRes: any = await redis.xautoclaim(
-          this.name,
+    try {
+      while (true) {
+        let response = await reader.xreadgroup(
+          'GROUP',
           opts.groupId,
           consumerId,
-          MIN_IDLE_TIME_FOR_AUTOCLAIM,
-          '0-0',
           'COUNT',
-          100
+          20, // Maximum number of entries to read
+          'BLOCK',
+          100, // Block for 100ms to wait for new entries (avoid polling)
+          'STREAMS',
+          this.name,
+          '>' // Next entry ID that no consumer in this group has read
         );
 
-        // claimRes format: [next_id, claimed_messages, deleted_message_ids]
-        if (claimRes && claimRes[1]) {
-          let claimedMessages = claimRes[1].map(([id, fields]: any) => ({
-            id,
-            message: {
-              payload: fields[1]
-            }
-          }));
-          messages.push(...claimedMessages);
+        let messages: any[] = [];
+
+        if (response && response.length > 0) {
+          messages = response.flatMap(([streamName, entries]: any) =>
+            entries.map(([id, fields]: any) => ({
+              id,
+              message: {
+                payload: fields[1] // ioredis returns fields as ['key', 'value', ...]
+              }
+            }))
+          );
+        }
+
+        if (iteration++ % randomClaimIteration == 0) {
+          let claimRes: any = await redis.xautoclaim(
+            this.name,
+            opts.groupId,
+            consumerId,
+            MIN_IDLE_TIME_FOR_AUTOCLAIM,
+            '0-0',
+            'COUNT',
+            100
+          );
+
+          // claimRes format: [next_id, claimed_messages, deleted_message_ids]
+          if (claimRes && claimRes[1]) {
+            let claimedMessages = claimRes[1].map(([id, fields]: any) => ({
+              id,
+              message: {
+                payload: fields[1]
+              }
+            }));
+            messages.push(...claimedMessages);
+          }
+        }
+
+        for (let msg of messages) {
+          queue.add(async () => {
+            await processor(serialize.decode(msg.message.payload));
+            await redis.xack(this.name, opts.groupId, msg.id);
+          });
         }
       }
-
-      for (let msg of messages) {
-        queue.add(async () => {
-          await processor(serialize.decode(msg.message.payload));
-          await redis.xack(this.name, opts.groupId, msg.id);
-        });
-      }
+    } finally {
+      reader.disconnect();
+      await queue.onIdle();
+      redis.disconnect();
     }
   }
 
-  private hasInstallCleanup = false;
-  private installCleanup() {
-    if (this.hasInstallCleanup) return;
+  private trimScheduled = false;
 
-    setTimeout(
-      async () => {
-        let redis = await this.createRedis();
+  private scheduleTrim(redis: Redis) {
+    if (this.trimScheduled) return;
+    this.trimScheduled = true;
 
+    setTimeout(async () => {
+      try {
         await redis.xtrim(this.name, 'MAXLEN', '~', 10_000);
-
-        await redis.quit();
-      },
-      1000 * 60 * 15
-    );
+      } catch (error) {
+        Sentry.captureException(error);
+        console.error(`Failed to trim Redis stream ${this.name}`, error);
+      } finally {
+        this.trimScheduled = false;
+      }
+    }, STREAM_TRIM_DELAY_MS).unref();
   }
 
   private sendRedisConnection?: Redis;
+
   async send(payload: Message) {
-    if (!this.sendRedisConnection) {
-      this.sendRedisConnection = await this.createRedis();
-    }
-
-    await this.sendRedisConnection.xadd(this.name, '*', 'payload', serialize.encode(payload));
-
-    this.installCleanup();
+    let redis = (this.sendRedisConnection ??= this.createRedis());
+    await redis.xadd(this.name, '*', 'payload', serialize.encode(payload));
+    this.scheduleTrim(redis);
   }
 }

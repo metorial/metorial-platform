@@ -127,6 +127,12 @@ export let db = baseClient.$extends(queryExtension);
 // receiver) bypass the read replica, which may lag behind the primary.
 export let dbPrimary = primaryClient.$extends(queryExtension) as unknown as typeof db;
 
+// For lookups a client may issue right after creating the record (e.g. fetching or connecting
+// to a session it just created): a replica miss is retried once on the primary.
+export let findWithPrimaryFallback = async <T>(
+  read: (client: typeof db) => Promise<T | null>
+): Promise<T | null> => (await read(db)) ?? (await read(dbPrimary));
+
 declare global {
   namespace PrismaJson {
     // @ts-ignore

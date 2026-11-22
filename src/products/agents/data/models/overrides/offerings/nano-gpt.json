@@ -973,6 +973,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "jcartu/deepseek-v4.1-flash-1017-abliterated-lossless-csf": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face lists it as a derivative of DeepSeek-V4.1-Flash-1017 and describes norm-preserving biprojection abliteration with edited tensors; a weight-edited derivative is not the DeepSeek checkpoint, and the index has no jcartu entry.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "jiunsong/supergemma4-26b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Listings describe SuperGemma4 26B Uncensored as a community uncensored fine-tune/abliterated variant of Google Gemma 4 26B A4B; a derivative is not google/gemma-4-26b-a4b-it itself and the index has no Jiunsong entry.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "kitani/clover-2": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "Kitani's Clover 2 is a real model per the vendor's site and Hugging Face (Kitani's Clover line), but the model index contains no Kitani or Clover entries, so there is nothing to link yet.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
+  "kitani/clover-2:thinking": {
+    "decision": "defer",
+    "until": "2026-12-17",
+    "reason": "A thinking serving of Kitani's Clover 2, so it maps to the same base model; the index has no Kitani/Clover entry to link, so defer both.",
+    "by": "agent",
+    "at": "2026-11-17"
+  },
   "lightonai/LightOnOCR-2-1B": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1218,12 +1246,26 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "orca/orcacyber-glm-5.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaRouter's release says it serves Z.ai's GLM-5.3 with refusal responses relaxed through abliteration for security research; a weight-edited derivative is not zhipu/glm-5.3 itself and no OrcaCyber entry exists.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
   "orca/orcacyber-glm-5.3-flash": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "OrcaCyber GLM 5.3 Flash is Z.ai's GLM-5.3-Flash checkpoint with refusal behavior relaxed via abliteration for security research (per FlashLabs/PR Times coverage of the Nov 2026 release); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "orca/orcacyber-hy4": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaRouter's page and release describe Hy4 as Tencent's open-weight Hy4 with refusal behavior removed via abliteration; a weight-edited derivative is not tencent/hy4 itself and the index has no OrcaCyber entry.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "orca/orcacyber-k3.1-pro": {
     "decision": "exclude",
@@ -1252,6 +1294,20 @@
     "reason": "OrcaCyber Qwen3.8 Flash Next is Alibaba's Qwen3.8 Flash Next with the refusal response direction removed (per Newswire coverage of the Oct 2026 release); a weight-edited derivative is not alibaba/qwen3.8-flash-next itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "orca/orcacyber-ultra-1.0": {
+    "decision": "defer",
+    "until": "2026-12-18",
+    "reason": "OrcaRouter's own page describes Ultra 1.0 as the flagship of its trillion-parameter OrcaCyber cybersecurity model series, with no source tying it to an indexed base model; a real first-party model the index has no OrcaCyber entry for.",
+    "by": "agent",
+    "at": "2026-11-18"
+  },
+  "orca/orcacyber-zero-1.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaRouter states Zero 1.0 is based on GLM-5.3 and post-trained specifically for vulnerability research and cyber workflows; a post-trained derivative is not zhipu/glm-5.3 itself and the index has no OrcaCyber entry.",
+    "by": "agent",
+    "at": "2026-11-18"
   },
   "orca/orcacyber-zero-1.5": {
     "decision": "defer",
@@ -1428,6 +1484,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "radixark/daisyrose-27b": {
+    "decision": "defer",
+    "until": "2026-12-20",
+    "reason": "RadixArk DaisyRose-27B is an RL-only fine-tune of Qwen3.8-27B (HF card: 'built on Qwen3.8-27B with reinforcement learning'), so it is not the Qwen checkpoint itself; the index has no RadixArk/DaisyRose entry. Released 2026-11-18, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "ricursiveai/ripple-65b-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1525,6 +1588,13 @@
     "reason": "unsloth/gemma-3-12b-it is Unsloth's mirror of Google's Gemma 3 12B IT instruction-tuned checkpoint (image-text-to-text, released 2025-03-12); same model as google/gemma-3-12b-it, and NanoGPT's flat 0.272 rate is above the model's median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "unsloth/gemma-3-4b-it": {
+    "decision": "link",
+    "model": "google/gemma-3-4b-it",
+    "reason": "Unsloth's gemma-3-4b-it repo is a faithful mirror of Google's Gemma 3 4B IT checkpoint (same 2025-03-12 release date, image-text-to-text pipeline, gemma license per its Hugging Face metadata), not a fine-tune, so the current link is right; NanoGPT's flat 0.2006 input/output rate is its own aggregator markup over the model's 0.04 median, not a different model.",
+    "by": "agent",
+    "at": "2026-11-20"
   },
   "venice-uncensored": {
     "decision": "link",

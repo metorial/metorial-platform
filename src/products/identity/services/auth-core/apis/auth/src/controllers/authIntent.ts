@@ -139,7 +139,8 @@ export let authIntentController = publicApp.controller({
         input: v.object({
           firstName: v.string(),
           lastName: v.string(),
-          acceptedTerms: v.boolean()
+          acceptedTerms: v.boolean(),
+          password: v.optional(v.string())
         })
       })
     )
@@ -150,7 +151,8 @@ export let authIntentController = publicApp.controller({
         input: {
           firstName: input.input.firstName,
           lastName: input.input.lastName,
-          acceptedTerms: input.input.acceptedTerms
+          acceptedTerms: input.input.acceptedTerms,
+          password: input.input.password
         }
       });
 

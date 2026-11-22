@@ -96,7 +96,12 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-10-12T12:00:00.000Z'));
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-  loader.data = { status: 'needs_verification', captcha: null, steps: [step('password')] };
+  loader.data = {
+    status: 'needs_verification',
+    captcha: null,
+    emailCodesAllowed: true,
+    steps: [step('password')]
+  };
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -184,5 +189,28 @@ describe('password to email-code transition', () => {
       codeInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
     expect(container.textContent).toContain('The code you entered is incorrect.');
+  });
+});
+
+describe('on-prem password-only login', () => {
+  it('does not offer a code fallback on the password screen', async () => {
+    loader.data = { ...loader.data, emailCodesAllowed: false };
+    await render();
+    let labels = Array.from(container.querySelectorAll('button')).map(b => b.textContent);
+    expect(labels).not.toContain('Send Me a Code Instead');
+  });
+
+  it('asks for a password when finishing signup', async () => {
+    loader.data = {
+      ...loader.data,
+      type: 'password',
+      status: 'needs_user',
+      emailCodesAllowed: false,
+      identifier: { type: 'email', value: 'new@example.com' },
+      userCreationPrefill: {},
+      steps: []
+    };
+    await render();
+    expect(container.querySelector('input[type="password"]')).not.toBeNull();
   });
 });

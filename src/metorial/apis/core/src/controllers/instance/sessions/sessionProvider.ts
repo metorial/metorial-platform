@@ -147,13 +147,13 @@ export let sessionProviderController = Controller.create(
   {
     name: 'Session Providers',
     description:
-      'Session providers represent the providers that are actively connected to a session. Each session can have multiple providers, and providers can be added or removed during the session lifecycle.'
+      'A session provider is one provider connected to a session, with the deployment, config, and credentials it runs with.'
   },
   {
     list: integrationsGroup
       .get(instancePath('session-providers', 'sessions.providers.list'), {
         name: 'List session providers',
-        description: 'Returns a paginated list of providers connected to a session.'
+        description: 'Returns a paginated list of session providers.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -194,7 +194,7 @@ export let sessionProviderController = Controller.create(
                 v.enumOf(['active', 'archived']),
                 v.array(v.enumOf(['active', 'archived']))
               ]),
-              { description: 'Filter by provider status' }
+              { description: 'Only return session providers with one of these statuses.' }
             ),
             created_at: dateFilterValidator('session provider creation time'),
             updated_at: dateFilterValidator('session provider last update time')
@@ -235,7 +235,7 @@ export let sessionProviderController = Controller.create(
     get: subspaceSessionProviderGroup
       .get(instancePath('session-providers/:sessionProviderId', 'sessions.providers.get'), {
         name: 'Get session provider',
-        description: 'Retrieves a specific provider connected to a session.'
+        description: 'Retrieves a session provider.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -252,7 +252,7 @@ export let sessionProviderController = Controller.create(
     create: integrationsGroup
       .post(instancePath('session-providers', 'sessions.providers.create'), {
         name: 'Create session provider',
-        description: 'Adds a new provider to an active session.'
+        description: 'Creates a session provider. The session must be active.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(
@@ -265,13 +265,22 @@ export let sessionProviderController = Controller.create(
       .body('default', sessionProviderCreateBodyValidator)
       .output(sessionProviderPresenter)
       .do(async ctx => {
+        let organizationActor = getOwnershipActor(ctx);
+
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          organizationActor: getOwnershipActor(ctx),
+          organizationActor,
           sessionId: ctx.body.session_id
         });
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor,
+          session
+        });
+
         let input = await resolveSessionProviderInput({
           instance: ctx.instance,
+          organizationActor,
           auditScope: ctx.auditScope,
           providerDeployment: mapSessionProviderDeploymentSource(ctx.body),
           providerConfig: mapSessionProviderConfigSource(ctx.body),
@@ -280,6 +289,7 @@ export let sessionProviderController = Controller.create(
         });
         let sessionProvider = await sessionProviderService.createSessionProvider({
           instance: ctx.instance,
+          organizationActor,
           auditScope: ctx.auditScope,
           session,
           input
@@ -295,7 +305,7 @@ export let sessionProviderController = Controller.create(
         instancePath('session-providers/:sessionProviderId', 'sessions.providers.update'),
         {
           name: 'Update session provider',
-          description: 'Updates a provider connected to a session.'
+          description: 'Updates a session provider.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -313,6 +323,12 @@ export let sessionProviderController = Controller.create(
       )
       .output(sessionProviderPresenter)
       .do(async ctx => {
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          session: ctx.sessionProvider.session
+        });
+
         let sessionProvider = await sessionProviderService.updateSessionProvider({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
@@ -333,8 +349,8 @@ export let sessionProviderController = Controller.create(
       .delete(
         instancePath('session-providers/:sessionProviderId', 'sessions.providers.delete'),
         {
-          name: 'Delete session provider',
-          description: 'Removes a provider from a session.'
+          name: 'Archive session provider',
+          description: 'Archives a session provider. It stays listable with `status=archived`.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -346,6 +362,12 @@ export let sessionProviderController = Controller.create(
       )
       .output(sessionProviderPresenter)
       .do(async ctx => {
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          session: ctx.sessionProvider.session
+        });
+
         let sessionProvider = await sessionProviderService.archiveSessionProvider({
           instance: ctx.instance,
           auditScope: ctx.auditScope,

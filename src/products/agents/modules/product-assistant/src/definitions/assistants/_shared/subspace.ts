@@ -1,12 +1,18 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { sessionMcpMessagingService, sessionService } from '@metorial-subspace/module-session';
 import {
+  assertCanUseSessionById,
   getInstanceInternalEnvironmentIdentifier,
   getProjectInternalTenantIdentifier,
   tenantService
 } from '@metorial-subspace/module-tenant';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
-import type { Instance, ProductAssistantSubspaceMcpConnection, Project } from '@metorial/db';
+import type {
+  Instance,
+  ProductAssistantSubspaceMcpConnection,
+  Project,
+  ResourceActor
+} from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import { env } from '../../../env';
 import { InternalMcpTransport, type MCPServerConfig } from '../../../lib/open-harness/lib/mcp';
@@ -14,6 +20,8 @@ import type { SubspaceMcpToolList } from '../../../types';
 let CONNECTION_IDLE_MS = 15 * 60 * 1000;
 let CONNECTION_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 let TOOL_CACHE_TTL_MS = 10 * 60 * 1000;
+
+type SessionCaller = Pick<ResourceActor, 'oid'> | null;
 
 type SubspaceServicesLike = {
   tenant: {
@@ -28,7 +36,52 @@ type SubspaceServicesLike = {
       environment: any;
       sessionId: string;
     }) => Promise<{ id: string; status?: string }>;
+    assertCanUseSession: (input: {
+      instance: Instance;
+      actor: SessionCaller;
+      sessionId: string;
+    }) => Promise<void>;
   };
+};
+
+let getCallerOrganizationActor = async (actor: SessionCaller) => {
+  if (!actor) return null;
+
+  let resourceActor = await db.resourceActor.findUnique({
+    where: { oid: actor.oid },
+    select: {
+      organizationActor: true,
+      consumerProfile: { select: { organizationActor: true } }
+    }
+  });
+
+  return (
+    resourceActor?.consumerProfile?.organizationActor ??
+    resourceActor?.organizationActor ??
+    null
+  );
+};
+
+let assertCanUseSession = async (d: {
+  instance: Instance;
+  actor: SessionCaller;
+  sessionId: string;
+}) => {
+  let organizationActor = await getCallerOrganizationActor(d.actor);
+  if (!organizationActor) {
+    throw new ServiceError(
+      forbiddenError({
+        message: `Subspace session ${d.sessionId} cannot be used by this actor.`
+      })
+    );
+  }
+
+  await assertCanUseSessionById({
+    instance: d.instance,
+    organizationActor,
+    sessionId: d.sessionId,
+    isCrossConsumerUseDenied: true
+  });
 };
 
 let subspaceServices: SubspaceServicesLike = {
@@ -36,7 +89,8 @@ let subspaceServices: SubspaceServicesLike = {
     getTenantAndEnvironmentById: input => tenantService.getTenantAndEnvironmentById(input)
   },
   session: {
-    getSessionByIdInternal: input => sessionService.getSessionByIdInternal(input)
+    getSessionByIdInternal: input => sessionService.getSessionByIdInternal(input),
+    assertCanUseSession
   }
 };
 
@@ -66,11 +120,26 @@ export type ExplorerAssistantInput = {
 export class SubspaceAssistant {
   constructor(private readonly subspaceServices: SubspaceServicesLike) {}
 
+  async assertCanUseSession(d: {
+    instance: Instance;
+    actor: SessionCaller;
+    input: { sessionId: string };
+  }) {
+    await this.subspaceServices.session.assertCanUseSession({
+      instance: d.instance,
+      actor: d.actor,
+      sessionId: d.input.sessionId
+    });
+  }
+
   async getInput(d: {
     project: Project;
     instance: Instance;
+    actor: SessionCaller;
     input: { sessionId: string };
   }): Promise<ExplorerAssistantInput> {
+    await this.assertCanUseSession(d);
+
     let scope = await this.subspaceServices.tenant.getTenantAndEnvironmentById({
       tenantId: getProjectInternalTenantIdentifier(d.project),
       environmentId: getInstanceInternalEnvironmentIdentifier(d.instance)
@@ -94,8 +163,11 @@ export class SubspaceAssistant {
   async createMcpServerConfig(d: {
     project: Project;
     instance: Instance;
+    actor: SessionCaller;
     input: ExplorerAssistantInput;
   }): Promise<MCPServerConfig> {
+    await this.assertCanUseSession(d);
+
     let existing = await this.getUsableConnection(d);
     return {
       name: 'Metorial Explorer',

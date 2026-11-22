@@ -23,7 +23,7 @@ let buildCspDirectives = () => [
   `style-src 'self' 'unsafe-inline'`,
   perEdition({
     cloud: `img-src 'self' data: *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
-    'on-prem': `img-src 'self' data: ${assetOrigins()}`
+    'on-prem': `img-src 'self' data: https://provider-logos.metorial-cdn.com ${assetOrigins()}`
   }),
   perEdition({
     cloud: `font-src 'self' *.metorial-cdn.com`,

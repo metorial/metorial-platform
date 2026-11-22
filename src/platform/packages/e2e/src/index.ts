@@ -3,6 +3,7 @@ export * from './api';
 export * from './assertions';
 export * from './bootstrap';
 export * from './context';
+export * from './cron';
 export * from './edition';
 export * from './editionSuites';
 export * from './env';

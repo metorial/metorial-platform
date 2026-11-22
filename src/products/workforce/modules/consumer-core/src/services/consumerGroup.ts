@@ -85,12 +85,16 @@ class ConsumerGroupServiceImpl {
     consumerSurface: ConsumerSurface;
     consumerGroupId: string;
     types?: ConsumerGroup['type'][];
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let consumerGroup = await db.consumerGroup.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
         id: d.consumerGroupId,
-        type: d.types?.length ? { in: d.types } : 'default'
+        type: d.types?.length ? { in: d.types } : 'default',
+        ...(d.visibleToConsumerGroups
+          ? { oid: { in: d.visibleToConsumerGroups.map(group => group.oid) } }
+          : {})
       }
     });
     if (!consumerGroup) {
@@ -104,6 +108,7 @@ class ConsumerGroupServiceImpl {
     consumerSurface: ConsumerSurface;
     status?: ConsumerGroup['status'][];
     search?: string;
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let search = await buildSearchFilter<Prisma.ConsumerGroupWhereInput>({
       search: d.search,
@@ -133,6 +138,9 @@ class ConsumerGroupServiceImpl {
                 type: 'default',
                 status: d.status?.length ? { in: d.status } : 'active'
               },
+              ...(d.visibleToConsumerGroups
+                ? [{ oid: { in: d.visibleToConsumerGroups.map(group => group.oid) } }]
+                : []),
               ...(search ? [search] : [])
             ]
           }

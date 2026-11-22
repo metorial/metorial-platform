@@ -1,5 +1,11 @@
 import { isServiceError, internalServerError, type ErrorRecord } from '@lowerdeck/error';
-import { sinkBusyRetryAfterSeconds } from '@mtsrc/agent-tracking-store';
+import {
+  getStore,
+  isStoreConfigured,
+  isTransientStoreError,
+  sinkBusyError,
+  sinkBusyRetryAfterSeconds
+} from '@mtsrc/agent-tracking-store';
 
 export let jsonResponse = (status: number, body: unknown, headers?: Record<string, string>) =>
   Response.json(body, { status, headers });
@@ -22,6 +28,12 @@ export let caughtErrorResponse = (error: unknown): Response => {
         : undefined;
 
     return jsonResponse(error.data.status, error.toResponse(), headers);
+  }
+
+  if (isTransientStoreError(error)) {
+    if (isStoreConfigured()) getStore().logUnreachable(error);
+
+    return retryLaterResponse(sinkBusyError(), sinkBusyRetryAfterSeconds);
   }
 
   console.error(error);

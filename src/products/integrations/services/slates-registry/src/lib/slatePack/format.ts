@@ -7,6 +7,7 @@ export let SLATE_PACK_MANIFEST_PATH = 'slatepack.json';
 export let SLATE_PACK_SIGNATURE_PATH = 'slatepack.sig';
 export let SLATE_PACK_SIGNATURE_FORMAT = 'metorial-slatepack-signature';
 export let SLATE_PACK_MAX_ENTRIES = 10_000;
+export let SLATE_PACK_MAX_TOOLING = 100;
 
 export type SlatePackManifestEntry = {
   identifier: string;
@@ -15,6 +16,14 @@ export type SlatePackManifestEntry = {
   contentChecksum: string | null;
   signatures: { kid: string; signature: string }[];
   catalog: { name: string | null; description: string | null; logoUrl: string | null };
+};
+
+export type SlatePackToolingEntry = {
+  kind: string;
+  version: string;
+  path: string;
+  contentChecksum: string;
+  signatures: { kid: string; signature: string }[];
 };
 
 export type SlatePackChannelRef = { url: string; subRegistryId: string };
@@ -37,6 +46,7 @@ export type SlatePackManifest = {
   source: { url: string; subRegistryId: string | null };
   delivery: SlatePackDelivery | null;
   entries: SlatePackManifestEntry[];
+  tooling: SlatePackToolingEntry[];
 };
 
 export type SlatePackSignatures = { kid: string; signature: string }[];
@@ -84,6 +94,17 @@ let manifestSchema = v.object({
         })
       )
     })
+  ),
+  tooling: v.optional(
+    v.array(
+      v.object({
+        kind: v.string(),
+        version: v.string(),
+        path: v.string(),
+        contentChecksum: v.string(),
+        signatures: v.array(v.object({ kid: v.string(), signature: v.string() }))
+      })
+    )
   )
 });
 
@@ -96,6 +117,9 @@ let invalidPack = (message: string) => new ServiceError(badRequestError({ messag
 
 export let getSlatePackEntryPath = (d: { identifier: string; version: string }) =>
   `entries/${d.identifier.replace(/^@/, '')}/${d.version}.zip`;
+
+export let getSlatePackToolingPath = (d: { kind: string; version: string }) =>
+  `tooling/${d.kind}/${d.version}.zip`;
 
 let parseDelivery = (
   delivery: ValidationTypeValue<typeof manifestSchema>['delivery']
@@ -141,6 +165,11 @@ export let parseSlatePackManifest = (content: string): SlatePackManifest => {
   if (result.value.entries.length > SLATE_PACK_MAX_ENTRIES) {
     throw invalidPack(`Slate packs may contain at most ${SLATE_PACK_MAX_ENTRIES} versions.`);
   }
+  if ((result.value.tooling?.length ?? 0) > SLATE_PACK_MAX_TOOLING) {
+    throw invalidPack(
+      `Slate packs may contain at most ${SLATE_PACK_MAX_TOOLING} tooling archives.`
+    );
+  }
 
   return {
     format: SLATE_PACK_FORMAT,
@@ -162,6 +191,13 @@ export let parseSlatePackManifest = (content: string): SlatePackManifest => {
         description: entry.catalog?.description ?? null,
         logoUrl: entry.catalog?.logoUrl ?? null
       }
+    })),
+    tooling: (result.value.tooling ?? []).map(tooling => ({
+      kind: tooling.kind,
+      version: tooling.version,
+      path: tooling.path,
+      contentChecksum: tooling.contentChecksum,
+      signatures: tooling.signatures
     }))
   };
 };

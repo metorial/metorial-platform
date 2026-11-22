@@ -32,26 +32,35 @@ export let v1ScmConnectionPresenter = Presenter.create(scmConnectionType)
   }))
   .schema(
     v.object({
-      object: v.literal('scm.connection'),
-      id: v.string({ description: 'Unique SCM connection identifier' }),
+      object: v.literal('scm.connection', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
       provider: v.enumOf(['github', 'gitlab', 'bitbucket'], {
-        description: 'SCM provider type'
+        description: 'Provider this connection is for.'
       }),
       external_installation_id: v.nullable(
-        v.string({ description: 'External installation identifier' })
+        v.string({ description: 'Installation ID on the provider.' })
       ),
       account_type: v.nullable(
-        v.enumOf(['user', 'organization'], { description: 'Account type' })
+        v.enumOf(['user', 'organization'], {
+          description: 'Whether the connected account is a user or an organization.'
+        })
       ),
-      external_account: v.object({
-        id: v.string({ description: 'External account identifier' }),
-        login: v.string({ description: 'External account login' }),
-        name: v.nullable(v.string({ description: 'External account name' })),
-        email: v.nullable(v.string({ description: 'External account email' })),
-        image_url: v.nullable(v.string({ description: 'External account image URL' }))
-      }),
-      created_at: v.date({ description: 'Timestamp when created' }),
-      updated_at: v.date({ description: 'Timestamp when last updated' })
+      external_account: v.object(
+        {
+          id: v.string({ description: 'ID of the account on the provider.' }),
+          login: v.string({ description: 'Login of the account on the provider.' }),
+          name: v.nullable(v.string({ description: 'Name of the account on the provider.' })),
+          email: v.nullable(
+            v.string({ description: 'Email of the account on the provider.' })
+          ),
+          image_url: v.nullable(v.string({ description: 'Profile image URL.' }))
+        },
+        { description: 'Account this connection is authorized as.' }
+      ),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();
@@ -76,15 +85,19 @@ export let v1ScmConnectionSetupPresenter = Presenter.create(scmConnectionSetupTy
   }))
   .schema(
     v.object({
-      object: v.literal('scm.connection.setup_session'),
-      id: v.string({ description: 'Unique setup session identifier' }),
-      url: v.string({ description: 'Authorization URL' }),
-      status: v.enumOf(['pending', 'completed', 'expired'], {
-        description: 'Status of the connection setup session'
+      object: v.literal('scm.connection.setup_session', {
+        description: 'String representing the object’s type.'
       }),
-      connection: v.nullable(v1ScmConnectionPresenter.schema),
-      created_at: v.date({ description: 'Timestamp when created' }),
-      expires_at: v.date({ description: 'Timestamp when the session expires' })
+      id: v.string({ description: 'Unique ID.' }),
+      url: v.string({ description: 'URL to open for completing authorization.' }),
+      status: v.enumOf(['pending', 'completed', 'expired'], {
+        description: '`pending` until authorization completes.'
+      }),
+      connection: v.nullable(v1ScmConnectionPresenter.schema, {
+        description: 'Connection created by this session. `null` until the session completes.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      expires_at: v.date({ description: 'When the setup session expires.' })
     })
   )
   .build();

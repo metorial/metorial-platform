@@ -35,12 +35,12 @@ export let toolCallController = Controller.create(
   {
     name: 'Tool Calls',
     description:
-      'Tool calls represent individual tool invocations within a session. They track the input, output, and status of each tool execution.'
+      'A tool call is one invocation of a provider tool in a session, with its input, output, and status.'
   },
   {
     list: integrationsGroup
       .get(instancePath('tool-calls', 'toolCalls.list'), {
-        name: 'List all tool calls',
+        name: 'List tool calls',
         description: 'Returns a paginated list of tool calls across all sessions.'
       })
       .use(requireNonPublishableMachineAccess())
@@ -159,7 +159,7 @@ export let toolCallController = Controller.create(
     get: toolCallGroup
       .get(instancePath('tool-calls/:toolCallId', 'toolCalls.get'), {
         name: 'Get tool call',
-        description: 'Retrieves a specific tool call by ID.'
+        description: 'Retrieves a tool call.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
@@ -173,7 +173,7 @@ export let toolCallController = Controller.create(
     create: integrationsGroup
       .post(instancePath('tool-calls', 'toolCalls.create'), {
         name: 'Create tool call',
-        description: 'Creates a new tool call in a session by invoking a specific tool.'
+        description: 'Calls a tool in a session and returns the resulting tool call.'
       })
       .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
@@ -181,22 +181,32 @@ export let toolCallController = Controller.create(
       .body(
         'default',
         v.object({
-          tool_id: v.string({ description: 'The ID of the tool to call' }),
-          input: v.record(v.any(), { description: 'Input data to pass to the tool' }),
+          tool_id: v.string({ description: 'Tool to call, by ID or key.' }),
+          input: v.record(v.any(), { description: 'Input to pass to the tool.' }),
           metadata: v.optional(
-            v.record(v.any(), { description: 'Optional metadata for the tool call' })
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the tool call.'
+            })
           ),
           session_id: v.string({
-            description: 'The ID of the session to which this tool call belongs'
+            description: 'Session to run the tool call in.'
           })
         })
       )
       .do(async ctx => {
+        let organizationActor = getOwnershipActor(ctx);
+
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          organizationActor: getOwnershipActor(ctx),
+          organizationActor,
           sessionId: ctx.body.session_id
         });
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor,
+          session
+        });
+
         let toolCall = await toolCallService.createToolCall({
           instance: ctx.instance,
           auditScope: ctx.auditScope,

@@ -101,4 +101,44 @@ describe('module-portal project workforce configuration', () => {
       });
     }
   });
+
+  it('allows consumer skill selection for new projects and lets it be turned off on its own', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    expect(fixture.project.allowConsumerSkillSelection).toBe(true);
+
+    try {
+      let project =
+        await projectWorkforceConfigurationService.updateProjectWorkforceConfiguration({
+          project: fixture.project,
+          organization: fixture.organization,
+          auditScope: fixture.auditScope,
+          input: { allowConsumerSkillSelection: false }
+        });
+      expect(project.allowConsumerSkillSelection).toBe(false);
+      expect(project).toMatchObject({
+        autoAddOrganizationMembersToPortals:
+          fixture.project.autoAddOrganizationMembersToPortals,
+        allowConsumerSkillEditing: fixture.project.allowConsumerSkillEditing,
+        allowOrganizationMemberFullSkillAccess:
+          fixture.project.allowOrganizationMemberFullSkillAccess
+      });
+
+      let row = await db.project.findUniqueOrThrow({ where: { oid: fixture.project.oid } });
+      expect(row.allowConsumerSkillSelection).toBe(false);
+
+      let restored =
+        await projectWorkforceConfigurationService.updateProjectWorkforceConfiguration({
+          project: row,
+          organization: fixture.organization,
+          auditScope: fixture.auditScope,
+          input: { allowConsumerSkillSelection: true }
+        });
+      expect(restored.allowConsumerSkillSelection).toBe(true);
+    } finally {
+      await db.project.update({
+        where: { oid: fixture.project.oid },
+        data: { allowConsumerSkillSelection: true }
+      });
+    }
+  });
 });

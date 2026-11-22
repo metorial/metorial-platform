@@ -1,4 +1,4 @@
-import type { Instance } from '@metorial/db';
+import type { Instance, OrganizationActor } from '@metorial/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
@@ -87,6 +87,43 @@ describe('resolveSessionProviderInput', () => {
       toolFilters: undefined,
       __allowEphemeral: false
     });
+  });
+
+  it("loads config, vault and auth config references as the caller's actor", async () => {
+    let organizationActor = { id: 'oac_1', type: 'member' } as OrganizationActor;
+    let providerDeployment = { id: 'pdp_1', provider: { id: 'pro_1' } };
+    mocks.getProviderDeploymentById.mockResolvedValue(providerDeployment);
+    mocks.getProviderById.mockResolvedValue({ id: 'pro_1' });
+    mocks.getProviderConfigById.mockResolvedValue({ id: 'pcf_1' });
+    mocks.getProviderConfigVaultById.mockResolvedValue({ id: 'pcv_1' });
+    mocks.createProviderConfig.mockResolvedValue({ id: 'pcf_new' });
+    mocks.getProviderAuthConfigById.mockResolvedValue({ id: 'pac_1' });
+
+    await resolveSessionProviderInput({
+      instance,
+      organizationActor,
+      providerConfig: { type: 'reference', providerConfigId: 'pcf_1' },
+      providerAuthConfig: { type: 'reference', providerAuthConfigId: 'pac_1' }
+    });
+    await resolveSessionProviderInput({
+      instance,
+      organizationActor,
+      providerDeployment: { type: 'reference', providerDeploymentId: 'pdp_1' },
+      providerConfig: {
+        type: 'ephemeral',
+        config: { type: 'vault', providerConfigVaultId: 'pcv_1' }
+      }
+    });
+
+    expect(mocks.getProviderConfigById.mock.calls[0]![0].organizationActor).toBe(
+      organizationActor
+    );
+    expect(mocks.getProviderAuthConfigById.mock.calls[0]![0].organizationActor).toBe(
+      organizationActor
+    );
+    expect(mocks.getProviderConfigVaultById.mock.calls[0]![0].organizationActor).toBe(
+      organizationActor
+    );
   });
 
   it('preserves ephemeral deployment defaults and the legacy allowance oddity', async () => {
