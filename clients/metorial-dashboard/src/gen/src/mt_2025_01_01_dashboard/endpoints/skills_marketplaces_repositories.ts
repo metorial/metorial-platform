@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Marketplace Repositories controller
- * @description Manage repositories linked to skill marketplaces for an instance.
+ * @description A skill marketplace repository is a repository linked to a skill marketplace.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

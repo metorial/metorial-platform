@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsImportsListOutput = {
+  object: 'list';
   items: {
     object: 'skill.import';
     id: string;
@@ -41,7 +42,12 @@ export type SkillsImportsListOutput = {
     completedAt: Date | null;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapSkillsImportsListOutput =

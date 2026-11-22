@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Consumers controller
- * @description Manage instance consumers independently from portals and inspect the profiles linked to each consumer.
+ * @description A consumer is a person or system that uses an instance. Each consumer has profiles linking them to the surfaces they can access.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialManagementInstanceConsumersProfilesEndpoint {
 
   /**
    * @name List consumer profiles
-   * @description Returns a paginated list of profiles for a consumer in an instance.
+   * @description Returns a paginated list of profiles for a consumer.
    *
    * @param `instanceId` - string
    * @param `consumerId` - string
@@ -75,7 +75,7 @@ export class MetorialManagementInstanceConsumersProfilesEndpoint {
 
   /**
    * @name Get consumer profile
-   * @description Retrieves a consumer profile by ID for a consumer.
+   * @description Retrieves a consumer profile.
    *
    * @param `instanceId` - string
    * @param `consumerId` - string

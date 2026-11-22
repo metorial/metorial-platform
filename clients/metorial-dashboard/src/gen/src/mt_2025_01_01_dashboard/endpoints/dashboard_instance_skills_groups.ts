@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Skill Groups controller
- * @description Skill groups organize skills into reusable collections.
+ * @description A skill group is a reusable collection of skills.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialDashboardInstanceSkillsGroupsEndpoint {
 
   /**
    * @name Get skill group
-   * @description Retrieves a specific skill group.
+   * @description Retrieves a skill group.
    *
    * @param `instanceId` - string
    * @param `skillGroupId` - string
@@ -142,7 +142,7 @@ export class MetorialDashboardInstanceSkillsGroupsEndpoint {
 
   /**
    * @name Update skill group
-   * @description Updates a skill group.
+   * @description Updates a skill group. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `skillGroupId` - string
@@ -173,7 +173,7 @@ export class MetorialDashboardInstanceSkillsGroupsEndpoint {
   }
 
   /**
-   * @name Delete skill group
+   * @name Archive skill group
    * @description Archives a skill group.
    *
    * @param `instanceId` - string

@@ -71,7 +71,7 @@ export class MetorialDashboardInstanceChatsEndpoint {
 
   /**
    * @name Get chat
-   * @description Retrieves a specific chat.
+   * @description Retrieves a chat.
    *
    * @param `instanceId` - string
    * @param `chatId` - string

@@ -32,7 +32,7 @@ import {
 
 /**
  * @name Magic MCP Groups controller
- * @description Magic MCP groups categorize servers and can be bound to token access.
+ * @description A magic MCP group is a set of magic MCP servers that a token can be scoped to.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -179,7 +179,7 @@ export class MetorialDashboardInstanceMagicMcpGroupsEndpoint {
 
   /**
    * @name Update magic MCP group
-   * @description Updates a magic MCP group.
+   * @description Updates a magic MCP group. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `magicMcpGroupId` - string

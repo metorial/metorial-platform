@@ -30,7 +30,7 @@ import {
 
 /**
  * @name Skill Files controller
- * @description Read and edit the files of a skill by path.
+ * @description Skill files are the versioned files that make up a skill, addressed by path.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

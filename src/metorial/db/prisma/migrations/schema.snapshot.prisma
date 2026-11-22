@@ -1237,6 +1237,51 @@ model ConsumerActor {
   @@index([consumerProfileOid])
 }
 
+enum AiToolPolicyStatus {
+  sanctioned
+  not_sanctioned
+  unreviewed
+}
+
+model AiToolPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  status AiToolPolicyStatus
+  note   String?
+
+  decidedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  decidedByActorOid BigInt?
+  decidedByActor    OrganizationActor? @relation(fields: [decidedByActorOid], references: [oid], onDelete: SetNull)
+
+  @@unique([instanceOid, toolKey])
+}
+
+model ConsumerDeviceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aiToolDetectionEnabled Boolean @default(false)
+
+  privacyNoticeAcceptedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  privacyNoticeAcceptedByActorOid BigInt?
+  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
+}
+
 enum ConsumerProviderSetupSessionType {
   provider_setup_session
   integration_setup_session
@@ -1820,12 +1865,16 @@ model ConsumerDevice {
   oauthTokenOid BigInt?     @unique
   oauthToken    OAuthToken? @relation(fields: [oauthTokenOid], references: [oid], onDelete: SetNull)
 
+  detectionSeq        Int?
+  detectionReportedAt DateTime?
+
   lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
   clients                   ConsumerDeviceClient[]
+  detections                ConsumerDeviceDetection[]
   magicMcpTokens            MagicMcpToken[]
   agentTrackingIngestTokens AgentTrackingIngestToken[]
 
@@ -1902,6 +1951,52 @@ model ConsumerDeviceClientExcludedSkill {
 
   @@unique([consumerDeviceClientOid, skillOid])
   @@index([skillOid])
+}
+
+enum ConsumerDeviceDetectionState {
+  installed
+  running
+}
+
+enum ConsumerDeviceDetectionConfidence {
+  high
+  medium
+  low
+}
+
+enum ConsumerDeviceDetectionSignalKind {
+  config_dir
+  app
+  path
+  ide_extension
+  process
+}
+
+model ConsumerDeviceDetection {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  state       ConsumerDeviceDetectionState
+  confidence  ConsumerDeviceDetectionConfidence
+  signalKinds ConsumerDeviceDetectionSignalKind[]
+  version     String?
+
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  goneAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, toolKey])
+  @@index([instanceOid, toolKey, goneAt])
 }
 
 enum ConsumerGroupStatus {
@@ -4722,6 +4817,8 @@ model OrganizationActor {
   consumerOrganizationActors ConsumerOrganizationActor[]
   auditLogs                  AuditLog[]
   events                     AuditLogEvent[]
+  aiToolPolicyDecisions      AiToolPolicy[]
+  consumerDeviceSettings     ConsumerDeviceSettings[]
 
   @@unique([isSystem, organizationOid])
 }
@@ -4935,6 +5032,9 @@ model Instance {
   consumerProviderSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   consumers                            ConsumerProfile[]
   consumerDevices                      ConsumerDevice[]
+  consumerDeviceDetections             ConsumerDeviceDetection[]
+  consumerDeviceSettings               ConsumerDeviceSettings?
+  aiToolPolicies                       AiToolPolicy[]
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
   skills                               Skill[]

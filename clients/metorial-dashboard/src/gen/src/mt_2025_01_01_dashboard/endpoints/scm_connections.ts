@@ -18,7 +18,7 @@ import {
 
 /**
  * @name SCM Connections controller
- * @description Manage source control connections for an instance.
+ * @description An SCM connection is an authorized link between an instance and a source control provider.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -75,7 +75,7 @@ export class MetorialScmConnectionsEndpoint {
 
   /**
    * @name Get SCM connection
-   * @description Retrieves a specific SCM connection by ID.
+   * @description Retrieves an SCM connection.
    *
    * @param `scmConnectionId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -102,7 +102,7 @@ export class MetorialScmConnectionsEndpoint {
 
   /**
    * @name Create SCM connection
-   * @description Initiates an SCM connection setup session.
+   * @description Creates a connection setup session. Open the returned URL to authorize access.
    *
    * @param `body` - DashboardInstanceScmConnectionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }

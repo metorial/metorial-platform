@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderIssuesListOutput = {
+  object: 'list';
   items: {
     object: 'provider.issue';
     id: string;
@@ -17,7 +18,12 @@ export type DashboardInstanceProviderIssuesListOutput = {
     lastSeenAt: Date;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceProviderIssuesListOutput =

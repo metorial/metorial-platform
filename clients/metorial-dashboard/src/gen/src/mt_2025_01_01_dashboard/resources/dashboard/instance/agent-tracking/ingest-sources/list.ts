@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceAgentTrackingIngestSourcesListOutput = {
+  object: 'list';
   items: {
     object: 'agent_tracking.ingest_source';
     id: string;
@@ -16,7 +17,12 @@ export type DashboardInstanceAgentTrackingIngestSourcesListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceAgentTrackingIngestSourcesListOutput =
@@ -49,4 +55,6 @@ export type DashboardInstanceAgentTrackingIngestSourcesListQuery = {
 } & { status?: 'active' | 'revoked' | ('active' | 'revoked')[] | undefined };
 
 export let mapDashboardInstanceAgentTrackingIngestSourcesListQuery =
-  /* @__PURE__ */ createMapper<DashboardInstanceAgentTrackingIngestSourcesListQuery>(0);
+  /* @__PURE__ */ createMapper<DashboardInstanceAgentTrackingIngestSourcesListQuery>(
+    0
+  );

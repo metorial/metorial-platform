@@ -9,7 +9,9 @@ let mocks = vi.hoisted(() => ({
   consumerFindUnique: vi.fn(),
   consumerDeviceFindUnique: vi.fn(),
   syncScopeAdd: vi.fn(),
-  syncEntityAdd: vi.fn()
+  syncEntityAdd: vi.fn(),
+  agentReconcile: vi.fn(),
+  instanceFindUnique: vi.fn()
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -23,7 +25,8 @@ vi.mock('@metorial/db', () => ({
   addAfterTransactionHook: async (hook: () => unknown) => await hook(),
   db: {
     consumer: { findUnique: mocks.consumerFindUnique },
-    consumerDevice: { findUnique: mocks.consumerDeviceFindUnique }
+    consumerDevice: { findUnique: mocks.consumerDeviceFindUnique },
+    instance: { findUnique: mocks.instanceFindUnique }
   }
 }));
 
@@ -44,6 +47,8 @@ vi.mock('@metorial/module-flags', () => ({
 vi.mock('../src/queues/syncScope', () => ({ syncScopeQueue: { add: mocks.syncScopeAdd } }));
 
 vi.mock('../src/queues/syncEntity', () => ({ syncEntityQueue: { add: mocks.syncEntityAdd } }));
+
+vi.mock('../src/queues/reconcile', () => ({ enqueueAgentReconcile: mocks.agentReconcile }));
 
 await import('../src/listeners/scope');
 await import('../src/listeners/entity');
@@ -66,6 +71,7 @@ describe('agent-tracking listeners', () => {
     mocks.consumerDeviceFindUnique.mockResolvedValue({
       instance: { organization: { id: 'org_d' } }
     });
+    mocks.instanceFindUnique.mockResolvedValue({ organization: { id: 'org_i' } });
   });
 
   it('enqueue nothing while agent tracking is not configured', async () => {
@@ -198,4 +204,44 @@ describe('agent-tracking listeners', () => {
       expect(mocks.syncEntityAdd).toHaveBeenCalledWith({ type: 'device', id: 'codv_1' });
     }
   );
+
+  it('syncs a device when it reports a newly detected tool', async () => {
+    await fire('consumer.device.detections.changed:after', {
+      consumerDevice: { id: 'codv_1' },
+      added: ['ollama'],
+      removed: []
+    });
+
+    expect(mocks.syncEntityAdd).toHaveBeenCalledWith({ type: 'device', id: 'codv_1' });
+  });
+
+  it('reconciles agents when a device lost tools', async () => {
+    await fire('consumer.device.detections.changed:after', {
+      consumerDevice: { id: 'codv_1', instanceOid: 3n },
+      added: [],
+      removed: ['ollama']
+    });
+
+    expect(mocks.syncEntityAdd).not.toHaveBeenCalled();
+    expect(mocks.agentReconcile).toHaveBeenCalledWith('org_i');
+  });
+
+  it('reconciles agents when a device ends or detection is turned off', async () => {
+    await fire('consumer.device.ended:after', { consumerDevice: { instanceOid: 3n } });
+    await fire('consumer.device_settings.updated:after', {
+      consumerDeviceSettings: { instanceOid: 3n, aiToolDetectionEnabled: false },
+      previousConsumerDeviceSettings: { aiToolDetectionEnabled: true }
+    });
+
+    expect(mocks.agentReconcile).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves agents alone when detection is turned on', async () => {
+    await fire('consumer.device_settings.updated:after', {
+      consumerDeviceSettings: { instanceOid: 3n, aiToolDetectionEnabled: true },
+      previousConsumerDeviceSettings: null
+    });
+
+    expect(mocks.agentReconcile).not.toHaveBeenCalled();
+  });
 });

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Provider Deployments controller
- * @description A deployment is a running instance of a provider, pinned to a specific version. Deployments support custom configuration values and user authentication.
+ * @description A provider deployment is a provider set up for your instance, with its own configuration and credentials. It follows the provider's current version unless you lock it to one.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -108,7 +108,7 @@ export class MetorialProviderDeploymentsEndpoint {
 
   /**
    * @name Create provider deployment
-   * @description Creates a new provider deployment.
+   * @description Creates a provider deployment.
    *
    * @param `body` - DashboardInstanceProviderDeploymentsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -165,8 +165,8 @@ export class MetorialProviderDeploymentsEndpoint {
   }
 
   /**
-   * @name Delete provider deployment
-   * @description Permanently deletes a provider deployment.
+   * @name Archive provider deployment
+   * @description Archives a provider deployment. It stays listable with `status=archived`.
    *
    * @param `providerDeploymentId` - string
    * @param `opts` - { headers?: Record<string, string> }

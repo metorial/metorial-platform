@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Document Comments controller
- * @description Reply to, edit, and delete comments in a document comment thread.
+ * @description A document comment is a message in a document comment thread.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -44,8 +44,8 @@ export class MetorialDashboardInstanceDocumentsCommentThreadsCommentsEndpoint {
   }
 
   /**
-   * @name Reply to document comment thread
-   * @description Adds a comment to an existing comment thread.
+   * @name Create document comment
+   * @description Creates a comment in a document comment thread.
    *
    * @param `instanceId` - string
    * @param `documentId` - string

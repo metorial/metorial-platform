@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Tool Calls controller
- * @description Tool calls represent individual tool invocations within a session. They track the input, output, and status of each tool execution.
+ * @description A tool call is one invocation of a provider tool in a session, with its input, output, and status.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -44,7 +44,7 @@ export class MetorialDashboardInstanceToolCallsEndpoint {
   }
 
   /**
-   * @name List all tool calls
+   * @name List tool calls
    * @description Returns a paginated list of tool calls across all sessions.
    *
    * @param `instanceId` - string
@@ -77,7 +77,7 @@ export class MetorialDashboardInstanceToolCallsEndpoint {
 
   /**
    * @name Get tool call
-   * @description Retrieves a specific tool call by ID.
+   * @description Retrieves a tool call.
    *
    * @param `instanceId` - string
    * @param `toolCallId` - string
@@ -104,7 +104,7 @@ export class MetorialDashboardInstanceToolCallsEndpoint {
 
   /**
    * @name Create tool call
-   * @description Creates a new tool call in a session by invoking a specific tool.
+   * @description Calls a tool in a session and returns the resulting tool call.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceToolCallsCreateBody

@@ -16,26 +16,28 @@ export type DashboardProjectsConfigureAgentTrackingUpdateOutput = {
 };
 
 export let mapDashboardProjectsConfigureAgentTrackingUpdateOutput =
-  /* @__PURE__ */ mapObject<DashboardProjectsConfigureAgentTrackingUpdateOutput>([
-    'organization_id',
-    'project_id',
-    'service_status',
+  /* @__PURE__ */ mapObject<DashboardProjectsConfigureAgentTrackingUpdateOutput>(
     [
-      'retention',
-      0,
+      'organization_id',
+      'project_id',
+      'service_status',
       [
-        1,
+        'retention',
+        0,
         [
-          'record_days',
-          'content_days',
-          'usage_days',
-          'default_record_days',
-          'default_content_days',
-          'default_usage_days'
+          1,
+          [
+            'record_days',
+            'content_days',
+            'usage_days',
+            'default_record_days',
+            'default_content_days',
+            'default_usage_days'
+          ]
         ]
       ]
     ]
-  ]);
+  );
 
 export type DashboardProjectsConfigureAgentTrackingUpdateBody = {
   retention: {

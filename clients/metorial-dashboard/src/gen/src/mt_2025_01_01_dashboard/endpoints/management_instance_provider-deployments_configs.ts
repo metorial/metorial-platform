@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Provider Configs controller
- * @description A config holds settings for a deployment, like API endpoints or feature flags. Create configs with values directly, or from a saved config vault with pre-saved values.
+ * @description A provider config is a set of configuration values for a provider. It holds values directly or references a config vault.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -118,7 +118,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
 
   /**
    * @name Create provider config
-   * @description Creates a new provider config.
+   * @description Creates a provider config.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsConfigsCreateBody
@@ -183,8 +183,8 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
   }
 
   /**
-   * @name Delete provider config
-   * @description Permanently deletes a provider config.
+   * @name Archive provider config
+   * @description Archives a provider config. It stays listable with `status=archived`.
    *
    * @param `instanceId` - string
    * @param `providerConfigId` - string
@@ -213,7 +213,7 @@ export class MetorialManagementInstanceProviderDeploymentsConfigsEndpoint {
 
   /**
    * @name Get config schema
-   * @description Retrieves the JSON Schema for configuration of this provider deployment.
+   * @description Returns the JSON Schema for provider configuration, resolved from the given provider, version, deployment, or config.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceProviderDeploymentsConfigsGetConfigSchemaQuery

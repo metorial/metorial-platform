@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Documents controller
- * @description Create and manage instance documents backed by Cargo.
+ * @description A document is rich text with comments, versions, and participants.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -55,7 +55,7 @@ export class MetorialDocumentsEndpoint {
 
   /**
    * @name List documents
-   * @description Returns a paginated list of documents owned by the instance.
+   * @description Returns a paginated list of documents.
    *
    * @param `query` - DashboardInstanceDocumentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -85,7 +85,7 @@ export class MetorialDocumentsEndpoint {
 
   /**
    * @name Create document
-   * @description Creates a new document for the instance.
+   * @description Creates a document.
    *
    * @param `body` - DashboardInstanceDocumentsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -112,8 +112,8 @@ export class MetorialDocumentsEndpoint {
   }
 
   /**
-   * @name Get document by ID
-   * @description Retrieves a document by its ID.
+   * @name Get document
+   * @description Retrieves a document.
    *
    * @param `documentId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -137,8 +137,8 @@ export class MetorialDocumentsEndpoint {
   }
 
   /**
-   * @name Update document by ID
-   * @description Updates a specific document.
+   * @name Update document
+   * @description Updates a document.
    *
    * @param `documentId` - string
    * @param `body` - DashboardInstanceDocumentsUpdateBody
@@ -167,8 +167,8 @@ export class MetorialDocumentsEndpoint {
   }
 
   /**
-   * @name Delete document by ID
-   * @description Deletes a specific document.
+   * @name Delete document
+   * @description Deletes a document.
    *
    * @param `documentId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -194,8 +194,8 @@ export class MetorialDocumentsEndpoint {
   }
 
   /**
-   * @name Clone document by ID
-   * @description Clones a specific document.
+   * @name Clone document
+   * @description Creates a copy of a document.
    *
    * @param `documentId` - string
    * @param `body` - DashboardInstanceDocumentsCloneBody

@@ -71,7 +71,7 @@ export class MetorialChatEventsEndpoint {
 
   /**
    * @name Get chat event
-   * @description Retrieves a specific chat event.
+   * @description Retrieves a chat event.
    *
    * @param `chatEventId` - string
    * @param `opts` - { headers?: Record<string, string> }

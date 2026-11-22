@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Syncs controller
- * @description View skill plugin and marketplace syncs for an instance.
+ * @description A skill sync is one run propagating a skill plugin or marketplace to its linked repositories.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

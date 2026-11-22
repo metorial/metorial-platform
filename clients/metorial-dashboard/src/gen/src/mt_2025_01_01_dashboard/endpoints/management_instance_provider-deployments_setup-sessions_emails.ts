@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Provider Setup Sessions controller
- * @description A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token.
+ * @description A provider setup session is a guided flow that collects authentication, configuration, or both for a provider. `admin` sessions create a consent link for someone else to complete instead.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -43,7 +43,7 @@ export class MetorialManagementInstanceProviderDeploymentsSetupSessionsEmailsEnd
 
   /**
    * @name Email provider setup session link
-   * @description Queues the link of an admin setup session for delivery to up to 10 recipients in total, given as email addresses and/or organization member IDs. Recipients are deduplicated case-insensitively and processed in order; if a later recipient fails, earlier ones may already have been queued, and retrying the request within the same window does not email them again. A recipient already emailed this setup link in the current fixed 10-minute window is not emailed again; their earlier record is returned with `deduplicated` set to true. A setup link can be emailed to at most 50 different recipients within 24 hours, and the setup links of an instance to at most 200 different recipients combined; a request that would exceed either limit is rejected with `admin_setup_email_limit_reached` before any email is queued. Passing `organization_member_ids` also requires the `organization.member:read` scope, since the response contains the members' email addresses.
+   * @description Queues the link of an admin setup session for delivery to up to 10 recipients, given as email addresses and/or organization member IDs. A recipient already emailed this setup link in the current fixed 10-minute window isn't emailed again.
    *
    * @param `instanceId` - string
    * @param `providerSetupSessionId` - string

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Integration Internet Gateway controller
- * @description Read the internet gateway that integration enclaves use to reach and be reached from the internet.
+ * @description An integration internet gateway is the shared network exit for integration enclaves in an instance. Enclaves use it to reach the internet and be reached from it.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialManagementInstanceIntegrationInternetGatewayEndpoint {
 
   /**
    * @name Get integration internet gateway
-   * @description Retrieves the integration internet gateway of the instance, including its public IPs.
+   * @description Retrieves the instance's integration internet gateway. Public IPs are masked as `x.x.x.x` unless your plan includes IP access.
    *
    * @param `instanceId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -68,7 +68,7 @@ export class MetorialManagementInstanceIntegrationInternetGatewayEndpoint {
 
   /**
    * @name List integration internet gateway network logs
-   * @description Returns ingress or egress network logs for integration enclaves in the instance environment.
+   * @description Returns network logs for integration enclaves in the instance. Set `direction` to choose ingress or egress logs.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceIntegrationInternetGatewayListNetworkLogsQuery

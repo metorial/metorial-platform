@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceChatsMessagesEndpoint {
 
   /**
    * @name Get chat message
-   * @description Retrieves a specific chat message.
+   * @description Retrieves a chat message.
    *
    * @param `instanceId` - string
    * @param `chatId` - string
@@ -161,7 +161,7 @@ export class MetorialDashboardInstanceChatsMessagesEndpoint {
 
   /**
    * @name Edit chat message
-   * @description Edits a specific chat message.
+   * @description Edits a chat message.
    *
    * @param `instanceId` - string
    * @param `chatId` - string
@@ -195,7 +195,7 @@ export class MetorialDashboardInstanceChatsMessagesEndpoint {
 
   /**
    * @name Delete chat message
-   * @description Deletes a specific chat message.
+   * @description Deletes a chat message.
    *
    * @param `instanceId` - string
    * @param `chatId` - string
@@ -231,7 +231,7 @@ export class MetorialDashboardInstanceChatsMessagesEndpoint {
 
   /**
    * @name Mark chat message read
-   * @description Marks a specific chat message as read.
+   * @description Marks a chat message as read.
    *
    * @param `instanceId` - string
    * @param `chatId` - string

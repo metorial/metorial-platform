@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Auth Config Errors controller
- * @description Provider auth config errors capture provider-side authentication failures and group repeated failures into reusable diagnostics.
+ * @description Provider auth config errors are records of provider-side authentication failures, grouped by type for diagnostics.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

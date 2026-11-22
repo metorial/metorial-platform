@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Stores controller
- * @description Create and manage instance stores backed by Cargo.
+ * @description A store is a shared collection of files and documents. Participants get read or write access to its contents.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -45,7 +45,7 @@ export class MetorialDashboardInstanceStoresItemsEndpoint {
 
   /**
    * @name Modify store items
-   * @description Applies bulk item operations to a specific store.
+   * @description Applies a list of add, modify, and remove operations to a store.
    *
    * @param `instanceId` - string
    * @param `storeId` - string
@@ -77,7 +77,7 @@ export class MetorialDashboardInstanceStoresItemsEndpoint {
 
   /**
    * @name List store items
-   * @description Returns a paginated list of items for a specific store.
+   * @description Returns a paginated list of items in a store.
    *
    * @param `instanceId` - string
    * @param `storeId` - string
@@ -110,8 +110,8 @@ export class MetorialDashboardInstanceStoresItemsEndpoint {
   }
 
   /**
-   * @name Get store item by ID
-   * @description Retrieves a specific item within a store.
+   * @name Get store item
+   * @description Retrieves an item in a store.
    *
    * @param `instanceId` - string
    * @param `storeId` - string

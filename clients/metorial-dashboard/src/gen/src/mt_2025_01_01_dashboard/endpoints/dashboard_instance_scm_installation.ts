@@ -16,7 +16,7 @@ import {
 
 /**
  * @name SCM Installations controller
- * @description Manage source control management installations (e.g. GitHub App installations).
+ * @description An SCM installation is a provider app installation connected to an instance, for example a GitHub App installation.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -75,7 +75,7 @@ export class MetorialDashboardInstanceScmInstallationEndpoint {
 
   /**
    * @name Create SCM installation
-   * @description Initiates an SCM installation setup (e.g. GitHub App authorization).
+   * @description Creates an installation setup session. Open the returned URL to authorize access.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceScmInstallationCreateBody

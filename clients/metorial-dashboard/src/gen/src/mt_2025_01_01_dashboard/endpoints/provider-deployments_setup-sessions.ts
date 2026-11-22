@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Provider Setup Sessions controller
- * @description A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token.
+ * @description A provider setup session is a guided flow that collects authentication, configuration, or both for a provider. `admin` sessions create a consent link for someone else to complete instead.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -110,7 +110,7 @@ export class MetorialProviderDeploymentsSetupSessionsEndpoint {
 
   /**
    * @name Create provider setup session
-   * @description Creates a new provider setup session for OAuth authentication.
+   * @description Creates a provider setup session.
    *
    * @param `body` - DashboardInstanceProviderDeploymentsSetupSessionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -171,8 +171,8 @@ export class MetorialProviderDeploymentsSetupSessionsEndpoint {
   }
 
   /**
-   * @name Delete provider setup session
-   * @description Deletes a provider setup session.
+   * @name Archive provider setup session
+   * @description Archives a provider setup session. It stays listable with `status=archived`.
    *
    * @param `providerSetupSessionId` - string
    * @param `opts` - { headers?: Record<string, string> }

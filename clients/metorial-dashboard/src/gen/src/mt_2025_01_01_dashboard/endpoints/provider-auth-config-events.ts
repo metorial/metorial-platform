@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Auth Config Events controller
- * @description Provider auth config events describe OAuth setup progress, token refreshes, and provider-side authentication lifecycle changes.
+ * @description Provider auth config events are records of OAuth setup progress, token refreshes, and other authentication lifecycle changes.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

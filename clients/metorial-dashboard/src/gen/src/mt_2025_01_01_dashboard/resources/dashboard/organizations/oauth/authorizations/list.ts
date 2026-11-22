@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsOauthAuthorizationsListOutput = {
+  object: 'list';
   items: {
     object: 'machine_access.oauth_authorization';
     id: string;
@@ -139,7 +140,12 @@ export type DashboardOrganizationsOauthAuthorizationsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardOrganizationsOauthAuthorizationsListOutput =

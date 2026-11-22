@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSessionsErrorGroupsListOutput = {
+  object: 'list';
   items: {
     object: 'session.error_group';
     id: string;
@@ -11,7 +12,12 @@ export type DashboardInstanceSessionsErrorGroupsListOutput = {
     occurrenceCount: number;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceSessionsErrorGroupsListOutput =

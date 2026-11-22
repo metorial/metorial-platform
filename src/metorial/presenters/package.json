@@ -41,6 +41,7 @@
     "@metorial/module-portal": "^1.0.0",
     "@metorial/module-flags": "^1.0.0",
     "@metorial/module-machine-access": "^1.0.0",
+    "@metorial/model-catalog": "workspace:*",
     "@metorial/module-magic": "^1.0.0",
     "@metorial/module-organization": "^1.0.0",
     "@metorial/module-product-assistant": "^1.0.0",

@@ -95,7 +95,12 @@ import {
   v1ConsumerActivityAgentPresenter,
   v1ConsumerActivitySessionConnectionPresenter,
   v1ConsumerAndProfilePresenter,
+  v1AiToolDetectionPresenter,
+  v1AiToolPresenter,
+  v1ConsumerDeviceDetectionCatalogPresenter,
+  v1ConsumerDeviceDetectionReportPresenter,
   v1ConsumerDevicePresenter,
+  v1ConsumerDeviceSettingsPresenter,
   v1ConsumerDeviceTelemetryTokenPresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
@@ -384,6 +389,11 @@ import {
   consumerActivityAgentType,
   consumerActivitySessionConnectionType,
   consumerAndProfileType,
+  aiToolDetectionType,
+  aiToolType,
+  consumerDeviceDetectionCatalogType,
+  consumerDeviceDetectionReportType,
+  consumerDeviceSettingsType,
   consumerDeviceTelemetryTokenType,
   consumerDeviceType,
   consumerGroupType,
@@ -1483,6 +1493,42 @@ export let consumerDevicePresenter = declarePresenter(consumerDeviceType, {
   mt_2025_01_01_dashboard: v1ConsumerDevicePresenter,
   mt_2026_01_01_magnetar: v1ConsumerDevicePresenter,
   mt_2026_04_01_consumer: consumerConsumerDevicePresenter
+});
+
+export let consumerDeviceDetectionReportPresenter = declarePresenter(
+  consumerDeviceDetectionReportType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerDeviceDetectionReportPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerDeviceDetectionReportPresenter,
+    mt_2026_04_01_consumer: v1ConsumerDeviceDetectionReportPresenter
+  }
+);
+
+export let consumerDeviceDetectionCatalogPresenter = declarePresenter(
+  consumerDeviceDetectionCatalogType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerDeviceDetectionCatalogPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerDeviceDetectionCatalogPresenter,
+    mt_2026_04_01_consumer: v1ConsumerDeviceDetectionCatalogPresenter
+  }
+);
+
+export let consumerDeviceSettingsPresenter = declarePresenter(consumerDeviceSettingsType, {
+  mt_2025_01_01_dashboard: v1ConsumerDeviceSettingsPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerDeviceSettingsPresenter,
+  mt_2026_04_01_consumer: v1ConsumerDeviceSettingsPresenter
+});
+
+export let aiToolPresenter = declarePresenter(aiToolType, {
+  mt_2025_01_01_dashboard: v1AiToolPresenter,
+  mt_2026_01_01_magnetar: v1AiToolPresenter,
+  mt_2026_04_01_consumer: v1AiToolPresenter
+});
+
+export let aiToolDetectionPresenter = declarePresenter(aiToolDetectionType, {
+  mt_2025_01_01_dashboard: v1AiToolDetectionPresenter,
+  mt_2026_01_01_magnetar: v1AiToolDetectionPresenter,
+  mt_2026_04_01_consumer: v1AiToolDetectionPresenter
 });
 
 export let consumerDeviceTelemetryTokenPresenter = declarePresenter(

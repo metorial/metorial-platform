@@ -32,7 +32,7 @@ import {
 
 /**
  * @name Magic MCP Endpoints controller
- * @description Magic MCP endpoints combine multiple Magic MCP servers behind one routed connection target.
+ * @description A magic MCP endpoint is one connection target that routes to multiple magic MCP servers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -149,7 +149,7 @@ export class MetorialManagementInstanceMagicMcpEndpointsEndpoint {
   }
 
   /**
-   * @name Delete magic MCP endpoint
+   * @name Archive magic MCP endpoint
    * @description Archives a magic MCP endpoint.
    *
    * @param `instanceId` - string
@@ -179,7 +179,7 @@ export class MetorialManagementInstanceMagicMcpEndpointsEndpoint {
 
   /**
    * @name Update magic MCP endpoint
-   * @description Updates a magic MCP endpoint.
+   * @description Updates a magic MCP endpoint. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `magicMcpEndpointId` - string

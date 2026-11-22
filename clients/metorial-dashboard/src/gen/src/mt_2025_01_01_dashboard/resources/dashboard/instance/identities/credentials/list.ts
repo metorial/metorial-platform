@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceIdentitiesCredentialsListOutput = {
+  object: 'list';
   items: {
     object: 'identity.credential';
     id: string;
@@ -14,7 +15,12 @@ export type DashboardInstanceIdentitiesCredentialsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceIdentitiesCredentialsListOutput =

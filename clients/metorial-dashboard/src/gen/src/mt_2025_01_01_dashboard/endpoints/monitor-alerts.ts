@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Monitor Alerts controller
- * @description Monitor alerts represent detected prompt-injection or schema-change events.
+ * @description A monitor alert is one firing of a monitor. It records a detected prompt-injection or schema-change event.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialMonitorAlertsEndpoint {
 
   /**
    * @name List monitor alerts
-   * @description Returns a paginated list of monitor alerts for this instance.
+   * @description Returns a paginated list of monitor alerts in the instance.
    *
    * @param `query` - DashboardInstanceMonitorAlertsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -77,7 +77,7 @@ export class MetorialMonitorAlertsEndpoint {
 
   /**
    * @name Get monitor alert
-   * @description Retrieves a monitor alert by ID.
+   * @description Retrieves a monitor alert.
    *
    * @param `monitorAlertId` - string
    * @param `opts` - { headers?: Record<string, string> }

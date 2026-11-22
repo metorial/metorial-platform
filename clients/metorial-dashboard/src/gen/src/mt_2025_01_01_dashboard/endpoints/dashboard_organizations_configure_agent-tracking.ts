@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardOrganizationsConfigureAgentTrackingGetOutput,
@@ -83,7 +86,9 @@ export class MetorialDashboardOrganizationsConfigureAgentTrackingEndpoint {
 
     let request = {
       path,
-      body: mapDashboardOrganizationsConfigureAgentTrackingUpdateBody.transformTo(body),
+      body: mapDashboardOrganizationsConfigureAgentTrackingUpdateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

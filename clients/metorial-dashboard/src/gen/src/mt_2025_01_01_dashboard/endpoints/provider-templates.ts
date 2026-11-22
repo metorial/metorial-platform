@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Provider Templates controller
- * @description Provider templates are reusable, consumer-facing wrappers around integrations.
+ * @description A provider template is a consumer-facing view of an integration. It is created from an existing integration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialProviderTemplatesEndpoint {
 
   /**
    * @name Get provider template
-   * @description Retrieves a specific provider template.
+   * @description Retrieves a provider template.
    *
    * @param `providerTemplateId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -108,7 +108,7 @@ export class MetorialProviderTemplatesEndpoint {
 
   /**
    * @name Create provider template
-   * @description Creates a new provider template from an existing integration.
+   * @description Creates a provider template from an existing integration.
    *
    * @param `body` - DashboardInstanceProviderTemplatesCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -136,7 +136,7 @@ export class MetorialProviderTemplatesEndpoint {
 
   /**
    * @name Update provider template
-   * @description Updates an existing provider template.
+   * @description Updates a provider template. Omitted fields keep their current value.
    *
    * @param `providerTemplateId` - string
    * @param `body` - DashboardInstanceProviderTemplatesUpdateBody
@@ -166,7 +166,7 @@ export class MetorialProviderTemplatesEndpoint {
 
   /**
    * @name Archive provider template
-   * @description Archives an existing provider template.
+   * @description Archives a provider template.
    *
    * @param `providerTemplateId` - string
    * @param `opts` - { headers?: Record<string, string> }

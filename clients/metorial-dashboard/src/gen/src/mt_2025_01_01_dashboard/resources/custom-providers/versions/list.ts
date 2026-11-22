@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type CustomProvidersVersionsListOutput = {
+  object: 'list';
   items: {
     object: 'custom_provider.version';
     id: string;
@@ -142,7 +143,12 @@ export type CustomProvidersVersionsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapCustomProvidersVersionsListOutput =

@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceConsumersListOutput = {
+  object: 'list';
   items: ({
     object: 'consumer';
     id: string;
@@ -15,7 +16,12 @@ export type ManagementInstanceConsumersListOutput = {
     isOrganizationMember: boolean;
     isServiceAccount: boolean;
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceConsumersListOutput =

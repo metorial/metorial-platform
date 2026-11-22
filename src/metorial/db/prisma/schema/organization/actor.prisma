@@ -52,6 +52,8 @@ model OrganizationActor {
   consumerOrganizationActors ConsumerOrganizationActor[]
   auditLogs                  AuditLog[]
   events                     AuditLogEvent[]
+  aiToolPolicyDecisions      AiToolPolicy[]
+  consumerDeviceSettings     ConsumerDeviceSettings[]
 
   @@unique([isSystem, organizationOid])
 }

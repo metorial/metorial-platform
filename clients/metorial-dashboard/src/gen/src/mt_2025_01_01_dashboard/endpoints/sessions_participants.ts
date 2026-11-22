@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Participants controller
- * @description Session participants represent the clients and other entities that are connected to a session. This read-only resource tracks who is participating in a session.
+ * @description A session participant is a client, provider, or system actor in a session. Participants appear automatically as connections open.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialSessionsParticipantsEndpoint {
 
   /**
    * @name List session participants
-   * @description Returns a paginated list of participants in a session.
+   * @description Returns a paginated list of session participants.
    *
    * @param `query` - DashboardInstanceSessionsParticipantsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -71,7 +71,7 @@ export class MetorialSessionsParticipantsEndpoint {
 
   /**
    * @name Get session participant
-   * @description Retrieves a specific participant in a session.
+   * @description Retrieves a session participant.
    *
    * @param `sessionParticipantId` - string
    * @param `opts` - { headers?: Record<string, string> }

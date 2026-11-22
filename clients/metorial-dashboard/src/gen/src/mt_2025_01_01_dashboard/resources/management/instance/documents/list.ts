@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceDocumentsListOutput = {
+  object: 'list';
   items: {
     object: 'document';
     id: string;
@@ -161,7 +162,12 @@ export type ManagementInstanceDocumentsListOutput = {
         | null;
     }[];
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceDocumentsListOutput =

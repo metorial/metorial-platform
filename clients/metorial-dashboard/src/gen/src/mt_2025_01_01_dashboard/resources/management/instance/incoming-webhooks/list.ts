@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceIncomingWebhooksListOutput = {
+  object: 'list';
   items: {
     object: 'incoming_webhook';
     id: string;
@@ -10,7 +11,12 @@ export type ManagementInstanceIncomingWebhooksListOutput = {
     providerId: string;
     receivedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceIncomingWebhooksListOutput =

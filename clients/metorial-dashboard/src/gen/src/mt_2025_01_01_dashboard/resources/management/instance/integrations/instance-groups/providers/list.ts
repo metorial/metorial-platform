@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceIntegrationsInstanceGroupsProvidersListOutput = {
+  object: 'list';
   items: {
     object: 'integration.instance.group.provider';
     id: string;
@@ -199,7 +200,12 @@ export type ManagementInstanceIntegrationsInstanceGroupsProvidersListOutput = {
       archivedAt: Date | null;
     };
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceIntegrationsInstanceGroupsProvidersListOutput =

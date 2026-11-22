@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Triggers controller
- * @description A provider trigger describes an event source a provider can emit for callbacks. Use triggers to discover which callback subscriptions a provider version supports.
+ * @description A provider trigger is an event a provider can emit for callbacks. Each provider version has its own set of triggers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -16,7 +16,11 @@ export let mapDashboardInstanceAgentTrackingSetupStatusGetOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingSetupStatusGetOutput>(
     [
       'last_received_at',
-      ['options', 0, [1, ['usage_and_cost', 'keep_local_history', 'tool_details']]]
+      [
+        'options',
+        0,
+        [1, ['usage_and_cost', 'keep_local_history', 'tool_details']]
+      ]
     ],
     1
   );

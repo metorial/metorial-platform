@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceChatWorkspacesListOutput = {
+  object: 'list';
   items: {
     object: 'chat.workspace';
     id: string;
@@ -12,7 +13,12 @@ export type ManagementInstanceChatWorkspacesListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceChatWorkspacesListOutput =

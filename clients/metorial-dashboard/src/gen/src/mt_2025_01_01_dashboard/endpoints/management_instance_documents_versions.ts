@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Document Versions controller
- * @description Inspect document version history for an instance document.
+ * @description A document version is a snapshot of a document's content.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialManagementInstanceDocumentsVersionsEndpoint {
 
   /**
    * @name List document versions
-   * @description Returns a paginated list of versions for a specific document.
+   * @description Returns a paginated list of versions of a document.
    *
    * @param `instanceId` - string
    * @param `documentId` - string
@@ -74,8 +74,8 @@ export class MetorialManagementInstanceDocumentsVersionsEndpoint {
   }
 
   /**
-   * @name Get document version by ID
-   * @description Retrieves a specific document version by its ID.
+   * @name Get document version
+   * @description Retrieves a version of a document.
    *
    * @param `instanceId` - string
    * @param `documentId` - string

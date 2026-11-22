@@ -73,7 +73,7 @@ export class MetorialManagementInstanceCallbackInstancesEndpoint {
 
   /**
    * @name Get callback instance
-   * @description Retrieves a specific callback instance by ID.
+   * @description Retrieves a callback instance.
    *
    * @param `instanceId` - string
    * @param `callbackInstanceId` - string

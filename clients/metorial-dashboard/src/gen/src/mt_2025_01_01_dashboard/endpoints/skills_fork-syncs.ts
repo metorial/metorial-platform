@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Skill Fork Syncs controller
- * @description Synchronize changes from an upstream skill into a fork.
+ * @description A skill fork sync is a queued update pulling upstream changes into a forked skill.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

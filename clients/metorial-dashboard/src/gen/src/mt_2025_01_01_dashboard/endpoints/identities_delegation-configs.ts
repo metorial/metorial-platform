@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Identity Delegation Configs controller
- * @description Delegation configs define the default policy for sub-delegation behavior and delegation depth.
+ * @description An identity delegation config is the default policy for sub-delegation. It controls whether delegates can delegate further, and how deep.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
 
   /**
    * @name Get identity delegation config
-   * @description Retrieves a specific identity delegation config by ID.
+   * @description Retrieves an identity delegation config.
    *
    * @param `identityDelegationConfigId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -110,7 +110,7 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
 
   /**
    * @name Create identity delegation config
-   * @description Creates a new identity delegation config.
+   * @description Creates an identity delegation config.
    *
    * @param `body` - DashboardInstanceIdentitiesDelegationConfigsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -140,7 +140,7 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
 
   /**
    * @name Update identity delegation config
-   * @description Updates mutable fields on an existing identity delegation config.
+   * @description Updates an identity delegation config. Omitted fields keep their current value.
    *
    * @param `identityDelegationConfigId` - string
    * @param `body` - DashboardInstanceIdentitiesDelegationConfigsUpdateBody
@@ -171,8 +171,8 @@ export class MetorialIdentitiesDelegationConfigsEndpoint {
   }
 
   /**
-   * @name Delete identity delegation config
-   * @description Archives an identity delegation config.
+   * @name Archive identity delegation config
+   * @description Archives an identity delegation config. It stays listable with `status=archived`.
    *
    * @param `identityDelegationConfigId` - string
    * @param `opts` - { headers?: Record<string, string> }

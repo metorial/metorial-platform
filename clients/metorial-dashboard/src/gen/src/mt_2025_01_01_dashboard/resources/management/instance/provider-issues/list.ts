@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderIssuesListOutput = {
+  object: 'list';
   items: {
     object: 'provider.issue';
     id: string;
@@ -17,7 +18,12 @@ export type ManagementInstanceProviderIssuesListOutput = {
     lastSeenAt: Date;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceProviderIssuesListOutput =

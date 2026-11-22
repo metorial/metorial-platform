@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceScmReposListOutput = {
+  object: 'list';
   items: {
     object: 'scm.repository';
     id: string;
@@ -16,7 +17,12 @@ export type DashboardInstanceScmReposListOutput = {
     defaultBranch: string;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceScmReposListOutput =

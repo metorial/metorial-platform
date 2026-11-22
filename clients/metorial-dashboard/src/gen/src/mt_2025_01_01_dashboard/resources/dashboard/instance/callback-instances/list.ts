@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCallbackInstancesListOutput = {
+  object: 'list';
   items: {
     object: 'callback.instance';
     id: string;
@@ -21,7 +22,12 @@ export type DashboardInstanceCallbackInstancesListOutput = {
       syncedAt: Date | null;
     };
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceCallbackInstancesListOutput =

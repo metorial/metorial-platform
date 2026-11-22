@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Skill Access controller
- * @description Inspect who has been granted access to an instance skill.
+ * @description Skill access is the record of who can view or edit a skill.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -37,7 +37,7 @@ export class MetorialManagementInstanceSkillsAccessEndpoint {
 
   /**
    * @name Get skill access
-   * @description Returns the access grants of a specific skill.
+   * @description Returns the access grants for a skill.
    *
    * @param `instanceId` - string
    * @param `skillId` - string

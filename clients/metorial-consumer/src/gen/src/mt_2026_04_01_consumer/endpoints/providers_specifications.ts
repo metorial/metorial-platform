@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Specifications controller
- * @description A specification defines what a provider version can do: its tools, auth methods, and required configuration fields.
+ * @description A provider specification is the set of tools, auth methods, and configuration fields a provider version offers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

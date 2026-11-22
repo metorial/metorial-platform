@@ -79,7 +79,7 @@ export class MetorialDashboardInstanceIntegrationEnclavesEndpoint {
 
   /**
    * @name List integration enclaves
-   * @description Returns a paginated list of integration enclaves.
+   * @description Returns a paginated list of integration enclaves in the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceIntegrationEnclavesListQuery
@@ -111,7 +111,7 @@ export class MetorialDashboardInstanceIntegrationEnclavesEndpoint {
 
   /**
    * @name Get integration enclave
-   * @description Retrieves a specific integration enclave by ID.
+   * @description Retrieves an integration enclave.
    *
    * @param `instanceId` - string
    * @param `integrationEnclaveId` - string

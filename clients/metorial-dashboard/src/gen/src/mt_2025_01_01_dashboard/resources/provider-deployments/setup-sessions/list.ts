@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderDeploymentsSetupSessionsListOutput = {
+  object: 'list';
   items: ({
     object: 'provider.setup_session';
     id: string;
@@ -265,7 +266,12 @@ export type ProviderDeploymentsSetupSessionsListOutput = {
     updatedAt: Date;
     expiresAt: Date;
   } & { publicMcpServerId: string | null })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapProviderDeploymentsSetupSessionsListOutput =

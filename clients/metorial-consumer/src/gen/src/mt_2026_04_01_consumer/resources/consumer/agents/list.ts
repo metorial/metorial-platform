@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerAgentsListOutput = {
+  object: 'list';
   items: {
     object: 'consumer.activity_agent';
     agent: {
@@ -78,7 +79,12 @@ export type ConsumerAgentsListOutput = {
       updatedAt: Date;
     }[];
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapConsumerAgentsListOutput =

@@ -4,6 +4,7 @@ import {
 } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsContentPreviewsListOutput = {
+  object: 'list';
   items: {
     object: 'skill.content_preview';
     type: 'skill' | 'skill_template';
@@ -11,7 +12,12 @@ export type SkillsContentPreviewsListOutput = {
     skillTemplateId: string | null;
     content: string | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapSkillsContentPreviewsListOutput =

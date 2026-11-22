@@ -2,6 +2,7 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderSpecificationChangeNotificationsListOutput =
   {
+    object: 'list';
     items: {
       object: 'provider.specification_change_notification';
       id: string;
@@ -43,7 +44,12 @@ export type DashboardInstanceProviderSpecificationChangeNotificationsListOutput 
       } | null;
       createdAt: Date;
     }[];
-    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+    pagination: {
+      hasMoreBefore: boolean;
+      hasMoreAfter: boolean;
+      before?: string | undefined;
+      after?: string | undefined;
+    };
   };
 
 export let mapDashboardInstanceProviderSpecificationChangeNotificationsListOutput =

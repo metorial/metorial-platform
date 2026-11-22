@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Network Policies controller
- * @description Manage reusable network policy definitions and their rules.
+ * @description A network policy is a reusable set of allow and deny rules. Firewalls attach policies to enforce them.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialNetworkPoliciesEndpoint {
 
   /**
    * @name List network policies
-   * @description Returns a paginated list of network policies.
+   * @description Returns a paginated list of network policies in the instance.
    *
    * @param `query` - DashboardInstanceNetworkPoliciesListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -81,7 +81,7 @@ export class MetorialNetworkPoliciesEndpoint {
 
   /**
    * @name Get network policy
-   * @description Retrieves a specific network policy by ID.
+   * @description Retrieves a network policy.
    *
    * @param `networkPolicyId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -108,7 +108,7 @@ export class MetorialNetworkPoliciesEndpoint {
 
   /**
    * @name Create network policy
-   * @description Creates a new network policy.
+   * @description Creates a network policy.
    *
    * @param `body` - DashboardInstanceNetworkPoliciesCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -136,7 +136,7 @@ export class MetorialNetworkPoliciesEndpoint {
 
   /**
    * @name Update network policy
-   * @description Updates a network policy definition.
+   * @description Updates a network policy. Omitted fields keep their current value.
    *
    * @param `networkPolicyId` - string
    * @param `body` - DashboardInstanceNetworkPoliciesUpdateBody
@@ -165,8 +165,8 @@ export class MetorialNetworkPoliciesEndpoint {
   }
 
   /**
-   * @name Delete network policy
-   * @description Archives a network policy.
+   * @name Archive network policy
+   * @description Archives a network policy. It stays listable with `status=archived`.
    *
    * @param `networkPolicyId` - string
    * @param `opts` - { headers?: Record<string, string> }

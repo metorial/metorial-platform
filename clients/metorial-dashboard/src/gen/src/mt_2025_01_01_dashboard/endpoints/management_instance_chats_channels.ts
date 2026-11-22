@@ -75,7 +75,7 @@ export class MetorialManagementInstanceChatsChannelsEndpoint {
 
   /**
    * @name Get chat channel
-   * @description Retrieves a specific chat channel.
+   * @description Retrieves a chat channel.
    *
    * @param `instanceId` - string
    * @param `chatId` - string

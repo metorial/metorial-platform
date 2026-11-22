@@ -109,7 +109,7 @@ export class MetorialCallbacksEndpoint {
 
   /**
    * @name Get callback
-   * @description Retrieves a specific callback by ID.
+   * @description Retrieves a callback.
    *
    * @param `callbackId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -134,7 +134,7 @@ export class MetorialCallbacksEndpoint {
 
   /**
    * @name Update callback
-   * @description Updates the name, description, metadata or trigger group selections of a callback. Changing the selections re-registers the affected triggers. Everything else about a callback is derived from its integration provider - set `callbacks.status` to `disabled` there to tear it down.
+   * @description Updates a callback. Omitted fields keep their current value. Changing the selections re-registers the affected triggers. Only an active callback can be updated.
    *
    * @param `callbackId` - string
    * @param `body` - DashboardInstanceCallbacksUpdateBody
@@ -163,8 +163,8 @@ export class MetorialCallbacksEndpoint {
   }
 
   /**
-   * @name Delete callback
-   * @description Disables callbacks on the underlying integration provider, tearing down this callback and every callback instance registered for it.
+   * @name Archive callback
+   * @description Archives a callback by disabling callbacks on its integration provider. Callback instances are torn down in the background. Only an active callback can be archived.
    *
    * @param `callbackId` - string
    * @param `opts` - { headers?: Record<string, string> }

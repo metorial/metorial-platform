@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxImagesListOutput = {
+  object: 'list';
   items: {
     object: 'sandbox.image';
     metadata: Record<string, any>;
@@ -16,7 +17,12 @@ export type DashboardInstanceSandboxImagesListOutput = {
     updatedAt: Date;
     deletedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceSandboxImagesListOutput =

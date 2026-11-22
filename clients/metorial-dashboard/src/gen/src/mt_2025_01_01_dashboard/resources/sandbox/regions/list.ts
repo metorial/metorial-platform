@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxRegionsListOutput = {
+  object: 'list';
   items: {
     object: 'sandbox.region';
     id: string;
@@ -9,7 +10,12 @@ export type SandboxRegionsListOutput = {
     isDefault: boolean;
     availability: 'available' | 'unavailable';
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapSandboxRegionsListOutput =

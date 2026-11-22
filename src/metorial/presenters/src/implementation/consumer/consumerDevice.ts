@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import { ConsumerDeviceStatus } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { consumerDeviceType } from '../../types';
+import { deviceDetectionSchema, presentDeviceDetection } from './consumerDeviceDetection';
 
 export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   .presenter(async ({ consumerDevice }) => ({
@@ -29,6 +30,10 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
       ),
       excluded_skill_ids: client.excludedSkills.map(exclusion => exclusion.skill.id)
     })),
+
+    detections: consumerDevice.detections.map(detection =>
+      presentDeviceDetection(detection, consumerDevice)
+    ),
 
     last_seen_at: consumerDevice.lastSeenAt,
     revoked_at: consumerDevice.revokedAt,
@@ -118,6 +123,11 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
           description: 'The AI tools the device reported, with what each one receives.'
         }
       ),
+      detections: v.array(deviceDetectionSchema, {
+        name: 'detections',
+        description:
+          'AI tools found on the device by its latest detection report. Always empty while AI tool detection is off for the instance or not available to the organization; turning it off deletes what devices reported.'
+      }),
       last_seen_at: v.date({
         name: 'last_seen_at',
         description: 'When the device last checked in.'
@@ -138,10 +148,15 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   .build();
 
 export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType)
-  .presenter(async ({ consumerDevice, telemetry }, opts) => {
+  .presenter(async ({ consumerDevice, telemetry, monitor }, opts) => {
     if (!telemetry) {
       throw new Error(
         'The consumer device presenter needs the telemetry state of the device.'
+      );
+    }
+    if (!monitor) {
+      throw new Error(
+        'The consumer device presenter needs the monitor settings of the device.'
       );
     }
 
@@ -152,6 +167,18 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       telemetry: {
         enabled: telemetry.enabled,
         token_id: telemetry.tokenId
+      },
+      monitor: {
+        ai_tool_detection: monitor.aiToolDetection,
+        catalog_version: monitor.catalogVersion,
+        intervals: {
+          config_dirs: monitor.intervals.configDirs,
+          apps: monitor.intervals.apps,
+          binaries: monitor.intervals.binaries,
+          ide_extensions: monitor.intervals.ideExtensions,
+          processes: monitor.intervals.processes,
+          report: monitor.intervals.report
+        }
       }
     };
   })
@@ -176,6 +203,58 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
         {
           name: 'telemetry',
           description: 'Whether the device sends agent telemetry, and with which token.'
+        }
+      ),
+      monitor: v.object(
+        {
+          ai_tool_detection: v.boolean({
+            name: 'ai_tool_detection',
+            description:
+              'Whether the device looks for AI tools and reports them. When `false`, Metorial Desktop stops collecting and discards unsent reports.'
+          }),
+          catalog_version: v.string({
+            name: 'catalog_version',
+            description:
+              'Current version of the detection catalog. The device fetches the catalog again when its copy has another version.',
+            examples: ['5b8e7bd62ccb7f44']
+          }),
+          intervals: v.object(
+            {
+              config_dirs: v.number({
+                name: 'config_dirs',
+                description: 'How often to check config folders, in seconds.'
+              }),
+              apps: v.number({
+                name: 'apps',
+                description: 'How often to check installed apps, in seconds.'
+              }),
+              binaries: v.number({
+                name: 'binaries',
+                description: 'How often to check executables on the `PATH`, in seconds.'
+              }),
+              ide_extensions: v.number({
+                name: 'ide_extensions',
+                description: 'How often to check editor extensions, in seconds.'
+              }),
+              processes: v.number({
+                name: 'processes',
+                description: 'How often to check running processes, in seconds.'
+              }),
+              report: v.number({
+                name: 'report',
+                description:
+                  'Longest time between two reports, in seconds. The device also reports as soon as what it finds changes.'
+              })
+            },
+            {
+              name: 'intervals',
+              description: 'How often the device collects each kind of signal.'
+            }
+          )
+        },
+        {
+          name: 'monitor',
+          description: 'What the device monitors, as set by the organization.'
         }
       )
     }) as any

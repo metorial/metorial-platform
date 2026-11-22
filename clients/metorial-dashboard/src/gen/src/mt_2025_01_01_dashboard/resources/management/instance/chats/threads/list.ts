@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceChatsThreadsListOutput = {
+  object: 'list';
   items: {
     object: 'chat.thread';
     id: string;
@@ -35,7 +36,12 @@ export type ManagementInstanceChatsThreadsListOutput = {
     updatedAt: Date;
     lastInteractionAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceChatsThreadsListOutput =

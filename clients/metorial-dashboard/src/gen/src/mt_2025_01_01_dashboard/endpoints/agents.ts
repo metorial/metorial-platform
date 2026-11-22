@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Agents controller
- * @description Inspect agents and their linked clients and instances.
+ * @description An agent is an identity that acts in your instance. It links to the clients and instances it runs as.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -69,7 +69,7 @@ export class MetorialAgentsEndpoint {
 
   /**
    * @name Get agent
-   * @description Retrieves a specific agent by ID.
+   * @description Retrieves an agent.
    *
    * @param `agentId` - string
    * @param `opts` - { headers?: Record<string, string> }

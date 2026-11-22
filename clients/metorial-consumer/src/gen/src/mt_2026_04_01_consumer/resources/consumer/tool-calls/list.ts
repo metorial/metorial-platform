@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerToolCallsListOutput = {
+  object: 'list';
   items: {
     object: 'session.tool_call';
     id: string;
@@ -87,7 +88,12 @@ export type ConsumerToolCallsListOutput = {
     output: Record<string, any> | null;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapConsumerToolCallsListOutput =

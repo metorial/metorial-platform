@@ -102,8 +102,11 @@ import {
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
   ConsumerAuthTestAuthorization,
+  AiToolPolicy,
   ConsumerDevice,
   ConsumerDeviceClient,
+  ConsumerDeviceDetection,
+  ConsumerDeviceSettings,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -216,7 +219,12 @@ import type {
   serviceRetentionDefaults
 } from '@metorial/module-agent-tracking-sync';
 import type { AuditLog } from '@metorial/module-audit-log';
-import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
+import {
+  EnrichedConsumerSurface,
+  type AiToolCatalog,
+  type AiToolSummary,
+  type DeviceMonitor
+} from '@metorial/module-consumer-core';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
@@ -2693,9 +2701,38 @@ export let consumerDeviceType = PresentableType.create<{
       excludedSkills: { skill: Pick<Skill, 'id'> }[];
     })[];
     consumerProfile: ConsumerProfile;
+    detections: ConsumerDeviceDetection[];
   };
   telemetry?: { enabled: boolean; tokenId: string | null };
+  monitor?: DeviceMonitor;
 }>()('consumer.device');
+
+export let consumerDeviceDetectionReportType = PresentableType.create<{
+  consumerDevice: ConsumerDevice & { detections: ConsumerDeviceDetection[] };
+  applied: boolean;
+}>()('consumer.device.detection_report');
+
+export let consumerDeviceDetectionCatalogType = PresentableType.create<{
+  catalog: AiToolCatalog;
+}>()('consumer.device.detection_catalog');
+
+export let consumerDeviceSettingsType = PresentableType.create<{
+  instance: Pick<Instance, 'id'>;
+  settings: ConsumerDeviceSettings | null;
+}>()('consumer.device_settings');
+
+export let aiToolType = PresentableType.create<{
+  aiTool: AiToolSummary;
+}>()('ai_tool');
+
+export let aiToolDetectionType = PresentableType.create<{
+  detection: ConsumerDeviceDetection & {
+    consumerDevice: Pick<ConsumerDevice, 'id' | 'detectionReportedAt'> & {
+      consumerProfile: Pick<ConsumerProfile, 'id'> & { consumer: Pick<Consumer, 'id'> };
+    };
+  };
+  policy: Pick<AiToolPolicy, 'status'> | null;
+}>()('ai_tool.detection');
 
 export let consumerDeviceTelemetryTokenType = PresentableType.create<{
   consumerDevice: Pick<ConsumerDevice, 'id'>;

@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsApiKeysListOutput = {
+  object: 'list';
   items: {
     object: 'machine_access.api_key';
     id: string;
@@ -108,7 +109,12 @@ export type DashboardOrganizationsApiKeysListOutput = {
     updatedAt: Date;
     revealInfo: { until: Date; forever: boolean } | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardOrganizationsApiKeysListOutput =

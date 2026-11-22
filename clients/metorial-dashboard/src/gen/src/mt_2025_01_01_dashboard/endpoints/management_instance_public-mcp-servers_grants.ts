@@ -43,7 +43,7 @@ export class MetorialManagementInstancePublicMcpServersGrantsEndpoint {
 
   /**
    * @name List public MCP server grants
-   * @description Returns the end-user grants of a public MCP server.
+   * @description Returns a paginated list of end-user grants for a public MCP server.
    *
    * @param `instanceId` - string
    * @param `publicMcpServerId` - string
@@ -77,7 +77,7 @@ export class MetorialManagementInstancePublicMcpServersGrantsEndpoint {
 
   /**
    * @name Get public MCP server grant
-   * @description Retrieves a specific end-user grant.
+   * @description Retrieves an end-user grant.
    *
    * @param `instanceId` - string
    * @param `publicMcpServerId` - string

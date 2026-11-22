@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOutpostsAccessListOutput = {
+  object: 'list';
   items: {
     object: 'outpost_access';
     id: string;
@@ -11,7 +12,12 @@ export type ManagementOrganizationOutpostsAccessListOutput = {
     services: ('mcp_connection_proxy' | 'outpost_registration_proxy')[];
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementOrganizationOutpostsAccessListOutput =

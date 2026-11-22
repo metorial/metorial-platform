@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type StoresListOutput = {
+  object: 'list';
   items: {
     object: 'store';
     id: string;
@@ -10,7 +11,12 @@ export type StoresListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapStoresListOutput = /* @__PURE__ */ createMapper<StoresListOutput>(

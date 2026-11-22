@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Portal controller
- * @description Use Portals to create custom branded MCP server marketplaces for your organization.
+ * @description A portal is a branded catalog of integrations and skills for your consumers. Each portal has its own consumers, groups, and access rules.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -79,7 +79,7 @@ export class MetorialPortalsEndpoint {
 
   /**
    * @name Get portal
-   * @description Retrieves details for a specific portal.
+   * @description Retrieves a portal.
    *
    * @param `portalId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -104,7 +104,7 @@ export class MetorialPortalsEndpoint {
 
   /**
    * @name Create portal
-   * @description Creates a new portal for the instance.
+   * @description Creates a portal.
    *
    * @param `body` - DashboardInstancePortalsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -132,7 +132,7 @@ export class MetorialPortalsEndpoint {
 
   /**
    * @name Update portal
-   * @description Updates an existing portal for the instance.
+   * @description Updates a portal. Omitted fields keep their current value.
    *
    * @param `portalId` - string
    * @param `body` - DashboardInstancePortalsUpdateBody
@@ -161,7 +161,7 @@ export class MetorialPortalsEndpoint {
   }
 
   /**
-   * @name Delete portal
+   * @name Archive portal
    * @description Archives a portal.
    *
    * @param `portalId` - string

@@ -1,5 +1,6 @@
 export * from './agents';
 export * from './consumer-internal';
+export * from './device-detection-catalog';
 export * from './devices';
 export * from './identity-credentials';
 export * from './oauth';

@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Custom Provider Code controller
- * @description Manage custom provider code editor access.
+ * @description Custom provider code is the draft source of a function custom provider. It is edited in the browser through a short-lived editor token.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -37,7 +37,7 @@ export class MetorialCustomProvidersCodeEndpoint {
 
   /**
    * @name Get code editor token
-   * @description Get a token to access the code editor for a custom provider.
+   * @description Returns a short-lived editor token for the draft code of a custom provider. Fails when the provider has no draft code.
    *
    * @param `customProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Portal Listings controller
- * @description Read the shared listings available on a portal surface.
+ * @description A portal listing is the shared catalog entry for one integration, skill, or skill set on a portal. Access rules decide which consumer groups see it.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -85,7 +85,7 @@ export class MetorialDashboardInstancePortalsListingsEndpoint {
 
   /**
    * @name Get portal listing
-   * @description Retrieves one shared listing for a portal.
+   * @description Retrieves a shared listing for a portal.
    *
    * @param `instanceId` - string
    * @param `portalId` - string
@@ -116,7 +116,7 @@ export class MetorialDashboardInstancePortalsListingsEndpoint {
 
   /**
    * @name Create portal listing
-   * @description Creates a shared listing for a portal.
+   * @description Creates or updates the shared listing for one target on a portal. A portal has at most one listing per target.
    *
    * @param `instanceId` - string
    * @param `portalId` - string
@@ -148,7 +148,7 @@ export class MetorialDashboardInstancePortalsListingsEndpoint {
 
   /**
    * @name Update portal listing
-   * @description Updates listing metadata for a portal listing.
+   * @description Updates a portal listing. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `portalId` - string

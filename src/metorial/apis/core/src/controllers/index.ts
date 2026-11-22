@@ -78,8 +78,11 @@ import {
   chatMessageController,
   chatThreadController,
   chatWorkspaceController,
+  aiToolController,
+  aiToolDetectionController,
   consumerController,
   consumerDeviceManagementController,
+  consumerDeviceSettingsController,
   consumerSurfaceController,
   customProviderCodeController,
   customProviderCommitController,
@@ -655,6 +658,9 @@ export let magnetarController = Controller.create<any>(
 
     consumerController,
     consumerDeviceManagementController,
+    consumerDeviceSettingsController,
+    aiToolController,
+    aiToolDetectionController,
     consumerSurfaceController,
 
     portalController,
@@ -836,6 +842,9 @@ export let dashboardController = Controller.create<any>(
 
     consumerController,
     consumerDeviceManagementController,
+    consumerDeviceSettingsController,
+    aiToolController,
+    aiToolDetectionController,
     consumerSurfaceController,
     sessionController,
 

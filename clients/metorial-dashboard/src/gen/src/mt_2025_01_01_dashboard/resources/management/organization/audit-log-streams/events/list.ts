@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationAuditLogStreamsEventsListOutput = {
+  object: 'list';
   items: {
     object: 'organization.audit_log_stream.event';
     id: string;
@@ -31,7 +32,12 @@ export type ManagementOrganizationAuditLogStreamsEventsListOutput = {
     } | null;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementOrganizationAuditLogStreamsEventsListOutput =

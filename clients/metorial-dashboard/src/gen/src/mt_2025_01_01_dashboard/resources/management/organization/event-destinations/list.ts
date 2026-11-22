@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationEventDestinationsListOutput = {
+  object: 'list';
   items: {
     object: 'event.destination';
     id: string;
@@ -38,7 +39,12 @@ export type ManagementOrganizationEventDestinationsListOutput = {
     updatedAt: Date;
     archivedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementOrganizationEventDestinationsListOutput =

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Stores controller
- * @description Create and manage instance stores backed by Cargo.
+ * @description A store is a shared collection of files and documents. Participants get read or write access to its contents.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialStoresEndpoint {
 
   /**
    * @name List stores
-   * @description Returns a paginated list of stores owned by the instance.
+   * @description Returns a paginated list of stores.
    *
    * @param `query` - DashboardInstanceStoresListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -79,7 +79,7 @@ export class MetorialStoresEndpoint {
 
   /**
    * @name Create store
-   * @description Creates a new store for the instance.
+   * @description Creates a store.
    *
    * @param `body` - DashboardInstanceStoresCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -106,8 +106,8 @@ export class MetorialStoresEndpoint {
   }
 
   /**
-   * @name Get store by ID
-   * @description Retrieves a store by its ID.
+   * @name Get store
+   * @description Retrieves a store.
    *
    * @param `storeId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -131,8 +131,8 @@ export class MetorialStoresEndpoint {
   }
 
   /**
-   * @name Update store by ID
-   * @description Updates a specific store.
+   * @name Update store
+   * @description Updates a store.
    *
    * @param `storeId` - string
    * @param `body` - DashboardInstanceStoresUpdateBody
@@ -161,8 +161,8 @@ export class MetorialStoresEndpoint {
   }
 
   /**
-   * @name Delete store by ID
-   * @description Deletes a specific store.
+   * @name Delete store
+   * @description Deletes a store.
    *
    * @param `storeId` - string
    * @param `opts` - { headers?: Record<string, string> }

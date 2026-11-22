@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceAgentTrackingIngestSourcesCreateBody,
@@ -64,7 +67,9 @@ export class MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceAgentTrackingIngestSourcesListQuery.transformTo(query)
+        ? mapDashboardInstanceAgentTrackingIngestSourcesListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -94,7 +99,9 @@ export class MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceAgentTrackingIngestSourcesCreateBody.transformTo(body),
+      body: mapDashboardInstanceAgentTrackingIngestSourcesCreateBody.transformTo(
+        body
+      ),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

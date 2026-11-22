@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type IdentitiesDelegationRequestsListOutput = {
+  object: 'list';
   items: {
     object: 'identity.delegation_request';
     id: string;
@@ -119,7 +120,12 @@ export type IdentitiesDelegationRequestsListOutput = {
     expiresAt: Date;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapIdentitiesDelegationRequestsListOutput =

@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Portal Consumer Invites controller
- * @description List and inspect consumer invites for a portal.
+ * @description A portal consumer invite is an email invitation for one person to join a portal.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -45,7 +45,7 @@ export class MetorialPortalsConsumerInvitesEndpoint {
 
   /**
    * @name List portal consumer invites
-   * @description Returns a paginated list of invites for a portal.
+   * @description Returns a paginated list of consumer invites for a portal.
    *
    * @param `portalId` - string
    * @param `query` - DashboardInstancePortalsConsumerInvitesListQuery
@@ -109,7 +109,7 @@ export class MetorialPortalsConsumerInvitesEndpoint {
 
   /**
    * @name Get portal consumer invite
-   * @description Retrieves a portal consumer invite by ID.
+   * @description Retrieves a portal consumer invite.
    *
    * @param `portalId` - string
    * @param `consumerInviteId` - string

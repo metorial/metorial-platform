@@ -37,6 +37,6 @@ export type DashboardInstanceAgentTrackingIngestSourcesCreateBody = {
 };
 
 export let mapDashboardInstanceAgentTrackingIngestSourcesCreateBody =
-  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingIngestSourcesCreateBody>([
-    'client_family'
-  ]);
+  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingIngestSourcesCreateBody>(
+    ['client_family']
+  );

@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type CustomProvidersDeploymentsListOutput = {
+  object: 'list';
   items: ({
     object: 'custom_provider.deployment';
     id: string;
@@ -121,7 +122,12 @@ export type CustomProvidersDeploymentsListOutput = {
       createdAt: Date;
     } | null;
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapCustomProvidersDeploymentsListOutput =

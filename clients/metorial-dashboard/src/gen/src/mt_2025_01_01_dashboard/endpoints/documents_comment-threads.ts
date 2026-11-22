@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Document Comment Threads controller
- * @description Discuss selected text in a document through comment threads.
+ * @description A document comment thread is a discussion anchored to a text selection in a document.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialDocumentsCommentThreadsEndpoint {
 
   /**
    * @name List document comment threads
-   * @description Returns a paginated list of comment threads for a specific document.
+   * @description Returns a paginated list of comment threads in a document.
    *
    * @param `documentId` - string
    * @param `query` - DashboardInstanceDocumentsCommentThreadsListQuery
@@ -84,8 +84,8 @@ export class MetorialDocumentsCommentThreadsEndpoint {
   }
 
   /**
-   * @name Get document comment thread by ID
-   * @description Retrieves a specific comment thread with its comments.
+   * @name Get document comment thread
+   * @description Retrieves a document comment thread with its comments.
    *
    * @param `documentId` - string
    * @param `documentCommentThreadId` - string

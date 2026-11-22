@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Identity Delegation Requests controller
- * @description Identity delegation requests represent approval workflows for creating delegations that require consent.
+ * @description An identity delegation request is an approval workflow for a delegation that needs consent. Approving it creates the delegation.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -89,7 +89,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
 
   /**
    * @name Get identity delegation request
-   * @description Retrieves a specific identity delegation request by ID.
+   * @description Retrieves an identity delegation request.
    *
    * @param `instanceId` - string
    * @param `identityDelegationRequestId` - string
@@ -125,7 +125,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
 
   /**
    * @name Create identity delegation request
-   * @description Creates a new identity delegation request.
+   * @description Creates an identity delegation request.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIdentitiesDelegationRequestsCreateBody
@@ -157,7 +157,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
 
   /**
    * @name Approve identity delegation request
-   * @description Approves an existing identity delegation request.
+   * @description Approves an identity delegation request.
    *
    * @param `instanceId` - string
    * @param `identityDelegationRequestId` - string
@@ -193,7 +193,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
 
   /**
    * @name Deny identity delegation request
-   * @description Denies an existing identity delegation request.
+   * @description Denies an identity delegation request.
    *
    * @param `instanceId` - string
    * @param `identityDelegationRequestId` - string

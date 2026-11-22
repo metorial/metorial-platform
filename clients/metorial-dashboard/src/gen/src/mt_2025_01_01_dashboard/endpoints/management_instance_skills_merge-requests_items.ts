@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Skill Merge Requests controller
- * @description Review, resolve, and apply changes between skills.
+ * @description A skill merge request is a proposed change from one skill into another.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -43,7 +43,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsItemsEndpoint {
 
   /**
    * @name Resolve skill merge request item
-   * @description Saves a resolution for one proposed skill change.
+   * @description Saves a resolution for one proposed skill change. The merge request must be open.
    *
    * @param `instanceId` - string
    * @param `skillMergeRequestId` - string
@@ -79,7 +79,7 @@ export class MetorialManagementInstanceSkillsMergeRequestsItemsEndpoint {
 
   /**
    * @name Resolve skill merge request items
-   * @description Saves resolutions for multiple proposed skill changes.
+   * @description Saves resolutions for multiple proposed skill changes. The merge request must be open.
    *
    * @param `instanceId` - string
    * @param `skillMergeRequestId` - string

@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumersProfilesListOutput = {
+  object: 'list';
   items: (({
     object: 'consumer.profile';
     id: string;
@@ -60,7 +61,12 @@ export type ConsumersProfilesListOutput = {
       portalId: string | null;
     };
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapConsumersProfilesListOutput =

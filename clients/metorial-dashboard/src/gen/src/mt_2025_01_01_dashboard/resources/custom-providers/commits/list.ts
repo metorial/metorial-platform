@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type CustomProvidersCommitsListOutput = {
+  object: 'list';
   items: {
     object: 'custom_provider.commit';
     id: string;
@@ -359,7 +360,12 @@ export type CustomProvidersCommitsListOutput = {
     createdAt: Date;
     appliedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapCustomProvidersCommitsListOutput =

@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMagicMcpTokensListOutput = {
+  object: 'list';
   items: ({
     object: 'magic_mcp.token';
     id: string;
@@ -47,7 +48,12 @@ export type DashboardInstanceMagicMcpTokensListOutput = {
       updatedAt: Date;
     }[];
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceMagicMcpTokensListOutput =

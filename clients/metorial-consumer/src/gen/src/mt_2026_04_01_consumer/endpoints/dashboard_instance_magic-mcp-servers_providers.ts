@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Magic MCP Servers controller
- * @description Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.
+ * @description A magic MCP server is a stable MCP entrypoint with its own providers and tool filters. Servers can be grouped and bound to tokens, or combined behind an endpoint.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Create magic MCP server provider
-   * @description Creates a configurable provider row for a magic MCP server.
+   * @description Adds a provider to a magic MCP server.
    *
    * @param `instanceId` - string
    * @param `magicMcpServerId` - string
@@ -121,7 +121,7 @@ export class MetorialDashboardInstanceMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Get magic MCP server provider
-   * @description Retrieves a specific backing integration instance provider for a magic MCP server.
+   * @description Retrieves a provider of a magic MCP server.
    *
    * @param `instanceId` - string
    * @param `magicMcpServerId` - string
@@ -152,7 +152,7 @@ export class MetorialDashboardInstanceMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Update magic MCP server provider
-   * @description Updates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.
+   * @description Updates a provider of a magic MCP server. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `magicMcpServerId` - string
@@ -187,7 +187,7 @@ export class MetorialDashboardInstanceMagicMcpServersProvidersEndpoint {
   }
 
   /**
-   * @name Delete magic MCP server provider
+   * @name Archive magic MCP server provider
    * @description Archives a backing integration instance provider from a magic MCP server and removes the shared integration provider when unused.
    *
    * @param `instanceId` - string

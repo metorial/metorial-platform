@@ -37,6 +37,14 @@ export let consumerDeviceInclude = {
       excludedSkills: { orderBy: { oid: 'asc' }, include: { skill: true } }
     }
   },
+  detections: {
+    where: {
+      goneAt: null,
+      consumerDevice: { status: 'active' },
+      instance: { consumerDeviceSettings: { is: { aiToolDetectionEnabled: true } } }
+    },
+    orderBy: { toolKey: 'asc' }
+  },
   consumerProfile: true
 } satisfies Prisma.ConsumerDeviceInclude;
 
@@ -143,7 +151,8 @@ class ConsumerDeviceServiceImpl {
             ...details,
             status: 'active',
             revokedAt: null,
-            oauthTokenOid: oauthToken.oid
+            oauthTokenOid: oauthToken.oid,
+            detectionSeq: null
           }
         });
 
@@ -392,6 +401,8 @@ class ConsumerDeviceServiceImpl {
         data: {
           status: d.status,
           revokedAt: d.status == 'revoked' ? new Date() : null,
+          detectionSeq: null,
+          detectionReportedAt: null,
           ...(d.signInMoved ? { oauthTokenOid: null } : {})
         }
       });
@@ -401,6 +412,9 @@ class ConsumerDeviceServiceImpl {
         );
       }
 
+      await db.consumerDeviceDetection.deleteMany({
+        where: { consumerDeviceOid: d.consumerDevice.oid }
+      });
       if (d.consumerDevice.oauthTokenOid && !d.signInMoved) {
         await oauthAuthorizationService.revokeOAuthToken({
           oauthToken: { oid: d.consumerDevice.oauthTokenOid }

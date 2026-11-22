@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Store Participants controller
- * @description Inspect participants assigned to an instance store.
+ * @description A store participant is an actor with access to a store and its contents.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialDashboardInstanceStoresParticipantsEndpoint {
 
   /**
    * @name List store participants
-   * @description Returns a paginated list of participants for a specific store.
+   * @description Returns a paginated list of participants in a store.
    *
    * @param `instanceId` - string
    * @param `storeId` - string
@@ -74,8 +74,8 @@ export class MetorialDashboardInstanceStoresParticipantsEndpoint {
   }
 
   /**
-   * @name Get store participant by ID
-   * @description Retrieves a specific participant within a store.
+   * @name Get store participant
+   * @description Retrieves a participant in a store.
    *
    * @param `instanceId` - string
    * @param `storeId` - string

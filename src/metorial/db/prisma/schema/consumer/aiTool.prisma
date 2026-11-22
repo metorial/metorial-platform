@@ -1,0 +1,44 @@
+enum AiToolPolicyStatus {
+  sanctioned
+  not_sanctioned
+  unreviewed
+}
+
+model AiToolPolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  toolKey String
+
+  status AiToolPolicyStatus
+  note   String?
+
+  decidedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  decidedByActorOid BigInt?
+  decidedByActor    OrganizationActor? @relation(fields: [decidedByActorOid], references: [oid], onDelete: SetNull)
+
+  @@unique([instanceOid, toolKey])
+}
+
+model ConsumerDeviceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aiToolDetectionEnabled Boolean @default(false)
+
+  privacyNoticeAcceptedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  privacyNoticeAcceptedByActorOid BigInt?
+  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
+}

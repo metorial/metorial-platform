@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Integration Firewall Assignments controller
- * @description Manage assignments that apply firewalls to integration enclaves, providers, or the integration internet gateway.
+ * @description An integration firewall assignment is a firewall applied to one target. Targets are integration enclaves, providers, or the integration internet gateway.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name List integration firewall assignments
-   * @description Returns a paginated list of integration firewall assignments.
+   * @description Returns a paginated list of integration firewall assignments in the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceIntegrationFirewallAssignmentsListQuery
@@ -81,7 +81,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name Get integration firewall assignment
-   * @description Retrieves a specific integration firewall assignment by ID.
+   * @description Retrieves an integration firewall assignment.
    *
    * @param `instanceId` - string
    * @param `integrationFirewallAssignmentId` - string
@@ -110,7 +110,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name Create integration firewall assignment
-   * @description Creates an assignment that applies a firewall to a target.
+   * @description Creates an integration firewall assignment.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIntegrationFirewallAssignmentsCreateBody
@@ -142,7 +142,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name Delete integration firewall assignment
-   * @description Deletes an integration firewall assignment.
+   * @description Permanently deletes an integration firewall assignment. The firewall stops applying to the target.
    *
    * @param `instanceId` - string
    * @param `integrationFirewallAssignmentId` - string

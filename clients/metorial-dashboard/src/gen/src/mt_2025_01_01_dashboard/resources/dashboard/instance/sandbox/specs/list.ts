@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxSpecsListOutput = {
+  object: 'list';
   items: {
     object: 'sandbox.spec';
     id: string;
@@ -11,7 +12,12 @@ export type DashboardInstanceSandboxSpecsListOutput = {
     regions: string[];
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceSandboxSpecsListOutput =

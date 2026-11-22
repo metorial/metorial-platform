@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type IntegrationsListOutput = {
+  object: 'list';
   items: {
     object: 'integration';
     id: string;
@@ -180,7 +181,12 @@ export type IntegrationsListOutput = {
     updatedAt: Date;
     archivedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapIntegrationsListOutput =

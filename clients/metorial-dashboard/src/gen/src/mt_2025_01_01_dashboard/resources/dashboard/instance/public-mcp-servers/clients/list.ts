@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePublicMcpServersClientsListOutput = {
+  object: 'list';
   items: ({
     id: string;
     clientId: string;
@@ -16,7 +17,12 @@ export type DashboardInstancePublicMcpServersClientsListOutput = {
     expiresAt: Date;
     createdAt: Date;
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstancePublicMcpServersClientsListOutput =

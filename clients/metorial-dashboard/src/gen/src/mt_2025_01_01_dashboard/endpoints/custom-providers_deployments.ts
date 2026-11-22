@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Custom Provider Deployments controller
- * @description Deployments track the build and deployment process of custom provider versions. View deployment status and logs.
+ * @description A custom provider deployment is a build and rollout of one custom provider version.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -43,7 +43,7 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
 
   /**
    * @name List custom provider deployments
-   * @description Returns a paginated list of deployments for a custom provider.
+   * @description Returns a paginated list of custom provider deployments.
    *
    * @param `query` - DashboardInstanceCustomProvidersDeploymentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -75,7 +75,7 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
 
   /**
    * @name Get custom provider deployment
-   * @description Retrieves a specific deployment.
+   * @description Retrieves a custom provider deployment.
    *
    * @param `customProviderDeploymentId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -101,8 +101,8 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
   }
 
   /**
-   * @name Get deployment logs
-   * @description Retrieves the build and deployment logs for a deployment.
+   * @name Get custom provider deployment logs
+   * @description Retrieves the build and deployment logs for a custom provider deployment.
    *
    * @param `customProviderDeploymentId` - string
    * @param `opts` - { headers?: Record<string, string> }

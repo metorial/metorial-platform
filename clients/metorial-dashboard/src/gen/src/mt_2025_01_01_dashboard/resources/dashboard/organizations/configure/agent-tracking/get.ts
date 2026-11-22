@@ -8,8 +8,10 @@ export type DashboardOrganizationsConfigureAgentTrackingGetOutput = {
 };
 
 export let mapDashboardOrganizationsConfigureAgentTrackingGetOutput =
-  /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingGetOutput>([
-    'organization_id',
-    'service_status',
-    ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
-  ]);
+  /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingGetOutput>(
+    [
+      'organization_id',
+      'service_status',
+      ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
+    ]
+  );

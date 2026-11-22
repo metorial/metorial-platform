@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type FilesLinksListOutput = {
+  object: 'list';
   items: {
     object: 'file.file_link';
     id: string;
@@ -9,7 +10,12 @@ export type FilesLinksListOutput = {
     createdAt: Date;
     expiresAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapFilesLinksListOutput =

@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceAgentTrackingSpendBreakdownOutput,
@@ -65,7 +68,9 @@ export class MetorialDashboardInstanceAgentTrackingSpendEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceAgentTrackingSpendTimelineOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceAgentTrackingSpendTimelineOutput
+    );
   }
 
   /**
@@ -90,11 +95,15 @@ export class MetorialDashboardInstanceAgentTrackingSpendEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceAgentTrackingSpendBreakdownQuery.transformTo(query)
+        ? mapDashboardInstanceAgentTrackingSpendBreakdownQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceAgentTrackingSpendBreakdownOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceAgentTrackingSpendBreakdownOutput
+    );
   }
 }

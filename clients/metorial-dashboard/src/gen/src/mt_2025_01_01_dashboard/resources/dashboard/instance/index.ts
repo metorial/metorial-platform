@@ -1,5 +1,7 @@
 export * from './agent-tracking';
 export * from './agents';
+export * from './ai-tool-detections';
+export * from './ai-tools';
 export * from './assistants';
 export * from './callback-events';
 export * from './callback-instances';
@@ -7,6 +9,7 @@ export * from './callback-trigger-selection-options';
 export * from './callbacks';
 export * from './chat';
 export * from './chats';
+export * from './consumer-device-settings';
 export * from './consumer-surfaces';
 export * from './consumers';
 export * from './conversations';

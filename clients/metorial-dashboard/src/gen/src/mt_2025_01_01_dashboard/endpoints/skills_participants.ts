@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Skill Participants controller
- * @description Inspect participants associated with an instance skill.
+ * @description A skill participant is a member or consumer participating in a skill.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialSkillsParticipantsEndpoint {
 
   /**
    * @name List skill participants
-   * @description Returns a paginated list of participants for a specific skill.
+   * @description Returns a paginated list of skill participants.
    *
    * @param `skillId` - string
    * @param `query` - DashboardInstanceSkillsParticipantsListQuery
@@ -72,8 +72,8 @@ export class MetorialSkillsParticipantsEndpoint {
   }
 
   /**
-   * @name Get skill participant by ID
-   * @description Retrieves a specific participant within a skill.
+   * @name Get skill participant
+   * @description Retrieves a skill participant.
    *
    * @param `skillId` - string
    * @param `skillParticipantId` - string

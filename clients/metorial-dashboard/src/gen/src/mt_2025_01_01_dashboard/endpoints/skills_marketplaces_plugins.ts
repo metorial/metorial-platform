@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Marketplace Plugins controller
- * @description Manage plugin links for skill marketplaces.
+ * @description A skill marketplace plugin is one plugin in a skill marketplace.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialSkillsMarketplacesPluginsEndpoint {
 
   /**
    * @name Add skill marketplace plugin
-   * @description Adds a skill plugin to a skill marketplace.
+   * @description Adds a skill plugin to a skill marketplace. Adding a plugin that was removed reactivates its link.
    *
    * @param `skillMarketplaceId` - string
    * @param `body` - DashboardInstanceSkillsMarketplacesPluginsAddBody

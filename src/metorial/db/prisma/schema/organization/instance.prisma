@@ -122,6 +122,9 @@ model Instance {
   consumerProviderSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   consumers                            ConsumerProfile[]
   consumerDevices                      ConsumerDevice[]
+  consumerDeviceDetections             ConsumerDeviceDetection[]
+  consumerDeviceSettings               ConsumerDeviceSettings?
+  aiToolPolicies                       AiToolPolicy[]
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
   skills                               Skill[]

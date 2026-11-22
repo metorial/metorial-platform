@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Monitors controller
- * @description Monitors track automated observability checks for this instance.
+ * @description A monitor is an automated observability check for an instance. It raises alerts when its target misbehaves.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialMonitorsEndpoint {
 
   /**
    * @name List monitors
-   * @description Returns a paginated list of monitors for this instance.
+   * @description Returns a paginated list of monitors in the instance.
    *
    * @param `query` - DashboardInstanceMonitorsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -69,7 +69,7 @@ export class MetorialMonitorsEndpoint {
 
   /**
    * @name Get monitor
-   * @description Retrieves a monitor by ID.
+   * @description Retrieves a monitor.
    *
    * @param `monitorId` - string
    * @param `opts` - { headers?: Record<string, string> }

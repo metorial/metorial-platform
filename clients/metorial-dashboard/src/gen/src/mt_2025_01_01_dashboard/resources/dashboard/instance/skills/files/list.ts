@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsFilesListOutput = {
+  object: 'list';
   items: {
     object: 'skill.file';
     path: string;
@@ -13,7 +14,12 @@ export type DashboardInstanceSkillsFilesListOutput = {
     fileId: string | null;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceSkillsFilesListOutput =

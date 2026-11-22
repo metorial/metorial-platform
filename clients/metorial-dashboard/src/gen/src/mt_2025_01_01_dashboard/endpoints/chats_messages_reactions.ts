@@ -47,7 +47,7 @@ export class MetorialChatsMessagesReactionsEndpoint {
 
   /**
    * @name List chat message reactions
-   * @description Returns the reactions left on a specific chat message.
+   * @description Returns the reactions left on a chat message.
    *
    * @param `chatId` - string
    * @param `messageId` - string
@@ -81,7 +81,7 @@ export class MetorialChatsMessagesReactionsEndpoint {
 
   /**
    * @name Add chat message reaction
-   * @description Adds a reaction to a specific chat message.
+   * @description Adds a reaction to a chat message.
    *
    * @param `chatId` - string
    * @param `messageId` - string
@@ -115,7 +115,7 @@ export class MetorialChatsMessagesReactionsEndpoint {
 
   /**
    * @name Remove chat message reaction
-   * @description Removes a reaction from a specific chat message.
+   * @description Removes a reaction from a chat message.
    *
    * @param `chatId` - string
    * @param `messageId` - string

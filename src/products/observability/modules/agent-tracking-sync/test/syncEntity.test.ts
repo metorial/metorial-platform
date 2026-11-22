@@ -80,6 +80,8 @@ let createDevice = (overrides: Record<string, any> = {}) => ({
     { name: 'Claude Code', mcpClientType: { key: 'claude-code' } },
     { name: 'Cursor', mcpClientType: { key: 'cursor' } }
   ],
+  detections: [],
+  detectionReportedAt: new Date(),
   ...overrides
 });
 
@@ -217,6 +219,48 @@ describe('agent-tracking/sync/entity', () => {
       reach: 'from_now'
     });
     expect(mocks.agentTracking.entity.archive).not.toHaveBeenCalled();
+  });
+
+  it('upserts the agents detected on a device once, next to its configured clients', async () => {
+    vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(
+      createDevice({
+        detections: [{ toolKey: 'cursor' }, { toolKey: 'ollama' }, { toolKey: 'retired-tool' }]
+      }) as any
+    );
+
+    await run({ type: 'device', id: 'codv_1' });
+
+    let agents = mocks.agentTracking.entity.upsert.mock.calls
+      .map(([input]) => input)
+      .filter(input => input.kind == 'agent')
+      .map(input => [input.ref, input.name]);
+    expect(agents).toEqual([
+      ['claude-code', 'Claude Code'],
+      ['cursor', 'Cursor'],
+      ['ollama', 'Ollama']
+    ]);
+  });
+
+  it.each([
+    ['detection is off', { detectionReportedAt: new Date() }, false],
+    [
+      'the last report is stale',
+      { detectionReportedAt: new Date('2020-01-01T00:00:00Z') },
+      true
+    ]
+  ])('leaves detected agents out when %s', async (_, overrides, detectionOn) => {
+    mocks.aiToolDetection.value = detectionOn;
+    vi.mocked(db.consumerDevice.findUnique).mockResolvedValue(
+      createDevice({ detections: [{ toolKey: 'ollama' }], ...overrides }) as any
+    );
+
+    await run({ type: 'device', id: 'codv_1' });
+
+    let agents = mocks.agentTracking.entity.upsert.mock.calls
+      .map(([input]) => input)
+      .filter(input => input.kind == 'agent')
+      .map(input => input.ref);
+    expect(agents).toEqual(['claude-code', 'cursor']);
   });
 
   it('archives the entity of an ended device', async () => {

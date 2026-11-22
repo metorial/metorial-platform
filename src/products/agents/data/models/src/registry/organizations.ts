@@ -290,5 +290,7 @@ export let organizationSeeds: OrganizationSeed[] = [
   { id: 'zed-industries', name: 'Zed Industries', country: 'US', website: 'https://zed.dev' },
   { id: 'aider-ai', name: 'Aider', website: 'https://aider.chat' },
   { id: 'warp', name: 'Warp', country: 'US', website: 'https://www.warp.dev' },
-  { id: 'charm', name: 'Charm', country: 'US', website: 'https://charm.sh' }
+  { id: 'charm', name: 'Charm', country: 'US', website: 'https://charm.sh' },
+  { id: 'ollama', name: 'Ollama', country: 'US', website: 'https://ollama.com' },
+  { id: 'lmstudio', name: 'LM Studio', country: 'US', website: 'https://lmstudio.ai' }
 ];

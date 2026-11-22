@@ -12,14 +12,16 @@ export type DashboardInstanceAgentTrackingSettingsUpdateOutput = {
 };
 
 export let mapDashboardInstanceAgentTrackingSettingsUpdateOutput =
-  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingSettingsUpdateOutput>([
-    'organization_id',
-    'project_id',
-    'instance_id',
-    'service_status',
-    ['classification', 0, [1, ['deterministic_enabled', 'ai_enabled']]],
-    ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
-  ]);
+  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingSettingsUpdateOutput>(
+    [
+      'organization_id',
+      'project_id',
+      'instance_id',
+      'service_status',
+      ['classification', 0, [1, ['deterministic_enabled', 'ai_enabled']]],
+      ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
+    ]
+  );
 
 export type DashboardInstanceAgentTrackingSettingsUpdateBody = {
   content?: { mode?: 'basic' | 'shape' | 'full' | undefined } | undefined;

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Specification Change Notifications controller
- * @description Provider specification change notifications describe provider schema changes.
+ * @description A provider specification change notification is a record of a provider schema change. It captures the before and after specification and version.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialDashboardInstanceProviderSpecificationChangeNotificationsEn
 
   /**
    * @name List provider specification change notifications
-   * @description Returns a paginated list of provider specification change notifications for this instance.
+   * @description Returns a paginated list of provider specification change notifications in the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceProviderSpecificationChangeNotificationsListQuery
@@ -75,7 +75,7 @@ export class MetorialDashboardInstanceProviderSpecificationChangeNotificationsEn
 
   /**
    * @name Get provider specification change notification
-   * @description Retrieves a provider specification change notification by ID.
+   * @description Retrieves a provider specification change notification.
    *
    * @param `instanceId` - string
    * @param `notificationId` - string

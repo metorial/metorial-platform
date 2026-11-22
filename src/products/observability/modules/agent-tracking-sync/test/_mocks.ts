@@ -4,6 +4,7 @@ export let mocks = {
   agentTracking: {} as Record<string, any>,
   enabled: { value: true },
   flagged: { value: true },
+  aiToolDetection: { value: true },
   flagChecks: [] as unknown[]
 };
 
@@ -36,7 +37,9 @@ export let flagModule = {
   isAgentTrackingEnabledForOrganization: async (d: unknown) => {
     mocks.flagChecks.push(d);
     return mocks.enabled.value && mocks.flagged.value;
-  }
+  },
+  isAiToolDetectionOnForInstance: async () => mocks.aiToolDetection.value,
+  isAiToolDetectionFlagged: async () => mocks.aiToolDetection.value
 };
 
 export let storedSettings = {
@@ -94,6 +97,7 @@ export let resetMocks = () => {
   vi.clearAllMocks();
   resetLinks();
   mocks.enabled.value = true;
+  mocks.aiToolDetection.value = true;
   mocks.flagged.value = true;
   mocks.flagChecks.length = 0;
 };

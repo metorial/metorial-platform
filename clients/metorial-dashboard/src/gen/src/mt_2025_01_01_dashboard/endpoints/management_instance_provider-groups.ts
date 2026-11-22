@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Provider Groups controller
- * @description A group is a user-defined custom folder for organizing providers in your instance like 'Sales Tools' or 'Engineering'.
+ * @description A provider group is a folder for organizing providers in your instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

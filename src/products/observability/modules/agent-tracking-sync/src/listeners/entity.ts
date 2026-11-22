@@ -1,7 +1,8 @@
-import { addAfterTransactionHook, db } from '@metorial/db';
+import { addAfterTransactionHook, db, type Organization } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { isAgentTrackingEnabled } from '../lib/client';
 import { shouldSyncOrganization } from '../lib/flag';
+import { enqueueAgentReconcile } from '../queues/reconcile';
 import { syncEntityQueue, type EntitySyncTarget } from '../queues/syncEntity';
 
 let entityOrganization = async (target: EntitySyncTarget) => {
@@ -31,6 +32,26 @@ let enqueueEntitySync = async (target: EntitySyncTarget) => {
     if (!(await shouldSyncOrganization(() => entityOrganization(target)))) return;
 
     await syncEntityQueue.add(target);
+  });
+};
+
+let instanceOrganization = async (instanceOid: bigint) =>
+  (
+    await db.instance.findUnique({
+      where: { oid: instanceOid },
+      include: { organization: true }
+    })
+  )?.organization ?? null;
+
+// Agents that only a detection kept around are dropped by the agent reconcile.
+let enqueueAgentCleanup = async (loadOrganization: () => Promise<Organization | null>) => {
+  if (!isAgentTrackingEnabled()) return;
+
+  await addAfterTransactionHook(async () => {
+    let organization = await loadOrganization();
+    if (!organization || !(await shouldSyncOrganization(async () => organization))) return;
+
+    await enqueueAgentReconcile(organization.id);
   });
 };
 
@@ -68,4 +89,32 @@ Fabric.listen('consumer.device.enrolled:after', async ({ consumerDevice }) =>
 
 Fabric.listen('consumer.device.updated:after', async ({ consumerDevice }) =>
   enqueueEntitySync({ type: 'device', id: consumerDevice.id })
+);
+
+Fabric.listen(
+  'consumer.device.detections.changed:after',
+  async ({ consumerDevice, added, removed }) => {
+    if (added.length) await enqueueEntitySync({ type: 'device', id: consumerDevice.id });
+    if (removed.length) {
+      await enqueueAgentCleanup(() => instanceOrganization(consumerDevice.instanceOid));
+    }
+  }
+);
+
+Fabric.listen('consumer.device.ended:after', async ({ consumerDevice }) =>
+  enqueueAgentCleanup(() => instanceOrganization(consumerDevice.instanceOid))
+);
+
+Fabric.listen(
+  'consumer.device_settings.updated:after',
+  async ({ consumerDeviceSettings, previousConsumerDeviceSettings }) => {
+    if (
+      !previousConsumerDeviceSettings?.aiToolDetectionEnabled ||
+      consumerDeviceSettings.aiToolDetectionEnabled
+    ) {
+      return;
+    }
+
+    await enqueueAgentCleanup(() => instanceOrganization(consumerDeviceSettings.instanceOid));
+  }
 );

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Events controller
- * @description Session events represent significant occurrences during a session, such as errors or state changes. This read-only resource provides visibility into session activity.
+ * @description A session event records something that happened in a session, like a connection opening or an error occurring.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialDashboardInstanceSessionsEventsEndpoint {
 
   /**
    * @name List session events
-   * @description Returns a paginated list of events for a session.
+   * @description Returns a paginated list of session events.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceSessionsEventsListQuery
@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceSessionsEventsEndpoint {
 
   /**
    * @name Get session event
-   * @description Retrieves a specific event from a session.
+   * @description Retrieves a session event.
    *
    * @param `instanceId` - string
    * @param `sessionEventId` - string

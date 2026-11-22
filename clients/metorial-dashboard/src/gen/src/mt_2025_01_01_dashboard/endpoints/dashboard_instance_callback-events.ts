@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Callback Events controller
- * @description A callback event is recorded every time a provider trigger behind one of your callbacks fires. Listing returns the events themselves; fetch a single event to enrich it with the payload the provider produced, and the inbound webhook behind it, if any.
+ * @description A callback event is recorded every time a provider trigger behind one of your callbacks fires.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceCallbackEventsEndpoint {
 
   /**
    * @name Get callback event
-   * @description Retrieves a specific callback event by ID, enriched with the payload the provider produced for it and, if it came from a webhook, the inbound request behind it.
+   * @description Retrieves a callback event, with the payload the provider produced and the inbound webhook behind it when there is one. The inbound request is `null` once it is past its retention period.
    *
    * @param `instanceId` - string
    * @param `callbackEventId` - string

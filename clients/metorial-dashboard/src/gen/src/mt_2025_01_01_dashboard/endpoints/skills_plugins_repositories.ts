@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Plugin Repositories controller
- * @description Manage repositories linked to skill plugins for an instance.
+ * @description A skill plugin repository is a repository linked to a skill plugin.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -1,13 +1,19 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceCallbackTriggerSelectionOptionsListOutput = {
+  object: 'list';
   items: {
     object: 'callback.trigger_selection_option';
     value: string | number;
     label: string;
     description: string | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceCallbackTriggerSelectionOptionsListOutput =

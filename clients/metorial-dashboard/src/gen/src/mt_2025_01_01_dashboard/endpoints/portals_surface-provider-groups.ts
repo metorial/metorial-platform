@@ -30,7 +30,7 @@ import {
 
 /**
  * @name Portal Consumer Surface Provider Groups controller
- * @description Manage the provider groups linked to a portal consumer surface for organizing providers.
+ * @description A portal surface provider group is a named section of a portal catalog. Listings are added to groups to organize what consumers see.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -57,7 +57,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name List portal surface provider groups
-   * @description Returns a paginated list of provider groups linked to the portal consumer surface.
+   * @description Returns a paginated list of surface provider groups for a portal.
    *
    * @param `portalId` - string
    * @param `query` - DashboardInstancePortalsSurfaceProviderGroupsListQuery
@@ -91,7 +91,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Get portal surface provider group
-   * @description Retrieves a portal surface provider group by ID.
+   * @description Retrieves a portal surface provider group.
    *
    * @param `portalId` - string
    * @param `consumerSurfaceProviderGroupId` - string
@@ -120,7 +120,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Create portal surface provider group
-   * @description Creates a new provider group linked to the portal consumer surface.
+   * @description Creates a surface provider group for a portal.
    *
    * @param `portalId` - string
    * @param `body` - DashboardInstancePortalsSurfaceProviderGroupsCreateBody
@@ -152,7 +152,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Update portal surface provider group
-   * @description Updates a provider group linked to the portal consumer surface.
+   * @description Updates a surface provider group for a portal. Omitted fields keep their current value.
    *
    * @param `portalId` - string
    * @param `consumerSurfaceProviderGroupId` - string
@@ -186,7 +186,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Delete portal surface provider group
-   * @description Deletes a provider group linked to the portal consumer surface.
+   * @description Deletes a surface provider group for a portal.
    *
    * @param `portalId` - string
    * @param `consumerSurfaceProviderGroupId` - string

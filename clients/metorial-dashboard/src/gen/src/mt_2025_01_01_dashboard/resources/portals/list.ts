@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type PortalsListOutput = {
+  object: 'list';
   items: ({
     object: 'portal';
     id: string;
@@ -28,7 +29,12 @@ export type PortalsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { managedEveryoneGroupId: string | null })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapPortalsListOutput =

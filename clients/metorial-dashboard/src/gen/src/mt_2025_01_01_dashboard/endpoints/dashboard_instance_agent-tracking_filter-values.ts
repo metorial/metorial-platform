@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceAgentTrackingFilterValuesListOutput,
@@ -56,7 +59,9 @@ export class MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint {
       path,
 
       query: query
-        ? mapDashboardInstanceAgentTrackingFilterValuesListQuery.transformTo(query)
+        ? mapDashboardInstanceAgentTrackingFilterValuesListQuery.transformTo(
+            query
+          )
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

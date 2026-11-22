@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsPluginsListOutput = {
+  object: 'list';
   items: ({
     object: 'skill.plugin';
     id: string;
@@ -120,7 +121,12 @@ export type ManagementInstanceSkillsPluginsListOutput = {
     canDelete: boolean;
     canEditSkills: boolean;
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSkillsPluginsListOutput =

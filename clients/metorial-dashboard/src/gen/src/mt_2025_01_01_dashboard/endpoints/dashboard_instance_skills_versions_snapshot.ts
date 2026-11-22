@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Skill Versions controller
- * @description Inspect version history and snapshots for a skill.
+ * @description A skill version is a snapshot of a skill at a point in time.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -37,7 +37,7 @@ export class MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint {
 
   /**
    * @name Get skill version snapshot
-   * @description Retrieves the store-backed snapshot for a specific skill version.
+   * @description Retrieves the content snapshot for a skill version.
    *
    * @param `instanceId` - string
    * @param `skillId` - string

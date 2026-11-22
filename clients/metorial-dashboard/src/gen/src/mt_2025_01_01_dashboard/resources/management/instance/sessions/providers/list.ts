@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSessionsProvidersListOutput = {
+  object: 'list';
   items: {
     object: 'session.provider';
     id: string;
@@ -54,7 +55,12 @@ export type ManagementInstanceSessionsProvidersListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSessionsProvidersListOutput =

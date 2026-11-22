@@ -204,6 +204,7 @@ describe('emitCatalog', () => {
       'names.json',
       'agents.json',
       'agents/claude-code.json',
+      'detection.json',
       'unresolved.json',
       'report.md',
       'sources/openrouter.json',
@@ -245,6 +246,7 @@ describe('emitCatalog', () => {
 
     expect(existsSync(path.join(siteDir, 'agents.json'))).toBe(true);
     expect(existsSync(path.join(siteDir, 'agents', 'codex.json'))).toBe(true);
+    expect(existsSync(path.join(siteDir, 'detection.json'))).toBe(true);
   });
 
   it('carries ids and first-seen times into the next build', async () => {

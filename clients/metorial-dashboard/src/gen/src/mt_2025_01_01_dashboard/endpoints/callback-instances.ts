@@ -71,7 +71,7 @@ export class MetorialCallbackInstancesEndpoint {
 
   /**
    * @name Get callback instance
-   * @description Retrieves a specific callback instance by ID.
+   * @description Retrieves a callback instance.
    *
    * @param `callbackInstanceId` - string
    * @param `opts` - { headers?: Record<string, string> }

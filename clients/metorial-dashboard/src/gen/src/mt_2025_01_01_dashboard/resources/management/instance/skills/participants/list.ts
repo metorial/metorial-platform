@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsParticipantsListOutput = {
+  object: 'list';
   items: ({
     object: 'skill.participant';
     id: string;
@@ -82,7 +83,9 @@ export type ManagementInstanceSkillsParticipantsListOutput = {
     surfaces:
       | {
           id: string;
-          roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
+          roles: (
+            'creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker'
+          )[];
           actor: {
             type: 'organization_actor' | 'consumer' | 'resource_actor';
             name: string;
@@ -164,7 +167,12 @@ export type ManagementInstanceSkillsParticipantsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { consumerId: string | null; hasOrganizationMemberAccess: boolean })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSkillsParticipantsListOutput =
@@ -198,7 +206,13 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                             [
                               'teams',
                               0,
-                              [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                              [
+                                2,
+                                [
+                                  1,
+                                  ['assignment_id', 'created_at', 'updated_at']
+                                ]
+                              ]
                             ],
                             'created_at',
                             'updated_at'
@@ -208,7 +222,10 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                       [
                         'consumer',
                         0,
-                        [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                        [
+                          1,
+                          ['image_url', 'user_id', 'created_at', 'updated_at']
+                        ]
                       ],
                       [
                         'consumer_profile',
@@ -237,7 +254,14 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                                           [
                                             'group',
                                             0,
-                                            [1, ['is_default', 'created_at', 'updated_at']]
+                                            [
+                                              1,
+                                              [
+                                                'is_default',
+                                                'created_at',
+                                                'updated_at'
+                                              ]
+                                            ]
                                           ],
                                           'assigned_via',
                                           'sso_group_ids'
@@ -280,7 +304,17 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                                     [
                                       'teams',
                                       0,
-                                      [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                                      [
+                                        2,
+                                        [
+                                          1,
+                                          [
+                                            'assignment_id',
+                                            'created_at',
+                                            'updated_at'
+                                          ]
+                                        ]
+                                      ]
                                     ],
                                     'created_at',
                                     'updated_at'
@@ -290,7 +324,15 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                               [
                                 'consumer',
                                 0,
-                                [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                                [
+                                  1,
+                                  [
+                                    'image_url',
+                                    'user_id',
+                                    'created_at',
+                                    'updated_at'
+                                  ]
+                                ]
                               ],
                               [
                                 'consumer_profile',
@@ -372,4 +414,6 @@ export type ManagementInstanceSkillsParticipantsListQuery = {
 } & {};
 
 export let mapManagementInstanceSkillsParticipantsListQuery =
-  /* @__PURE__ */ createMapper<ManagementInstanceSkillsParticipantsListQuery>(0);
+  /* @__PURE__ */ createMapper<ManagementInstanceSkillsParticipantsListQuery>(
+    0
+  );

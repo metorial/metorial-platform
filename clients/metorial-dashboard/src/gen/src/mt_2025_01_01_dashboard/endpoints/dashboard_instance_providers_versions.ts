@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Versions controller
- * @description A version is a specific release of a provider (e.g., v1.2.0). Each version has its own tools, auth methods, and config schema. Deployments are pinned to a version for security reasons.
+ * @description A provider version is a specific release of a provider. Each version has its own tools, auth methods, and config schema. A deployment can lock to one version or follow the provider's current version.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

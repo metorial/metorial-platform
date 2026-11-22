@@ -22,7 +22,7 @@ import {
 
 /**
  * @name ProtoGuard Config controller
- * @description ProtoGuard config controls prompt-injection filters and alert thresholds.
+ * @description ProtoGuard config is the prompt-injection filter set for an instance. It controls which filters run and when they raise alerts.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -49,7 +49,7 @@ export class MetorialDashboardInstanceProtoGuardConfigEndpoint {
 
   /**
    * @name Get ProtoGuard config
-   * @description Retrieves ProtoGuard filter configuration for this instance.
+   * @description Retrieves the ProtoGuard config for the instance.
    *
    * @param `instanceId` - string
    * @param `opts` - { headers?: Record<string, string> }

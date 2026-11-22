@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxDisksMountsListOutput = {
+  object: 'list';
   items: {
     object: 'sandbox.disk.mount';
     id: string;
@@ -26,7 +27,12 @@ export type DashboardInstanceSandboxDisksMountsListOutput = {
     releasedAt: Date | null;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceSandboxDisksMountsListOutput =

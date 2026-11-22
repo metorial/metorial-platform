@@ -1,9 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import type { Organization, Project } from '@metorial/db';
+import { db, type Organization, type Project } from '@metorial/db';
 import { flagService } from '@metorial/module-flags';
 import { getAgentTrackingIngestPublicUrl, isAgentTrackingEnabled } from './client';
 
 export let agentTrackingFlag = 'agent-tracking-enabled' as const;
+
+export let aiToolDetectionFlag = 'ai-tool-detection' as const;
 
 export let isAgentTrackingEnabledForOrganization = async (d: {
   organization: Organization;
@@ -45,4 +47,24 @@ export let shouldSyncOrganization = async (
   } catch {
     return true;
   }
+};
+
+export let isAiToolDetectionFlagged = (d: { organization: Organization; project: Project }) =>
+  flagService.isFlagEnabledForScope({
+    organization: d.organization,
+    project: d.project,
+    flag: aiToolDetectionFlag
+  });
+
+export let isAiToolDetectionOnForInstance = async (d: {
+  organization: Organization;
+  project: Project;
+  instanceOid: bigint;
+}) => {
+  let settings = await db.consumerDeviceSettings.findUnique({
+    where: { instanceOid: d.instanceOid }
+  });
+  if (!settings?.aiToolDetectionEnabled) return false;
+
+  return await isAiToolDetectionFlagged(d);
 };

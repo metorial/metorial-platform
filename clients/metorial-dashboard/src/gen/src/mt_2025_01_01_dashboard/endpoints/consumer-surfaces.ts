@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Consumer Surfaces controller
- * @description List and retrieve consumer surfaces for an instance.
+ * @description A consumer surface is a portal, member directory, or CLI entry point consumers sign in through.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialConsumerSurfacesEndpoint {
 
   /**
    * @name List consumer surfaces
-   * @description Returns a paginated list of consumer surfaces for an instance.
+   * @description Returns a paginated list of consumer surfaces.
    *
    * @param `query` - DashboardInstanceConsumerSurfacesListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -71,7 +71,7 @@ export class MetorialConsumerSurfacesEndpoint {
 
   /**
    * @name Get consumer surface
-   * @description Retrieves a consumer surface by ID.
+   * @description Retrieves a consumer surface.
    *
    * @param `consumerSurfaceId` - string
    * @param `opts` - { headers?: Record<string, string> }

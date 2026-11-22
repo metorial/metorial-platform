@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Documents controller
- * @description Create and manage instance documents backed by Cargo.
+ * @description A document is rich text with comments, versions, and participants.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -37,7 +37,7 @@ export class MetorialDocumentsPermissionsEndpoint {
 
   /**
    * @name Get document permissions
-   * @description Returns the effective Cargo permissions for the current actor on a specific document.
+   * @description Returns what the caller can do with a document.
    *
    * @param `documentId` - string
    * @param `opts` - { headers?: Record<string, string> }

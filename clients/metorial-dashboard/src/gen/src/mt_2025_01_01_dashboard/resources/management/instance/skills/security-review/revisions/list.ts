@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsSecurityReviewRevisionsListOutput = {
+  object: 'list';
   items: {
     object: 'skill.security_review.revision';
     id: string;
@@ -110,7 +111,12 @@ export type ManagementInstanceSkillsSecurityReviewRevisionsListOutput = {
     completedAt: Date | null;
     createdAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSkillsSecurityReviewRevisionsListOutput =

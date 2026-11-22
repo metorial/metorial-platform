@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMonitorsListOutput = {
+  object: 'list';
   items: {
     object: 'monitor';
     id: string;
@@ -16,7 +17,12 @@ export type DashboardInstanceMonitorsListOutput = {
     firstAlertAt: Date | null;
     lastAlertAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceMonitorsListOutput =

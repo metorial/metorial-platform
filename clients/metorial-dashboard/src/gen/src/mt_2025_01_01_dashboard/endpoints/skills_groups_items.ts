@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Group Items controller
- * @description Skill group items link groups to skills.
+ * @description A skill group item is one skill in a skill group.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialSkillsGroupsItemsEndpoint {
 
   /**
    * @name List skill group items
-   * @description Returns a paginated list of items for a skill group.
+   * @description Returns a paginated list of skill group items.
    *
    * @param `skillGroupId` - string
    * @param `query` - DashboardInstanceSkillsGroupsItemsListQuery
@@ -79,7 +79,7 @@ export class MetorialSkillsGroupsItemsEndpoint {
 
   /**
    * @name Get skill group item
-   * @description Retrieves a specific skill group item.
+   * @description Retrieves a skill group item.
    *
    * @param `skillGroupId` - string
    * @param `skillGroupItemId` - string
@@ -137,7 +137,7 @@ export class MetorialSkillsGroupsItemsEndpoint {
   }
 
   /**
-   * @name Delete skill group item
+   * @name Archive skill group item
    * @description Archives a skill group item.
    *
    * @param `skillGroupId` - string

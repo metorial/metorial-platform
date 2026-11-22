@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Custom Provider Versions controller
- * @description Versions represent different releases of a custom provider. Each version can be deployed to environments.
+ * @description A custom provider version is a release of a custom provider. It is built by a deployment and promoted into environments.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
 
   /**
    * @name List custom provider versions
-   * @description Returns a paginated list of versions for a custom provider.
+   * @description Returns a paginated list of custom provider versions.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceCustomProvidersVersionsListQuery
@@ -81,7 +81,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
 
   /**
    * @name Get custom provider version
-   * @description Retrieves a specific version of a custom provider.
+   * @description Retrieves a custom provider version.
    *
    * @param `instanceId` - string
    * @param `customProviderVersionId` - string
@@ -110,7 +110,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
 
   /**
    * @name Get custom provider version environment
-   * @description Retrieves the environment variables for a specific version of a custom provider.
+   * @description Retrieves the environment variables for a version of a custom provider.
    *
    * @param `instanceId` - string
    * @param `customProviderVersionId` - string

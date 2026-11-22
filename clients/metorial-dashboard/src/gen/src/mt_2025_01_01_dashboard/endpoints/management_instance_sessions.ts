@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Sessions controller
- * @description Sessions are connections to providers that allow clients to interact with MCP servers. Each session can include one or more provider deployments.
+ * @description A session is a connection between clients and providers over MCP. Each session connects to one or more providers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialManagementInstanceSessionsEndpoint {
 
   /**
    * @name Get session
-   * @description Retrieves a specific session by ID.
+   * @description Retrieves a session.
    *
    * @param `instanceId` - string
    * @param `sessionId` - string
@@ -108,7 +108,7 @@ export class MetorialManagementInstanceSessionsEndpoint {
 
   /**
    * @name Create session
-   * @description Creates a new session with provider deployments.
+   * @description Creates a session with one or more providers, from a template or inline definitions.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceSessionsCreateBody
@@ -138,7 +138,7 @@ export class MetorialManagementInstanceSessionsEndpoint {
 
   /**
    * @name Update session
-   * @description Updates a session.
+   * @description Updates a session. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `sessionId` - string
@@ -169,8 +169,8 @@ export class MetorialManagementInstanceSessionsEndpoint {
   }
 
   /**
-   * @name Delete session
-   * @description Deletes a session.
+   * @name Archive session
+   * @description Archives a session. Its connections disconnect and its providers are archived. It stays listable with `status=archived`.
    *
    * @param `instanceId` - string
    * @param `sessionId` - string

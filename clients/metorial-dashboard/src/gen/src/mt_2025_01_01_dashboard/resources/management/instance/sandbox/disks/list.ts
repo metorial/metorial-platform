@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxDisksListOutput = {
+  object: 'list';
   items: {
     object: 'sandbox.disk';
     metadata: Record<string, any>;
@@ -25,7 +26,12 @@ export type ManagementInstanceSandboxDisksListOutput = {
     updatedAt: Date;
     deletedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSandboxDisksListOutput =

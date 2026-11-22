@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Invocations controller
- * @description Provider invocations expose normalized provider-side tracing for tool calls, OAuth flows, and auth config events across Shuttle and Slates.
+ * @description Provider invocations are trace records for tool calls, OAuth flows, and authentication events.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialDashboardInstanceProviderInvocationsEndpoint {
 
   /**
    * @name Get provider invocation
-   * @description Returns a single normalized provider invocation by ID.
+   * @description Retrieves a provider invocation.
    *
    * @param `instanceId` - string
    * @param `providerInvocationId` - string
@@ -70,7 +70,7 @@ export class MetorialDashboardInstanceProviderInvocationsEndpoint {
 
   /**
    * @name List provider invocations
-   * @description Returns normalized provider invocations and their logs for dashboard diagnostics.
+   * @description Returns provider invocations and their logs for dashboard diagnostics.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceProviderInvocationsListQuery

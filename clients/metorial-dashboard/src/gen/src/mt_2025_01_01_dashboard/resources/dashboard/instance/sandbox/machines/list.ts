@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxMachinesListOutput = {
+  object: 'list';
   items: {
     object: 'sandbox.machine';
     metadata: Record<string, any>;
@@ -137,7 +138,12 @@ export type DashboardInstanceSandboxMachinesListOutput = {
     hibernatedAt: Date | null;
     terminatedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardInstanceSandboxMachinesListOutput =

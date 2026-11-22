@@ -32,7 +32,7 @@ import {
 
 /**
  * @name Skill Plugins controller
- * @description Manage skill plugins for an instance.
+ * @description A skill plugin is a set of skills distributed through a skill marketplace.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -144,7 +144,7 @@ export class MetorialSkillsPluginsEndpoint {
 
   /**
    * @name Update skill plugin
-   * @description Updates a skill plugin.
+   * @description Updates a skill plugin. Omitted fields keep their current value.
    *
    * @param `skillPluginId` - string
    * @param `body` - DashboardInstanceSkillsPluginsUpdateBody
@@ -233,7 +233,7 @@ export class MetorialSkillsPluginsEndpoint {
 
   /**
    * @name Sync skill plugin
-   * @description Forces a skill plugin sync.
+   * @description Starts a sync of the skill plugin to its linked repositories, even if nothing changed.
    *
    * @param `skillPluginId` - string
    * @param `body` - DashboardInstanceSkillsPluginsSyncBody

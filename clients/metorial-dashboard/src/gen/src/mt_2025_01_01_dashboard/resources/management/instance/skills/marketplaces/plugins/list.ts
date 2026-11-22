@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsMarketplacesPluginsListOutput = {
+  object: 'list';
   items: ({
     object: 'skill.marketplace_plugin';
     id: string;
@@ -198,7 +199,12 @@ export type ManagementInstanceSkillsMarketplacesPluginsListOutput = {
         })
       | null;
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSkillsMarketplacesPluginsListOutput =

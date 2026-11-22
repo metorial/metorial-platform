@@ -4,6 +4,7 @@ import {
 } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsFilesBatchOutput = {
+  object: 'list';
   items: {
     object: 'skill.file_change';
     type: 'put' | 'delete' | 'move';
@@ -22,7 +23,12 @@ export type ManagementInstanceSkillsFilesBatchOutput = {
       updatedAt: Date;
     } | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapManagementInstanceSkillsFilesBatchOutput =

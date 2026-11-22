@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsServiceAccountsListOutput = {
+  object: 'list';
   items: {
     object: 'machine_access.service_account';
     id: string;
@@ -31,7 +32,12 @@ export type DashboardOrganizationsServiceAccountsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapDashboardOrganizationsServiceAccountsListOutput =

@@ -1,0 +1,94 @@
+import { createMapper } from '@metorial/util-resource-mapper/compact';
+
+export type DashboardInstanceAiToolDetectionsListOutput = {
+  object: 'list';
+  items: {
+    object: 'ai_tool.detection';
+    id: string;
+    toolKey: string;
+    toolName: string;
+    state: 'installed' | 'running';
+    confidence: 'high' | 'medium' | 'low';
+    signalKinds: (
+      'config_dir' | 'app' | 'path' | 'ide_extension' | 'process'
+    )[];
+    version: string | null;
+    stale: boolean;
+    firstSeenAt: Date;
+    lastSeenAt: Date;
+    policyStatus: 'sanctioned' | 'not_sanctioned' | 'unreviewed';
+    consumerDeviceId: string;
+    consumerProfileId: string;
+    consumerId: string;
+    goneAt: Date | null;
+  }[];
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
+};
+
+export let mapDashboardInstanceAiToolDetectionsListOutput =
+  /* @__PURE__ */ createMapper<DashboardInstanceAiToolDetectionsListOutput>(
+    [
+      7,
+      [
+        1,
+        [
+          'tool_key',
+          'tool_name',
+          'signal_kinds',
+          'first_seen_at',
+          'last_seen_at',
+          'policy_status',
+          'consumer_device_id',
+          'consumer_profile_id',
+          'consumer_id',
+          'gone_at'
+        ]
+      ]
+    ],
+    1
+  );
+
+export type DashboardInstanceAiToolDetectionsListQuery = {
+  limit?: number | undefined;
+  after?: string | undefined;
+  before?: string | undefined;
+  cursor?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+} & {
+  consumerId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
+  consumerDeviceId?: string | string[] | undefined;
+  toolKey?: string | string[] | undefined;
+  policyStatus?:
+    | 'sanctioned'
+    | 'not_sanctioned'
+    | 'unreviewed'
+    | ('sanctioned' | 'not_sanctioned' | 'unreviewed')[]
+    | undefined;
+  status?: 'present' | 'gone' | ('present' | 'gone')[] | undefined;
+};
+
+export let mapDashboardInstanceAiToolDetectionsListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceAiToolDetectionsListQuery>([
+    3,
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'consumer_id',
+            'consumer_profile_id',
+            'consumer_device_id',
+            'tool_key',
+            'policy_status'
+          ]
+        ]
+      ]
+    ]
+  ]);

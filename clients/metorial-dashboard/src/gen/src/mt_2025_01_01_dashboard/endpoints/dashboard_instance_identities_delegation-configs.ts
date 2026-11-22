@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Identity Delegation Configs controller
- * @description Delegation configs define the default policy for sub-delegation behavior and delegation depth.
+ * @description An identity delegation config is the default policy for sub-delegation. It controls whether delegates can delegate further, and how deep.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -85,7 +85,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint {
 
   /**
    * @name Get identity delegation config
-   * @description Retrieves a specific identity delegation config by ID.
+   * @description Retrieves an identity delegation config.
    *
    * @param `instanceId` - string
    * @param `identityDelegationConfigId` - string
@@ -114,7 +114,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint {
 
   /**
    * @name Create identity delegation config
-   * @description Creates a new identity delegation config.
+   * @description Creates an identity delegation config.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIdentitiesDelegationConfigsCreateBody
@@ -146,7 +146,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint {
 
   /**
    * @name Update identity delegation config
-   * @description Updates mutable fields on an existing identity delegation config.
+   * @description Updates an identity delegation config. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `identityDelegationConfigId` - string
@@ -179,8 +179,8 @@ export class MetorialDashboardInstanceIdentitiesDelegationConfigsEndpoint {
   }
 
   /**
-   * @name Delete identity delegation config
-   * @description Archives an identity delegation config.
+   * @name Archive identity delegation config
+   * @description Archives an identity delegation config. It stays listable with `status=archived`.
    *
    * @param `instanceId` - string
    * @param `identityDelegationConfigId` - string

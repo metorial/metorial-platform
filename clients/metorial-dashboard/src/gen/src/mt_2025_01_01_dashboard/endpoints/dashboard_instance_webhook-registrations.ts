@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Webhook Registrations controller
- * @description Webhook registrations give you a Metorial-hosted URL to point a provider at, so the provider can deliver webhooks that turn into callback events.
+ * @description A webhook registration is a Metorial-hosted URL you point a provider at, so the provider can deliver webhooks that turn into callback events.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceWebhookRegistrationsEndpoint {
 
   /**
    * @name Get webhook registration
-   * @description Retrieves a specific webhook registration by ID.
+   * @description Retrieves a webhook registration.
    *
    * @param `instanceId` - string
    * @param `webhookRegistrationId` - string
@@ -116,7 +116,7 @@ export class MetorialDashboardInstanceWebhookRegistrationsEndpoint {
 
   /**
    * @name Create webhook registration
-   * @description Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. When `triggers.webhook_registration.purpose` is `delivery_setup`, triggers register automatically and the registration is the one-time delivery setup for the connections that use the OAuth app named by `auth_credentials_id`. The registration starts out awaiting setup.
+   * @description Creates a webhook registration for a provider. The registration starts out awaiting setup.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceWebhookRegistrationsCreateBody
@@ -148,7 +148,7 @@ export class MetorialDashboardInstanceWebhookRegistrationsEndpoint {
 
   /**
    * @name Complete webhook registration setup
-   * @description Submits the provider-specific configuration described by the registration setup document, activating the registration.
+   * @description Submits the provider-specific configuration described by the registration setup document, activating the registration. Only a registration awaiting setup can be completed.
    *
    * @param `instanceId` - string
    * @param `webhookRegistrationId` - string
@@ -180,7 +180,7 @@ export class MetorialDashboardInstanceWebhookRegistrationsEndpoint {
 
   /**
    * @name Update webhook registration
-   * @description Updates a webhook registration.
+   * @description Updates a webhook registration. Omitted fields keep their current value. An archived webhook registration cannot be updated.
    *
    * @param `instanceId` - string
    * @param `webhookRegistrationId` - string
@@ -213,8 +213,8 @@ export class MetorialDashboardInstanceWebhookRegistrationsEndpoint {
   }
 
   /**
-   * @name Delete webhook registration
-   * @description Archives a webhook registration. The receiver is torn down on the provider before the record is removed for good.
+   * @name Archive webhook registration
+   * @description Archives a webhook registration. The receiver is torn down on the provider in the background and the record is removed after retention.
    *
    * @param `instanceId` - string
    * @param `webhookRegistrationId` - string

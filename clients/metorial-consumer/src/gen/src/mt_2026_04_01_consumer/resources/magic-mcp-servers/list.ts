@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpServersListOutput = {
+  object: 'list';
   items: ({
     object: 'magic_mcp.server';
     id: string;
@@ -163,7 +164,12 @@ export type MagicMcpServersListOutput = {
       updatedAt: Date;
     }[];
   })[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapMagicMcpServersListOutput =

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Skill Merge Request Comments controller
- * @description Discuss skill merge requests and individual proposed changes.
+ * @description A skill merge request comment is a comment on a merge request or one of its proposed changes.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint {
 
   /**
    * @name List skill merge request comments
-   * @description Lists comments on a skill merge request or one of its items.
+   * @description Returns a paginated list of skill merge request comments.
    *
    * @param `instanceId` - string
    * @param `skillMergeRequestId` - string
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint {
 
   /**
    * @name Create skill merge request comment
-   * @description Adds a comment to a skill merge request or one of its items.
+   * @description Creates a comment on a skill merge request or one of its items.
    *
    * @param `instanceId` - string
    * @param `skillMergeRequestId` - string

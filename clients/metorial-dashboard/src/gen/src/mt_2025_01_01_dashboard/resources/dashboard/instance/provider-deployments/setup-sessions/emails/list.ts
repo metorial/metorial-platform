@@ -2,6 +2,7 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsSetupSessionsEmailsListOutput =
   {
+    object: 'list';
     items: ({
       object: 'provider.setup_session.email';
       id: string;
@@ -13,7 +14,12 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsEmailsListOutput =
     } & {
       sender: { organizationActorId: string | null; name: string } | null;
     })[];
-    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+    pagination: {
+      hasMoreBefore: boolean;
+      hasMoreAfter: boolean;
+      before?: string | undefined;
+      after?: string | undefined;
+    };
   };
 
 export let mapDashboardInstanceProviderDeploymentsSetupSessionsEmailsListOutput =

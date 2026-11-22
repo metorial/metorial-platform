@@ -1,7 +1,18 @@
-import { ID, type ConsumerSurface, type ConsumerSurfaceType } from '@metorial/db';
-import { bootstrapUser, uniqueEmail, uniqueId } from '@metorial/e2e';
+import {
+  ID,
+  type ConsumerProfile,
+  type ConsumerSurface,
+  type ConsumerSurfaceType,
+  type User
+} from '@metorial/db';
+import { bootstrapUser, testContext, uniqueEmail, uniqueId } from '@metorial/e2e';
 import { db, type OrganizationFixture } from '@metorial/e2e/db';
 import { Fabric, type FabricEvents } from '@metorial/fabric';
+import {
+  machineAccessAuthService,
+  oauthApplicationService,
+  oauthAuthorizationService
+} from '@metorial/module-machine-access';
 import { consumerGroupService, consumerProfileService, consumerSurfaceService } from '../src';
 
 export let createConsumerSurface = async (
@@ -112,4 +123,53 @@ export let relayEmailsTo = async (email: string) => {
   } finally {
     await sql.close();
   }
+};
+
+export let createDesktopUser = async (fixture: OrganizationFixture) => {
+  let email = uniqueEmail('desktop');
+  let user = await signUpUser(email);
+  let { surface } = await createPortalSurface(fixture);
+  let consumerProfile = await createConsumerProfile(fixture, surface, { email });
+  await db.consumer.update({
+    where: { oid: consumerProfile.consumerOid },
+    data: { userOid: user.oid }
+  });
+
+  return { user, consumerProfile };
+};
+
+export let signInDesktop = async (
+  fixture: OrganizationFixture,
+  d: { user: User; consumerProfile: ConsumerProfile }
+) => {
+  if (!(await oauthApplicationService.getCliAuthOAuthApplication())) {
+    await oauthApplicationService.upsertCliAuthOAuthApplication();
+  }
+
+  let request = await oauthAuthorizationService.createCliAuthAuthorizationRequest({
+    context: testContext(),
+    subjectType: 'consumer'
+  });
+  await oauthAuthorizationService.acceptOAuthAuthorizationRequest({
+    oauthAuthorizationRequest: request,
+    user: d.user,
+    organizationId: fixture.organization.id,
+    consumerProfileId: d.consumerProfile.id,
+    context: testContext()
+  });
+  let exchanged = await oauthAuthorizationService.exchangeCliAuthToken({
+    token: request.deviceCode!
+  });
+
+  return await authenticate(exchanged.oauthToken.accessToken);
+};
+
+export let authenticate = async (accessToken: string) => {
+  let auth = await machineAccessAuthService.authenticateWithMachineAccessToken({
+    token: accessToken,
+    context: testContext()
+  });
+  if (auth.type != 'oauth_token') throw new Error('Expected an OAuth token');
+
+  return auth.oauthToken;
 };

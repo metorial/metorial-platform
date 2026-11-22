@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerSessionConnectionsListOutput = {
+  object: 'list';
   items: {
     object: 'consumer.activity_session_connection';
     connection: {
@@ -46,7 +47,12 @@ export type ConsumerSessionConnectionsListOutput = {
     magicMcpEndpointId: string | null;
     magicMcpServerId: string | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapConsumerSessionConnectionsListOutput =

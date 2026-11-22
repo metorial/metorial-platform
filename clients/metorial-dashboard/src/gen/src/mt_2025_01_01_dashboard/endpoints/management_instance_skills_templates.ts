@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Skill Templates controller
- * @description Skill templates define reusable starting points for skills.
+ * @description A skill template is a reusable starting point for creating skills.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
 
   /**
    * @name Get skill template
-   * @description Retrieves a specific skill template.
+   * @description Retrieves a skill template.
    *
    * @param `instanceId` - string
    * @param `skillTemplateId` - string
@@ -142,7 +142,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
 
   /**
    * @name Update skill template
-   * @description Updates a skill template.
+   * @description Updates a skill template. Omitted fields keep their current value.
    *
    * @param `instanceId` - string
    * @param `skillTemplateId` - string
@@ -173,7 +173,7 @@ export class MetorialManagementInstanceSkillsTemplatesEndpoint {
   }
 
   /**
-   * @name Delete skill template
+   * @name Archive skill template
    * @description Archives a skill template.
    *
    * @param `instanceId` - string

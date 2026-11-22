@@ -1,6 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type IdentitiesDelegationsListOutput = {
+  object: 'list';
   items: {
     object: 'identity.delegation';
     id: string;
@@ -91,7 +92,12 @@ export type IdentitiesDelegationsListOutput = {
     expiresAt: Date | null;
     revokedAt: Date | null;
   }[];
-  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
+  pagination: {
+    hasMoreBefore: boolean;
+    hasMoreAfter: boolean;
+    before?: string | undefined;
+    after?: string | undefined;
+  };
 };
 
 export let mapIdentitiesDelegationsListOutput =

@@ -1,5 +1,6 @@
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getDetectionCatalog } from '../detection';
 import { groupBy } from '../lib/util';
 import { sourceSnapshotPath } from '../sources/fetch';
 import type { Catalog, SourceKind } from '../types';
@@ -16,6 +17,7 @@ let generatedEntries = [
   'offerings.json',
   'names.json',
   'agents.json',
+  'detection.json',
   'unresolved.json',
   'issues.json',
   'report.md',
@@ -144,6 +146,7 @@ export let emitCatalog = async (dir: string, result: BuildResult, gate?: DeployG
   await writeJson(path.join(dir, 'offerings.json'), catalog.offerings, true);
   await writeJson(path.join(dir, 'names.json'), catalog.names, true);
   await writeJson(path.join(dir, 'agents.json'), catalog.agents);
+  await writeJson(path.join(dir, 'detection.json'), getDetectionCatalog());
   await writeJson(path.join(dir, 'unresolved.json'), unresolvedSummary(catalog));
   await writeJson(path.join(dir, 'issues.json'), result.issues);
 
