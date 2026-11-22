@@ -1,9 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { agentTrackingAgentActivityService } from '@metorial/module-agent-tracking-query';
+import { getLastUsed } from '@metorial/module-agent-tracking-query';
 import { aiToolPolicyService, aiToolPolicyStatuses } from '@metorial/module-consumer-core';
 import { aiToolPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { getAiToolActivity } from '../../../lib/aiToolActivity';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -64,19 +65,17 @@ export let aiToolController = Controller.create(
           policyStatuses: normalizeArrayParam(ctx.query.policy_status),
           detected: ctx.query.detected
         });
-        let lastUsed = await agentTrackingAgentActivityService.getAgentActivity({
-          organization: ctx.organization,
-          project: ctx.project,
-          instance: ctx.instance,
-          agentKeys: aiTools.map(aiTool => aiTool.tool.key)
-        });
+        let activity = await getAiToolActivity(
+          ctx,
+          aiTools.map(aiTool => aiTool.tool.key)
+        );
 
         return Paginator.present(
           { items: aiTools, pagination: { hasNextPage: false, hasPreviousPage: false } },
           aiTool =>
             aiToolPresenter.present({
               aiTool,
-              lastUsedAt: lastUsed?.get(aiTool.tool.key) ?? null
+              telemetry: getLastUsed(activity, aiTool.tool.key)
             })
         );
       }),
@@ -94,16 +93,11 @@ export let aiToolController = Controller.create(
           instance: ctx.instance,
           toolKey: requireParam(ctx.params, 'toolKey')
         });
-        let lastUsed = await agentTrackingAgentActivityService.getAgentActivity({
-          organization: ctx.organization,
-          project: ctx.project,
-          instance: ctx.instance,
-          agentKeys: [aiTool.tool.key]
-        });
+        let activity = await getAiToolActivity(ctx, [aiTool.tool.key]);
 
         return aiToolPresenter.present({
           aiTool,
-          lastUsedAt: lastUsed?.get(aiTool.tool.key) ?? null
+          telemetry: getLastUsed(activity, aiTool.tool.key)
         });
       }),
 
@@ -144,16 +138,11 @@ export let aiToolController = Controller.create(
           auditScope: ctx.auditScope,
           input: { status: ctx.body.status, note: ctx.body.note }
         });
-        let lastUsed = await agentTrackingAgentActivityService.getAgentActivity({
-          organization: ctx.organization,
-          project: ctx.project,
-          instance: ctx.instance,
-          agentKeys: [aiTool.tool.key]
-        });
+        let activity = await getAiToolActivity(ctx, [aiTool.tool.key]);
 
         return aiToolPresenter.present({
           aiTool,
-          lastUsedAt: lastUsed?.get(aiTool.tool.key) ?? null
+          telemetry: getLastUsed(activity, aiTool.tool.key)
         });
       })
   }

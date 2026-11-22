@@ -1,9 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
+
+vi.mock('@lowerdeck/sentry', () => ({ getSentry: () => sentry }));
 
 import {
   agentTrackingAgentActivityService,
-  consumerAgentKey
+  consumerAgentKey,
+  getLastUsed
 } from '../src/services/agentTrackingAgentActivity';
 import {
   agentTrackingEnabled,
@@ -24,6 +29,7 @@ let later = '2026-11-20T08:00:00.000Z';
 describe('agentTrackingAgentActivityService', () => {
   beforeEach(() => {
     resetMocks();
+    sentry.captureException.mockClear();
     rpc.handlers['entity:list'] = ({ ids }) => ({
       items: [
         remoteMember(),
@@ -48,12 +54,13 @@ describe('agentTrackingAgentActivityService', () => {
       agentKeys: ['cursor', 'claude-code', 'cursor']
     });
 
-    expect(activity).toEqual(
-      new Map([
+    expect(activity).toEqual({
+      lastUsed: new Map([
         ['cursor', new Date(later)],
         ['claude-code', new Date(earlier)]
-      ])
-    );
+      ]),
+      complete: true
+    });
 
     let [call] = callsTo('query:run');
     expect(callsTo('query:run')).toHaveLength(1);
@@ -85,9 +92,10 @@ describe('agentTrackingAgentActivityService', () => {
       agentKeys: ['cursor']
     });
 
-    expect(activity).toEqual(
-      new Map([[consumerAgentKey('con_ada', 'cursor'), new Date(later)]])
-    );
+    expect(activity).toEqual({
+      lastUsed: new Map([[consumerAgentKey('con_ada', 'cursor'), new Date(later)]]),
+      complete: true
+    });
     expect(callsTo('query:run')[0]!.input.query.dimensions).toEqual([
       { field: 'agent', missing: 'exclude' },
       { field: 'user', missing: 'exclude' }
@@ -118,7 +126,7 @@ describe('agentTrackingAgentActivityService', () => {
     expect(callsTo('query:run')).toHaveLength(0);
   });
 
-  it('answers null when agent tracking fails', async () => {
+  it('answers null when agent tracking declines, without reporting it', async () => {
     rpc.handlers['query:run'] = () => {
       throw new ServiceError(notFoundError('organization'));
     };
@@ -129,6 +137,49 @@ describe('agentTrackingAgentActivityService', () => {
     });
 
     expect(activity).toBeNull();
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('reports an unexpected failure and answers null', async () => {
+    let failure = new TypeError('rows is not iterable');
+    rpc.handlers['query:run'] = () => {
+      throw failure;
+    };
+
+    let activity = await agentTrackingAgentActivityService.getAgentActivity({
+      ...activityScope,
+      agentKeys: ['cursor']
+    });
+
+    expect(activity).toBeNull();
+    expect(sentry.captureException).toHaveBeenCalledWith(failure);
+  });
+
+  it('leaves people missing from a truncated result unknown', async () => {
+    rpc.handlers['query:run'] = () => ({
+      rows: [{ agent: 'cursor', user: 'aten_ada', last_activity: later }],
+      meta: { truncated: true }
+    });
+
+    let activity = await agentTrackingAgentActivityService.getConsumerAgentActivity({
+      ...activityScope,
+      agentKeys: ['cursor']
+    });
+
+    expect(activity?.complete).toBe(false);
+    expect(getLastUsed(activity, consumerAgentKey('con_ada', 'cursor'))).toEqual({
+      lastUsedAt: new Date(later)
+    });
+    expect(getLastUsed(activity, consumerAgentKey('con_bob', 'cursor'))).toBeNull();
+  });
+
+  it('knows people missing from a complete result did not use the tool', async () => {
+    let activity = { lastUsed: new Map<string, Date>(), complete: true };
+
+    expect(getLastUsed(activity, consumerAgentKey('con_bob', 'cursor'))).toEqual({
+      lastUsedAt: null
+    });
+    expect(getLastUsed(null, consumerAgentKey('con_bob', 'cursor'))).toBeNull();
   });
 
   it('skips the query when there are no agents to look up', async () => {
@@ -137,7 +188,7 @@ describe('agentTrackingAgentActivityService', () => {
       agentKeys: []
     });
 
-    expect(activity).toEqual(new Map());
+    expect(activity).toEqual({ lastUsed: new Map(), complete: true });
     expect(callsTo('query:run')).toHaveLength(0);
   });
 });

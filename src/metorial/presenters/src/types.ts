@@ -2721,9 +2721,11 @@ export let consumerDeviceSettingsType = PresentableType.create<{
   settings: ConsumerDeviceSettings | null;
 }>()('consumer.device_settings');
 
+export type AiToolTelemetry = { lastUsedAt: Date | null };
+
 export let aiToolType = PresentableType.create<{
   aiTool: AiToolSummary;
-  lastUsedAt: Date | null;
+  telemetry: AiToolTelemetry | null;
 }>()('ai_tool');
 
 export let aiToolDetectionType = PresentableType.create<{
@@ -2735,7 +2737,7 @@ export let aiToolDetectionType = PresentableType.create<{
     };
   };
   policy: Pick<AiToolPolicy, 'status'> | null;
-  lastUsedAt: Date | null;
+  telemetry: AiToolTelemetry | null;
 }>()('ai_tool.detection');
 
 export let consumerDeviceTelemetryTokenType = PresentableType.create<{

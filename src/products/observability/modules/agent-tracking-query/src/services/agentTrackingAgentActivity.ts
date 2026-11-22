@@ -1,3 +1,5 @@
+import { isServiceError } from '@lowerdeck/error';
+import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Organization, Project } from '@metorial/db';
 import { isAgentTrackingEnabledForOrganization } from '@metorial/module-agent-tracking-sync';
@@ -23,8 +25,23 @@ type ActivityScope = {
 
 type ActivityRow = { agentKey: string; memberId: string | null; lastUsedAt: string };
 
+export type AgentActivity = {
+  lastUsed: Map<string, Date>;
+  complete: boolean;
+};
+
 export let consumerAgentKey = (consumerId: string, agentKey: string) =>
   `${consumerId}:${agentKey}`;
+
+// A key missing from a truncated result may still have been used, so it stays unknown.
+export let getLastUsed = (activity: AgentActivity | null, key: string) => {
+  if (!activity) return null;
+
+  let lastUsedAt = activity.lastUsed.get(key);
+  if (lastUsedAt) return { lastUsedAt };
+
+  return activity.complete ? { lastUsedAt: null } : null;
+};
 
 let latest = (map: Map<string, Date>, key: string, date: Date) => {
   let current = map.get(key);
@@ -32,26 +49,28 @@ let latest = (map: Map<string, Date>, key: string, date: Date) => {
 };
 
 class AgentTrackingAgentActivityServiceImpl {
-  // `null` means agent tracking is off or cannot answer, so callers fall back to what the
-  // devices report.
-  async getAgentActivity(d: ActivityScope & { agentKeys: string[] }) {
-    let rows = await this.loadActivity({ ...d, byMember: false });
-    if (!rows) return null;
+  async getAgentActivity(
+    d: ActivityScope & { agentKeys: string[] }
+  ): Promise<AgentActivity | null> {
+    let result = await this.loadActivity({ ...d, byMember: false });
+    if (!result) return null;
 
-    let byAgent = new Map<string, Date>();
-    for (let row of rows) latest(byAgent, row.agentKey, new Date(row.lastUsedAt));
+    let lastUsed = new Map<string, Date>();
+    for (let row of result.rows) latest(lastUsed, row.agentKey, new Date(row.lastUsedAt));
 
-    return byAgent;
+    return { lastUsed, complete: !result.truncated };
   }
 
-  // Keyed by `consumerAgentKey`. Members agent tracking can't match to a consumer are left out.
-  async getConsumerAgentActivity(d: ActivityScope & { agentKeys: string[] }) {
+  async getConsumerAgentActivity(
+    d: ActivityScope & { agentKeys: string[] }
+  ): Promise<AgentActivity | null> {
     let privacy = await this.tryRead(() => loadPrivacy(d));
     if (!privacy || privacy.hideIndividuals) return null;
 
-    let rows = await this.loadActivity({ ...d, byMember: true });
-    if (!rows) return null;
+    let result = await this.loadActivity({ ...d, byMember: true });
+    if (!result) return null;
 
+    let rows = result.rows;
     let consumerIds = await this.tryRead(() =>
       fromService(() =>
         resolveConsumerRefs({
@@ -62,31 +81,25 @@ class AgentTrackingAgentActivityServiceImpl {
     );
     if (!consumerIds) return null;
 
-    let byConsumerAgent = new Map<string, Date>();
+    let lastUsed = new Map<string, Date>();
     for (let row of rows) {
       let consumerId = row.memberId ? consumerIds.get(row.memberId) : undefined;
       if (!consumerId) continue;
 
-      latest(
-        byConsumerAgent,
-        consumerAgentKey(consumerId, row.agentKey),
-        new Date(row.lastUsedAt)
-      );
+      latest(lastUsed, consumerAgentKey(consumerId, row.agentKey), new Date(row.lastUsedAt));
     }
 
-    return byConsumerAgent;
+    return { lastUsed, complete: !result.truncated };
   }
 
   private async loadActivity(d: ActivityScope & { agentKeys: string[]; byMember: boolean }) {
     let agentKeys = unique(d.agentKeys);
-    if (!agentKeys.length) return [];
+    if (!agentKeys.length) return { rows: [] as ActivityRow[], truncated: false };
 
-    let enabled = await this.tryRead(() =>
-      isAgentTrackingEnabledForOrganization({
-        organization: d.organization,
-        project: d.project
-      })
-    );
+    let enabled = await isAgentTrackingEnabledForOrganization({
+      organization: d.organization,
+      project: d.project
+    });
     if (!enabled) return null;
 
     let to = new Date(Math.floor(Date.now() / minuteMs) * minuteMs);
@@ -96,7 +109,7 @@ class AgentTrackingAgentActivityServiceImpl {
         scope: d,
         read: d.byMember ? 'agentActivity.byMember' : 'agentActivity.byAgent',
         input: { agentKeys, to: to.toISOString() },
-        load: async (): Promise<ActivityRow[]> => {
+        load: async () => {
           let result = await runUsageQuery(
             d,
             agentActivityQuery({
@@ -107,7 +120,7 @@ class AgentTrackingAgentActivityServiceImpl {
             })
           );
 
-          return result.rows
+          let rows: ActivityRow[] = result.rows
             .filter(
               row => typeof row.agent == 'string' && typeof row.last_activity == 'string'
             )
@@ -116,6 +129,8 @@ class AgentTrackingAgentActivityServiceImpl {
               memberId: typeof row.user == 'string' ? row.user : null,
               lastUsedAt: row.last_activity as string
             }));
+
+          return { rows, truncated: !!result.meta?.truncated };
         }
       })
     );
@@ -124,7 +139,12 @@ class AgentTrackingAgentActivityServiceImpl {
   private async tryRead<T>(read: () => Promise<T>) {
     try {
       return await read();
-    } catch {
+    } catch (error) {
+      if (isServiceError(error)) return null;
+
+      getSentry().captureException(error);
+      console.error('[agent-tracking-query] Could not load agent activity', error);
+
       return null;
     }
   }

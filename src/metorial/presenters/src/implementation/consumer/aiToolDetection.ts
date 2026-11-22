@@ -4,12 +4,13 @@ import { aiToolDetectionType } from '../../types';
 import {
   aiToolPolicyStatusDescription,
   aiToolPolicyStatusValues,
-  activeUseWindowDays
+  activeUseWindowDays,
+  presentActiveUse
 } from './aiTool';
 import { detectionFieldSchemas, presentDeviceDetection } from './consumerDeviceDetection';
 
 export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
-  .presenter(async ({ detection, policy, lastUsedAt }) => {
+  .presenter(async ({ detection, policy, telemetry }) => {
     let { object: _object, ...fields } = presentDeviceDetection(
       detection,
       detection.consumerDevice
@@ -31,8 +32,7 @@ export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
 
       gone_at: detection.goneAt,
 
-      actively_used: (!detection.goneAt && detection.state == 'running') || !!lastUsedAt,
-      last_used_at: lastUsedAt
+      ...presentActiveUse(!detection.goneAt && detection.state == 'running', telemetry)
     };
   })
   .schema(
@@ -83,15 +83,16 @@ export let v1AiToolDetectionPresenter = Presenter.create(aiToolDetectionType)
             'When a report first left the tool out. `null` while the device still reports it.'
         })
       ),
-      actively_used: v.boolean({
-        name: 'actively_used',
-        description:
-          '`true` when the device reports the tool running, or when `last_used_at` is set. Without agent usage tracking, or while the organization hides individuals in agent usage, only a running tool counts.'
-      }),
+      actively_used: v.nullable(
+        v.boolean({
+          name: 'actively_used',
+          description: `\`true\` when the device reports the tool running or agent usage tracking saw this consumer use it in the last ${activeUseWindowDays} days, \`false\` when neither happened. \`null\` when the device doesn't report it running and the consumer's usage is unknown: agent usage tracking is off, the organization hides individuals in agent usage, you can't read agent usage, or agent usage tracking cannot answer.`
+        })
+      ),
       last_used_at: v.nullable(
         v.date({
           name: 'last_used_at',
-          description: `When agent usage tracking last saw this consumer use the tool, on any device, in the last ${activeUseWindowDays} days. \`null\` when it saw no use or cannot show individual usage.`
+          description: `When agent usage tracking last saw this consumer use the tool, on any device, in the last ${activeUseWindowDays} days. \`null\` when it saw no use or the usage is unknown.`
         })
       )
     })

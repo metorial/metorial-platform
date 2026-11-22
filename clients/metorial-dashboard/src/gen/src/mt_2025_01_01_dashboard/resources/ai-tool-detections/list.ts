@@ -25,7 +25,7 @@ export type AiToolDetectionsListOutput = {
     consumerName: string;
     consumerEmail: string;
     goneAt: Date | null;
-    activelyUsed: boolean;
+    activelyUsed: boolean | null;
     lastUsedAt: Date | null;
   }[];
   pagination: {

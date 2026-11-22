@@ -19,7 +19,7 @@ export type DashboardInstanceAiToolsPolicyUpdateOutput = {
   deviceCount: number;
   peopleCount: number;
   lastSeenAt: Date | null;
-  activelyUsed: boolean;
+  activelyUsed: boolean | null;
   lastUsedAt: Date | null;
 };
 

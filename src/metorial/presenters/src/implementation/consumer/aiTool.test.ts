@@ -43,7 +43,10 @@ let detection = {
 describe('AI tool presenter', () => {
   it('shows an undecided tool nobody has reported as unreviewed and unused', async () => {
     let presented = await v1AiToolPresenter
-      .present({ aiTool: { tool, policy: null, usage: null }, lastUsedAt: null }, context)
+      .present(
+        { aiTool: { tool, policy: null, usage: null }, telemetry: { lastUsedAt: null } },
+        context
+      )
       .run();
 
     expect(presented).toMatchObject({
@@ -75,7 +78,7 @@ describe('AI tool presenter', () => {
               running: false
             }
           },
-          lastUsedAt: seenAt
+          telemetry: { lastUsedAt: seenAt }
         },
         context
       )
@@ -92,7 +95,7 @@ describe('AI tool presenter', () => {
     expect(JSON.stringify(presented)).not.toContain('oid');
   });
 
-  it('counts a running tool as actively used without usage tracking', async () => {
+  it('counts a running tool as actively used when its usage is unknown', async () => {
     let presented = await v1AiToolPresenter
       .present(
         {
@@ -107,7 +110,7 @@ describe('AI tool presenter', () => {
               running: true
             }
           },
-          lastUsedAt: null
+          telemetry: null
         },
         context
       )
@@ -115,12 +118,23 @@ describe('AI tool presenter', () => {
 
     expect(presented).toMatchObject({ actively_used: true, last_used_at: null });
   });
+
+  it('reports unknown use for a tool that is not running when usage is unknown', async () => {
+    let presented = await v1AiToolPresenter
+      .present({ aiTool: { tool, policy: null, usage: null }, telemetry: null }, context)
+      .run();
+
+    expect(presented).toMatchObject({ actively_used: null, last_used_at: null });
+  });
 });
 
 describe('AI tool detection presenter', () => {
   it('names the device, its consumer and the tool status, and flags a silent device as stale', async () => {
     let presented = await v1AiToolDetectionPresenter
-      .present({ detection, policy: { status: 'not_sanctioned' }, lastUsedAt: null }, context)
+      .present(
+        { detection, policy: { status: 'not_sanctioned' }, telemetry: { lastUsedAt: null } },
+        context
+      )
       .run();
 
     expect(presented).toEqual({
@@ -150,19 +164,25 @@ describe('AI tool detection presenter', () => {
   });
 
   it('counts a running tool or recent usage as actively used, but not a gone one', async () => {
-    let present = (overrides: Record<string, unknown>, lastUsedAt: Date | null) =>
+    let present = (
+      overrides: Record<string, unknown>,
+      telemetry: { lastUsedAt: Date | null } | null
+    ) =>
       v1AiToolDetectionPresenter
         .present(
-          { detection: { ...detection, ...overrides }, policy: null, lastUsedAt },
+          { detection: { ...detection, ...overrides }, policy: null, telemetry },
           context
         )
         .run();
 
     expect((await present({ state: 'running' }, null)).actively_used).toBe(true);
     expect((await present({ state: 'running', goneAt: seenAt }, null)).actively_used).toBe(
-      false
+      null
     );
-    expect(await present({}, seenAt)).toMatchObject({
+    expect(
+      (await present({ state: 'running', goneAt: seenAt }, { lastUsedAt: null })).actively_used
+    ).toBe(false);
+    expect(await present({}, { lastUsedAt: seenAt })).toMatchObject({
       actively_used: true,
       last_used_at: seenAt
     });

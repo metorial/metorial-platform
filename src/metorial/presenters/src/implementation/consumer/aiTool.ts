@@ -1,17 +1,22 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { aiToolType } from '../../types';
+import { type AiToolTelemetry, aiToolType } from '../../types';
 import { aiToolSurfacesSchema } from './consumerDeviceDetection';
 
 export let aiToolPolicyStatusValues = ['sanctioned', 'not_sanctioned', 'unreviewed'] as const;
 
 export let activeUseWindowDays = 30;
 
+export let presentActiveUse = (running: boolean, telemetry: AiToolTelemetry | null) => ({
+  actively_used: running || (telemetry ? !!telemetry.lastUsedAt : null),
+  last_used_at: telemetry?.lastUsedAt ?? null
+});
+
 export let aiToolPolicyStatusDescription =
   '`sanctioned` tools are approved for use, `not_sanctioned` tools are not. Tools nobody has decided on yet are `unreviewed`.';
 
 export let v1AiToolPresenter = Presenter.create(aiToolType)
-  .presenter(async ({ aiTool: { tool, policy, usage }, lastUsedAt }) => ({
+  .presenter(async ({ aiTool: { tool, policy, usage }, telemetry }) => ({
     object: 'ai_tool' as const,
     key: tool.key,
     name: tool.name,
@@ -30,8 +35,7 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
     people_count: usage?.peopleCount ?? 0,
     last_seen_at: usage?.lastSeenAt ?? null,
 
-    actively_used: !!usage?.running || !!lastUsedAt,
-    last_used_at: lastUsedAt
+    ...presentActiveUse(!!usage?.running, telemetry)
   }))
   .schema(
     v.object({
@@ -88,14 +92,16 @@ export let v1AiToolPresenter = Presenter.create(aiToolType)
           description: 'When a device last reported the tool. `null` when no device has.'
         })
       ),
-      actively_used: v.boolean({
-        name: 'actively_used',
-        description: `\`true\` when a device reports the tool running, or when \`last_used_at\` is set. Without agent usage tracking, only running tools count.`
-      }),
+      actively_used: v.nullable(
+        v.boolean({
+          name: 'actively_used',
+          description: `\`true\` when a device reports the tool running or agent usage tracking saw it used in the last ${activeUseWindowDays} days, \`false\` when neither happened. \`null\` when no device reports it running and its usage is unknown: agent usage tracking is off, AI tool detection is off, you can't read agent usage, or agent usage tracking cannot answer.`
+        })
+      ),
       last_used_at: v.nullable(
         v.date({
           name: 'last_used_at',
-          description: `When agent usage tracking last saw the tool in use in the last ${activeUseWindowDays} days. \`null\` when it saw no use, or when agent usage tracking is off for the organization or cannot answer.`
+          description: `When agent usage tracking last saw the tool in use in the last ${activeUseWindowDays} days. \`null\` when it saw no use or its usage is unknown.`
         })
       )
     })
