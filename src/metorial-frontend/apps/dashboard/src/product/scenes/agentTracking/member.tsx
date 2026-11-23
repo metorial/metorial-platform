@@ -7,34 +7,32 @@ import { PageHeader } from '@metorial/layout';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { useAgentTrackingMembers, useAgentTrackingSpendBreakdown } from '@metorial/state';
 import { Avatar, Callout, Flex, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Box } from '@metorial/ui-product';
 import { useNow } from '@metorial/use-now';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { formatDateTime } from './activity';
 import { CostValue } from './cost';
-import { AgentTrackingErrorState } from './errorState';
+import { agentTrackingErrorFor, AgentTrackingErrorState } from './errorState';
 import { WithInfo } from './info';
 import {
   lastActivePhrase,
   memberEmails,
   MemberLinkBadge,
-  memberName,
   memberPath,
   MemberReviewBadge,
   memberWindowDays
 } from './memberParts';
 import { getBrowserTimeZone, useLastActiveRange, withQuery } from './range';
 import { AgentTrackingSessionsTable } from './sessions';
-import { BreakdownCost, BreakdownName, Share } from './spendParts';
+import { BreakdownTable } from './spendParts';
+import { memberName } from './spendSummary';
 
 type Member = DashboardInstanceAgentTrackingMembersListOutput['items'][number];
 
 let noCost = { totalMicros: 0, isEstimate: false };
 
-// The badges sit inside the page title, so they get body type back instead of the title's
-// size and line height, which would make each badge as tall as the title line.
 let BadgeRow = styled.span`
   display: inline-flex;
   align-items: center;
@@ -68,7 +66,7 @@ let MemberHeader = ({ memberId, member }: { memberId: string; member?: Member })
               size={36}
               noTooltip
             />
-            {title}
+            <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{title}</span>
             <BadgeRow>
               <MemberLinkBadge matched={member.matched} />
               {member.needsReview ? <MemberReviewBadge /> : null}
@@ -78,7 +76,11 @@ let MemberHeader = ({ memberId, member }: { memberId: string; member?: Member })
           title
         )
       }
-      description={emails.length ? emails.join(', ') : undefined}
+      description={
+        emails.length ? (
+          <span style={{ overflowWrap: 'anywhere' }}>{emails.join(', ')}</span>
+        ) : undefined
+      }
       pagination={[
         { label: 'Team', href: withQuery(teamPath, { range }) },
         { label: title, href: memberPath(ctx, memberId, range) }
@@ -191,8 +193,6 @@ let MemberOverview = ({ instanceId, memberId }: { instanceId: string; memberId: 
   });
 };
 
-// Without a range the member page covers the last 400 days; the window is fixed per mount so the
-// breakdown query stays stable.
 let useMemberBreakdownRange = () => {
   let { range } = useLastActiveRange();
   let [fallback] = useState(() => {
@@ -230,26 +230,10 @@ let MemberModels = ({ instanceId, memberId }: { instanceId: string; memberId: st
     >
       {renderWithLoader(
         { breakdown },
-        {
-          error: error => (
-            <AgentTrackingErrorState
-              key={canonicalize(breakdown.input)}
-              error={error}
-              onRetry={breakdown.refetch}
-            />
-          )
-        }
+        { error: agentTrackingErrorFor(breakdown) }
       )(({ breakdown }) =>
         breakdown.data.items.length ? (
-          <Table
-            headers={['Model', 'Requests', 'Cost', 'Share']}
-            data={breakdown.data.items.map(item => [
-              <BreakdownName key="name" item={item} group="model" others={null} />,
-              formatNumber(item.requests),
-              <BreakdownCost key="cost" cost={item.cost} />,
-              <Share key="share" share={item.share} />
-            ])}
-          />
+          <BreakdownTable items={breakdown.data.items} group="model" others={null} />
         ) : (
           <Text size="2" color="gray600">
             {`No usage ${phrase}.`}

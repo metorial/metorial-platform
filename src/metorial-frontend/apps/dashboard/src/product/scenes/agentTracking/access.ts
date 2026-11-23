@@ -18,11 +18,6 @@ export let useAgentTrackingAvailability = () => {
   };
 };
 
-export let useAgentTrackingWriteAccess = () => {
-  let organization = useCurrentOrganization();
-  return useHasScope(organization.data?.id, agentTrackingWriteScope).hasScope;
-};
-
 export let useAgentTrackingSettingsAccess = () => {
   let organization = useCurrentOrganization();
   let id = organization.data?.id;

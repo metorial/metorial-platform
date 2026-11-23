@@ -15,7 +15,11 @@ import type {
 
 let breakdownLimit = 10;
 
-export let reportBreakdownLimit = 50;
+export let reportBreakdownLimits = {
+  model: 50,
+  client: 50,
+  member: 1000
+} satisfies Record<SpendReportGroup, number>;
 
 let unknownModelNamesLimit = 10;
 
@@ -60,8 +64,6 @@ export let filterFields = {
   client: 'client.family',
   seat: 'billing.seat'
 } as const satisfies Record<FilterField, string>;
-
-export let requestFilterFields: FilterField[] = ['seat'];
 
 export let reportBreakdownGroups = {
   ...breakdownGroups,
@@ -346,9 +348,18 @@ export let insightColumns = {
 
 export let outdatedModelStatuses = ['deprecated', 'retired'];
 
-let outdatedStatusWhere = { field: 'model.status', op: 'in', value: outdatedModelStatuses };
-
-let notLatestWhere = { field: 'model.isLatest', op: 'eq', value: false };
+// A model without a family maps to isLatest false, so only a model in a family can be behind.
+let outdatedModelWhere = {
+  or: [
+    { field: 'model.status', op: 'in', value: outdatedModelStatuses },
+    {
+      and: [
+        { field: 'model.isLatest', op: 'eq', value: false },
+        { field: 'model.family', op: 'notNull' }
+      ]
+    }
+  ]
+};
 
 let costWhere = (where: Filter, as: string) => ({
   fn: 'sum',
@@ -383,12 +394,20 @@ export let memberInsightsUsageQuery = (d: {
       : []),
     ...(d.practices
       ? [
-          costWhere(outdatedStatusWhere, insightColumns.outdatedCost),
+          costWhere(outdatedModelWhere, insightColumns.outdatedCost),
           insightColumns.cacheHitRate
         ]
       : [])
   ],
-  orderBy: [{ by: 'cost.usd', direction: 'desc' }],
+  orderBy: [
+    ...(d.modelIds
+      ? [
+          { by: insightColumns.modelsCost, direction: 'desc' },
+          { by: insightColumns.modelsRequests, direction: 'desc' }
+        ]
+      : []),
+    { by: 'cost.usd', direction: 'desc' }
+  ],
   limit: maxInsightMembers,
   totals: true,
   labels: false
@@ -429,7 +448,7 @@ export let memberInsightsRequestsQuery = (d: {
 });
 
 export let outdatedModelsQuery = (range: ResolvedRange) => ({
-  ...usageQuery(range, { or: [outdatedStatusWhere, notLatestWhere] }),
+  ...usageQuery(range, outdatedModelWhere),
   dimensions: [
     { field: 'user', missing: 'exclude' },
     'model',

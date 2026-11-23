@@ -36,15 +36,13 @@ let singleViewGroup = viewGroup.use(async ctx => ({
   })
 }));
 
-let nameField = (description: string) =>
+let nameField = () =>
   v.string({
     name: 'name',
-    description,
+    description: `Display name, 1 to ${maxViewNameLength} characters once surrounding spaces are removed and inner runs of spaces become one. Unique on the page, ignoring case.`,
     examples: ['High effort, last 30 days'],
     modifiers: [v.minLength(1), v.maxLength(maxViewNameInputLength)]
   });
-
-let nameDescription = `Display name, 1 to ${maxViewNameLength} characters once surrounding spaces are removed and inner runs of spaces become one. Unique on the page, ignoring case.`;
 
 let kindField = () =>
   v.enumOf(teamViewKinds, {
@@ -111,7 +109,7 @@ export let dashboardAgentTrackingViewController = Controller.create(
             name: 'page',
             description: 'Agent usage page the view belongs to.'
           }),
-          name: nameField(nameDescription),
+          name: nameField(),
           kind: kindField(),
           params: teamViewParamsValidator
         })
@@ -155,7 +153,7 @@ export let dashboardAgentTrackingViewController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(nameField(nameDescription)),
+          name: v.optional(nameField()),
           kind: v.optional(kindField()),
           params: v.optional(teamViewParamsValidator)
         })

@@ -7,7 +7,8 @@ import {
   isListFilter,
   removeFilterState,
   sortFiltersForDisplay,
-  upsertFilterState
+  upsertFilterState,
+  type FilterPanelLayout
 } from '../model/state';
 import { getFilterPayload, type TableFilter } from '../model/tableFilter';
 import { FilterEditor } from './editors';
@@ -156,7 +157,7 @@ export let FilterPanel = ({
   activeFilterId: string;
   onActiveFilterChange: (id: string) => void;
   onApplied?: () => void;
-  layout?: 'auto' | 'full';
+  layout?: FilterPanelLayout;
 }) => {
   let ordered = useMemo(() => sortFiltersForDisplay(filters), [filters]);
   let active = ordered.find(f => f.id == activeFilterId) ?? ordered[0];

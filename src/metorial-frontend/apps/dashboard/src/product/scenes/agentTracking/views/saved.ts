@@ -1,5 +1,8 @@
+import type { DashboardInstanceAgentTrackingViewsListOutput } from '@metorial/dashboard-sdk';
 import { maxSavedViews, type TeamViewKind, type TeamViewState } from './definitions';
 import { fromSavedView } from './state';
+
+export type SavedTeamView = DashboardInstanceAgentTrackingViewsListOutput['items'][number];
 
 type SavedViewLike = { id: string; name: string; kind: string; params: unknown };
 
@@ -12,9 +15,11 @@ type ErrorData =
   | null
   | undefined;
 
-export type SavedSelection<View> =
+type SavedSelection<View> =
   | { status: 'none' | 'loading' | 'error' | 'unavailable' }
   | { status: 'found'; view: View; state: TeamViewState };
+
+export let savedViewsQuery = { page: 'team' as const, limit: maxSavedViews };
 
 export let sortSavedViews = <View extends SavedViewLike>(views: View[]) =>
   [...views].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));

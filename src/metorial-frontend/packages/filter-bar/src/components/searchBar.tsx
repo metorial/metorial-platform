@@ -19,7 +19,8 @@ import {
   setListValue,
   sortFiltersForDisplay,
   toggleListValue,
-  upsertFilterState
+  upsertFilterState,
+  type FilterPanelLayout
 } from '../model/state';
 import type { PillSelections } from '../model/pillSelections';
 import {
@@ -218,7 +219,7 @@ export type FilterSearchBarProps = {
   shortcut?: boolean;
   pillSelections?: PillSelections;
   barEnd?: React.ReactNode;
-  panelLayout?: 'auto' | 'full';
+  panelLayout?: FilterPanelLayout;
 };
 
 export let FilterSearchBar = ({

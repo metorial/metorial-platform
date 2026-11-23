@@ -1,4 +1,3 @@
-import type { DashboardInstanceAgentTrackingViewsListOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import {
   agentTrackingViewsLoader,
@@ -8,13 +7,33 @@ import {
 } from '@metorial/state';
 import { Button, Callout, Dialog, Input, showModal, Spacer } from '@metorial/ui';
 import React from 'react';
-import { maxSavedViews, type TeamViewState } from './definitions';
-import { savedViewErrorMessage } from './saved';
+import type { TeamViewState } from './definitions';
+import { savedViewErrorMessage, savedViewsQuery, type SavedTeamView } from './saved';
 import { toSavedViewParams } from './state';
 
-export type SavedTeamView = DashboardInstanceAgentTrackingViewsListOutput['items'][number];
+type NameDialog =
+  | {
+      mode: 'save';
+      instanceId: string;
+      view: TeamViewState;
+      onSaved: (view: SavedTeamView) => void;
+    }
+  | { mode: 'rename'; instanceId: string; savedView: SavedTeamView };
 
-export let savedViewsQuery = { page: 'team' as const, limit: maxSavedViews };
+let nameDialogCopy = {
+  save: {
+    title: 'Save View',
+    description: 'Saves the current settings as a view for everyone in this instance.',
+    placeholder: 'High effort, last 30 days',
+    submit: 'Save View'
+  },
+  rename: {
+    title: 'Rename Saved View',
+    description: 'The new name shows for everyone in this instance.',
+    placeholder: undefined,
+    submit: 'Rename'
+  }
+};
 
 export let refreshSavedTeamViews = async (instanceId: string) => {
   await agentTrackingViewsLoader.fetch({ instanceId, ...savedViewsQuery }, { force: true });
@@ -32,96 +51,39 @@ export let SaveError = ({
   return message ? <Callout color="red">{message}</Callout> : <mutator.RenderError />;
 };
 
-export let showSaveTeamViewDialog = (p: {
-  instanceId: string;
-  view: TeamViewState;
-  onSaved: (view: SavedTeamView) => void;
-}) =>
+export let showTeamViewNameDialog = (p: NameDialog) =>
   showModal(({ dialogProps, close }) => {
     let create = useCreateAgentTrackingView();
-
-    let form = useForm({
-      initialValues: { name: '' },
-      onSubmit: async values => {
-        let [saved] = await create.mutate({
-          instanceId: p.instanceId,
-          page: 'team',
-          name: values.name,
-          kind: p.view.kind,
-          params: toSavedViewParams(p.view)
-        });
-        if (!saved) return;
-
-        await refreshSavedTeamViews(p.instanceId);
-        p.onSaved(saved);
-        close();
-      },
-      schema: yup =>
-        yup.object({
-          name: yup.string().trim().required('Enter a name.')
-        })
-    });
-
-    return (
-      <Dialog.Wrapper {...dialogProps} width={520}>
-        <Dialog.Title>Save View</Dialog.Title>
-        <Dialog.Description>
-          Saves the current settings as a view for everyone in this instance.
-        </Dialog.Description>
-
-        <form onSubmit={form.handleSubmit}>
-          <Input
-            label="Name"
-            description="Spaces at the ends are removed and runs of spaces become one."
-            placeholder="High effort, last 30 days"
-            required
-            {...form.getFieldProps('name')}
-          />
-          <form.RenderError field="name" />
-
-          <Spacer height={15} />
-
-          <SaveError mutator={create} />
-
-          <Dialog.Actions>
-            <Button
-              type="button"
-              variant="outline"
-              size="2"
-              disabled={create.isLoading}
-              onClick={close}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="2"
-              loading={create.isLoading}
-              success={create.isSuccess}
-            >
-              Save View
-            </Button>
-          </Dialog.Actions>
-        </form>
-      </Dialog.Wrapper>
-    );
-  });
-
-export let showRenameTeamViewDialog = (p: { instanceId: string; savedView: SavedTeamView }) =>
-  showModal(({ dialogProps, close }) => {
     let update = useUpdateAgentTrackingView();
+    let mutator = p.mode == 'save' ? create : update;
+    let copy = nameDialogCopy[p.mode];
 
     let form = useForm({
-      initialValues: { name: p.savedView.name },
+      initialValues: { name: p.mode == 'save' ? '' : p.savedView.name },
       onSubmit: async values => {
-        let [renamed] = await update.mutate({
-          instanceId: p.instanceId,
-          viewId: p.savedView.id,
-          name: values.name
-        });
-        if (!renamed) return;
+        if (p.mode == 'save') {
+          let [saved] = await create.mutate({
+            instanceId: p.instanceId,
+            page: 'team',
+            name: values.name,
+            kind: p.view.kind,
+            params: toSavedViewParams(p.view)
+          });
+          if (!saved) return;
 
-        await refreshSavedTeamViews(p.instanceId);
+          await refreshSavedTeamViews(p.instanceId);
+          p.onSaved(saved);
+        } else {
+          let [renamed] = await update.mutate({
+            instanceId: p.instanceId,
+            viewId: p.savedView.id,
+            name: values.name
+          });
+          if (!renamed) return;
+
+          await refreshSavedTeamViews(p.instanceId);
+        }
+
         close();
       },
       schema: yup =>
@@ -132,15 +94,14 @@ export let showRenameTeamViewDialog = (p: { instanceId: string; savedView: Saved
 
     return (
       <Dialog.Wrapper {...dialogProps} width={520}>
-        <Dialog.Title>Rename Saved View</Dialog.Title>
-        <Dialog.Description>
-          The new name shows for everyone in this instance.
-        </Dialog.Description>
+        <Dialog.Title>{copy.title}</Dialog.Title>
+        <Dialog.Description>{copy.description}</Dialog.Description>
 
         <form onSubmit={form.handleSubmit}>
           <Input
             label="Name"
             description="Spaces at the ends are removed and runs of spaces become one."
+            placeholder={copy.placeholder}
             required
             {...form.getFieldProps('name')}
           />
@@ -148,14 +109,14 @@ export let showRenameTeamViewDialog = (p: { instanceId: string; savedView: Saved
 
           <Spacer height={15} />
 
-          <SaveError mutator={update} />
+          <SaveError mutator={mutator} />
 
           <Dialog.Actions>
             <Button
               type="button"
               variant="outline"
               size="2"
-              disabled={update.isLoading}
+              disabled={mutator.isLoading}
               onClick={close}
             >
               Cancel
@@ -163,10 +124,10 @@ export let showRenameTeamViewDialog = (p: { instanceId: string; savedView: Saved
             <Button
               type="submit"
               size="2"
-              loading={update.isLoading}
-              success={update.isSuccess}
+              loading={mutator.isLoading}
+              success={mutator.isSuccess}
             >
-              Rename
+              {copy.submit}
             </Button>
           </Dialog.Actions>
         </form>
@@ -174,8 +135,6 @@ export let showRenameTeamViewDialog = (p: { instanceId: string; savedView: Saved
     );
   });
 
-// onDeleted runs before the list is refreshed, so a page showing the deleted view can drop it
-// from the URL first instead of flashing the "not available" notice.
 export let showDeleteTeamViewDialog = (p: {
   instanceId: string;
   savedView: SavedTeamView;

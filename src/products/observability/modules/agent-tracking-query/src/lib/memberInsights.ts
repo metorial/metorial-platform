@@ -1,5 +1,5 @@
-import { ServiceError, validationError } from '@lowerdeck/error';
-import { countOf, microsOf } from './money';
+import { invalidInputError } from './errors';
+import { countOf, estimateOf, microsOf } from './money';
 import {
   distinctCappedWarning,
   insightColumns,
@@ -9,6 +9,7 @@ import {
   sessionCountColumn
 } from './queries';
 import { dayMs, type ResolvedRange } from './range';
+import { warned, type UsageResult } from './scope';
 import { spendFiguresOf, type Cells } from './spend';
 import type {
   AgentTrackingMemberInsightFigures,
@@ -57,7 +58,7 @@ export let memberInsightsFlags = [
   'low_usage_seat'
 ] as const satisfies readonly MemberInsightsFlag[];
 
-export let sortGroups = {
+let sortGroups = {
   cost: null,
   sessions: null,
   requests: null,
@@ -99,15 +100,6 @@ let thresholdParams: Record<
   }
 };
 
-export type QueryResult = {
-  rows: Cells[];
-  totals?: Cells | null;
-  labels?: Record<string, unknown>;
-  meta?: { truncated?: boolean; warnings?: { code?: string }[] };
-};
-
-// Cached rows are positional, with model ids, seats and plans as indexes into `strings`, so a full
-// list stays small in the cache; costs, shares and model details are rebuilt after every read.
 type CompactCost = [
   totalMicros: number | null,
   billedMicros: number | null,
@@ -191,14 +183,6 @@ let textAt = (strings: string[], index: number | null) =>
 export let normalizeInclude = (include: MemberInsightsGroup[] | undefined) =>
   memberInsightsGroups.filter(group => include?.includes(group));
 
-let invalidCombination = (param: string, message: string) =>
-  new ServiceError(
-    validationError({
-      entity: 'query',
-      errors: [{ code: 'invalid_combination', message, path: [param] }]
-    })
-  );
-
 export let assertInsightsInput = (d: {
   include: MemberInsightsGroup[];
   sort: MemberInsightsSort;
@@ -210,31 +194,24 @@ export let assertInsightsInput = (d: {
 
   let sortGroup = sortGroups[d.sort];
   if (sortGroup && !has(sortGroup)) {
-    throw invalidCombination('sort', `sort=${d.sort} needs include=${sortGroup}.`);
+    throw invalidInputError(`sort=${d.sort} needs include=${sortGroup}.`);
   }
 
   if (has('models') && !d.modelIds?.length) {
-    throw invalidCombination(
-      'model_id',
-      'include=models needs model_id: the models to measure.'
-    );
+    throw invalidInputError('include=models needs model_id: the models to measure.');
   }
-  if (d.modelIds && !has('models')) {
-    throw invalidCombination('model_id', 'model_id needs include=models.');
-  }
-  if (d.seats && !has('seat')) throw invalidCombination('seat', 'seat needs include=seat.');
+  if (d.modelIds && !has('models')) throw invalidInputError('model_id needs include=models.');
+  if (d.seats && !has('seat')) throw invalidInputError('seat needs include=seat.');
 
   for (let [key, param] of Object.entries(thresholdParams)) {
     if (d.thresholds[key as keyof MemberInsightsThresholds] === undefined) continue;
 
     if (!has(param.group)) {
-      throw invalidCombination(param.name, `${param.name} needs include=${param.group}.`);
+      throw invalidInputError(`${param.name} needs include=${param.group}.`);
     }
   }
 };
 
-// A range of exactly the record limit that ends now starts a moment past it by the time the
-// engine runs, so the boundary gets some slack.
 export let requestRecordsClipped = (range: { from: Date }, now: Date) =>
   range.from.getTime() < now.getTime() - requestRecordDays * dayMs - clippedToleranceMs;
 
@@ -259,7 +236,7 @@ let countsOf = (cells: Cells | null | undefined): RequestCounts => ({
   withSpeed: countOf(cells?.[insightColumns.withSpeed])
 });
 
-let requestCountsByMember = (result: QueryResult | null) => {
+let requestCountsByMember = (result: UsageResult | null) => {
   let byMember = new Map<string, RequestCounts>();
 
   for (let row of result?.rows ?? []) {
@@ -291,8 +268,6 @@ let requestCountsByMember = (result: QueryResult | null) => {
   return byMember;
 };
 
-// The pair shown was reported together on the same requests; a plan alone shows only while no
-// request reported a seat.
 let seatOf = (counts: RequestCounts): [string | null, string | null] => {
   let [pair] = [...counts.seats.values()].sort(
     (a, b) =>
@@ -317,14 +292,11 @@ let compactCost = (cost: AgentTrackingSpendCost): CompactCost => [
 
 let costOfCompact = (cost: CompactCost): AgentTrackingSpendCost => {
   let [totalMicros, billedMicros, reportedByClientMicros, listPriceMicros] = cost;
-  let estimatedMicros =
-    totalMicros === null ? null : Math.max(0, totalMicros - (billedMicros ?? 0));
 
   return {
     totalMicros,
     billedMicros,
-    estimatedMicros,
-    isEstimate: estimatedMicros !== null && estimatedMicros > 0,
+    ...estimateOf(totalMicros, billedMicros),
     reportedByClientMicros,
     listPriceMicros,
     requestsWithoutCost: cost[4],
@@ -370,7 +342,7 @@ let practicesOf = (
     maxEffortRequests: max,
     highEffortShare: ratio(high + max, withEffort),
     fastRequests: fast,
-    fastShare: withSpeed > 0 ? ratio(fast, measured) : null,
+    fastShare: ratio(fast, withSpeed),
     outdatedCostMicros: outdated,
     outdatedShare: microsShare(outdated, totalMicros),
     cacheHitRate
@@ -416,7 +388,7 @@ let interner = () => {
 };
 
 let outdatedModelsOf = (
-  result: QueryResult | null,
+  result: UsageResult | null,
   intern: (value: string) => number | null
 ) => {
   let byMember = new Map<string, [number, number | null][]>();
@@ -439,7 +411,10 @@ let outdatedModelsOf = (
   return { byMember, models };
 };
 
-let lastActivityByMember = (result: QueryResult) =>
+let usedSelectedModels = ([, , , , , models]: CompactRow) =>
+  !!models && (models[1] > 0 || !!models[0]);
+
+let lastActivityByMember = (result: UsageResult) =>
   new Map(
     result.rows.flatMap(row =>
       typeof row.user == 'string' && typeof row.last_activity == 'string'
@@ -448,17 +423,14 @@ let lastActivityByMember = (result: QueryResult) =>
     )
   );
 
-let warned = (result: QueryResult | null, code: string) =>
-  (result?.meta?.warnings ?? []).some(warning => warning.code == code);
-
 export let buildMemberInsights = (d: {
   range: ResolvedRange;
   now: Date;
   include: MemberInsightsGroup[];
-  usage: QueryResult;
-  lastActivity: QueryResult;
-  requests: QueryResult | null;
-  outdated: QueryResult | null;
+  usage: UsageResult;
+  lastActivity: UsageResult;
+  requests: UsageResult | null;
+  outdated: UsageResult | null;
   inactive: { ids: string[]; capped: boolean } | null;
 }): MemberInsightsData => {
   let has = (group: MemberInsightsGroup) => d.include.includes(group);
@@ -496,9 +468,8 @@ export let buildMemberInsights = (d: {
   let rows = d.usage.rows.flatMap(usage =>
     typeof usage.user == 'string' ? [rowOf(usage.user, usage)] : []
   );
+  if (has('models')) rows = rows.filter(usedSelectedModels);
 
-  // Members without usage fill only the room the members with usage leave: those seen most
-  // recently in this instance first, then its other consumers.
   let inactiveCut = false;
   if (d.inactive) {
     let active = new Set(rows.map(row => row[0]));
@@ -599,11 +570,9 @@ let atLeast = (value: number | null | undefined, min: number | undefined) =>
 let below = (value: number | null | undefined, max: number | undefined) =>
   max !== undefined && value !== null && value !== undefined && value < max;
 
-// A member without a known seat counts as an expensive seat only while no seats are named.
 let flagsOf = (
   row: MemberInsightRow,
-  thresholds: MemberInsightsThresholds,
-  seats: Set<string> | undefined
+  thresholds: MemberInsightsThresholds
 ): MemberInsightsFlag[] => {
   let fired: Record<MemberInsightsFlag, boolean> = {
     model_share: atLeast(row.models?.costShare, thresholds.modelShareMin),
@@ -611,9 +580,7 @@ let flagsOf = (
     fast_mode: atLeast(row.practices?.fastShare, thresholds.fastShareMin),
     outdated_models: atLeast(row.practices?.outdatedShare, thresholds.outdatedShareMin),
     low_cache_hit_rate: below(row.practices?.cacheHitRate, thresholds.cacheHitRateMax),
-    low_usage_seat:
-      below(row.seat?.listPriceMicros, thresholds.seatUsageMaxMicros) &&
-      (!seats || (!!row.seat?.seat && seats.has(row.seat.seat)))
+    low_usage_seat: below(row.seat?.listPriceMicros, thresholds.seatUsageMaxMicros)
   };
 
   return memberInsightsFlags.filter(flag => fired[flag]);
@@ -633,7 +600,6 @@ let sortValues: Record<MemberInsightsSort, (row: MemberInsightRow) => number | n
   seat_usage: row => row.seat?.listPriceMicros ?? null
 };
 
-// Members without a value come last in either direction; ties go by member id.
 export let rankMemberInsights = (d: {
   rows: MemberInsightRow[];
   sort: MemberInsightsSort;
@@ -643,14 +609,16 @@ export let rankMemberInsights = (d: {
 }): AgentTrackingMemberInsightFigures[] => {
   let valueOf = sortValues[d.sort];
   let direction = d.order == 'asc' ? 1 : -1;
+  let missing = d.sort == 'last_activity' && d.order == 'asc' ? -1 : 1;
   let seats = d.seats ? new Set(d.seats) : undefined;
+  let rows = d.rows.filter(row => !seats || (!!row.seat?.seat && seats.has(row.seat.seat)));
 
-  let sorted = [...d.rows].sort((a, b) => {
+  let sorted = rows.sort((a, b) => {
     let left = valueOf(a);
     let right = valueOf(b);
     if (left !== right) {
-      if (left === null) return 1;
-      if (right === null) return -1;
+      if (left === null) return missing;
+      if (right === null) return -missing;
       return (left - right) * direction;
     }
 
@@ -661,7 +629,7 @@ export let rankMemberInsights = (d: {
     ...row,
     rank: index + 1,
     lastActivityAt: row.lastActivityAt === null ? null : new Date(row.lastActivityAt),
-    flags: flagsOf(row, d.thresholds, seats)
+    flags: flagsOf(row, d.thresholds)
   }));
 };
 

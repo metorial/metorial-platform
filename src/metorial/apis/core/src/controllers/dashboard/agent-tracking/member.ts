@@ -107,7 +107,7 @@ export let dashboardAgentTrackingMemberController = Controller.create(
             ),
             seat: idFilter(
               'seat',
-              'The seat types, as filter values lists them for `field=seat`, that `low_usage_seat` considers. Without it every member below `seat_usage_max_micros` is flagged, including members whose seat is not known; with it only members reported on one of these seats. Needs `include=seat`.',
+              'Only list members whose reported seat type is one of these, as filter values lists them for `field=seat`. Members whose seat is not known are left out. `rank`, `summary.members`, `summary.flag_counts` and `summary.seat` then cover only these members; the instance totals do not change. Needs `include=seat`.',
               ['premium']
             ),
             ...memberInsightsParamFields

@@ -4,7 +4,6 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   agentTrackingFilterValueService,
   agentTrackingMemberInsightService,
-  agentTrackingSpendService,
   type AgentTrackingMemberInsights
 } from '../src';
 import {
@@ -116,7 +115,7 @@ describe('module-agent-tracking-query member insights', () => {
     });
   });
 
-  it('measures the selected models per member and flags their main users', async () => {
+  it('ranks only the members who used the selected models and flags their main users', async () => {
     if (!catalog.present) return;
 
     let insights = await read({
@@ -127,24 +126,16 @@ describe('module-agent-tracking-query member insights', () => {
     let { [emails.heavy]: heavy, [emails.light]: light } = byEmail(insights);
 
     expect(heavy).toMatchObject({
+      rank: 1,
       models: { costMicros: 25000, requests: 2, costShare: 1, requestShare: 1 },
       flags: ['model_share']
     });
-    expect(light).toMatchObject({
-      models: { costMicros: 0, requests: 0, costShare: 0, requestShare: 0 },
-      flags: []
-    });
-    expect(insights.summary.flagCounts.model_share).toBe(1);
+    expect(light).toBeUndefined();
+    expect(insights.summary).toMatchObject({ members: 1, flagCounts: { model_share: 1 } });
 
-    let byShare = await read({
-      include: ['models'],
-      modelIds: [catalog.sonnet.id],
-      sort: 'model_share',
-      page: { limit: 50, order: 'asc' }
-    });
-    expect(byShare.list.items.map(item => item.member.email)).toEqual([
-      emails.light,
-      emails.heavy
+    let haikuUsers = await read({ include: ['models'], modelIds: [catalog.haiku.id] });
+    expect(haikuUsers.list.items.map(item => [item.member.email, item.rank])).toEqual([
+      [emails.light, 1]
     ]);
   });
 
@@ -183,13 +174,12 @@ describe('module-agent-tracking-query member insights', () => {
     });
   });
 
-  it('reports the seat and plan seen most and flags low use of the named seats', async () => {
+  it('reports the seat and plan seen most and lists only the members on the named seats', async () => {
     let insights = await eventually(
       async () => {
         let result = await read({
           include: ['seat'],
-          thresholds: { seatUsageMaxMicros: 10_000_000 },
-          seats: ['standard']
+          thresholds: { seatUsageMaxMicros: 10_000_000 }
         });
         expect(result.list.items.every(item => item.seat!.seat !== null)).toBe(true);
         return result;
@@ -200,9 +190,21 @@ describe('module-agent-tracking-query member insights', () => {
 
     expect(heavy!.seat).toMatchObject({ seat: 'premium', plan: 'max' });
     expect(light!.seat).toMatchObject({ seat: 'standard', plan: 'team' });
-    expect(heavy!.flags).toEqual([]);
-    expect(light!.flags).toEqual(['low_usage_seat']);
     expect(insights.summary.seat).toEqual({ unknownSeatMembers: 0 });
+
+    let standard = await read({
+      include: ['seat'],
+      thresholds: { seatUsageMaxMicros: 10_000_000 },
+      seats: ['standard']
+    });
+    expect(
+      standard.list.items.map(item => [item.member.email, item.rank, item.flags])
+    ).toEqual([[emails.light, 1, ['low_usage_seat']]]);
+    expect(standard.summary).toMatchObject({
+      members: 1,
+      flagCounts: { low_usage_seat: 1 },
+      seat: { unknownSeatMembers: 0 }
+    });
   });
 
   it('lists a member without usage with zero figures, flagged only as a low usage seat', async () => {
@@ -257,21 +259,5 @@ describe('module-agent-tracking-query member insights', () => {
       { timeoutMs: settleTimeoutMs, intervalMs: 1000 }
     );
     expect(seats.items.every(item => item.kind == 'seat')).toBe(true);
-  });
-
-  it('breaks the spend of one member down by model', async () => {
-    let insights = await read();
-    let light = byEmail(insights)[emails.light]!;
-
-    let breakdown = await agentTrackingSpendService.getBreakdown({
-      ...scope,
-      groupBy: 'model',
-      range: { preset: 'last_7_days' },
-      filters: { memberIds: [light.id] }
-    });
-
-    expect(breakdown.total).toMatchObject({ requests: 1, cost: { totalMicros: 2000 } });
-    expect(breakdown.items).toHaveLength(1);
-    if (catalog.present) expect(breakdown.items[0]!.model!.id).toBe(catalog.haiku.id);
   });
 });

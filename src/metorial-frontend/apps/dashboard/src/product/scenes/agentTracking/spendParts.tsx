@@ -1,21 +1,43 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { formatNumber, formatPercent, getChartColor } from '@metorial/chart';
+import {
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+  getChartColor,
+  type ChartSeries,
+  type ChartTime
+} from '@metorial/chart';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { Flex, Progress, Spacer, Text, theme } from '@metorial/ui';
+import { Table } from '@metorial/ui-product';
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { CostValue } from './cost';
-import { formatAmount, formatCost } from './costFormat';
+import { formatAmount, formatCost, toDollars, toMicros } from './costFormat';
 import { WithInfo } from './info';
 import { MemberIdentity } from './memberParts';
-import { unknownClientLabel } from './reportSummary';
-import { clientLabel, formatRequests, ModelNameCell } from './sessionParts';
-import { costSplit, formatCount } from './spendSummary';
+import { ModelNameCell } from './sessionParts';
+import {
+  breakdownOthersLabel,
+  clientLabel,
+  costSplit,
+  formatCount,
+  formatUnpricedRequests,
+  isZero,
+  unknownClientLabel,
+  type BreakdownGroup
+} from './spendSummary';
 
 let billedColor = getChartColor('blue');
 
 let estimatedColor = getChartColor('gray');
+
+let breakdownNameHeaders: Record<BreakdownGroup, string> = {
+  model: 'Model',
+  client: 'Client',
+  member: 'Member'
+};
+
+let estimateSeriesIds = ['estimated', 'projected'];
 
 type SpendCost = {
   totalMicros: number | null;
@@ -27,14 +49,18 @@ type SpendCost = {
 
 type SpendCounts = { sessions: number; members: number; capped: boolean } | null;
 
-type BreakdownGroup = 'model' | 'client' | 'member';
-
 type BreakdownRow = {
   kind: string;
   member: { id: string; name: string | null; email: string | null; matched: boolean } | null;
   model: { id: string; name: string | null } | null;
   client?: { family: string; name: string | null } | null;
   unknownModelNames: string[];
+};
+
+type BreakdownItem = BreakdownRow & {
+  requests: number;
+  share: number | null;
+  cost: SpendCost;
 };
 
 let SplitTrack = styled.div`
@@ -68,69 +94,6 @@ let Legend = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px 28px;
 `;
-
-export let isZero = (micros: number | null) => (micros ?? 0) == 0;
-
-export let formatUnpricedRequests = (count: number) =>
-  `${formatRequests(count)} without a known cost`;
-
-export let hiddenCountsNotice =
-  'Sessions and Active Members are not shown, as distinct counts cannot be limited to the days shown.';
-
-export let isLoadedFor = (loader: { input: unknown }, input: object | null) =>
-  !!input && canonicalize(loader.input) == canonicalize(input);
-
-export let breakdownOthersCount = (
-  counts: SpendCounts | undefined,
-  items: { kind: string }[]
-) => {
-  let listedMembers = items.filter(item => item.kind == 'member').length;
-
-  return counts && !counts.capped && counts.members > listedMembers
-    ? counts.members - listedMembers
-    : null;
-};
-
-export let breakdownOthersLabel = (group: BreakdownGroup, others: number | null) => {
-  if (group == 'model') return 'Other Models';
-  if (group == 'client') return 'Other Clients';
-  return others ? `${formatNumber(others)} Others` : 'Everyone Else';
-};
-
-// Shared by every caller, so a write builds on one not rendered yet, such as a growth rate
-// committed on blur by the tap that caused the blur.
-let latestSearch = { rendered: '', params: new URLSearchParams() };
-
-export let useSearchParamWriter = () => {
-  let [params, setParams] = useSearchParams();
-  let rendered = params.toString();
-  if (latestSearch.rendered != rendered) latestSearch = { rendered, params };
-
-  let setParam = (name: string, value: string | undefined) => {
-    let next = new URLSearchParams(latestSearch.params);
-    if (value === undefined) next.delete(name);
-    else next.set(name, value);
-
-    latestSearch.params = next;
-    setParams(next, { replace: true });
-  };
-
-  return [params, setParam] as const;
-};
-
-export let useSearchParamOption = <Id extends string>(
-  name: string,
-  ids: readonly Id[],
-  defaultId: Id
-) => {
-  let [params, setParam] = useSearchParamWriter();
-  let value = params.get(name);
-  let current = ids.find(id => id == value) ?? defaultId;
-
-  let setCurrent = (next: Id) => setParam(name, next == defaultId ? undefined : next);
-
-  return [current, setCurrent] as const;
-};
 
 let LegendItem = ({
   color,
@@ -221,7 +184,7 @@ export let Share = ({ share, label }: { share: number | null; label?: string | n
     </Flex>
   );
 
-export let BreakdownName = ({
+let BreakdownName = ({
   item,
   group,
   others
@@ -251,6 +214,74 @@ export let BreakdownName = ({
   return (
     <ModelNameCell model={item.model} unknownModelNames={item.unknownModelNames} detail />
   );
+};
+
+export let BreakdownTable = <Item extends BreakdownItem>({
+  items,
+  group,
+  others,
+  shareHeader = 'Share',
+  shareLabel,
+  href
+}: {
+  items: Item[];
+  group: BreakdownGroup;
+  others: number | null;
+  shareHeader?: string;
+  shareLabel?: (share: number | null) => string | null;
+  href?: (item: Item) => string | undefined;
+}) => (
+  <Table
+    headers={[breakdownNameHeaders[group], 'Requests', 'Cost', shareHeader]}
+    data={items.map(item => ({
+      href: href?.(item),
+      data: [
+        <BreakdownName key="name" item={item} group={group} others={others} />,
+        formatNumber(item.requests),
+        <BreakdownCost key="cost" cost={item.cost} />,
+        <Share key="share" share={item.share} label={shareLabel?.(item.share)} />
+      ]
+    }))}
+  />
+);
+
+export let costChartProps = <Row,>(d: {
+  rows: Row[];
+  key: (row: Row) => ChartTime;
+  billed: (row: Row) => number | null;
+  estimated: (row: Row) => number | null;
+  projected?: (row: Row) => number | null;
+}) => {
+  let entries = (micros: (row: Row) => number | null) =>
+    d.rows.map(row => ({ key: d.key(row), value: toDollars(micros(row)) }));
+  let hasBilled = d.rows.some(row => !isZero(d.billed(row)));
+
+  let series: ChartSeries[] = [
+    ...(hasBilled
+      ? [{ id: 'billed', name: 'Billed', color: 'blue' as const, entries: entries(d.billed) }]
+      : []),
+    { id: 'estimated', name: 'Estimated (~)', color: 'gray', entries: entries(d.estimated) },
+    ...(d.projected
+      ? [
+          {
+            id: 'projected',
+            name: 'Projected (~)',
+            color: 'violet' as const,
+            entries: entries(d.projected)
+          }
+        ]
+      : [])
+  ];
+
+  return {
+    series,
+    valueFormatter: (value: number) => formatAmount(toMicros(value), { estimate: false }),
+    seriesValueFormatter: (value: number, seriesIds: string[]) =>
+      formatAmount(toMicros(value), {
+        estimate: value != 0 && seriesIds.some(id => estimateSeriesIds.includes(id))
+      }),
+    tickFormatter: (value: number) => formatCurrency(value, { compact: true })
+  };
 };
 
 export let SpendCountsSummary = ({

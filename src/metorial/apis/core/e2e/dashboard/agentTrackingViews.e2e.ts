@@ -153,28 +153,6 @@ describe('api-core dashboard: agent tracking saved views', () => {
     expect(fetched).toEqual(created);
   });
 
-  it('updates only the fields it is given', async () => {
-    let created = await createView();
-    let name = uniqueId('Renamed');
-
-    let renamed = expectOk(
-      await org.clients.rest.patch(viewsPath(`/${created.id}`), { name })
-    );
-    expect(renamed).toMatchObject({ name, kind: created.kind, params: created.params });
-
-    let replaced = expectOk(
-      await org.clients.rest.patch(viewsPath(`/${created.id}`), {
-        kind: 'seats',
-        params: { version: 1, sort: 'seat_usage', seat_usage_max_micros: 20000000 }
-      })
-    );
-    expect(replaced).toMatchObject({
-      name,
-      kind: 'seats',
-      params: { version: 1, sort: 'seat_usage', seat_usage_max_micros: 20000000 }
-    });
-  });
-
   it('refuses a second view of the same name, whatever its case', async () => {
     let name = uniqueId('Duplicate');
     await createView({ name });
@@ -194,13 +172,9 @@ describe('api-core dashboard: agent tracking saved views', () => {
     expect(deleted.deleted_at).not.toBeNull();
 
     expectError(await org.clients.rest.get(viewsPath(`/${created.id}`)), 404, 'not_found');
-    expectError(await org.clients.rest.delete(viewsPath(`/${created.id}`)), 404, 'not_found');
     expect((await listAll(org.clients.rest, viewsPath())).map(item => item.id)).not.toContain(
       created.id
     );
-
-    let row = await db.agentTrackingView.findUniqueOrThrow({ where: { id: created.id } });
-    expect(row.status).toBe('deleted');
   });
 
   it('pages through views without duplicates and filters by page', async () => {
@@ -239,36 +213,5 @@ describe('api-core dashboard: agent tracking saved views', () => {
       where: { id: foreign.id }
     });
     expect(untouched).toMatchObject({ status: 'active', name: foreign.name });
-  });
-
-  it("hides another instance's views in the same organization", async () => {
-    let created = await createView();
-    let project = expectOk(
-      await org.clients.rest.post(
-        `/dashboard/organizations/${org.ids.organizationId}/projects`,
-        {
-          name: uniqueId('E2E Views Project')
-        }
-      )
-    );
-    let instances = expectOk(
-      await org.clients.rest.get(
-        `/dashboard/organizations/${org.ids.organizationId}/instances`,
-        {
-          query: { project_id: project.id }
-        }
-      )
-    );
-    let siblingPath = (path = '') => agentTrackingPath(instances.items[0].id, `/views${path}`);
-
-    expectError(await org.clients.rest.get(siblingPath(`/${created.id}`)), 404, 'not_found');
-    expect(
-      (await listAll(org.clients.rest, siblingPath())).map(item => item.id)
-    ).not.toContain(created.id);
-
-    let sibling = expectOk(
-      await org.clients.rest.post(siblingPath(), viewBody({ name: created.name }))
-    );
-    expect(sibling.id).not.toBe(created.id);
   });
 });

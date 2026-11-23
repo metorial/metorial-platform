@@ -61,6 +61,14 @@ export let privacy = { hideIndividuals: false, minGroupUsers: 5 };
 export let syncModule = {
   ...clientFamilies,
   consumerEntitySource: 'metorial.consumer',
+  ignoreNotFound: async <T>(promise: Promise<T>) => {
+    try {
+      return await promise;
+    } catch (error) {
+      if (isServiceError(error) && error.data.status == 404) return null;
+      throw error;
+    }
+  },
   requireAgentTracking: () => client,
   withInstanceScope,
   agentTrackingSettingsService: { getPrivacy: async () => ({ ...privacy }) }

@@ -1,19 +1,23 @@
-import { dollarsOf } from './costFormat';
-import { memberName } from './memberParts';
+import { dollarsOf, fractionToPercent } from './costFormat';
 import {
   describeCoverageDays,
-  growthPercentOf,
   growthSourceLabels,
   projectionEstimateNote,
   projectionMinDays,
   reportTotalLabel,
-  unknownClientLabel,
   type ProjectionScenario,
   type ReportBreakdownGroup,
   type SpendReport
 } from './reportSummary';
-import { clientLabel, modelLabel, unknownModelLabel } from './sessionParts';
-import { breakdownOthersCount, breakdownOthersLabel } from './spendParts';
+import {
+  breakdownOthersCount,
+  breakdownOthersLabel,
+  clientLabel,
+  memberName,
+  modelLabel,
+  unknownClientLabel,
+  unknownModelLabel
+} from './spendSummary';
 
 let byteOrderMark = '\uFEFF';
 
@@ -27,7 +31,7 @@ let plainNumber = /^-?\d+(\.\d+)?$/;
 
 let projectionStatusLabels: Record<SpendReport['projection']['status'], string> = {
   projected: 'Projected',
-  insufficient_data: `Not Enough Data Yet (needs at least ${projectionMinDays} days)`,
+  insufficient_data: `Not Enough Data Yet (needs ${projectionMinDays} complete days after the first day with usage)`,
   not_applicable: 'Not Applicable (past year)'
 };
 
@@ -42,7 +46,7 @@ let monthlyNote =
 
 type NumericCell = { numeric: string };
 
-export type CsvCell = string | number | null | undefined | NumericCell;
+type CsvCell = string | number | null | undefined | NumericCell;
 
 type BreakdownItem = NonNullable<SpendReport['breakdowns']['model']>[number];
 
@@ -73,10 +77,10 @@ export let spendReportCsvFileName = (year: number) => `agent-usage-report-${year
 
 let yesNo = (value: boolean) => (value ? 'Yes' : 'No');
 
-let percentCell = (rate: number) => numericCell(String(growthPercentOf(rate)));
+let percentCell = (rate: number) => numericCell(String(fractionToPercent(rate)));
 
 let shareCell = (share: number | null) =>
-  share === null ? null : numericCell((share * 100).toFixed(2));
+  share === null ? null : numericCell(fractionToPercent(share).toFixed(2));
 
 let section = (title: string, header: string[], rows: CsvCell[][]): CsvCell[][] => [
   [title],

@@ -26,8 +26,7 @@ export let CommitNumberInput = ({
 
   useEffect(() => setDraft(value), [value, key]);
 
-  // A popover that closes on Escape removes the field without a blur, so the draft is
-  // committed when the field goes away.
+  // A popover closed with Escape unmounts the field without a blur, so commit on unmount.
   useEffect(() => {
     if (!commitOnUnmount) return;
 
@@ -46,8 +45,7 @@ export let CommitNumberInput = ({
     if (next != value) onCommit(next);
   };
 
-  // Commits on the wrapper's blur, which runs after the field's own blur handling, so the field
-  // shows the committed value; Enter blurs the field to commit the same way.
+  // Commit on the wrapper's blur, after the field's own blur, so it shows the committed value.
   return (
     <div
       onBlur={commit}

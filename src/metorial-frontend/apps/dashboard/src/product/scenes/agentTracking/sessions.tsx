@@ -11,13 +11,8 @@ import { agentTrackingFilters } from './filters';
 import { WithInfo } from './info';
 import { MemberIdentity, memberPath } from './memberParts';
 import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
-import {
-  clientLabel,
-  SessionCost,
-  SessionModels,
-  SessionSummaryCell,
-  settlingLabel
-} from './sessionParts';
+import { SessionCost, SessionModels, SessionSummaryCell, settlingLabel } from './sessionParts';
+import { clientLabel } from './spendSummary';
 
 let filterRangeText = 'the last 30 days';
 

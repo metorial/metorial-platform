@@ -1,53 +1,43 @@
-import { teamViewDefinitions, type TeamViewParams, type TeamViewState } from './definitions';
+import { formatCurrency, formatPercent } from '@metorial/chart';
 import {
-  dollarsToMicros,
+  dollarsOf,
   fractionToPercent,
-  microsToDollars,
   percentToFraction,
-  resolveTeamView
-} from './state';
+  toDollars,
+  toMicros
+} from '../costFormat';
+import {
+  insightFlagDefinitions,
+  teamViewDefinitions,
+  type TeamViewParams,
+  type TeamViewState
+} from './definitions';
+import { canSaveTeamView, resolveTeamView } from './state';
 
-export let flagRules = [
-  {
-    field: 'highEffortShareMin',
-    text: 'High Effort ≥',
-    label: 'Flag High Effort at or Above',
-    unit: '%'
-  },
-  {
-    field: 'fastShareMin',
-    text: 'Fast Mode ≥',
-    label: 'Flag Fast Mode at or Above',
-    unit: '%'
-  },
-  {
-    field: 'outdatedShareMin',
-    text: 'Outdated Models ≥',
-    label: 'Flag Outdated Models at or Above',
-    unit: '%'
-  },
-  {
-    field: 'cacheHitRateMax',
-    text: 'Cache Hit Rate <',
-    label: 'Flag Cache Hit Rate Below',
-    unit: '%'
-  },
-  { field: 'modelShareMin', text: 'Share ≥', label: 'Flag Share at or Above', unit: '%' },
-  { field: 'seatUsageMaxMicros', text: 'Usage <', label: 'Flag Usage Below', unit: 'USD' }
-] as const;
+let microsPerDollar = 1_000_000;
 
-export type FlagRule = (typeof flagRules)[number];
+let flagRules = insightFlagDefinitions.map(({ field, label, below, unit }) => ({
+  field,
+  unit,
+  text: `${label} ${below ? '<' : '≥'}`,
+  label: `Flag ${label} ${below ? 'Below' : 'at or Above'}`
+}));
 
-let amount = new Intl.NumberFormat('en', { maximumFractionDigits: 2 });
+type FlagRule = (typeof flagRules)[number];
+
+let toCents = (dollars: number) => Math.round(dollars * 100) / 100;
+
+let formatThresholdDollars = (micros: number) =>
+  formatCurrency(dollarsOf(micros), { precision: micros % microsPerDollar == 0 ? 0 : 2 });
 
 export let toRuleInput = (rule: FlagRule, value: number | undefined) =>
-  rule.unit == 'USD' ? microsToDollars(value ?? 0) : fractionToPercent(value ?? 0);
+  rule.unit == 'USD' ? toCents(toDollars(value ?? 0) ?? 0) : fractionToPercent(value ?? 0);
 
 export let fromRuleInput = (rule: FlagRule, value: number) =>
-  rule.unit == 'USD' ? dollarsToMicros(value) : percentToFraction(value);
+  rule.unit == 'USD' ? toMicros(toCents(value)) : percentToFraction(value);
 
 export let flagRulesOf = (view: TeamViewState) => {
-  if (view.kind == 'by_model' && !view.params.modelIds?.length) return [];
+  if (!canSaveTeamView(view)) return [];
 
   let fields = teamViewDefinitions[view.kind].fields;
   return flagRules.filter(rule => fields.includes(rule.field));
@@ -58,11 +48,13 @@ export let flagRulesLabel = (view: TeamViewState) => {
   if (rules.length != 1) return `Flag Rules · ${rules.length}`;
 
   let rule = rules[0]!;
-  let value = amount.format(
-    toRuleInput(rule, resolveTeamView(view.kind, view.params).params[rule.field])
-  );
+  let value = resolveTeamView(view.kind, view.params).params[rule.field] ?? 0;
+  let threshold =
+    rule.unit == 'USD'
+      ? formatThresholdDollars(value)
+      : formatPercent(value, { precision: 2 });
 
-  return `Flag: ${rule.text} ${rule.unit == 'USD' ? `$${value}` : `${value}%`}`;
+  return `Flag: ${rule.text} ${threshold}`;
 };
 
 export let flagRulesResetPatch = (view: TeamViewState): TeamViewParams => {

@@ -1,3 +1,4 @@
+import { formatNumber } from '@metorial/chart';
 import type { TableFilter, TableFilterState } from '@metorial/ui-product';
 import { teamViewDefinitions, type TeamViewParams, type TeamViewState } from './definitions';
 import { flagRulesOf } from './flagRules';
@@ -16,20 +17,20 @@ export let flaggedFilter: TableFilter<{ id: string }> = {
   options: [{ id: flaggedOption, label: 'Only Flagged' }]
 };
 
-export let membersWithoutUsageFilter = (days: number): TableFilter<{ id: string }> => {
-  let definition = membersWithoutUsageNotice(days);
-
-  return {
-    id: 'inactive',
-    fields: ['inactive'],
-    label: 'Usage',
-    description: `Filter by usage. Members without usage are ${definition[0]!.toLowerCase()}${definition.slice(1)}`,
-    type: 'select',
-    options: [
-      { id: includedOption, label: 'Include Zero Usage', description: definition }
-    ]
-  };
-};
+export let membersWithoutUsageFilter = (days: number): TableFilter<{ id: string }> => ({
+  id: 'inactive',
+  fields: ['inactive'],
+  label: 'Usage',
+  description: `Filter by usage. Members without usage are the instance's consumers and the people seen in it in the last ${formatNumber(days)} days who have no usage in this range.`,
+  type: 'select',
+  options: [
+    {
+      id: includedOption,
+      label: 'Include Zero Usage',
+      description: membersWithoutUsageNotice(days)
+    }
+  ]
+});
 
 export let showsFlaggedFilter = (view: TeamViewState) => flagRulesOf(view).length > 0;
 

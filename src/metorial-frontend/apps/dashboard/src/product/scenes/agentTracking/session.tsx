@@ -19,15 +19,14 @@ import { WithInfo } from './info';
 import { MemberDetails, memberPath } from './memberParts';
 import { describeSessionCost, sessionCostKind } from './sessionCost';
 import {
-  clientLabel,
   clientVersion,
   costIsSettling,
   DetailColumns,
-  formatRequests,
   ModelNameCell,
   SessionActivityLabel,
   settlingLabel
 } from './sessionParts';
+import { clientLabel, formatRequests } from './spendSummary';
 
 type Session = DashboardInstanceAgentTrackingSessionsGetOutput;
 

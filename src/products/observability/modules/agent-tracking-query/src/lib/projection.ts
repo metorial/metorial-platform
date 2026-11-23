@@ -36,10 +36,12 @@ export let notApplicableProjection: AgentTrackingSpendProjection = {
   scenarios: null
 };
 
-let monthOfKey = (month: string): CalendarDate => {
-  let [year, number] = month.split('-').map(Number) as [number, number];
-  return { year, month: number, day: 1 };
+let dateOfKey = (key: string): CalendarDate => {
+  let [year, month, day] = key.split('-').map(Number) as [number, number, number];
+  return { year, month, day };
 };
+
+let monthOfKey = (month: string) => dateOfKey(`${month}-01`);
 
 let clamp = (rate: number, bounds: { min: number; max: number }) =>
   Math.min(bounds.max, Math.max(bounds.min, rate));
@@ -48,18 +50,22 @@ let sumOf = (values: number[]) => values.reduce((sum, value) => sum + value, 0);
 
 let capped = (micros: number) => Math.max(-maxMicros, Math.min(maxMicros, micros));
 
-// A hidden day (null) has no known cost, so it is left out of the average instead of counting
-// as zero.
+// The first day of usage is only partly recorded, so the window starts the day after it.
 let baselineOf = (d: {
   today: CalendarDate;
   usageStart: string | null;
   days: ProjectionDay[];
 }) => {
-  let to = calendarDateKey(shiftDays(d.today, -1));
-  if (!d.usageStart || d.usageStart > to) return null;
+  if (!d.usageStart) return null;
 
+  let to = calendarDateKey(shiftDays(d.today, -1));
   let windowStart = calendarDateKey(shiftDays(d.today, -baselineMaxDays));
-  let from = d.usageStart > windowStart ? d.usageStart : windowStart;
+  let from =
+    d.usageStart >= windowStart
+      ? calendarDateKey(shiftDays(dateOfKey(d.usageStart), 1))
+      : windowStart;
+  if (from > to) return null;
+
   let shown = d.days.flatMap(day =>
     day.date >= from && day.date <= to && day.costMicros !== null ? [day.costMicros] : []
   );
@@ -67,9 +73,6 @@ let baselineOf = (d: {
   return { from, to, days: shown.length, totalMicros: sumOf(shown) };
 };
 
-// Months differ in length, so months compare by their cost per day. The geometric mean keeps a
-// rise and an equal fall from adding up to growth. A month without a positive, fully known cost
-// cannot be compared, so both of its pairs are skipped; enough comparable pairs must remain.
 let observedGrowthRate = (months: ProjectionMonth[], usageStart: string) => {
   let full = months.filter(month => `${month.month}-01` >= usageStart);
   if (full.length < observedGrowthMinMonths) return null;
@@ -90,13 +93,11 @@ let observedGrowthRate = (months: ProjectionMonth[], usageStart: string) => {
 };
 
 let growthOf = (d: {
-  growthRate?: number | null;
+  growthRate?: number;
   usageStart: string;
   months: ProjectionMonth[];
 }): { rate: number; source: GrowthRateSource } => {
-  if (typeof d.growthRate == 'number') {
-    return { rate: clamp(d.growthRate, growthRateBounds.input), source: 'input' };
-  }
+  if (d.growthRate !== undefined) return { rate: d.growthRate, source: 'input' };
 
   let observed = observedGrowthRate(d.months.slice(0, -1), d.usageStart);
   return observed === null
@@ -104,8 +105,6 @@ let growthOf = (d: {
     : { rate: observed, source: 'observed' };
 };
 
-// Month 0 is the current month: what is left of it after the actuals, without growth. Each later
-// month grows by the rate once more than the month before.
 let scenarioOf = (d: {
   today: CalendarDate;
   todayRemaining: number;
@@ -158,7 +157,7 @@ export let projectSpend = (d: {
   days: ProjectionDay[];
   months: ProjectionMonth[];
   yearToDateMicros: number;
-  growthRate?: number | null;
+  growthRate?: number;
 }): AgentTrackingSpendProjection => {
   let baseline = baselineOf(d);
   if (!baseline || !d.usageStart || baseline.days < baselineMinDays) {
@@ -177,7 +176,7 @@ export let projectSpend = (d: {
   let scenario = (growthRate: number) =>
     scenarioOf({
       today: d.today,
-      todayRemaining: Math.min(1, Math.max(0, d.todayRemaining)),
+      todayRemaining: d.todayRemaining,
       currentMonthMicros: d.months.at(-1)?.costMicros ?? 0,
       yearToDateMicros: d.yearToDateMicros,
       dailyRateMicros,

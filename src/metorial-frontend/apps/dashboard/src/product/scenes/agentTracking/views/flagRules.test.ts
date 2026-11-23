@@ -3,7 +3,9 @@ import {
   flagRulesLabel,
   flagRulesModified,
   flagRulesOf,
-  flagRulesResetPatch
+  flagRulesResetPatch,
+  fromRuleInput,
+  toRuleInput
 } from './flagRules';
 import { defaultTeamView, resolveTeamView, writeTeamViewSearch } from './state';
 
@@ -23,8 +25,24 @@ describe('flag rules', () => {
     expect(flagRulesLabel(byModel({ modelShareMin: 0.4 }))).toBe('Flag: Share ≥ 40%');
     expect(flagRulesLabel(defaultTeamView('seats'))).toBe('Flag: Usage < $50');
     expect(flagRulesLabel(resolveTeamView('seats', { seatUsageMaxMicros: 20_100_000 }))).toBe(
-      'Flag: Usage < $20.1'
+      'Flag: Usage < $20.10'
     );
+    expect(flagRulesLabel(resolveTeamView('seats', { seatUsageMaxMicros: 49_500_000 }))).toBe(
+      'Flag: Usage < $49.50'
+    );
+  });
+
+  it('converts a usage threshold between dollars and micros at cent precision', () => {
+    let rule = flagRulesOf(defaultTeamView('seats'))[0]!;
+
+    expect(fromRuleInput(rule, 50)).toBe(50_000_000);
+    expect(fromRuleInput(rule, 0.29)).toBe(290_000);
+    expect(fromRuleInput(rule, 50.1)).toBe(50_100_000);
+    expect(fromRuleInput(rule, 19.999)).toBe(20_000_000);
+
+    expect(toRuleInput(rule, 50_100_000)).toBe(50.1);
+    expect(toRuleInput(rule, 290_000)).toBe(0.29);
+    expect(toRuleInput(rule, 12_345_678)).toBe(12.35);
   });
 
   it('counts several rules', () => {

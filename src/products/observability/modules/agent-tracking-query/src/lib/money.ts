@@ -65,6 +65,13 @@ let toMicros = (nanos: bigint | null) => {
 
 export let microsOf = (value: unknown) => toMicros(toNanos(value));
 
+export let estimateOf = (totalMicros: number | null, billedMicros: number | null) => {
+  let estimatedMicros =
+    totalMicros === null ? null : Math.max(0, totalMicros - (billedMicros ?? 0));
+
+  return { estimatedMicros, isEstimate: estimatedMicros !== null && estimatedMicros > 0 };
+};
+
 // A sum without any cost is 0, not null; `unpriced` says when no request had one.
 export let costOf = (d: {
   total: unknown;
@@ -78,14 +85,11 @@ export let costOf = (d: {
 
   let totalMicros = toMicros(total);
   let billedMicros = toMicros(billed);
-  let estimatedMicros =
-    totalMicros === null ? null : Math.max(0, totalMicros - (billedMicros ?? 0));
 
   return {
     totalMicros,
     billedMicros,
-    estimatedMicros,
-    isEstimate: estimatedMicros !== null && estimatedMicros > 0,
+    ...estimateOf(totalMicros, billedMicros),
     reportedByClientMicros: toMicros(reportedUsd(d.reported, 'client_estimate')),
     listPriceMicros: d.unpricedAtListPrice ? null : toMicros(toNanos(d.listPrice))
   };

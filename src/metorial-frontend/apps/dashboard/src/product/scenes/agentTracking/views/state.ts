@@ -2,9 +2,10 @@ import type {
   DashboardInstanceAgentTrackingMembersInsightsQuery,
   DashboardInstanceAgentTrackingViewsCreateBody
 } from '@metorial/dashboard-sdk';
-import { useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { fractionToPercent, percentToFraction, toDollars, toMicros } from '../costFormat';
 import { agentTrackingRangePresets, type AgentTrackingRangePreset } from '../range';
+import { useLatestSearchParams } from '../searchParams';
 import {
   defaultTeamViewKind,
   isTeamViewKind,
@@ -17,7 +18,7 @@ import {
   type TeamViewState
 } from './definitions';
 
-export let teamViewSearchKeys = {
+let teamViewSearchKeys = {
   kind: 'view',
   saved: 'saved',
   range: 'range',
@@ -37,13 +38,10 @@ export let teamViewSearchKeys = {
 
 let insightsPageSize = 50;
 
+// data-hooks writes these cursor keys but does not export them.
 let paginationKeys = ['before', 'after'];
 
 let savedViewIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
-
-let microsPerCent = 10_000;
-
-let microsPerDollar = 1_000_000;
 
 let shareFields = [
   'modelShareMin',
@@ -59,7 +57,7 @@ type ShareField = (typeof shareFields)[number];
 
 type BooleanField = (typeof booleanFields)[number];
 
-export type SavedViewParams = DashboardInstanceAgentTrackingViewsCreateBody['params'];
+type SavedViewParams = DashboardInstanceAgentTrackingViewsCreateBody['params'];
 
 export type InsightsQuery = DashboardInstanceAgentTrackingMembersInsightsQuery;
 
@@ -74,14 +72,6 @@ let isShareField = (field: TeamViewField): field is ShareField =>
 
 let isBooleanField = (field: TeamViewField): field is BooleanField =>
   (booleanFields as readonly string[]).includes(field);
-
-export let percentToFraction = (percent: number) => Math.round(percent * 100) / 10_000;
-
-export let fractionToPercent = (fraction: number) => Math.round(fraction * 10_000) / 100;
-
-export let dollarsToMicros = (dollars: number) => Math.round(dollars * 100) * microsPerCent;
-
-export let microsToDollars = (micros: number) => Math.round(micros / microsPerCent) / 100;
 
 let isRange = (value: unknown): value is AgentTrackingRangePreset =>
   agentTrackingRangePresets.some(preset => preset.id == value);
@@ -123,7 +113,7 @@ let fromSearch = (field: TeamViewField, raw: string): unknown => {
   }
   if (isBooleanField(field)) return parseBoolean(raw);
   if (!raw.trim()) return undefined;
-  if (field == 'seatUsageMaxMicros') return Math.round(Number(raw) * microsPerDollar);
+  if (field == 'seatUsageMaxMicros') return toMicros(Number(raw));
   if (isShareField(field)) return percentToFraction(Number(raw));
 
   return raw;
@@ -170,7 +160,7 @@ let searchValueOf = (field: TeamViewField, value: TeamViewParams[TeamViewField])
   if (value === undefined) return undefined;
   if (Array.isArray(value)) return value.length ? value.join(',') : undefined;
   if (typeof value == 'boolean') return value ? '1' : '0';
-  if (field == 'seatUsageMaxMicros') return String((value as number) / microsPerDollar);
+  if (field == 'seatUsageMaxMicros') return String(toDollars(value as number));
   if (isShareField(field)) return String(fractionToPercent(value as number));
 
   return String(value);
@@ -236,35 +226,25 @@ export let sortPatch = (view: TeamViewState, sort: InsightsSort): TeamViewParams
   return { sort, order: first ?? 'desc' };
 };
 
-// Writes build on the newest search params, including a write not rendered yet, so a threshold
-// committed on blur is kept when the click that caused the blur writes too.
 export let useTeamViewSearch = () => {
-  let [search, setSearch] = useSearchParams();
-  let latest = useRef({ rendered: search, search });
-  if (latest.current.rendered !== search) latest.current = { rendered: search, search };
-
-  let parsed = useMemo(() => parseTeamViewSearch(search), [search]);
-
-  let write = (next: URLSearchParams, replace: boolean) => {
-    latest.current.search = next;
-    setSearch(next, { replace });
-  };
+  let { params, read, write } = useLatestSearchParams();
+  let parsed = useMemo(() => parseTeamViewSearch(params), [params]);
 
   let apply: ApplyTeamView = (view, savedId, opts) =>
-    write(writeTeamViewSearch(latest.current.search, view, savedId), !opts?.push);
+    write(writeTeamViewSearch(read(), view, savedId), opts);
 
-  let patch = (params: TeamViewParams) =>
-    write(patchTeamViewSearch(latest.current.search, params), true);
+  let patch = (next: TeamViewParams) => write(patchTeamViewSearch(read(), next));
 
-  let current = () => parseTeamViewSearch(latest.current.search);
+  let current = () => parseTeamViewSearch(read());
 
   return { ...parsed, apply, patch, current };
 };
 
+export let canSaveTeamView = (view: TeamViewState) =>
+  view.kind != 'by_model' || !!view.params.modelIds?.length;
+
 export let toInsightsQuery = (view: TeamViewState, timeZone: string): InsightsQuery | null => {
-  if (view.kind == 'recent' || (view.kind == 'by_model' && !view.params.modelIds?.length)) {
-    return null;
-  }
+  if (view.kind == 'recent' || !canSaveTeamView(view)) return null;
 
   let definition = teamViewDefinitions[view.kind];
   let { params } = resolveTeamView(view.kind, view.params);
@@ -292,9 +272,6 @@ export let toInsightsQuery = (view: TeamViewState, timeZone: string): InsightsQu
   return query;
 };
 
-export let canSaveTeamView = (view: TeamViewState) =>
-  view.kind != 'by_model' || !!view.params.modelIds?.length;
-
 export let toSavedViewParams = (view: TeamViewState): SavedViewParams => {
   let { params } = resolveTeamView(view.kind, view.params);
   let saved: Record<string, unknown> = { version: 1 };
@@ -304,8 +281,6 @@ export let toSavedViewParams = (view: TeamViewState): SavedViewParams => {
     saved[field] = value;
   }
 
-  // The generated type renders the literal version 1 as the string '1'; the API compares it
-  // loosely and stores the number.
   return saved as SavedViewParams;
 };
 
@@ -314,11 +289,16 @@ export let teamViewHref = (teamPath: string, view: TeamViewState, savedId: strin
   return search ? `${teamPath}?${search}` : teamPath;
 };
 
+let withoutTrailingSlash = (path: string) => path.replace(/\/+$/, '');
+
+export let isTeamPath = (pathname: string, teamPath: string) =>
+  withoutTrailingSlash(pathname) == withoutTrailingSlash(teamPath);
+
 export let activeTeamViewKind = (
   location: { pathname: string; search: string },
   teamPath: string
 ) => {
-  if (location.pathname.replace(/\/+$/, '') != teamPath.replace(/\/+$/, '')) return null;
+  if (!isTeamPath(location.pathname, teamPath)) return null;
 
   let { state, savedId } = parseTeamViewSearch(new URLSearchParams(location.search));
   return savedId ? null : state.kind;

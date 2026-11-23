@@ -3,6 +3,7 @@ import { requestRecordDays } from '@metorial/module-agent-tracking-query';
 import { Presenter } from '@metorial/presenter';
 import { agentTrackingFilterValuesType } from '../../types';
 import {
+  agentTrackingClientSchema,
   agentTrackingMemberSchema,
   agentTrackingModelSchema,
   agentTrackingRangeSchema,
@@ -66,26 +67,7 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
           }),
           member: v.nullable(agentTrackingMemberSchema),
           model: v.nullable(agentTrackingModelSchema),
-          client: v.nullable(
-            v.object(
-              {
-                family: v.string({
-                  name: 'family',
-                  description:
-                    'The client family, such as claude_code. A family Metorial does not know is passed on as the client reported it.',
-                  examples: ['claude_code']
-                }),
-                name: v.nullable(
-                  v.string({
-                    name: 'name',
-                    description: 'The display name of a known client family.',
-                    examples: ['Claude Code']
-                  })
-                )
-              },
-              { name: 'client', description: 'The AI coding agent, on a client value.' }
-            )
-          ),
+          client: v.nullable(agentTrackingClientSchema),
           requests: v.nullable(
             v.number({
               name: 'requests',

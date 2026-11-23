@@ -1,7 +1,10 @@
 import { formatNumber, formatPercent } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingMembersInsightsOutput } from '@metorial/dashboard-sdk';
 import { formatCost } from '../costFormat';
+import { counted } from '../spendSummary';
 import {
+  insightFlagDefinition,
+  insightFlagDefinitions,
   isTeamViewKind,
   maxInsightMembers,
   teamViewDefinitions,
@@ -13,22 +16,9 @@ export type MemberInsights = DashboardInstanceAgentTrackingMembersInsightsOutput
 
 export type MemberInsight = MemberInsights['items'][number];
 
-export type { InsightFlag };
-
 type OutdatedModel = NonNullable<MemberInsight['practices']>['outdatedModels'][number];
 
-type FlagCounts = MemberInsights['summary']['flagCounts'];
-
 export let notReportedLabel = 'Not Reported';
-
-let flagCountKeys: Record<InsightFlag, keyof FlagCounts> = {
-  model_share: 'modelShare',
-  high_effort: 'highEffort',
-  fast_mode: 'fastMode',
-  outdated_models: 'outdatedModels',
-  low_cache_hit_rate: 'lowCacheHitRate',
-  low_usage_seat: 'lowUsageSeat'
-};
 
 export let partOfCost = (
   micros: number | null | undefined,
@@ -45,8 +35,8 @@ export let formatInsightShare = (share: number | null | undefined) => {
   return formatPercent(share, { precision: 0 });
 };
 
-export let flagCountOf = (summary: MemberInsights['summary'], flag: InsightFlag) =>
-  summary.flagCounts[flagCountKeys[flag]];
+let flagCountOf = (summary: MemberInsights['summary'], flag: InsightFlag) =>
+  summary.flagCounts[insightFlagDefinition(flag).count];
 
 export let outdatedModelStatusLabel = (model: Pick<OutdatedModel, 'status' | 'isLatest'>) => {
   if (model.status == 'retired') return 'Retired';
@@ -61,7 +51,7 @@ export let describeMaxEffort = (practices: NonNullable<MemberInsight['practices'
     ? null
     : `${formatNumber(practices.maxEffortRequests)} at max effort`;
 
-export let unknownKindLabel = 'Unknown Kind';
+let unknownKindLabel = 'Unknown Kind';
 
 export let teamViewKindLabel = (kind: string) =>
   isTeamViewKind(kind) ? teamViewDefinitions[kind].label : unknownKindLabel;
@@ -70,22 +60,12 @@ export let truncatedNotice = (includeInactive: boolean) =>
   `More than ${formatNumber(maxInsightMembers)} members ${includeInactive ? 'are known to this instance' : 'had usage in this range'}. Only ${formatNumber(maxInsightMembers)} are listed${includeInactive ? ', members with usage first,' : ''} and the least expensive are left out. Ranks and flag counts cover only the members listed; the totals still cover everyone.`;
 
 export let modelCatalogNotice =
-  'Deprecated, retired and latest reflect the model catalog today, not when the requests were made.';
+  'Outdated means deprecated, retired or not the latest in its family, going by the model catalog today, not when the requests were made.';
 
 export let seatUsageNotice = 'An estimate at list prices, not a bill';
 
 export let membersWithoutUsageNotice = (days: number) =>
   `The instance's consumers and the people seen in it in the last ${formatNumber(days)} days who have no usage in this range.`;
-
-let practiceSummaries = [
-  { label: 'High Effort', share: 'highEffortShare', flag: 'high_effort' },
-  { label: 'Fast Mode', share: 'fastShare', flag: 'fast_mode' },
-  { label: 'Outdated Models', share: 'outdatedShare', flag: 'outdated_models' },
-  { label: 'Cache Hit Rate', share: 'cacheHitRate', flag: 'low_cache_hit_rate' }
-] as const;
-
-let counted = (count: number, one: string, many = `${one}s`) =>
-  `${formatNumber(count)} ${count == 1 ? one : many}`;
 
 let withSuffix = (value: string | null, suffix: string) =>
   value === null ? null : `${value} ${suffix}`;
@@ -101,8 +81,10 @@ let summaryParts = (kind: TeamViewKind, summary: MemberInsights['summary']) => {
   if (kind == 'practices' && practices) {
     return [
       counted(summary.members, 'member'),
-      ...practiceSummaries.map(item => {
-        let share = formatInsightShare(practices[item.share]);
+      ...insightFlagDefinitions.map(item => {
+        if (!item.practiceShare) return null;
+
+        let share = formatInsightShare(practices[item.practiceShare]);
         if (share === null) return null;
 
         let flagged = flaggedText(flagCountOf(summary, item.flag));
@@ -126,7 +108,9 @@ let summaryParts = (kind: TeamViewKind, summary: MemberInsights['summary']) => {
     return [
       counted(summary.members, 'member'),
       `${formatNumber(summary.flagCounts.lowUsageSeat ?? 0)} with low usage`,
-      `${formatNumber(seat.unknownSeatMembers)} with no seat reported`,
+      seat.unknownSeatMembers
+        ? `${formatNumber(seat.unknownSeatMembers)} with no seat reported`
+        : null,
       withSuffix(formatCost(listPrice, { estimate: !!listPrice }), 'at list price')
     ];
   }

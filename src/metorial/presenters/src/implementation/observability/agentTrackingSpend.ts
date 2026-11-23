@@ -2,7 +2,7 @@ import { v } from '@lowerdeck/validation';
 import {
   growthRateBounds,
   maxDistinctCount,
-  reportBreakdownLimit,
+  reportBreakdownLimits,
   type AgentTrackingProjectionScenario,
   type AgentTrackingSpendBreakdownItem
 } from '@metorial/module-agent-tracking-query';
@@ -13,6 +13,7 @@ import {
   agentTrackingSpendTimelineType
 } from '../../types';
 import {
+  agentTrackingClientSchema,
   agentTrackingMemberSchema,
   agentTrackingMicrosSchema,
   agentTrackingModelSchema,
@@ -61,6 +62,33 @@ let presentBreakdownItem = (
   share: item.share,
   ...presentFigures(item)
 });
+
+let breakdownItemSchema = <
+  const Kinds extends readonly ('member' | 'model' | 'client' | 'unknown' | 'other')[]
+>(d: {
+  kinds: Kinds;
+  kind: string;
+  key: string;
+  examples: string[];
+  client: boolean;
+  unknownModelNames: string;
+}) =>
+  v.object({
+    kind: v.enumOf(d.kinds, { name: 'kind', description: d.kind }),
+    key: v.string({ name: 'key', description: d.key, examples: d.examples }),
+    member: v.nullable(agentTrackingMemberSchema),
+    model: v.nullable(agentTrackingModelSchema),
+    ...(d.client ? { client: v.nullable(agentTrackingClientSchema) } : {}),
+    unknown_model_names: agentTrackingUnknownModelNamesSchema(d.unknownModelNames),
+    share: v.nullable(
+      v.number({
+        name: 'share',
+        description:
+          'The share of the total cost, from 0 to 1. `null` when the total cost is zero or unknown.'
+      })
+    ),
+    ...agentTrackingSpendFiguresProperties
+  });
 
 let presentPrivacy = (privacy: {
   hideIndividuals: boolean;
@@ -272,31 +300,14 @@ export let v1AgentTrackingSpendBreakdownPresenter = Presenter.create(
       total: totalSchema,
 
       items: v.array(
-        v.object({
-          kind: v.enumOf(['member', 'model', 'unknown', 'other'], {
-            name: 'kind',
-            description:
-              'member or model for a group; unknown for usage without a member (Unknown Member) or whose model is not matched to the model catalog (Unknown Model, see unknown_model_names); other for everything past the top 10, added up.'
-          }),
-          key: v.string({
-            name: 'key',
-            description:
-              'The member or model id, unknown, or other. Unique within the breakdown.',
-            examples: ['aten_0mhNnEqM7XQb3vXq8gD2', 'unknown', 'other']
-          }),
-          member: v.nullable(agentTrackingMemberSchema),
-          model: v.nullable(agentTrackingModelSchema),
-          unknown_model_names: agentTrackingUnknownModelNamesSchema(
-            'On the unknown item of a breakdown by model: the models that make it up, most requests first, at most 10. Empty on every other item and in a breakdown by member.'
-          ),
-          share: v.nullable(
-            v.number({
-              name: 'share',
-              description:
-                'The share of the total cost, from 0 to 1. Null when the total cost is zero or unknown.'
-            })
-          ),
-          ...agentTrackingSpendFiguresProperties
+        breakdownItemSchema({
+          kinds: ['member', 'model', 'unknown', 'other'],
+          kind: '`member` or `model` for a group; `unknown` for usage without a member (Unknown Member) or whose model is not matched to the model catalog (Unknown Model, see `unknown_model_names`); `other` for everything past the top 10, added up.',
+          key: 'The member or model id, `unknown`, or `other`. Unique within the breakdown.',
+          examples: ['aten_0mhNnEqM7XQb3vXq8gD2', 'unknown', 'other'],
+          client: false,
+          unknownModelNames:
+            'On the `unknown` item of a breakdown by model: the models that make it up, most requests first, at most 10. Empty on every other item and in a breakdown by member.'
         }),
         {
           name: 'items',
@@ -333,55 +344,20 @@ let monthKey = (description: string) =>
 let reportItemsSchema = (group: 'model' | 'client' | 'member', description: string) =>
   v.nullable(
     v.array(
-      v.object({
-        kind: v.enumOf(['member', 'model', 'client', 'unknown', 'other'], {
-          name: 'kind',
-          description: `\`${group}\` for a group; \`unknown\` for usage without a ${group == 'model' ? 'model matched to the model catalog (Unknown Model, see `unknown_model_names`)' : group == 'client' ? 'client family' : 'member (Unknown Member)'}; \`other\` for everything past the top ${reportBreakdownLimit}, added up.`
-        }),
-        key: v.string({
-          name: 'key',
-          description: `The ${group == 'client' ? 'client family' : `${group} id`}, \`unknown\`, or \`other\`. Unique within the list.`,
-          examples: [
-            group == 'member'
-              ? 'aten_0mhNnEqM7XQb3vXq8gD2'
-              : group == 'model'
-                ? 'claude-sonnet-4-5'
-                : 'claude_code'
-          ]
-        }),
-        member: v.nullable(agentTrackingMemberSchema),
-        model: v.nullable(agentTrackingModelSchema),
-        client: v.nullable(
-          v.object(
-            {
-              family: v.string({
-                name: 'family',
-                description:
-                  'The client family, such as `claude_code`. A family Metorial does not know is passed on as the client reported it.',
-                examples: ['claude_code']
-              }),
-              name: v.nullable(
-                v.string({
-                  name: 'name',
-                  description: 'The display name of a known client family.',
-                  examples: ['Claude Code']
-                })
-              )
-            },
-            { name: 'client', description: 'The AI coding agent, on a `client` item.' }
-          )
-        ),
-        unknown_model_names: agentTrackingUnknownModelNamesSchema(
+      breakdownItemSchema({
+        kinds: ['member', 'model', 'client', 'unknown', 'other'],
+        kind: `\`${group}\` for a group; \`unknown\` for usage without a ${group == 'model' ? 'model matched to the model catalog (Unknown Model, see `unknown_model_names`)' : group == 'client' ? 'client family' : 'member (Unknown Member)'}; \`other\` for everything past the top ${reportBreakdownLimits[group].toLocaleString('en-US')}, added up.`,
+        key: `The ${group == 'client' ? 'client family' : `${group} id`}, \`unknown\`, or \`other\`. Unique within the list.`,
+        examples: [
+          group == 'member'
+            ? 'aten_0mhNnEqM7XQb3vXq8gD2'
+            : group == 'model'
+              ? 'claude-sonnet-4-5'
+              : 'claude_code'
+        ],
+        client: true,
+        unknownModelNames:
           'On the `unknown` item of the model list: the models that make it up, most requests first, at most 10. Empty on every other item.'
-        ),
-        share: v.nullable(
-          v.number({
-            name: 'share',
-            description:
-              'The share of the total cost, from 0 to 1. `null` when the total cost is zero or unknown.'
-          })
-        ),
-        ...agentTrackingSpendFiguresProperties
       }),
       { name: group, description }
     )
@@ -649,7 +625,7 @@ export let v1AgentTrackingSpendReportPresenter = Presenter.create(agentTrackingS
         {
           model: reportItemsSchema(
             'model',
-            `The year so far by model: the top ${reportBreakdownLimit} by cost, then everything else as one \`other\` item. \`null\` when the organization hides individual data.`
+            `The year so far by model: the top ${reportBreakdownLimits.model} by cost, then everything else as one \`other\` item. \`null\` when the organization hides individual data.`
           ),
           client: reportItemsSchema(
             'client',
@@ -657,7 +633,7 @@ export let v1AgentTrackingSpendReportPresenter = Presenter.create(agentTrackingS
           ),
           member: reportItemsSchema(
             'member',
-            'The year so far by member, ranked like `model`. `null` when the organization hides individual data.'
+            `The year so far by member: the top ${reportBreakdownLimits.member.toLocaleString('en-US')} by cost, then everything else as one \`other\` item. \`null\` when the organization hides individual data.`
           )
         },
         {
@@ -672,7 +648,7 @@ export let v1AgentTrackingSpendReportPresenter = Presenter.create(agentTrackingS
           status: v.enumOf(['projected', 'insufficient_data', 'not_applicable'], {
             name: 'status',
             description:
-              '`projected` when the figures below are set; `insufficient_data` when there is no complete day with usage yet or the baseline has fewer than 7 days (hidden days do not count, days without a known cost count as 0); `not_applicable` for a past year.'
+              '`projected` when the figures below are set; `insufficient_data` when there is no complete day after the first day with usage yet or the baseline has fewer than 7 days (hidden days do not count, days without a known cost count as 0); `not_applicable` for a past year.'
           }),
           baseline: v.nullable(
             v.object(
@@ -680,7 +656,7 @@ export let v1AgentTrackingSpendReportPresenter = Presenter.create(agentTrackingS
                 from: v.string({
                   name: 'from',
                   description:
-                    'The first day averaged, as YYYY-MM-DD: 30 days before today, or the day usage started when that is later. It can fall in the year before.',
+                    'The first day averaged, as YYYY-MM-DD: 30 days before today, or the day after usage started when that is later, since the first day with usage is only partly recorded. It can fall in the year before.',
                   examples: ['2026-10-23']
                 }),
                 to: v.string({
@@ -701,7 +677,7 @@ export let v1AgentTrackingSpendReportPresenter = Presenter.create(agentTrackingS
               {
                 name: 'baseline',
                 description:
-                  'The days the projection starts from. `null` when there is no complete day with usage yet or the report is for a past year.'
+                  'The days the projection starts from. `null` when there is no complete day after the first day with usage yet or the report is for a past year.'
               }
             )
           ),

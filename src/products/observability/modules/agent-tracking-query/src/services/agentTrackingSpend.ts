@@ -21,7 +21,7 @@ import {
   normalizeSpendFilters,
   periodTotalQuery,
   reportBreakdownGroups,
-  reportBreakdownLimit,
+  reportBreakdownLimits,
   retentionClippedWarning,
   timelineQuery,
   unknownModelsQuery
@@ -43,15 +43,21 @@ import {
   type RangeInput,
   type ResolvedRange
 } from '../lib/range';
-import { cachedRead, runUsageQueries, runUsageQuery, type ReadScope } from '../lib/scope';
+import {
+  cachedRead,
+  runUsageQueries,
+  runUsageQuery,
+  warned,
+  type ReadScope,
+  type UsageResult
+} from '../lib/scope';
 import {
   dayCountsOf,
   dayItem,
   hasUsage,
   modelUsageItem,
   spendFiguresOf,
-  usageItem,
-  type Cells
+  usageItem
 } from '../lib/spend';
 import type {
   AgentTrackingMember,
@@ -68,17 +74,7 @@ import type {
 
 let otherKey = '$other';
 
-type UsageResult = {
-  rows: Cells[];
-  totals?: Cells | null;
-  labels?: Record<string, unknown>;
-  meta?: { warnings?: { code?: string }[] };
-};
-
 let noRows: UsageResult = { rows: [], totals: null };
-
-let warned = (result: UsageResult, code: string) =>
-  (result.meta?.warnings ?? []).some(warning => warning.code == code);
 
 let dayHasData = (day: AgentTrackingSpendDay) =>
   day.hidden ||
@@ -273,19 +269,15 @@ class AgentTrackingSpendServiceImpl {
 
     let started = to > from;
     let groups: SpendReportGroup[] = started && !hidden ? ['model', 'client', 'member'] : [];
-    let planned = [
-      timelineQuery(series),
-      started ? timelineQuery(range, {}, 'month') : null,
-      ...groups.map(groupBy => breakdownQuery({ range, groupBy, limit: reportBreakdownLimit }))
-    ];
-    let answers = await runUsageQueries(
-      d.scope,
-      planned.filter(query => query !== null)
-    );
-    let answered = 0;
-    let [daily = noRows, monthly = noRows, ...grouped]: UsageResult[] = planned.map(query =>
-      query ? answers[answered++]! : noRows
-    );
+    let [daily = noRows, monthly = noRows, ...grouped] = (
+      await runUsageQueries(d.scope, [
+        timelineQuery(series),
+        started ? timelineQuery(range, {}, 'month') : null,
+        ...groups.map(groupBy =>
+          breakdownQuery({ range, groupBy, limit: reportBreakdownLimits[groupBy] })
+        )
+      ])
+    ).map(result => result ?? noRows);
 
     let days = hidden
       ? privateDays({ range: series, rows: daily.rows, privacy: d.privacy }).items

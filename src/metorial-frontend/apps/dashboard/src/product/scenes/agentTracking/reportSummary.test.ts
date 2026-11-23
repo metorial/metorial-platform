@@ -3,6 +3,7 @@ import {
   currentYearIn,
   describeCoverage,
   describeCoverageDays,
+  foldBreakdownRows,
   formatDay,
   formatMonth,
   growthSourceText,
@@ -83,7 +84,6 @@ describe('growthSourceText', () => {
 describe('describeCoverage', () => {
   it('says when the data starts during the year', () => {
     expect(describeCoverage(report({}))).toEqual({
-      partial: true,
       sentences: [
         'Data starts on Nov 15, 2026, so the totals cover usage from then on, not the whole year.',
         '7 days with usage through today (Nov 22, 2026), which is still in progress.'
@@ -97,7 +97,6 @@ describe('describeCoverage', () => {
         report({ coverage: { startsBeforeYear: true, firstDay: '2026-01-01' } })
       )
     ).toEqual({
-      partial: false,
       sentences: [
         '7 days with usage through today (Nov 22, 2026), which is still in progress.'
       ]
@@ -139,7 +138,6 @@ describe('describeCoverage', () => {
     expect(
       describeCoverage(report({ coverage: { firstDay: null, daysWithData: 0 } }))
     ).toEqual({
-      partial: true,
       sentences: ['No usage in 2026 yet.']
     });
     expect(
@@ -156,7 +154,6 @@ describe('describeCoverage', () => {
       })
     );
 
-    expect(coverage.partial).toBe(true);
     expect(coverage.sentences.slice(1)).toEqual([
       '2 days are hidden because fewer than 5 people were active on them; the totals leave them out.',
       'Usage is kept for 400 days, so the start of 2026 is no longer available and the totals cover less than the whole year.'
@@ -242,5 +239,66 @@ describe('isEmptyReport', () => {
     let hidden = withTotal(report({ coverage: none }), total({}));
     hidden.privacy = { ...hidden.privacy, hiddenGroups: true };
     expect(isEmptyReport(hidden)).toBe(false);
+  });
+});
+
+describe('foldBreakdownRows', () => {
+  let row = (d: {
+    kind?: 'member' | 'unknown' | 'other';
+    key: string;
+    micros: number | null;
+    share: number | null;
+    estimate?: boolean;
+  }) => ({
+    kind: d.kind ?? ('member' as const),
+    key: d.key,
+    member: null,
+    model: null,
+    client: null,
+    unknownModelNames: [],
+    share: d.share,
+    requests: 2,
+    cost: {
+      totalMicros: d.micros,
+      billedMicros: d.micros,
+      estimatedMicros: null,
+      isEstimate: !!d.estimate,
+      requestsWithoutCost: d.micros === null ? 2 : 0
+    }
+  });
+
+  it('keeps the rows when they fit', () => {
+    let rows = [
+      row({ key: 'a', micros: 3, share: 0.6 }),
+      row({ key: 'b', micros: 2, share: 0.4 })
+    ];
+
+    expect(foldBreakdownRows(rows, 2)).toBe(rows);
+  });
+
+  it('folds the rest and the server others row into one others row', () => {
+    let folded = foldBreakdownRows(
+      [
+        row({ key: 'a', micros: 5, share: 0.5 }),
+        row({ key: 'b', micros: 3, share: 0.3 }),
+        row({ kind: 'unknown', key: 'unknown', micros: null, share: null }),
+        row({ kind: 'other', key: 'other', micros: 2, share: 0.2, estimate: true })
+      ],
+      1
+    );
+
+    expect(folded.map(item => item.key)).toEqual(['a', 'other']);
+    expect(folded[1]).toMatchObject({
+      kind: 'other',
+      share: 0.5,
+      requests: 6,
+      cost: {
+        totalMicros: 5,
+        billedMicros: 5,
+        estimatedMicros: null,
+        isEstimate: true,
+        requestsWithoutCost: 2
+      }
+    });
   });
 });

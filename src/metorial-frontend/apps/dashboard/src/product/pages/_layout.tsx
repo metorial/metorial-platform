@@ -89,7 +89,10 @@ export let ProjectPageLayout = () => {
   let agentTracking = useAgentTrackingAvailability();
   let teamViewChildren = useTeamViewSidebarChildren();
   let savedTeamViewsSidebarGroups = useSavedTeamViewsSidebarGroups({
-    enabled: /\/agent-usage(\/|$)/.test(location.pathname)
+    enabled: checkPath({
+      pathname: location.pathname,
+      to: Paths.instance.agentTracking.root(...params)
+    })
   });
 
   return (

@@ -152,6 +152,12 @@ describe('summary line', () => {
     ).toContain('0 with low usage');
   });
 
+  it('leaves out members with no seat when there are none, as when seats are chosen', () => {
+    expect(
+      describeInsightsSummary('seats', fullSummary({ seat: { unknownSeatMembers: 0 } }))
+    ).toBe('8 members · 3 with low usage · ~$2,563.48 at list price');
+  });
+
   it('leaves out a part whose value is missing', () => {
     let cost = { ...fullSummary().cost, totalMicros: null, listPriceMicros: null };
     let missing = fullSummary({

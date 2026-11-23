@@ -7,7 +7,8 @@ import {
   getActiveHighlightValues,
   getFilterText,
   summarizeLabels,
-  type ListFilter
+  type ListFilter,
+  type FilterPanelLayout
 } from '../model/state';
 import type { TableFilter, TableFilterState } from '../model/tableFilter';
 import { FilterHighlightRow } from './highlightRow';
@@ -412,7 +413,7 @@ describe('OptionList', () => {
 });
 
 describe('FilterPanel', () => {
-  let renderPanel = (layout?: 'auto' | 'full') =>
+  let renderPanel = (layout?: FilterPanelLayout) =>
     render(
       <FilterPanel
         filters={[plainStatusFilter]}

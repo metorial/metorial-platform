@@ -5,17 +5,8 @@ export * from './agentTrackingSession';
 export * from './agentTrackingSetupStatus';
 export * from './agentTrackingSpend';
 export * from './agentTrackingView';
-export {
-  filterValueList,
-  filterValueValidator,
-  maxFilterValueLength,
-  maxFilterValues
-} from '../lib/filterValues';
-export {
-  memberInsightsFlags,
-  memberInsightsGroups,
-  memberInsightsSorts
-} from '../lib/memberInsights';
+export { filterValueList, filterValueValidator } from '../lib/filterValues';
+export { memberInsightsFlags, memberInsightsGroups } from '../lib/memberInsights';
 export { growthRateBounds } from '../lib/projection';
 export {
   breakdownGroupKeys,
@@ -25,7 +16,7 @@ export {
   maxMembers,
   memberWindowDays,
   outdatedModelStatuses,
-  reportBreakdownLimit,
+  reportBreakdownLimits,
   requestRecordDays
 } from '../lib/queries';
 export { maxRangeDays, rangePresets } from '../lib/range';
@@ -39,7 +30,6 @@ export {
   memberInsightsParamFields,
   teamViewKinds,
   teamViewParamsValidator,
-  type AgentTrackingViewPage,
   type TeamViewKind,
   type TeamViewParams
 } from '../lib/views';

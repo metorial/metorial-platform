@@ -50,7 +50,7 @@ export let memberInsightsParamFields = {
   include_inactive: v.optional(
     v.boolean({
       name: 'include_inactive',
-      description: `Also list members without usage in the range, with zero figures: those with a session in this instance in the last ${memberWindowDays} days and the consumers of this instance (not service accounts or pending ones). They only fill the room members with usage leave below ${maxInsightMembers}. Defaults to \`false\`.`,
+      description: `Also list members without usage in the range, with zero figures: those with a session in this instance in the last ${memberWindowDays} days and the consumers of this instance (not service accounts or pending ones). They only fill the room members with usage leave below ${maxInsightMembers}. Ignored with the \`models\` column group, which lists only members with usage of the selected models. Defaults to \`false\`.`,
       examples: [true]
     })
   ),
@@ -72,11 +72,11 @@ export let memberInsightsParamFields = {
   ),
   fast_share_min: share(
     'fast_share_min',
-    'Flag `fast_mode` for members with at least this share of requests in the fast speed tier. Needs the `practices` column group.'
+    'Flag `fast_mode` for members whose requests in the fast speed tier make up at least this share of their requests that reported a speed tier. Needs the `practices` column group.'
   ),
   outdated_share_min: share(
     'outdated_share_min',
-    'Flag `outdated_models` for members with at least this share of their cost on `deprecated` or `retired` models. Needs the `practices` column group.'
+    'Flag `outdated_models` for members with at least this share of their cost on outdated models: models that are `deprecated` or `retired`, or not the latest of their family. Needs the `practices` column group.'
   ),
   cache_hit_rate_max: share(
     'cache_hit_rate_max',

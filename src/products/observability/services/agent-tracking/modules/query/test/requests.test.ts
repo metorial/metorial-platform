@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { datasets } from '../src/catalog';
 import { readPath } from '../src/lib/rows';
 
-// A Claude Code request record as stored, after `storedKey`; Codex adds `ttftMs`.
 let stored = {
   data: {
     effort: 'max',

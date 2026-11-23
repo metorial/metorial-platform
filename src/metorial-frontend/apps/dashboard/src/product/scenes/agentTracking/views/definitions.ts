@@ -20,7 +20,7 @@ export let teamViewKinds = [
 
 export type TeamViewKind = (typeof teamViewKinds)[number];
 
-export type InsightsGroup = 'models' | 'practices' | 'seat';
+type InsightsGroup = 'models' | 'practices' | 'seat';
 
 export type InsightsSort = NonNullable<
   DashboardInstanceAgentTrackingMembersInsightsQuery['sort']
@@ -30,6 +30,8 @@ export type SortOrder = 'asc' | 'desc';
 
 export type InsightFlag =
   DashboardInstanceAgentTrackingMembersInsightsOutput['items'][number]['flags'][number];
+
+type InsightsSummary = DashboardInstanceAgentTrackingMembersInsightsOutput['summary'];
 
 export type TeamViewParams = {
   range?: AgentTrackingRangePreset;
@@ -48,6 +50,27 @@ export type TeamViewParams = {
 };
 
 export type TeamViewField = keyof TeamViewParams;
+
+type InsightFlagDefinition = {
+  flag: InsightFlag;
+  label: string;
+  field: Extract<
+    TeamViewField,
+    | 'modelShareMin'
+    | 'highEffortShareMin'
+    | 'fastShareMin'
+    | 'outdatedShareMin'
+    | 'cacheHitRateMax'
+    | 'seatUsageMaxMicros'
+  >;
+  count: keyof InsightsSummary['flagCounts'];
+  practiceShare?: keyof Pick<
+    NonNullable<InsightsSummary['practices']>,
+    'highEffortShare' | 'fastShare' | 'outdatedShare' | 'cacheHitRate'
+  >;
+  below?: boolean;
+  unit: '%' | 'USD';
+};
 
 export type TeamViewState = { kind: TeamViewKind; params: TeamViewParams };
 
@@ -70,7 +93,7 @@ export type TeamViewColumn =
   | 'plan'
   | 'seatUsage';
 
-export type TeamViewDefinition = {
+type TeamViewDefinition = {
   kind: TeamViewKind;
   label: string;
   description: string;
@@ -80,6 +103,66 @@ export type TeamViewDefinition = {
   sorts: { id: InsightsSort; column: TeamViewColumn; order?: SortOrder }[];
   columns: { id: TeamViewColumn; header: string; title?: string; flag?: InsightFlag }[];
 };
+
+export let insightFlagDefinitions: InsightFlagDefinition[] = [
+  {
+    flag: 'high_effort',
+    label: 'High Effort',
+    field: 'highEffortShareMin',
+    count: 'highEffort',
+    practiceShare: 'highEffortShare',
+    unit: '%'
+  },
+  {
+    flag: 'fast_mode',
+    label: 'Fast Mode',
+    field: 'fastShareMin',
+    count: 'fastMode',
+    practiceShare: 'fastShare',
+    unit: '%'
+  },
+  {
+    flag: 'outdated_models',
+    label: 'Outdated Models',
+    field: 'outdatedShareMin',
+    count: 'outdatedModels',
+    practiceShare: 'outdatedShare',
+    unit: '%'
+  },
+  {
+    flag: 'low_cache_hit_rate',
+    label: 'Cache Hit Rate',
+    field: 'cacheHitRateMax',
+    count: 'lowCacheHitRate',
+    practiceShare: 'cacheHitRate',
+    below: true,
+    unit: '%'
+  },
+  {
+    flag: 'model_share',
+    label: 'Share',
+    field: 'modelShareMin',
+    count: 'modelShare',
+    unit: '%'
+  },
+  {
+    flag: 'low_usage_seat',
+    label: 'Usage',
+    field: 'seatUsageMaxMicros',
+    count: 'lowUsageSeat',
+    below: true,
+    unit: 'USD'
+  }
+];
+
+export let insightFlagDefinition = (flag: InsightFlag) =>
+  insightFlagDefinitions.find(item => item.flag == flag)!;
+
+let practiceColumn = (id: TeamViewColumn, flag: InsightFlag) => ({
+  id,
+  header: insightFlagDefinition(flag).label,
+  flag
+});
 
 export let defaultTeamViewKind: TeamViewKind = 'recent';
 
@@ -189,10 +272,10 @@ export let teamViewDefinitions: Record<TeamViewKind, TeamViewDefinition> = {
     ],
     columns: [
       { id: 'member', header: 'Member' },
-      { id: 'highEffort', header: 'High Effort', flag: 'high_effort' },
-      { id: 'fastMode', header: 'Fast Mode', flag: 'fast_mode' },
-      { id: 'outdated', header: 'Outdated Models', flag: 'outdated_models' },
-      { id: 'cacheHitRate', header: 'Cache Hit Rate', flag: 'low_cache_hit_rate' },
+      practiceColumn('highEffort', 'high_effort'),
+      practiceColumn('fastMode', 'fast_mode'),
+      practiceColumn('outdated', 'outdated_models'),
+      practiceColumn('cacheHitRate', 'low_cache_hit_rate'),
       { id: 'cost', header: 'Cost' }
     ]
   },

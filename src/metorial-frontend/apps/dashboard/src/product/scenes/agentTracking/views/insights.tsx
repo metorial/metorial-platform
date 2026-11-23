@@ -16,12 +16,13 @@ import { useInstanceContext } from '../../../lib/dataList';
 import { formatDateTime } from '../activity';
 import { CostValue } from '../cost';
 import { formatAmount } from '../costFormat';
-import { AgentTrackingErrorState } from '../errorState';
+import { agentTrackingErrorFor, AgentTrackingErrorState } from '../errorState';
 import { WithInfo } from '../info';
 import { MemberIdentity, memberPath } from '../memberParts';
 import { getBrowserTimeZone } from '../range';
-import { modelLabel, Muted } from '../sessionParts';
-import { BreakdownCost, BreakdownName, isZero, Share } from '../spendParts';
+import { Muted } from '../sessionParts';
+import { BreakdownCost, BreakdownTable, Share } from '../spendParts';
+import { isZero, modelLabel } from '../spendSummary';
 import {
   teamViewDefinitions,
   type TeamViewColumn,
@@ -346,7 +347,7 @@ let ModelList = ({ instanceId, view }: { instanceId: string; view: TeamViewState
 
   return renderWithLoader(
     { breakdown },
-    { error: error => <AgentTrackingErrorState error={error} onRetry={breakdown.refetch} /> }
+    { error: agentTrackingErrorFor(breakdown) }
   )(({ breakdown }) => (
     <Flex direction="column" gap={14} style={{ minWidth: 0 }}>
       <Text size="2" color="gray800">
@@ -354,20 +355,17 @@ let ModelList = ({ instanceId, view }: { instanceId: string; view: TeamViewState
       </Text>
 
       {breakdown.data.items.length ? (
-        <Table
-          headers={['Model', 'Requests', 'Cost', 'Share of Cost']}
-          data={breakdown.data.items.map(item => ({
-            href:
-              item.kind == 'other'
-                ? undefined
-                : `?${patchTeamViewSearch(search, { modelIds: [item.model?.id ?? item.key] })}`,
-            data: [
-              <BreakdownName key="name" item={item} group="model" others={null} />,
-              formatNumber(item.requests),
-              <BreakdownCost key="cost" cost={item.cost} />,
-              <Share key="share" share={item.share} label={formatInsightShare(item.share)} />
-            ]
-          }))}
+        <BreakdownTable
+          items={breakdown.data.items}
+          group="model"
+          others={null}
+          shareHeader="Share of Cost"
+          shareLabel={formatInsightShare}
+          href={item =>
+            item.kind == 'other'
+              ? undefined
+              : `?${patchTeamViewSearch(search, { modelIds: [item.model?.id ?? item.key] })}`
+          }
         />
       ) : (
         <Muted>Nobody sent usage in this range.</Muted>

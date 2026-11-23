@@ -1,4 +1,3 @@
-import { formatNumber } from '@metorial/chart';
 import { Badge, Flex, Text } from '@metorial/ui';
 import { useNow } from '@metorial/use-now';
 import React from 'react';
@@ -12,7 +11,7 @@ import {
 } from './activity';
 import { CostValue } from './cost';
 import { WithInfo } from './info';
-import { UnmatchedModelNames } from './modelNames';
+import { formatRequests, modelLabel, unknownModelLabel } from './spendSummary';
 
 export let settlingLabel = 'Settling…';
 
@@ -28,12 +27,6 @@ export let DetailColumns = styled.div`
 `;
 
 let unknownModelNamesLimit = 10;
-
-export let formatRequests = (count: number) =>
-  `${formatNumber(count)} ${count == 1 ? 'request' : 'requests'}`;
-
-export let clientLabel = (client: { name: string | null; family: string }) =>
-  client.name ?? client.family;
 
 export let clientVersion = (client: { version: string | null }) =>
   client.version ? `v${client.version}` : null;
@@ -61,9 +54,17 @@ export let Muted = ({ children }: { children: React.ReactNode }) => (
   </Text>
 );
 
-export let modelLabel = (model: Model) => model.name ?? model.id;
+let UnmatchedModelNames = ({ names }: { names: string[] }) => {
+  let joined = names.join(', ');
 
-export let unknownModelLabel = 'Unknown Model';
+  return (
+    <div title={joined} style={{ minWidth: 0, maxWidth: 240 }}>
+      <Text as="div" size="1" color="gray600" truncate>
+        {joined}
+      </Text>
+    </div>
+  );
+};
 
 export let ModelNameCell = ({
   model,
@@ -141,7 +142,7 @@ export let SessionModels = ({ session }: { session: SessionSummary }) => {
     if (session.summaryPending) return <Muted>{settlingLabel}</Muted>;
     if (!session.requests) return <Muted>—</Muted>;
 
-    return <Muted>Unknown Model</Muted>;
+    return <Muted>{unknownModelLabel}</Muted>;
   }
 
   let names = [...session.models.map(modelLabel), ...unmatched].join(', ');

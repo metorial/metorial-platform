@@ -86,11 +86,11 @@ let practiceProperties = {
   fast_requests: count('fast_requests', 'Requests in the fast speed tier.'),
   fast_share: share(
     'fast_share',
-    '`fast_requests` as a share of all of `requests_measured`, counting requests that reported no speed tier as not fast. `null` when no request reported a speed tier: agents send it only in some setups, so its absence does not show the requests were not fast.'
+    '`fast_requests` as a share of the requests in `requests_measured` that reported a speed tier. `null` when no request reported a speed tier: agents send it only in some setups, so its absence does not show the requests were not fast.'
   ),
   outdated_cost_micros: agentTrackingNullableMicrosSchema(
     'outdated_cost_micros',
-    `The cost on models whose status is ${outdatedStatuses}. ${catalogNote} \`null\` when no cost is known.`
+    `The cost on outdated models: models whose status is ${outdatedStatuses}, or that are not the latest of their family. ${catalogNote} \`null\` when no cost is known.`
   ),
   outdated_share: share(
     'outdated_share',
@@ -204,7 +204,7 @@ export let v1AgentTrackingMemberInsightsPresenter = Presenter.create(
           member: agentTrackingMemberSchema,
           rank: count(
             'rank',
-            'The position of the member in the whole list in the requested sort and order, from 1. Ties are ordered by member id. Members without a value for the sort come last. `flagged_only` does not change it.'
+            'The position of the member in the whole list in the requested sort and order, from 1. Ties are ordered by member id. Members without a value for the sort come last, except that members never active come first when sorting by `last_activity` in ascending order. Only the members on the seats in `seat` are ranked when it is passed; `flagged_only` does not change it.'
           ),
           cost: agentTrackingSpendCostSchema,
           share: share(
@@ -250,7 +250,8 @@ export let v1AgentTrackingMemberInsightsPresenter = Presenter.create(
                   }),
                   {
                     name: 'outdated_models',
-                    description: `Up to 3 models this member used in the range that are ${outdatedStatuses}, or not the latest of their family, most expensive first.`
+                    description:
+                      'Up to 3 outdated models this member used in the range, outdated as in `outdated_cost_micros`, most expensive first.'
                   }
                 )
               },
@@ -294,12 +295,12 @@ export let v1AgentTrackingMemberInsightsPresenter = Presenter.create(
           flags: v.array(v.enumOf(memberInsightsFlags), {
             name: 'flags',
             description:
-              'The flags whose threshold was passed and that this member meets. `model_share`: `models.cost_share` at least `model_share_min`. `high_effort`, `fast_mode`, `outdated_models`: `practices.high_effort_share`, `fast_share` or `outdated_share` at least the matching `_min`. `low_cache_hit_rate`: `practices.cache_hit_rate` below `cache_hit_rate_max`. `low_usage_seat`: `seat.list_price_micros` below `seat_usage_max_micros` and, when `seat` is passed, a seat among them. Members without usage only ever get `low_usage_seat`.'
+              'The flags whose threshold was passed and that this member meets. `model_share`: `models.cost_share` at least `model_share_min`. `high_effort`, `fast_mode`, `outdated_models`: `practices.high_effort_share`, `fast_share` or `outdated_share` at least the matching `_min`. `low_cache_hit_rate`: `practices.cache_hit_rate` below `cache_hit_rate_max`. `low_usage_seat`: `seat.list_price_micros` below `seat_usage_max_micros`. Members without usage only ever get `low_usage_seat`.'
           })
         }),
         {
           name: 'items',
-          description: `Members with usage in the range, in the requested sort and order. With \`include_inactive\` also the members without usage that had a session in this instance in the last ${memberWindowDays} days or are a consumer of it. Usage without a member is left out; see \`summary.unattributed_cost_micros\`.`
+          description: `Members with usage in the range, in the requested sort and order. With \`include_inactive\` also the members without usage that had a session in this instance in the last ${memberWindowDays} days or are a consumer of it. With \`models\` only the members with requests or cost on the models in \`model_id\`; with \`seat\` passed only the members on those seats. Usage without a member is left out; see \`summary.unattributed_cost_micros\`.`
         }
       ),
       pagination: v.object(
@@ -345,7 +346,7 @@ export let v1AgentTrackingMemberInsightsPresenter = Presenter.create(
           ),
           members: count(
             'members',
-            'Members ranked, before `flagged_only` filters them. Fewer than all when `truncated`.'
+            'Members ranked: only those on the seats in `seat` when it is passed, before `flagged_only` filters them. Fewer than all when `truncated`.'
           ),
           flag_counts: v.object(
             {

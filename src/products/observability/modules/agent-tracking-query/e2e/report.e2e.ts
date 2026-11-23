@@ -214,17 +214,17 @@ describe('module-agent-tracking-query spend report of usage over several days', 
     });
   });
 
-  it('projects from the average of the complete days once there are 7', async () => {
+  it('projects from the average of the complete days after the first once there are 7', async () => {
     let report = await agentTrackingSpendService.getReport(scope);
-    let days = daysFrom(seededDays[0]!);
+    let days = daysFrom(seededDays[1]!);
 
     expect(report.projection).toMatchObject({
       status: 'projected',
       baseline: {
-        from: isoDate(seededDays[0]!),
+        from: isoDate(seededDays[1]!),
         to: isoDate(startOfTodayUtc() - dayMs),
         days,
-        dailyRateMicros: Math.round((8 * 10_000 + 2_000) / days)
+        dailyRateMicros: Math.round((7 * 10_000 + 2_000) / days)
       },
       growth: { rate: 0, source: 'default' }
     });
@@ -274,9 +274,9 @@ describe('module-agent-tracking-query spend report with individuals hidden', () 
     expect(report.projection).toEqual({
       status: 'insufficient_data',
       baseline: {
-        from: isoDate(days.crowded),
+        from: isoDate(days.crowded + dayMs),
         to: isoDate(startOfTodayUtc() - dayMs),
-        days: daysFrom(days.crowded),
+        days: daysFrom(days.crowded) - 1,
         dailyRateMicros: null
       },
       growth: null,
@@ -305,7 +305,7 @@ describe('module-agent-tracking-query spend report with individuals hidden', () 
       if (inYearOf(report, days.alone)) expect(report.counts).toBeNull();
       expect(report.projection).toMatchObject({
         status: 'insufficient_data',
-        baseline: { from: isoDate(days.crowded), days: daysFrom(days.crowded) - 1 }
+        baseline: { from: isoDate(days.crowded + dayMs), days: daysFrom(days.crowded) - 2 }
       });
     } finally {
       await setPrivacy(org, { hideIndividuals: false });

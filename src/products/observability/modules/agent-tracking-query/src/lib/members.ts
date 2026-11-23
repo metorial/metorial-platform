@@ -1,8 +1,8 @@
-import { isServiceError } from '@lowerdeck/error';
 import { db } from '@metorial/db';
 import {
   type AgentTracking,
   consumerEntitySource,
+  ignoreNotFound,
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
 import type { ReadScope } from './scope';
@@ -13,7 +13,6 @@ export let unknownMemberKey = 'unknown';
 
 let maxMemberLookup = 100;
 
-// Entity reads are not subject to the engine's query concurrency limit.
 let consumerLookupConcurrency = 20;
 
 export let maxConsumerLookups = 500;
@@ -170,8 +169,8 @@ export let lookupMembers = async (d: {
 };
 
 let consumerMemberId = async (d: { organizationId: string; consumerId: string }) => {
-  try {
-    let entity = await requireAgentTracking().entity.getByRef(
+  let entity = await ignoreNotFound(
+    requireAgentTracking().entity.getByRef(
       {
         organizationId: d.organizationId,
         kind: 'user',
@@ -179,20 +178,16 @@ let consumerMemberId = async (d: { organizationId: string; consumerId: string })
         ref: d.consumerId
       },
       readCallOptions
-    );
-    if (entity.status == 'merged') return entity.mergedIntoId ?? null;
+    )
+  );
+  if (!entity) return null;
+  if (entity.status == 'merged') return entity.mergedIntoId ?? null;
 
-    return lookupStatuses.includes(entity.status as (typeof lookupStatuses)[number])
-      ? entity.id
-      : null;
-  } catch (error) {
-    if (isServiceError(error) && error.data.status == 404) return null;
-    throw error;
-  }
+  return lookupStatuses.includes(entity.status as (typeof lookupStatuses)[number])
+    ? entity.id
+    : null;
 };
 
-// The members behind this instance's consumers, in the order they joined the instance. Only the
-// first `maxConsumerLookups` consumers are looked up; `capped` says there were more.
 export let instanceConsumerMemberIds = async (d: {
   scope: Pick<ReadScope, 'organization' | 'instance'>;
 }) => {

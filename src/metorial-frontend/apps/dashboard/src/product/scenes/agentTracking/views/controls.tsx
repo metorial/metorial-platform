@@ -40,8 +40,6 @@ import {
   toToggleFilterStates
 } from './filterInput';
 
-let filterRangeText = 'this range';
-
 let inactiveFilter = membersWithoutUsageFilter(memberWindowDays);
 
 let RangeScroll = styled.div`
@@ -89,7 +87,7 @@ let TeamFilterInput = ({
       : null;
   let listKey: 'modelIds' | 'seats' = field == 'model' ? 'modelIds' : 'seats';
   let entity = useMemo(
-    () => (field ? agentTrackingFilters[field](instanceId, filterRangeText) : null),
+    () => (field ? agentTrackingFilters[field](instanceId) : null),
     [instanceId, field]
   );
 

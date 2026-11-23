@@ -3,7 +3,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { calendarDateKey, shiftDays } from '../src/lib/range';
 import { agentTrackingSpendService } from '../src/services/agentTrackingSpend';
-import { callsTo, privacy, rejection, remoteMember, resetMocks, rpc, scope } from './_mocks';
+import {
+  cache,
+  callsTo,
+  privacy,
+  rejection,
+  remoteMember,
+  resetMocks,
+  rpc,
+  scope
+} from './_mocks';
 
 let dollar = 1_000_000;
 
@@ -114,7 +123,7 @@ describe('spend report of the current year', () => {
     }
   });
 
-  it('asks for the year by month, the days since the December before, and three top 50 lists, 3 at a time', async () => {
+  it('asks for the year by month, the days since the December before, and the top models, clients and members, 3 at a time', async () => {
     answer(sharedAnswers());
 
     await agentTrackingSpendService.getReport({ ...scope, timeZone: 'Europe/Berlin' });
@@ -141,10 +150,53 @@ describe('spend report of the current year', () => {
       ['client.family'],
       ['user']
     ]);
+    expect(lists.map(query => query.limit)).toEqual([50, 50, 1000]);
     for (let query of lists) {
-      expect(query).toMatchObject({ limit: 50, other: true, totals: true });
+      expect(query).toMatchObject({ other: true, totals: true });
       expect(query.range).toEqual(monthly!.range);
     }
+  });
+
+  it('lists up to 1,000 members, then the rest as other, in a small cache entry', async () => {
+    let answers = sharedAnswers();
+    let users = Array.from(
+      { length: 1000 },
+      (_, index) => `aten_${String(index).padStart(22, '0')}`
+    );
+    answer({
+      ...answers,
+      groups: {
+        ...answers.groups,
+        user: {
+          rows: [
+            ...users.map(user => ({ user, ...figures(1.234567891), share: 0.000987654321 })),
+            { user: '$other', ...figures(12.345678912), share: 0.0123456789 }
+          ]
+        }
+      }
+    });
+    rpc.handlers['entity:list'] = ({ ids }) => ({
+      items: ids.map((id: string) =>
+        remoteMember({
+          id,
+          ref: id,
+          name: 'Ada Lovelace-Byron',
+          identifiers: [{ type: 'email', value: `${id}@example.com`, createdAt: new Date() }]
+        })
+      ),
+      pagination: {}
+    });
+
+    let report = await agentTrackingSpendService.getReport(scope);
+
+    expect(report.breakdowns.member).toHaveLength(1001);
+    expect(report.breakdowns.member!.at(-1)).toMatchObject({ kind: 'other', key: 'other' });
+    expect(callsTo('entity:list')).toHaveLength(10);
+
+    let bytes = Math.max(
+      ...[...cache.store.values()].map(entry => Buffer.byteLength(JSON.stringify(entry.value)))
+    );
+    expect(bytes).toBeLessThan(800_000);
   });
 
   it('starts the days at the December before also in January', async () => {
@@ -218,9 +270,9 @@ describe('spend report of the current year', () => {
     expect(report.projection).toMatchObject({
       status: 'projected',
       baseline: {
-        from: '2026-11-01',
+        from: '2026-11-02',
         to: '2026-11-21',
-        days: 21,
+        days: 20,
         dailyRateMicros: 2 * dollar
       },
       growth: { rate: 0.1, source: 'input' }
@@ -465,7 +517,7 @@ describe('spend report with individuals hidden', () => {
 
     expect(report.projection).toMatchObject({
       status: 'projected',
-      baseline: { from: '2026-11-01', to: '2026-11-21', days: 20, dailyRateMicros: 2 * dollar }
+      baseline: { from: '2026-11-02', to: '2026-11-21', days: 19, dailyRateMicros: 2 * dollar }
     });
     expect(report.projection.scenarios!.flat.months[0]).toMatchObject({
       actualMicros: 40 * dollar,

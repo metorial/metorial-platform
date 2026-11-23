@@ -1,5 +1,4 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Chart, formatCurrency, formatNumber, type ChartSeries } from '@metorial/chart';
+import { Chart, formatNumber } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingSpendReportQuery } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { EmptyState } from '@metorial/empty-state';
@@ -7,24 +6,24 @@ import { saveBlob } from '@metorial/file-browser';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { useAgentTrackingSpendReport } from '@metorial/state';
 import { Button, Callout, Flex, OptionToggle, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Box } from '@metorial/ui-product';
 import { RiDownload2Line } from '@remixicon/react';
 import styled from 'styled-components';
 import { CommitNumberInput } from './commitInput';
 import { CostValue } from './cost';
-import { formatAmount, toDollars, toMicros } from './costFormat';
+import { formatAmount, fractionToPercent } from './costFormat';
 import { buildSpendReportCsv, spendReportCsvFileName } from './csv';
-import { AgentTrackingErrorState, PrivacySettingsButton } from './errorState';
+import { agentTrackingErrorFor, PrivacySettingsButton } from './errorState';
 import { WithInfo } from './info';
 import { useAgentTrackingPrivacy } from './privacy';
 import { formatAgentTrackingRange, getBrowserTimeZone } from './range';
 import {
   currentYearIn,
   describeCoverage,
+  foldBreakdownRows,
   formatDay,
   formatMonth,
   growthPercentBounds,
-  growthPercentOf,
   growthSourceLabels,
   growthSourceText,
   hasReportCost,
@@ -33,25 +32,25 @@ import {
   parseGrowthPercent,
   projectionMinDays,
   reportChartMonths,
+  reportMemberRowsShown,
   reportTotalLabel,
   type ProjectionScenario,
   type SpendReport
 } from './reportSummary';
+import { useSearchParamOption, useSearchParamWriter } from './searchParams';
 import {
-  BreakdownCost,
-  BreakdownName,
-  breakdownOthersCount,
+  BreakdownTable,
+  costChartProps,
   CostSplit,
-  hiddenCountsNotice,
-  isLoadedFor,
-  isZero,
-  Share,
   SpendCountsSummary,
-  UnpricedNotice,
-  useSearchParamOption,
-  useSearchParamWriter
+  UnpricedNotice
 } from './spendParts';
-import { hasUsage } from './spendSummary';
+import {
+  breakdownOthersCount,
+  hasUsage,
+  hiddenCountsNotice,
+  isLoadedFor
+} from './spendSummary';
 
 let growthParam = 'growth';
 
@@ -77,6 +76,8 @@ let scenarioIds = scenarios.map(item => item.id);
 
 let breakdownGroupIds = breakdownGroups.map(item => item.id);
 
+let projectionPadding = { vertical: 12, horizontal: 17 };
+
 type YearOption = (typeof years)[number]['id'];
 
 type ScenarioId = (typeof scenarios)[number]['id'];
@@ -91,21 +92,11 @@ type ReportView = {
   refetch: () => void;
 };
 
-// A loader whose input turns null keeps its previous state, so only data loaded for this exact
-// query is shown or exported.
-// The tiles already sit in the Projection card, so they drop their own frame and keep only the
-// divider between them.
-let PlainTiles = styled.div`
-  margin: -12px -17px;
-
-  & > dl {
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-  }
+let ProjectionNote = styled.div`
+  padding: ${projectionPadding.vertical}px ${projectionPadding.horizontal}px;
 `;
 
+// A loader whose input turns null keeps its old data, so check it was loaded for this query.
 let useCurrentReport = (
   instanceId: string,
   query: DashboardInstanceAgentTrackingSpendReportQuery | null
@@ -131,14 +122,6 @@ let useGrowthPercent = () => {
 
   return [percent, setPercent] as const;
 };
-
-let errorState = (loader: ReportView) => (error: unknown) => (
-  <AgentTrackingErrorState
-    key={canonicalize(loader.input)}
-    error={error}
-    onRetry={loader.refetch}
-  />
-);
 
 let YearToDate = ({ report }: { report: SpendReport }) => {
   let cost = report.total.cost;
@@ -196,7 +179,7 @@ let GrowthControl = ({
   setPercent: (next: number | undefined) => void;
   defaultGrowth: SpendReport['projection']['growth'];
 }) => {
-  let defaultPercent = defaultGrowth ? growthPercentOf(defaultGrowth.rate) : 0;
+  let defaultPercent = defaultGrowth ? fractionToPercent(defaultGrowth.rate) : 0;
   let defaultText = defaultGrowth ? `Default: ${growthSourceText(defaultGrowth)}.` : null;
 
   return (
@@ -237,30 +220,13 @@ let MonthlyChart = ({
   scenario: ProjectionScenario | null;
 }) => {
   let months = reportChartMonths(report, scenario);
-  let hasBilled = months.some(month => !isZero(month.billedMicros));
-  let entries = (value: (month: (typeof months)[number]) => number | null) =>
-    months.map(month => ({ key: formatMonth(month.month), value: toDollars(value(month)) }));
-
-  let allSeries: ChartSeries[] = [
-    {
-      id: 'billed',
-      name: 'Billed',
-      color: 'blue',
-      entries: entries(month => month.billedMicros)
-    },
-    {
-      id: 'estimated',
-      name: 'Estimated (~)',
-      color: 'gray',
-      entries: entries(month => month.estimatedMicros)
-    },
-    {
-      id: 'projected',
-      name: 'Projected (~)',
-      color: 'violet',
-      entries: entries(month => month.projectedMicros)
-    }
-  ];
+  let chart = costChartProps({
+    rows: months,
+    key: month => formatMonth(month.month),
+    billed: month => month.billedMicros,
+    estimated: month => month.estimatedMicros,
+    projected: scenario ? month => month.projectedMicros : undefined
+  });
 
   return (
     <Chart
@@ -269,22 +235,8 @@ let MonthlyChart = ({
       height={240}
       yMin={0}
       stacked
-      series={
-        hasReportCost(months)
-          ? allSeries.filter(
-              item =>
-                (item.id != 'billed' || hasBilled) && (item.id != 'projected' || scenario)
-            )
-          : []
-      }
-      valueFormatter={value => formatAmount(toMicros(value), { estimate: false })}
-      seriesValueFormatter={(value, seriesIds) =>
-        formatAmount(toMicros(value), {
-          estimate:
-            value != 0 && (seriesIds.includes('estimated') || seriesIds.includes('projected'))
-        })
-      }
-      tickFormatter={value => formatCurrency(value, { compact: true })}
+      {...chart}
+      series={hasReportCost(months) ? chart.series : []}
       emptyText={`No cost in ${report.year}.`}
     />
   );
@@ -347,7 +299,7 @@ let Monthly = ({
       {canProject ? (
         renderWithLoader(
           { projected },
-          { error: errorState(projected) }
+          { error: agentTrackingErrorFor(projected) }
         )(({ projected }) => (
           <MonthlyChart
             report={projected.data}
@@ -367,7 +319,7 @@ let projectionMethod = (report: SpendReport, scenario: ScenarioId) => {
 
   let scenarioText =
     scenario == 'growth' && growth
-      ? `With Growth, the cost per day grows ${growthPercentOf(growth.rate)}% each month after this one, compounding (${growthSourceLabels[growth.source]}).`
+      ? `With Growth, the cost per day grows ${fractionToPercent(growth.rate)}% each month after this one, compounding (${growthSourceLabels[growth.source]}).`
       : 'Flat assumes every coming day costs that much.';
 
   return `Projections are estimates, based on the average cost per day over the ${formatNumber(baseline.days)} days from ${formatDay(baseline.from)} to ${formatDay(baseline.to)}: ${formatAmount(baseline.dailyRateMicros, { estimate: true })} per day. ${scenarioText} The year-end total adds the projected months to the cost so far.`;
@@ -395,11 +347,11 @@ let Projection = ({
           </Text>
 
           <Text size="2" color="gray700">
-            {`A projection needs at least ${projectionMinDays} days of data. ${
+            {`A projection needs ${projectionMinDays} complete days after the first day with usage. ${
               baseline
                 ? `There ${baseline.days == 1 ? 'is 1 complete day' : `are ${formatNumber(baseline.days)} complete days`} since ${formatDay(baseline.from)} so far.`
-                : 'There is no complete day with usage yet.'
-            } It shows up here once a week of usage has come in.`}
+                : 'There is no complete day after the first day with usage yet.'
+            }`}
           </Text>
         </Flex>
       </Box>
@@ -407,16 +359,19 @@ let Projection = ({
   }
 
   let scenarioLabel = scenarios.find(item => item.id == scenario)!.label;
-
   return (
-    <Box title={<WithInfo info={`${scenarioLabel} scenario.`}>Projection</WithInfo>}>
+    <Box title={<WithInfo info={`${scenarioLabel} scenario.`}>Projection</WithInfo>} noPadding>
       {renderWithLoader(
         { projected },
         {
+          spaceTop: projectionPadding.vertical,
+          spaceBottom: projectionPadding.vertical,
           error: () => (
-            <Text size="2" color="gray600">
-              The projection could not be loaded. Retry under By Month.
-            </Text>
+            <ProjectionNote>
+              <Text size="2" color="gray600">
+                The projection could not be loaded. Retry under By Month.
+              </Text>
+            </ProjectionNote>
           )
         }
       )(({ projected }) => {
@@ -425,27 +380,26 @@ let Projection = ({
         if (!figures) return null;
 
         return (
-          <PlainTiles>
-            <MetricsSummary
-              columns={2}
-              items={[
-                {
-                  id: 'yearEnd',
-                  label: (
-                    <WithInfo info={projectionMethod(report, scenario)}>
-                      {`Projected ${report.year} Total`}
-                    </WithInfo>
-                  ),
-                  value: formatAmount(figures.yearEndTotalMicros, { estimate: true })
-                },
-                {
-                  id: 'nextYear',
-                  label: `Projected ${report.year + 1} Total`,
-                  value: formatAmount(figures.nextYearTotalMicros, { estimate: true })
-                }
-              ]}
-            />
-          </PlainTiles>
+          <MetricsSummary
+            frameless
+            columns={2}
+            items={[
+              {
+                id: 'yearEnd',
+                label: (
+                  <WithInfo info={projectionMethod(report, scenario)}>
+                    {`Projected ${report.year} Total`}
+                  </WithInfo>
+                ),
+                value: formatAmount(figures.yearEndTotalMicros, { estimate: true })
+              },
+              {
+                id: 'nextYear',
+                label: `Projected ${report.year + 1} Total`,
+                value: formatAmount(figures.nextYearTotalMicros, { estimate: true })
+              }
+            ]}
+          />
         );
       })}
     </Box>
@@ -467,7 +421,8 @@ let Breakdowns = ({ report }: { report: SpendReport }) => {
     );
   }
 
-  let others = breakdownOthersCount(report.counts, items);
+  let rows = group == 'member' ? foldBreakdownRows(items, reportMemberRowsShown) : items;
+  let others = breakdownOthersCount(report.counts, rows);
 
   return (
     <Box
@@ -488,21 +443,8 @@ let Breakdowns = ({ report }: { report: SpendReport }) => {
         />
       }
     >
-      {items.length ? (
-        <Table
-          headers={[
-            breakdownGroups.find(item => item.id == group)!.label,
-            'Requests',
-            'Cost',
-            'Share'
-          ]}
-          data={items.map(item => [
-            <BreakdownName key="name" item={item} group={group} others={others} />,
-            formatNumber(item.requests),
-            <BreakdownCost key="cost" cost={item.cost} />,
-            <Share key="share" share={item.share} />
-          ])}
-        />
+      {rows.length ? (
+        <BreakdownTable items={rows} group={group} others={others} />
       ) : (
         <Text size="2" color="gray600">
           No usage in {report.year}.
@@ -528,8 +470,7 @@ let ReportPage = ({
     yearOption == 'last' ? { year: currentYearIn(timeZone) - 1, timeZone } : { timeZone };
   let base = useCurrentReport(instanceId, baseQuery);
 
-  // Waits for the base report: the service allows four concurrent queries. A growth rate only
-  // matters when the base report has a projection.
+  // Wait for the base report: the service allows only four concurrent queries.
   let projectedQuery =
     yearOption == 'last' || growthPercent === undefined
       ? baseQuery
@@ -581,7 +522,7 @@ let ReportPage = ({
 
       {renderWithLoader(
         { base },
-        { error: errorState(base) }
+        { error: agentTrackingErrorFor(base) }
       )(({ base }) =>
         isEmptyReport(base.data) ? (
           <EmptyState
@@ -620,7 +561,7 @@ export let AgentTrackingReport = ({ instanceId }: { instanceId: string }) => {
 
   return renderWithLoader(
     { settings },
-    { error: error => <AgentTrackingErrorState error={error} onRetry={settings.refetch} /> }
+    { error: agentTrackingErrorFor(settings) }
   )(({ settings }) => (
     <ReportPage
       instanceId={instanceId}

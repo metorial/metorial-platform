@@ -7,8 +7,7 @@ import {
   expandMemberInsights,
   flagCountsOf,
   normalizeInclude,
-  rankMemberInsights,
-  type QueryResult
+  rankMemberInsights
 } from '../lib/memberInsights';
 import { instanceConsumerMemberIds, lookupMembers, unique } from '../lib/members';
 import { pageByAnchor } from '../lib/pageByAnchor';
@@ -70,7 +69,7 @@ class AgentTrackingMemberInsightServiceImpl {
 
     let data = await cachedRead({
       scope: d,
-      read: 'members.insights.v2',
+      read: 'members.insights',
       input: { range: rangeCacheKey(range, now), include, modelIds, includeInactive },
       load: () => this.load({ scope: d, range, now, include, modelIds, includeInactive })
     });
@@ -139,26 +138,19 @@ class AgentTrackingMemberInsightServiceImpl {
     let practices = d.include.includes('practices');
     let seat = d.include.includes('seat');
 
-    let planned = [
+    let [usage, lastActivity, requests, outdated] = await runUsageQueries(d.scope, [
       memberInsightsUsageQuery({ range: resolved, modelIds: d.modelIds, practices }),
       lastActivityQuery(d.now),
       practices || seat
         ? memberInsightsRequestsQuery({ range: resolved, practices, seat })
         : null,
       practices ? outdatedModelsQuery(resolved) : null
-    ];
-    let answers = (await runUsageQueries(
-      d.scope,
-      planned.filter(query => query !== null)
-    )) as QueryResult[];
-    let answered = 0;
-    let [usage, lastActivity, requests, outdated] = planned.map(query =>
-      query ? answers[answered++]! : null
-    );
+    ]);
 
-    let inactive = d.includeInactive
-      ? await fromService(() => instanceConsumerMemberIds({ scope: d.scope }))
-      : null;
+    let inactive =
+      d.includeInactive && !d.include.includes('models')
+        ? await fromService(() => instanceConsumerMemberIds({ scope: d.scope }))
+        : null;
 
     return buildMemberInsights({
       range: resolved,

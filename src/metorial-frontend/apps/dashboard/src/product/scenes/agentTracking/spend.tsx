@@ -1,6 +1,5 @@
-import { Chart, formatCurrency, formatNumber, type ChartSeries } from '@metorial/chart';
+import { Chart, formatNumber } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingSpendTimelineOutput } from '@metorial/dashboard-sdk';
-import { canonicalize } from '@lowerdeck/canonicalize';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getListFilterValue, useFilterState, type FilterPayload } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
@@ -16,8 +15,8 @@ import { Link } from 'react-router-dom';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { describeCostComparison } from './costComparison';
-import { formatAmount, toDollars, toMicros } from './costFormat';
-import { AgentTrackingErrorState } from './errorState';
+import { formatAmount } from './costFormat';
+import { agentTrackingErrorFor } from './errorState';
 import { AgentTrackingFilterRangeContext, agentTrackingFilters } from './filters';
 import { WithInfo } from './info';
 import { MemberIdentity } from './memberParts';
@@ -31,29 +30,29 @@ import {
   withQuery,
   type AgentTrackingRangePreset
 } from './range';
+import { useSearchParamOption } from './searchParams';
 import { SessionCost, SessionModels, SessionSummaryCell } from './sessionParts';
 import {
-  BreakdownCost,
-  BreakdownName,
-  breakdownOthersCount,
+  BreakdownTable,
+  costChartProps,
   CostSplit,
-  hiddenCountsNotice,
-  isLoadedFor,
-  isZero,
-  Share,
   SpendCountsSummary,
-  UnpricedNotice,
-  useSearchParamOption
+  UnpricedNotice
 } from './spendParts';
-import { describeSpendChange, hasUsage, hiddenGroupText } from './spendSummary';
+import {
+  breakdownOthersCount,
+  describeSpendChange,
+  hasUsage,
+  hiddenCountsNotice,
+  hiddenGroupText,
+  isLoadedFor
+} from './spendSummary';
 
 let DAY = 24 * 60 * 60 * 1000;
 
 let expensiveSessionsLimit = 4;
 
 let maxDayLabels = 14;
-
-let filterRangeText = 'this range';
 
 let measures = [
   { id: 'cost', label: 'Cost', title: 'Cost Per Day', series: null, note: null },
@@ -152,36 +151,19 @@ let dailyEntries = (
 
 let SpendChart = ({ timeline, filtered }: { timeline: Timeline; filtered: boolean }) => {
   let bars = useDailyBars(timeline);
-  let hasBilled = timeline.items.some(item => !isZero(item.cost?.billedMicros ?? null));
-
-  let allSeries: ChartSeries[] = [
-    {
-      id: 'billed',
-      name: 'Billed',
-      color: 'blue',
-      entries: dailyEntries(timeline, item => toDollars(item.cost?.billedMicros ?? null))
-    },
-    {
-      id: 'estimated',
-      name: 'Estimated (~)',
-      color: 'gray',
-      entries: dailyEntries(timeline, item => toDollars(item.cost?.estimatedMicros ?? null))
-    }
-  ];
+  let chart = costChartProps({
+    rows: timeline.items,
+    key: item => barKey(item.startsAt),
+    billed: item => item.cost?.billedMicros ?? null,
+    estimated: item => item.cost?.estimatedMicros ?? null
+  });
 
   return (
     <Chart
       {...bars}
+      {...chart}
       stacked
       legend={false}
-      series={allSeries.filter(item => item.id != 'billed' || hasBilled)}
-      valueFormatter={value => formatAmount(toMicros(value), { estimate: false })}
-      seriesValueFormatter={(value, seriesIds) =>
-        formatAmount(toMicros(value), {
-          estimate: value != 0 && seriesIds.includes('estimated')
-        })
-      }
-      tickFormatter={value => formatCurrency(value, { compact: true })}
       emptyText={noneIn('No cost', filtered)}
     />
   );
@@ -447,29 +429,13 @@ let Breakdown = ({
     >
       {renderWithLoader(
         { breakdown },
-        {
-          error: error => (
-            <AgentTrackingErrorState
-              key={canonicalize(breakdown.input)}
-              error={error}
-              onRetry={breakdown.refetch}
-            />
-          )
-        }
+        { error: agentTrackingErrorFor(breakdown) }
       )(({ breakdown }) => {
         let items = breakdown.data.items;
         let others = breakdownOthersCount(counts, items);
 
         return items.length ? (
-          <Table
-            headers={[group == 'member' ? 'Member' : 'Model', 'Requests', 'Cost', 'Share']}
-            data={items.map(item => [
-              <BreakdownName key="name" item={item} group={group} others={others} />,
-              formatNumber(item.requests),
-              <BreakdownCost key="cost" cost={item.cost} />,
-              <Share key="share" share={item.share} />
-            ])}
-          />
+          <BreakdownTable items={items} group={group} others={others} />
         ) : (
           <Text size="2" color="gray600">
             {noneIn('No usage', filters.clientFamily || filters.modelId)}
@@ -531,15 +497,7 @@ let ExpensiveSessions = ({
     >
       {renderWithLoader(
         { sessions },
-        {
-          error: error => (
-            <AgentTrackingErrorState
-              key={canonicalize(sessions.input)}
-              error={error}
-              onRetry={sessions.refetch}
-            />
-          )
-        }
+        { error: agentTrackingErrorFor(sessions) }
       )(({ sessions }) =>
         sessions.data.items.length ? (
           <Table
@@ -575,8 +533,8 @@ let useSpendFilters = (instanceId: string, individualsHidden: boolean) => {
     if (individualsHidden) return [rangeFilter.filter];
 
     return [
-      agentTrackingFilters.client(instanceId, filterRangeText),
-      agentTrackingFilters.model(instanceId, filterRangeText),
+      agentTrackingFilters.client(instanceId),
+      agentTrackingFilters.model(instanceId),
       rangeFilter.filter
     ];
   }, [instanceId, individualsHidden, rangeFilter]);
@@ -630,15 +588,7 @@ let SpendPage = ({
 
       {renderWithLoader(
         { timeline },
-        {
-          error: error => (
-            <AgentTrackingErrorState
-              key={canonicalize(timeline.input)}
-              error={error}
-              onRetry={timeline.refetch}
-            />
-          )
-        }
+        { error: agentTrackingErrorFor(timeline) }
       )(({ timeline }) => (
         <SpendTotal timeline={timeline.data} filtered={filtered} />
       ))}
@@ -671,7 +621,7 @@ export let AgentTrackingSpend = ({ instanceId }: { instanceId: string }) => {
 
   return renderWithLoader(
     { settings },
-    { error: error => <AgentTrackingErrorState error={error} onRetry={settings.refetch} /> }
+    { error: agentTrackingErrorFor(settings) }
   )(({ settings }) => (
     <SpendPage
       instanceId={instanceId}

@@ -58,7 +58,7 @@ let defaultUsage = () => [
   }),
   usageRow('aten_bob', 1, {
     models_cost: 0,
-    models_requests: 0,
+    models_requests: 1,
     cost_outdated: 0,
     'cache.hit_rate': 0.2
   }),
@@ -92,7 +92,7 @@ let answer = (answers: Answers = {}) => {
         totals: answers.usageTotals ?? {
           ...usageRow(null, 5, {
             models_cost: 1.5,
-            models_requests: 4,
+            models_requests: 5,
             cost_outdated: 1,
             'cache.hit_rate': 0.6
           }),
@@ -291,11 +291,11 @@ describe('member insights figures', () => {
     });
 
     let result = await read({ include: all, modelIds: ['claude-sonnet-4-5'] });
-    let [ada] = result.list.items;
+    expect(result.summary.models).toMatchObject({ costShare: null, requestShare: null });
 
+    let [ada] = (await read({ include: ['practices', 'seat'] })).list.items;
     expect(ada).toMatchObject({
       share: null,
-      models: { costShare: null, requestShare: null },
       practices: {
         requestsMeasured: 0,
         highEffortShare: null,
@@ -312,7 +312,7 @@ describe('member insights figures', () => {
     });
   });
 
-  it('gives a fast share only when some request reported a speed tier', async () => {
+  it('shares fast requests among the requests that reported a speed tier', async () => {
     answer({
       requests: [
         {
@@ -325,10 +325,10 @@ describe('member insights figures', () => {
       ]
     });
 
-    let result = await read({ include: ['practices'], thresholds: { fastShareMin: 0.3 } });
+    let result = await read({ include: ['practices'], thresholds: { fastShareMin: 0.7 } });
     let [ada, bob] = result.list.items;
 
-    expect(ada!.practices).toMatchObject({ fastShare: 0.3, highEffortShare: null });
+    expect(ada!.practices).toMatchObject({ fastShare: 0.75, highEffortShare: null });
     expect(ada!.flags).toEqual(['fast_mode']);
     expect(bob!.practices).toMatchObject({ requestsMeasured: 0, fastShare: null });
     expect(bob!.flags).toEqual([]);
@@ -344,7 +344,7 @@ describe('member insights figures', () => {
       activeMembers: 2,
       unattributedCostMicros: dollar,
       members: 2,
-      models: { costMicros: 1.5 * dollar, requests: 4, costShare: 0.3 },
+      models: { costMicros: 1.5 * dollar, requests: 5, costShare: 0.3 },
       practices: {
         requestsMeasured: 18,
         requestsWithEffort: 15,
@@ -497,26 +497,100 @@ describe('member insights ranking and flags', () => {
     });
   });
 
-  it('flags a low usage seat only on the named seats, and an unknown seat only without names', async () => {
+  it('lists and counts only the members on the named seats, ranked among them', async () => {
     answer();
     let thresholds = { seatUsageMaxMicros: 100 * dollar };
 
-    let unnamed = await read({ include: ['seat'], thresholds });
-    expect(unnamed.list.items.map(item => item.flags)).toEqual([
-      ['low_usage_seat'],
-      ['low_usage_seat']
+    let unnamed = await read({ include: ['seat'], thresholds, sort: 'seat_usage' });
+    expect(unnamed.list.items.map(item => [item.id, item.rank, item.flags])).toEqual([
+      ['aten_ada', 1, ['low_usage_seat']],
+      ['aten_bob', 2, ['low_usage_seat']]
     ]);
+    expect(unnamed.summary).toMatchObject({
+      members: 2,
+      flagCounts: { low_usage_seat: 2 },
+      seat: { unknownSeatMembers: 1 }
+    });
 
-    let premium = await read({ include: ['seat'], thresholds, seats: ['premium'] });
-    expect(premium.list.items.map(item => [item.id, item.flags])).toEqual([
-      ['aten_ada', ['low_usage_seat']],
-      ['aten_bob', []]
+    let premium = await read({
+      include: ['seat'],
+      thresholds,
+      seats: ['premium'],
+      sort: 'seat_usage',
+      page: { order: 'asc' }
+    });
+    expect(premium.list.items.map(item => [item.id, item.rank, item.flags])).toEqual([
+      ['aten_ada', 1, ['low_usage_seat']]
     ]);
+    expect(premium.summary).toMatchObject({
+      members: 1,
+      flagCounts: { low_usage_seat: 1 },
+      seat: { unknownSeatMembers: 0 },
+      cost: { totalMicros: 5 * dollar }
+    });
 
     let standard = await read({ include: ['seat'], thresholds, seats: ['standard'] });
-    expect(standard.summary.flagCounts.low_usage_seat).toBe(0);
+    expect(standard.list.items).toEqual([]);
+    expect(standard.summary).toMatchObject({ members: 0, flagCounts: { low_usage_seat: 0 } });
 
     expect(queriesOf('usage')).toHaveLength(1);
+  });
+
+  it('ranks only the members with requests or cost on the selected models', async () => {
+    answer({
+      usage: [
+        usageRow('aten_ada', 3, { models_cost: 1.5, models_requests: 4 }),
+        usageRow('aten_bob', 4, { models_cost: 0, models_requests: 0 }),
+        usageRow('aten_cy', 2, { models_cost: 0.2, models_requests: 0 }),
+        usageRow('aten_dee', 1, { 'cost.usd': null, models_cost: null, models_requests: 2 })
+      ],
+      lastActivity: [{ user: 'aten_zed', last_activity: '2026-11-01T10:00:00.000Z' }]
+    });
+    instanceConsumers.findMany.mockImplementation(async () => [
+      { consumer: { id: 'con_yan' } }
+    ]);
+
+    let result = await read({
+      include: ['models'],
+      modelIds: ['claude-sonnet-4-5'],
+      includeInactive: true,
+      sort: 'model_cost'
+    });
+
+    expect(ids(result)).toEqual([
+      ['aten_ada', 1],
+      ['aten_cy', 2],
+      ['aten_dee', 3]
+    ]);
+    expect(result.summary.members).toBe(3);
+    expect(result.truncated).toBe(false);
+    expect(instanceConsumers.findMany).not.toHaveBeenCalled();
+
+    answer({ usage: [usageRow('aten_bob', 4, { models_cost: 0, models_requests: 0 })] });
+    let none = await read({ include: ['models'], modelIds: ['claude-opus-4-1'] });
+    expect(none.list.items).toEqual([]);
+    expect(none.summary.members).toBe(0);
+  });
+
+  it('puts members never active first when ranking by last activity ascending, else last', async () => {
+    answer({
+      usage: [usageRow('aten_ada', 3), usageRow('aten_bob', 2), usageRow('aten_cy', 1)],
+      lastActivity: [
+        { user: 'aten_ada', last_activity: '2026-11-18T10:00:00.000Z' },
+        { user: 'aten_cy', last_activity: '2026-11-10T10:00:00.000Z' }
+      ]
+    });
+
+    expect(ids(await read({ sort: 'last_activity', page: { order: 'asc' } }))).toEqual([
+      ['aten_bob', 1],
+      ['aten_cy', 2],
+      ['aten_ada', 3]
+    ]);
+    expect(ids(await read({ sort: 'last_activity' }))).toEqual([
+      ['aten_ada', 1],
+      ['aten_cy', 2],
+      ['aten_bob', 3]
+    ]);
   });
 
   it('flags a member without usage only as a low usage seat', async () => {
@@ -679,8 +753,7 @@ describe('member insights cache, limits and access', () => {
     for (let invalidRead of invalidReads) {
       expect(await rejection(read(invalidRead)), JSON.stringify(invalidRead)).toMatchObject({
         status: 400,
-        code: 'invalid_data',
-        errors: [{ code: 'invalid_combination' }]
+        code: 'bad_request'
       });
     }
     expect(callsTo('query:run')).toHaveLength(0);
@@ -871,6 +944,45 @@ describe('member insights practices and seats', () => {
 
     expect(ada!.seat).toMatchObject({ seat: 'premium', plan: 'max' });
     expect(bob!.seat).toMatchObject({ seat: null, plan: 'max' });
+  });
+
+  it('counts outdated cost on the same models it lists as outdated', async () => {
+    answer();
+
+    await read({ include: ['practices'] });
+
+    let outdatedCost = queriesOf('usage')[0].measures.find(
+      (measure: any) => measure.as == 'cost_outdated'
+    );
+    let outdatedModels = queriesOf('outdated')[0].where;
+    expect(outdatedCost.where).toEqual(outdatedModels);
+    expect(outdatedModels).toEqual({
+      or: [
+        { field: 'model.status', op: 'in', value: ['deprecated', 'retired'] },
+        {
+          and: [
+            { field: 'model.isLatest', op: 'eq', value: false },
+            { field: 'model.family', op: 'notNull' }
+          ]
+        }
+      ]
+    });
+  });
+
+  it('keeps the members with the most use of the selected models within the member limit', async () => {
+    answer();
+
+    await read();
+    await read({ include: ['models'], modelIds: ['claude-sonnet-4-5'] });
+
+    let [all, byModels] = queriesOf('usage');
+    expect(all.orderBy).toEqual([{ by: 'cost.usd', direction: 'desc' }]);
+    expect(byModels.orderBy).toEqual([
+      { by: 'models_cost', direction: 'desc' },
+      { by: 'models_requests', direction: 'desc' },
+      { by: 'cost.usd', direction: 'desc' }
+    ]);
+    expect(byModels.limit).toBe(maxInsightMembers);
   });
 
   it('names the outdated models of the page from the catalog', async () => {

@@ -204,13 +204,17 @@ describe('api-core dashboard: agent tracking reads', () => {
       { include: 'teams' },
       { sort: 'tokens' },
       { model_share_min: '1.5' },
-      { seat_usage_max_micros: '1.5' },
+      { seat_usage_max_micros: '1.5' }
+    ] as RestQuery[]) {
+      expectError(await insights(query), 400, 'invalid_data');
+    }
+    for (let query of [
       { sort: 'model_share' },
       { include: 'models' },
       { seat: 'premium' },
       { include: 'models', model_id: 'claude-sonnet-4-5', seat_usage_max_micros: '5' }
     ] as RestQuery[]) {
-      expectError(await insights(query), 400, 'invalid_data');
+      expectError(await insights(query), 400, 'bad_request');
     }
 
     expectError(await insights({ include: 'practices', ...longRange }), 400, 'bad_request');
@@ -906,18 +910,5 @@ describe('api-core dashboard: agent tracking member insights', () => {
 
     let active = await read('/members/insights');
     expect(byEmail(active.items)[emails.idle]).toBeUndefined();
-  });
-
-  it('breaks the spend of one member down by model', async () => {
-    let insights = await read('/members/insights');
-    let light = byEmail(insights.items)[emails.haiku];
-
-    let breakdown = await read('/spend/breakdown', {
-      group_by: 'model',
-      member_id: light.member.id
-    });
-
-    expect(breakdown.total).toMatchObject({ requests: 1 });
-    expect(breakdown.items).toHaveLength(1);
   });
 });

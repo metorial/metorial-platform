@@ -92,7 +92,6 @@ let uniqueById = (items: TableFilterEntityOption[]) => {
   });
 };
 
-// A list asked with no query never loads, so it must not keep the picker loading.
 export let isQueriedListLoading = (lists: [query: unknown, list: EntityList][]) =>
   lists.some(([query, list]) => query != null && list.isLoading);
 

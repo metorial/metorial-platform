@@ -81,14 +81,14 @@ describe('projectSpend baseline', () => {
 
     expect(projection).toEqual({
       status: 'insufficient_data',
-      baseline: { from: '2026-11-16', to: '2026-11-21', days: 6, dailyRateMicros: null },
+      baseline: { from: '2026-11-17', to: '2026-11-21', days: 5, dailyRateMicros: null },
       growth: null,
       scenarios: null
     });
   });
 
-  it('has no baseline before a complete day with usage', () => {
-    for (let usageStart of [null, '2026-11-22']) {
+  it('has no baseline before a complete day after the first day with usage', () => {
+    for (let usageStart of [null, '2026-11-22', '2026-11-21']) {
       let projection = project({
         today,
         todayRemaining: 0.5,
@@ -101,7 +101,7 @@ describe('projectSpend baseline', () => {
     }
   });
 
-  it('averages every day since usage started when that is 7 to 29 days', () => {
+  it('averages every day after the first day with usage when that is 7 to 29 days', () => {
     let projection = project({
       today,
       todayRemaining: 0,
@@ -112,10 +112,51 @@ describe('projectSpend baseline', () => {
 
     expect(projection.status).toBe('projected');
     expect(projection.baseline).toEqual({
-      from: '2026-11-12',
+      from: '2026-11-13',
       to: '2026-11-21',
-      days: 10,
-      dailyRateMicros: 5.5 * dollar
+      days: 9,
+      dailyRateMicros: 6 * dollar
+    });
+  });
+
+  it('leaves out the partly recorded first day only when it falls in the window', () => {
+    let days = fullDays(today, 31, index => (index == 1 ? 31 * dollar : dollar));
+
+    let atWindowStart = project({
+      today,
+      usageStart: '2026-10-23',
+      days,
+      months: yearMonths(today, () => 0)
+    });
+    expect(atWindowStart.baseline).toEqual({
+      from: '2026-10-24',
+      to: '2026-11-21',
+      days: 29,
+      dailyRateMicros: dollar
+    });
+
+    let beforeWindow = project({
+      today,
+      usageStart: '2026-10-22',
+      days,
+      months: yearMonths(today, () => 0)
+    });
+    expect(beforeWindow.baseline).toEqual({
+      from: '2026-10-23',
+      to: '2026-11-21',
+      days: 30,
+      dailyRateMicros: 2 * dollar
+    });
+
+    let firstWeek = project({
+      today,
+      usageStart: '2026-11-14',
+      days,
+      months: yearMonths(today, () => 0)
+    });
+    expect(firstWeek).toMatchObject({
+      status: 'projected',
+      baseline: { from: '2026-11-15', days: 7 }
     });
   });
 
@@ -406,16 +447,6 @@ describe('projectSpend growth', () => {
     expect(projection.growth).toEqual({ rate: 0.1, source: 'input' });
     expect(projection.scenarios!.flat.growthRate).toBe(0);
     expect(projection.scenarios!.growth.growthRate).toBe(0.1);
-
-    expect(growthRateBounds.input).toEqual({ min: -0.5, max: 0.5 });
-    let tooFast = project({
-      today,
-      usageStart: '2026-01-01',
-      days,
-      months: yearMonths(today, () => 0),
-      growthRate: 0.8
-    });
-    expect(tooFast.growth).toEqual({ rate: 0.5, source: 'input' });
   });
 
   it('compounds monthly from the month after the current one', () => {

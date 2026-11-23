@@ -212,6 +212,25 @@ export let agentTrackingModelSchema = v.object(
   { name: 'model', description: 'A model.' }
 );
 
+export let agentTrackingClientSchema = v.object(
+  {
+    family: v.string({
+      name: 'family',
+      description:
+        'The client family, such as `claude_code`. A family Metorial does not know is passed on as the client reported it.',
+      examples: ['claude_code']
+    }),
+    name: v.nullable(
+      v.string({
+        name: 'name',
+        description: 'The display name of a known client family.',
+        examples: ['Claude Code']
+      })
+    )
+  },
+  { name: 'client', description: 'The AI coding agent, on a `client` value or item.' }
+);
+
 export let agentTrackingRangeSchema = v.object(
   {
     preset: v.nullable(

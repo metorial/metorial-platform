@@ -1,11 +1,13 @@
-import { formatNumber } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingSpendReportOutput } from '@metorial/dashboard-sdk';
-import { hasUsage, hiddenGroupText } from './spendSummary';
+import { fractionToPercent } from './costFormat';
+import { counted, hasUsage, hiddenGroupText } from './spendSummary';
 
 // Matches growthRateBounds.input of the agent-tracking-query module, in percent.
 export let growthPercentBounds = { min: -50, max: 50 };
 
 export let projectionMinDays = 7;
+
+export let reportMemberRowsShown = 50;
 
 let retentionDays = 400;
 
@@ -13,17 +15,27 @@ export type SpendReport = DashboardInstanceAgentTrackingSpendReportOutput;
 
 export type ProjectionScenario = NonNullable<SpendReport['projection']['scenarios']>['flat'];
 
-export type GrowthSource = NonNullable<SpendReport['projection']['growth']>['source'];
+type GrowthSource = NonNullable<SpendReport['projection']['growth']>['source'];
 
 export type ReportBreakdownGroup = keyof SpendReport['breakdowns'];
+
+type ReportBreakdownItem = NonNullable<SpendReport['breakdowns']['member']>[number];
+
+type ReportBreakdownRow = Pick<
+  ReportBreakdownItem,
+  'kind' | 'key' | 'member' | 'model' | 'client' | 'unknownModelNames' | 'share' | 'requests'
+> & {
+  cost: Pick<
+    ReportBreakdownItem['cost'],
+    'totalMicros' | 'billedMicros' | 'estimatedMicros' | 'isEstimate' | 'requestsWithoutCost'
+  >;
+};
 
 export let growthSourceLabels: Record<GrowthSource, string> = {
   input: 'set by you',
   observed: 'observed trend',
   default: 'no trend yet'
 };
-
-export let unknownClientLabel = 'Unknown Client';
 
 export let projectionEstimateNote =
   'Projections are estimates. Usage no provider bill covers, such as a Claude subscription, is valued at your contract prices where set, else at the cost Claude Code reports or list prices, not at an amount billed.';
@@ -40,9 +52,6 @@ let monthFormat = new Intl.DateTimeFormat('en', {
   year: 'numeric',
   timeZone: 'UTC'
 });
-
-let plural = (count: number, one: string, many: string) =>
-  `${formatNumber(count)} ${count == 1 ? one : many}`;
 
 export let formatDay = (day: string) => {
   let [year, month, date] = day.split('-').map(Number) as [number, number, number];
@@ -62,9 +71,7 @@ export let currentYearIn = (timeZone: string, now = new Date()) => {
   }
 };
 
-export let growthPercentOf = (rate: number) => Number((rate * 100).toFixed(2));
-
-export let clampGrowthPercent = (percent: number) =>
+let clampGrowthPercent = (percent: number) =>
   Math.min(growthPercentBounds.max, Math.max(growthPercentBounds.min, percent));
 
 export let parseGrowthPercent = (value: string | null) => {
@@ -75,7 +82,7 @@ export let parseGrowthPercent = (value: string | null) => {
 };
 
 export let growthSourceText = (growth: { rate: number; source: GrowthSource }) =>
-  `${growthSourceLabels[growth.source]}, ${growth.source == 'default' ? '0%' : `${growthPercentOf(growth.rate)}% per month`}`;
+  `${growthSourceLabels[growth.source]}, ${growth.source == 'default' ? '0%' : `${fractionToPercent(growth.rate)}% per month`}`;
 
 export let isPastYear = (report: SpendReport) => report.projection.status == 'not_applicable';
 
@@ -106,7 +113,7 @@ export let describeCoverageDays = (report: SpendReport) => {
   let coverage = report.coverage;
   if (!coverage.firstDay) return null;
 
-  let days = `${plural(coverage.daysWithData, 'day', 'days')} with usage`;
+  let days = `${counted(coverage.daysWithData, 'day')} with usage`;
 
   if (isPastYear(report)) return `${days} in ${report.year}.`;
 
@@ -133,7 +140,7 @@ export let describeCoverage = (report: SpendReport) => {
   let days = describeCoverageDays(report);
 
   let hidden = hiddenDays
-    ? `${plural(hiddenDays, 'day is', 'days are')} hidden because ${hiddenGroupText(report.privacy.minGroupUsers)} were active on ${hiddenDays == 1 ? 'it' : 'them'}; the totals leave ${hiddenDays == 1 ? 'it' : 'them'} out.`
+    ? `${counted(hiddenDays, 'day is', 'days are')} hidden because ${hiddenGroupText(report.privacy.minGroupUsers)} were active on ${hiddenDays == 1 ? 'it' : 'them'}; the totals leave ${hiddenDays == 1 ? 'it' : 'them'} out.`
     : null;
 
   let retention = report.startsBeforeRetention
@@ -141,9 +148,48 @@ export let describeCoverage = (report: SpendReport) => {
     : null;
 
   return {
-    partial: !!(start || hidden || retention),
     sentences: [start, days, hidden, retention].filter((text): text is string => !!text)
   };
+};
+
+let sumKnown = (values: (number | null)[]) =>
+  values.some(value => value !== null)
+    ? values.reduce<number>((sum, value) => sum + (value ?? 0), 0)
+    : null;
+
+export let foldBreakdownRows = (
+  items: ReportBreakdownRow[],
+  limit: number
+): ReportBreakdownRow[] => {
+  let listed = items.filter(item => item.kind != 'other');
+  if (listed.length <= limit) return items;
+
+  let rest = [...listed.slice(limit), ...items.filter(item => item.kind == 'other')];
+  let known = (value: (item: ReportBreakdownRow) => number | null) =>
+    sumKnown(rest.map(value));
+  let total = (value: (item: ReportBreakdownRow) => number) =>
+    rest.reduce((sum, item) => sum + value(item), 0);
+
+  return [
+    ...listed.slice(0, limit),
+    {
+      kind: 'other',
+      key: 'other',
+      member: null,
+      model: null,
+      client: null,
+      unknownModelNames: [],
+      share: known(item => item.share),
+      requests: total(item => item.requests),
+      cost: {
+        totalMicros: known(item => item.cost.totalMicros),
+        billedMicros: known(item => item.cost.billedMicros),
+        estimatedMicros: known(item => item.cost.estimatedMicros),
+        isEstimate: rest.some(item => item.cost.isEstimate),
+        requestsWithoutCost: total(item => item.cost.requestsWithoutCost)
+      }
+    }
+  ];
 };
 
 export let reportChartMonths = (report: SpendReport, scenario: ProjectionScenario | null) => {

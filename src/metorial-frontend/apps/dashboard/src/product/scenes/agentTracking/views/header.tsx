@@ -2,19 +2,12 @@ import { useAgentTrackingViews, useUpdateAgentTrackingView } from '@metorial/sta
 import { Badge, Button, Callout, Flex, Menu, Text, Title } from '@metorial/ui';
 import { RiMore2Line } from '@remixicon/react';
 import React, { useMemo } from 'react';
-import { useAgentTrackingWriteAccess } from '../access';
 import { WithInfo } from '../info';
+import { useTeamViewActions } from './actions';
 import { teamViewDefinitions, type TeamViewState } from './definitions';
-import {
-  refreshSavedTeamViews,
-  SaveError,
-  savedViewsQuery,
-  showDeleteTeamViewDialog,
-  showRenameTeamViewDialog,
-  showSaveTeamViewDialog
-} from './dialogs';
+import { refreshSavedTeamViews, SaveError } from './dialogs';
 import { teamViewKindLabel } from './format';
-import { resolveSavedSelection, sortSavedViews } from './saved';
+import { resolveSavedSelection, savedViewsQuery, sortSavedViews } from './saved';
 import {
   canSaveTeamView,
   defaultTeamView,
@@ -28,17 +21,15 @@ export let TeamViewHeader = ({
   view,
   savedId,
   apply,
-  current,
   children
 }: {
   instanceId: string;
   view: TeamViewState;
   savedId: string | null;
   apply: ApplyTeamView;
-  current: () => { state: TeamViewState; savedId: string | null };
   children?: React.ReactNode;
 }) => {
-  let canWrite = useAgentTrackingWriteAccess();
+  let actions = useTeamViewActions({ instanceId, onTeamPage: true });
   let views = useAgentTrackingViews(instanceId, savedViewsQuery);
   let update = useUpdateAgentTrackingView();
 
@@ -61,32 +52,17 @@ export let TeamViewHeader = ({
   let title =
     selection.status == 'loading' ? 'Loading View…' : (selected?.name ?? definition.label);
 
-  let latestSavable = () => {
-    let latest = current();
-    return latest.savedId == savedId && canSaveTeamView(latest.state) ? latest.state : null;
-  };
-
   let save = async () => {
-    let state = latestSavable();
-    if (!selected || !state || selected.kind != state.kind) return;
+    let latest = actions.latestSavable();
+    if (!selected || !latest || latest.savedId != selected.id) return;
+    if (latest.state.kind != selected.kind) return;
 
     let [updated] = await update.mutate({
       instanceId,
       viewId: selected.id,
-      params: toSavedViewParams(state)
+      params: toSavedViewParams(latest.state)
     });
     if (updated) await refreshSavedTeamViews(instanceId);
-  };
-
-  let saveAsNew = () => {
-    let state = latestSavable();
-    if (!state) return;
-
-    showSaveTeamViewDialog({
-      instanceId,
-      view: state,
-      onSaved: created => apply(state, created.id)
-    });
   };
 
   return (
@@ -113,7 +89,7 @@ export let TeamViewHeader = ({
             </Badge>
           ) : null}
 
-          {modified && canWrite && canSave && selected ? (
+          {modified && actions.canWrite && canSave && selected ? (
             <Button
               size="2"
               loading={update.isLoading}
@@ -124,12 +100,12 @@ export let TeamViewHeader = ({
             </Button>
           ) : null}
 
-          {canWrite && canSave && (!selected || modified) ? (
+          {actions.canCreate && canSave && (!selected || modified) ? (
             <Button
               size="2"
               variant={selected ? 'outline' : undefined}
               disabled={update.isLoading}
-              onClick={saveAsNew}
+              onClick={actions.saveAsNew}
             >
               {selected ? 'Save as New' : 'Save as View'}
             </Button>
@@ -146,28 +122,12 @@ export let TeamViewHeader = ({
             </Button>
           ) : null}
 
-          {canWrite && selected ? (
+          {actions.canWrite && selected ? (
             <Menu
               label="Saved View Actions"
               items={[
-                {
-                  id: 'rename',
-                  label: 'Rename',
-                  onClick: () => showRenameTeamViewDialog({ instanceId, savedView: selected })
-                },
-                {
-                  id: 'delete',
-                  label: 'Delete',
-                  onClick: () =>
-                    showDeleteTeamViewDialog({
-                      instanceId,
-                      savedView: selected,
-                      onDeleted: () => {
-                        let latest = current();
-                        if (latest.savedId == selected.id) apply(latest.state, null);
-                      }
-                    })
-                }
+                { id: 'rename', label: 'Rename', onClick: () => actions.rename(selected) },
+                { id: 'delete', label: 'Delete', onClick: () => actions.remove(selected) }
               ]}
             >
               <Button

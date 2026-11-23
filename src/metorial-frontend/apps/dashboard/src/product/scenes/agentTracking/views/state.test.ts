@@ -1,17 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { fractionToPercent, percentToFraction } from '../costFormat';
 import { teamViewDefinitions, teamViewKinds, type TeamViewState } from './definitions';
 import {
   activeTeamViewKind,
   canSaveTeamView,
   defaultTeamView,
-  dollarsToMicros,
-  fractionToPercent,
   fromSavedView,
   isSameTeamView,
-  microsToDollars,
   parseTeamViewSearch,
   patchTeamViewSearch,
-  percentToFraction,
   resolveTeamView,
   sortPatch,
   teamViewHref,
@@ -159,16 +156,6 @@ describe('threshold conversions', () => {
     for (let percent = 0; percent <= 100; percent++) {
       expect(fractionToPercent(percentToFraction(percent))).toBe(percent);
     }
-  });
-
-  it('converts dollars to micros at cent precision', () => {
-    expect(dollarsToMicros(50)).toBe(50_000_000);
-    expect(dollarsToMicros(0.29)).toBe(290_000);
-    expect(dollarsToMicros(50.1)).toBe(50_100_000);
-    expect(dollarsToMicros(19.999)).toBe(20_000_000);
-    expect(microsToDollars(50_100_000)).toBe(50.1);
-    expect(microsToDollars(290_000)).toBe(0.29);
-    expect(microsToDollars(12_345_678)).toBe(12.35);
   });
 });
 

@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom';
 import { useInterval, useToggle } from 'react-use';
 import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
-import { useAgentTrackingWriteAccess } from './access';
+import { useAgentTrackingAvailability } from './access';
 import { formatDateTime, formatTime } from './activity';
 import { ChecklistStep } from './checklist';
 import {
@@ -38,9 +38,8 @@ import {
   showCreateIngestSourceDialog,
   type CreatedIngestSource
 } from './keys';
-import { memberName } from './memberParts';
 import { useAgentTrackingPrivacy } from './privacy';
-import { clientLabel, clientVersion, modelLabel } from './sessionParts';
+import { clientVersion } from './sessionParts';
 import {
   buildClaudeCodeManagedSettings,
   claudeCodeLogsEndpoint,
@@ -48,6 +47,7 @@ import {
   managedSettingsFileName
 } from './settingsFile';
 import { DeployInstructions } from './setupDeploy';
+import { clientLabel, memberName, modelLabel } from './spendSummary';
 
 let firstEventPollMs = 10 * 1000;
 
@@ -238,7 +238,7 @@ let CreateKeyButton = ({
 
 export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
   let ctx = useInstanceContext();
-  let canWrite = useAgentTrackingWriteAccess();
+  let { canWrite } = useAgentTrackingAvailability();
   let keys = useAgentTrackingIngestSources(instanceId, {
     status: ['active', 'revoked'],
     order: 'desc',
