@@ -82,7 +82,7 @@ func resolution(summary string, steps ...string) *doctor.Resolution {
 // Every check is a warning: error reports are a support aid and must never hold the installation
 // back.
 func (c *collector) doctor() (*doctor.Doctor, error) {
-	d := doctor.New(doctor.Options{Component: component, ReleaseVersion: &version})
+	d := doctor.New(doctor.Options{Component: component, BuildVersion: &version})
 	target := databaseTarget(c.config.Database)
 
 	err := d.Register(
