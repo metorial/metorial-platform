@@ -1,3 +1,4 @@
+import { v } from '@lowerdeck/validation';
 import { toServiceFamily } from '@metorial/module-agent-tracking-sync';
 import { clientOf } from './catalog';
 import { unknownMemberKey } from './members';
@@ -5,10 +6,20 @@ import type { AgentTrackingFilterValue, AgentTrackingMember, FilterField } from 
 
 export let maxFilterValueLength = 200;
 
+export let maxFilterValues = 100;
+
+export let filterValueValidator = () =>
+  v.string({ modifiers: [v.minLength(1), v.maxLength(maxFilterValueLength)] });
+
+export let filterValueList = (
+  opts: { name?: string; description?: string; examples?: string[][] } = {}
+) => v.array(filterValueValidator(), { ...opts, modifiers: [v.maxLength(maxFilterValues)] });
+
 let valuePatterns: Record<FilterField, RegExp> = {
   member: /^aten_[A-Za-z0-9]+$/,
   model: /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:@+-]*$/,
-  client: /^[a-z0-9][a-z0-9_.-]*$/i
+  client: /^[a-z0-9][a-z0-9_.-]*$/i,
+  seat: /^[^\u0000-\u001f]+$/
 };
 
 export let isFilterValueOf = (field: FilterField, value: string) =>

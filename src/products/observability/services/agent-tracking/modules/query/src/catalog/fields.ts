@@ -352,6 +352,20 @@ export let commonFields = (paths: CommonPaths): Record<string, FieldDef> => {
   return fields;
 };
 
+let billingLabel = (
+  source: FieldDef['source'],
+  description: string,
+  extra: Partial<FieldDef> = {}
+) =>
+  field({
+    type: 'string',
+    source,
+    searchable: true,
+    cardinality: 'low',
+    description,
+    ...extra
+  });
+
 export let billingFields = (paths: {
   vendor: string;
   vendorSource?: string;
@@ -395,14 +409,7 @@ export let billingFields = (paths: {
       description: 'How the billing mode was determined.',
       ...array
     }),
-    'billing.plan': field({
-      type: 'string',
-      source: sourceOf(paths.plan),
-      searchable: true,
-      cardinality: 'low',
-      description: 'The billing plan as reported.',
-      ...array
-    })
+    'billing.plan': billingLabel(sourceOf(paths.plan), 'The billing plan as reported.', array)
   };
 
   if (paths.vendorSource) {
@@ -418,6 +425,17 @@ export let billingFields = (paths: {
 
   return fields;
 };
+
+export let reportedBillingFields = (prefix: string): Record<string, FieldDef> => ({
+  'billing.plan': billingLabel(
+    { kind: 'stored', path: `${prefix}.plan` },
+    'The billing plan on the record, as parsed from the client before billing declarations or inference, so it can differ from billing.plan on usage and sessions. Only Claude Code reports it.'
+  ),
+  'billing.seat': billingLabel(
+    { kind: 'stored', path: `${prefix}.seat` },
+    'The seat type on the record, such as standard, premium or usage_based, as parsed from the client before billing declarations or inference. Only Claude Code reports it, and only with a plan.'
+  )
+});
 
 export let timeFields = (): Record<string, FieldDef> => {
   let fields: Record<string, FieldDef> = {};

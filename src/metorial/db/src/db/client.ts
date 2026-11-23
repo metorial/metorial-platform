@@ -425,6 +425,23 @@ declare global {
 
     type Headers = [string, string][];
 
+    type AgentTrackingViewParams = {
+      version: 1;
+      range?: string;
+      sort?: string;
+      order?: 'asc' | 'desc';
+      include_inactive?: boolean;
+      model_ids?: string[];
+      seats?: string[];
+      model_share_min?: number;
+      high_effort_share_min?: number;
+      fast_share_min?: number;
+      outdated_share_min?: number;
+      cache_hit_rate_max?: number;
+      seat_usage_max_micros?: number;
+      flagged_only?: boolean;
+    };
+
     type PolicyDocument = {
       access: {
         target: string;

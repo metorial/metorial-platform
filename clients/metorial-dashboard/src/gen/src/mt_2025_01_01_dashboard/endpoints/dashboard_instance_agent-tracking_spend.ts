@@ -3,10 +3,14 @@ import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-en
 import {
   mapDashboardInstanceAgentTrackingSpendBreakdownOutput,
   mapDashboardInstanceAgentTrackingSpendBreakdownQuery,
+  mapDashboardInstanceAgentTrackingSpendReportOutput,
+  mapDashboardInstanceAgentTrackingSpendReportQuery,
   mapDashboardInstanceAgentTrackingSpendTimelineOutput,
   mapDashboardInstanceAgentTrackingSpendTimelineQuery,
   type DashboardInstanceAgentTrackingSpendBreakdownOutput,
   type DashboardInstanceAgentTrackingSpendBreakdownQuery,
+  type DashboardInstanceAgentTrackingSpendReportOutput,
+  type DashboardInstanceAgentTrackingSpendReportQuery,
   type DashboardInstanceAgentTrackingSpendTimelineOutput,
   type DashboardInstanceAgentTrackingSpendTimelineQuery
 } from '../resources';
@@ -96,5 +100,35 @@ export class MetorialDashboardInstanceAgentTrackingSpendEndpoint {
     } as any;
 
     return this._get(request).transform(mapDashboardInstanceAgentTrackingSpendBreakdownOutput);
+  }
+
+  /**
+   * @name Get spend report
+   * @description Returns the cost of the instance over one calendar year: per month, by model, AI coding agent and member, how far the data reaches, and for the current year a projection to its end and through the next year. Results can be up to a minute old.
+   *
+   * @param `instanceId` - string
+   * @param `query` - DashboardInstanceAgentTrackingSpendReportQuery
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceAgentTrackingSpendReportOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  report(
+    instanceId: string,
+    query?: DashboardInstanceAgentTrackingSpendReportQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceAgentTrackingSpendReportOutput> {
+    let path = `dashboard/instances/${instanceId}/agent-tracking/spend/report`;
+
+    let request = {
+      path,
+
+      query: query
+        ? mapDashboardInstanceAgentTrackingSpendReportQuery.transformTo(query)
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(mapDashboardInstanceAgentTrackingSpendReportOutput);
   }
 }

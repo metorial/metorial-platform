@@ -188,6 +188,7 @@ model Instance {
   agentTrackingIngestTokens  AgentTrackingIngestToken[]
   agentTrackingIngestSources AgentTrackingIngestSource[]
   agentTrackingSettings      AgentTrackingInstanceSettings?
+  agentTrackingViews         AgentTrackingView[]
 
   @@index([previousSlugs])
   @@index([oldSlug])

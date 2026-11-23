@@ -5,3 +5,4 @@ export * from './sessions';
 export * from './settings';
 export * from './setup-status';
 export * from './spend';
+export * from './views';

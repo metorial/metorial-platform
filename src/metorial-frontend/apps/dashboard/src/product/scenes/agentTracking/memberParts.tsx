@@ -21,7 +21,7 @@ export let memberName = (member: { name: string | null; email: string | null } |
 
 export let memberListLimit = 1000;
 
-let memberWindowDays = 400;
+export let memberWindowDays = 400;
 
 let rangePhrases: Record<AgentTrackingRangePreset, string> = {
   today: 'today',

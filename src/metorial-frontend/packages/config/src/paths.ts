@@ -1227,6 +1227,14 @@ let InstancePaths = Object.assign(
         ...subPages: SubPages
       ) => InstancePaths(organization, project, instance, 'agent-usage', 'team', ...subPages),
 
+      report: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'agent-usage', 'report', ...subPages),
+
       member: (
         organization: EntityParam,
         project: EntityParam,

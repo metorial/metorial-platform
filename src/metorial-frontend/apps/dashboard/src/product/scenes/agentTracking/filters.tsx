@@ -40,7 +40,7 @@ let filterValueOption =
 
 let filterValuesFilter =
   (
-    field: 'member' | 'model' | 'client',
+    field: 'member' | 'model' | 'client' | 'seat',
     d: Pick<EntityDefinition, 'id' | 'label' | 'noun' | 'mode'>
   ) =>
   (instanceId: string | undefined, rangeText: string) =>
@@ -80,6 +80,12 @@ export let agentTrackingFilters = {
     id: 'clientFamily',
     label: 'Client',
     noun: 'clients',
+    mode: 'recent'
+  }),
+  seat: filterValuesFilter('seat', {
+    id: 'seat',
+    label: 'Seat',
+    noun: 'seats',
     mode: 'recent'
   })
 };

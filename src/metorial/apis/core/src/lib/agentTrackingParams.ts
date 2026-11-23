@@ -1,14 +1,22 @@
 import { v } from '@lowerdeck/validation';
-import { maxFilterValueLength, rangePresets } from '@metorial/module-agent-tracking-query';
-
-let idValue = () => v.string({ modifiers: [v.maxLength(maxFilterValueLength)] });
+import {
+  filterValueList,
+  filterValueValidator,
+  rangePresets
+} from '@metorial/module-agent-tracking-query';
 
 export let idFilter = (name: string, description: string, examples: string[]) =>
   v.optional(
-    v.union([idValue(), v.array(idValue(), { modifiers: [v.maxLength(100)] })], {
-      name,
+    v.union([filterValueValidator(), filterValueList()], { name, description, examples })
+  );
+
+export let timeZoneField = (description: string) =>
+  v.optional(
+    v.string({
+      name: 'time_zone',
       description,
-      examples
+      examples: ['Europe/Berlin'],
+      modifiers: [v.maxLength(100)]
     })
   );
 
@@ -23,14 +31,7 @@ export let rangeFields = (descriptions: {
   ),
   from: v.optional(v.date({ name: 'from', description: descriptions.from })),
   to: v.optional(v.date({ name: 'to', description: descriptions.to })),
-  time_zone: v.optional(
-    v.string({
-      name: 'time_zone',
-      description: descriptions.timeZone,
-      examples: ['Europe/Berlin'],
-      modifiers: [v.maxLength(100)]
-    })
-  )
+  time_zone: timeZoneField(descriptions.timeZone)
 });
 
 export let rangeOf = (query: {

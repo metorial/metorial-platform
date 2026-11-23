@@ -52,6 +52,7 @@ import {
   v1AgentPresenter,
   v1AgentTrackingFilterValuesPresenter,
   v1AgentTrackingIngestSourcePresenter,
+  v1AgentTrackingMemberInsightsPresenter,
   v1AgentTrackingMemberPresenter,
   v1AgentTrackingSessionDetailPresenter,
   v1AgentTrackingSessionPresenter,
@@ -60,7 +61,9 @@ import {
   v1AgentTrackingProjectSettingsPresenter,
   v1AgentTrackingSetupStatusPresenter,
   v1AgentTrackingSpendBreakdownPresenter,
+  v1AgentTrackingSpendReportPresenter,
   v1AgentTrackingSpendTimelinePresenter,
+  v1AgentTrackingViewPresenter,
   v1ApiKeyPresenter,
   v1AssistantConversationPresenter,
   v1AssistantMessagePresenter,
@@ -354,6 +357,7 @@ import {
   agentInstanceType,
   agentTrackingFilterValuesType,
   agentTrackingIngestSourceType,
+  agentTrackingMemberInsightsType,
   agentTrackingMemberType,
   agentTrackingSessionDetailType,
   agentTrackingSessionType,
@@ -362,7 +366,9 @@ import {
   agentTrackingProjectSettingsType,
   agentTrackingSetupStatusType,
   agentTrackingSpendBreakdownType,
+  agentTrackingSpendReportType,
   agentTrackingSpendTimelineType,
+  agentTrackingViewType,
   agentType,
   apiKeyType,
   assistantConversationType,
@@ -1518,6 +1524,11 @@ export let agentTrackingSpendBreakdownPresenter = declarePresenter(
   }
 );
 
+export let agentTrackingSpendReportPresenter = declarePresenter(agentTrackingSpendReportType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSpendReportPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSpendReportPresenter
+});
+
 export let agentTrackingSessionPresenter = declarePresenter(agentTrackingSessionType, {
   mt_2025_01_01_dashboard: v1AgentTrackingSessionPresenter,
   mt_2026_01_01_magnetar: v1AgentTrackingSessionPresenter
@@ -1543,6 +1554,14 @@ export let agentTrackingMemberPresenter = declarePresenter(agentTrackingMemberTy
   mt_2025_01_01_dashboard: v1AgentTrackingMemberPresenter,
   mt_2026_01_01_magnetar: v1AgentTrackingMemberPresenter
 });
+
+export let agentTrackingMemberInsightsPresenter = declarePresenter(
+  agentTrackingMemberInsightsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingMemberInsightsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingMemberInsightsPresenter
+  }
+);
 
 export let agentTrackingOrganizationSettingsPresenter = declarePresenter(
   agentTrackingOrganizationSettingsType,
@@ -1571,6 +1590,11 @@ export let agentTrackingInstanceSettingsPresenter = declarePresenter(
 export let agentTrackingSetupStatusPresenter = declarePresenter(agentTrackingSetupStatusType, {
   mt_2025_01_01_dashboard: v1AgentTrackingSetupStatusPresenter,
   mt_2026_01_01_magnetar: v1AgentTrackingSetupStatusPresenter
+});
+
+export let agentTrackingViewPresenter = declarePresenter(agentTrackingViewType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingViewPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingViewPresenter
 });
 
 export let consumerOAuthAuthorizationPresenter = declarePresenter(

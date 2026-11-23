@@ -372,7 +372,10 @@ describe('api-core dashboard: agent tracking with individuals hidden', () => {
     ['/filter-values', { field: 'model' }],
     ['/members', {}],
     ['/spend/timeline', { model_id: 'claude-sonnet-4-5' }],
-    ['/spend/timeline', { range: 'today' }]
+    ['/spend/timeline', { range: 'today' }],
+    ['/members/insights', {}],
+    ['/spend/breakdown', { group_by: 'model', member_id: 'aten_0mhNnEqM7XQb3vXq8gD2' }],
+    ['/filter-values', { field: 'seat' }]
   ];
 
   it('answers 403 to reads about one person, filters and today, and presents whole UTC days', async () => {
@@ -412,6 +415,31 @@ describe('api-core dashboard: agent tracking with individuals hidden', () => {
       counts: null
     });
     expect(timeline.counts).toBeNull();
+
+    let report = expectPresented(
+      expectOk(await get('/spend/report', { time_zone: 'Asia/Tokyo' })),
+      'agent_tracking.spend_report'
+    );
+    expect(report.range.time_zone).toBe('UTC');
+    expect(report.privacy).toMatchObject({ hide_individuals: true, min_group_users: 3 });
+    expect(report.breakdowns).toEqual({ model: null, client: null, member: null });
+
+    let viewsPath = (path = '') => agentTrackingPath(org, `/views${path}`);
+    let view = expectPresented(
+      expectOk(
+        await org.clients.rest.post(viewsPath(), {
+          page: 'team',
+          name: uniqueId('View'),
+          kind: 'practices',
+          params: { version: 1, range: 'last_7_days' }
+        })
+      ),
+      'agent_tracking.view'
+    );
+    expect(expectOk(await org.clients.rest.get(viewsPath(`/${view.id}`))).id).toBe(view.id);
+    expect((await listAll(org.clients.rest, viewsPath())).map(item => item.id)).toContain(
+      view.id
+    );
 
     await setPrivacy({ hide_individuals: false });
     expectOk(await get('/sessions'));

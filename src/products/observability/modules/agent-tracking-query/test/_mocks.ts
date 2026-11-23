@@ -1,3 +1,4 @@
+import { isServiceError } from '@lowerdeck/error';
 import * as clientFamilies from '@metorial/module-agent-tracking-sync/src/definitions/clientFamilies';
 import { vi } from 'vitest';
 
@@ -67,7 +68,11 @@ export let syncModule = {
 
 export let consumers = { findMany: vi.fn(async (_query: any): Promise<any[]> => []) };
 
-export let dbModule = { db: { consumer: consumers } };
+export let instanceConsumers = {
+  findMany: vi.fn(async (_query: any): Promise<any[]> => [])
+};
+
+export let dbModule = { db: { consumer: consumers, instanceConsumer: instanceConsumers } };
 
 export let scope = {
   organization: { oid: 1n, id: 'org_1', name: 'Acme' },
@@ -104,12 +109,25 @@ export let resetMocks = () => {
   cache.failing = false;
   consumers.findMany.mockReset();
   consumers.findMany.mockImplementation(async () => []);
+  instanceConsumers.findMany.mockReset();
+  instanceConsumers.findMany.mockImplementation(async () => []);
   withInstanceScope.mockClear();
   privacy.hideIndividuals = false;
   privacy.minGroupUsers = 5;
 };
 
 export let callsTo = (path: string) => rpc.calls.filter(call => call.path == path);
+
+export let rejection = async (promise: Promise<unknown>) => {
+  try {
+    await promise;
+  } catch (error) {
+    if (isServiceError(error)) return error.data;
+    throw error;
+  }
+
+  throw new Error('Expected a rejection');
+};
 
 export let settles = async (promise: Promise<unknown>) =>
   await Promise.race([

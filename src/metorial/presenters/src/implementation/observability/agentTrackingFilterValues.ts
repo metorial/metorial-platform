@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { requestRecordDays } from '@metorial/module-agent-tracking-query';
 import { Presenter } from '@metorial/presenter';
 import { agentTrackingFilterValuesType } from '../../types';
 import {
@@ -34,7 +35,7 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
         description: "String representing the object's type"
       }),
 
-      field: v.enumOf(['member', 'model', 'client'], {
+      field: v.enumOf(['member', 'model', 'client', 'seat'], {
         name: 'field',
         description: 'The filter the values are for.'
       }),
@@ -49,18 +50,19 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
           value: v.string({
             name: 'value',
             description:
-              'The value to pass as member_id, model_id or client_family. unknown selects usage without a member (Unknown Member), or usage whose model is not matched to the model catalog (Unknown Model).',
+              'The value to pass as `member_id`, `model_id` or `client_family`, or as `seat` to member insights. `unknown` selects usage without a member (Unknown Member), or usage whose model is not matched to the model catalog (Unknown Model). Seat values are passed on as the agent reported them on its requests.',
             examples: [
               'aten_0mhNnEqM7XQb3vXq8gD2',
               'claude-sonnet-4-5',
               'claude_code',
+              'premium',
               'unknown'
             ]
           }),
-          kind: v.enumOf(['member', 'model', 'client', 'unknown'], {
+          kind: v.enumOf(['member', 'model', 'client', 'seat', 'unknown'], {
             name: 'kind',
             description:
-              'member, model or client, or unknown for the Unknown Member or Unknown Model option.'
+              '`member`, `model`, `client` or `seat`, or `unknown` for the Unknown Member or Unknown Model option.'
           }),
           member: v.nullable(agentTrackingMemberSchema),
           model: v.nullable(agentTrackingModelSchema),
@@ -87,8 +89,7 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
           requests: v.nullable(
             v.number({
               name: 'requests',
-              description:
-                'Model requests in the range, for ordering. Null for the unknown option, which is offered without being counted, and for values described by value.'
+              description: `Model requests in the range, for ordering. Seat values count request records, which are kept for ${requestRecordDays} days. \`null\` for the \`unknown\` option, which is offered without being counted, and for values described by \`value\`.`
             })
           )
         }),

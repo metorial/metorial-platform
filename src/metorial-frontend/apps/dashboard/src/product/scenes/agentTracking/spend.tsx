@@ -1,38 +1,26 @@
-import {
-  Chart,
-  formatCurrency,
-  formatNumber,
-  formatPercent,
-  getChartColor,
-  type ChartSeries
-} from '@metorial/chart';
-import type {
-  DashboardInstanceAgentTrackingSpendBreakdownOutput,
-  DashboardInstanceAgentTrackingSpendTimelineOutput
-} from '@metorial/dashboard-sdk';
+import { Chart, formatCurrency, formatNumber, type ChartSeries } from '@metorial/chart';
+import type { DashboardInstanceAgentTrackingSpendTimelineOutput } from '@metorial/dashboard-sdk';
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getListFilterValue, useFilterState, type FilterPayload } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import { MetricsSummary } from '@metorial/metrics-page';
 import {
   useAgentTrackingSessions,
   useAgentTrackingSpendBreakdown,
   useAgentTrackingSpendTimeline
 } from '@metorial/state';
-import { Button, Flex, OptionToggle, Progress, Spacer, Text, theme } from '@metorial/ui';
+import { Button, Flex, OptionToggle, Spacer, Text } from '@metorial/ui';
 import { Box, FilterToolbar, Table } from '@metorial/ui-product';
-import React, { useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { describeCostComparison } from './costComparison';
-import { formatAmount, formatCost, toDollars, toMicros } from './costFormat';
+import { formatAmount, toDollars, toMicros } from './costFormat';
 import { AgentTrackingErrorState } from './errorState';
 import { AgentTrackingFilterRangeContext, agentTrackingFilters } from './filters';
 import { MemberIdentity } from './memberParts';
-import { hiddenGroupText, useAgentTrackingPrivacy } from './privacy';
+import { useAgentTrackingPrivacy } from './privacy';
 import {
   defaultAgentTrackingRange,
   formatAgentTrackingRange,
@@ -42,24 +30,27 @@ import {
   withQuery,
   type AgentTrackingRangePreset
 } from './range';
+import { SessionCost, SessionModels, SessionSummaryCell } from './sessionParts';
 import {
-  formatRequests,
-  ModelNameCell,
-  SessionCost,
-  SessionModels,
-  SessionSummaryCell
-} from './sessionParts';
-import { costSplit, describeSpendChange, formatCount, hasUsage } from './spendSummary';
+  BreakdownCost,
+  BreakdownName,
+  breakdownOthersCount,
+  CostSplit,
+  hiddenCountsNotice,
+  isLoadedFor,
+  isZero,
+  Share,
+  SpendCountsSummary,
+  UnpricedNotice,
+  useSearchParamOption
+} from './spendParts';
+import { describeSpendChange, hasUsage, hiddenGroupText } from './spendSummary';
 
 let DAY = 24 * 60 * 60 * 1000;
 
 let expensiveSessionsLimit = 4;
 
 let maxDayLabels = 14;
-
-let billedColor = getChartColor('blue');
-
-let estimatedColor = getChartColor('gray');
 
 let filterRangeText = 'this range';
 
@@ -109,135 +100,8 @@ type SpendFilters = { clientFamily?: string[]; modelId?: string[] };
 
 type Timeline = DashboardInstanceAgentTrackingSpendTimelineOutput;
 
-type SpendCost = Timeline['total']['cost'];
-
-type BreakdownItem = DashboardInstanceAgentTrackingSpendBreakdownOutput['items'][number];
-
-let SplitTrack = styled.div`
-  display: flex;
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: ${theme.colors.gray300};
-`;
-
-let SplitPart = styled.span<{ $color: string; $share: number }>`
-  width: ${({ $share }) => $share * 100}%;
-  background: ${({ $color }) => $color};
-
-  & + & {
-    border-left: 2px solid ${theme.colors.background};
-  }
-`;
-
-let Swatch = styled.span<{ $color: string }>`
-  flex-shrink: 0;
-  width: 10px;
-  height: 10px;
-  margin-top: 4px;
-  border-radius: 3px;
-  background: ${({ $color }) => $color};
-`;
-
-let Legend = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px 28px;
-`;
-
 let noneIn = (what: string, filtered: unknown) =>
   `${what} in this range${filtered ? ' with these filters' : ''}.`;
-
-let isZero = (micros: number | null) => (micros ?? 0) == 0;
-
-let formatUnpricedRequests = (count: number) =>
-  `${formatRequests(count)} without a known cost`;
-
-let useSearchParamOption = <Id extends string>(
-  name: string,
-  ids: readonly Id[],
-  defaultId: Id
-) => {
-  let [params, setParams] = useSearchParams();
-  let value = params.get(name);
-  let current = ids.find(id => id == value) ?? defaultId;
-
-  let setCurrent = (next: Id) => {
-    let updated = new URLSearchParams(params);
-    if (next == defaultId) updated.delete(name);
-    else updated.set(name, next);
-    setParams(updated, { replace: true });
-  };
-
-  return [current, setCurrent] as const;
-};
-
-let LegendItem = ({
-  color,
-  title,
-  children
-}: {
-  color: string;
-  title: string;
-  children: React.ReactNode;
-}) => (
-  <Flex gap={10} align="start">
-    <Swatch $color={color} />
-
-    <Flex direction="column" gap={2}>
-      <Text as="span" size="2" weight="strong">
-        {title}
-      </Text>
-      <Text as="span" size="1" color="gray600">
-        {children}
-      </Text>
-    </Flex>
-  </Flex>
-);
-
-let CostSplit = ({ cost }: { cost: SpendCost }) => {
-  let split = costSplit(cost);
-  if (!split) return null;
-
-  let share = (value: number) => formatPercent(value, { precision: 0 });
-
-  return (
-    <>
-      <SplitTrack role="img" aria-label="Billed against estimated">
-        {split.billedShare > 0 ? (
-          <SplitPart $color={billedColor} $share={split.billedShare} />
-        ) : null}
-        {split.estimatedShare > 0 ? (
-          <SplitPart $color={estimatedColor} $share={split.estimatedShare} />
-        ) : null}
-      </SplitTrack>
-
-      <Spacer height={12} />
-
-      <Legend>
-        {!isZero(cost.billedMicros) ? (
-          <LegendItem
-            color={billedColor}
-            title={`Billed ${formatAmount(cost.billedMicros!, { estimate: false })} · ${share(split.billedShare)}`}
-          >
-            From provider bills, such as API keys and Bedrock.
-          </LegendItem>
-        ) : null}
-
-        {!isZero(cost.estimatedMicros) ? (
-          <LegendItem
-            color={estimatedColor}
-            title={`Estimated ${formatCost(cost.estimatedMicros, { estimate: true })} · ${share(split.estimatedShare)}`}
-          >
-            Usage no provider bill covers, such as a Claude subscription, valued at your
-            contract prices where set, else at the cost Claude Code reports or list prices.
-          </LegendItem>
-        ) : null}
-      </Legend>
-    </>
-  );
-};
 
 let barKey = (startsAt: Date) => new Date(new Date(startsAt).getTime() + DAY / 2);
 
@@ -450,7 +314,6 @@ let rangeDescription = (range: Timeline['range']) =>
 let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolean }) => {
   let cost = timeline.total.cost;
   let requests = timeline.total.requests;
-  let unpriced = cost.requestsWithoutCost;
 
   let hiddenItems = timeline.items.filter(item => item.hidden);
   let hiddenDays = hiddenItems.length;
@@ -518,26 +381,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
           ) : null}
         </Flex>
 
-        <MetricsSummary
-          columns={3}
-          items={[
-            { id: 'requests', label: 'Model Requests', value: formatNumber(requests) },
-            {
-              id: 'sessions',
-              label: 'Sessions',
-              value: timeline.counts
-                ? formatCount(timeline.counts.sessions, timeline.counts.capped)
-                : 'Hidden'
-            },
-            {
-              id: 'members',
-              label: 'Active Members',
-              value: timeline.counts
-                ? formatCount(timeline.counts.members, timeline.counts.capped)
-                : 'Hidden'
-            }
-          ]}
-        />
+        <SpendCountsSummary requests={requests} counts={timeline.counts} />
       </Flex>
 
       {timeline.privacy.hiddenGroups || !timeline.counts ? (
@@ -549,9 +393,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
               hiddenDays
                 ? `${formatNumber(hiddenDays)} ${hiddenDays == 1 ? 'day is' : 'days are'} hidden${hiddenDates} because ${hiddenGroupText(timeline.privacy.minGroupUsers)} were active on ${hiddenDays == 1 ? 'it' : 'them'}. The total covers only the days shown.`
                 : null,
-              timeline.counts
-                ? null
-                : 'Sessions and Active Members are not shown, as distinct counts cannot be limited to the days shown.',
+              timeline.counts ? null : hiddenCountsNotice,
               timeline.previous.hiddenGroups && !timeline.privacy.hiddenGroups
                 ? 'No comparison with the previous period, which has hidden days.'
                 : null
@@ -562,17 +404,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
         </>
       ) : null}
 
-      {unpriced > 0 ? (
-        <>
-          <Spacer height={10} />
-
-          <Text size="2" weight="medium" color="orange900">
-            {cost.totalMicros === null
-              ? `None of the ${formatNumber(requests)} requests has a known cost, so there is no total. That is not the same as zero.`
-              : `${formatUnpricedRequests(unpriced)}. The total leaves them out, so the real cost may be higher.`}
-          </Text>
-        </>
-      ) : null}
+      <UnpricedNotice cost={cost} requests={requests} />
 
       <Spacer height={18} />
 
@@ -584,63 +416,6 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
     </Box>
   );
 };
-
-let othersLabel = (group: BreakdownGroup, others: number | null) => {
-  if (group == 'model') return 'Other Models';
-  return others ? `${formatNumber(others)} Others` : 'Everyone Else';
-};
-
-let BreakdownName = ({
-  item,
-  group,
-  others
-}: {
-  item: BreakdownItem;
-  group: BreakdownGroup;
-  others: number | null;
-}) => {
-  if (group == 'member' && (item.kind == 'member' || item.kind == 'unknown')) {
-    return <MemberIdentity member={item.member} />;
-  }
-
-  if (item.kind == 'other') {
-    return (
-      <Text as="span" size="2" weight="medium">
-        {othersLabel(group, others)}
-      </Text>
-    );
-  }
-
-  return (
-    <ModelNameCell model={item.model} unknownModelNames={item.unknownModelNames} detail />
-  );
-};
-
-let BreakdownCost = ({ cost }: { cost: SpendCost }) => (
-  <Flex direction="column" gap={2}>
-    <CostValue cost={cost} />
-
-    {cost.requestsWithoutCost > 0 ? (
-      <Text as="span" size="1" color="orange900">
-        {formatUnpricedRequests(cost.requestsWithoutCost)}
-      </Text>
-    ) : null}
-  </Flex>
-);
-
-let Share = ({ share }: { share: number | null }) =>
-  share === null ? (
-    <Text as="span" size="2" color="gray600">
-      —
-    </Text>
-  ) : (
-    <Flex align="center" gap={10}>
-      <Progress value={share} max={1} aria-label="Share" style={{ width: 72 }} />
-      <Text as="span" size="2">
-        {formatPercent(share)}
-      </Text>
-    </Flex>
-  );
 
 let Breakdown = ({
   instanceId,
@@ -691,11 +466,7 @@ let Breakdown = ({
         }
       )(({ breakdown }) => {
         let items = breakdown.data.items;
-        let listedMembers = items.filter(item => item.kind == 'member').length;
-        let others =
-          counts && !counts.capped && counts.members > listedMembers
-            ? counts.members - listedMembers
-            : null;
+        let others = breakdownOthersCount(counts, items);
 
         return items.length ? (
           <Table
@@ -844,8 +615,7 @@ let SpendPage = ({
 
   // Waits for the timeline: the service allows four concurrent queries.
   let timelineReady =
-    !!timeline.data &&
-    canonicalize(timeline.input) == canonicalize({ instanceId, ...timelineQuery });
+    !!timeline.data && isLoadedFor(timeline, { instanceId, ...timelineQuery });
 
   return (
     <Flex direction="column" gap={20}>

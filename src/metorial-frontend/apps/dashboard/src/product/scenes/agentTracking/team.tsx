@@ -1,12 +1,17 @@
 import { formatNumber } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingMembersListOutput } from '@metorial/dashboard-sdk';
 import { col, createDataList } from '@metorial/data-list';
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { useAgentTrackingMembers } from '@metorial/state';
-import { Callout } from '@metorial/ui';
+import { Callout, Flex } from '@metorial/ui';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { lastActivePhrase, memberListLimit, MemberIdentity, memberPath } from './memberParts';
 import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
+import { TeamViewControls } from './views/controls';
+import { TeamInsights } from './views/insights';
+import { useTeamViewSearch } from './views/state';
+import { TeamViewSwitcher } from './views/switcher';
 
 type TeamMember = DashboardInstanceAgentTrackingMembersListOutput['items'][number];
 
@@ -67,3 +72,40 @@ export let AgentTrackingTeamTable = ({ instanceId }: { instanceId: string }) => 
     }}
   />
 );
+
+export let AgentTrackingTeam = ({ instanceId }: { instanceId: string }) => {
+  let { state, savedId, apply, patch, current } = useTeamViewSearch();
+
+  return (
+    <Flex direction="column" gap={20}>
+      <TeamViewSwitcher
+        instanceId={instanceId}
+        view={state}
+        savedId={savedId}
+        apply={apply}
+        current={current}
+      />
+
+      {state.kind == 'recent' ? (
+        <Flex direction="column" gap={14}>
+          <AgentTrackingTeamNotice instanceId={instanceId} />
+
+          <PaginationSearchParamsProvider enabled={true}>
+            <AgentTrackingTeamTable instanceId={instanceId} />
+          </PaginationSearchParamsProvider>
+        </Flex>
+      ) : (
+        <Flex direction="column" gap={14}>
+          <TeamViewControls
+            instanceId={instanceId}
+            view={state}
+            current={current}
+            onPatch={patch}
+          />
+
+          <TeamInsights instanceId={instanceId} view={state} />
+        </Flex>
+      )}
+    </Flex>
+  );
+};

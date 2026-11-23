@@ -151,6 +151,7 @@ export type DashboardInstanceAgentTrackingSpendBreakdownQuery = {
   timeZone?: string | undefined;
   clientFamily?: string | string[] | undefined;
   modelId?: string | string[] | undefined;
+  memberId?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceAgentTrackingSpendBreakdownQuery =
@@ -160,5 +161,6 @@ export let mapDashboardInstanceAgentTrackingSpendBreakdownQuery =
     ['to', 0, 4],
     'time_zone',
     'client_family',
-    'model_id'
+    'model_id',
+    'member_id'
   ]);

@@ -15,6 +15,7 @@ import {
   MetorialDashboardInstanceAgentTrackingSettingsEndpoint,
   MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint,
   MetorialDashboardInstanceAgentTrackingSpendEndpoint,
+  MetorialDashboardInstanceAgentTrackingViewsEndpoint,
   MetorialDashboardInstanceAssistantsEndpoint,
   MetorialDashboardInstanceCallbackEventsEndpoint,
   MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint,
@@ -1072,7 +1073,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     filterValues: new MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint(manager),
     members: new MetorialDashboardInstanceAgentTrackingMembersEndpoint(manager),
     setupStatus: new MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint(manager),
-    settings: new MetorialDashboardInstanceAgentTrackingSettingsEndpoint(manager)
+    settings: new MetorialDashboardInstanceAgentTrackingSettingsEndpoint(manager),
+    views: new MetorialDashboardInstanceAgentTrackingViewsEndpoint(manager)
   },
 
   accessPolicies: new MetorialDashboardOrganizationsAccessPoliciesEndpoint(manager),

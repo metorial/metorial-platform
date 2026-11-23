@@ -203,12 +203,15 @@ import type {
 import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type {
   AgentTrackingFilterValues,
+  AgentTrackingMemberInsights,
   AgentTrackingSeenMember,
   AgentTrackingSessionDetail,
   AgentTrackingSessionView,
   AgentTrackingSetupStatus,
   AgentTrackingSpendBreakdown,
-  AgentTrackingSpendTimeline
+  AgentTrackingSpendReport,
+  AgentTrackingSpendTimeline,
+  AgentTrackingViewRecord
 } from '@metorial/module-agent-tracking-query';
 import type {
   AgentTrackingPrivacy,
@@ -2713,6 +2716,10 @@ export let agentTrackingIngestSourceType = PresentableType.create<{
   secret: string | null;
 }>()('agent_tracking.ingest_source');
 
+export let agentTrackingViewType = PresentableType.create<{
+  view: AgentTrackingViewRecord;
+}>()('agent_tracking.view');
+
 export let agentTrackingSpendTimelineType = PresentableType.create<{
   timeline: AgentTrackingSpendTimeline;
 }>()('agent_tracking.spend_timeline');
@@ -2720,6 +2727,10 @@ export let agentTrackingSpendTimelineType = PresentableType.create<{
 export let agentTrackingSpendBreakdownType = PresentableType.create<{
   breakdown: AgentTrackingSpendBreakdown;
 }>()('agent_tracking.spend_breakdown');
+
+export let agentTrackingSpendReportType = PresentableType.create<{
+  report: AgentTrackingSpendReport;
+}>()('agent_tracking.spend_report');
 
 export let agentTrackingSessionType = PresentableType.create<{
   session: AgentTrackingSessionView;
@@ -2737,6 +2748,10 @@ export let agentTrackingMemberType = PresentableType.create<{
   member: AgentTrackingSeenMember;
   listTruncated: boolean;
 }>()('agent_tracking.member');
+
+export let agentTrackingMemberInsightsType = PresentableType.create<{
+  insights: AgentTrackingMemberInsights;
+}>()('agent_tracking.member_insights');
 
 export let agentTrackingSetupStatusType = PresentableType.create<{
   setupStatus: AgentTrackingSetupStatus;

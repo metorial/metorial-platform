@@ -6,7 +6,7 @@ import {
 } from '@metorial/data-list';
 import { useSearchParams } from 'react-router-dom';
 
-let agentTrackingRangePresets = [
+export let agentTrackingRangePresets = [
   { id: 'today', label: 'Today' },
   { id: 'last_7_days', label: '7 Days' },
   { id: 'last_30_days', label: '30 Days' },

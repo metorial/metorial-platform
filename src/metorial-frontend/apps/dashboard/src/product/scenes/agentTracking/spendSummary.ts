@@ -51,6 +51,8 @@ export let describeSpendChange = (d: {
 
 let countCap = 10000;
 
+export let hiddenGroupText = (minGroupUsers: number) => `fewer than ${minGroupUsers} people`;
+
 export let formatCount = (count: number, capped: boolean) =>
   `${formatNumber(count)}${capped && count >= countCap ? '+' : ''}`;
 

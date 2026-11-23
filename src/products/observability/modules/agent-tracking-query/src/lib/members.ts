@@ -1,3 +1,4 @@
+import { isServiceError } from '@lowerdeck/error';
 import { db } from '@metorial/db';
 import {
   type AgentTracking,
@@ -11,6 +12,11 @@ import type { AgentTrackingMember } from './types';
 export let unknownMemberKey = 'unknown';
 
 let maxMemberLookup = 100;
+
+// Entity reads are not subject to the engine's query concurrency limit.
+let consumerLookupConcurrency = 20;
+
+export let maxConsumerLookups = 500;
 
 let lookupStatuses = ['managed', 'discovered', 'merged'] as const;
 
@@ -161,4 +167,58 @@ export let lookupMembers = async (d: {
       ] as const;
     })
   );
+};
+
+let consumerMemberId = async (d: { organizationId: string; consumerId: string }) => {
+  try {
+    let entity = await requireAgentTracking().entity.getByRef(
+      {
+        organizationId: d.organizationId,
+        kind: 'user',
+        source: consumerEntitySource,
+        ref: d.consumerId
+      },
+      readCallOptions
+    );
+    if (entity.status == 'merged') return entity.mergedIntoId ?? null;
+
+    return lookupStatuses.includes(entity.status as (typeof lookupStatuses)[number])
+      ? entity.id
+      : null;
+  } catch (error) {
+    if (isServiceError(error) && error.data.status == 404) return null;
+    throw error;
+  }
+};
+
+// The members behind this instance's consumers, in the order they joined the instance. Only the
+// first `maxConsumerLookups` consumers are looked up; `capped` says there were more.
+export let instanceConsumerMemberIds = async (d: {
+  scope: Pick<ReadScope, 'organization' | 'instance'>;
+}) => {
+  let found = await db.instanceConsumer.findMany({
+    where: {
+      instanceOid: d.scope.instance.oid,
+      isPending: false,
+      consumer: { isServiceAccount: false }
+    },
+    select: { consumer: { select: { id: true } } },
+    orderBy: { oid: 'asc' },
+    take: maxConsumerLookups + 1
+  });
+
+  let ids: string[] = [];
+  for (let batch of chunks(found.slice(0, maxConsumerLookups), consumerLookupConcurrency)) {
+    let resolved = await Promise.all(
+      batch.map(instanceConsumer =>
+        consumerMemberId({
+          organizationId: d.scope.organization.id,
+          consumerId: instanceConsumer.consumer.id
+        })
+      )
+    );
+    ids.push(...resolved.filter((id): id is string => !!id));
+  }
+
+  return { ids, capped: found.length > maxConsumerLookups };
 };

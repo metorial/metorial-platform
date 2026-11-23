@@ -1,8 +1,9 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { fromServiceFamily, requireAgentTracking } from '@metorial/module-agent-tracking-sync';
 import { cached, cacheKey } from '../lib/cache';
 import { lookupModelNames } from '../lib/catalog';
+import { invalidInputError } from '../lib/errors';
 import {
   filterValueItem,
   isFilterValueOf,
@@ -11,8 +12,13 @@ import {
 } from '../lib/filterValues';
 import { lookupMembers, unique, unknownMemberKey } from '../lib/members';
 import { individualsHiddenError, loadPrivacy } from '../lib/privacy';
-import { filtersHiddenError } from '../lib/privateSpend';
-import { filterFields, filterValuesLimit } from '../lib/queries';
+import { filtersHiddenError, seatValuesHiddenError } from '../lib/privateSpend';
+import {
+  assertRequestRange,
+  filterFields,
+  filterValuesLimit,
+  requestFilterFields
+} from '../lib/queries';
 import {
   normalizeRange,
   queryRange,
@@ -44,17 +50,22 @@ class AgentTrackingFilterValueServiceImpl {
     let search = d.search?.trim() || undefined;
 
     if (d.values && search) {
-      throw new ServiceError(
-        badRequestError({ message: 'Pass either search or value, not both.' })
-      );
+      throw invalidInputError('Pass either search or value, not both.');
     }
 
     let privacy = await loadPrivacy(d);
     if (privacy.hideIndividuals) {
       throw new ServiceError(
-        d.field == 'member' ? individualsHiddenError : filtersHiddenError
+        d.field == 'member'
+          ? individualsHiddenError
+          : d.field == 'seat'
+            ? seatValuesHiddenError
+            : filtersHiddenError
       );
     }
+
+    let fromRequests = requestFilterFields.includes(d.field);
+    if (fromRequests && !d.values) assertRequestRange(resolveRange(range, now), 'Seat values');
 
     if (d.values) {
       let values = unique(d.values);
@@ -73,7 +84,7 @@ class AgentTrackingFilterValueServiceImpl {
           {
             organizationId: d.organization.id,
             scope: { instanceIds: [d.instance.id] },
-            dataset: 'usage',
+            dataset: fromRequests ? 'requests' : 'usage',
             field: filterFields[d.field],
             search,
             range: queryRange(resolved),

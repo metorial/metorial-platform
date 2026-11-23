@@ -54,13 +54,15 @@ type SessionSummary = {
 
 type Model = { id: string; name: string | null };
 
-let Muted = ({ children }: { children: React.ReactNode }) => (
+export let Muted = ({ children }: { children: React.ReactNode }) => (
   <Text as="span" size="2" color="gray600">
     {children}
   </Text>
 );
 
 export let modelLabel = (model: Model) => model.name ?? model.id;
+
+export let unknownModelLabel = 'Unknown Model';
 
 export let ModelNameCell = ({
   model,
@@ -73,7 +75,7 @@ export let ModelNameCell = ({
 }) => (
   <Flex direction="column" gap={2}>
     <Text as="span" size="2" weight="medium" truncate>
-      {model ? modelLabel(model) : 'Unknown Model'}
+      {model ? modelLabel(model) : unknownModelLabel}
     </Text>
 
     {detail && model?.name && model.name != model.id ? (

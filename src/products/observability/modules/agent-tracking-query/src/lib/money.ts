@@ -63,6 +63,8 @@ let toMicros = (nanos: bigint | null) => {
   return Number(nanos < 0n ? -micros : micros);
 };
 
+export let microsOf = (value: unknown) => toMicros(toNanos(value));
+
 // A sum without any cost is 0, not null; `unpriced` says when no request had one.
 export let costOf = (d: {
   total: unknown;
