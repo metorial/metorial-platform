@@ -1,5 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { checkEdition, isEdition } from '@metorial/editions';
+import { checkEdition } from '@metorial/editions';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -55,27 +55,23 @@ export let NetworkSettingsPage = () => {
 
       return (
         <>
-          {isEdition('cloud') && (
+          {checkEdition('cloud') && (
             <>
               {gateway ? (
                 <Attributes
                   itemWidth="300px"
                   attributes={[
                     { label: 'Name', content: gateway.name },
-                    ...(checkEdition('on-prem')
-                      ? []
-                      : [
-                          {
-                            label: 'Public IP',
-                            content: publicIpRestricted ? (
-                              <RestrictedPublicIp aria-label="Public IP unavailable on this plan">
-                                123.45.67.89
-                              </RestrictedPublicIp>
-                            ) : (
-                              (publicIp?.ip ?? '-')
-                            )
-                          }
-                        ]),
+                    {
+                      label: 'Public IP',
+                      content: publicIpRestricted ? (
+                        <RestrictedPublicIp aria-label="Public IP unavailable on this plan">
+                          123.45.67.89
+                        </RestrictedPublicIp>
+                      ) : (
+                        (publicIp?.ip ?? '-')
+                      )
+                    },
                     { label: 'Region', content: publicIp?.region ?? '-' }
                   ]}
                 />
