@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-18"
   },
+  "deepseek/deepseek-v4.1-flash": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "Offering matches DeepSeek V4.1-Flash exactly: multimodal text+image input, ~1M context, matches the lab's 2026-09-10 release (deepseek.com announcement and HF deepseek-ai/DeepSeek-V4.1-Flash). No sign of the 1017 checkpoint. The lower input price is expected: V4.1-Flash is DeepSeek's budget efficiency tier and Kilo is an aggregator, so its rate sits below the catalog median.",
+    "by": "agent",
+    "at": "2026-11-23"
+  },
   "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
     "decision": "link",
     "model": "deepseek/deepseek-v4.1-flash-1017",
