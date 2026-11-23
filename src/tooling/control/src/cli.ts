@@ -92,7 +92,7 @@ let commandOptions: Record<
   'db migration': { min: 2, max: 3 },
   env: { flags: ['json'] },
   run: {},
-  merge: { max: 1 },
+  merge: { max: 2 },
   'test:unit': {},
   'test:e2e': {
     flags: ['keep', 'plan', 'replica'],
