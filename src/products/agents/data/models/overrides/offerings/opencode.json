@@ -34,6 +34,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "hungerg-free": {
+    "decision": "defer",
+    "until": "2026-12-23",
+    "reason": "No listing text, Hugging Face metadata, or index candidates exist, and web search returns only unrelated results (a Colorado nonprofit, food-waste content); cannot determine what model 'HungerG Free' actually serves, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-23"
+  },
   "iceman-contributor-free": {
     "decision": "exclude",
     "category": "other",
