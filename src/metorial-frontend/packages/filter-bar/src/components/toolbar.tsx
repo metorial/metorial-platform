@@ -55,7 +55,8 @@ export let FilterToolbar = ({
   barEnd,
   size = '3',
   shortcut,
-  style
+  style,
+  panelLayout
 }: {
   filters: TableFilter<any>[];
   filterState: FilterStateTuple;
@@ -67,6 +68,7 @@ export let FilterToolbar = ({
   size?: ControlSize;
   shortcut?: boolean;
   style?: React.CSSProperties;
+  panelLayout?: 'auto' | 'full';
 }) => {
   let pillSelections = usePillSelections(filterState[0]);
   let highlighted = useMemo(
@@ -108,6 +110,7 @@ export let FilterToolbar = ({
               shortcut={shortcut}
               pillSelections={pillSelections}
               barEnd={barEnd}
+              panelLayout={panelLayout}
             />
           ) : (
             <Spacer />

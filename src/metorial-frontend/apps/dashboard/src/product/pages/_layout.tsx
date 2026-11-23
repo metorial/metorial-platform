@@ -27,12 +27,21 @@ import {
   RiFolderLine,
   RiStore2Line,
   RiCompassDiscoverLine,
+  RiFileChartLine,
+  RiMoneyDollarCircleLine,
+  RiPlug2Line,
+  RiTerminalBoxLine,
   RiUploadCloud2Line,
   RiUser3Line,
   RiWebhookLine
 } from '@remixicon/react';
 import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { useAgentTrackingAvailability } from '../scenes/agentTracking/access';
+import {
+  useSavedTeamViewsSidebarGroups,
+  useTeamViewSidebarChildren
+} from '../scenes/agentTracking/views/sidebar';
 import { isOwnedSkillsView } from '../scenes/skills/overview/skillViews';
 import { useSkillsSidebarGroups } from '../scenes/skills/navigation/sidebarGroups';
 import { useSkillMarketplacesNav } from '../scenes/skills/navigation/useSkillMarketplacesNav';
@@ -75,6 +84,13 @@ export let ProjectPageLayout = () => {
   let skillsSidebarGroups = useSkillsSidebarGroups({ enabled: skillsEnabled });
   let skillMarketplaces = useSkillMarketplacesNav({ enabled: skillsEnabled });
   let defaultSkillMarketplace = skillMarketplaces[0];
+
+  let location = useLocation();
+  let agentTracking = useAgentTrackingAvailability();
+  let teamViewChildren = useTeamViewSidebarChildren();
+  let savedTeamViewsSidebarGroups = useSavedTeamViewsSidebarGroups({
+    enabled: /\/agent-usage(\/|$)/.test(location.pathname)
+  });
 
   return (
     <AppLayout
@@ -280,6 +296,60 @@ export let ProjectPageLayout = () => {
           : []),
 
         ...skillsSidebarGroups,
+
+        ...(agentTracking.available
+          ? [
+              {
+                label: 'Agent Usage',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiTerminalBoxLine />,
+                    label: 'Sessions',
+                    to: Paths.instance.agentTracking.sessions(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    })
+                  },
+                  {
+                    icon: <RiMoneyDollarCircleLine />,
+                    label: 'Spend',
+                    to: Paths.instance.agentTracking.spend(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  },
+                  {
+                    icon: <RiGroupLine />,
+                    label: 'Team',
+                    to: Paths.instance.agentTracking.team(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i)
+                    }),
+                    children: teamViewChildren
+                  },
+                  {
+                    icon: <RiFileChartLine />,
+                    label: 'Report',
+                    to: Paths.instance.agentTracking.report(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  },
+                  {
+                    icon: <RiPlug2Line />,
+                    label: 'Setup',
+                    to: Paths.instance.agentTracking.setup(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  }
+                ]
+              }
+            ]
+          : []),
+
+        ...savedTeamViewsSidebarGroups,
 
         ...(sandboxEnabled
           ? [

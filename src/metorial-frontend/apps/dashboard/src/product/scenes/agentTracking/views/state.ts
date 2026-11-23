@@ -227,6 +227,15 @@ export let patchTeamViewSearch = (search: URLSearchParams, patch: TeamViewParams
   );
 };
 
+export let sortPatch = (view: TeamViewState, sort: InsightsSort): TeamViewParams => {
+  let { defaults, sorts } = teamViewDefinitions[view.kind];
+  if (view.params.sort == sort) return { order: view.params.order == 'asc' ? 'desc' : 'asc' };
+
+  let first =
+    sort == defaults.sort ? defaults.order : sorts.find(item => item.id == sort)?.order;
+  return { sort, order: first ?? 'desc' };
+};
+
 // Writes build on the newest search params, including a write not rendered yet, so a threshold
 // committed on blur is kept when the click that caused the blur writes too.
 export let useTeamViewSearch = () => {
@@ -298,6 +307,21 @@ export let toSavedViewParams = (view: TeamViewState): SavedViewParams => {
   // The generated type renders the literal version 1 as the string '1'; the API compares it
   // loosely and stores the number.
   return saved as SavedViewParams;
+};
+
+export let teamViewHref = (teamPath: string, view: TeamViewState, savedId: string | null) => {
+  let search = writeTeamViewSearch(new URLSearchParams(), view, savedId).toString();
+  return search ? `${teamPath}?${search}` : teamPath;
+};
+
+export let activeTeamViewKind = (
+  location: { pathname: string; search: string },
+  teamPath: string
+) => {
+  if (location.pathname.replace(/\/+$/, '') != teamPath.replace(/\/+$/, '')) return null;
+
+  let { state, savedId } = parseTeamViewSearch(new URLSearchParams(location.search));
+  return savedId ? null : state.kind;
 };
 
 export let fromSavedView = (view: { kind: string; params: unknown }) => {

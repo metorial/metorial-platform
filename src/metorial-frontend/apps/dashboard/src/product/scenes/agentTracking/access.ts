@@ -3,17 +3,19 @@ import { useCurrentOrganization, useDashboardFlags, useHasScope } from '@metoria
 
 let agentTrackingWriteScope = 'instance.agent_tracking:write';
 
-let useAgentTrackingReadAccess = () => {
-  let organization = useCurrentOrganization();
-  return useHasScope(organization.data?.id, agentTrackingReadScope);
-};
-
 export let useAgentTrackingAvailability = () => {
   let flags = useDashboardFlags();
-  let access = useAgentTrackingReadAccess();
+  let organization = useCurrentOrganization();
   let enabled = !!flags.data?.flags['agent-tracking-enabled'];
+  let access = useHasScope(enabled ? organization.data?.id : null, agentTrackingReadScope);
 
-  return { flags, access, enabled, available: enabled && access.hasScope };
+  return {
+    flags,
+    access,
+    enabled,
+    available: enabled && access.hasScope,
+    canWrite: !!access.data?.scopes.includes(agentTrackingWriteScope)
+  };
 };
 
 export let useAgentTrackingWriteAccess = () => {

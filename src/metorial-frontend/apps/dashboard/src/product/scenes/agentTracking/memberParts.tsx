@@ -3,6 +3,7 @@ import { Avatar, Badge, Datalist, Flex, Text } from '@metorial/ui';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { InstanceContext } from '../../lib/dataList';
+import { WithInfo } from './info';
 import { withQuery, type AgentTrackingRangePreset } from './range';
 
 let unknownMemberDescription = 'API key or Bedrock usage, no email';
@@ -84,13 +85,37 @@ export let MemberIdentity = ({
 };
 
 let Explained = ({ label, text }: { label: ReactNode; text: string }) => (
-  <Flex direction="column" align="start" gap={4}>
-    {label}
+  <WithInfo info={text}>{label}</WithInfo>
+);
 
-    <Text as="span" size="1" color="gray600">
-      {text}
-    </Text>
-  </Flex>
+export let memberEmails = (member: MemberWithDetails) =>
+  [...new Set([member.email, ...member.emails])].filter((email): email is string => !!email);
+
+export let MemberLinkBadge = ({ matched }: { matched: boolean }) =>
+  matched ? (
+    <Badge size="1" color="green">
+      Linked
+    </Badge>
+  ) : (
+    <Explained
+      label={
+        <Badge size="1" color="orange">
+          Not Linked
+        </Badge>
+      }
+      text="The email of this Claude account matches no member of this organization."
+    />
+  );
+
+export let MemberReviewBadge = () => (
+  <Explained
+    label={
+      <Badge size="1" color="yellow">
+        Needs Review
+      </Badge>
+    }
+    text="Created after the daily limit of new members for an ingestion key. Check that this is a real person."
+  />
 );
 
 export let MemberDetails = ({
@@ -119,7 +144,7 @@ export let MemberDetails = ({
   }
 
   let identity = <MemberIdentity member={member} showEmail={false} />;
-  let emails = [...new Set([member.email, ...member.emails].filter(Boolean))];
+  let emails = memberEmails(member);
   let namedByEmail = !member.name && emails.length == 1;
 
   return (
@@ -136,35 +161,13 @@ export let MemberDetails = ({
             ]),
         {
           label: 'Metorial',
-          value: member.matched ? (
-            <Badge size="1" color="green">
-              Linked
-            </Badge>
-          ) : (
-            <Explained
-              label={
-                <Badge size="1" color="orange">
-                  Not Linked
-                </Badge>
-              }
-              text="The email of this Claude account matches no member of this organization."
-            />
-          )
+          value: <MemberLinkBadge matched={member.matched} />
         },
         ...(member.needsReview
           ? [
               {
                 label: 'Review',
-                value: (
-                  <Explained
-                    label={
-                      <Badge size="1" color="yellow">
-                        Needs Review
-                      </Badge>
-                    }
-                    text="Created after the daily limit of new members for an ingestion key. Check that this is a real person."
-                  />
-                )
+                value: <MemberReviewBadge />
               }
             ]
           : [])

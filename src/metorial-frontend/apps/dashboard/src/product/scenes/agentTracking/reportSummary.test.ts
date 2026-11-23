@@ -7,6 +7,7 @@ import {
   formatMonth,
   growthSourceText,
   hasReportCost,
+  isEmptyReport,
   parseGrowthPercent,
   reportChartMonths,
   type SpendReport
@@ -207,5 +208,39 @@ describe('hasReportCost', () => {
     expect(hasReportCost([month(0, 0, null), month(null, null, null)])).toBe(false);
     expect(hasReportCost([month(0, 0, null), month(null, 5, null)])).toBe(true);
     expect(hasReportCost([month(0, 0, 0), month(null, null, 7)])).toBe(true);
+  });
+});
+
+describe('isEmptyReport', () => {
+  let none = { firstDay: null, daysWithData: 0, lastFullDay: null };
+  let total = (d: { requests?: number; tokens?: number; costMicros?: number | null }) => ({
+    requests: d.requests ?? 0,
+    tokens: { total: d.tokens ?? 0 },
+    cost: { totalMicros: d.costMicros === undefined ? 0 : d.costMicros }
+  });
+  let withTotal = (r: SpendReport, figures: ReturnType<typeof total>) =>
+    ({ ...r, total: figures }) as unknown as SpendReport;
+
+  it('is empty only with no usage and no days with data', () => {
+    expect(isEmptyReport(withTotal(report({ coverage: none }), total({})))).toBe(true);
+    expect(isEmptyReport(withTotal(report({}), total({})))).toBe(false);
+    expect(isEmptyReport(withTotal(report({ coverage: none }), total({ requests: 3 })))).toBe(
+      false
+    );
+  });
+
+  it('keeps usage without a price and usage hidden by privacy', () => {
+    expect(
+      isEmptyReport(
+        withTotal(report({ coverage: none }), total({ requests: 4, costMicros: null }))
+      )
+    ).toBe(false);
+    expect(
+      isEmptyReport(withTotal(report({ coverage: { ...none, hiddenDays: 3 } }), total({})))
+    ).toBe(false);
+
+    let hidden = withTotal(report({ coverage: none }), total({}));
+    hidden.privacy = { ...hidden.privacy, hiddenGroups: true };
+    expect(isEmptyReport(hidden)).toBe(false);
   });
 });

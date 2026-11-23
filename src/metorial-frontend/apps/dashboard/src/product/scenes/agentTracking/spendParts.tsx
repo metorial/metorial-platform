@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { CostValue } from './cost';
 import { formatAmount, formatCost } from './costFormat';
+import { WithInfo } from './info';
 import { MemberIdentity } from './memberParts';
 import { unknownClientLabel } from './reportSummary';
 import { clientLabel, formatRequests, ModelNameCell } from './sessionParts';
@@ -58,7 +59,6 @@ let Swatch = styled.span<{ $color: string }>`
   flex-shrink: 0;
   width: 10px;
   height: 10px;
-  margin-top: 4px;
   border-radius: 3px;
   background: ${({ $color }) => $color};
 `;
@@ -141,17 +141,14 @@ let LegendItem = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <Flex gap={10} align="start">
+  <Flex gap={10} align="center">
     <Swatch $color={color} />
 
-    <Flex direction="column" gap={2}>
+    <WithInfo info={children}>
       <Text as="span" size="2" weight="strong">
         {title}
       </Text>
-      <Text as="span" size="1" color="gray600">
-        {children}
-      </Text>
-    </Flex>
+    </WithInfo>
   </Flex>
 );
 
@@ -210,7 +207,7 @@ export let BreakdownCost = ({ cost }: { cost: SpendCost }) => (
   </Flex>
 );
 
-export let Share = ({ share }: { share: number | null }) =>
+export let Share = ({ share, label }: { share: number | null; label?: string | null }) =>
   share === null ? (
     <Text as="span" size="2" color="gray600">
       —
@@ -219,7 +216,7 @@ export let Share = ({ share }: { share: number | null }) =>
     <Flex align="center" gap={10}>
       <Progress value={share} max={1} aria-label="Share" style={{ width: 72 }} />
       <Text as="span" size="2">
-        {formatPercent(share)}
+        {label ?? formatPercent(share)}
       </Text>
     </Flex>
   );

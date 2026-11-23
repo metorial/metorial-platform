@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { teamViewKinds, type TeamViewState } from './definitions';
+import { teamViewDefinitions, teamViewKinds, type TeamViewState } from './definitions';
 import {
+  activeTeamViewKind,
   canSaveTeamView,
   defaultTeamView,
   dollarsToMicros,
@@ -12,6 +13,8 @@ import {
   patchTeamViewSearch,
   percentToFraction,
   resolveTeamView,
+  sortPatch,
+  teamViewHref,
   toInsightsQuery,
   toSavedViewParams,
   writeTeamViewSearch
@@ -367,5 +370,113 @@ describe('same view', () => {
     let explicit = resolveTeamView('leaderboard', { sort: 'cost', order: 'desc' });
 
     expect(isSameTeamView(explicit, defaultTeamView('leaderboard'))).toBe(true);
+  });
+});
+
+describe('header sorting', () => {
+  it('flips the order when the active column is clicked again', () => {
+    expect(sortPatch(defaultTeamView('leaderboard'), 'cost')).toEqual({ order: 'asc' });
+    expect(sortPatch(resolveTeamView('leaderboard', { order: 'asc' }), 'cost')).toEqual({
+      order: 'desc'
+    });
+  });
+
+  it('starts another column at highest first unless its definition says otherwise', () => {
+    expect(sortPatch(defaultTeamView('leaderboard'), 'requests')).toEqual({
+      sort: 'requests',
+      order: 'desc'
+    });
+    expect(sortPatch(defaultTeamView('practices'), 'high_effort_share')).toEqual({
+      sort: 'high_effort_share',
+      order: 'desc'
+    });
+  });
+
+  it('starts low cache hit rates and the stalest members first', () => {
+    expect(sortPatch(defaultTeamView('practices'), 'cache_hit_rate')).toEqual({
+      sort: 'cache_hit_rate',
+      order: 'asc'
+    });
+    expect(sortPatch(defaultTeamView('seats'), 'last_activity')).toEqual({
+      sort: 'last_activity',
+      order: 'asc'
+    });
+  });
+
+  it("returns to a view's default sort in its default order", () => {
+    let byCost = resolveTeamView('seats', { sort: 'cost', order: 'desc' });
+
+    expect(sortPatch(byCost, 'seat_usage')).toEqual({ sort: 'seat_usage', order: 'asc' });
+  });
+
+  it('keeps defaults out of the URL after a round of clicks', () => {
+    let view = defaultTeamView('practices');
+    let clicked = resolveTeamView('practices', {
+      ...view.params,
+      ...sortPatch(view, 'fast_share')
+    });
+    let back = resolveTeamView('practices', {
+      ...clicked.params,
+      ...sortPatch(clicked, 'cost')
+    });
+
+    expect(writeTeamViewSearch(new URLSearchParams(), clicked, null).get('sort')).toBe(
+      'fast_share'
+    );
+    expect(writeTeamViewSearch(new URLSearchParams(), back, null).toString()).toBe(
+      'view=practices'
+    );
+  });
+});
+
+describe('sidebar links', () => {
+  let teamPath = '/org/project/instance/agent-usage/team';
+
+  it('links built-in views with only the kind and saved views with their settings', () => {
+    expect(teamViewHref(teamPath, defaultTeamView('recent'), null)).toBe(teamPath);
+    expect(teamViewHref(teamPath, defaultTeamView('practices'), null)).toBe(
+      `${teamPath}?view=practices`
+    );
+    expect(teamViewHref(teamPath, customized.practices, 'atvw_1')).toBe(
+      `${teamPath}?${writeTeamViewSearch(new URLSearchParams(), customized.practices, 'atvw_1')}`
+    );
+  });
+
+  it('marks the built-in view of the location active', () => {
+    let at = (pathname: string, search = '') =>
+      activeTeamViewKind({ pathname, search }, teamPath);
+
+    expect(at(teamPath)).toBe('recent');
+    expect(at(`${teamPath}/`)).toBe('recent');
+    expect(at(teamPath, '?view=by_model&modelId=a')).toBe('by_model');
+    expect(at(teamPath, '?view=everything')).toBe('recent');
+    expect(at(teamPath, '?view=practices&saved=atvw_1')).toBeNull();
+    expect(at(`${teamPath}/aten_1`)).toBeNull();
+    expect(at('/org/project/instance/agent-usage/spend', '?view=practices')).toBeNull();
+  });
+});
+
+describe('flagged cells', () => {
+  let flagsOf = (kind: (typeof teamViewKinds)[number]) =>
+    teamViewDefinitions[kind].columns.flatMap(column =>
+      column.flag ? [[column.flag, column.id]] : []
+    );
+
+  it.each([
+    ['recent', []],
+    ['leaderboard', []],
+    ['by_model', [['model_share', 'modelShare']]],
+    [
+      'practices',
+      [
+        ['high_effort', 'highEffort'],
+        ['fast_mode', 'fastMode'],
+        ['outdated_models', 'outdated'],
+        ['low_cache_hit_rate', 'cacheHitRate']
+      ]
+    ],
+    ['seats', [['low_usage_seat', 'seatUsage']]]
+  ] as const)('highlights the column of each flag in %s', (kind, expected) => {
+    expect(flagsOf(kind)).toEqual(expected);
   });
 });

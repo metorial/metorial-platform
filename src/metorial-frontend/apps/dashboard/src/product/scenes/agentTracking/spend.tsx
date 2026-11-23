@@ -19,6 +19,7 @@ import { describeCostComparison } from './costComparison';
 import { formatAmount, toDollars, toMicros } from './costFormat';
 import { AgentTrackingErrorState } from './errorState';
 import { AgentTrackingFilterRangeContext, agentTrackingFilters } from './filters';
+import { WithInfo } from './info';
 import { MemberIdentity } from './memberParts';
 import { useAgentTrackingPrivacy } from './privacy';
 import {
@@ -276,9 +277,11 @@ let OverTime = ({
   return (
     <>
       <Flex justify="space-between" align="center" gap={12} wrap="wrap">
-        <Text as="span" size="2" weight="strong">
-          {measure.title}
-        </Text>
+        <WithInfo info={note}>
+          <Text as="span" size="2" weight="strong">
+            {measure.title}
+          </Text>
+        </WithInfo>
 
         <div>
           <OptionToggle
@@ -294,16 +297,6 @@ let OverTime = ({
       <Spacer height={12} />
 
       <MeasureChart timeline={timeline} measure={measure} filtered={filtered} />
-
-      {note ? (
-        <>
-          <Spacer height={10} />
-
-          <Text size="1" color="gray600">
-            {note}
-          </Text>
-        </>
-      ) : null}
     </>
   );
 };
@@ -332,7 +325,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
 
   if (!hasUsage(timeline.total)) {
     return (
-      <Box title="Total Spend" description={rangeDescription(timeline.range)}>
+      <Box title={<WithInfo info={rangeDescription(timeline.range)}>Total Spend</WithInfo>}>
         <Text size="2" color="gray600">
           {timeline.privacy.hiddenGroups
             ? `All usage in this range is on days with ${hiddenGroupText(timeline.privacy.minGroupUsers)}, so it is hidden.`
@@ -362,7 +355,7 @@ let SpendTotal = ({ timeline, filtered }: { timeline: Timeline; filtered: boolea
   });
 
   return (
-    <Box title="Total Spend" description={rangeDescription(timeline.range)}>
+    <Box title={<WithInfo info={rangeDescription(timeline.range)}>Total Spend</WithInfo>}>
       <Flex justify="space-between" align="end" gap={20} wrap="wrap">
         <Flex direction="column" gap={4}>
           <Text as="span" size="8" weight="bold">
@@ -441,8 +434,7 @@ let Breakdown = ({
 
   return (
     <Box
-      title="Cost By"
-      description="Share is of the total."
+      title={<WithInfo info="Share is of the total.">Cost By</WithInfo>}
       rightActions={
         <OptionToggle
           size="2"
@@ -518,11 +510,16 @@ let ExpensiveSessions = ({
 
   return (
     <Box
-      title="Most Expensive Sessions"
-      description={
-        filters.modelId
-          ? 'Sessions last active in this period that used these models, ranked by the cost of the whole session.'
-          : 'Sessions last active in this period, ranked by the cost of the whole session.'
+      title={
+        <WithInfo
+          info={
+            filters.modelId
+              ? 'Sessions last active in this period that used these models, ranked by the cost of the whole session.'
+              : 'Sessions last active in this period, ranked by the cost of the whole session.'
+          }
+        >
+          Most Expensive Sessions
+        </WithInfo>
       }
       rightActions={
         <Link to={allSessionsPath}>

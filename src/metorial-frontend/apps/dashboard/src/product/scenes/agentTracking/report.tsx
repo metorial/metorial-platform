@@ -2,17 +2,20 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Chart, formatCurrency, formatNumber, type ChartSeries } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingSpendReportQuery } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { EmptyState } from '@metorial/empty-state';
 import { saveBlob } from '@metorial/file-browser';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { useAgentTrackingSpendReport } from '@metorial/state';
 import { Button, Callout, Flex, OptionToggle, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { RiDownload2Line } from '@remixicon/react';
+import styled from 'styled-components';
 import { CommitNumberInput } from './commitInput';
 import { CostValue } from './cost';
 import { formatAmount, toDollars, toMicros } from './costFormat';
 import { buildSpendReportCsv, spendReportCsvFileName } from './csv';
 import { AgentTrackingErrorState, PrivacySettingsButton } from './errorState';
+import { WithInfo } from './info';
 import { useAgentTrackingPrivacy } from './privacy';
 import { formatAgentTrackingRange, getBrowserTimeZone } from './range';
 import {
@@ -25,9 +28,9 @@ import {
   growthSourceLabels,
   growthSourceText,
   hasReportCost,
+  isEmptyReport,
   isPastYear,
   parseGrowthPercent,
-  projectionEstimateNote,
   projectionMinDays,
   reportChartMonths,
   reportTotalLabel,
@@ -90,6 +93,19 @@ type ReportView = {
 
 // A loader whose input turns null keeps its previous state, so only data loaded for this exact
 // query is shown or exported.
+// The tiles already sit in the Projection card, so they drop their own frame and keep only the
+// divider between them.
+let PlainTiles = styled.div`
+  margin: -12px -17px;
+
+  & > dl {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+`;
+
 let useCurrentReport = (
   instanceId: string,
   query: DashboardInstanceAgentTrackingSpendReportQuery | null
@@ -128,27 +144,22 @@ let YearToDate = ({ report }: { report: SpendReport }) => {
   let cost = report.total.cost;
   let coverage = describeCoverage(report);
 
-  let title = reportTotalLabel(report);
-  let description = `${formatAgentTrackingRange(report.range)} · ${report.range.timeZone}`;
-
-  let coverageNotice = coverage.partial ? (
-    <Callout color="blue">{coverage.sentences.join(' ')}</Callout>
-  ) : (
-    <Text size="2" color="gray700">
-      {coverage.sentences.join(' ')}
-    </Text>
-  );
+  let range = `${formatAgentTrackingRange(report.range)} · ${report.range.timeZone}.`;
+  let coverageText = coverage.sentences.join(' ');
+  let title = (info: string) => <WithInfo info={info}>{reportTotalLabel(report)}</WithInfo>;
 
   if (!hasUsage(report.total)) {
     return (
-      <Box title={title} description={description}>
-        {coverageNotice}
+      <Box title={title(range)}>
+        <Text size="2" color="gray700">
+          {coverageText}
+        </Text>
       </Box>
     );
   }
 
   return (
-    <Box title={title} description={description}>
+    <Box title={title(`${range} ${coverageText}`)}>
       <Flex justify="space-between" align="end" gap={20} wrap="wrap">
         <Text as="span" size="8" weight="bold">
           <CostValue cost={cost} />
@@ -156,10 +167,6 @@ let YearToDate = ({ report }: { report: SpendReport }) => {
 
         <SpendCountsSummary requests={report.total.requests} counts={report.counts} />
       </Flex>
-
-      <Spacer height={14} />
-
-      {coverageNotice}
 
       {report.counts ? null : (
         <>
@@ -195,7 +202,13 @@ let GrowthControl = ({
   return (
     <Flex align="end" gap={12} wrap="wrap">
       <CommitNumberInput
-        label="Monthly Growth"
+        label={
+          <WithInfo
+            info={percent === undefined ? defaultText : `Set by you. ${defaultText ?? ''}`}
+          >
+            Monthly Growth
+          </WithInfo>
+        }
         size="2"
         unit="%"
         min={growthPercentBounds.min}
@@ -206,12 +219,6 @@ let GrowthControl = ({
         onCommit={setPercent}
         style={{ width: 160 }}
       />
-
-      <Flex direction="column" gap={6} align="start" style={{ paddingBottom: 6 }}>
-        <Text size="1" color="gray600">
-          {percent === undefined ? defaultText : `Set by you. ${defaultText ?? ''}`}
-        </Text>
-      </Flex>
 
       {percent !== undefined ? (
         <Button size="2" variant="outline" onClick={() => setPercent(undefined)}>
@@ -302,11 +309,16 @@ let Monthly = ({
 
   return (
     <Box
-      title="By Month"
-      description={
-        canProject
-          ? `Cost per month in ${base.year}, and the projection through ${base.year + 1}.`
-          : `Cost per month in ${base.year}.`
+      title={
+        <WithInfo
+          info={
+            canProject
+              ? `Cost per month in ${base.year}, and the projection through ${base.year + 1}.`
+              : `Cost per month in ${base.year}.`
+          }
+        >
+          By Month
+        </WithInfo>
       }
       rightActions={
         canProject ? (
@@ -349,13 +361,7 @@ let Monthly = ({
   );
 };
 
-let ProjectionMethod = ({
-  report,
-  scenario
-}: {
-  report: SpendReport;
-  scenario: ScenarioId;
-}) => {
+let projectionMethod = (report: SpendReport, scenario: ScenarioId) => {
   let { baseline, growth } = report.projection;
   if (!baseline || baseline.dailyRateMicros === null) return null;
 
@@ -364,20 +370,7 @@ let ProjectionMethod = ({
       ? `With Growth, the cost per day grows ${growthPercentOf(growth.rate)}% each month after this one, compounding (${growthSourceLabels[growth.source]}).`
       : 'Flat assumes every coming day costs that much.';
 
-  return (
-    <Flex direction="column" gap={6}>
-      <Text size="2" color="gray700">
-        Based on the average cost per day over the {formatNumber(baseline.days)} days from{' '}
-        {formatDay(baseline.from)} to {formatDay(baseline.to)}:{' '}
-        {formatAmount(baseline.dailyRateMicros, { estimate: true })} per day. {scenarioText}{' '}
-        The year-end total adds the projected months to the cost so far.
-      </Text>
-
-      <Text size="1" color="gray600">
-        {projectionEstimateNote}
-      </Text>
-    </Flex>
-  );
+  return `Projections are estimates, based on the average cost per day over the ${formatNumber(baseline.days)} days from ${formatDay(baseline.from)} to ${formatDay(baseline.to)}: ${formatAmount(baseline.dailyRateMicros, { estimate: true })} per day. ${scenarioText} The year-end total adds the projected months to the cost so far.`;
 };
 
 let Projection = ({
@@ -416,7 +409,7 @@ let Projection = ({
   let scenarioLabel = scenarios.find(item => item.id == scenario)!.label;
 
   return (
-    <Box title="Projection" description={`${scenarioLabel} scenario.`}>
+    <Box title={<WithInfo info={`${scenarioLabel} scenario.`}>Projection</WithInfo>}>
       {renderWithLoader(
         { projected },
         {
@@ -432,13 +425,17 @@ let Projection = ({
         if (!figures) return null;
 
         return (
-          <>
+          <PlainTiles>
             <MetricsSummary
               columns={2}
               items={[
                 {
                   id: 'yearEnd',
-                  label: `Projected ${report.year} Total`,
+                  label: (
+                    <WithInfo info={projectionMethod(report, scenario)}>
+                      {`Projected ${report.year} Total`}
+                    </WithInfo>
+                  ),
                   value: formatAmount(figures.yearEndTotalMicros, { estimate: true })
                 },
                 {
@@ -448,11 +445,7 @@ let Projection = ({
                 }
               ]}
             />
-
-            <Spacer height={14} />
-
-            <ProjectionMethod report={report} scenario={scenario} />
-          </>
+          </PlainTiles>
         );
       })}
     </Box>
@@ -478,8 +471,13 @@ let Breakdowns = ({ report }: { report: SpendReport }) => {
 
   return (
     <Box
-      title="Cost By"
-      description={`${report.year}${isPastYear(report) ? '' : ' so far'}. Share is of the total.`}
+      title={
+        <WithInfo
+          info={`${report.year}${isPastYear(report) ? '' : ' so far'}. Share is of the total.`}
+        >
+          Cost By
+        </WithInfo>
+      }
       rightActions={
         <OptionToggle
           size="2"
@@ -541,6 +539,7 @@ let ReportPage = ({
           ? { ...baseQuery, growthRate: growthPercent / 100 }
           : baseQuery;
   let projected = useCurrentReport(instanceId, projectedQuery);
+  let empty = !!base.data && isEmptyReport(base.data);
 
   let exportCsv = () => {
     let report = projected.data;
@@ -567,38 +566,51 @@ let ReportPage = ({
           />
         </div>
 
-        <Button
-          size="2"
-          variant="outline"
-          iconLeft={<RiDownload2Line />}
-          disabled={!projected.data}
-          onClick={exportCsv}
-        >
-          Export CSV
-        </Button>
+        {empty ? null : (
+          <Button
+            size="2"
+            variant="outline"
+            iconLeft={<RiDownload2Line />}
+            disabled={!projected.data}
+            onClick={exportCsv}
+          >
+            Export CSV
+          </Button>
+        )}
       </Flex>
 
       {renderWithLoader(
         { base },
         { error: errorState(base) }
-      )(({ base }) => (
-        <>
-          <YearToDate report={base.data} />
-
-          <Monthly
-            base={base.data}
-            projected={projected}
-            scenario={scenario}
-            setScenario={setScenario}
-            growthPercent={growthPercent}
-            setGrowthPercent={setGrowthPercent}
+      )(({ base }) =>
+        isEmptyReport(base.data) ? (
+          <EmptyState
+            title={`No Usage in ${base.data.year}`}
+            description={
+              isPastYear(base.data)
+                ? 'Nothing was recorded for this year.'
+                : 'Nothing has been recorded this year yet.'
+            }
           />
+        ) : (
+          <>
+            <YearToDate report={base.data} />
 
-          <Projection base={base.data} projected={projected} scenario={scenario} />
+            <Monthly
+              base={base.data}
+              projected={projected}
+              scenario={scenario}
+              setScenario={setScenario}
+              growthPercent={growthPercent}
+              setGrowthPercent={setGrowthPercent}
+            />
 
-          <Breakdowns report={base.data} />
-        </>
-      ))}
+            <Projection base={base.data} projected={projected} scenario={scenario} />
+
+            <Breakdowns report={base.data} />
+          </>
+        )
+      )}
     </Flex>
   );
 };

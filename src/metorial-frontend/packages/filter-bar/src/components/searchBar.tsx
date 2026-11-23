@@ -218,6 +218,7 @@ export type FilterSearchBarProps = {
   shortcut?: boolean;
   pillSelections?: PillSelections;
   barEnd?: React.ReactNode;
+  panelLayout?: 'auto' | 'full';
 };
 
 export let FilterSearchBar = ({
@@ -229,7 +230,8 @@ export let FilterSearchBar = ({
   size: sizeProp,
   shortcut = true,
   pillSelections,
-  barEnd
+  barEnd,
+  panelLayout = 'auto'
 }: FilterSearchBarProps) => {
   let [filterState, setFilterState] = filterStateTuple;
   let [localQuery, setLocalQuery] = useState('');
@@ -716,7 +718,7 @@ export let FilterSearchBar = ({
         onOpenChange={setPanelOpen}
         anchorRef={barRef}
         align="end"
-        width={filters.length == 1 ? 340 : 600}
+        width={filters.length == 1 && panelLayout == 'auto' ? 340 : 600}
         isInside={isInsidePanelLayer}
         label="Filters"
       >
@@ -726,6 +728,7 @@ export let FilterSearchBar = ({
           activeFilterId={panelFilterId}
           onActiveFilterChange={setPanelFilterId}
           onApplied={() => setPanelOpen(false)}
+          layout={panelLayout}
         />
       </FilterPopover>
     </>

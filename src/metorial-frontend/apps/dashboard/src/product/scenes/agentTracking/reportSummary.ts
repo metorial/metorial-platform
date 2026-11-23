@@ -1,6 +1,6 @@
 import { formatNumber } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingSpendReportOutput } from '@metorial/dashboard-sdk';
-import { hiddenGroupText } from './spendSummary';
+import { hasUsage, hiddenGroupText } from './spendSummary';
 
 // Matches growthRateBounds.input of the agent-tracking-query module, in percent.
 export let growthPercentBounds = { min: -50, max: 50 };
@@ -94,6 +94,13 @@ let dayAfter = (day: string) => {
   let [year, month, date] = day.split('-').map(Number) as [number, number, number];
   return new Date(Date.UTC(year, month - 1, date + 1)).toISOString().slice(0, 10);
 };
+
+export let isEmptyReport = (report: SpendReport) =>
+  !hasUsage(report.total) &&
+  !report.coverage.firstDay &&
+  report.coverage.daysWithData == 0 &&
+  report.coverage.hiddenDays == 0 &&
+  !report.privacy.hiddenGroups;
 
 export let describeCoverageDays = (report: SpendReport) => {
   let coverage = report.coverage;

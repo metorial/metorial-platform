@@ -1,4 +1,7 @@
-import type { DashboardInstanceAgentTrackingMembersInsightsQuery } from '@metorial/dashboard-sdk';
+import type {
+  DashboardInstanceAgentTrackingMembersInsightsOutput,
+  DashboardInstanceAgentTrackingMembersInsightsQuery
+} from '@metorial/dashboard-sdk';
 import { defaultAgentTrackingRange, type AgentTrackingRangePreset } from '../range';
 
 export let maxSavedViews = 50;
@@ -24,6 +27,9 @@ export type InsightsSort = NonNullable<
 >;
 
 export type SortOrder = 'asc' | 'desc';
+
+export type InsightFlag =
+  DashboardInstanceAgentTrackingMembersInsightsOutput['items'][number]['flags'][number];
 
 export type TeamViewParams = {
   range?: AgentTrackingRangePreset;
@@ -62,8 +68,7 @@ export type TeamViewColumn =
   | 'cacheHitRate'
   | 'seat'
   | 'plan'
-  | 'seatUsage'
-  | 'flags';
+  | 'seatUsage';
 
 export type TeamViewDefinition = {
   kind: TeamViewKind;
@@ -72,8 +77,8 @@ export type TeamViewDefinition = {
   include: InsightsGroup[];
   fields: TeamViewField[];
   defaults: TeamViewParams;
-  sorts: { id: InsightsSort; label: string }[];
-  columns: { id: TeamViewColumn; header: string }[];
+  sorts: { id: InsightsSort; column: TeamViewColumn; order?: SortOrder }[];
+  columns: { id: TeamViewColumn; header: string; title?: string; flag?: InsightFlag }[];
 };
 
 export let defaultTeamViewKind: TeamViewKind = 'recent';
@@ -102,16 +107,16 @@ export let teamViewDefinitions: Record<TeamViewKind, TeamViewDefinition> = {
       includeInactive: false
     },
     sorts: [
-      { id: 'cost', label: 'Cost' },
-      { id: 'sessions', label: 'Sessions With Usage' },
-      { id: 'requests', label: 'Requests' }
+      { id: 'cost', column: 'cost' },
+      { id: 'sessions', column: 'sessions' },
+      { id: 'requests', column: 'requests' }
     ],
     columns: [
       { id: 'rank', header: 'Rank' },
       { id: 'member', header: 'Member' },
       { id: 'cost', header: 'Cost' },
       { id: 'share', header: 'Share' },
-      { id: 'sessions', header: 'Sessions With Usage' },
+      { id: 'sessions', header: 'Sessions', title: 'Sessions With Usage' },
       { id: 'requests', header: 'Requests' },
       { id: 'lastActive', header: 'Last Active' }
     ]
@@ -131,18 +136,22 @@ export let teamViewDefinitions: Record<TeamViewKind, TeamViewDefinition> = {
       flaggedOnly: false
     },
     sorts: [
-      { id: 'model_cost', label: 'Cost on Selected Models' },
-      { id: 'model_share', label: "Share of Member's Cost" },
-      { id: 'cost', label: 'Total Cost' }
+      { id: 'model_cost', column: 'modelCost' },
+      { id: 'model_share', column: 'modelShare' },
+      { id: 'cost', column: 'cost' }
     ],
     columns: [
       { id: 'rank', header: 'Rank' },
       { id: 'member', header: 'Member' },
-      { id: 'modelCost', header: 'Cost on Selected Models' },
-      { id: 'modelShare', header: "Share of Member's Cost" },
-      { id: 'modelRequests', header: 'Requests on Selected Models' },
-      { id: 'cost', header: 'Total Cost' },
-      { id: 'flags', header: 'Flags' }
+      { id: 'modelCost', header: 'Model Cost', title: 'Cost on Selected Models' },
+      {
+        id: 'modelShare',
+        header: 'Share of Cost',
+        title: "Share of Member's Cost",
+        flag: 'model_share'
+      },
+      { id: 'modelRequests', header: 'Model Requests', title: 'Requests on Selected Models' },
+      { id: 'cost', header: 'Total Cost' }
     ]
   },
   practices: {
@@ -172,20 +181,19 @@ export let teamViewDefinitions: Record<TeamViewKind, TeamViewDefinition> = {
       flaggedOnly: false
     },
     sorts: [
-      { id: 'cost', label: 'Cost' },
-      { id: 'high_effort_share', label: 'High Effort' },
-      { id: 'fast_share', label: 'Fast Mode' },
-      { id: 'outdated_share', label: 'Outdated Models' },
-      { id: 'cache_hit_rate', label: 'Cache Hit Rate' }
+      { id: 'cost', column: 'cost' },
+      { id: 'high_effort_share', column: 'highEffort' },
+      { id: 'fast_share', column: 'fastMode' },
+      { id: 'outdated_share', column: 'outdated' },
+      { id: 'cache_hit_rate', column: 'cacheHitRate', order: 'asc' }
     ],
     columns: [
       { id: 'member', header: 'Member' },
-      { id: 'highEffort', header: 'High Effort' },
-      { id: 'fastMode', header: 'Fast Mode' },
-      { id: 'outdated', header: 'Outdated Models' },
-      { id: 'cacheHitRate', header: 'Cache Hit Rate' },
-      { id: 'cost', header: 'Cost' },
-      { id: 'flags', header: 'Flags' }
+      { id: 'highEffort', header: 'High Effort', flag: 'high_effort' },
+      { id: 'fastMode', header: 'Fast Mode', flag: 'fast_mode' },
+      { id: 'outdated', header: 'Outdated Models', flag: 'outdated_models' },
+      { id: 'cacheHitRate', header: 'Cache Hit Rate', flag: 'low_cache_hit_rate' },
+      { id: 'cost', header: 'Cost' }
     ]
   },
   seats: {
@@ -213,18 +221,17 @@ export let teamViewDefinitions: Record<TeamViewKind, TeamViewDefinition> = {
       flaggedOnly: false
     },
     sorts: [
-      { id: 'seat_usage', label: 'Usage at List Price' },
-      { id: 'cost', label: 'Cost' },
-      { id: 'last_activity', label: 'Last Active' }
+      { id: 'seat_usage', column: 'seatUsage' },
+      { id: 'cost', column: 'cost' },
+      { id: 'last_activity', column: 'lastActive', order: 'asc' }
     ],
     columns: [
       { id: 'member', header: 'Member' },
       { id: 'seat', header: 'Seat' },
       { id: 'plan', header: 'Plan' },
-      { id: 'seatUsage', header: 'Usage at List Price' },
+      { id: 'seatUsage', header: 'Usage at List Price', flag: 'low_usage_seat' },
       { id: 'cost', header: 'Cost' },
-      { id: 'lastActive', header: 'Last Active' },
-      { id: 'flags', header: 'Flags' }
+      { id: 'lastActive', header: 'Last Active' }
     ]
   }
 };

@@ -12,6 +12,7 @@ import {
 import type { TableFilter, TableFilterState } from '../model/tableFilter';
 import { FilterHighlightRow } from './highlightRow';
 import { OptionList } from './optionList';
+import { FilterPanel } from './panel';
 import { FilterSearchBar } from './searchBar';
 import { FilterToolbar } from './toolbar';
 
@@ -407,5 +408,23 @@ describe('OptionList', () => {
 
     act(() => label.click());
     expect(onToggle).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('FilterPanel', () => {
+  let renderPanel = (layout?: 'auto' | 'full') =>
+    render(
+      <FilterPanel
+        filters={[plainStatusFilter]}
+        filterState={[[], () => {}]}
+        activeFilterId="status"
+        onActiveFilterChange={() => {}}
+        layout={layout}
+      />
+    );
+
+  it('drops the filter list for a single filter unless asked for the full layout', () => {
+    expect(renderPanel().querySelector('nav[aria-label="Filters"]')).toBeNull();
+    expect(renderPanel('full').querySelector('nav[aria-label="Filters"]')).not.toBeNull();
   });
 });

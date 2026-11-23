@@ -1,27 +1,25 @@
 import { formatNumber, formatPercent } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingMembersInsightsOutput } from '@metorial/dashboard-sdk';
-import { isTeamViewKind, maxInsightMembers, teamViewDefinitions } from './definitions';
+import { formatCost } from '../costFormat';
+import {
+  isTeamViewKind,
+  maxInsightMembers,
+  teamViewDefinitions,
+  type InsightFlag,
+  type TeamViewKind
+} from './definitions';
 
 export type MemberInsights = DashboardInstanceAgentTrackingMembersInsightsOutput;
 
 export type MemberInsight = MemberInsights['items'][number];
 
-export type InsightFlag = MemberInsight['flags'][number];
+export type { InsightFlag };
 
 type OutdatedModel = NonNullable<MemberInsight['practices']>['outdatedModels'][number];
 
 type FlagCounts = MemberInsights['summary']['flagCounts'];
 
 export let notReportedLabel = 'Not Reported';
-
-export let insightFlagLabels: Record<InsightFlag, string> = {
-  model_share: 'High Model Share',
-  high_effort: 'High Effort',
-  fast_mode: 'Fast Mode',
-  outdated_models: 'Outdated Models',
-  low_cache_hit_rate: 'Low Cache Hits',
-  low_usage_seat: 'Low Usage'
-};
 
 let flagCountKeys: Record<InsightFlag, keyof FlagCounts> = {
   model_share: 'modelShare',
@@ -40,18 +38,15 @@ export let partOfCost = (
   isEstimate: cost.isEstimate && !!micros
 });
 
-export let formatInsightShare = (share: number | null | undefined) =>
-  share === null || share === undefined ? null : formatPercent(share, { precision: 0 });
+export let formatInsightShare = (share: number | null | undefined) => {
+  if (share === null || share === undefined) return null;
+  if (share > 0 && share < 0.005) return '<1%';
+
+  return formatPercent(share, { precision: 0 });
+};
 
 export let flagCountOf = (summary: MemberInsights['summary'], flag: InsightFlag) =>
   summary.flagCounts[flagCountKeys[flag]];
-
-export let describeFlagCount = (count: number | null, members: number) => {
-  if (count === null) return null;
-  if (count == 0) return 'Nobody flagged';
-
-  return `${formatNumber(count)} of ${formatNumber(members)} ${members == 1 ? 'member' : 'members'} flagged`;
-};
 
 export let outdatedModelStatusLabel = (model: Pick<OutdatedModel, 'status' | 'isLatest'>) => {
   if (model.status == 'retired') return 'Retired';
@@ -74,20 +69,91 @@ export let teamViewKindLabel = (kind: string) =>
 export let truncatedNotice = (includeInactive: boolean) =>
   `More than ${formatNumber(maxInsightMembers)} members ${includeInactive ? 'are known to this instance' : 'had usage in this range'}. Only ${formatNumber(maxInsightMembers)} are listed${includeInactive ? ', members with usage first,' : ''} and the least expensive are left out. Ranks and flag counts cover only the members listed; the totals still cover everyone.`;
 
-export let countsCappedNotice =
-  'Some counts reached their limit of 10,000 and show the limit, not the real number.';
-
-export let requestRecordsClippedNotice =
-  'Practices and seats come from request records, which are kept for 90 days, so they cover only the most recent 90 days of this range.';
-
 export let modelCatalogNotice =
   'Deprecated, retired and latest reflect the model catalog today, not when the requests were made.';
 
-export let seatEstimateNotice =
-  'Usage at list price is an estimate: what the requests in the range would cost at list prices, based on what Claude Code reports. Seat and plan are as Claude Code reports them. Use this to review seat assignments, not as a bill.';
+export let seatUsageNotice = 'An estimate at list prices, not a bill';
 
-export let noSeatReportedNotice =
-  'No seat type has been reported yet: Claude Code reports the plan but not the seat. Members are judged by usage alone, and choosing seats flags nobody until seats are reported.';
+export let membersWithoutUsageNotice = (days: number) =>
+  `The instance's consumers and the people seen in it in the last ${formatNumber(days)} days who have no usage in this range.`;
 
-export let hasNoReportedSeat = (summary: MemberInsights['summary']) =>
-  !!summary.seat && summary.members > 0 && summary.seat.unknownSeatMembers >= summary.members;
+let practiceSummaries = [
+  { label: 'High Effort', share: 'highEffortShare', flag: 'high_effort' },
+  { label: 'Fast Mode', share: 'fastShare', flag: 'fast_mode' },
+  { label: 'Outdated Models', share: 'outdatedShare', flag: 'outdated_models' },
+  { label: 'Cache Hit Rate', share: 'cacheHitRate', flag: 'low_cache_hit_rate' }
+] as const;
+
+let counted = (count: number, one: string, many = `${one}s`) =>
+  `${formatNumber(count)} ${count == 1 ? one : many}`;
+
+let withSuffix = (value: string | null, suffix: string) =>
+  value === null ? null : `${value} ${suffix}`;
+
+let costText = (cost: { totalMicros: number | null; isEstimate: boolean }, suffix: string) =>
+  withSuffix(formatCost(cost.totalMicros, { estimate: cost.isEstimate }), suffix);
+
+let flaggedText = (count: number | null) => (count ? `${formatNumber(count)} flagged` : null);
+
+let summaryParts = (kind: TeamViewKind, summary: MemberInsights['summary']) => {
+  let { practices, models, seat } = summary;
+
+  if (kind == 'practices' && practices) {
+    return [
+      counted(summary.members, 'member'),
+      ...practiceSummaries.map(item => {
+        let share = formatInsightShare(practices[item.share]);
+        if (share === null) return null;
+
+        let flagged = flaggedText(flagCountOf(summary, item.flag));
+        return `${item.label} ${share}${flagged ? `, ${flagged}` : ''}`;
+      })
+    ];
+  }
+
+  if (kind == 'by_model' && models) {
+    return [
+      costText(partOfCost(models.costMicros, summary.cost), 'on the selected models'),
+      withSuffix(formatInsightShare(models.costShare), 'of all cost'),
+      counted(summary.members, 'ranked member'),
+      flaggedText(summary.flagCounts.modelShare)
+    ];
+  }
+
+  if (kind == 'seats' && seat) {
+    let listPrice = summary.cost.listPriceMicros;
+
+    return [
+      counted(summary.members, 'member'),
+      `${formatNumber(summary.flagCounts.lowUsageSeat ?? 0)} with low usage`,
+      `${formatNumber(seat.unknownSeatMembers)} with no seat reported`,
+      withSuffix(formatCost(listPrice, { estimate: !!listPrice }), 'at list price')
+    ];
+  }
+
+  return [
+    costText(summary.cost, 'in the range'),
+    counted(summary.activeMembers, 'active member'),
+    counted(summary.sessions, 'session with usage', 'sessions with usage'),
+    counted(summary.requests, 'request')
+  ];
+};
+
+export let describeInsightsSummary = (
+  kind: TeamViewKind,
+  summary: MemberInsights['summary']
+) =>
+  summaryParts(kind, summary)
+    .filter(part => !!part)
+    .join(' · ');
+
+export let describeModelListSummary = (breakdown: {
+  total: { cost: { totalMicros: number | null; isEstimate: boolean } };
+  items: { kind: string }[];
+}) =>
+  [
+    costText(breakdown.total.cost, 'in the range'),
+    counted(breakdown.items.filter(item => item.kind != 'other').length, 'model')
+  ]
+    .filter(part => !!part)
+    .join(' · ');

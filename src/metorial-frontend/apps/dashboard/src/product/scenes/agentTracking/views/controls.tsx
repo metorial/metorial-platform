@@ -1,4 +1,4 @@
-import { Flex, OptionToggle, Select, Switch, Text } from '@metorial/ui';
+import { Button, OptionToggle, Popover, Text, theme } from '@metorial/ui';
 import {
   FilterToolbar,
   getListValue,
@@ -6,7 +6,8 @@ import {
   type FilterStateTuple,
   type TableFilterState
 } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
+import { styled } from 'styled-components';
 import { CommitNumberInput } from '../commitInput';
 import { AgentTrackingFilterRangeContext, agentTrackingFilters } from '../filters';
 import { memberWindowDays } from '../memberParts';
@@ -18,108 +19,196 @@ import {
 import {
   maxSeatUsageDollars,
   teamViewDefinitions,
-  type InsightsSort,
-  type SortOrder,
   type TeamViewField,
   type TeamViewParams,
   type TeamViewState
 } from './definitions';
 import {
-  dollarsToMicros,
-  fractionToPercent,
-  microsToDollars,
-  percentToFraction
-} from './state';
+  flagRulesLabel,
+  flagRulesModified,
+  flagRulesOf,
+  flagRulesResetPatch,
+  fromRuleInput,
+  toRuleInput
+} from './flagRules';
+import {
+  flaggedFilter,
+  fromToggleFilterStates,
+  membersWithoutUsageFilter,
+  showsFlaggedFilter,
+  showsInactiveFilter,
+  toToggleFilterStates
+} from './filterInput';
 
 let filterRangeText = 'this range';
 
-let shareThresholds = [
-  { field: 'modelShareMin', label: 'Flag at or Above' },
-  { field: 'highEffortShareMin', label: 'High Effort at or Above' },
-  { field: 'fastShareMin', label: 'Fast Mode at or Above' },
-  { field: 'outdatedShareMin', label: 'Outdated Models at or Above' },
-  { field: 'cacheHitRateMax', label: 'Cache Hit Rate Below' }
-] as const;
+let inactiveFilter = membersWithoutUsageFilter(memberWindowDays);
 
-let orderItems = (sort: InsightsSort | undefined) =>
-  sort == 'last_activity'
-    ? [
-        { id: 'desc', label: 'Most Recent First' },
-        { id: 'asc', label: 'Least Recent First' }
-      ]
-    : [
-        { id: 'desc', label: 'Highest First' },
-        { id: 'asc', label: 'Lowest First' }
-      ];
+let RangeScroll = styled.div`
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+`;
 
-let ThresholdInput = (p: {
-  label: string;
-  unit: string;
-  value: number;
-  max: number;
-  onCommit: (value: number) => void;
-}) => (
-  <CommitNumberInput
-    {...p}
-    size="2"
-    min={0}
-    step={1}
-    format={{ maximumFractionDigits: 2 }}
-    style={{ width: 190 }}
-  />
-);
+let RulesGrid = styled.div`
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 10px 14px;
+  cursor: default;
+`;
 
-let EntityPicker = ({
+let ModifiedDot = styled.span`
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: ${theme.colors.blue900};
+`;
+
+let has = (view: TeamViewState, field: TeamViewField) =>
+  teamViewDefinitions[view.kind].fields.includes(field);
+
+let TeamFilterInput = ({
   instanceId,
-  field,
+  view,
   range,
-  value,
-  latest,
-  onChange
+  current,
+  onPatch
 }: {
   instanceId: string;
-  field: 'model' | 'seat';
+  view: TeamViewState;
   range: AgentTrackingRangePreset;
-  value: string[];
-  latest: () => string[];
-  onChange: (value: string[]) => void;
+  current: () => { state: TeamViewState };
+  onPatch: (patch: TeamViewParams) => void;
 }) => {
-  let filter = useMemo(
-    () => agentTrackingFilters[field](instanceId, filterRangeText),
+  let field: 'model' | 'seat' | null = has(view, 'modelIds')
+    ? 'model'
+    : has(view, 'seats')
+      ? 'seat'
+      : null;
+  let listKey: 'modelIds' | 'seats' = field == 'model' ? 'modelIds' : 'seats';
+  let entity = useMemo(
+    () => (field ? agentTrackingFilters[field](instanceId, filterRangeText) : null),
     [instanceId, field]
   );
 
-  let toState = (values: string[]): TableFilterState[] =>
-    values.length
-      ? [
-          {
-            id: filter.id,
-            fields: toFilterFieldNames(filter.fields),
-            type: 'entity',
-            operation: 'eq',
-            value: values
-          }
-        ]
-      : [];
+  let filters = [
+    ...(entity ? [entity] : []),
+    ...(showsFlaggedFilter(view) ? [flaggedFilter] : []),
+    ...(showsInactiveFilter(view) ? [inactiveFilter] : [])
+  ];
+
+  let toState = (state: TeamViewState): TableFilterState[] => {
+    let values = state.params[listKey] ?? [];
+
+    return [
+      ...(entity && values.length
+        ? [
+            {
+              id: entity.id,
+              fields: toFilterFieldNames(entity.fields),
+              type: 'entity' as const,
+              operation: 'eq' as const,
+              value: values
+            }
+          ]
+        : []),
+      ...toToggleFilterStates(state)
+    ];
+  };
 
   let setState: FilterStateTuple[1] = action => {
-    let next = typeof action == 'function' ? action(toState(latest())) : action;
-    onChange(getListValue(next.find(item => item.id == filter.id)));
+    let latest = current().state;
+    let next = typeof action == 'function' ? action(toState(latest)) : action;
+
+    onPatch({
+      ...(entity ? { [listKey]: getListValue(next.find(item => item.id == entity.id)) } : {}),
+      ...fromToggleFilterStates(latest, next)
+    });
   };
 
   return (
     <AgentTrackingFilterRangeContext.Provider value={range}>
       <FilterToolbar
-        filters={[filter]}
-        filterState={[toState(value), setState]}
-        size="2"
-        placeholder={field == 'model' ? 'Choose models...' : 'Only consider these seats...'}
+        filters={filters}
+        filterState={[toState(view), setState]}
+        panelLayout="full"
+        style={{ flex: '1 1 420px', width: 'auto' }}
+        placeholder={field == 'model' ? 'Choose models...' : 'Filter...'}
       />
     </AgentTrackingFilterRangeContext.Provider>
   );
 };
 
-export let TeamViewControls = ({
+let FlagRulesButton = ({
+  view,
+  onPatch
+}: {
+  view: TeamViewState;
+  onPatch: (patch: TeamViewParams) => void;
+}) => {
+  let label = flagRulesLabel(view);
+  let modified = flagRulesModified(view);
+
+  return (
+    <Popover
+      side="bottom"
+      align="start"
+      sideOffset={8}
+      trigger={
+        <Button
+          size="2"
+          variant="outline"
+          aria-label={modified ? `${label}, changed from the defaults` : label}
+          iconRight={modified ? <ModifiedDot aria-hidden /> : undefined}
+        >
+          {label}
+        </Button>
+      }
+    >
+      <Popover.Content>
+        <RulesGrid>
+          {flagRulesOf(view).map(rule => (
+            <React.Fragment key={rule.field}>
+              <Text as="span" size="2">
+                {rule.text}
+              </Text>
+
+              <CommitNumberInput
+                label={rule.label}
+                hideLabel
+                unit={rule.unit}
+                size="2"
+                min={0}
+                max={rule.unit == 'USD' ? maxSeatUsageDollars : 100}
+                step={1}
+                format={{ maximumFractionDigits: 2 }}
+                style={{ width: rule.unit == 'USD' ? 140 : 100 }}
+                commitOnUnmount
+                value={toRuleInput(rule, view.params[rule.field])}
+                onCommit={value => onPatch({ [rule.field]: fromRuleInput(rule, value) })}
+              />
+            </React.Fragment>
+          ))}
+        </RulesGrid>
+
+        {modified ? (
+          <Button
+            size="1"
+            variant="soft"
+            style={{ marginTop: 12 }}
+            onClick={() => onPatch(flagRulesResetPatch(view))}
+          >
+            Reset to Defaults
+          </Button>
+        ) : null}
+      </Popover.Content>
+    </Popover>
+  );
+};
+
+export let TeamViewFilters = ({
   instanceId,
   view,
   current,
@@ -130,19 +219,16 @@ export let TeamViewControls = ({
   current: () => { state: TeamViewState };
   onPatch: (patch: TeamViewParams) => void;
 }) => {
-  let definition = teamViewDefinitions[view.kind];
   let params = view.params;
   let range = params.range ?? defaultAgentTrackingRange;
-  let has = (field: TeamViewField) => definition.fields.includes(field);
-
-  let thresholds = shareThresholds.filter(item => has(item.field));
 
   return (
-    <Flex direction="column" gap={14}>
-      <Flex align="center" gap={12} wrap="wrap">
+    <>
+      <RangeScroll>
         <OptionToggle
           size="2"
           ariaLabel="Range"
+          itemMinWidth={64}
           items={agentTrackingRangePresets.map(preset => ({
             id: preset.id,
             label: preset.label
@@ -150,98 +236,17 @@ export let TeamViewControls = ({
           value={range}
           onChange={value => onPatch({ range: value as AgentTrackingRangePreset })}
         />
+      </RangeScroll>
 
-        <div style={{ width: 230 }}>
-          <Select
-            size="2"
-            label="Sort By"
-            hideLabel
-            items={definition.sorts.map(sort => ({ id: sort.id, label: `By ${sort.label}` }))}
-            value={params.sort}
-            onChange={value => onPatch({ sort: value as InsightsSort })}
-          />
-        </div>
+      <TeamFilterInput
+        instanceId={instanceId}
+        view={view}
+        range={range}
+        current={current}
+        onPatch={onPatch}
+      />
 
-        <OptionToggle
-          size="2"
-          ariaLabel="Order"
-          itemMinWidth={120}
-          items={orderItems(params.sort)}
-          value={params.order ?? 'desc'}
-          onChange={value => onPatch({ order: value as SortOrder })}
-        />
-      </Flex>
-
-      {has('modelIds') ? (
-        <EntityPicker
-          instanceId={instanceId}
-          field="model"
-          range={range}
-          value={params.modelIds ?? []}
-          latest={() => current().state.params.modelIds ?? []}
-          onChange={modelIds => onPatch({ modelIds })}
-        />
-      ) : null}
-
-      {has('seats') ? (
-        <EntityPicker
-          instanceId={instanceId}
-          field="seat"
-          range={range}
-          value={params.seats ?? []}
-          latest={() => current().state.params.seats ?? []}
-          onChange={seats => onPatch({ seats })}
-        />
-      ) : null}
-
-      <Flex align="end" gap={16} wrap="wrap">
-        {thresholds.map(item => (
-          <ThresholdInput
-            key={item.field}
-            label={item.label}
-            unit="%"
-            max={100}
-            value={fractionToPercent(params[item.field] ?? 0)}
-            onCommit={percent => onPatch({ [item.field]: percentToFraction(percent) })}
-          />
-        ))}
-
-        {has('seatUsageMaxMicros') ? (
-          <ThresholdInput
-            label="Flag Usage Below"
-            unit="USD"
-            max={maxSeatUsageDollars}
-            value={microsToDollars(params.seatUsageMaxMicros ?? 0)}
-            onCommit={dollars => onPatch({ seatUsageMaxMicros: dollarsToMicros(dollars) })}
-          />
-        ) : null}
-
-        {has('includeInactive') || has('flaggedOnly') ? (
-          <Flex direction="column" gap={8} style={{ paddingBottom: 4 }}>
-            {has('includeInactive') ? (
-              <Switch
-                label="Include Members Without Usage"
-                checked={!!params.includeInactive}
-                onCheckedChange={checked => onPatch({ includeInactive: checked })}
-              />
-            ) : null}
-
-            {has('flaggedOnly') ? (
-              <Switch
-                label="Flagged Only"
-                checked={!!params.flaggedOnly}
-                onCheckedChange={checked => onPatch({ flaggedOnly: checked })}
-              />
-            ) : null}
-          </Flex>
-        ) : null}
-      </Flex>
-
-      {has('includeInactive') && params.includeInactive ? (
-        <Text size="1" color="gray600">
-          {`Members without usage are those seen in this instance in the last ${memberWindowDays} days, and its consumers.`}
-        </Text>
-      ) : null}
-    </Flex>
+      {flagRulesOf(view).length ? <FlagRulesButton view={view} onPatch={onPatch} /> : null}
+    </>
   );
 };

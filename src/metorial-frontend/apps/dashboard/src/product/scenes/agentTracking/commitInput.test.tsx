@@ -24,21 +24,30 @@ let root: Root;
 let navigate: NavigateFunction;
 let onCommit = vi.fn();
 
-let Harness = ({ value }: { value: number }) => {
+let Harness = ({ value, commitOnUnmount }: { value: number; commitOnUnmount?: boolean }) => {
   navigate = useNavigate();
   return (
-    <CommitNumberInput label="Threshold" value={value} min={0} max={100} onCommit={onCommit} />
+    <CommitNumberInput
+      label="Threshold"
+      value={value}
+      min={0}
+      max={100}
+      commitOnUnmount={commitOnUnmount}
+      onCommit={onCommit}
+    />
   );
 };
 
-let render = (value: number) =>
+let render = (value: number, commitOnUnmount?: boolean) =>
   act(() =>
     root.render(
       <MemoryRouter>
-        <Harness value={value} />
+        <Harness value={value} commitOnUnmount={commitOnUnmount} />
       </MemoryRouter>
     )
   );
+
+let removeField = () => act(() => root.render(<MemoryRouter />));
 
 let input = () => container.querySelector('input')!;
 
@@ -104,5 +113,27 @@ describe('CommitNumberInput', () => {
     type('50');
     act(() => navigate('?view=practices'));
     expect(input().value).toBe('30');
+  });
+
+  it('commits a typed value when the field goes away without a blur, if asked to', () => {
+    render(80, true);
+    type('500');
+    removeField();
+    expect(onCommit).toHaveBeenCalledWith(100);
+
+    onCommit.mockReset();
+    render(80);
+    type('40');
+    removeField();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('does not commit again when the field goes away after a commit', () => {
+    render(80, true);
+    type('40');
+    blur();
+    render(40, true);
+    removeField();
+    expect(onCommit).toHaveBeenCalledTimes(1);
   });
 });

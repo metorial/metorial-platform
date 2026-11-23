@@ -2,27 +2,30 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { formatNumber } from '@metorial/chart';
 import type { DashboardInstanceAgentTrackingMembersListOutput } from '@metorial/dashboard-sdk';
 import { PaginationSearchParamsProvider, renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import { PageHeader } from '@metorial/layout';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { useAgentTrackingMembers, useAgentTrackingSpendBreakdown } from '@metorial/state';
-import { Callout, Flex, Text } from '@metorial/ui';
+import { Avatar, Callout, Flex, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { useNow } from '@metorial/use-now';
 import { useState } from 'react';
+import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { formatDateTime } from './activity';
 import { CostValue } from './cost';
 import { AgentTrackingErrorState } from './errorState';
+import { WithInfo } from './info';
 import {
   lastActivePhrase,
-  MemberDetails,
+  memberEmails,
+  MemberLinkBadge,
   memberName,
   memberPath,
+  MemberReviewBadge,
   memberWindowDays
 } from './memberParts';
 import { getBrowserTimeZone, useLastActiveRange, withQuery } from './range';
-import { DetailColumns } from './sessionParts';
 import { AgentTrackingSessionsTable } from './sessions';
 import { BreakdownCost, BreakdownName, Share } from './spendParts';
 
@@ -30,10 +33,23 @@ type Member = DashboardInstanceAgentTrackingMembersListOutput['items'][number];
 
 let noCost = { totalMicros: 0, isEstimate: false };
 
+// The badges sit inside the page title, so they get body type back instead of the title's
+// size and line height, which would make each badge as tall as the title line.
+let BadgeRow = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: normal;
+  font-weight: 400;
+`;
+
 let MemberHeader = ({ memberId, member }: { memberId: string; member?: Member }) => {
   let ctx = useInstanceContext();
   let { range } = useLastActiveRange();
   let title = member ? memberName(member) : 'Member';
+  let emails = member ? memberEmails(member).filter(email => email != title) : [];
   let teamPath = Paths.instance.agentTracking.team(
     ctx.organization,
     ctx.project,
@@ -42,8 +58,27 @@ let MemberHeader = ({ memberId, member }: { memberId: string; member?: Member })
 
   return (
     <PageHeader
-      title={title}
-      description={member?.name ? (member.email ?? undefined) : undefined}
+      title={
+        member ? (
+          <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
+          >
+            <Avatar
+              entity={{ name: title, imageUrl: getAvatarUrl(member.id) }}
+              size={36}
+              noTooltip
+            />
+            {title}
+            <BadgeRow>
+              <MemberLinkBadge matched={member.matched} />
+              {member.needsReview ? <MemberReviewBadge /> : null}
+            </BadgeRow>
+          </span>
+        ) : (
+          title
+        )
+      }
+      description={emails.length ? emails.join(', ') : undefined}
       pagination={[
         { label: 'Team', href: withQuery(teamPath, { range }) },
         { label: title, href: memberPath(ctx, memberId, range) }
@@ -97,13 +132,7 @@ let MemberSummary = ({
   <>
     <MemberHeader memberId={memberId} member={identity} />
 
-    <DetailColumns>
-      <MemberFigures member={inRange} />
-
-      <Box title="Member">
-        <MemberDetails member={identity} />
-      </Box>
-    </DetailColumns>
+    <MemberFigures member={inRange} />
   </>
 );
 
@@ -191,8 +220,13 @@ let MemberModels = ({ instanceId, memberId }: { instanceId: string; memberId: st
 
   return (
     <Box
-      title="Cost By Model"
-      description={`The cost of this member's usage ${phrase}, by model. Share is of this member's cost.`}
+      title={
+        <WithInfo
+          info={`The cost of this member's usage ${phrase}, by model. Share is of this member's cost.`}
+        >
+          Cost By Model
+        </WithInfo>
+      }
     >
       {renderWithLoader(
         { breakdown },

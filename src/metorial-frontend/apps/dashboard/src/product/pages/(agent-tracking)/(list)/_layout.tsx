@@ -12,6 +12,7 @@ import {
   AgentTrackingStatusBadge,
   useAgentTrackingSetupProgress
 } from '../../../scenes/agentTracking/setupProgress';
+import { WithInfo } from '../../../scenes/agentTracking/info';
 
 export let AgentTrackingListLayout = () => {
   let instance = useCurrentInstance();
@@ -30,8 +31,11 @@ export let AgentTrackingListLayout = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Agent Usage"
-        description="What your team's Claude Code sessions cost, and who ran them."
+        title={
+          <WithInfo info="What your team's Claude Code sessions cost, and who ran them.">
+            Agent Usage
+          </WithInfo>
+        }
         actions={<AgentTrackingStatusBadge progress={progress} />}
       />
 

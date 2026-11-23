@@ -8,10 +8,10 @@ import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { lastActivePhrase, memberListLimit, MemberIdentity, memberPath } from './memberParts';
 import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
-import { TeamViewControls } from './views/controls';
+import { TeamViewFilters } from './views/controls';
+import { TeamViewHeader } from './views/header';
 import { TeamInsights } from './views/insights';
 import { useTeamViewSearch } from './views/state';
-import { TeamViewSwitcher } from './views/switcher';
 
 type TeamMember = DashboardInstanceAgentTrackingMembersListOutput['items'][number];
 
@@ -78,13 +78,22 @@ export let AgentTrackingTeam = ({ instanceId }: { instanceId: string }) => {
 
   return (
     <Flex direction="column" gap={20}>
-      <TeamViewSwitcher
+      <TeamViewHeader
         instanceId={instanceId}
         view={state}
         savedId={savedId}
         apply={apply}
         current={current}
-      />
+      >
+        {state.kind == 'recent' ? null : (
+          <TeamViewFilters
+            instanceId={instanceId}
+            view={state}
+            current={current}
+            onPatch={patch}
+          />
+        )}
+      </TeamViewHeader>
 
       {state.kind == 'recent' ? (
         <Flex direction="column" gap={14}>
@@ -96,14 +105,7 @@ export let AgentTrackingTeam = ({ instanceId }: { instanceId: string }) => {
         </Flex>
       ) : (
         <Flex direction="column" gap={14}>
-          <TeamViewControls
-            instanceId={instanceId}
-            view={state}
-            current={current}
-            onPatch={patch}
-          />
-
-          <TeamInsights instanceId={instanceId} view={state} />
+          <TeamInsights instanceId={instanceId} view={state} onPatch={patch} />
         </Flex>
       )}
     </Flex>
