@@ -92,6 +92,7 @@ let commandOptions: Record<
   'db migration': { min: 2, max: 3 },
   env: { flags: ['json'] },
   run: {},
+  merge: { max: 1 },
   'test:unit': {},
   'test:e2e': {
     flags: ['keep', 'plan', 'replica'],
@@ -324,6 +325,15 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
     case 'ci':
       console.log(JSON.stringify(inventory(project), null, 2));
       return;
+    case 'merge': {
+      let entry = join(project.root, 'src/tooling/deploy-merge/cli.ts');
+      if (project.kind !== 'enterprise' || !existsSync(entry)) {
+        throw new CliError('merge requires an enterprise checkout with deploy-merge');
+      }
+
+      await commands.run(process.execPath, [entry, ...positional], project.root);
+      return;
+    }
     case 'dev':
       if (!flags.has('foreground') && !flags.has('dry-run') && !process.env.CI) {
         await daemon.attach({
