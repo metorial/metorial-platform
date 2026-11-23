@@ -1267,12 +1267,33 @@
     "by": "agent",
     "at": "2026-11-18"
   },
+  "orca/orcacyber-hy4-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Hy4 Flash is an abliterated/uncensored derivative of Tencent Hy4 Flash with refusal behavior removed by modifying weights, not the Hy4 Flash checkpoint itself, so it is not tencent/hy4-flash.",
+    "by": "agent",
+    "at": "2026-11-23"
+  },
+  "orca/orcacyber-inkling-2-mini": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Inkling 2 Mini is an abliterated/uncensored derivative of Thinking Machines Inkling 2 Mini with refusal behavior removed; it is a modified checkpoint, not thinkingmachines/inkling-2-mini.",
+    "by": "agent",
+    "at": "2026-11-23"
+  },
   "orca/orcacyber-k3.1-pro": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "OrcaCyber K3.1 Pro is Moonshot's Kimi K3.1 Pro with refusal behavior removed (OrcaRouter's page: based on Moonshot AI Kimi K3.1 Pro with refusal behavior removed); a weight-edited derivative is not moonshot/kimi-k3.1-pro itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "orca/orcacyber-ling-3.2-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Ling 3.2 Flash is an abliterated/uncensored derivative of inclusionAI's Ling 3.2 Flash with refusal behavior removed; a modified checkpoint is not inclusionai/ling-3.2-flash.",
+    "by": "agent",
+    "at": "2026-11-23"
   },
   "orca/orcacyber-mimo-flash": {
     "decision": "exclude",
@@ -1294,6 +1315,13 @@
     "reason": "OrcaCyber Qwen3.8 Flash Next is Alibaba's Qwen3.8 Flash Next with the refusal response direction removed (per Newswire coverage of the Oct 2026 release); a weight-edited derivative is not alibaba/qwen3.8-flash-next itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "orca/orcacyber-step-5-preview": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Step 5 Preview is an abliterated/uncensored derivative of StepFun's Step 5 Preview with refusal behavior removed; a modified checkpoint is not stepfun/step-5-preview.",
+    "by": "agent",
+    "at": "2026-11-23"
   },
   "orca/orcacyber-ultra-1.0": {
     "decision": "defer",
