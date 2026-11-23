@@ -1,0 +1,11 @@
+{
+  "name": "@metorial/error-collector",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev:start": "go run ./cmd/error-collector",
+    "test": "go vet ./... && go test ./...",
+    "vet": "go vet ./..."
+  }
+}

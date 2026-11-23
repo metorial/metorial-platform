@@ -12,6 +12,7 @@
   "dependencies": {
     "@aws-sdk/rds-signer": "^3.1166.0",
     "@metorial/editions": "workspace:*",
+    "@metorial/error-reporting": "workspace:*",
     "@metorial/metrics": "workspace:*"
   },
   "devDependencies": {
