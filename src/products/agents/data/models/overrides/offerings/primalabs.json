@@ -1,0 +1,9 @@
+{
+  "primalabs-ai/MiMo-V2.6-Pro": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "Price-outlier: the current link is right. Offering name and 1M context exactly match xiaomi/mimo-v2.6-pro (index line 937, chat, released 2026-09-22); PrimaLabs' own status page confirms it hosts MiMo-V2.6-Pro deployments. The $4/$8 rate is PrimaLabs' premium markup over the 0.435 median (it prices other open-weight models similarly above median), not a different model.",
+    "by": "agent",
+    "at": "2026-11-23"
+  }
+}
