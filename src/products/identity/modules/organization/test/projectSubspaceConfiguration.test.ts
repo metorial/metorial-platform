@@ -4,6 +4,7 @@ let mocks = vi.hoisted(() => ({
   ensureForProject: vi.fn(),
   upsertTenant: vi.fn(),
   projectUpdate: vi.fn(),
+  isAiReviewConfigured: vi.fn(),
   fire: vi.fn()
 }));
 
@@ -19,6 +20,10 @@ vi.mock('@metorial/db', () => ({
 
 vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: mocks.fire }
+}));
+
+vi.mock('@metorial/shared-settings', () => ({
+  isAiReviewConfigured: mocks.isAiReviewConfigured
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
@@ -79,6 +84,7 @@ let common = {
 describe('project integrations-backed configuration setters', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isAiReviewConfigured.mockReturnValue(true);
     mocks.ensureForProject.mockResolvedValue({ tenant });
   });
 
@@ -356,6 +362,36 @@ describe('project integrations-backed configuration setters', () => {
         usageReviewsEnabled: false
       })
     );
+  });
+
+  it('forces both review settings off without AI credentials', async () => {
+    let currentTenant = { ...tenant, aiAnalysisEnabled: true, usageReviewsEnabled: true };
+    mocks.isAiReviewConfigured.mockReturnValue(false);
+    mocks.ensureForProject.mockResolvedValue({ tenant: currentTenant });
+    mocks.upsertTenant.mockImplementation(async ({ input }) => ({
+      ...currentTenant,
+      ...input
+    }));
+    mocks.projectUpdate.mockImplementation(async ({ data }) => ({ ...project, ...data }));
+
+    let stored =
+      await projectAiAnalysisConfigurationService.getProjectAiAnalysisConfiguration(common);
+    let updated =
+      await projectAiAnalysisConfigurationService.updateProjectAiAnalysisConfiguration({
+        ...common,
+        input: { aiAnalysisEnabled: true, usageReviewsEnabled: true }
+      });
+
+    let disabled = { aiAnalysisEnabled: false, usageReviewsEnabled: false };
+    expect(stored).toMatchObject(disabled);
+    expect(updated).toMatchObject(disabled);
+    expect(mocks.upsertTenant).toHaveBeenCalledWith({
+      input: expect.objectContaining(disabled)
+    });
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: project.oid },
+      data: expect.objectContaining(disabled)
+    });
   });
 
   it.each([{}, { aiAnalysisEnabled: true, usageReviewsEnabled: true }])(

@@ -1,5 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { oauthCallbackUrl } from '../../lib/oauthCallbackUrl';
 import {
   slateOAuthCredentialsPresenter,
   slateOAuthCredentialsTemplatePresenter
@@ -38,7 +39,10 @@ export let slateOAuthCredentialsTemplateController = app.controller({
 
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, slateOAuthCredentialsTemplatePresenter);
+      return {
+        ...(await Paginator.presentLight(list, slateOAuthCredentialsTemplatePresenter)),
+        callbackUrl: oauthCallbackUrl
+      };
     }),
 
   get: templateApp

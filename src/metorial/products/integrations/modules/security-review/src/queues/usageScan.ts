@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { isAiReviewAvailable } from '../definitions/thoroughness';
 import { env } from '../env';
 import { internalSecurityReviewGateService } from '../internal/securityReviewGate';
 import { internalSecurityReviewSubjectService } from '../internal/securityReviewSubject';
@@ -44,6 +45,8 @@ let usageScanCron = createCron(
 );
 
 let usageScanTenantsProcessor = usageScanTenantsQueue.process(async job => {
+  if (!isAiReviewAvailable()) return;
+
   let tenants = await db.tenant.findMany({
     where: {
       usageReviewsEnabled: true,
@@ -99,6 +102,8 @@ let usageScanTenantProcessor = usageScanTenantQueue.process(async job => {
 });
 
 let usageScanPairProcessor = usageScanPairQueue.process(async job => {
+  if (!isAiReviewAvailable()) return;
+
   let instanceOid = BigInt(job.instanceOid);
   let providerOid = BigInt(job.providerOid);
 

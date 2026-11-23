@@ -1,4 +1,5 @@
 import { MachineAccess, Organization, Project, User } from '@metorial/db';
+import { isAiReviewConfigured } from '@metorial/shared-settings';
 
 export type DisabledFlag = {
   enabled: false;
@@ -24,6 +25,7 @@ export type Flags = {
   'skills-enabled': FlagValue;
   'assistant-enabled': FlagValue;
   'ai-available': FlagValue;
+  'ai-reviews-available': FlagValue;
   'advanced-security-management-enabled': FlagValue;
   'key-providers-gcp-kms-enabled': FlagValue;
   'key-providers-azure-key-vault-enabled': FlagValue;
@@ -95,6 +97,7 @@ export let defaultFlags: Flags = {
   'skills-enabled': false,
   'assistant-enabled': false,
   'ai-available': false,
+  'ai-reviews-available': false,
   'advanced-security-management-enabled': false,
   'key-providers-gcp-kms-enabled': false,
   'key-providers-azure-key-vault-enabled': false,
@@ -196,5 +199,8 @@ export let applyAiAvailability = (flags: Flags, available: boolean): Flags => {
 
 export let getFlags = async (params: FlagProviderParams): Promise<Flags> => {
   let flags = await flagProviderRef.current(params);
-  return applyAiAvailability(flags, isAiAvailable());
+  return {
+    ...applyAiAvailability(flags, isAiAvailable()),
+    'ai-reviews-available': isAiReviewConfigured()
+  };
 };

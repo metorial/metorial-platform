@@ -48,6 +48,8 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
+vi.mock('@metorial/shared-settings', () => ({ isAiReviewConfigured: vi.fn() }));
+
 vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: vi.fn(fn => fn)
@@ -97,6 +99,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 
 import { addAwaitedAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { isAiReviewConfigured } from '@metorial/shared-settings';
 import {
   metorialResourceService,
   subspaceScopeService,
@@ -114,7 +117,7 @@ describe('ProjectService', () => {
   });
 
   describe('createProject', () => {
-    it('should create project with production instance', async () => {
+    it.each([true, false])('creates a production project with AI configured: %s', async ai => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockActor = { id: 'actor-1', oid: 1 };
       let mockProject = {
@@ -128,6 +131,7 @@ describe('ProjectService', () => {
         organization: mockOrg
       };
 
+      vi.mocked(isAiReviewConfigured).mockReturnValue(ai);
       vi.mocked(ID.generateId).mockResolvedValue('proj-1');
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
@@ -135,6 +139,8 @@ describe('ProjectService', () => {
             create: vi.fn(async args => {
               expect(args.data.hidePublicRemoteProviders).toBe(true);
               expect(args.data.sessionlessMcpEnabled).toBe(true);
+              expect(args.data.aiAnalysisEnabled).toBe(ai);
+              expect(args.data.usageReviewsEnabled).toBe(ai);
               return mockProject;
             })
           }

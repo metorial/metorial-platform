@@ -183,6 +183,8 @@ class InternalSecurityReviewGateServiceImpl {
   }
 
   async isUsageReviewEnabled(d: { tenantOid: bigint }) {
+    if (!isAiReviewAvailable()) return false;
+
     let tenant = await db.tenant.findUnique({
       where: { oid: d.tenantOid },
       select: {
