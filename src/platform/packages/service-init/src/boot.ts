@@ -27,14 +27,38 @@ let startMetricsIfEnabled = async () => {
   }
 };
 
+let errorReportingStarted = false;
+
+let startErrorReportingIfConfigured = async () => {
+  if (!process.env.ERROR_REPORTING_DSN) return;
+
+  try {
+    let { initErrorReporting } = await import('@metorial/error-reporting');
+    errorReportingStarted = initErrorReporting();
+  } catch (error) {
+    console.error('Error reporting could not be started', error);
+  }
+};
+
+let reportBootFailure = async (error: unknown, step: string) => {
+  if (!errorReportingStarted) return;
+
+  try {
+    let { reportBootFailure } = await import('@metorial/error-reporting');
+    await reportBootFailure(error, step);
+  } catch {}
+};
+
 export let runBoot = async (steps: BootStep[]) => {
   await startMetricsIfEnabled();
+  await startErrorReportingIfConfigured();
 
   for (let step of steps) {
     try {
       await step.run();
     } catch (error) {
       console.error(`Boot step "${step.name}" failed`, error);
+      await reportBootFailure(error, step.name);
       if (!bootFailureHandler) throw error;
 
       bootFailureHandler(error, step.name);
