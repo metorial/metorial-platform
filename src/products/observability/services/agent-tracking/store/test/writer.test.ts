@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 import { expectServiceError } from '@mtsrc/agent-tracking-testing';
-import { chunkDocuments, writeDocuments } from '../src/writer';
+import { chunkDocuments, isTransientStoreError, writeDocuments } from '../src/writer';
 
 let mebibyte = 1024 * 1024;
 
@@ -34,6 +34,30 @@ let collection = (
   insertMany: (documents: Doc[], options: InsertOptions) => Promise<{ insertedCount: number }>
 ) => ({
   insertMany: vi.fn(insertMany)
+});
+
+let unreachable = () =>
+  new mongoose.Error.MongooseServerSelectionError('connect ECONNREFUSED 127.0.0.1:9');
+
+describe('isTransientStoreError', () => {
+  it('treats a store that cannot be reached as transient', () => {
+    expect(isTransientStoreError(unreachable())).toBe(true);
+    expect(
+      isTransientStoreError(
+        new mongo.MongoServerSelectionError('timed out', {} as mongoose.mongo.TopologyDescription)
+      )
+    ).toBe(true);
+    expect(isTransientStoreError(new mongo.MongoNotConnectedError('closed'))).toBe(true);
+  });
+
+  it('leaves programming, validation and permanent server errors alone', () => {
+    expect(isTransientStoreError(new TypeError('x is undefined'))).toBe(false);
+    expect(isTransientStoreError(new Error('connect ECONNREFUSED'))).toBe(false);
+    expect(isTransientStoreError(new mongoose.Error.ValidationError())).toBe(false);
+    expect(
+      isTransientStoreError(new mongo.MongoServerError({ message: 'unauthorized', code: 13 }))
+    ).toBe(false);
+  });
 });
 
 describe('chunkDocuments', () => {
@@ -124,6 +148,14 @@ describe('writeDocuments', () => {
   ])('fails the write with sink_busy on a %s error', async (_, error) => {
     let target = collection(async () => {
       throw error();
+    });
+
+    await expectServiceError(writeDocuments(target, docs(1)), 'sink_busy');
+  });
+
+  it('fails the write with sink_busy when the store cannot be reached', async () => {
+    let target = collection(async () => {
+      throw unreachable();
     });
 
     await expectServiceError(writeDocuments(target, docs(1)), 'sink_busy');

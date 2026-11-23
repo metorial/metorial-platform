@@ -1,0 +1,113 @@
+let REDACTED = '[REDACTED]';
+
+let webhookMethodPrefix = 'slates/trigger_group.webhook.';
+
+let redactedFields = [
+  'webhookRegistrationPayload',
+  'partialWebhookRegistrationPayload',
+  'userWebhookRegistrationPayload',
+  'deliveryConfig'
+];
+
+let receiveUrlFields = ['url', 'webhookUrl', 'webhookSetupDocument'];
+
+let credentialHeaders = ['authorization', 'proxy-authorization'];
+
+type InvocationMessage = { id?: unknown; method?: unknown };
+
+let isWebhookMethod = (method: unknown) =>
+  typeof method == 'string' && method.startsWith(webhookMethodPrefix);
+
+let redactHeaders = (headers: unknown) => {
+  if (!headers || typeof headers != 'object' || Array.isArray(headers)) return headers;
+
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      credentialHeaders.includes(name.toLowerCase()) ? REDACTED : value
+    ])
+  );
+};
+
+let redactReceiveKey = (value: string) =>
+  value.replace(/\/receive\/[^/?#\s)"'<>\\]+/g, `/receive/${REDACTED}`);
+
+let redactReceiveKeysDeep = (value: unknown): unknown => {
+  if (typeof value == 'string') return redactReceiveKey(value);
+  if (Array.isArray(value)) return value.map(redactReceiveKeysDeep);
+  if (!value || typeof value != 'object') return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, redactReceiveKeysDeep(entry)])
+  );
+};
+
+let redactWebhookContent = (content: unknown) => {
+  if (!content || typeof content != 'object' || Array.isArray(content)) return content;
+
+  let redacted: Record<string, unknown> = { ...content };
+
+  for (let field of redactedFields) {
+    if (field in redacted) redacted[field] = REDACTED;
+  }
+
+  for (let field of receiveUrlFields) {
+    let value = redacted[field];
+    if (typeof value == 'string') redacted[field] = redactReceiveKey(value);
+  }
+
+  if ('headers' in redacted) redacted.headers = redactHeaders(redacted.headers);
+  if ('requestTraces' in redacted) {
+    redacted.requestTraces = redactReceiveKeysDeep(redacted.requestTraces);
+  }
+
+  return redacted;
+};
+
+let redactWebhookResponse = <Response extends InvocationMessage>(message: Response) => {
+  let redacted: Record<string, unknown> = { ...message };
+
+  if ('result' in redacted) redacted.result = redactWebhookContent(redacted.result);
+  if ('error' in redacted) redacted.error = redactReceiveKeysDeep(redacted.error);
+
+  return redacted as Response;
+};
+
+export let redactWebhookInvocationMessages = <
+  Request extends InvocationMessage,
+  Response extends InvocationMessage,
+  Trace = unknown
+>(d: {
+  requests: Request[];
+  responses: Response[];
+  requestTraces?: Trace[];
+}): { requests: Request[]; responses: Response[]; requestTraces: Trace[] } => {
+  let hasWebhookRequest = d.requests.some(message => isWebhookMethod(message.method));
+  let webhookRequestIds = new Set(
+    d.requests
+      .filter(message => message.id != null && isWebhookMethod(message.method))
+      .map(message => message.id)
+  );
+
+  let requests = d.requests.map(message =>
+    isWebhookMethod(message.method) && 'params' in message
+      ? ({ ...message, params: redactWebhookContent(message.params) } as Request)
+      : message
+  );
+
+  let responses = d.responses.map(message =>
+    message && typeof message == 'object' && webhookRequestIds.has(message.id)
+      ? redactWebhookResponse(message)
+      : message
+  );
+
+  let requestTraces = d.requestTraces ?? [];
+
+  return {
+    requests,
+    responses,
+    requestTraces: hasWebhookRequest
+      ? (redactReceiveKeysDeep(requestTraces) as Trace[])
+      : requestTraces
+  };
+};

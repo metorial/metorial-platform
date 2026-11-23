@@ -1,5 +1,6 @@
 import { AsyncResource } from 'node:async_hooks';
 import pg, { type PoolClient, type PoolConfig } from 'pg';
+import type { PoolConfigWithSetup } from './pool';
 import {
   createRetryReporter,
   getErrorDetails,
@@ -18,10 +19,6 @@ type ConnectCallback = (
   client: PoolClient | undefined,
   release: ReleaseCallback
 ) => void;
-
-type PoolConfigWithSetup = PoolConfig & {
-  onConnect?: (client: PoolClient) => void | Promise<void>;
-};
 
 export class RetryingPool extends pg.Pool {
   private pendingRetries = new Set<() => void>();

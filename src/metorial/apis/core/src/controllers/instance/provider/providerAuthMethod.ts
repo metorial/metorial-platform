@@ -7,6 +7,7 @@ import {
 } from '@metorial-subspace/module-catalog';
 import { providerAuthMethodPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { isPublicCatalogOnly } from '../../../lib/publicCatalogOnly';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 
@@ -22,7 +23,8 @@ let providerAuthMethodGroup = integrationsGroup.use(async ctx => {
 
   let authMethod = await providerAuthMethodService.getProviderAuthMethodById({
     instance: ctx.instance,
-    providerAuthMethodId: ctx.params.providerAuthMethodId
+    providerAuthMethodId: ctx.params.providerAuthMethodId,
+    publicCatalogOnly: isPublicCatalogOnly(ctx)
   });
 
   return { authMethod };
@@ -32,7 +34,7 @@ export let providerAuthMethodController = Controller.create(
   {
     name: 'Provider Auth Methods',
     description:
-      'An auth method defines one way to authenticate with a provider (OAuth, API token, or custom credentials). A provider version may support multiple auth methods.'
+      'A provider auth method is one way to authenticate with a provider, such as OAuth, an API token, or custom credentials. A provider version can offer multiple auth methods.'
   },
   {
     list: integrationsGroup
@@ -46,15 +48,20 @@ export let providerAuthMethodController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            provider_version_id: v.string(),
-            adapter: v.optional(v.string())
+            provider_version_id: v.string({
+              description: 'Provider version to list auth methods for.'
+            }),
+            adapter: v.optional(
+              v.string({ description: 'Only return auth methods supporting this adapter.' })
+            )
           })
         )
       )
       .do(async ctx => {
         let providerVersion = await providerVersionService.getProviderVersionById({
           instance: ctx.instance,
-          providerVersionId: ctx.query.provider_version_id
+          providerVersionId: ctx.query.provider_version_id,
+          publicCatalogOnly: isPublicCatalogOnly(ctx)
         });
         let paginator = await providerAuthMethodService.listProviderAuthMethods({
           instance: ctx.instance,

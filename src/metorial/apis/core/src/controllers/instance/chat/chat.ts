@@ -33,19 +33,19 @@ export let chatController = Controller.create(
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
               ]),
-              { description: 'Filter by status' }
+              { description: 'Only return chats with one of these statuses.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat ID(s)'
+              description: 'Only return chats with one of these IDs.'
             }),
             chat_connection_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat connection ID(s)'
+              description: 'Only return chats for one of these chat connections.'
             }),
             chat_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat instance ID(s)'
+              description: 'Only return chats for one of these chat instances.'
             }),
             chat_instance_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by chat instance provider ID(s)'
+              description: 'Only return chats for one of these chat instance providers.'
             }),
             created_at: dateFilterValidator('chat creation time'),
             updated_at: dateFilterValidator('chat last update time')
@@ -74,7 +74,7 @@ export let chatController = Controller.create(
     get: chatGroup
       .get(instancePath('chats/:chatId', 'chats.get'), {
         name: 'Get chat',
-        description: 'Retrieves a specific chat.'
+        description: 'Retrieves a chat.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .output(chatPresenter)

@@ -25,12 +25,23 @@ let writeScopes = ['instance.skill:write'] as const;
 let consumerWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
 let skillPluginInput = {
-  name: v.optional(v.string()),
-  description: v.optional(v.nullable(v.string())),
-  long_description: v.optional(v.nullable(v.string())),
-  category: v.optional(v.nullable(v.string())),
-  image_file_id: v.optional(v.nullable(v.string())),
-  skill_configuration_id: v.optional(v.nullable(v.string()))
+  name: v.optional(v.string(), { description: 'Display name.' }),
+  description: v.optional(v.nullable(v.string()), {
+    description: 'Free-text description. `null` clears it.'
+  }),
+  long_description: v.optional(v.nullable(v.string()), {
+    description: 'Longer description shown on the marketplace. `null` clears it.'
+  }),
+  category: v.optional(v.nullable(v.string()), {
+    description: 'Category for grouping plugins on the marketplace. `null` clears it.'
+  }),
+  image_file_id: v.optional(v.nullable(v.string()), {
+    description: 'Image file for the plugin, by ID. `null` resets to the default image.'
+  }),
+  skill_configuration_id: v.optional(v.nullable(v.string()), {
+    description:
+      'Skill configuration for the plugin, by ID. `null` uses the default configuration.'
+  })
 };
 
 export let getSkillPluginAccess = (ctx: Parameters<typeof getInstanceCargoAccess>[0] & any) =>
@@ -74,7 +85,7 @@ export let skillPluginGroup = instanceGroup
 export let skillPluginController = Controller.create(
   {
     name: 'Skill Plugins',
-    description: 'Manage skill plugins for an instance.'
+    description: 'A skill plugin is a set of skills distributed through a skill marketplace.'
   },
   {
     list: instanceGroup
@@ -90,17 +101,41 @@ export let skillPluginController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            skill_marketplace_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill plugins with these IDs.'
+              })
             ),
-            category: v.optional(v.string()),
-            search: v.optional(v.string()),
-            skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_marketplace_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill plugins in one of these marketplaces.'
+              })
+            ),
+            status: v.optional(
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skill plugins with one of these statuses.'
+                }
+              )
+            ),
+            category: v.optional(
+              v.string({ description: 'Only return skill plugins in this category.' })
+            ),
+            search: v.optional(
+              v.string({
+                description: 'Only return skill plugins matching this search text.'
+              })
+            ),
+            skill_configuration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description:
+                  'Only return skill plugins using one of these skill configurations.'
+              })
+            ),
             skill_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description:
                 'Only return plugins whose skills are synced from these skill groups.'
@@ -192,7 +227,12 @@ export let skillPluginController = Controller.create(
             description:
               'The plugin name. Required unless skill_group_id is set, in which case it defaults to the group name.'
           }),
-          skill_marketplace_id: v.optional(v.string()),
+          skill_marketplace_id: v.optional(
+            v.string({
+              description:
+                'Marketplace to publish the plugin to, by ID. Required for consumers.'
+            })
+          ),
           skill_group_id: v.optional(v.string(), {
             description:
               "Creates the plugin from a skill group. The group's skills are synced into the plugin automatically and cannot be edited on the plugin directly. Name and description are copied from the group once and can be changed afterwards.",
@@ -235,7 +275,7 @@ export let skillPluginController = Controller.create(
     update: skillPluginGroup
       .patch(instancePath('skill-plugins/:skillPluginId', 'skills.plugins.update'), {
         name: 'Update skill plugin',
-        description: 'Updates a skill plugin.'
+        description: 'Updates a skill plugin. Omitted fields keep their current value.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...consumerWriteScopes] }))
@@ -318,7 +358,8 @@ export let skillPluginController = Controller.create(
     sync: skillPluginGroup
       .post(instancePath('skill-plugins/:skillPluginId/sync', 'skills.plugins.sync'), {
         name: 'Sync skill plugin',
-        description: 'Forces a skill plugin sync.'
+        description:
+          'Starts a sync of the skill plugin to its linked repositories, even if nothing changed.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))

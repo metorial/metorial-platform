@@ -17,13 +17,34 @@ let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as cons
 let writeScopes = ['instance.skill:write'] as const;
 
 let skillMarketplaceInput = {
-  name: v.optional(v.string()),
-  description: v.optional(v.nullable(v.string())),
-  image_file_id: v.optional(v.nullable(v.string())),
-  skill_configuration_id: v.optional(v.nullable(v.string())),
-  repository_access_mode: v.optional(v.enumOf(['pull_request', 'default_branch'])),
-  force_merge_or_push: v.optional(v.boolean()),
-  merge_before_checks_pass: v.optional(v.boolean())
+  name: v.optional(v.string(), { description: 'Display name.' }),
+  description: v.optional(v.nullable(v.string()), {
+    description: 'Free-text description. `null` clears it.'
+  }),
+  image_file_id: v.optional(v.nullable(v.string()), {
+    description: 'Image file for the marketplace, by ID. `null` resets to the default image.'
+  }),
+  skill_configuration_id: v.optional(v.nullable(v.string()), {
+    description:
+      'Skill configuration for the marketplace, by ID. `null` uses the default configuration.'
+  }),
+  repository_access_mode: v.optional(
+    v.enumOf(['pull_request', 'default_branch'], {
+      description:
+        'How syncs reach linked repositories. `pull_request` opens a pull request, `default_branch` pushes directly.'
+    })
+  ),
+  force_merge_or_push: v.optional(
+    v.boolean({
+      description: 'Merge or push even when the repository changed unexpectedly.'
+    })
+  ),
+  merge_before_checks_pass: v.optional(
+    v.boolean({
+      description:
+        'Merge pull requests before checks pass. Only applies to `pull_request` mode.'
+    })
+  )
 };
 
 export let getSkillMarketplaceAccess = (
@@ -54,7 +75,7 @@ export let skillMarketplaceGroup = instanceGroup
 export let skillMarketplaceController = Controller.create(
   {
     name: 'Skill Marketplaces',
-    description: 'Manage skill marketplaces for an instance.'
+    description: 'A skill marketplace is a curated collection of skill plugins.'
   },
   {
     list: instanceGroup
@@ -70,19 +91,37 @@ export let skillMarketplaceController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            status: v.optional(
-              v.union([
-                v.enumOf(['active', 'archived', 'deleted']),
-                v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+            id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description: 'Only return skill marketplaces with these IDs.'
+              })
             ),
-            skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            status: v.optional(
+              v.union(
+                [
+                  v.enumOf(['active', 'archived', 'deleted']),
+                  v.array(v.enumOf(['active', 'archived', 'deleted']))
+                ],
+                {
+                  description: 'Only return skill marketplaces with one of these statuses.'
+                }
+              )
+            ),
+            skill_configuration_id: v.optional(
+              v.union([v.string(), v.array(v.string())], {
+                description:
+                  'Only return skill marketplaces using one of these skill configurations.'
+              })
+            ),
             skill_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description:
                 'Only return marketplaces that contain an active plugin synced from these skill groups.'
             }),
-            search: v.optional(v.string()),
+            search: v.optional(
+              v.string({
+                description: 'Only return skill marketplaces matching this search text.'
+              })
+            ),
             created_at: dateFilterValidator('skill marketplace creation time'),
             updated_at: dateFilterValidator('skill marketplace last update time')
           })
@@ -137,7 +176,7 @@ export let skillMarketplaceController = Controller.create(
         'default',
         v.object({
           ...skillMarketplaceInput,
-          name: v.string()
+          name: v.string({ description: 'Display name.' })
         })
       )
       .output(skillMarketplacePresenter)
@@ -166,7 +205,7 @@ export let skillMarketplaceController = Controller.create(
         instancePath('skill-marketplaces/:skillMarketplaceId', 'skills.marketplaces.update'),
         {
           name: 'Update skill marketplace',
-          description: 'Updates a skill marketplace.'
+          description: 'Updates a skill marketplace. Omitted fields keep their current value.'
         }
       )
       .use(hasFlags(['skills-enabled']))
@@ -225,7 +264,8 @@ export let skillMarketplaceController = Controller.create(
         ),
         {
           name: 'Sync skill marketplace',
-          description: 'Forces a skill marketplace sync.'
+          description:
+            'Starts a sync of the skill marketplace to its linked repositories, even if nothing changed.'
         }
       )
       .use(hasFlags(['skills-enabled']))

@@ -30,11 +30,11 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
   .schema(
     v.object({
       object: v.literal('provider.auth_export', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique auth export identifier',
+        description: 'Unique ID.',
         examples: ['pace_7yZaBcDeFgHjKlMn']
       }),
       note: v.string({
@@ -58,39 +58,40 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ exported_by: 'admin@company.com', reason: 'backup' }]
         })
       ),
       auth_config: v1ProviderAuthConfigPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this export belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       provider_deployment_id: v.nullable(
         v.string({
           name: 'provider_deployment_id',
-          description: 'Deployment ID',
+          description:
+            'Deployment the exported credentials were used with. `null` when the auth config isn’t tied to a deployment.',
           examples: ['pde_1aBcDeFgHjKlMnPq']
         })
       ),
       auth_method_id: v.string({
         name: 'auth_method_id',
-        description: 'Auth method ID',
+        description: 'Auth method the exported credentials belong to.',
         examples: ['pam_2mNpQrStUvWxYzAb']
       }),
       credentials_id: v.nullable(
         v.string({
           name: 'credentials_id',
-          description: 'Auth credentials ID',
+          description: 'Exported credentials, or `null` when the auth config has none.',
           examples: ['par_4sTuVwXyZaBcDeFg']
         })
       ),
       value: v.nullable(
         v.record(v.any(), {
           name: 'value',
-          description: 'The exported credential data',
+          description: 'Exported credential data. Only returned when creating the export.',
           examples: [
             {
               access_token: 'gho_xxxxxxxxxxxxxxxxxxxx',
@@ -103,13 +104,13 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       expires_at: v.nullable(
         v.date({
           name: 'expires_at',
-          description: 'Timestamp when the export expires',
+          description: 'Set by the backend when the export was created.',
           examples: [new Date('2026-03-15T10:30:00Z')]
         })
       )

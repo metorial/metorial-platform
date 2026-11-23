@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 )
 
@@ -171,7 +172,7 @@ func uploadItems(opts UploadOptions, iter func(func(uploadItem) error) error) er
 	}
 	opts = opts.withDefaults()
 
-	client := &http.Client{}
+	client := egress.Client
 
 	actions := make([]gitlabFileAction, 0)
 	payloadBytes := 0

@@ -49,11 +49,11 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
   .schema(
     v.object({
       object: v.literal('session.event', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session event identifier',
+        description: 'Unique ID.',
         examples: ['sev_8hJkLmNpQrStUvWx']
       }),
       type: v.enumOf(
@@ -73,12 +73,12 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
         ] as const,
         {
           name: 'type',
-          description: 'Event type'
+          description: 'What happened in the session.'
         }
       ),
       session_id: v.string({
         name: 'session_id',
-        description: 'Parent session ID',
+        description: 'Session the event belongs to.',
         examples: ['ses_4dEfGhJkLmNpQrSt']
       }),
       connection: v.nullable(v1SessionConnectionPresenter.schema),
@@ -88,7 +88,7 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
       warning: v.nullable(v1SessionWarningPresenter.schema),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

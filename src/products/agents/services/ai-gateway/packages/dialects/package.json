@@ -1,0 +1,26 @@
+{
+  "name": "@mtsrc/ai-gateway-dialects",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "4.0.38",
+    "@mtsrc/ai-gateway-cost": "workspace:*",
+    "@mtsrc/ai-gateway-spec": "workspace:*"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "@mtsrc/ai-gateway-testing": "workspace:*",
+    "openai": "7.56.0",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

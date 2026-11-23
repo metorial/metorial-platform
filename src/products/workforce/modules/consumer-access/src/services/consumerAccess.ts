@@ -334,6 +334,7 @@ class ConsumerAccessServiceImpl {
     consumerAccessListingIds?: string[];
     types?: ConsumerAccessTargetType[];
     search?: string;
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let search = d.search?.trim();
     let hasConsumerGroupFilter = !!d.consumerGroupIds?.length;
@@ -594,6 +595,13 @@ class ConsumerAccessServiceImpl {
                     ]
                   }
                 : {},
+              d.visibleToConsumerGroups
+                ? {
+                    consumerGroupOid: {
+                      in: d.visibleToConsumerGroups.map(group => group.oid)
+                    }
+                  }
+                : {},
               {
                 OR: [
                   {
@@ -651,11 +659,15 @@ class ConsumerAccessServiceImpl {
   async getConsumerAccessById(d: {
     consumerSurface: ConsumerSurface;
     consumerAccessId: string;
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let consumerAccess = await db.consumerAccess.findFirst({
       where: {
         surfaceOid: d.consumerSurface.oid,
         id: d.consumerAccessId,
+        ...(d.visibleToConsumerGroups
+          ? { consumerGroupOid: { in: d.visibleToConsumerGroups.map(group => group.oid) } }
+          : {}),
         OR: [
           {
             type: 'provider_template',

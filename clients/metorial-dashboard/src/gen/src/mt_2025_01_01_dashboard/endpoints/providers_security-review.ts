@@ -53,7 +53,7 @@ export class MetorialProvidersSecurityReviewEndpoint {
     query?: DashboardInstanceProvidersSecurityReviewGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersSecurityReviewGetOutput> {
-    let path = `providers/${providerId}/security-review`;
+    let path = `providers/${encodeURIComponent(providerId)}/security-review`;
 
     let request = {
       path,

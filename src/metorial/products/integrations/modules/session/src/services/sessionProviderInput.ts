@@ -3,8 +3,6 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
-  db as defaultDb,
-  dbPrimary,
   type Environment,
   getId,
   type ProviderAuthConfig,
@@ -13,7 +11,6 @@ import {
   type SessionTemplate,
   type SessionTemplateProvider,
   type Tenant,
-  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -152,11 +149,7 @@ class sessionProviderInputServiceImpl {
     let solution = await getMetorialSolution();
 
     let resolved = await withTransaction(
-      async tdb => {
-        // Without an enclosing transaction withTransaction hands back the replica-routed
-        // client; templates created moments ago must be visible, so read from the primary.
-        let db = (tdb === defaultDb ? dbPrimary : tdb) as TransactionDB;
-
+      async db => {
         let ts = {
           solutionOid: solution.oid,
           tenantOid: d.tenant.oid,
@@ -266,6 +259,7 @@ class sessionProviderInputServiceImpl {
     resolvedProviders?: ResolvedSessionProviderInput[];
     session: Session;
     isNewSession?: boolean;
+    ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
 
@@ -275,7 +269,8 @@ class sessionProviderInputServiceImpl {
         await this.resolveProviderSessionInput({
           tenant: d.tenant,
           environment: d.environment,
-          providers: d.providers
+          providers: d.providers,
+          ownershipAccessor: d.ownershipAccessor
         })
       ).providers;
 

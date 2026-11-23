@@ -31,20 +31,27 @@ export let skillTemplateItemGroup = skillTemplateGroup.use(async ctx => {
 
 let createSkillTemplateItemValidator = v.union([
   v.object({
-    type: v.literal('provider'),
-    provider_id: v.string()
+    type: v.literal('provider', {
+      description: 'Attach a provider to the skill template.'
+    }),
+    provider_id: v.string({
+      description: 'Provider to attach to the skill template, by ID.'
+    })
   }),
   v.object({
-    type: v.literal('integration'),
-    integration_id: v.string()
+    type: v.literal('integration', {
+      description: 'Attach an integration to the skill template.'
+    }),
+    integration_id: v.string({
+      description: 'Integration to attach to the skill template, by ID.'
+    })
   })
 ]);
 
 export let skillTemplateItemController = Controller.create(
   {
     name: 'Skill Template Items',
-    description:
-      'Skill template items link template definitions to provider and integration items.'
+    description: 'A skill template item is a provider or integration attached to a skill template.'
   },
   {
     list: skillTemplateGroup
@@ -52,7 +59,7 @@ export let skillTemplateItemController = Controller.create(
         instancePath('skill-templates/:skillTemplateId/items', 'skills.templates.items.list'),
         {
           name: 'List skill template items',
-          description: 'Returns a paginated list of items for a skill template.',
+          description: 'Returns a paginated list of skill template items.',
           legacyPaths: instanceLegacyPath('skill-template/:skillTemplateId/items')
         }
       )
@@ -85,7 +92,7 @@ export let skillTemplateItemController = Controller.create(
         ),
         {
           name: 'Get skill template item',
-          description: 'Retrieves a specific skill template item.',
+          description: 'Retrieves a skill template item.',
           legacyPaths: instanceLegacyPath(
             'skill-template/:skillTemplateId/items/:skillTemplateItemId'
           )

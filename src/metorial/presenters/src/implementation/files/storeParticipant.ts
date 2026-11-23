@@ -29,17 +29,25 @@ export let v1StoreParticipantPresenter = Presenter.create(storeParticipantType)
   .schema(
     v.object({
       object: v.literal('store.participant', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string(),
-      store_id: v.string(),
-      permissions: v.array(v.enumOf(['content_read', 'content_write'])),
+      id: v.string({ description: 'Unique ID.' }),
+      store_id: v.string({ description: 'Store the participant belongs to.' }),
+      permissions: v.array(v.enumOf(['content_read', 'content_write']), {
+        description: 'What the participant can read or write in the store.'
+      }),
       roles: storeParticipantRolesSchema,
       actor: documentParticipantActorSchema,
-      surfaces: v.nullable(v.array(storeParticipantSurfaceSchema)),
-      last_active_at: v.nullable(v.date()),
-      created_at: v.date(),
-      updated_at: v.date()
+      surfaces: v.nullable(
+        v.array(storeParticipantSurfaceSchema, {
+          description: 'Other identities linked to this participant.'
+        })
+      ),
+      last_active_at: v.nullable(
+        v.date({ description: 'When the participant last acted in the store.' })
+      ),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

@@ -24,16 +24,17 @@ export let v1IdentityCredentialPresenter = Presenter.create(identityCredentialTy
   .schema(
     v.object({
       object: v.literal('identity.credential', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique identity credential identifier.',
+        description: 'Unique ID.',
         examples: ['icr_8vBnM4xZa2cDf7gH']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Current lifecycle status of the credential.'
+        description:
+          'Current lifecycle status of the credential. `archived` once you archive the credential.'
       }),
       identity_id: v.string({
         name: 'identity_id',
@@ -42,7 +43,7 @@ export let v1IdentityCredentialPresenter = Presenter.create(identityCredentialTy
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider associated with the credential.',
+        description: 'Provider this credential holds access for.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       deployment_id: v.nullable(
@@ -75,12 +76,12 @@ export let v1IdentityCredentialPresenter = Presenter.create(identityCredentialTy
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the credential was created.',
+        description: 'Creation time.',
         examples: [new Date('2026-02-03T10:15:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the credential was last updated.',
+        description: 'Last update time.',
         examples: [new Date('2026-02-10T14:30:00Z')]
       })
     })

@@ -4,6 +4,7 @@ export type { MetorialEnterpriseWindow } from './types/metorialEnterpriseWindow'
 export { setConsumerSetup, withDashboardSDK, requireConsumerSetup } from './sdk';
 
 export * from './agent';
+export * from './agent-tracking';
 export * from './assistant';
 export * from './chat';
 export * from './config';

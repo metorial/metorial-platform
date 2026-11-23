@@ -34,13 +34,13 @@ export let documentParticipantGroup = documentGroup.use(async ctx => {
 export let documentParticipantController = Controller.create(
   {
     name: 'Document Participants',
-    description: 'Inspect document participants and their linked Metorial resources.'
+    description: 'A document participant is an actor with access to a document.'
   },
   {
     list: documentGroup
       .get(instancePath('documents/:documentId/participants', 'documents.participants.list'), {
         name: 'List document participants',
-        description: 'Returns a paginated list of participants for a specific document.'
+        description: 'Returns a paginated list of participants in a document.'
       })
       .use(
         checkAccess({
@@ -52,9 +52,9 @@ export let documentParticipantController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by document participant ID'),
-            created_at: dateFilterValidator('Filter by creation time'),
-            updated_at: dateFilterValidator('Filter by update time')
+            id: stringArrayFilterSchema('Only return participants with one of these IDs.'),
+            created_at: dateFilterValidator('participant creation time'),
+            updated_at: dateFilterValidator('participant last update time')
           })
         )
       )
@@ -80,8 +80,8 @@ export let documentParticipantController = Controller.create(
           'documents.participants.get'
         ),
         {
-          name: 'Get document participant by ID',
-          description: 'Retrieves a specific document participant by its ID.'
+          name: 'Get document participant',
+          description: 'Retrieves a participant in a document.'
         }
       )
       .use(

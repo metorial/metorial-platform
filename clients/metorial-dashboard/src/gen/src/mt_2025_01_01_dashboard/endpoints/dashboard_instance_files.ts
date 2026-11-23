@@ -57,7 +57,7 @@ export class MetorialDashboardInstanceFilesEndpoint {
     query?: DashboardInstanceFilesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesListOutput> {
-    let path = `dashboard/instances/${instanceId}/files`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/files`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceFilesEndpoint {
     fileId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/files/${fileId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/files/${encodeURIComponent(fileId)}`;
 
     let request = {
       path,
@@ -114,7 +114,7 @@ export class MetorialDashboardInstanceFilesEndpoint {
     fileId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/files/${fileId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/files/${encodeURIComponent(fileId)}`;
 
     let request = {
       path,

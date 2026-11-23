@@ -61,7 +61,7 @@ export let chatWorkspaceController = Controller.create(
     get: instanceGroup
       .get(instancePath('chat/workspaces/:chatWorkspaceId', 'chat.workspaces.get'), {
         name: 'Get chat workspace',
-        description: 'Retrieves a specific chat workspace.'
+        description: 'Retrieves a chat workspace.'
       })
       .use(checkAccess({ possibleScopes: ['instance.chat:read'] }))
       .query(

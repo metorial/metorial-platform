@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
     query?: DashboardInstanceProviderDeploymentsSetupSessionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-setup-sessions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-setup-sessions`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
     providerSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-setup-sessions/${encodeURIComponent(providerSetupSessionId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
     body: DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-setup-sessions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-setup-sessions`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
     body: DashboardInstanceProviderDeploymentsSetupSessionsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-setup-sessions/${encodeURIComponent(providerSetupSessionId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint {
     providerSetupSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-setup-sessions/${encodeURIComponent(providerSetupSessionId)}`;
 
     let request = {
       path,

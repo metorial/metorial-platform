@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Prisma, type SecretPurpose } from '../../prisma/generated/client';
-import { db, primaryDb } from '../db';
+import { db } from '../db';
 import { get4ByteIntId } from '../id';
 import { secretPurposeCache } from '../lib/secretPurposeCache';
 
@@ -41,7 +41,7 @@ class SecretPurposeServiceImpl {
         throw error;
       }
 
-      purpose = await primaryDb.secretPurpose.findUnique({ where: { identifier } });
+      purpose = await db.secretPurpose.findUnique({ where: { identifier } });
       if (!purpose) throw error;
     }
 

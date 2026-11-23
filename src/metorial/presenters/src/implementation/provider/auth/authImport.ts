@@ -28,11 +28,11 @@ export let v1ProviderAuthImportPresenter = Presenter.create(providerAuthImportTy
   .schema(
     v.object({
       object: v.literal('provider.auth_import', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique auth import identifier',
+        description: 'Unique ID.',
         examples: ['paci_1vWxYzAbCdEfGhJk']
       }),
       note: v.string({
@@ -56,44 +56,45 @@ export let v1ProviderAuthImportPresenter = Presenter.create(providerAuthImportTy
       metadata: v.nullable(
         v.record(v.any(), {
           name: 'metadata',
-          description: 'Custom key-value pairs for storing additional information',
+          description: 'Custom data you attach to identify or organize this record.',
           examples: [{ imported_from: 'legacy-system', migration_date: '2025-09-01' }]
         })
       ),
       auth_config: v1ProviderAuthConfigPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this import belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       provider_deployment_id: v.nullable(
         v.string({
           name: 'provider_deployment_id',
-          description: 'Deployment ID',
+          description:
+            'Deployment the imported credentials were used with. `null` when the auth config isn’t tied to a deployment.',
           examples: ['pde_1aBcDeFgHjKlMnPq']
         })
       ),
       auth_method_id: v.string({
         name: 'auth_method_id',
-        description: 'Auth method ID',
+        description: 'Auth method the imported credentials belong to.',
         examples: ['pam_2mNpQrStUvWxYzAb']
       }),
       credentials_id: v.nullable(
         v.string({
           name: 'credentials_id',
-          description: 'Auth credentials ID',
+          description: 'Imported credentials, or `null` when the auth config has none.',
           examples: ['par_4sTuVwXyZaBcDeFg']
         })
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       expires_at: v.nullable(
         v.date({
           name: 'expires_at',
-          description: 'Timestamp when the import expires',
+          description: 'Always `null`. Imports do not expire.',
           examples: [new Date('2026-03-15T10:30:00Z')]
         })
       )

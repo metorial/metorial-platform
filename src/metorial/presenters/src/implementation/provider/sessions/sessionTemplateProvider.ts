@@ -56,44 +56,53 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
   .schema(
     v.object({
       object: v.literal('session.template.provider', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session template provider identifier',
+        description: 'Unique ID.',
         examples: ['stp_3cDeFgHjKlMnPqRs']
       }),
       status: v.enumOf(['active', 'archived', 'deleted'], {
         name: 'status',
-        description: 'Provider status'
+        description:
+          '`archived` once the template provider is removed. Removed template providers stay listable.'
       }),
       tool_filter: toolFilterPresenter.schema,
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this template provider connects to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       session_template_id: v.string({
         name: 'session_template_id',
-        description: 'Parent session template ID',
+        description: 'Template this provider belongs to.',
         examples: ['stm_2bCdEfGhJkLmNpQr']
       }),
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
       config: v1ProviderConfigPreviewPresenter.schema,
       auth_config: v.nullable(
-        v.object({
-          object: v.literal('provider.auth_config#preview'),
-          id: v.string()
-        })
+        v.object(
+          {
+            object: v.literal('provider.auth_config#preview', {
+              description: "String representing the object’s type."
+            }),
+            id: v.string({ description: 'Unique ID.' })
+          },
+          {
+            name: 'auth_config',
+            description: 'Auth config the provider runs with. `null` when there is none.'
+          }
+        )
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

@@ -121,7 +121,7 @@ export class MetorialCallbacksEndpoint {
     callbackId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksGetOutput> {
-    let path = `callbacks/${callbackId}`;
+    let path = `callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,
@@ -148,7 +148,7 @@ export class MetorialCallbacksEndpoint {
     body: DashboardInstanceCallbacksUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksUpdateOutput> {
-    let path = `callbacks/${callbackId}`;
+    let path = `callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,
@@ -176,7 +176,7 @@ export class MetorialCallbacksEndpoint {
     callbackId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksDeleteOutput> {
-    let path = `callbacks/${callbackId}`;
+    let path = `callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,

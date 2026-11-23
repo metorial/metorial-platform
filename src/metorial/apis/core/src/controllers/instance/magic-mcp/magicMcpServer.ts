@@ -331,7 +331,7 @@ export let magicMcpServerController = Controller.create(
   {
     name: 'Magic MCP Servers',
     description:
-      'Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.',
+      'A magic MCP server is a stable MCP entrypoint with its own providers and tool filters. Servers can be grouped and bound to tokens, or combined behind an endpoint.',
     hideInDocs: true
   },
   {
@@ -362,23 +362,45 @@ export let magicMcpServerController = Controller.create(
               v.union([
                 v.enumOf([...magicMcpServerStatusValues]),
                 v.array(v.enumOf([...magicMcpServerStatusValues]))
-              ])
+              ]),
+              { description: 'Only return servers with one of these statuses.' }
             ),
-            magic_mcp_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            magic_mcp_group_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return servers in these groups.' }
+            ),
+            provider_template_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return servers built from these provider templates.' }
+            ),
+            integration_instance_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return servers built from these integration instances.' }
+            ),
             owner: v.optional(
               v.union([
                 v.enumOf([...magicMcpServerOwnerFilterValues]),
                 v.array(v.enumOf([...magicMcpServerOwnerFilterValues]))
-              ])
+              ]),
+              { description: 'Only return organization-owned or consumer-owned servers.' }
             ),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            consumer_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            search: v.optional(v.string()),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            preconfigured_only: v.optional(v.boolean())
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return servers using one of these providers.'
+            }),
+            consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return servers owned by these consumers.'
+            }),
+            consumer_profile_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return servers owned by these consumer profiles.' }
+            ),
+            search: v.optional(v.string({ description: 'Search by name or description.' })),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return servers with these IDs.'
+            }),
+            preconfigured_only: v.optional(
+              v.boolean({ description: 'Only return preconfigured servers.' })
+            )
           })
         )
       )
@@ -516,17 +538,38 @@ export let magicMcpServerController = Controller.create(
               v.union([
                 v.enumOf(['pending', 'active', 'archived', 'deleted']),
                 v.array(v.enumOf(['pending', 'active', 'archived', 'deleted']))
-              ])
+              ]),
+              { description: 'Only return providers with one of these statuses.' }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return providers with these IDs.'
+            }),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return providers using one of these providers.'
+            }),
+            integration_provider_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return providers using one of these integration providers.' }
+            ),
             integration_instance_provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description:
+                  'Only return providers using one of these integration instance providers.'
+              }
             ),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_deployment_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return providers using one of these deployments.' }
+            ),
+            provider_config_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return providers using one of these configurations.' }
+            ),
+            provider_auth_config_id: v.optional(
+              v.union([v.string(), v.array(v.string())]),
+              { description: 'Only return providers using one of these auth configurations.' }
+            ),
             created_at: dateFilterValidator('magic MCP server provider creation time'),
             updated_at: dateFilterValidator('magic MCP server provider last update time')
           })
@@ -571,7 +614,7 @@ export let magicMcpServerController = Controller.create(
         ),
         {
           name: 'Create magic MCP server provider',
-          description: 'Creates a configurable provider row for a magic MCP server.'
+          description: 'Adds a provider to a magic MCP server.'
         }
       )
       .use(
@@ -586,10 +629,22 @@ export let magicMcpServerController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_id: v.string(),
-          provider_deployment_id: v.optional(v.string()),
-          provider_config_id: v.optional(v.nullable(v.string())),
-          provider_auth_config_id: v.optional(v.nullable(v.string())),
+          provider_id: v.string({ description: 'Provider to add to the server.' }),
+          provider_deployment_id: v.optional(
+            v.string({ description: 'Deployment of the provider to use.' })
+          ),
+          provider_config_id: v.optional(
+            v.nullable(
+              v.string({ description: 'Configuration of the provider to use. `null` clears it.' })
+            )
+          ),
+          provider_auth_config_id: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Auth configuration of the provider to use. `null` clears it.'
+              })
+            )
+          ),
           tool_filters: toolFiltersValidator
         })
       )
@@ -628,8 +683,7 @@ export let magicMcpServerController = Controller.create(
         ),
         {
           name: 'Get magic MCP server provider',
-          description:
-            'Retrieves a specific backing integration instance provider for a magic MCP server.'
+          description: 'Retrieves a provider of a magic MCP server.'
         }
       )
       .use(
@@ -659,7 +713,7 @@ export let magicMcpServerController = Controller.create(
         {
           name: 'Update magic MCP server provider',
           description:
-            'Updates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.'
+            'Updates a provider of a magic MCP server. Omitted fields keep their current value.'
         }
       )
       .use(
@@ -674,9 +728,21 @@ export let magicMcpServerController = Controller.create(
       .body(
         'default',
         v.object({
-          provider_deployment_id: v.optional(v.string()),
-          provider_config_id: v.optional(v.nullable(v.string())),
-          provider_auth_config_id: v.optional(v.nullable(v.string())),
+          provider_deployment_id: v.optional(
+            v.string({ description: 'Deployment of the provider to use.' })
+          ),
+          provider_config_id: v.optional(
+            v.nullable(
+              v.string({ description: 'Configuration of the provider to use. `null` clears it.' })
+            )
+          ),
+          provider_auth_config_id: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Auth configuration of the provider to use. `null` clears it.'
+              })
+            )
+          ),
           tool_filters: toolFiltersValidator
         })
       )
@@ -714,7 +780,7 @@ export let magicMcpServerController = Controller.create(
           'magicMcpServers.providers.delete'
         ),
         {
-          name: 'Delete magic MCP server provider',
+          name: 'Archive magic MCP server provider',
           description:
             'Archives a backing integration instance provider from a magic MCP server and removes the shared integration provider when unused.'
         }
@@ -751,7 +817,7 @@ export let magicMcpServerController = Controller.create(
       .post(instancePath('magic-mcp-servers', 'magicMcpServers.create'), {
         name: 'Create magic MCP server',
         description:
-          'Creates a magic MCP server with a new session template. A Subspace session is created automatically on first connection and then reused.'
+          'Creates a magic MCP server. A session is created automatically on first connection and then reused.'
       })
       .use(
         checkAccess({
@@ -762,12 +828,23 @@ export let magicMcpServerController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          provider_template_id: v.optional(v.string()),
-          integration_instance_id: v.optional(v.string()),
-          consumer_profile_id: v.optional(v.string())
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the server. Replaces existing metadata.'
+            })
+          ),
+          provider_template_id: v.optional(
+            v.string({ description: 'Provider template to build the server from.' })
+          ),
+          integration_instance_id: v.optional(
+            v.string({ description: 'Integration instance to build the server from.' })
+          ),
+          consumer_profile_id: v.optional(
+            v.string({ description: 'Consumer profile that will own the server.' })
+          )
         })
       )
       .output(magicMcpServerPresenter)
@@ -842,7 +919,7 @@ export let magicMcpServerController = Controller.create(
 
     delete: magicMcpServerGroup
       .delete(instancePath('magic-mcp-servers/:magicMcpServerId', 'magicMcpServers.delete'), {
-        name: 'Delete magic MCP server',
+        name: 'Archive magic MCP server',
         description: 'Archives a magic MCP server.'
       })
       .use(
@@ -883,7 +960,7 @@ export let magicMcpServerController = Controller.create(
     update: magicMcpServerGroup
       .patch(instancePath('magic-mcp-servers/:magicMcpServerId', 'magicMcpServers.update'), {
         name: 'Update magic MCP server',
-        description: 'Updates a magic MCP server.'
+        description: 'Updates a magic MCP server. Omitted fields keep their current value.'
       })
       .use(
         checkAccess({
@@ -897,20 +974,34 @@ export let magicMcpServerController = Controller.create(
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          aliases: v.optional(v.array(v.string()))
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the server. Replaces existing metadata.'
+            })
+          ),
+          aliases: v.optional(
+            v.array(v.string(), { description: 'Connection slugs for the server.' })
+          )
         }),
         v => v
       )
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          aliases: v.optional(v.array(v.string())),
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the server. Replaces existing metadata.'
+            })
+          ),
+          aliases: v.optional(
+            v.array(v.string(), { description: 'Connection slugs for the server.' })
+          ),
           source: v.optional(v.enumOf(['explorer']), {
             description:
               'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'

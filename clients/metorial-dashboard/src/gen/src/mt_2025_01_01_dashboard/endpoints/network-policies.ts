@@ -93,7 +93,7 @@ export class MetorialNetworkPoliciesEndpoint {
     networkPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesGetOutput> {
-    let path = `network-policies/${networkPolicyId}`;
+    let path = `network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialNetworkPoliciesEndpoint {
     body: DashboardInstanceNetworkPoliciesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesUpdateOutput> {
-    let path = `network-policies/${networkPolicyId}`;
+    let path = `network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialNetworkPoliciesEndpoint {
     networkPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceNetworkPoliciesDeleteOutput> {
-    let path = `network-policies/${networkPolicyId}`;
+    let path = `network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,

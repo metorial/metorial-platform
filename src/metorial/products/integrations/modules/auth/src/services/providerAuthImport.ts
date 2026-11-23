@@ -30,7 +30,9 @@ import {
 } from '@metorial-subspace/list-utils';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import {
+  assertCanUseOwnedResource,
   getMetorialSolution,
+  getOwnershipAccessor,
   checkTenant,
   type MetorialFacing,
   resolveMetorialFacing,
@@ -244,6 +246,14 @@ class providerAuthImportServiceImpl {
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    if (rest.providerAuthConfig) {
+      await assertCanUseOwnedResource(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        rest.providerAuthConfig,
+        { resource: 'provider auth config' }
+      );
+    }
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_import.created:before', eventBase);

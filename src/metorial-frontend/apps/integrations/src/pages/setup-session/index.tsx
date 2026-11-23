@@ -8,6 +8,7 @@ import {
   Redirect
 } from '../../components/publicStatusPage';
 import { ErrorIcon, SuccessIcon, WarningIcon } from '../../components/statusIcon';
+import { isHttpUrl } from '../../lib/isHttpUrl';
 import { isAdminSession } from '../../lib/session';
 import { useSetupSession } from '../../state/loaders';
 import type { PrefetchedSetupData } from '../../state/types';
@@ -80,7 +81,7 @@ let AdminSetupCompletedPage = ({
       </StatusDetails>
     )}
 
-    {redirectUrl && (
+    {redirectUrl && isHttpUrl(redirectUrl) && (
       <StatusSection>
         <Button
           size="3"

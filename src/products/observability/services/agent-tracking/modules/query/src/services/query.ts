@@ -1,5 +1,5 @@
 import { createHash, createHmac } from 'node:crypto';
-import { badRequestError, ServiceError, tooManyRequestsError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, type Organization } from '@mtsrc/agent-tracking-db';
 import type { QueryScope } from '@mtsrc/agent-tracking-module-usage';
@@ -22,6 +22,12 @@ import { bindQuery } from '../lib/bind';
 import { groupPipeline } from '../lib/codegen';
 import { compileFilter } from '../lib/compile';
 import { finalize } from '../lib/finalize';
+import {
+  maxConcurrentQueries,
+  maxQueriesPerMinute,
+  queryConcurrencyLimitedError,
+  queryRateLimitedError
+} from '../lib/limits';
 import { planQuery } from '../lib/plan';
 import {
   decodeCursor,
@@ -37,10 +43,6 @@ import {
 } from '../lib/rows';
 import type { EffectiveScope } from '../lib/scope';
 import { type BoundQuery, QueryBindError, type QueryWarning } from '../lib/types';
-
-export let maxConcurrentQueries = 4;
-
-export let maxQueriesPerMinute = 60;
 
 let slotTtlSeconds = 60;
 
@@ -113,18 +115,8 @@ let withQuerySlot = async <T>(organization: Organization, run: () => Promise<T>)
     let running = Number(results[1]?.[1] ?? 0);
     acquired = true;
 
-    if (rate > maxQueriesPerMinute) {
-      throw new ServiceError(
-        tooManyRequestsError({ message: `At most ${maxQueriesPerMinute} queries per minute.` })
-      );
-    }
-    if (running > maxConcurrentQueries) {
-      throw new ServiceError(
-        tooManyRequestsError({
-          message: `At most ${maxConcurrentQueries} queries can run at once.`
-        })
-      );
-    }
+    if (rate > maxQueriesPerMinute) throw queryRateLimitedError(minute);
+    if (running > maxConcurrentQueries) throw queryConcurrencyLimitedError();
   } catch (error) {
     if (error instanceof ServiceError) {
       if (acquired) await redis.decr(runningKey).catch(() => {});

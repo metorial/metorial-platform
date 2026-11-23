@@ -21,43 +21,43 @@ export let v1SessionErrorGroupPresenter = Presenter.create(sessionErrorGroupType
   .schema(
     v.object({
       object: v.literal('session.error_group', {
-        description: "String representing the object's type"
+        description: "String representing the object’s type."
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique session error group identifier',
+        description: 'Unique ID.',
         examples: ['seg_7gHjKlMnPqRsTuVw']
       }),
       code: v.string({
         name: 'code',
-        description: 'Error code',
+        description: 'Machine-readable error code.',
         examples: ['CONNECTION_TIMEOUT']
       }),
       message: v.string({
         name: 'message',
-        description: 'Error message',
+        description: 'Human-readable summary of the failure.',
         examples: ['Connection timed out']
       }),
       data: v.record(v.any(), {
         name: 'data',
-        description: 'Error group data from first occurrence',
+        description: 'Error group data from the first occurrence.',
         examples: [{ timeout_ms: 30000 }]
       }),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
-          description: 'Provider ID',
+          description: 'Provider the errors belong to. `null` when there is none.',
           examples: ['pro_5gHjKlMnPqRsTuVw']
         })
       ),
       occurrence_count: v.number({
         name: 'occurrence_count',
-        description: 'Number of errors in this group',
+        description: 'How many errors are in this group.',
         examples: [5]
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

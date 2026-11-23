@@ -4,6 +4,8 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
 import { getGitLabAccessTokenWithInstallation } from '../../lib/gitlab';
+import { normalizePath } from '../../lib/normalizePath';
+import { assertScmUrlsReachable } from '../../lib/scmFetch';
 import { codeBucketService } from '../../services/codeBucket';
 
 export let exportGitlabQueue = createQueue<{
@@ -28,11 +30,12 @@ export let exportGitlabQueueProcessor = exportGitlabQueue.process(async data => 
 
   let token = await getGitLabAccessTokenWithInstallation(repo.installation);
   let apiUrl = repo.installation.backend.apiUrl;
+  await assertScmUrlsReachable(apiUrl);
 
   await codeBucketClient.exportBucketToGitlab({
     bucketId: data.bucketId,
     projectId: Long.fromString(repo.externalId),
-    path: data.path,
+    path: normalizePath(data.path),
     token,
     gitlabApiUrl: apiUrl,
     branch: data.branchName ?? repo.defaultBranch ?? 'main',

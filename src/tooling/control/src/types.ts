@@ -159,6 +159,7 @@ export interface LoadedManifest {
 
 export interface ServicePorts {
   postgres: number;
+  postgres_replica?: number;
   mongo: number;
   redis: number;
   nats: number;

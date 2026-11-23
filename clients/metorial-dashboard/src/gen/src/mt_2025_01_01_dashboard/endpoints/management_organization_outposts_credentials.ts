@@ -63,7 +63,7 @@ export class MetorialManagementOrganizationOutpostsCredentialsEndpoint {
     body: DashboardOrganizationsOutpostsCredentialsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsCredentialsCreateOutput> {
-    let path = `organization/outposts/${outpostId}/credentials`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/credentials`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialManagementOrganizationOutpostsCredentialsEndpoint {
     query?: DashboardOrganizationsOutpostsCredentialsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsCredentialsListOutput> {
-    let path = `organization/outposts/${outpostId}/credentials`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/credentials`;
 
     let request = {
       path,
@@ -129,7 +129,7 @@ export class MetorialManagementOrganizationOutpostsCredentialsEndpoint {
     credentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsCredentialsGetOutput> {
-    let path = `organization/outposts/${outpostId}/credentials/${credentialId}`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/credentials/${encodeURIComponent(credentialId)}`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementOrganizationOutpostsCredentialsEndpoint {
     credentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsCredentialsDisableOutput> {
-    let path = `organization/outposts/${outpostId}/credentials/${credentialId}/disable`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/credentials/${encodeURIComponent(credentialId)}/disable`;
 
     let request = {
       path,
@@ -187,7 +187,7 @@ export class MetorialManagementOrganizationOutpostsCredentialsEndpoint {
     credentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsCredentialsDeleteOutput> {
-    let path = `organization/outposts/${outpostId}/credentials/${credentialId}`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/credentials/${encodeURIComponent(credentialId)}`;
 
     let request = {
       path,

@@ -6,6 +6,7 @@ import PQueue from 'p-queue';
 import { parseRedisUrl } from './utils/parseRedisUrl';
 
 let MIN_IDLE_TIME_FOR_AUTOCLAIM = 1000 * 60 * 5;
+let STREAM_TRIM_DELAY_MS = 1000 * 60 * 15;
 
 export class RedisStreams<Message> {
   constructor(
@@ -13,7 +14,7 @@ export class RedisStreams<Message> {
     private readonly redisUrl: string
   ) {}
 
-  private async createRedis() {
+  private createRedis() {
     return new Redis(parseRedisUrl(this.redisUrl));
   }
 
@@ -21,7 +22,7 @@ export class RedisStreams<Message> {
     opts: { groupId: string; consumerId?: string; concurrency?: number },
     processor: (msg: Message) => Promise<any>
   ) {
-    let redis = await this.createRedis();
+    let redis = this.createRedis();
     let queue = new PQueue({ concurrency: opts.concurrency ?? 10 });
 
     // Create the consumer group
@@ -30,6 +31,7 @@ export class RedisStreams<Message> {
     } catch (e: any) {
       // Ignore BUSYGROUP errors -> group already exists
       if (!e.message.includes('BUSYGROUP')) {
+        redis.disconnect();
         throw e;
       }
     }
@@ -37,19 +39,21 @@ export class RedisStreams<Message> {
     let consumerId = opts.consumerId ?? generateCustomId('evcns');
     let iteration = 0;
     let randomClaimIteration = randomNumber(50, 100);
+    let reader = this.createRedis();
     let stopped = false;
-    let isolatedRedis: Redis | undefined;
+
+    let stop = () => {
+      if (stopped) return;
+      stopped = true;
+      reader.disconnect();
+    };
 
     let run = async () => {
       // Create the consumer
       while (!stopped) {
-        // Create a new redis instance for each read group
-        // To avoid blocking the main redis instance (e.g., for ACKs)
-        isolatedRedis = await this.createRedis();
-
         let response;
         try {
-          response = await isolatedRedis.xreadgroup(
+          response = await reader.xreadgroup(
             'GROUP',
             opts.groupId,
             consumerId,
@@ -67,9 +71,6 @@ export class RedisStreams<Message> {
           // graceful close into a receiver failure.
           if (!stopped) throw error;
           break;
-        } finally {
-          isolatedRedis.disconnect();
-          isolatedRedis = undefined;
         }
 
         if (stopped) break;
@@ -120,47 +121,48 @@ export class RedisStreams<Message> {
     };
 
     let receiverError: unknown;
-    let receiver = run().catch(error => {
-      receiverError = error;
-      console.error(`Redis stream receiver ${this.name}/${opts.groupId} stopped`, error);
-    });
+    let receiver = run()
+      .catch(error => {
+        receiverError = error;
+        console.error(`Redis stream receiver ${this.name}/${opts.groupId} stopped`, error);
+      })
+      .finally(async () => {
+        stop();
+        await queue.onIdle();
+        redis.disconnect();
+      });
 
     return {
       close: async () => {
-        stopped = true;
-        isolatedRedis?.disconnect();
+        stop();
         await receiver;
-        await queue.onIdle();
-        await redis.quit();
         if (receiverError) throw receiverError;
       }
     };
   }
 
-  private hasInstallCleanup = false;
-  private installCleanup() {
-    if (this.hasInstallCleanup) return;
+  private trimScheduled = false;
 
-    setTimeout(
-      async () => {
-        let redis = await this.createRedis();
+  private scheduleTrim(redis: Redis) {
+    if (this.trimScheduled) return;
+    this.trimScheduled = true;
 
+    setTimeout(async () => {
+      try {
         await redis.xtrim(this.name, 'MAXLEN', '~', 10_000);
-
-        await redis.quit();
-      },
-      1000 * 60 * 15
-    );
+      } catch (error) {
+        console.error(`Failed to trim Redis stream ${this.name}`, error);
+      } finally {
+        this.trimScheduled = false;
+      }
+    }, STREAM_TRIM_DELAY_MS).unref();
   }
 
   private sendRedisConnection?: Redis;
+
   async send(payload: Message) {
-    if (!this.sendRedisConnection) {
-      this.sendRedisConnection = await this.createRedis();
-    }
-
-    await this.sendRedisConnection.xadd(this.name, '*', 'payload', serialize.encode(payload));
-
-    this.installCleanup();
+    let redis = (this.sendRedisConnection ??= this.createRedis());
+    await redis.xadd(this.name, '*', 'payload', serialize.encode(payload));
+    this.scheduleTrim(redis);
   }
 }

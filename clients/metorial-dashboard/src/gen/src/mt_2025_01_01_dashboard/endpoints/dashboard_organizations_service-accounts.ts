@@ -65,7 +65,7 @@ export class MetorialDashboardOrganizationsServiceAccountsEndpoint {
     query?: DashboardOrganizationsServiceAccountsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardOrganizationsServiceAccountsEndpoint {
     serviceAccountId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts/${serviceAccountId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts/${encodeURIComponent(serviceAccountId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardOrganizationsServiceAccountsEndpoint {
     body: DashboardOrganizationsServiceAccountsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialDashboardOrganizationsServiceAccountsEndpoint {
     body: DashboardOrganizationsServiceAccountsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts/${serviceAccountId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts/${encodeURIComponent(serviceAccountId)}`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialDashboardOrganizationsServiceAccountsEndpoint {
     serviceAccountId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/service-accounts/${serviceAccountId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/service-accounts/${encodeURIComponent(serviceAccountId)}`;
 
     let request = {
       path,

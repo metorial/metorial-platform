@@ -165,6 +165,44 @@ describe('E2E plans', () => {
     );
   });
 
+  test('a lagging replica adds _READER URLs and a tmpfs standby only when requested', () => {
+    let value = fixture();
+    let plain = buildPlan(value, discover(value.root), options());
+
+    expect(plain.postgresReplica).toBeUndefined();
+    expect(plain.stacks[0]!.env).not.toHaveProperty('DB_READER');
+    expect(
+      renderCompose(plain, 'test', 'runner', { workspace: '/w' }, '/logs').services[
+        'postgres-replica'
+      ]
+    ).toBeUndefined();
+
+    let plan = buildPlan(value, discover(value.root), options({ replica: { delay: '3s' } }));
+    let rendered = renderCompose(plan, 'test', 'runner', { workspace: '/w' }, '/logs');
+
+    expect(plan.postgresReplica).toEqual({ delay: '3s' });
+    expect(plan.stacks[0]!.env.DB_READER).toBe(
+      plan.stacks[0]!.env.DB!.replace('127.0.0.1:35432', '127.0.0.1:35433')
+    );
+    expect(plan.files.find(item => item.path === 'stack/.env')!.values.DB_READER).toContain(
+      ':35433/app'
+    );
+    expect(serializedPlan(plan)).not.toHaveProperty('postgresReplica');
+    expect(rendered.services['postgres-db2']!.command).toContain('wal_level=replica');
+    expect(rendered.services['postgres-replica']!.tmpfs).toEqual(['/var/lib/postgresql/data']);
+    expect(rendered.services['postgres-replica']!.entrypoint).toContainEqual(
+      expect.stringContaining('recovery_min_apply_delay=3s')
+    );
+    expect(
+      buildPlan(value, discover(value.root), options({ replica: {} })).postgresReplica
+    ).toEqual({
+      delay: '1s'
+    });
+    expect(() =>
+      buildPlan(value, discover(value.root), options({ replica: { delay: 'soon' } }))
+    ).toThrow('Postgres duration');
+  });
+
   test('cache keys depend on service fingerprints and environments with canonical object ordering', () => {
     let value = fixture();
     let plan = buildPlan(value, discover(value.root), options());

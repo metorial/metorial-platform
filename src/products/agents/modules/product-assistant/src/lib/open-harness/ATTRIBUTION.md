@@ -11,7 +11,7 @@ This directory vendors TypeScript source code from `@openharness/core`.
 - Copyright: Copyright (c) 2026 Max Gfeller
 
 The vendored code was copied from the upstream TypeScript source tree for local
-use inside the Metorial synthesis service.
+use inside the Metorial ai-gateway service.
 The MIT license text from the original package is preserved below.
 
 ## MIT License

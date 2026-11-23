@@ -32,13 +32,13 @@ export let storeItemGroup = storeGroup.use(async ctx => {
 export let storeItemController = Controller.create(
   {
     name: 'Store Items',
-    description: 'Inspect items within an instance store.'
+    description: 'A store item is a file, document, or directory in a store.'
   },
   {
     list: storeGroup
       .get(instancePath('stores/:storeId/items', 'stores.items.list'), {
         name: 'List store items',
-        description: 'Returns a paginated list of items for a specific store.'
+        description: 'Returns a paginated list of items in a store.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
@@ -48,9 +48,11 @@ export let storeItemController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: stringArrayFilterSchema('Filter by store item ID'),
-            file_id: stringArrayFilterSchema('Filter by file ID'),
-            document_id: stringArrayFilterSchema('Filter by document ID'),
+            id: stringArrayFilterSchema('Only return items with one of these IDs.'),
+            file_id: stringArrayFilterSchema('Only return items holding one of these files.'),
+            document_id: stringArrayFilterSchema(
+              'Only return items holding one of these documents.'
+            ),
             type: v.optional(
               v.union([
                 v.enumOf(['file', 'document', 'directory']),
@@ -61,8 +63,8 @@ export let storeItemController = Controller.create(
                   'Filter by store item type. Repeat `type` to include multiple values. Defaults to `file` and `document`.'
               }
             ),
-            created_at: dateFilterValidator('Filter by creation time'),
-            updated_at: dateFilterValidator('Filter by update time')
+            created_at: dateFilterValidator('item creation time'),
+            updated_at: dateFilterValidator('item last update time')
           })
         )
       )
@@ -84,8 +86,8 @@ export let storeItemController = Controller.create(
 
     get: storeItemGroup
       .get(instancePath('stores/:storeId/items/:itemId', 'stores.items.get'), {
-        name: 'Get store item by ID',
-        description: 'Retrieves a specific item within a store.'
+        name: 'Get store item',
+        description: 'Retrieves an item in a store.'
       })
       .use(
         checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })

@@ -28,7 +28,7 @@ export let webhookRegistrationController = Controller.create(
   {
     name: 'Webhook Registrations',
     description:
-      'Webhook registrations give you a Metorial-hosted URL to point a provider at, so the provider can deliver webhooks that turn into callback events.'
+      'A webhook registration is a Metorial-hosted URL you point a provider at, so the provider can deliver webhooks that turn into callback events.'
   },
   {
     list: instanceGroup
@@ -44,10 +44,10 @@ export let webhookRegistrationController = Controller.create(
         Paginator.validate(
           v.object({
             id: v.optional(stringOrArray(), {
-              description: 'Filter by webhook registration ID(s)'
+              description: 'Only return webhook registrations with one of these IDs.'
             }),
             provider_id: v.optional(stringOrArray(), {
-              description: 'Filter by provider ID(s)'
+              description: 'Only return webhook registrations for one of these providers.'
             }),
             auth_credentials_id: v.optional(stringOrArray(), {
               description:
@@ -58,7 +58,10 @@ export let webhookRegistrationController = Controller.create(
                 webhookRegistrationStatusValidator,
                 v.array(webhookRegistrationStatusValidator)
               ]),
-              { description: 'Filter by webhook registration lifecycle status' }
+              {
+                description:
+                  'Only return webhook registrations with one of these statuses. `deleted` registrations are never listed.'
+              }
             ),
             search: v.optional(v.string(), {
               description: 'Match a webhook registration by its exact ID'
@@ -94,7 +97,7 @@ export let webhookRegistrationController = Controller.create(
         ),
         {
           name: 'Get webhook registration',
-          description: 'Retrieves a specific webhook registration by ID.'
+          description: 'Retrieves a webhook registration.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
@@ -110,7 +113,7 @@ export let webhookRegistrationController = Controller.create(
       .post(instancePath('webhook-registrations', 'webhookRegistrations.create'), {
         name: 'Create webhook registration',
         description:
-          'Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. When `triggers.webhook_registration.purpose` is `delivery_setup`, triggers register automatically and the registration is the one-time delivery setup for the connections that use the OAuth app named by `auth_credentials_id`. The registration starts out awaiting setup.'
+          'Creates a webhook registration for a provider. The registration starts out awaiting setup.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .use(hasFlags(['callbacks-enabled']))
@@ -118,7 +121,8 @@ export let webhookRegistrationController = Controller.create(
         'default',
         v.object({
           provider_id: v.string({
-            description: 'Provider to register the webhook receiver on',
+            description:
+              'Provider to register the webhook receiver on. Only providers whose type reports `triggers.status` as `enabled` and `triggers.webhook_registration.status` as `supported` can receive one.',
             examples: ['pro_5gHjKlMnPqRsTuVw']
           }),
           auth_credentials_id: v.optional(
@@ -134,14 +138,13 @@ export let webhookRegistrationController = Controller.create(
           }),
           description: v.optional(
             v.string({
-              description: 'Optional webhook registration description',
+              description: 'Free-text description.',
               examples: ['Receives repository events for the production workspace']
             })
           ),
           metadata: v.optional(
             v.record(v.any(), {
-              description:
-                'Custom key-value pairs for storing additional webhook registration metadata',
+              description: 'Custom data to identify or organize the webhook registration.',
               examples: [{ environment: 'production', owner: 'platform-team' }]
             })
           )
@@ -174,7 +177,7 @@ export let webhookRegistrationController = Controller.create(
         {
           name: 'Complete webhook registration setup',
           description:
-            'Submits the provider-specific configuration described by the registration setup document, activating the registration.'
+            'Submits the provider-specific configuration described by the registration setup document, activating the registration. Only a registration awaiting setup can be completed.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
@@ -183,8 +186,7 @@ export let webhookRegistrationController = Controller.create(
         'default',
         v.object({
           user_config: v.record(v.any(), {
-            description:
-              'Provider-specific values collected from the setup document, such as a signing secret copied out of the provider dashboard',
+            description: 'Provider-specific values collected from the setup document.',
             examples: [{ signing_secret: 'whsec_1aBcDeFgHjKlMnPq' }]
           })
         })
@@ -209,7 +211,8 @@ export let webhookRegistrationController = Controller.create(
         ),
         {
           name: 'Update webhook registration',
-          description: 'Updates a webhook registration.'
+          description:
+            'Updates a webhook registration. Omitted fields keep their current value. An archived webhook registration cannot be updated.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
@@ -226,7 +229,7 @@ export let webhookRegistrationController = Controller.create(
           description: v.optional(
             v.nullable(
               v.string({
-                description: 'Updated description',
+                description: 'Updated free-text description. `null` clears it.',
                 examples: ['Receives repository events for the staging workspace']
               })
             )
@@ -234,7 +237,8 @@ export let webhookRegistrationController = Controller.create(
           metadata: v.optional(
             v.nullable(
               v.record(v.any(), {
-                description: 'Updated custom metadata',
+                description:
+                  'Custom data to identify or organize the webhook registration. Replaces existing metadata. `null` clears it.',
                 examples: [{ environment: 'staging', owner: 'qa-team' }]
               })
             )
@@ -263,9 +267,9 @@ export let webhookRegistrationController = Controller.create(
           'webhookRegistrations.delete'
         ),
         {
-          name: 'Delete webhook registration',
+          name: 'Archive webhook registration',
           description:
-            'Archives a webhook registration. The receiver is torn down on the provider before the record is removed for good.'
+            'Archives a webhook registration. The receiver is torn down on the provider in the background and the record is removed after retention.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))

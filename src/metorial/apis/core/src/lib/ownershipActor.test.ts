@@ -26,7 +26,7 @@ vi.mock('@metorial/module-consumer-entities', () => ({
   consumerActorService: { ensureDefaultConsumerActor: mocks.ensureDefaultConsumerActor }
 }));
 
-import { resolveExplorerOwner } from './ownershipActor';
+import { getOwnershipActor, resolveExplorerOwner } from './ownershipActor';
 
 let ctx = {
   instance: { id: 'ins_1' },
@@ -35,6 +35,26 @@ let ctx = {
   auth: { type: 'user', user: { name: 'Alex', email: 'alex@example.com' } },
   auditScope: {}
 } as any;
+
+describe('ownership actor', () => {
+  let machineActor = { id: 'oac_key', type: 'machine_access' } as any;
+  let profileActor = { id: 'oac_profile', type: 'consumer_profile' } as any;
+
+  it('uses the consumer profile actor for consumer sessions on a publishable key', () => {
+    expect(
+      getOwnershipActor({
+        actor: machineActor,
+        consumerProfile: { id: 'cpf_1', organizationActor: profileActor }
+      })
+    ).toBe(profileActor);
+  });
+
+  it('falls back to the caller actor without a consumer profile', () => {
+    expect(getOwnershipActor({ actor: machineActor, consumerProfile: undefined })).toBe(
+      machineActor
+    );
+  });
+});
 
 describe('explorer caller ownership', () => {
   beforeEach(() => {
@@ -96,5 +116,37 @@ describe('explorer caller ownership', () => {
       resolveExplorerOwner({ ...ctx, member: undefined }, 'explorer')
     ).rejects.toMatchObject({ data: { status: 400 } });
     expect(mocks.ensureDefaultConsumerActor).not.toHaveBeenCalled();
+  });
+});
+
+describe('ownership actor', () => {
+  let memberActor = { id: 'oac_member', oid: 4n, type: 'member' } as any;
+  let consumerActor = { id: 'oac_consumer', oid: 9n, type: 'consumer_profile' } as any;
+  let consumerProfile = { id: 'cpf_1', organizationActor: consumerActor };
+
+  it('uses the calling actor when no consumer profile is involved', () => {
+    expect(getOwnershipActor({ actor: memberActor })).toBe(memberActor);
+    expect(getOwnershipActor({})).toBeUndefined();
+  });
+
+  it('uses the consumer actor for a consumer that authenticated itself', () => {
+    expect(getOwnershipActor({ consumerProfile })).toBe(consumerActor);
+    expect(
+      getOwnershipActor({
+        actor: memberActor,
+        consumerProfile,
+        consumerProfileFromHeader: false
+      })
+    ).toBe(consumerActor);
+  });
+
+  it('keeps the calling actor when the consumer profile was selected by header', () => {
+    expect(
+      getOwnershipActor({
+        actor: memberActor,
+        consumerProfile,
+        consumerProfileFromHeader: true
+      })
+    ).toBe(memberActor);
   });
 });

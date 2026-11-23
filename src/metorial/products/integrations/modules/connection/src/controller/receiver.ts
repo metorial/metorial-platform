@@ -12,7 +12,7 @@ import {
   type ConduitListToolsResult,
   type ConduitResult
 } from '@metorial-subspace/connection-utils';
-import { db, dbPrimary, ID, type SessionMessage } from '@metorial-subspace/db';
+import { db, ID, type SessionMessage } from '@metorial-subspace/db';
 import {
   providerSpecificationInternalService,
   providerVersionSpecificationMergeService
@@ -396,7 +396,7 @@ export let startReceiver = () => {
       };
 
       let sendToProvider = async (data: ProviderBoundInput) => {
-        let message = await dbPrimary.sessionMessage.findUniqueOrThrow({
+        let message = await db.sessionMessage.findUniqueOrThrow({
           where: { id: data.sessionMessageId }
         });
         state.markMessageReceived();

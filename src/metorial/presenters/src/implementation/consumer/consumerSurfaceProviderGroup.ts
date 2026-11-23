@@ -16,13 +16,15 @@ export let v1ConsumerSurfaceProviderGroupPresenter = Presenter.create(
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.surface.provider_group'),
-      id: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      index: v.number(),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('consumer.surface.provider_group', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      name: v.string({ description: 'Display name.' }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      index: v.number({ description: 'Order of the group in the portal catalog.' }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

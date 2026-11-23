@@ -1,3 +1,4 @@
+export * from './agent-tracking';
 export * from './callbacks';
 export * from './chat';
 export * from './consumer';

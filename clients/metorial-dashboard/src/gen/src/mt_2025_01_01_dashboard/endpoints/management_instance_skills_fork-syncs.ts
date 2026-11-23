@@ -55,7 +55,7 @@ export class MetorialManagementInstanceSkillsForkSyncsEndpoint {
     body: DashboardInstanceSkillsForkSyncsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsForkSyncsCreateOutput> {
-    let path = `instances/${instanceId}/skill-fork-syncs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-fork-syncs`;
 
     let request = {
       path,
@@ -85,7 +85,7 @@ export class MetorialManagementInstanceSkillsForkSyncsEndpoint {
     skillForkSyncId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsForkSyncsGetOutput> {
-    let path = `instances/${instanceId}/skill-fork-syncs/${skillForkSyncId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-fork-syncs/${encodeURIComponent(skillForkSyncId)}`;
 
     let request = {
       path,

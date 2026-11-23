@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/pkg/commitbatch"
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/export"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitremote"
 )
@@ -14,7 +15,7 @@ import (
 // HTTPClient has no overall timeout, because a push streams up to MaxPackBytes in one
 // request; it bounds connection setup and the wait for response headers instead.
 var HTTPClient = func() *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport := egress.NewTransport()
 	transport.ResponseHeaderTimeout = 10 * time.Minute
 	transport.TLSHandshakeTimeout = 30 * time.Second
 	return &http.Client{Transport: transport}
@@ -84,16 +85,16 @@ func Export(ctx context.Context, opts ExportOptions) (*export.Result, error) {
 	})
 }
 
-// CountRequests wraps client (nil: http.DefaultClient's transport) so every request
-// it sends is counted.
+// CountRequests wraps client (nil: the provider transport) so every request it sends
+// is counted.
 func CountRequests(client *http.Client) (*http.Client, func() uint32) {
 	counted := &http.Client{}
 	if client != nil {
 		*counted = *client
 	}
-	transport := counted.Transport
-	if transport == nil {
-		transport = http.DefaultTransport
+	var transport http.RoundTripper = egress.Transport
+	if counted.Transport != nil {
+		transport = counted.Transport
 	}
 
 	counter := &countingTransport{next: transport}

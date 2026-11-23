@@ -119,7 +119,7 @@ export class MetorialStoresEndpoint {
     storeId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresGetOutput> {
-    let path = `stores/${storeId}`;
+    let path = `stores/${encodeURIComponent(storeId)}`;
 
     let request = {
       path,
@@ -146,7 +146,7 @@ export class MetorialStoresEndpoint {
     body: DashboardInstanceStoresUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresUpdateOutput> {
-    let path = `stores/${storeId}`;
+    let path = `stores/${encodeURIComponent(storeId)}`;
 
     let request = {
       path,
@@ -174,7 +174,7 @@ export class MetorialStoresEndpoint {
     storeId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresDeleteOutput> {
-    let path = `stores/${storeId}`;
+    let path = `stores/${encodeURIComponent(storeId)}`;
 
     let request = {
       path,

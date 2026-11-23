@@ -57,7 +57,7 @@ export class MetorialManagementInstanceSandboxMachinesErrorsEndpoint {
     query?: DashboardInstanceSandboxMachinesErrorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesErrorsListOutput> {
-    let path = `instances/${instanceId}/sandbox/machines/${machineId}/errors`;
+    let path = `instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/errors`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceSandboxMachinesErrorsEndpoint {
     errorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesErrorsGetOutput> {
-    let path = `instances/${instanceId}/sandbox/machines/${machineId}/errors/${errorId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/errors/${encodeURIComponent(errorId)}`;
 
     let request = {
       path,

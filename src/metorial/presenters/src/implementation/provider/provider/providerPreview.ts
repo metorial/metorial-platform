@@ -24,44 +24,44 @@ export let v1ProviderPreview = Object.assign(
   {
     schema: v.object({
       object: v.literal('provider#preview', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique provider identifier',
+        description: 'Unique ID.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
 
       name: v.string({
         name: 'name',
-        description: 'Display name of the provider',
+        description: 'Display name.',
         examples: ['GitHub']
       }),
 
       description: v.nullable(
         v.string({
           name: 'description',
-          description: 'Brief description of the provider',
+          description: 'Free-text description.',
           examples: ['Connect to GitHub repositories, issues, and pull requests']
         })
       ),
 
       slug: v.string({
         name: 'slug',
-        description: 'URL-friendly identifier',
+        description: 'URL-safe name for the provider.',
         examples: ['github']
       }),
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the provider was created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
 
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when the provider was last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

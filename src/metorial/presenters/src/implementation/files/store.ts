@@ -15,14 +15,17 @@ export let v1StorePresenter = Presenter.create(storeType)
   .schema(
     v.object({
       object: v.literal('store', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      id: v.string(),
-      name: v.string(),
-      access: v.enumOf(['private', 'public_read', 'public_write']),
-      item_count: v.number(),
-      created_at: v.date(),
-      updated_at: v.date()
+      id: v.string({ description: 'Unique ID.' }),
+      name: v.string({ description: 'Display name.' }),
+      access: v.enumOf(['private', 'public_read', 'public_write'], {
+        description:
+          'Who else can access the store: `private`, `public_read`, or `public_write`.'
+      }),
+      item_count: v.number({ description: 'Number of items in the store.' }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();

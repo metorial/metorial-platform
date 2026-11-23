@@ -6,18 +6,21 @@ import { chatMessageType } from '../../types';
 import { v1ChatAuthorPresenter } from './author';
 import { v1ChatMessageAttachmentPresenter } from './messageAttachment';
 
-let reactionEmojiSchema = v.union([
-  v.object({
-    type: v.literal('unicode'),
-    value: v.string({ description: 'The unicode emoji shortcode' })
-  }),
-  v.object({
-    type: v.literal('custom'),
-    name: v.string({ description: 'The custom emoji name' }),
-    url: v.optional(v.string({ description: 'URL of the custom emoji image' })),
-    id: v.optional(v.string({ description: "The custom emoji's identifier on the provider" }))
-  })
-]);
+let reactionEmojiSchema = v.union(
+  [
+    v.object({
+      type: v.literal('unicode', { description: 'Standard unicode emoji.' }),
+      value: v.string({ description: 'The unicode emoji shortcode' })
+    }),
+    v.object({
+      type: v.literal('custom', { description: 'Provider-specific custom emoji.' }),
+      name: v.string({ description: 'The custom emoji name' }),
+      url: v.optional(v.string({ description: 'URL of the custom emoji image' })),
+      id: v.optional(v.string({ description: "The custom emoji's identifier on the provider" }))
+    })
+  ],
+  { name: 'emoji', description: 'Emoji used for the reaction.' }
+);
 
 let reactionAuthorSchema = v.object({
   userId: v.string({ description: "The author's identifier on the chat provider" }),
@@ -40,7 +43,7 @@ let reactionAuthorSchema = v.object({
   }),
   email: v.optional(v.string({ description: 'Email address of the author' })),
   imageUrl: v.optional(v.string({ description: "URL of the author's avatar" })),
-  raw: v.optional(v.any())
+  raw: v.optional(v.any(), { description: 'Raw reaction payload from the provider.' })
 });
 
 export let reactionCountSchema = v.object({
@@ -156,12 +159,12 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
   .schema(
     v.object({
       object: v.literal('chat.message', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat message identifier',
+        description: 'Unique ID.',
         examples: ['cms_8kLmNpQrStUvWxYz']
       }),
 
@@ -193,7 +196,7 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
 
       provider_message_id: v.string({
         name: 'provider_message_id',
-        description: "The message's identifier on the chat provider",
+        description: 'Identifier the chat provider uses for this message.',
         examples: ['1727385600.001700']
       }),
 
@@ -207,7 +210,11 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
       ),
 
       // Null only when the message was first seen as a deletion, which carries no author.
-      author: v.nullable(v1ChatAuthorPresenter.schema),
+      author: v.nullable({
+        ...v1ChatAuthorPresenter.schema,
+        description:
+          'Author who sent the message. `null` when the message was first seen as a deletion, which carries no author.'
+      }),
 
       body: v.nullable(
         v.record(v.any(), {
@@ -251,7 +258,7 @@ export let v1ChatMessagePresenter = Presenter.create(chatMessageType)
       edited_at: v.nullable(
         v.date({
           name: 'edited_at',
-          description: 'Timestamp when the message was last edited',
+          description: 'When the message was last edited. `null` if never edited.',
           examples: [new Date('2026-01-10T14:50:00Z')]
         })
       ),

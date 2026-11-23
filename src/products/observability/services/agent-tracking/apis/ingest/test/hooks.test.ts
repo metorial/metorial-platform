@@ -120,22 +120,24 @@ describe('hook handler', () => {
         body: JSON.stringify({ hook_event_name: 'Whatever', session_id: 's' })
       });
 
-      let [record] = pipeline.records();
+      let [record] = pipeline.seen();
 
       expect(response.status).toBe(200);
       expect(record!.type).toBe('unmapped');
       expect(record!.client.family).toBe('my-agent');
       expect(record!.source.dialect).toBe('generic.hooks.v1');
+      expect(pipeline.records()).toEqual([]);
     });
 
-    it('maps unknown events to unmapped records', async () => {
+    it('maps unknown events to unmapped records that are not stored', async () => {
       let pipeline = createPipeline();
 
       await pipeline.send(hookPath('claude-code'), {
         body: JSON.stringify({ hook_event_name: 'BrandNewEvent', session_id: 's' })
       });
 
-      expect(pipeline.records()[0]!.type).toBe('unmapped');
+      expect(pipeline.seen()[0]!.type).toBe('unmapped');
+      expect(pipeline.records()).toEqual([]);
     });
 
     it('accepts payloads without a session or event name', async () => {
@@ -144,7 +146,7 @@ describe('hook handler', () => {
       let response = await pipeline.send(hookPath('claude-code'), { body: '{"a":1}' });
 
       expect(response.status).toBe(200);
-      expect(pipeline.records()).toHaveLength(1);
+      expect(pipeline.seen()).toHaveLength(1);
     });
 
     it('writes several records for a stop hook with a message', async () => {

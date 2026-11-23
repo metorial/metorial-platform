@@ -1,5 +1,5 @@
-import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   MetorialEnterpriseWindow,

@@ -7,6 +7,11 @@ import { atomicWrite, sortedEntries, writeJson } from './files';
 import { discover } from './manifest';
 import { acquireLock } from './lock';
 import * as docker from './docker';
+import {
+  postgresPrimaryArguments,
+  postgresReplicaDefinition,
+  postgresReplicaService
+} from './infrastructure';
 import * as commands from './process';
 import {
   attachCacheKeys,
@@ -82,12 +87,21 @@ export let renderCompose = (
         '-c',
         'synchronous_commit=off',
         '-c',
-        'full_page_writes=off'
+        'full_page_writes=off',
+        ...postgresPrimaryArguments(!!plan.postgresReplica)
       ],
       environment: { POSTGRES_USER: 'postgres', POSTGRES_PASSWORD: 'postgres' },
       tmpfs: ['/var/lib/postgresql/data'],
       healthcheck: check(['CMD-SHELL', 'pg_isready -U postgres -d postgres'])
     },
+    ...(plan.postgresReplica
+      ? {
+          [postgresReplicaService]: {
+            ...postgresReplicaDefinition(plan.postgresReplica.delay),
+            tmpfs: ['/var/lib/postgresql/data']
+          }
+        }
+      : {}),
     mongodb: {
       image: 'mongo:7',
       environment: {
@@ -363,6 +377,14 @@ export let execute = async (compose: Compose, plan: Plan) => {
     await docker.waitPostgres(compose.root, compose.root, configured, {});
 
     await docker.createPostgres(compose.root, compose.root, configured, {});
+  }
+
+  if (plan.postgresReplica) {
+    console.log(
+      `Starting e2e Postgres replica (recovery_min_apply_delay=${plan.postgresReplica.delay})`
+    );
+
+    await docker.ensurePostgresReplica(compose.root, compose.file, {}, 180);
   }
 
   for (let db of plan.mongo) {

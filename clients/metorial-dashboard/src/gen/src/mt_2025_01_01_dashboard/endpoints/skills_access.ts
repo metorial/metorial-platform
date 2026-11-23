@@ -49,7 +49,7 @@ export class MetorialSkillsAccessEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsAccessGetOutput> {
-    let path = `skills/${skillId}/access`;
+    let path = `skills/${encodeURIComponent(skillId)}/access`;
 
     let request = {
       path,

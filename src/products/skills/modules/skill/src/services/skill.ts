@@ -275,7 +275,8 @@ class SkillServiceImpl {
           entity: { id: skill.id, type: 'skill' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' },
-          actor
+          actor,
+          authorization: d.input.authorization
         });
 
         skill = await db.skill.update({
@@ -606,6 +607,7 @@ class SkillServiceImpl {
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' },
         actor: d.authorization.resourceActor,
+        authorization: d.authorization,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions
       });

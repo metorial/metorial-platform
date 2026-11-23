@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureAuthConfigEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureAuthConfigGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/auth-config`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/auth-config`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureAuthConfigEndpoint {
     body: DashboardProjectsConfigureAuthConfigUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureAuthConfigUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/auth-config`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/auth-config`;
 
     let request = {
       path,

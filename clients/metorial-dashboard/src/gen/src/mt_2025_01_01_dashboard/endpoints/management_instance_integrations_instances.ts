@@ -73,7 +73,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     query?: DashboardInstanceIntegrationsInstancesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesListOutput> {
-    let path = `instances/${instanceId}/integration-instances`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances`;
 
     let request = {
       path,
@@ -105,7 +105,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     integrationInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesGetOutput> {
-    let path = `instances/${instanceId}/integration-instances/${integrationInstanceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances/${encodeURIComponent(integrationInstanceId)}`;
 
     let request = {
       path,
@@ -136,7 +136,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     body: DashboardInstanceIntegrationsInstancesCreateSessionTemplateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesCreateSessionTemplateOutput> {
-    let path = `instances/${instanceId}/integration-instances/${integrationInstanceId}/session-template`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances/${encodeURIComponent(integrationInstanceId)}/session-template`;
 
     let request = {
       path,
@@ -170,7 +170,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     body: DashboardInstanceIntegrationsInstancesCreateSessionBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesCreateSessionOutput> {
-    let path = `instances/${instanceId}/integration-instances/${integrationInstanceId}/session`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances/${encodeURIComponent(integrationInstanceId)}/session`;
 
     let request = {
       path,
@@ -202,7 +202,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     body: DashboardInstanceIntegrationsInstancesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesCreateOutput> {
-    let path = `instances/${instanceId}/integration-instances`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances`;
 
     let request = {
       path,
@@ -236,7 +236,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     body: DashboardInstanceIntegrationsInstancesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesUpdateOutput> {
-    let path = `instances/${instanceId}/integration-instances/${integrationInstanceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances/${encodeURIComponent(integrationInstanceId)}`;
 
     let request = {
       path,
@@ -268,7 +268,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
     integrationInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesDeleteOutput> {
-    let path = `instances/${instanceId}/integration-instances/${integrationInstanceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instances/${encodeURIComponent(integrationInstanceId)}`;
 
     let request = {
       path,

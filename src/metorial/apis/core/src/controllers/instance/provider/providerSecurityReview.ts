@@ -11,8 +11,11 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 
-let securityReviewInstanceGroup = instanceGroup.use(hasFlags(['security-reviews-enabled']));
+let securityReviewInstanceGroup = instanceGroup
+  .use(requireConsumerTokenForPublishableKey())
+  .use(hasFlags(['security-reviews-enabled']));
 
 let providerGroup = securityReviewInstanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {
@@ -54,7 +57,7 @@ export let providerSecurityReviewController = Controller.create(
   {
     name: 'Provider Security Reviews',
     description:
-      'An AI security review assesses how trustworthy a provider version is and what its tools can do. Reviews of Metorial integrations are shared across organizations; reviews of custom providers are private to the organization.'
+      'A provider security review is an assessment of how trustworthy a provider version is and what its tools can do. Reviews of Metorial integrations are shared across organizations; reviews of custom providers are private to the organization.'
   },
   {
     getForProvider: providerGroup

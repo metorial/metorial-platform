@@ -55,7 +55,7 @@ export class MetorialDashboardOrganizationsOauthCliDevicesEndpoint {
     query?: DashboardOrganizationsOauthCliDevicesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthCliDevicesListOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/cli-devices`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/cli-devices`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardOrganizationsOauthCliDevicesEndpoint {
     cliDeviceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthCliDevicesGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/cli-devices/${cliDeviceId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/cli-devices/${encodeURIComponent(cliDeviceId)}`;
 
     let request = {
       path,

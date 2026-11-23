@@ -37,15 +37,21 @@ let providerDeploymentGroup = integrationsGroup.use(async ctx => {
 
 let createSchema = v.intersection([
   v.object({
-    name: v.optional(v.string({ examples: ['Production Deployment'] })),
+    name: v.optional(v.string({ examples: ['Production Deployment'] }), {
+      description: 'Display name.'
+    }),
     description: v.optional(
-      v.string({ examples: ['Main production environment configuration'] })
+      v.string({ examples: ['Main production environment configuration'] }),
+      { description: 'Free-text description.' }
     ),
     metadata: v.optional(
       v.record(v.any(), {
         examples: [{ team: 'platform', environment: 'production' }]
       }),
-      { description: 'Custom key-value pairs for storing additional information' }
+      {
+        description:
+          'Custom data to identify or organize the provider deployment. Replaces existing metadata.'
+      }
     ),
     tool_filters: toolFiltersValidator,
     provider_id: v.string({
@@ -109,7 +115,7 @@ export let providerDeploymentController = Controller.create(
   {
     name: 'Provider Deployments',
     description:
-      'A deployment is a running instance of a provider, pinned to a specific version. Deployments support custom configuration values and user authentication.'
+      "A provider deployment is a provider set up for your instance, with its own configuration and credentials. It follows the provider's current version unless you lock it to one."
   },
   {
     list: integrationsGroup
@@ -261,7 +267,7 @@ export let providerDeploymentController = Controller.create(
     create: integrationsGroup
       .post(instancePath('provider-deployments', 'providerDeployments.create'), {
         name: 'Create provider deployment',
-        description: 'Creates a new provider deployment.'
+        description: 'Creates a provider deployment.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .body('default', createSchema)
@@ -336,13 +342,19 @@ export let providerDeploymentController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Deployment Name'] })),
+          name: v.optional(v.string({ examples: ['Updated Deployment Name'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['Updated description for this deployment'] })
+            v.string({ examples: ['Updated description for this deployment'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), { examples: [{ team: 'platform', environment: 'staging' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider deployment. Replaces existing metadata.'
+            }
           ),
           tool_filters: toolFiltersValidator,
           locked_provider_version_id: v.optional(
@@ -417,8 +429,9 @@ export let providerDeploymentController = Controller.create(
           'providerDeployments.delete'
         ),
         {
-          name: 'Delete provider deployment',
-          description: 'Permanently deletes a provider deployment.'
+          name: 'Archive provider deployment',
+          description:
+            'Archives a provider deployment. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))

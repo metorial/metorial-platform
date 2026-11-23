@@ -7,7 +7,16 @@ let MAX_LINE_CHARS = 256 * 1024;
 
 let partials = new WeakMap<RequestContext, Record<Stream, string>>();
 
+let instanceStderr = (text: string) => process.stderr.write(text);
+
+export let writeInstanceLog = (line: string) => {
+  instanceStderr(`[metorial] ${line}\n`);
+};
+
 export let installLogCapture = (control: Control) => {
+  let rawStderr = process.stderr.write.bind(process.stderr);
+  instanceStderr = text => rawStderr(text);
+
   let send = (ctx: RequestContext, stream: Stream, line: string) =>
     control.send({
       type: 'log',

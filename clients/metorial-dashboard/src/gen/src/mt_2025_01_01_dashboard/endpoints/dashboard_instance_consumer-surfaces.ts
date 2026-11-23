@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceConsumerSurfacesEndpoint {
     query?: DashboardInstanceConsumerSurfacesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumerSurfacesListOutput> {
-    let path = `dashboard/instances/${instanceId}/consumer-surfaces`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/consumer-surfaces`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceConsumerSurfacesEndpoint {
     consumerSurfaceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumerSurfacesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/consumer-surfaces/${consumerSurfaceId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/consumer-surfaces/${encodeURIComponent(consumerSurfaceId)}`;
 
     let request = {
       path,

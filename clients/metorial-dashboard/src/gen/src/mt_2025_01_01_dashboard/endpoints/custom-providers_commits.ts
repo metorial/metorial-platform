@@ -87,7 +87,7 @@ export class MetorialCustomProvidersCommitsEndpoint {
     customProviderCommitId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCommitsGetOutput> {
-    let path = `custom-provider-commits/${customProviderCommitId}`;
+    let path = `custom-provider-commits/${encodeURIComponent(customProviderCommitId)}`;
 
     let request = {
       path,

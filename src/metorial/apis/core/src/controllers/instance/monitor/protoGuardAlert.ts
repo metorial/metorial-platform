@@ -21,13 +21,14 @@ let protoGuardAlertGroup = integrationsGroup.use(async ctx => {
 export let protoGuardAlertController = Controller.create(
   {
     name: 'ProtoGuard Alerts',
-    description: 'ProtoGuard alerts describe prompt-injection detections.'
+    description:
+      'A ProtoGuard alert is a record of related prompt-injection findings. Findings that recur are folded into the same alert.'
   },
   {
     list: integrationsGroup
       .get(instancePath('protoguard-alerts', 'protoGuardAlerts.list'), {
         name: 'List ProtoGuard alerts',
-        description: 'Returns a paginated list of ProtoGuard alerts for this instance.'
+        description: 'Returns a paginated list of ProtoGuard alerts in the instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .outputList(protoGuardAlertPresenter)
@@ -35,14 +36,33 @@ export let protoGuardAlertController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(stringOrArray()),
-            run_id: v.optional(stringOrArray()),
-            filter_id: v.optional(stringOrArray()),
-            session_id: v.optional(stringOrArray()),
-            session_message_id: v.optional(stringOrArray()),
-            session_connection_id: v.optional(stringOrArray()),
-            provider_run_id: v.optional(stringOrArray()),
-            issue_id: v.optional(stringOrArray()),
+            id: v.optional(stringOrArray(), {
+              description: 'Only return ProtoGuard alerts with one of these IDs.'
+            }),
+            run_id: v.optional(stringOrArray(), {
+              description: 'Only return ProtoGuard alerts from one of these runs.'
+            }),
+            filter_id: v.optional(stringOrArray(), {
+              description: 'Only return ProtoGuard alerts matching one of these filters.'
+            }),
+            session_id: v.optional(stringOrArray(), {
+              description: 'Only return ProtoGuard alerts linked to one of these sessions.'
+            }),
+            session_message_id: v.optional(stringOrArray(), {
+              description:
+                'Only return ProtoGuard alerts linked to one of these session messages.'
+            }),
+            session_connection_id: v.optional(stringOrArray(), {
+              description:
+                'Only return ProtoGuard alerts linked to one of these session connections.'
+            }),
+            provider_run_id: v.optional(stringOrArray(), {
+              description:
+                'Only return ProtoGuard alerts linked to one of these provider runs.'
+            }),
+            issue_id: v.optional(stringOrArray(), {
+              description: 'Only return ProtoGuard alerts folded into one of these issues.'
+            }),
             created_at: dateFilterValidator('ProtoGuard alert creation time')
           })
         )
@@ -69,7 +89,7 @@ export let protoGuardAlertController = Controller.create(
     get: protoGuardAlertGroup
       .get(instancePath('protoguard-alerts/:protoGuardAlertId', 'protoGuardAlerts.get'), {
         name: 'Get ProtoGuard alert',
-        description: 'Retrieves a ProtoGuard alert by ID.'
+        description: 'Retrieves a ProtoGuard alert.'
       })
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .output(protoGuardAlertPresenter)

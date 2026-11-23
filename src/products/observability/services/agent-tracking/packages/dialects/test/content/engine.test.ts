@@ -129,6 +129,17 @@ describe('buildContentEntry redaction', () => {
     ).toBe('present');
   });
 
+  it('adds the markers the dialect gave with the input to the default list', () => {
+    expect(
+      entry('basic', { role: 'prompt', value: '<REDACTED>', redactionMarkers: ['<REDACTED>'] })
+    ).toEqual({ role: 'prompt', mode: 'basic', state: 'redacted_by_client' });
+    expect(
+      entry('basic', { role: 'prompt', value: '[REDACTED]', redactionMarkers: ['<REDACTED>'] })
+        ?.state
+    ).toBe('redacted_by_client');
+    expect(entry('basic', { role: 'prompt', value: '<REDACTED>' })?.state).toBe('present');
+  });
+
   it('only matches whole-string markers', () => {
     expect(entry('basic', { role: 'prompt', value: 'a [REDACTED] b' })?.state).toBe('present');
     expect(entry('basic', { role: 'prompt', value: ['[REDACTED]'] })?.state).toBe('present');

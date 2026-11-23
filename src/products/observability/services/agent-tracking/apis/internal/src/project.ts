@@ -4,7 +4,8 @@ import { organizationService, projectService } from '@mtsrc/agent-tracking-modul
 import { scopeErasureService } from '@mtsrc/agent-tracking-module-erasure';
 import { app, organizationApp } from './_app';
 
-let retentionDays = () => v.optional(v.number({ modifiers: [v.positive(), v.integer()] }));
+let retentionDays = () =>
+  v.optional(v.nullable(v.number({ modifiers: [v.positive(), v.integer()] })));
 
 export let projectController = app.controller({
   upsert: organizationApp

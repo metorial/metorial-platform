@@ -3,7 +3,9 @@ import { documentQueueProcessor as cargoDocumentQueueProcessor } from '@metorial
 import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/module-file';
 import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/module-store';
 import { accessQueueProcessor } from '@metorial/module-access';
-import { agentTelemetryQueueProcessor } from '@metorial/module-agent-telemetry';
+import { agentTrackingAccessQueueProcessor } from '@metorial/module-agent-tracking-access';
+import { agentTrackingSyncQueueProcessor } from '@metorial/module-agent-tracking-sync';
+import { aiGatewayQueueProcessor } from '@metorial/module-ai-gateway';
 import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
 import { auditLogQueueProcessor } from '@metorial/module-audit-log';
 import { auditTrackerQueueProcessor } from '@metorial/module-audit-tracker';
@@ -84,7 +86,9 @@ export let worker = runQueueProcessors([
   consumerOAuthQueueProcessor,
   portalQueueProcessor,
   magicQueueProcessor,
-  agentTelemetryQueueProcessor,
+  agentTrackingSyncQueueProcessor,
+  agentTrackingAccessQueueProcessor,
+  aiGatewayQueueProcessor,
   multiRegionQueueProcessor
 ]);
 

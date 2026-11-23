@@ -44,6 +44,8 @@ describe('CLI contract', () => {
     ['ci', 'describe', '--json'],
     ['env', '--json'],
     ['cleanup', '--dry-run', '--docker'],
+    ['test:e2e', '--replica'],
+    ['test:e2e', '--replica', '--replica-delay', '2s'],
     ['test:unit', '@lowerdeck/hash', '!@x/shuttle', '@x/api...', '[HEAD^]']
   ] as string[][])('accepts %j', (...args) =>
     expect(() => parseArguments(args)).not.toThrow()
@@ -59,6 +61,7 @@ describe('CLI contract', () => {
     ['test:e2e', '--workspace', '/tmp/ws'],
     ['test:e2e', '--concurrency=-1'],
     ['test:e2e', '--concurrency=4294967296'],
+    ['test:e2e', '--replica-delay', '2s'],
     ['dev', '--unknown'],
     ['dev', '--root'],
     ['unknown']
@@ -609,6 +612,91 @@ describe('generated workspaces and infrastructure', () => {
     });
   });
 
+  test('Postgres replica is opt-in and streams from the primary with a delay', () => {
+    let requirements = {
+      postgres: true,
+      mongo: false,
+      redis: false,
+      nats: false,
+      etcd: false,
+      mail: false
+    };
+    let options = { network: 'test', ports: environment.defaultPorts, restart: true };
+    let plain = JSON.parse(infrastructure.renderCompose(requirements, options));
+
+    expect(plain.services[infrastructure.postgresReplicaService]).toBeUndefined();
+    expect(plain.services['postgres-db2'].command).toBe('postgres -c max_connections=1000');
+    expect(Object.keys(plain.volumes)).not.toContain(infrastructure.postgresReplicaVolume);
+
+    let rendered = JSON.parse(
+      infrastructure.renderCompose(requirements, {
+        ...options,
+        postgres_replica: { delay: '2s' }
+      })
+    );
+    let replica = rendered.services[infrastructure.postgresReplicaService];
+
+    expect(rendered.services['postgres-db2'].command).toContain('-c wal_level=replica');
+    expect(rendered.services['postgres-db2'].command).toContain('-c max_wal_senders=10');
+    expect(replica.depends_on['postgres-db2']).toEqual({
+      condition: 'service_healthy',
+      restart: true
+    });
+    expect(replica.ports).toEqual(['35433:5432']);
+    expect(replica.volumes).toEqual([
+      `${infrastructure.postgresReplicaVolume}:/var/lib/postgresql/data`
+    ]);
+    expect(replica.entrypoint[2]).toContain('pg_basebackup');
+    expect(replica.entrypoint[2]).toContain('recovery_min_apply_delay=2s');
+    expect(replica.entrypoint[2]).toContain('"$$PGDATA/PG_VERSION"');
+    expect(replica.entrypoint[2]).not.toMatch(/[^$]\$[^$]/);
+    expect(replica.healthcheck.test[1]).toContain('pg_stat_wal_receiver');
+    expect(Object.keys(rendered.volumes)).toContain(infrastructure.postgresReplicaVolume);
+  });
+
+  test('database URLs gain a _READER twin only while the replica is enabled', () => {
+    let loaded = load(
+      "name='api'\n[dev.db.main]\nname='core-db'\nengine='postgres'\nenv='DATABASE_URL'\npackage='api'"
+    );
+    let value = project(temporary());
+    let plain = environment.allForManifest(loaded, environment.rootEnvironment(value));
+
+    expect(plain.DATABASE_URL).toBe('postgresql://postgres:postgres@127.0.0.1:35432/core-db');
+    expect(plain).not.toHaveProperty('DATABASE_URL_READER');
+    expect(environment.postgresReplica(environment.rootEnvironment(value))).toBeUndefined();
+
+    atomicWrite(
+      join(value.root, 'env.json'),
+      JSON.stringify({
+        CONTROL_POSTGRES_REPLICA: true,
+        CONTROL_POSTGRES_REPLICA_DELAY: '250ms'
+      })
+    );
+    let root = environment.rootEnvironment(value);
+    let enabled = environment.allForManifest(loaded, root);
+
+    expect(environment.postgresReplica(root)).toEqual({ delay: '250ms' });
+    expect(enabled.DATABASE_URL).toBe(plain.DATABASE_URL);
+    expect(enabled.DATABASE_URL_READER).toBe(
+      'postgresql://postgres:postgres@127.0.0.1:35433/core-db'
+    );
+
+    atomicWrite(
+      join(value.root, 'env.json'),
+      JSON.stringify({ CONTROL_POSTGRES_REPLICA: 'off' })
+    );
+
+    expect(
+      environment.allForManifest(loaded, environment.rootEnvironment(value))
+    ).not.toHaveProperty('DATABASE_URL_READER');
+    expect(() => environment.postgresReplicaEnvironment('1', '1 second')).toThrow(
+      'CONTROL_POSTGRES_REPLICA_DELAY'
+    );
+    expect(() => environment.postgresReplicaEnvironment('maybe', undefined)).toThrow(
+      'CONTROL_POSTGRES_REPLICA'
+    );
+  });
+
   test('proxy binds IPv4 and IPv6 loopbacks and redirects root HTTP', () => {
     let compose = JSON.parse(proxy.renderCompose('/proxy', new Set([4310])));
 
@@ -641,5 +729,26 @@ describe('docker reset', () => {
     expect(docker.composeProjectName(generated)).toBe('control_dev_abc12345');
     expect(docker.composeProjectName(handwritten)).toBeUndefined();
     expect(docker.composeProjectName(join(root, 'missing.yml'))).toBeUndefined();
+  });
+
+  test('stops the Postgres replica only when the generated project declares it', () => {
+    let loaded = load(
+      "name='api'\n[dev.db.main]\nname='core-db'\nengine='postgres'\nenv='DATABASE_URL'\npackage='api'"
+    );
+    let root = loaded.directory;
+    let generated = join(root, '.control/dev/services.docker-compose.yml');
+    let services = () =>
+      docker.composeProjects(root, [loaded]).find(([path]) => path === generated)![1];
+    atomicWrite(generated, JSON.stringify({ services: { 'postgres-db2': {} } }));
+
+    expect(services()).not.toContain(infrastructure.postgresReplicaService);
+    atomicWrite(
+      generated,
+      JSON.stringify({
+        services: { 'postgres-db2': {}, [infrastructure.postgresReplicaService]: {} }
+      })
+    );
+
+    expect(services()).toContain(infrastructure.postgresReplicaService);
   });
 });

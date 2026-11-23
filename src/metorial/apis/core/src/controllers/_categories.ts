@@ -36,6 +36,12 @@ export let sandboxDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
+export let aiGatewayDocsCategory = createCategory({
+  id: 'ai-gateway',
+  name: 'AI Gateway',
+  indexHint: getIndexHint()
+});
+
 export let magicMcpDocsCategory = createCategory({
   id: 'magic-mcp',
   name: 'Magic MCP',

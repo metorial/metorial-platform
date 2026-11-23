@@ -20,7 +20,7 @@ describe('organization service', () => {
       }
     });
 
-    expect(created.id).toMatch(/^ator_/);
+    expect(created.id).toBe('org_a');
     expect(created.hashKeyVersion).toBe(1);
 
     let updated = await organizationService.upsertOrganization({
@@ -77,6 +77,7 @@ describe('project service', () => {
   it('writes retention to existing and new instances', async () => {
     let { organization, project, instance } = await createTestScope();
 
+    expect(project.id).toBe(project.ref);
     expect(instance.recordRetentionDays).toBe(90);
 
     let updated = await projectService.upsertProject({
@@ -115,6 +116,23 @@ describe('project service', () => {
     });
     expect(untouched.recordRetentionDays).toBe(14);
     expect(untouched.name).toBe('Renamed');
+
+    let reset = await projectService.upsertProject({
+      organization,
+      input: { ref: project.ref, recordRetentionDays: null, usageRetentionDays: null }
+    });
+    expect(reset).toMatchObject({
+      recordRetentionDays: 90,
+      contentRetentionDays: 7,
+      usageRetentionDays: 400
+    });
+    expect(
+      await testDb.instance.findUniqueOrThrow({ where: { oid: instance.oid } })
+    ).toMatchObject({
+      recordRetentionDays: 90,
+      contentRetentionDays: 7,
+      usageRetentionDays: 400
+    });
   });
 
   it('rejects a project ref that belongs to another organization', async () => {
@@ -166,6 +184,7 @@ describe('instance service', () => {
       instance: { skewBoundSeconds: 600, backfillMaxAgeDays: 30 }
     });
 
+    expect(instance.id).toBe(instance.ref);
     expect(instance.skewBoundSeconds).toBe(600);
 
     let withSettings = await instanceService.upsertInstance({
@@ -192,6 +211,31 @@ describe('instance service', () => {
     expect(cleared.settings).toEqual({
       ephemeralDeviceIdleDays: 3,
       inferredSessionGapMinutes: 20
+    });
+  });
+
+  it('changes one classification switch and keeps the threshold and the model', async () => {
+    let { organization, project, instance } = await createTestScope();
+
+    await instanceService.upsertInstance({
+      organization,
+      project,
+      input: {
+        ref: instance.ref,
+        settings: {
+          classification: { threshold: 0.9, ai: { enabled: false, model: 'clef-flash' } }
+        }
+      }
+    });
+    let updated = await instanceService.upsertInstance({
+      organization,
+      project,
+      input: { ref: instance.ref, settings: { classification: { ai: { enabled: true } } } }
+    });
+
+    expect(updated.settings.classification).toEqual({
+      threshold: 0.9,
+      ai: { enabled: true, model: 'clef-flash' }
     });
   });
 

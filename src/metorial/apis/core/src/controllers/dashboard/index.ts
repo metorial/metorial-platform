@@ -1,3 +1,4 @@
+export * from './agent-tracking';
 export * from './aiAnalysisConfiguration';
 export * from './assistant';
 export * from './auditLogRetention';

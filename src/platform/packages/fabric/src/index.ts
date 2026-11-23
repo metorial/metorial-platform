@@ -1,6 +1,16 @@
 import { FabricEvents } from './types';
 
 export type {
+  AgentTrackingInstanceSettingsValues,
+  AgentTrackingOrganizationSettingsValues,
+  AgentTrackingProjectSettingsValues,
+  AgentTrackingSettingsInput,
+  AgentTrackingSettingsValues,
+  AuditAgentTrackingIngestSource,
+  AuditAiGatewayConfig,
+  AuditAiGatewayProviderConnection,
+  AuditAiGatewayToken,
+  AuditAiGatewayVirtualModel,
   AuditConsumerAccess,
   AuditConsumerAccessListing,
   AuditConsumerAccessRequest,

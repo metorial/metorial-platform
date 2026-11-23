@@ -1,0 +1,9 @@
+{
+  "muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Contributor is a discounted data-use tier of the same Muse Spark 1.2 checkpoint: search results (Neura Market, Vercel AI Gateway listing) describe it as 'meaningfully cheaper than Muse Spark 1.2' in exchange for prompts/outputs being used to improve Meta's products. Same model, so the link stands and the 0.1 input price vs the 1.25 median is explained by the tier's data-use terms.",
+    "by": "agent",
+    "at": "2026-11-23"
+  }
+}

@@ -133,18 +133,25 @@ export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerPr
   })
   .schema(
     v.object({
-      object: v.literal('magic_mcp.server.provider'),
-      id: v.string(),
-      status: v.enumOf(['pending', 'active', 'archived', 'deleted']),
-      magic_mcp_server_id: v.string(),
-      provider_management_mode: v.enumOf([
-        'manual',
-        'inherited_from_provider_template',
-        'inherited_from_integration'
-      ]),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.nullable(v.record(v.any())),
+      object: v.literal('magic_mcp.server.provider', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['pending', 'active', 'archived', 'deleted'], {
+        description: '`archived` once you remove the provider from the server.'
+      }),
+      magic_mcp_server_id: v.string({ description: 'Server the provider belongs to.' }),
+      provider_management_mode: v.enumOf(
+        ['manual', 'inherited_from_provider_template', 'inherited_from_integration'],
+        { description: 'Whether the provider is managed here or inherited.' }
+      ),
+      name: v.string({ description: 'Display name.' }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      metadata: v.nullable(
+        v.record(v.any(), {
+          description: 'Custom data you attach to identify or organize this record.'
+        })
+      ),
       tool_filter: v.nullable(toolFilterPresenter.schema),
       provider: v1ProviderPreview.schema,
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
@@ -152,9 +159,11 @@ export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerPr
       auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       auth_config: v.nullable(v1ProviderAuthConfigPreviewPresenter.schema),
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' }),
+      archived_at: v.nullable(
+        v.date({ description: 'When this was archived. `null` while active.' })
+      )
     })
   )
   .build();
@@ -183,8 +192,12 @@ export let dashboardMagicMcpServerProviderPresenter = Presenter.create(
     v.intersection([
       v1MagicMcpServerProviderPresenter.schema,
       v.object({
-        can_update: v.boolean(),
-        can_delete: v.boolean()
+        can_update: v.boolean({
+          description: 'Whether you can update this provider.'
+        }),
+        can_delete: v.boolean({
+          description: 'Whether you can remove this provider from the server.'
+        })
       })
     ])
   )

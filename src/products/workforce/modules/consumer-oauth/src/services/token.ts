@@ -12,7 +12,8 @@ import {
   Organization,
   SkillPlugin,
   type ConsumerSurface,
-  type Instance
+  type Instance,
+  withTransaction
 } from '@metorial/db';
 import { magicMcpTokenService, type MagicMcpResolvedTarget } from '@metorial/module-magic';
 import { grantConsumerOwnedMagicMcpTokenAccess } from '@metorial/consumer-magic-access';
@@ -594,30 +595,46 @@ class ConsumerOAuthTokenService {
       allowExpired: true
     });
 
-    let expiresAt = getConsumerAuthRefreshTokenExpiry();
-    let rotatedAccessToken = await magicMcpTokenService.rotateMagicMcpTokenSecret({
-      token: accessToken,
-      expiresAt: getConsumerAuthAccessTokenExpiry(),
-      auditScope: consumerOAuthAuditScope({
-        consumerSurface: d.consumerSurface,
-        consumerProfile: attempt.consumerProfile
-      })
-    });
     let nextRefreshToken = generateCustomId('prtl_oatre_', 35);
-    let updatedAttempt = await db.consumerAuthAttempt.update({
-      where: {
-        id: attempt.id
-      },
-      data: {
-        refreshToken: nextRefreshToken,
-        expiresAt
+    let rotatedAccessToken = await withTransaction(async db => {
+      let rotated = await db.consumerAuthAttempt.updateMany({
+        where: {
+          id: attempt.id,
+          status: 'active',
+          refreshToken: d.refreshToken
+        },
+        data: {
+          refreshToken: nextRefreshToken,
+          expiresAt: getConsumerAuthRefreshTokenExpiry()
+        }
+      });
+      if (!rotated.count) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid refresh token',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Invalid refresh token'
+            }
+          })
+        );
       }
+
+      return await magicMcpTokenService.rotateMagicMcpTokenSecret({
+        token: accessToken,
+        expiresAt: getConsumerAuthAccessTokenExpiry(),
+        auditScope: consumerOAuthAuditScope({
+          consumerSurface: d.consumerSurface,
+          consumerProfile: attempt.consumerProfile
+        })
+      });
     });
+
     await slideConsumerAuthClientExpiration({ consumerAuthClient: d.client });
 
     return {
       accessToken: rotatedAccessToken.secret,
-      refreshToken: updatedAttempt.refreshToken!
+      refreshToken: nextRefreshToken
     };
   }
 

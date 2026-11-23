@@ -24,8 +24,10 @@ export let v1ProtoGuardSuppressionPresenter = Presenter.create(protoGuardSuppres
   }))
   .schema(
     v.object({
-      object: v.literal('protoguard.suppression'),
-      id: v.string({ name: 'id', description: 'The unique identifier of the suppression.' }),
+      object: v.literal('protoguard.suppression', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ name: 'id', description: 'Unique ID.' }),
       status: v.enumOf(['active', 'archived'], {
         name: 'status',
         description: 'Whether the suppression currently hides matching findings.'
@@ -37,16 +39,23 @@ export let v1ProtoGuardSuppressionPresenter = Presenter.create(protoGuardSuppres
           examples: ['The tool documentation quotes injection examples on purpose.']
         })
       ),
-      filter: v.object({
-        object: v.literal('protoguard.filter#preview'),
-        id: v.string({ name: 'id', description: 'The unique identifier of the filter.' }),
-        key: v.string({
-          name: 'key',
-          description: 'The stable key of the filter.',
-          examples: ['instruction_override']
-        }),
-        name: v.string({ name: 'name', description: 'The display name of the filter.' })
-      }),
+      filter: v.object(
+        {
+          object: v.literal('protoguard.filter#preview', {
+            description: 'String representing the object’s type.'
+          }),
+          id: v.string({ name: 'id', description: 'Unique ID.' }),
+          key: v.string({
+            name: 'key',
+            description: 'The stable key of the filter.',
+            examples: ['instruction_override']
+          }),
+          name: v.string({ name: 'name', description: 'Display name.' })
+        },
+        {
+          description: 'Filter the suppression applies to.'
+        }
+      ),
       provider_id: v.nullable(
         v.string({
           name: 'provider_id',
@@ -75,15 +84,18 @@ export let v1ProtoGuardSuppressionPresenter = Presenter.create(protoGuardSuppres
         })
       ),
       archived_at: v.nullable(
-        v.date({ name: 'archived_at', description: 'When the suppression was archived.' })
+        v.date({
+          name: 'archived_at',
+          description: 'When this was archived. `null` while active.'
+        })
       ),
       created_at: v.date({
         name: 'created_at',
-        description: 'When the suppression was created.'
+        description: 'Creation time.'
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'When the suppression was last updated.'
+        description: 'Last update time.'
       })
     })
   )

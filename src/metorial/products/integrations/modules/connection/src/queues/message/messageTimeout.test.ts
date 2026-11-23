@@ -22,7 +22,7 @@ vi.mock('@lowerdeck/queue', () => ({
     }
   })
 }));
-vi.mock('@metorial-subspace/db', () => ({ dbPrimary: mocks.db }));
+vi.mock('@metorial-subspace/db', () => ({ db: mocks.db }));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://localhost:6379' } } }));
 vi.mock('../../lib/nats', () => ({ broadcastNats: { publish: mocks.publish } }));
 vi.mock('../../lib/topic', () => ({

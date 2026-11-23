@@ -29,6 +29,7 @@ export type NetworkPoliciesListOutput = {
     createdAt: Date;
     updatedAt: Date;
     archivedAt: Date | null;
+    warnings: string[];
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };

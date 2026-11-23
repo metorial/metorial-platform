@@ -43,7 +43,7 @@ let {
     oAuthAuthorizationFlow: {
       findFirst: vi.fn(),
       upsert: vi.fn(),
-      update: vi.fn()
+      updateMany: vi.fn()
     },
     oAuthToken: {
       findUnique: vi.fn(),
@@ -289,10 +289,7 @@ describe('oauthAuthorizationService', () => {
         };
       }
     );
-    mockDb.oAuthAuthorizationFlow.update.mockImplementation(async ({ where, data }: any) => ({
-      oid: where.oid,
-      ...data
-    }));
+    mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 1 });
     getMemberEffectiveAccessMock.mockResolvedValue({ entries: [] });
     getGrantedScopesMock.mockReturnValue(['organization:read', 'organization:write']);
     oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest.mockImplementation(
@@ -559,11 +556,16 @@ describe('oauthAuthorizationService', () => {
         status: 'active'
       }
     }));
-    mockDb.oAuthToken.update.mockImplementation(async ({ where, data }: any) => ({
+    let rotatedTokenData: Record<string, unknown> = {};
+    mockDb.oAuthToken.updateMany.mockImplementation(async ({ data }: any) => {
+      rotatedTokenData = data;
+      return { count: 1 };
+    });
+    mockDb.oAuthToken.findUniqueOrThrow.mockImplementation(async ({ where }: any) => ({
       oid: where.oid ?? 601n,
       id: 'oauthToken-generated-id',
       oauthAuthorizationOid: 300n,
-      ...data,
+      ...rotatedTokenData,
       oauthAuthorization: {
         oid: 300n,
         oauthInstallationOid: 200n,
@@ -752,7 +754,10 @@ describe('oauthAuthorizationService', () => {
     expect(oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest).not.toHaveBeenCalled();
   });
 
-  it('exchanges authorization codes into access and refresh tokens', async () => {
+  let mockAcceptedAuthorizationCode = (codeChallengeMethod: 'none' | 's256' = 's256') => {
+    let codeChallenge =
+      codeChallengeMethod == 's256' ? 'zlxhzi2oXcwctSMRn0OqyEVcKJPGyt9nEWTCdXRuWlA' : null;
+
     oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByCode.mockResolvedValue({
       id: 'oarf_1',
       oauthApplicationId: 'oauthApplication-generated-id',
@@ -760,8 +765,8 @@ describe('oauthAuthorizationService', () => {
       status: 'accepted',
       code: 'code-1',
       redirectUri: 'https://example.com/callback',
-      codeChallengeMethod: 'none',
-      codeChallenge: null,
+      codeChallengeMethod,
+      codeChallenge,
       expiresAt: new Date(Date.now() + 60_000)
     });
     mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue({
@@ -770,8 +775,8 @@ describe('oauthAuthorizationService', () => {
       type: 'interactive',
       status: 'accepted',
       redirectUri: 'https://example.com/callback',
-      codeChallengeMethod: 'none',
-      codeChallenge: null,
+      codeChallengeMethod,
+      codeChallenge,
       expiresAt: new Date(Date.now() + 60_000),
       oauthApplication: {
         oid: 100n,
@@ -823,21 +828,67 @@ describe('oauthAuthorizationService', () => {
       organization: baseOrg,
       user: baseUser
     });
+  };
 
-    let result = await oauthAuthorizationService.exchangeOAuthToken({
+  let exchangeAuthorizationCode = (input: { clientSecret?: string; codeVerifier?: string }) =>
+    oauthAuthorizationService.exchangeOAuthToken({
       context: baseContext,
       input: {
         grantType: 'authorization_code',
         clientId: 'client-1',
         code: 'code-1',
-        redirectUri: 'https://example.com/callback'
+        redirectUri: 'https://example.com/callback',
+        ...input
       }
     });
 
+  let codeVerifier = 'code-verifier-1-abcdefghijklmnopqrstuvwxyz0123';
+
+  it('exchanges a PKCE authorization code for an access token without a client secret', async () => {
+    mockAcceptedAuthorizationCode();
+
+    let result = await exchangeAuthorizationCode({ codeVerifier });
+
+    expect(mockDb.oAuthAuthorizationFlow.updateMany).toHaveBeenCalledWith({
+      where: { oid: 500n, status: 'accepted' },
+      data: { status: 'consumed', consumedAt: expect.any(Date) }
+    });
     expect(unifiedApiKeyCreateMock).toHaveBeenCalled();
     expect(mockDb.oAuthToken.create).toHaveBeenCalled();
     expect(result.oauthToken.accessToken).toContain('metorial_oa_');
     expect(result.oauthToken.refreshToken).toBeNull();
+  });
+
+  it('rejects an authorization code that a concurrent exchange consumed first', async () => {
+    mockAcceptedAuthorizationCode();
+    mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(exchangeAuthorizationCode({ codeVerifier })).rejects.toMatchObject({
+      data: { message: 'Invalid authorization code', oauth: { error: 'invalid_grant' } }
+    });
+    expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+  });
+
+  it('requires PKCE when no client secret is presented', async () => {
+    mockAcceptedAuthorizationCode('none');
+
+    await expect(exchangeAuthorizationCode({})).rejects.toMatchObject({
+      data: {
+        message: 'PKCE with S256 is required when no client secret is presented',
+        oauth: { error: 'invalid_grant' }
+      }
+    });
+    expect(mockDb.oAuthAuthorizationFlow.updateMany).not.toHaveBeenCalled();
+    expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+  });
+
+  it('exchanges an authorization code without PKCE when a client secret is presented', async () => {
+    mockAcceptedAuthorizationCode('none');
+
+    let result = await exchangeAuthorizationCode({ clientSecret: 'secret-1' });
+
+    expect(mockDb.oAuthToken.create).toHaveBeenCalled();
+    expect(result.oauthToken.refreshToken).toContain('metorial_or_');
   });
 
   let refreshableAuthorization = {
@@ -1059,6 +1110,61 @@ describe('oauthAuthorizationService', () => {
         deviceCode: 'device-1'
       })
     ).rejects.toThrow(ServiceError);
+  });
+
+  describe('accepted device codes', () => {
+    beforeEach(() => {
+      mockAcceptedAuthorizationCode();
+
+      let acceptedDeviceRequest = {
+        id: 'oarf_1',
+        oauthApplicationId: 'oauthApplication-generated-id',
+        type: 'device_code',
+        status: 'accepted',
+        deviceCode: 'device-1',
+        lastPollAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+        oauthApplication: { clientId: 'client-1' }
+      };
+      oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByDeviceCode.mockResolvedValue(
+        acceptedDeviceRequest
+      );
+      oauthGlobalRepositoryMock.touchOAuthAuthorizationRequestPoll.mockResolvedValue(
+        acceptedDeviceRequest
+      );
+    });
+
+    let exchangeDeviceCode = () =>
+      oauthAuthorizationService.exchangeOAuthToken({
+        context: baseContext,
+        input: {
+          grantType: 'device_code',
+          clientId: 'client-1',
+          deviceCode: 'device-1'
+        }
+      });
+
+    it('consumes the flow before issuing a token', async () => {
+      await exchangeDeviceCode();
+
+      expect(mockDb.oAuthAuthorizationFlow.updateMany).toHaveBeenCalledWith({
+        where: { oid: 500n, status: 'accepted' },
+        data: { status: 'consumed', consumedAt: expect.any(Date) }
+      });
+      expect(mockDb.oAuthToken.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a device code that a concurrent exchange consumed first', async () => {
+      mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(exchangeDeviceCode()).rejects.toMatchObject({
+        data: {
+          message: 'Authorization request has been consumed',
+          oauth: { error: 'invalid_grant' }
+        }
+      });
+      expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+    });
   });
 
   it('allows direct authorization get requests for non-internal apps', async () => {

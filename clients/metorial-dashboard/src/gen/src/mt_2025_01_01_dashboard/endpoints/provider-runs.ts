@@ -85,7 +85,7 @@ export class MetorialProviderRunsEndpoint {
     providerRunId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderRunsGetOutput> {
-    let path = `provider-runs/${providerRunId}`;
+    let path = `provider-runs/${encodeURIComponent(providerRunId)}`;
 
     let request = {
       path,
@@ -112,7 +112,7 @@ export class MetorialProviderRunsEndpoint {
     providerRunId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderRunsGetLogsOutput> {
-    let path = `provider-runs/${providerRunId}/logs`;
+    let path = `provider-runs/${encodeURIComponent(providerRunId)}/logs`;
 
     let request = {
       path,

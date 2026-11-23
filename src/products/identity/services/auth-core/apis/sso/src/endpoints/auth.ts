@@ -99,6 +99,8 @@ export let ssoAuthApp = createHono()
         );
       }
 
+      await ssoConnectionService.assertIdentityProviderReachable({ connection });
+
       let codeVerifier = generateCodeVerifier();
       let codeChallenge = generateCodeChallenge(codeVerifier);
 

@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { basename, join, resolve } from 'node:path';
 import { canonical } from './files';
-import { defaultPorts, mongoUrl, portKey } from './environment';
+import { defaultPorts, mongoUrl, portKey, postgresReplica } from './environment';
 import * as infrastructure from './infrastructure';
 import * as commands from './process';
 import type { Database, Environment, LoadedManifest, ServicePorts } from './types';
@@ -57,11 +57,25 @@ export let declaredComposeProjects = (
     .map(([path, services]) => [path, [...services].sort()]);
 };
 
+let declaresService = (compose: string, service: string) => {
+  try {
+    return Object.hasOwn(JSON.parse(readFileSync(compose, 'utf8')).services ?? {}, service);
+  } catch {
+    return false;
+  }
+};
+
 export let composeProjects = (root: string, manifests: LoadedManifest[]) => {
   let projects = declaredComposeProjects(root, manifests);
   let names = infrastructure.serviceNames(infrastructure.requirementsFromManifests(manifests));
   let generated = join(root, '.control/dev/services.docker-compose.yml');
-  if (names.length && existsSync(generated)) projects.push([generated, names]);
+  if (names.length && existsSync(generated))
+    projects.push([
+      generated,
+      declaresService(generated, infrastructure.postgresReplicaService)
+        ? [...names, infrastructure.postgresReplicaService]
+        : names
+    ]);
 
   return projects.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 };
@@ -219,6 +233,168 @@ export let createPostgres = async (
     );
 };
 
+let replicaVolumes = async (root: string, compose: string, env: Environment) => {
+  let name = composeProjectName(compose);
+  if (!name) return [];
+
+  return (
+    await commands.output(
+      'docker',
+      [
+        'volume',
+        'ls',
+        '--quiet',
+        '--filter',
+        `label=com.docker.compose.project=${name}`,
+        '--filter',
+        `label=com.docker.compose.volume=${infrastructure.postgresReplicaVolume}`
+      ],
+      root,
+      env
+    )
+  )
+    .split('\n')
+    .filter(Boolean);
+};
+
+export let ensurePostgresReplica = async (
+  root: string,
+  compose: string,
+  env: Environment,
+  timeoutSeconds = 300
+) => {
+  let prefix = composePrefix(compose);
+  let replica = infrastructure.postgresReplicaService;
+  let up = () =>
+    commands.run(
+      'docker',
+      [
+        ...prefix,
+        'up',
+        '--detach',
+        '--wait',
+        '--wait-timeout',
+        String(timeoutSeconds),
+        replica
+      ],
+      root,
+      env
+    );
+
+  let query = (service: string, sql: string) =>
+    commands
+      .output(
+        'docker',
+        [
+          ...prefix,
+          'exec',
+          '-T',
+          service,
+          'psql',
+          '-U',
+          'postgres',
+          '-d',
+          'postgres',
+          '-XAtc',
+          sql
+        ],
+        root,
+        env
+      )
+      .catch(error => {
+        if (error instanceof commands.Interrupted) throw error;
+
+        return '';
+      });
+
+  // Health alone can't tell: a replica still attached to a recreated primary keeps serving the
+  // old cluster and stays healthy until its health check runs out of retries.
+  let streaming = async () => {
+    let primary = await query(
+      'postgres-db2',
+      'select system_identifier from pg_control_system()'
+    );
+
+    for (let attempt = 0; attempt < 15; attempt++) {
+      let [identifier, receiving] = (
+        await query(
+          replica,
+          "select system_identifier || '|' || exists (select from pg_stat_wal_receiver where status = 'streaming') from pg_control_system()"
+        )
+      ).split('|');
+      if (!primary || (identifier && identifier !== primary)) return false;
+
+      if (receiving === 'true') return true;
+
+      await commands.delay(1000);
+    }
+
+    return false;
+  };
+
+  await commands.run(
+    'docker',
+    [
+      ...prefix,
+      'exec',
+      '-T',
+      'postgres-db2',
+      'bash',
+      '-c',
+      infrastructure.postgresPrimaryReplicationScript
+    ],
+    root,
+    env
+  );
+
+  try {
+    await up();
+
+    if (await streaming()) return;
+  } catch (error) {
+    if (error instanceof commands.Interrupted) throw error;
+  }
+
+  commands.warn(`${replica} is not streaming from postgres-db2; re-seeding it`);
+
+  await commands.run('docker', [...prefix, 'rm', '--force', '--stop', replica], root, env);
+
+  let volumes = await replicaVolumes(root, compose, env);
+  if (volumes.length) await commands.run('docker', ['volume', 'rm', ...volumes], root, env);
+
+  await up();
+
+  if (!(await streaming()))
+    throw new Error(`${replica} did not start streaming from postgres-db2`);
+};
+
+export let removePostgresReplica = async (root: string, compose: string, env: Environment) => {
+  let name = composeProjectName(compose);
+  if (!name) return;
+
+  let containers = (
+    await commands.output(
+      'docker',
+      [
+        'ps',
+        '--all',
+        '--quiet',
+        '--filter',
+        `label=com.docker.compose.project=${name}`,
+        '--filter',
+        `label=com.docker.compose.service=${infrastructure.postgresReplicaService}`
+      ],
+      root,
+      env
+    )
+  )
+    .split('\n')
+    .filter(Boolean);
+
+  if (containers.length)
+    await commands.run('docker', ['rm', '--force', ...containers], root, env);
+};
+
 export let mongoExec = async (
   root: string,
   base: string,
@@ -260,6 +436,7 @@ export let start = async (
   let names = infrastructure.serviceNames(requirements);
   let generated = join(root, '.control/dev/services.docker-compose.yml');
   let ports = servicePorts(env);
+  let replica = requirements.postgres ? postgresReplica(env) : undefined;
   let projects = databasesOnly ? [] : declaredComposeProjects(root, manifests);
   if (names.length) {
     let hash = rustPathHash(canonical(root)).slice(-8);
@@ -267,6 +444,7 @@ export let start = async (
       project_name: `control_dev_${hash}`,
       network: 'control-services',
       postgres_databases: infrastructure.postgresDatabases(manifests),
+      postgres_replica: replica,
       ports,
       restart: true
     });
@@ -344,6 +522,11 @@ export let start = async (
         );
       }
     }
+
+    if (replica) {
+      names.push(infrastructure.postgresReplicaService);
+      await ensurePostgresReplica(root, generated, env);
+    } else if (requirements.postgres) await removePostgresReplica(root, generated, env);
 
     return projects;
   } catch (error) {

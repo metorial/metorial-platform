@@ -42,6 +42,7 @@
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@metorial/doctor": "workspace:*",
     "@metorial/editions": "workspace:*",
+    "@metorial/service-init": "workspace:*",
     "@mtsrc/auth-core-api-admin": "workspace:*",
     "@mtsrc/auth-core-api-auth": "workspace:*",
     "@mtsrc/auth-core-api-internal": "workspace:*",

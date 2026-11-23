@@ -31,12 +31,12 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
   .schema(
     v.object({
       object: v.literal('chat.event', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat event identifier',
+        description: 'Unique ID.',
         examples: ['chevt_4dEfGhJkLmNpQrSt']
       }),
 
@@ -164,7 +164,7 @@ export let v1ChatEventPresenter = Presenter.create(chatEventType)
 
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when the event was recorded by Metorial',
+        description: 'Creation time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

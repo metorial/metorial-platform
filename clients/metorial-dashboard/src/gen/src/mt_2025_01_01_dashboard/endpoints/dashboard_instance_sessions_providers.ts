@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
     query?: DashboardInstanceSessionsProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersListOutput> {
-    let path = `dashboard/instances/${instanceId}/session-providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-providers`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/session-providers/${sessionProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
     body: DashboardInstanceSessionsProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/session-providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-providers`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
     body: DashboardInstanceSessionsProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/session-providers/${sessionProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceSessionsProvidersEndpoint {
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/session-providers/${sessionProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,

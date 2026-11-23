@@ -1,4 +1,4 @@
-import { expectOk, rest, type RestClient, type RestResponse } from './api';
+import { expectOk, rest, type RestClient, type RestQuery, type RestResponse } from './api';
 
 export interface ApiErrorBody {
   object: 'error';
@@ -53,7 +53,7 @@ export let listAll = async <T = any>(
   client: RestClient,
   path: string,
   options: {
-    query?: Record<string, string | number | boolean | undefined>;
+    query?: RestQuery;
     limit?: number;
     maxPages?: number;
   } = {}

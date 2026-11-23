@@ -43,13 +43,13 @@ export let customProviderVersionController = Controller.create(
   {
     name: 'Custom Provider Versions',
     description:
-      'Versions represent different releases of a custom provider. Each version can be deployed to environments.'
+      'A custom provider version is a release of a custom provider. It is built by a deployment and promoted into environments.'
   },
   {
     list: integrationsGroup
       .get(instancePath('custom-provider-versions', 'customProviders.versions.list'), {
         name: 'List custom provider versions',
-        description: 'Returns a paginated list of versions for a custom provider.'
+        description: 'Returns a paginated list of custom provider versions.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
@@ -70,10 +70,10 @@ export let customProviderVersionController = Controller.create(
                   ])
                 )
               ]),
-              { description: 'Filter by deployment status' }
+              { description: 'Only return versions with one of these deployment statuses.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by version ID(s)'
+              description: 'Only return versions with one of these IDs.'
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider IDs (matches providers connected to sessions)'
@@ -140,7 +140,7 @@ export let customProviderVersionController = Controller.create(
         ),
         {
           name: 'Get custom provider version',
-          description: 'Retrieves a specific version of a custom provider.'
+          description: 'Retrieves a custom provider version.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
@@ -161,7 +161,7 @@ export let customProviderVersionController = Controller.create(
         {
           name: 'Get custom provider version environment',
           description:
-            'Retrieves the environment variables for a specific version of a custom provider.'
+            'Retrieves the environment variables for a version of a custom provider.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom.version:read'] }))
@@ -184,7 +184,7 @@ export let customProviderVersionController = Controller.create(
         'default',
         v.object({
           custom_provider_id: v.string({
-            description: 'Custom provider ID',
+            description: 'Custom provider to release a new version for.',
             examples: ['cp_1aBcDeFgHjKlMnPq']
           }),
           from: customProviderFromValidator,

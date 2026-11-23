@@ -1,4 +1,9 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  isServiceError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
   Instance,
@@ -26,6 +31,11 @@ import {
   type NormalizedStorePath
 } from '../lib/storePath';
 import { enqueueStoreLifecycle } from '../queues/lifecycle';
+import {
+  storeAccessService,
+  storeWritePermission,
+  type StoreAccessInput
+} from './storeAccess';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeVersionService } from './storeVersion';
 
@@ -89,6 +99,11 @@ let maxSkillStoreFiles = 1000;
 let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
 
 type SkillStoreRecord = Pick<Skill, 'oid' | 'id'>;
+
+let toMissingTargetError = (d: { error: unknown; type: 'file' | 'document'; id: string }) =>
+  isServiceError(d.error) && d.error.data.code === 'forbidden'
+    ? new ServiceError(notFoundError(d.type, d.id))
+    : d.error;
 
 class StoreItemMutationServiceImpl {
   private assertStoreWritable(d: {
@@ -482,8 +497,12 @@ class StoreItemMutationServiceImpl {
     fileId?: string;
     documentId?: string;
     allowEmpty?: boolean;
+    targetAccess?: StoreAccessInput;
   }) {
     this.ensureOnlyOneTarget(d.fileId, d.documentId);
+
+    let restrictedTargetAccess =
+      d.targetAccess?.authorization.type === 'restricted' ? d.targetAccess : undefined;
 
     if (!d.fileId && !d.documentId) {
       if (d.allowEmpty) return undefined;
@@ -516,6 +535,20 @@ class StoreItemMutationServiceImpl {
 
       if (!document) throw new ServiceError(notFoundError('document', d.documentId));
 
+      if (restrictedTargetAccess) {
+        await storeAccessService
+          .assertStoreAccessForDocument({
+            project: d.project,
+            instance: d.instance,
+            document,
+            ...restrictedTargetAccess,
+            requiredPermission: storeWritePermission
+          })
+          .catch(error => {
+            throw toMissingTargetError({ error, type: 'document', id: document.id });
+          });
+      }
+
       return {
         file: document.file,
         document: {
@@ -544,6 +577,20 @@ class StoreItemMutationServiceImpl {
 
     if (!file) throw new ServiceError(notFoundError('file', d.fileId!));
 
+    if (restrictedTargetAccess) {
+      await storeAccessService
+        .assertStoreAccessForFile({
+          project: d.project,
+          instance: d.instance,
+          file,
+          ...restrictedTargetAccess,
+          requiredPermission: storeWritePermission
+        })
+        .catch(error => {
+          throw toMissingTargetError({ error, type: 'file', id: file.id });
+        });
+    }
+
     return {
       file,
       document: file.document
@@ -555,6 +602,7 @@ class StoreItemMutationServiceImpl {
     instance: Instance;
     store: Pick<Store, 'pathMode'>;
     operation: StoreItemOperationInput;
+    targetAccess?: StoreAccessInput;
   }): Promise<NormalizedStoreItemOperation> {
     let { operation } = d;
     let type =
@@ -571,7 +619,8 @@ class StoreItemMutationServiceImpl {
         instance: d.instance,
         fileId: operation.fileId,
         documentId: operation.documentId,
-        allowEmpty: true
+        allowEmpty: true,
+        targetAccess: d.targetAccess
       });
       let kind = target ? this.getContentItemKind(target) : 'directory';
 
@@ -619,7 +668,8 @@ class StoreItemMutationServiceImpl {
         instance: d.instance,
         fileId: operation.fileId,
         documentId: operation.documentId,
-        allowEmpty: true
+        allowEmpty: true,
+        targetAccess: d.targetAccess
       })
     };
   }
@@ -1541,6 +1591,7 @@ class StoreItemMutationServiceImpl {
     operations: StoreItemOperationInput[];
     actor?: Pick<ResourceActor, 'oid'>;
     allowReadOnly?: boolean;
+    targetAccess?: StoreAccessInput;
   }) {
     this.assertStoreWritable(d);
 
@@ -1560,7 +1611,8 @@ class StoreItemMutationServiceImpl {
           project: d.project,
           instance: d.instance,
           store: d.store,
-          operation
+          operation,
+          targetAccess: d.targetAccess
         })
       );
     }

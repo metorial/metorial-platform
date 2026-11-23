@@ -59,7 +59,7 @@ export class MetorialManagementInstancePublicMcpServersGrantsEndpoint {
     query?: DashboardInstancePublicMcpServersGrantsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersGrantsListOutput> {
-    let path = `instances/${instanceId}/public-mcp-servers/${publicMcpServerId}/grants`;
+    let path = `instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}/grants`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstancePublicMcpServersGrantsEndpoint {
     publicMcpServerGrantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersGrantsGetOutput> {
-    let path = `instances/${instanceId}/public-mcp-servers/${publicMcpServerId}/grants/${publicMcpServerGrantId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}/grants/${encodeURIComponent(publicMcpServerGrantId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialManagementInstancePublicMcpServersGrantsEndpoint {
     publicMcpServerGrantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersGrantsRevokeOutput> {
-    let path = `instances/${instanceId}/public-mcp-servers/${publicMcpServerId}/grants/${publicMcpServerGrantId}/revoke`;
+    let path = `instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}/grants/${encodeURIComponent(publicMcpServerGrantId)}/revoke`;
 
     let request = {
       path,

@@ -93,7 +93,7 @@ export class MetorialSkillsTemplatesEndpoint {
     skillTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesGetOutput> {
-    let path = `skill-templates/${skillTemplateId}`;
+    let path = `skill-templates/${encodeURIComponent(skillTemplateId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialSkillsTemplatesEndpoint {
     body: DashboardInstanceSkillsTemplatesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesUpdateOutput> {
-    let path = `skill-templates/${skillTemplateId}`;
+    let path = `skill-templates/${encodeURIComponent(skillTemplateId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialSkillsTemplatesEndpoint {
     skillTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsTemplatesDeleteOutput> {
-    let path = `skill-templates/${skillTemplateId}`;
+    let path = `skill-templates/${encodeURIComponent(skillTemplateId)}`;
 
     let request = {
       path,

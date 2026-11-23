@@ -27,6 +27,7 @@ import {
 import { introspectVersion, introspectVersionList } from './introspect';
 import { parseBody } from './parseBody';
 import { RateLimiter } from './ratelimit';
+import { isSensitiveLogField, redactSensitiveFields, redactSensitiveUrl } from './redact';
 import { Authenticator, RequestFlags } from './types';
 
 let MAX_LOGGED_BODY_BYTES = 64 * 1024;
@@ -109,52 +110,6 @@ let getRequestBodySizeBytes = (contentLength: string | undefined, body: any) => 
   if (body === undefined) return 0;
 
   return Buffer.byteLength(JSON.stringify(body) ?? '');
-};
-
-let sensitiveLogFields = new Set([
-  'token',
-  'accesstoken',
-  'refreshtoken',
-  'idtoken',
-  'sessiontoken',
-  'authtoken',
-  'bearertoken',
-  'secret',
-  'clientsecret',
-  'secretkey',
-  'key',
-  'apikey',
-  'xapikey',
-  'accesskey',
-  'privatekey',
-  'signingkey',
-  'password',
-  'passwd',
-  'pwd',
-  'passphrase',
-  'authorization',
-  'cookie',
-  'setcookie',
-  'sessioncookie',
-  'credential',
-  'credentials'
-]);
-
-let isSensitiveLogField = (key: string) =>
-  sensitiveLogFields.has(key.toLowerCase().replace(/[^a-z0-9]/g, ''));
-
-let redactSensitiveFields = (value: any): any => {
-  if (Array.isArray(value)) return value.map(item => redactSensitiveFields(item));
-  if (value && typeof value == 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, val]) => [
-        key,
-        isSensitiveLogField(key) ? '[redacted]' : redactSensitiveFields(val)
-      ])
-    );
-  }
-
-  return value;
 };
 
 let getPathForLogUrl = (path: string) => (path.startsWith('/') ? path : `/${path}`);
@@ -345,19 +300,22 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         arrayLimit: 5000
                       }) as any;
 
+                      let loggedUrl = redactSensitiveUrl(c.req.url);
+                      let loggedAuth = redactSensitiveFields(c.env.auth);
+
                       Sentry.getCurrentScope().setContext('rpc.request', {
-                        url: c.req.url,
-                        query,
+                        url: loggedUrl,
+                        query: redactSensitiveFields(query),
                         apiVersion,
-                        body: body,
-                        auth: c.env.auth,
+                        body: redactSensitiveFields(body),
+                        auth: loggedAuth,
                         context: c.env.context
                       });
 
                       c.env.span.setAttributes({
                         'metorial.api.version': apiVersion,
                         'metorial.request.id': c.env.requestId,
-                        'metorial.request.url': c.req.url,
+                        'metorial.request.url': loggedUrl,
                         'metorial.request.method': handler.method,
                         'metorial.request.context.ip': c.env.context.ip,
                         'metorial.request.context.ua': c.env.context.ua ?? 'unknown'
@@ -490,7 +448,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                             body: loggedRequestBody,
                             response: loggedResponseBody,
                             error: isConfidential ? undefined : error,
-                            auth: c.env.auth,
+                            auth: loggedAuth,
                             context: c.env.context
                           });
                         } catch (e) {

@@ -57,7 +57,7 @@ export class MetorialDashboardInstanceChatsChannelsTypingEndpoint {
     body: DashboardInstanceChatsChannelsTypingStartBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsChannelsTypingStartOutput> {
-    let path = `dashboard/instances/${instanceId}/chats/${chatId}/channels/${channelId}/typing`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/channels/${encodeURIComponent(channelId)}/typing`;
 
     let request = {
       path,

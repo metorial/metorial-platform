@@ -13,8 +13,8 @@ export let instanceController = Controller.create(
   {
     get: instanceGroup
       .get(instancePath('instance', 'instance.get'), {
-        name: 'Get instance details',
-        description: 'Retrieves metadata and configuration details for a specific instance.'
+        name: 'Get instance',
+        description: 'Retrieves an instance.'
       })
       .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .output(instancePresenter)

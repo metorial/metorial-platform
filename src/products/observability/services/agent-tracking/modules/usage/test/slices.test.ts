@@ -9,6 +9,7 @@ import {
   isSessionlessKey,
   parseSessionlessKey,
   sessionlessKey,
+  wholeDayExpiry,
   type SliceAttribution
 } from '../src/lib/slices';
 import type { BaseSlice } from '../src/lib/slices';
@@ -134,13 +135,14 @@ describe('buildSessionSlices', () => {
     expect(second[0]!._id).toBe(first[0]!._id);
   });
 
-  it('expires each slice the retention period after its bucket', () => {
+  it('expires each slice at the end of the UTC day its retention period ends on', () => {
     let [document] = buildSessionSlices({ session, attribution, now, slices: [baseSlice()] });
     let bucket = new Date('2026-11-10T09:00:00Z');
+    let exact = bucket.getTime() + session.expiresAt!.getTime() - startedAt.getTime();
 
-    expect(document!.expiresAt.getTime() - bucket.getTime()).toBe(
-      session.expiresAt!.getTime() - startedAt.getTime()
-    );
+    expect(document!.expiresAt).toEqual(wholeDayExpiry(new Date(exact)));
+    expect(document!.expiresAt.getUTCHours()).toBe(0);
+    expect(document!.expiresAt.getTime()).toBeGreaterThanOrEqual(exact);
   });
 
   it('round-trips the metrics through baseSliceOf', () => {
@@ -174,9 +176,7 @@ describe('buildSessionlessSlices', () => {
     });
     expect(documents[0]!.sessionKey).toBeUndefined();
     expect(documents[1]!.client).toEqual({ family: 'unknown' });
-    expect(documents[0]!.expiresAt).toEqual(
-      new Date(new Date('2026-11-10T09:00:00Z').getTime() + 30 * dayMs)
-    );
+    expect(documents[0]!.expiresAt).toEqual(new Date('2026-12-11T00:00:00Z'));
   });
 });
 
@@ -187,5 +187,16 @@ describe('attributionFields', () => {
       'dimIds',
       'dims'
     ]);
+  });
+});
+
+describe('wholeDayExpiry', () => {
+  it('moves an expiry to the next midnight UTC and keeps one already on it', () => {
+    expect(wholeDayExpiry(new Date('2026-12-10T09:15:00Z'))).toEqual(
+      new Date('2026-12-11T00:00:00Z')
+    );
+    expect(wholeDayExpiry(new Date('2026-12-10T00:00:00Z'))).toEqual(
+      new Date('2026-12-10T00:00:00Z')
+    );
   });
 });

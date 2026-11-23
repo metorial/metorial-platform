@@ -53,7 +53,7 @@ export class MetorialDashboardOrganizationsOauthScopesEndpoint {
     query?: DashboardOrganizationsOauthScopesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthScopesListOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/scopes`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/scopes`;
 
     let request = {
       path,

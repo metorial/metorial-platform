@@ -47,3 +47,25 @@ export let contentPolicySchema = v.object({
 export type ContentPolicy = ValidationTypeValue<typeof contentPolicySchema>;
 
 export let defaultContentPolicy: ContentPolicy = { defaultMode: 'basic' };
+
+let contentModeRank: Record<ContentMode, number> = { basic: 0, shape: 1, full: 2 };
+
+let stricterMode = (a: ContentMode, b: ContentMode) =>
+  contentModeRank[a] <= contentModeRank[b] ? a : b;
+
+export let stricterContentPolicy = (
+  policy: ContentPolicy,
+  other: ContentPolicy
+): ContentPolicy => {
+  let modeOf = (of: ContentPolicy, role: ContentRole) => of.roles?.[role] ?? of.defaultMode;
+  let roles: Partial<Record<ContentRole, ContentMode>> = {};
+  for (let role of contentRoles) {
+    if (!policy.roles?.[role] && !other.roles?.[role]) continue;
+    roles[role] = stricterMode(modeOf(policy, role), modeOf(other, role));
+  }
+
+  return {
+    defaultMode: stricterMode(policy.defaultMode, other.defaultMode),
+    ...(Object.keys(roles).length ? { roles } : {})
+  };
+};

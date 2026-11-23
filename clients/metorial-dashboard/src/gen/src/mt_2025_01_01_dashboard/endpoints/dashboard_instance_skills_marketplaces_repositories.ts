@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint {
     query?: DashboardInstanceSkillsMarketplacesRepositoriesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint {
     skillMarketplaceRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories/${skillMarketplaceRepositoryId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories/${encodeURIComponent(skillMarketplaceRepositoryId)}`;
 
     let request = {
       path,
@@ -130,7 +130,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint {
     body: DashboardInstanceSkillsMarketplacesRepositoriesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint {
     skillMarketplaceRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesRepositoriesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/repositories/${skillMarketplaceRepositoryId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/repositories/${encodeURIComponent(skillMarketplaceRepositoryId)}`;
 
     let request = {
       path,

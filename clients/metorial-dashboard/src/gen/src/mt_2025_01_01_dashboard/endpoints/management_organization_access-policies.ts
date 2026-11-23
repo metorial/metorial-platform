@@ -97,7 +97,7 @@ export class MetorialManagementOrganizationAccessPoliciesEndpoint {
     accessPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessPoliciesGetOutput> {
-    let path = `organization/access-policies/${accessPolicyId}`;
+    let path = `organization/access-policies/${encodeURIComponent(accessPolicyId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementOrganizationAccessPoliciesEndpoint {
     query?: DashboardOrganizationsAccessPoliciesVersionsQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessPoliciesVersionsOutput> {
-    let path = `organization/access-policies/${accessPolicyId}/versions`;
+    let path = `organization/access-policies/${encodeURIComponent(accessPolicyId)}/versions`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementOrganizationAccessPoliciesEndpoint {
     body: DashboardOrganizationsAccessPoliciesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessPoliciesUpdateOutput> {
-    let path = `organization/access-policies/${accessPolicyId}`;
+    let path = `organization/access-policies/${encodeURIComponent(accessPolicyId)}`;
 
     let request = {
       path,
@@ -216,7 +216,7 @@ export class MetorialManagementOrganizationAccessPoliciesEndpoint {
     accessPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessPoliciesDeleteOutput> {
-    let path = `organization/access-policies/${accessPolicyId}`;
+    let path = `organization/access-policies/${encodeURIComponent(accessPolicyId)}`;
 
     let request = {
       path,

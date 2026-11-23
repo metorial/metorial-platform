@@ -46,9 +46,10 @@ model Consumer {
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
   storeParticipants          StoreParticipant[]
-  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+  agentTrackingIngestTokens  AgentTrackingIngestToken[]
 
   @@unique([email, organizationOid])
+  @@index([organizationOid, id])
 }
 
 model InstanceConsumer {

@@ -61,7 +61,8 @@ export let services = {
   horizonLicenseApi: service(52147),
   horizonKeeperAdmin: service(52148),
   horizonCustomerFirehose: service(52146),
-  synthesis: service(52160),
+  aiGateway: service(52160),
+  aiGatewayInference: service(52161),
   nebula: service(52170),
   agentTracking: service(52180),
   agentTrackingIngest: service(52181)

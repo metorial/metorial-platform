@@ -468,6 +468,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "modaic/mo": {
+    "decision": "defer",
+    "until": "2026-12-20",
+    "reason": "Mo is Modaic's specialized decision model built from Qwen/Qwen3.6-35B-A3B (per the modaic-ai/mo GitHub repo), so it is a derivative, not the Qwen checkpoint itself; the model index has no modaic entry, so defer until the catalog adds it.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "nace-ai/drex-max-finance": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -530,6 +537,13 @@
     "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Sunburst, released 2026-11-04 alongside GPT Image 2.6 Flare; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-sunburst), so defer rather than link the 2.5 model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "openai/gpt-live-1.1": {
+    "decision": "defer",
+    "until": "2026-12-19",
+    "reason": "GPT-Live 1.1 is a new OpenAI realtime voice model checkpoint released 2026-10-15, replacing GPT-Live 1. The model index only has openai/gpt-live-1, a different checkpoint, so defer until an entry for 1.1 is added.",
+    "by": "agent",
+    "at": "2026-11-19"
   },
   "paperinstruments/ultramarine-1-flash": {
     "decision": "defer",

@@ -58,7 +58,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
   {
     name: 'Integration Instance Group Providers',
     description:
-      'Integration instance group providers define the effective routed provider set for an integration instance group.'
+      'An integration instance group provider links one integration instance provider into a group, with optional tool filters.'
   },
   {
     list: integrationsGroup
@@ -83,23 +83,54 @@ export let integrationInstanceGroupProviderController = Controller.create(
               v.union([
                 v.enumOf(['active', 'archived', 'deleted']),
                 v.array(v.enumOf(['active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return group providers with one of these statuses. `deleted` providers are never listed.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers with one of these IDs.'
+            }),
             integration_instance_group_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description: 'Only return group providers for one of these groups.'
+              }
             ),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers for one of these integrations.'
+            }),
+            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return group providers for one of these integration instances.'
+            }),
             integration_instance_provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description:
+                  'Only return group providers linking one of these integration instance providers.'
+              }
             ),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers using one of these providers.'
+            }),
+            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return group providers using one of these integration providers.'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers running on one of these deployments.'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers using one of these configs.'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers using one of these credentials.'
+            }),
+            session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return group providers using one of these session templates.'
+            }),
             created_at: dateFilterValidator(
               'integration instance group provider creation time'
             ),
@@ -151,7 +182,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
         ),
         {
           name: 'Get integration instance group provider',
-          description: 'Retrieves a specific integration instance group provider.'
+          description: 'Retrieves an integration instance group provider.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -172,7 +203,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
         {
           name: 'Set integration instance group provider',
           description:
-            'Creates or updates the effective integration instance group provider materialization.'
+            'Links an existing integration instance provider into the group, with optional tool filters. Creates the link when none exists, otherwise updates its tool filters.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -220,8 +251,9 @@ export let integrationInstanceGroupProviderController = Controller.create(
           'integrations.instanceGroups.providers.delete'
         ),
         {
-          name: 'Delete integration instance group provider',
-          description: 'Archives a specific integration instance group provider.'
+          name: 'Archive integration instance group provider',
+          description:
+            'Archives an integration instance group provider. It stays retrievable by ID and listable with `status=archived`.'
         }
       )
       .use(requireNonPublishableMachineAccess())

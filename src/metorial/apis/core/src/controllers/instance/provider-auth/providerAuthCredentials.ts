@@ -43,7 +43,7 @@ export let providerAuthCredentialsController = Controller.create(
   {
     name: 'Provider Auth Credentials',
     description:
-      'Auth credentials store your OAuth app registration (client ID, client secret, and scopes). These are the app-level credentials you get from a service like GitHub or Slack.'
+      'Provider auth credentials are an OAuth app registration used with a provider: a client ID, a client secret, and scopes.'
   },
   {
     list: integrationsGroup
@@ -133,7 +133,7 @@ export let providerAuthCredentialsController = Controller.create(
         ),
         {
           name: 'Get provider auth credentials',
-          description: 'Retrieves specific provider auth credentials by ID.'
+          description: 'Retrieves provider auth credentials.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
@@ -152,7 +152,7 @@ export let providerAuthCredentialsController = Controller.create(
         ),
         {
           name: 'Create provider auth credentials',
-          description: 'Creates new provider auth credentials.',
+          description: 'Creates provider auth credentials.',
           confidential: true
         }
       )
@@ -161,35 +161,44 @@ export let providerAuthCredentialsController = Controller.create(
         'default',
         v.object({
           provider_id: v.string({
-            description: 'Provider ID',
+            description: 'Provider to create credentials for.',
             examples: ['pro_5gHjKlMnPqRsTuVw']
           }),
-          name: v.optional(v.string({ examples: ['GitHub OAuth'] })),
+          name: v.optional(v.string({ examples: ['GitHub OAuth'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['OAuth credentials for GitHub API'] })
+            v.string({ examples: ['OAuth credentials for GitHub API'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ app_name: 'My GitHub App', created_by: 'admin@company.com' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider auth credentials. Replaces existing metadata.'
+            }
           ),
 
-          config: v.object({
-            type: v.optional(v.literal('oauth')),
-            client_id: v.string({
-              description: 'OAuth client ID',
-              examples: ['Iv1.abc123def456']
-            }),
-            client_secret: v.string({
-              description: 'OAuth client secret',
-              examples: ['gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx']
-            }),
-            scopes: v.array(v.string({ examples: ['repo'] }), {
-              description: 'OAuth scopes to request',
-              examples: [['repo', 'read:user', 'read:org']]
-            })
-          })
+          config: v.object(
+            {
+              type: v.optional(v.literal('oauth'), { description: 'Must be `oauth`.' }),
+              client_id: v.string({
+                description: 'Client ID of your OAuth app.',
+                examples: ['Iv1.abc123def456']
+              }),
+              client_secret: v.string({
+                description: 'Client secret of your OAuth app.',
+                examples: ['gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx']
+              }),
+              scopes: v.array(v.string({ examples: ['repo'] }), {
+                description: 'OAuth scopes to request',
+                examples: [['repo', 'read:user', 'read:org']]
+              })
+            },
+            { description: 'OAuth app credentials to store.' }
+          )
         })
       )
       .output(providerAuthCredentialsPresenter)
@@ -229,7 +238,7 @@ export let providerAuthCredentialsController = Controller.create(
         ),
         {
           name: 'Update provider auth credentials',
-          description: 'Updates specific provider auth credentials.',
+          description: 'Updates provider auth credentials.',
           confidential: true
         }
       )
@@ -237,15 +246,22 @@ export let providerAuthCredentialsController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
+          name: v.optional(v.string(), { description: 'Display name.' }),
+          description: v.optional(v.string(), { description: 'Free-text description.' }),
           metadata: v.optional(v.record(v.any()), {
-            description: 'Custom key-value pairs for storing additional information'
+            description:
+              'Custom data to identify or organize the provider auth credentials. Replaces existing metadata.'
           }),
 
-          client_id: v.optional(v.string()),
-          client_secret: v.optional(v.string()),
-          scopes: v.optional(v.array(v.string()))
+          client_id: v.optional(v.string(), {
+            description: 'Client ID of your OAuth app.'
+          }),
+          client_secret: v.optional(v.string(), {
+            description: 'Client secret of your OAuth app.'
+          }),
+          scopes: v.optional(v.array(v.string()), {
+            description: 'OAuth scopes to request.'
+          })
         })
       )
       .output(providerAuthCredentialsPresenter)
@@ -277,8 +293,9 @@ export let providerAuthCredentialsController = Controller.create(
           'providerDeployments.authCredentials.delete'
         ),
         {
-          name: 'Delete provider auth credentials',
-          description: 'Permanently deletes provider auth credentials.'
+          name: 'Archive provider auth credentials',
+          description:
+            'Archives provider auth credentials. They stay listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))

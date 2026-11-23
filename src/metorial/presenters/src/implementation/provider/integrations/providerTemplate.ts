@@ -17,15 +17,40 @@ export let v1ProviderTemplatePreview = Object.assign(
   }),
   {
     schema: v.object({
-      object: v.literal('provider.template#preview'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
-      integration_id: v.nullable(v.string()),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('provider.template#preview', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['ptm_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you archive the template.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.record(v.any(), {
+        description: 'Custom data you attach to identify or organize this record.'
+      }),
+      integration_id: v.nullable(
+        v.string({
+          description:
+            'Integration the template was created from. `null` when it wasn’t created from one.',
+          examples: ['int_2bCdEfGhJkLmNpQr']
+        })
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      })
     })
   }
 );
@@ -44,15 +69,40 @@ export let v1ProviderTemplatePresenter = Presenter.create(providerTemplateType)
   }))
   .schema(
     v.object({
-      object: v.literal('provider.template'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      metadata: v.record(v.any()),
-      integration_id: v.nullable(v.string()),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('provider.template', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['ptm_4dEfGhJkLmNpQrSt']
+      }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you archive the template.'
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      metadata: v.record(v.any(), {
+        description: 'Custom data you attach to identify or organize this record.'
+      }),
+      integration_id: v.nullable(
+        v.string({
+          description:
+            'Integration the template was created from. `null` when it wasn’t created from one.',
+          examples: ['int_2bCdEfGhJkLmNpQr']
+        })
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      })
     })
   )
   .build();

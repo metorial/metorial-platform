@@ -61,7 +61,7 @@ export class MetorialManagementInstanceIntegrationsInstanceGroupsProvidersEndpoi
     query?: DashboardInstanceIntegrationsInstanceGroupsProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersListOutput> {
-    let path = `instances/${instanceId}/integration-instance-group-providers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instance-group-providers`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialManagementInstanceIntegrationsInstanceGroupsProvidersEndpoi
     integrationInstanceGroupProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersGetOutput> {
-    let path = `instances/${instanceId}/integration-instance-group-providers/${integrationInstanceGroupProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instance-group-providers/${encodeURIComponent(integrationInstanceGroupProviderId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialManagementInstanceIntegrationsInstanceGroupsProvidersEndpoi
     body: DashboardInstanceIntegrationsInstanceGroupsProvidersSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersSetOutput> {
-    let path = `instances/${instanceId}/integration-instance-groups/${integrationInstanceGroupId}/providers/${integrationInstanceProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}/providers/${encodeURIComponent(integrationInstanceProviderId)}`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialManagementInstanceIntegrationsInstanceGroupsProvidersEndpoi
     integrationInstanceGroupProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersDeleteOutput> {
-    let path = `instances/${instanceId}/integration-instance-group-providers/${integrationInstanceGroupProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-instance-group-providers/${encodeURIComponent(integrationInstanceGroupProviderId)}`;
 
     let request = {
       path,

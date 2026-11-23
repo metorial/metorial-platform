@@ -18,7 +18,10 @@ import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared'
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let integrationInstanceGroupProviderInputValidator = v.object({
-  integration_instance_provider_id: v.string(),
+  integration_instance_provider_id: v.string({
+    description: 'Integration instance provider to link into the group.',
+    examples: ['iip_4dEfGhJkLmNpQrSt']
+  }),
   tool_filters: toolFiltersValidator
 });
 
@@ -47,7 +50,7 @@ export let integrationInstanceGroupController = Controller.create(
   {
     name: 'Integration Instance Groups',
     description:
-      'Integration instance groups combine instance providers into a grouped routed configuration.'
+      'An integration instance group combines providers from multiple integration instances into one set, with a shared session template.'
   },
   {
     list: integrationsGroup
@@ -64,26 +67,60 @@ export let integrationInstanceGroupController = Controller.create(
           v.object({
             ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
               description:
-                'Which resources to return under the resource ownership rules: shared (not owned by someone else), usable (shared plus ones the caller may use) or all (everything the caller may see). Defaults to shared when ownership is enforced and all otherwise.'
+                'Ownership scope: `shared` (not owned by someone else), `usable` (shared plus ones you may use), or `all`. Defaults to `shared` when ownership is enforced, `all` otherwise.'
             }),
             status: v.optional(
               v.union([
                 v.enumOf(['draft', 'active', 'archived', 'deleted']),
                 v.array(v.enumOf(['draft', 'active', 'archived', 'deleted']))
-              ])
+              ]),
+              {
+                description:
+                  'Only return integration instance groups with one of these statuses. `deleted` groups are never listed.'
+              }
             ),
-            id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Only return integration instance groups with one of these IDs.'
+            }),
+            integration_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups for one of these integrations.'
+            }),
+            integration_instance_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups containing one of these integration instances.'
+            }),
             integration_instance_provider_id: v.optional(
-              v.union([v.string(), v.array(v.string())])
+              v.union([v.string(), v.array(v.string())]),
+              {
+                description:
+                  'Only return integration instance groups containing one of these integration instance providers.'
+              }
             ),
-            provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())])),
-            session_template_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups using one of these providers.'
+            }),
+            integration_provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups using one of these integration providers.'
+            }),
+            provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups running on one of these deployments.'
+            }),
+            provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups using one of these configs.'
+            }),
+            provider_auth_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups using one of these credentials.'
+            }),
+            session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return integration instance groups using one of these session templates.'
+            }),
             created_at: dateFilterValidator('integration instance group creation time'),
             updated_at: dateFilterValidator('integration instance group last update time')
           })
@@ -127,7 +164,7 @@ export let integrationInstanceGroupController = Controller.create(
         ),
         {
           name: 'Get integration instance group',
-          description: 'Retrieves a specific integration instance group.'
+          description: 'Retrieves an integration instance group.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -150,7 +187,7 @@ export let integrationInstanceGroupController = Controller.create(
         {
           name: 'Create integration instance group session template',
           description:
-            'Creates or updates the shared session template for a specific integration instance group.'
+            'Creates or updates the shared session template for the integration instance group.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -158,9 +195,21 @@ export let integrationInstanceGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          name: v.optional(
+            v.string({
+              description: 'Display name for the session template.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the session template.'
+            })
+          )
         })
       )
       .output(sessionTemplatePresenter)
@@ -192,7 +241,7 @@ export let integrationInstanceGroupController = Controller.create(
         {
           name: 'Create integration instance group session',
           description:
-            'Creates a session from the shared session template of a specific integration instance group.'
+            'Creates a session from the shared session template of the integration instance group.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -200,9 +249,22 @@ export let integrationInstanceGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          name: v.optional(
+            v.string({
+              description:
+                'Display name for the session. Defaults to `Session` plus the current time.'
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description: 'Custom data to identify or organize the session.'
+            })
+          )
         })
       )
       .output(providerSessionPresenter)
@@ -228,7 +290,7 @@ export let integrationInstanceGroupController = Controller.create(
         instancePath('integration-instance-groups', 'integrations.instanceGroups.create'),
         {
           name: 'Create integration instance group',
-          description: 'Creates a new integration instance group.'
+          description: 'Creates an integration instance group.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -236,10 +298,25 @@ export let integrationInstanceGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any())),
-          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
+          name: v.string({
+            description: 'Display name for the integration instance group.'
+          }),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.'
+            })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              description:
+                'Custom data to identify or organize the integration instance group.'
+            })
+          ),
+          providers: v.optional(
+            v.array(integrationInstanceGroupProviderInputValidator, {
+              description: 'Providers to link into the group.'
+            })
+          )
         })
       )
       .output(integrationInstanceGroupPresenter)
@@ -275,7 +352,8 @@ export let integrationInstanceGroupController = Controller.create(
         ),
         {
           name: 'Update integration instance group',
-          description: 'Updates a specific integration instance group.'
+          description:
+            'Updates an integration instance group. Omitted fields keep their current value.'
         }
       )
       .use(requireNonPublishableMachineAccess())
@@ -283,20 +361,64 @@ export let integrationInstanceGroupController = Controller.create(
       .body(
         'mt_2026_01_01_magnetar',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          metadata: v.optional(v.nullable(v.record(v.any()))),
-          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
+          name: v.optional(
+            v.string({
+              description: 'Display name for the integration instance group.'
+            })
+          ),
+          description: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Free-text description. `null` clears it.'
+              })
+            )
+          ),
+          metadata: v.optional(
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Custom data to identify or organize the integration instance group. Replaces existing metadata. `null` clears it.'
+              })
+            )
+          ),
+          providers: v.optional(
+            v.array(integrationInstanceGroupProviderInputValidator, {
+              description:
+                'Providers to link or update. Existing providers not listed are left alone.'
+            })
+          )
         }),
         v => v
       )
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.nullable(v.string())),
-          metadata: v.optional(v.nullable(v.record(v.any()))),
-          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator)),
+          name: v.optional(
+            v.string({
+              description: 'Display name for the integration instance group.'
+            })
+          ),
+          description: v.optional(
+            v.nullable(
+              v.string({
+                description: 'Free-text description. `null` clears it.'
+              })
+            )
+          ),
+          metadata: v.optional(
+            v.nullable(
+              v.record(v.any(), {
+                description:
+                  'Custom data to identify or organize the integration instance group. Replaces existing metadata. `null` clears it.'
+              })
+            )
+          ),
+          providers: v.optional(
+            v.array(integrationInstanceGroupProviderInputValidator, {
+              description:
+                'Providers to link or update. Existing providers not listed are left alone.'
+            })
+          ),
           source: v.optional(v.enumOf(['explorer']), {
             description:
               'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
@@ -340,8 +462,9 @@ export let integrationInstanceGroupController = Controller.create(
           'integrations.instanceGroups.delete'
         ),
         {
-          name: 'Delete integration instance group',
-          description: 'Archives a specific integration instance group.'
+          name: 'Archive integration instance group',
+          description:
+            'Archives an integration instance group. It stays retrievable by ID and listable with `status=archived`.'
         }
       )
       .use(requireNonPublishableMachineAccess())

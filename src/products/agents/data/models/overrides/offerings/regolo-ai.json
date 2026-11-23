@@ -27,6 +27,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen3-embedding-8b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-embedding-8b",
+    "reason": "Regolo AI's Qwen3-Embedding-8B is Alibaba's Qwen3 Embedding 8B per Hugging Face and vendor listings (8B embedding model, 32k context). The $0.1 input price is Regolo's premium markup over the $0.015 median, not a different model.",
+    "by": "agent",
+    "at": "2026-11-20"
+  },
   "qwen3-reranker-4b": {
     "decision": "defer",
     "until": "2026-12-12",

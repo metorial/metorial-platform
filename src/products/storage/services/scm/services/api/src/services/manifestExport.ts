@@ -13,6 +13,7 @@ import { codeBucketClient } from '../lib/codeWorkspace';
 import { toExportLineage, type ExportLineage } from '../lib/exportError';
 import { getGitHubTransferEndpoints, getInstallationAccessToken } from '../lib/githubApp';
 import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
+import { assertScmUrlsReachable } from '../lib/scmFetch';
 import { getBitbucketCloneUrl } from '../queues/codeBucket/bitbucket';
 import {
   getRemoteStateKeyPrefix,
@@ -159,11 +160,11 @@ class ManifestExportServiceImpl {
       return toResult(
         await codeBucketClient.exportBucketToGithub({
           ...common,
-          ...getGitHubTransferEndpoints(
+          ...(await getGitHubTransferEndpoints(
             repo.installation.backend,
             repo.externalOwner,
             repo.externalName
-          ),
+          )),
           owner: repo.externalOwner,
           repo: repo.externalName,
           token
@@ -173,12 +174,15 @@ class ManifestExportServiceImpl {
 
     if (repo.provider === 'gitlab') {
       let token = await getGitLabAccessTokenWithInstallation(repo.installation);
+      let apiUrl = repo.installation.backend.apiUrl;
+      await assertScmUrlsReachable(apiUrl);
+
       return toResult(
         await codeBucketClient.exportBucketToGitlab({
           ...common,
           projectId: Long.fromString(repo.externalId),
           token,
-          gitlabApiUrl: repo.installation.backend.apiUrl
+          gitlabApiUrl: apiUrl
         })
       );
     }
@@ -186,10 +190,13 @@ class ManifestExportServiceImpl {
     if (repo.provider === 'bitbucket') {
       let token = await getBitbucketAccessTokenWithInstallation(repo.installation);
       if (repo.installation.backend.type === 'bitbucket_data_center') {
+        let cloneUrl = getBitbucketCloneUrl(repo);
+        await assertScmUrlsReachable(cloneUrl);
+
         return toResult(
           await codeBucketClient.exportBucketToBitbucketDataCenter({
             ...common,
-            cloneUrl: getBitbucketCloneUrl(repo),
+            cloneUrl,
             username: '',
             token
           })

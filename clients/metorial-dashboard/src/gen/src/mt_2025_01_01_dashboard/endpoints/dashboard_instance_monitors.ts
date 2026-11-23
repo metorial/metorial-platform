@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceMonitorsEndpoint {
     query?: DashboardInstanceMonitorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorsListOutput> {
-    let path = `dashboard/instances/${instanceId}/monitors`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/monitors`;
 
     let request = {
       path,
@@ -85,7 +85,7 @@ export class MetorialDashboardInstanceMonitorsEndpoint {
     monitorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/monitors/${monitorId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/monitors/${encodeURIComponent(monitorId)}`;
 
     let request = {
       path,

@@ -65,7 +65,7 @@ export class MetorialDashboardInstancePortalsEndpoint {
     query?: DashboardInstancePortalsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsListOutput> {
-    let path = `dashboard/instances/${instanceId}/portals`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardInstancePortalsEndpoint {
     portalId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstancePortalsEndpoint {
     body: DashboardInstancePortalsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/portals`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialDashboardInstancePortalsEndpoint {
     body: DashboardInstancePortalsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialDashboardInstancePortalsEndpoint {
     portalId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/portals/${portalId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}`;
 
     let request = {
       path,

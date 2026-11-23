@@ -15,14 +15,20 @@ export let v1ConsumerGroupPresenter = Presenter.create(consumerGroupType)
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.group'),
-      id: v.string(),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      is_default: v.boolean(),
-      created_at: v.date(),
-      updated_at: v.date()
+      object: v.literal('consumer.group', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ description: 'Unique ID.' }),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description: '`archived` once you delete the group. Archived groups stay listable.'
+      }),
+      name: v.string({ description: 'Display name.' }),
+      description: v.nullable(v.string({ description: 'Free-text description.' })),
+      is_default: v.boolean({
+        description: 'Whether this is a default group on the portal.'
+      }),
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' })
     })
   )
   .build();
@@ -42,8 +48,12 @@ export let dashboardConsumerGroupPresenter = Presenter.create(consumerGroupType)
     v.intersection([
       v1ConsumerGroupPresenter.schema,
       v.object({
-        is_managed: v.boolean(),
-        is_default_everyone_group: v.boolean()
+        is_managed: v.boolean({
+          description: 'Whether Metorial manages this group automatically.'
+        }),
+        is_default_everyone_group: v.boolean({
+          description: 'Whether this is the everyone group every consumer belongs to.'
+        })
       })
     ])
   )

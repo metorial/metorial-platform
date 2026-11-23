@@ -37,8 +37,10 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   }))
   .schema(
     v.object({
-      object: v.literal('consumer.device'),
-      id: v.string({ name: 'id', description: 'The device ID.' }),
+      object: v.literal('consumer.device', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({ name: 'id', description: 'Unique ID.' }),
       status: v.enumOf(Object.values(ConsumerDeviceStatus), {
         name: 'status',
         description:
@@ -70,10 +72,12 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
       }),
       clients: v.array(
         v.object({
-          object: v.literal('consumer.device.client'),
+          object: v.literal('consumer.device.client', {
+            description: 'String representing the object’s type.'
+          }),
           key: v.string({
             name: 'key',
-            description: 'The AI tool identifier.',
+            description: 'Which AI tool this entry is for.',
             examples: ['claude-code', 'cursor']
           }),
           name: v.string({
@@ -119,13 +123,61 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
         description: 'When the device last checked in.'
       }),
       revoked_at: v.nullable(
-        v.date({ name: 'revoked_at', description: 'When the device was revoked.' })
+        v.date({
+          name: 'revoked_at',
+          description: 'When the device was revoked. Revoked devices stay listable.'
+        })
       ),
-      created_at: v.date({ name: 'created_at', description: 'When the device was enrolled.' }),
+      created_at: v.date({ name: 'created_at', description: 'Creation time.' }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'When the device was last updated.'
+        description: 'Last update time.'
       })
     })
+  )
+  .build();
+
+export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType)
+  .presenter(async ({ consumerDevice, telemetry }, opts) => {
+    if (!telemetry) {
+      throw new Error(
+        'The consumer device presenter needs the telemetry state of the device.'
+      );
+    }
+
+    let inner = await v1ConsumerDevicePresenter.present({ consumerDevice }, opts).run();
+
+    return {
+      ...inner,
+      telemetry: {
+        enabled: telemetry.enabled,
+        token_id: telemetry.tokenId
+      }
+    };
+  })
+  .schema(
+    v.object({
+      ...v1ConsumerDevicePresenter.schema.properties,
+      telemetry: v.object(
+        {
+          enabled: v.boolean({
+            name: 'enabled',
+            description:
+              'Whether agent telemetry is collected for this device now. Metorial Desktop sends telemetry only while this is true.'
+          }),
+          token_id: v.nullable(
+            v.string({
+              name: 'token_id',
+              description:
+                'The ID of the active telemetry token of the device, the `token_id` the telemetry token endpoint returned. Null when the device has no active token or telemetry is not collected. When it differs from the token the device holds, that token no longer works.'
+            })
+          )
+        },
+        {
+          name: 'telemetry',
+          description: 'Whether the device sends agent telemetry, and with which token.'
+        }
+      )
+    }) as any
   )
   .build();

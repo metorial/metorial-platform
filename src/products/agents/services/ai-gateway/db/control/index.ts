@@ -7,8 +7,8 @@ export default project({
     databases: {
       main: postgres({
         package: '@mtsrc/ai-gateway-db',
-        name: 'synthesis',
-        env: 'SYNTHESIS_DATABASE_URL'
+        name: 'ai-gateway',
+        env: 'AI_GATEWAY_DATABASE_URL'
       })
     }
   })

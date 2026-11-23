@@ -32,6 +32,8 @@ import {
   type BoundFilter,
   type BoundMeasure,
   type BoundQuery,
+  dateColumns,
+  measureColumns,
   type PrivacySettings,
   QueryBindError,
   type QueryWarning
@@ -582,23 +584,27 @@ let bindDerived = (
   });
 };
 
-let compareColumns = (name: string) => [`${name}@previous`, `${name}@delta`, `${name}@change`];
-
 let outputNames = (state: MeasureState, compare: boolean) =>
   state.measures
     .filter(measure => !measure.hidden)
-    .flatMap(measure => [measure.name, ...(compare ? compareColumns(measure.name) : [])]);
+    .flatMap(measure => measureColumns(measure, compare));
 
-let checkHaving = (ctx: Ctx, filter: Filter, names: string[], path: string) => {
+let checkHaving = (
+  ctx: Ctx,
+  filter: Filter,
+  names: string[],
+  path: string,
+  dates: string[]
+) => {
   if ('and' in filter)
     return filter.and.forEach((item, index) =>
-      checkHaving(ctx, item, names, `${path}/and/${index}`)
+      checkHaving(ctx, item, names, `${path}/and/${index}`, dates)
     );
   if ('or' in filter)
     return filter.or.forEach((item, index) =>
-      checkHaving(ctx, item, names, `${path}/or/${index}`)
+      checkHaving(ctx, item, names, `${path}/or/${index}`, dates)
     );
-  if ('not' in filter) return checkHaving(ctx, filter.not, names, `${path}/not`);
+  if ('not' in filter) return checkHaving(ctx, filter.not, names, `${path}/not`, dates);
 
   if (!names.includes(filter.field)) {
     report(
@@ -620,8 +626,17 @@ let checkHaving = (ctx: Ctx, filter: Filter, names: string[], path: string) => {
     : filter.value === undefined
       ? []
       : [filter.value]) {
-    if (typeof value != 'number')
-      report(ctx, `${path}/value`, 'invalid_value', 'having compares numbers.');
+    let isDate =
+      dates.includes(filter.field) &&
+      typeof value == 'string' &&
+      !Number.isNaN(Date.parse(value));
+    if (typeof value != 'number' && !isDate)
+      report(
+        ctx,
+        `${path}/value`,
+        'invalid_value',
+        'having compares numbers, or timestamps for date measures.'
+      );
   }
 };
 
@@ -720,7 +735,9 @@ export let bindQuery = (query: Query, context: BindContext): BoundQuery => {
     }
 
     let outputs = outputNames(state, !!query.compare);
-    if (query.having) checkHaving(ctx, query.having, outputs, '/having');
+    if (query.having) {
+      checkHaving(ctx, query.having, outputs, '/having', dateColumns(state.measures));
+    }
 
     let hasTime = dimensions.some(dimension => dimension.field.source.kind == 'time');
     (query.orderBy ?? []).forEach((order, index) => {

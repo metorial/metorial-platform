@@ -55,7 +55,7 @@ export class MetorialDashboardOrganizationsEventDeliveryAttemptsEndpoint {
     query?: DashboardOrganizationsEventDeliveryAttemptsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDeliveryAttemptsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-delivery-attempts`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-delivery-attempts`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardOrganizationsEventDeliveryAttemptsEndpoint {
     eventDeliveryAttemptId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDeliveryAttemptsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/event-delivery-attempts/${eventDeliveryAttemptId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/event-delivery-attempts/${encodeURIComponent(eventDeliveryAttemptId)}`;
 
     let request = {
       path,

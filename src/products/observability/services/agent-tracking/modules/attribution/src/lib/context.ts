@@ -7,6 +7,8 @@ import {
 } from '@mtsrc/agent-tracking-module-entities';
 import { normalizeEmail } from '@mtsrc/agent-tracking-module-entities';
 import type { SessionDocument } from '@mtsrc/agent-tracking-store';
+import { createVersionKey, redisKey } from '@mtsrc/agent-tracking-redis';
+import { createContextCache } from './contextCache';
 import { slugKey, tagKindKey } from './resolver';
 import type {
   AttributionEntity,
@@ -168,27 +170,18 @@ let loadContext = async (organizationId: string): Promise<OrganizationAttributio
   };
 };
 
-let contexts = new Map<
-  string,
-  { loadedAt: number; context: Promise<OrganizationAttributionContext> }
->();
+let contextCache = createContextCache({
+  ttlMs: contextTtlMs,
+  load: organizationId => loadContext(organizationId),
+  versionKey: organizationId =>
+    createVersionKey(redisKey('attribution', 'version', organizationId))
+});
 
-// Per process with a short TTL: changes made through this process invalidate it right away,
-// other processes pick them up within the TTL.
-export let getAttributionContext = (organizationId: string) => {
-  let cached = contexts.get(organizationId);
-  if (cached && Date.now() - cached.loadedAt < contextTtlMs) return cached.context;
+export let getAttributionContext = (organizationId: string) =>
+  contextCache.get(organizationId);
 
-  let context = loadContext(organizationId);
-  contexts.set(organizationId, { loadedAt: Date.now(), context });
-  context.catch(() => contexts.delete(organizationId));
-
-  return context;
-};
-
-export let invalidateAttributionContext = (organizationId: string) => {
-  contexts.delete(organizationId);
-};
+export let invalidateAttributionContext = (organizationId: string) =>
+  contextCache.invalidate(organizationId);
 
 export let toAttributionSession = (session: SessionDocument): AttributionSession => ({
   projectId: session.projectId,

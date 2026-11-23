@@ -32,88 +32,128 @@ export let customProviderGroup = integrationsGroup.use(async ctx => {
   return { customProvider };
 });
 
-export let customProviderFromValidator = v.union([
-  v.object(
-    {
-      type: v.literal('container'),
-      image_ref: v.string({ description: 'Container image reference' }),
-      username: v.optional(v.string({ description: 'Registry username' })),
-      password: v.optional(v.string({ description: 'Registry password' }))
-    },
-    { name: 'container', description: 'Deploy from a container image' }
-  ),
-  v.object(
-    {
-      type: v.literal('remote'),
-      remote_url: v.string({ description: 'Remote MCP server URL' }),
-      oauth_config: v.optional(
-        v.record(v.any(), { description: 'Remote server configuration' })
-      ),
-      protocol: v.enumOf(['sse', 'streamable_http', 'stateless'], {
-        description:
-          'MCP transport to use: `sse` (HTTP+SSE, 2024-11-05), `streamable_http` (session-based Streamable HTTP, 2025-03-26 to 2025-11-25), or `stateless` (sessionless Streamable HTTP, 2026-07-28)'
-      })
-    },
-    { name: 'remote', description: 'Connect to a remote MCP server' }
-  ),
-  v.object(
-    {
-      type: v.literal('function'),
-      files: v.array(
-        v.object({
-          filename: v.string({ description: 'File name' }),
-          content: v.string({ description: 'File content' }),
-          encoding: v.optional(
-            v.enumOf(['utf-8', 'base64'], { description: 'Content encoding' })
-          )
+export let customProviderFromValidator = v.union(
+  [
+    v.object(
+      {
+        type: v.literal('container', {
+          description: 'Deploys the provider from a container image.'
         }),
-        { description: 'Source files' }
-      ),
-      env: v.record(v.string(), { description: 'Environment variables' }),
-      runtime: v.union([
-        v.object({
-          identifier: v.literal('nodejs'),
-          version: v.enumOf(['24.x', '22.x'], { description: 'Node.js version' })
+        image_ref: v.string({ description: 'Container image to deploy, with tag.' }),
+        username: v.optional(
+          v.string({
+            description: 'Username for the container registry. Omit for public images.'
+          })
+        ),
+        password: v.optional(
+          v.string({
+            description: 'Password for the container registry. Omit for public images.'
+          })
+        )
+      },
+      { name: 'container', description: 'Deploy from a container image' }
+    ),
+    v.object(
+      {
+        type: v.literal('remote', {
+          description: 'Connects the provider to a remote MCP server.'
         }),
-        v.object({
-          identifier: v.literal('python'),
-          version: v.enumOf(['3.14', '3.13', '3.12'], { description: 'Python version' })
+        remote_url: v.string({ description: 'URL of the remote MCP server.' }),
+        oauth_config: v.optional(
+          v.record(v.any(), { description: 'OAuth configuration sent to the remote server.' })
+        ),
+        protocol: v.enumOf(['sse', 'streamable_http', 'stateless'], {
+          description:
+            'MCP transport to use: `sse` (HTTP+SSE, 2024-11-05), `streamable_http` (session-based Streamable HTTP, 2025-03-26 to 2025-11-25), or `stateless` (sessionless Streamable HTTP, 2026-07-28)'
         })
-      ])
-    },
-    { name: 'function', description: 'Deploy as a serverless function' }
-  ),
-  v.object(
-    {
-      type: v.literal('function'),
-      env: v.record(v.string(), { description: 'Environment variables' }),
-      runtime: v.union([
-        v.object({
-          identifier: v.literal('nodejs'),
-          version: v.enumOf(['24.x', '22.x'], { description: 'Node.js version' })
+      },
+      { name: 'remote', description: 'Connect to a remote MCP server' }
+    ),
+    v.object(
+      {
+        type: v.literal('function', {
+          description: 'Deploys the provider from serverless function code.'
         }),
-        v.object({
-          identifier: v.literal('python'),
-          version: v.enumOf(['3.14', '3.13', '3.12'], { description: 'Python version' })
-        })
-      ]),
-      repository: v.union([
-        v.object({
-          repository_id: v.string({ description: 'Repository ID' }),
-          branch: v.string({ description: 'Branch name' }),
-          path: v.optional(v.string({ description: 'Repository path' }))
+        files: v.array(
+          v.object({
+            filename: v.string({ description: 'File path within the deployment.' }),
+            content: v.string({ description: 'Content of the file.' }),
+            encoding: v.optional(
+              v.enumOf(['utf-8', 'base64'], { description: 'Content encoding.' })
+            )
+          }),
+          { description: 'Source files to deploy.' }
+        ),
+        env: v.record(v.string(), {
+          description: 'Environment variables available to the function.'
         }),
-        v.object({
-          type: v.literal('git'),
-          repository_url: v.string({ description: 'Git repository URL' }),
-          branch: v.string({ description: 'Branch name' }),
-          path: v.optional(v.string({ description: 'Repository path' }))
-        })
-      ])
-    },
-    { name: 'function', description: 'Deploy as a serverless function' }
-  )
-]);
+        runtime: v.union(
+          [
+            v.object({
+              identifier: v.literal('nodejs', { description: 'Node.js runtime.' }),
+              version: v.enumOf(['24.x', '22.x'], { description: 'Node.js version.' })
+            }),
+            v.object({
+              identifier: v.literal('python', { description: 'Python runtime.' }),
+              version: v.enumOf(['3.14', '3.13', '3.12'], { description: 'Python version.' })
+            })
+          ],
+          { description: 'Runtime the function runs on.' }
+        )
+      },
+      { name: 'function', description: 'Deploy as a serverless function' }
+    ),
+    v.object(
+      {
+        type: v.literal('function', {
+          description: 'Deploys the provider from serverless function code.'
+        }),
+        env: v.record(v.string(), {
+          description: 'Environment variables available to the function.'
+        }),
+        runtime: v.union(
+          [
+            v.object({
+              identifier: v.literal('nodejs', { description: 'Node.js runtime.' }),
+              version: v.enumOf(['24.x', '22.x'], { description: 'Node.js version.' })
+            }),
+            v.object({
+              identifier: v.literal('python', { description: 'Python runtime.' }),
+              version: v.enumOf(['3.14', '3.13', '3.12'], { description: 'Python version.' })
+            })
+          ],
+          { description: 'Runtime the function runs on.' }
+        ),
+        repository: v.union(
+          [
+            v.object({
+              repository_id: v.string({
+                description: 'Linked SCM repository to deploy, by ID.'
+              }),
+              branch: v.string({ description: 'Branch to deploy.' }),
+              path: v.optional(
+                v.string({ description: 'Subdirectory of the branch to deploy.' })
+              )
+            }),
+            v.object({
+              type: v.literal('git', { description: 'Deploys from a Git repository URL.' }),
+              repository_url: v.string({
+                description: 'URL of the Git repository to deploy.'
+              }),
+              branch: v.string({ description: 'Branch to deploy.' }),
+              path: v.optional(
+                v.string({ description: 'Subdirectory of the branch to deploy.' })
+              )
+            })
+          ],
+          { description: 'Repository the function code is deployed from.' }
+        )
+      },
+      { name: 'function', description: 'Deploy as a serverless function' }
+    )
+  ],
+  { description: 'Source the provider runs from.' }
+);
 
 type CustomProviderFromInput = Parameters<
   typeof customProviderService.createCustomProvider
@@ -182,16 +222,21 @@ export let mapCustomProviderFrom = (
 
 export let customProviderConfigValidator = v.optional(
   v.object({
-    schema: v.record(v.any(), { description: 'Configuration JSON schema' }),
-    transformer: v.string({ description: 'Configuration transformer code' })
-  })
+    schema: v.record(v.any(), {
+      description: "JSON Schema for the provider's configuration."
+    }),
+    transformer: v.string({
+      description: "Code that transforms the provider's configuration."
+    })
+  }),
+  { description: 'Configuration schema and transformer for the provider.' }
 );
 
 export let customProviderController = Controller.create(
   {
     name: 'Custom Providers',
     description:
-      'Custom providers allow you to deploy your own MCP servers. Create providers from container images, remote URLs, or serverless functions.'
+      'A custom provider is an MCP server you deploy and use through your instance. It runs from a container image, a remote URL, or serverless function code.'
   },
   {
     list: integrationsGroup
@@ -211,20 +256,21 @@ export let customProviderController = Controller.create(
                 v.enumOf(['active', 'archived']),
                 v.array(v.enumOf(['active', 'archived']))
               ]),
-              { description: 'Filter by status (active, archived)' }
+              { description: 'Only return custom providers with one of these statuses.' }
             ),
             type: v.optional(
               v.union([
                 v.enumOf(['container', 'function', 'remote']),
                 v.array(v.enumOf(['container', 'function', 'remote']))
               ]),
-              { description: 'Filter by type (container, function, remote)' }
+              { description: 'Only return custom providers with one of these types.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by custom provider IDs'
+              description: 'Only return custom providers with one of these IDs.'
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider IDs (matches providers connected to sessions)'
+              description:
+                'Only return custom providers linked to one of these provider IDs (matches providers connected to sessions).'
             }),
             search: v.optional(v.string({ description: 'Search by name or description' })),
             created_at: dateFilterValidator('custom provider creation time'),
@@ -261,7 +307,7 @@ export let customProviderController = Controller.create(
     get: customProviderGroup
       .get(instancePath('custom-providers/:customProviderId', 'customProviders.get'), {
         name: 'Get custom provider',
-        description: 'Retrieves a specific custom provider by ID.'
+        description: 'Retrieves a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
@@ -280,8 +326,7 @@ export let customProviderController = Controller.create(
     getEnv: customProviderGroup
       .get(instancePath('custom-providers/:customProviderId/env', 'customProviders.getEnv'), {
         name: 'Get custom provider environment',
-        description:
-          'Retrieves the environment variables for a specific custom provider by ID.'
+        description: 'Retrieves the environment variables for a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:read'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
@@ -302,13 +347,19 @@ export let customProviderController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string({ examples: ['My Custom Provider'] }),
+          name: v.string({
+            description: 'Display name for the custom provider.',
+            examples: ['My Custom Provider']
+          }),
           description: v.optional(
-            v.string({ examples: ['A custom MCP server for my application'] })
+            v.string({
+              description: 'Free-text description.',
+              examples: ['A custom MCP server for my application']
+            })
           ),
           metadata: v.optional(
             v.record(v.any(), { examples: [{ environment: 'production' }] }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            { description: 'Custom data to identify or organize the custom provider.' }
           ),
           from: customProviderFromValidator,
           config: customProviderConfigValidator
@@ -347,17 +398,27 @@ export let customProviderController = Controller.create(
     update: customProviderGroup
       .patch(instancePath('custom-providers/:customProviderId', 'customProviders.update'), {
         name: 'Update custom provider',
-        description: 'Updates a specific custom provider.'
+        description: 'Updates a custom provider.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Provider Name'] })),
-          description: v.optional(v.string({ examples: ['Updated description'] })),
+          name: v.optional(
+            v.string({
+              description: 'Display name for the custom provider.',
+              examples: ['Updated Provider Name']
+            })
+          ),
+          description: v.optional(
+            v.string({
+              description: 'Free-text description.',
+              examples: ['Updated description']
+            })
+          ),
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
-            description: 'Custom key-value pairs for storing additional information'
+            description: 'Custom data to identify or organize the custom provider.'
           }),
           readme: v.optional(v.string({ description: 'README content in markdown format' }))
         })
@@ -391,8 +452,7 @@ export let customProviderController = Controller.create(
         instancePath('custom-providers/:customProviderId/archive', 'customProviders.archive'),
         {
           name: 'Archive custom provider',
-          description:
-            'Archives a specific custom provider and disables new connections to it.'
+          description: 'Archives a custom provider and disables new connections to it.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.custom:write'] }))

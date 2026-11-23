@@ -500,6 +500,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "perplexity/pplx-embed-v2-context-0.6b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Perplexity 0.6B multimodal contextual embedding model from the pplx-embed-v2-context family (announced Oct 2026); the index only has the v1 pplx-embed and pplx-embed-context models",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
+  "perplexity/pplx-embed-v2-context-9b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Perplexity 9B multimodal contextual embedding model, per the HF card perplexity-ai/pplx-embed-v2-context-9b; the index only has the v1 pplx-embed and pplx-embed-context models",
+    "by": "agent",
+    "at": "2026-11-21"
+  },
   "perplexity/sonar-pro-search": {
     "decision": "link",
     "model": "perplexity/sonar-pro",
@@ -520,6 +534,13 @@
     "reason": "OpenRouter lists Qwen2.5 72B Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, created 2024-09-16); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "qwen/qwen3-tts-1.7b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Alibaba Qwen3-TTS 1.7B text-to-speech model (Qwen3-TTS-12Hz-1.7B, Apache 2.0, released Jan 2026); the index has no qwen3-tts entry, only the later Qwen-Audio-3.0-TTS line",
+    "by": "agent",
+    "at": "2026-11-21"
   },
   "qwen/qwen3-vl-30b-a3b-thinking": {
     "decision": "defer",
@@ -548,6 +569,13 @@
     "reason": "Listing, HF repo Qwen/Qwen3.8-27B (2026-08-05, Apache 2.0, image-text-to-text) and the 2026-08-14 release all match alibaba/qwen3.8-27b; the 1M context is the 262k native window with YaRN scaling, and no dated variant exists in the index. The 0.06 input price is an OpenRouter provider outlier, not a different model.",
     "by": "agent",
     "at": "2026-11-18"
+  },
+  "radixark/daisyrose-27b": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "RadixArk's first model, an RL post-train of Qwen3.8-27B (HF RadixArk/DaisyRose-27B, created 2026-11-18); it is not Qwen3.8-27B itself, and the index has no radixark entry yet",
+    "by": "agent",
+    "at": "2026-11-21"
   },
   "recraft/recraft-v4.1-flash-v2": {
     "decision": "defer",
@@ -625,6 +653,13 @@
     "reason": "Tencent's HY-World 2.1 Panorama, a 360-degree panorama image-generation model from the Hunyuan World family (per OpenRouter and Splats coverage of the Aug 2026 2.1 release); the index has no HY-World entry, so defer rather than link an unrelated Tencent model.",
     "by": "agent",
     "at": "2026-11-16"
+  },
+  "thinkingmachines/inkling-2-mini": {
+    "decision": "defer",
+    "until": "2026-12-21",
+    "reason": "Inkling 2 Mini is a new Thinking Machines model (3.4B active/26.4B total MoE, released 2026-11-20 per the vendor listing and HF card thinkingmachines/Inkling-2-Mini). The index has no entry for it — inkling-2-small (2026-11-05) is a different, earlier sibling — so defer until the catalog adds it.",
+    "by": "agent",
+    "at": "2026-11-21"
   },
   "unbiased/pareto-26.10": {
     "decision": "defer",

@@ -10,6 +10,7 @@ on:
         '.github/workflows/image-cache-test.yml'
       ]
   pull_request:
+    branches-ignore: [main]
     paths:
       [
         'src/tooling/docker-build/**',

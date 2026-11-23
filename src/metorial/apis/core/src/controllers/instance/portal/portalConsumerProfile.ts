@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { consumerProfileService } from '@metorial/module-consumer-core';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getVisibleConsumerGroups } from '../../../lib/visibleConsumerGroups';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -38,7 +39,8 @@ export let consumerProfileGroup = portalGroup.use(async ctx => {
 export let portalConsumerProfileController = Controller.create(
   {
     name: 'Portal Consumer Profiles',
-    description: 'Manage the consumers and effective group assignments for a portal.'
+    description:
+      'A portal consumer profile is the identity of one person on a portal. Group assignments decide what the consumer can access.'
   },
   {
     list: portalGroup
@@ -60,20 +62,29 @@ export let portalConsumerProfileController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            search: v.optional(v.string()),
+            search: v.optional(v.string({ description: 'Search by name or email.' })),
             email: v.optional(
-              v.union([
-                v.string({ modifiers: [v.email()] }),
-                v.array(v.string({ modifiers: [v.email()] }))
-              ])
+              v.union(
+                [
+                  v.string({ modifiers: [v.email()] }),
+                  v.array(v.string({ modifiers: [v.email()] }))
+                ],
+                { description: 'Only return profiles with one of these emails.' }
+              )
             ),
-            consumer_group_id: v.optional(v.string()),
-            source: v.optional(v.enumOf(['manual', 'sso'])),
+            consumer_group_id: v.optional(
+              v.string({ description: 'Only return profiles in this consumer group.' })
+            ),
+            source: v.optional(
+              v.enumOf(['manual', 'sso'], {
+                description: 'Only return profiles created manually or through SSO.'
+              })
+            ),
             status: v.optional(
-              v.union([
-                v.enumOf(['active', 'invited']),
-                v.array(v.enumOf(['active', 'invited']))
-              ])
+              v.union(
+                [v.enumOf(['active', 'invited']), v.array(v.enumOf(['active', 'invited']))],
+                { description: 'Only return profiles with one of these statuses.' }
+              )
             )
           })
         )
@@ -102,7 +113,8 @@ export let portalConsumerProfileController = Controller.create(
         let assignedConsumerGroupsByProfileId =
           await consumerProfileService.getStoredGroupsForProfiles({
             consumerSurface: ctx.portal.surface,
-            consumerProfiles: list.items
+            consumerProfiles: list.items,
+            visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
           });
 
         return Paginator.present(list, consumerProfile =>
@@ -122,7 +134,7 @@ export let portalConsumerProfileController = Controller.create(
         ),
         {
           name: 'Get portal consumer profile',
-          description: 'Retrieves a portal consumer profile by ID.'
+          description: 'Retrieves a portal consumer profile.'
         }
       )
       .use(
@@ -152,7 +164,8 @@ export let portalConsumerProfileController = Controller.create(
                   consumerProfileId: ctx.params.consumerProfileId
                 });
         let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
-          consumerProfile
+          consumerProfile,
+          visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
         });
 
         return consumerProfilePresenter.present({
@@ -167,7 +180,7 @@ export let portalConsumerProfileController = Controller.create(
         instancePath('portals/:portalId/consumer-profile', 'portals.consumerProfiles.create'),
         {
           name: 'Create portal consumer profile',
-          description: 'Creates a new portal consumer profile.'
+          description: 'Creates a portal consumer profile.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
@@ -175,8 +188,11 @@ export let portalConsumerProfileController = Controller.create(
       .body(
         'default',
         v.object({
-          email: v.string({ modifiers: [v.email()] }),
-          name: v.string()
+          email: v.string({
+            description: 'Email address of the consumer.',
+            modifiers: [v.email()]
+          }),
+          name: v.string({ description: 'Display name.' })
         })
       )
       .output(consumerProfilePresenter)
@@ -238,7 +254,9 @@ export let portalConsumerProfileController = Controller.create(
       .body(
         'default',
         v.object({
-          group_ids: v.array(v.string())
+          group_ids: v.array(v.string(), {
+            description: 'Groups to assign the profile to.'
+          })
         })
       )
       .output(consumerProfilePresenter)
@@ -275,7 +293,9 @@ export let portalConsumerProfileController = Controller.create(
       .body(
         'default',
         v.object({
-          group_ids: v.array(v.string())
+          group_ids: v.array(v.string(), {
+            description: 'Groups to remove the profile from.'
+          })
         })
       )
       .output(consumerProfilePresenter)

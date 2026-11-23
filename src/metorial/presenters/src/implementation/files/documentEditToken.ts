@@ -12,11 +12,11 @@ export let v1DocumentEditTokenPresenter = Presenter.create(documentEditTokenType
   .schema(
     v.object({
       object: v.literal('document.edit_token', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
-      token: v.string(),
-      expires_at: v.date(),
-      document_id: v.string()
+      token: v.string({ description: 'Token for establishing a live document session.' }),
+      expires_at: v.date({ description: 'When the token stops working.' }),
+      document_id: v.string({ description: 'Document the token grants access to.' })
     })
   )
   .build();

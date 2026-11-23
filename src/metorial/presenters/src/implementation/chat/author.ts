@@ -37,12 +37,12 @@ export let v1ChatAuthorPresenter = Presenter.create(chatAuthorType)
   .schema(
     v.object({
       object: v.literal('chat.author', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
 
       id: v.string({
         name: 'id',
-        description: 'Unique chat author identifier',
+        description: 'Unique ID.',
         examples: ['cau_7dEfGhJkLmNpQrSt']
       }),
 
@@ -70,7 +70,7 @@ export let v1ChatAuthorPresenter = Presenter.create(chatAuthorType)
 
       provider_author_id: v.string({
         name: 'provider_author_id',
-        description: "The author's identifier on the chat provider",
+        description: 'Identifier the chat provider uses for this author.',
         examples: ['U024BE7LH']
       }),
 
@@ -82,7 +82,7 @@ export let v1ChatAuthorPresenter = Presenter.create(chatAuthorType)
 
       full_name: v.string({
         name: 'full_name',
-        description: "The author's display name",
+        description: 'Display name.',
         examples: ['Ada Lovelace']
       }),
 

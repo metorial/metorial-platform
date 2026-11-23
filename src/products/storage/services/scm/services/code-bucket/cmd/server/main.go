@@ -14,6 +14,7 @@ import (
 	"github.com/joho/godotenv"
 	codeBucketDoctor "github.com/metorial/metorial/services/code-bucket/internal/doctor"
 	"github.com/metorial/metorial/services/code-bucket/internal/service"
+	"github.com/metorial/metorial/services/code-bucket/pkg/egress"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	sentryUtil "github.com/metorial/metorial/services/code-bucket/pkg/sentry-util"
 	"github.com/metorial/metorial/services/code-bucket/pkg/workspace"
@@ -39,6 +40,12 @@ func main() {
 	objectStorageBucket := mustGetEnv("CODE_BUCKET_OBJECT_STORAGE_BUCKET")
 	redisURL := os.Getenv("CODE_BUCKET_REDIS_URL")
 
+	allowPrivateNetworks, err := egress.ResolveAllowPrivateNetworks(os.Getenv)
+	if err != nil {
+		log.Fatalf("Invalid environment: %v", err)
+	}
+	egress.AllowPrivateNetworks(allowPrivateNetworks)
+
 	fmt.Printf("HTTP Address: %s\n", httpAddress)
 	fmt.Printf("RPC Address: %s\n", rpcAddress)
 	fmt.Printf("Workspace Address: %s\n", workspaceAddress)
@@ -46,6 +53,7 @@ func main() {
 	fmt.Printf("Object Storage Endpoint: %s\n", objectStorageEndpoint)
 	fmt.Printf("Object Storage Bucket: %s\n", objectStorageBucket)
 	fmt.Printf("Redis URL: %s\n", redisURL)
+	fmt.Printf("SCM private networks allowed: %t\n", allowPrivateNetworks)
 
 	if redisURL == "" {
 		redisHost := os.Getenv("REDIS_ENDPOINT")

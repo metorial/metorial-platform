@@ -93,7 +93,7 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
     providerAuthImportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput> {
-    let path = `provider-auth-config-imports/${providerAuthImportId}`;
+    let path = `provider-auth-config-imports/${encodeURIComponent(providerAuthImportId)}`;
 
     let request = {
       path,

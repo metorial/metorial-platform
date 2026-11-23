@@ -31,7 +31,7 @@ export let v1ProviderAuthImportSchemaPresenter = Presenter.create(authImportSche
   .schema(
     v.object({
       object: v.literal('provider.capabilities.auth_config.schema', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       schema: v.nullable(
         v.object({
@@ -44,26 +44,26 @@ export let v1ProviderAuthImportSchemaPresenter = Presenter.create(authImportSche
         })
       ),
       visibility: v.enumOf(['encrypted'], {
-        description: 'Visibility of the auth config data'
+        description: 'Always `encrypted`. Auth values are stored encrypted.'
       }),
       specification_id: v.string({
         name: 'specification_id',
-        description: 'Specification ID',
+        description: 'Specification this schema belongs to.',
         examples: ['psp_9gHjKlMnPqRsTuVw']
       }),
       provider_id: v.string({
         name: 'provider_id',
-        description: 'Provider ID',
+        description: 'Provider this schema belongs to.',
         examples: ['pro_5gHjKlMnPqRsTuVw']
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       }),
       updated_at: v.date({
         name: 'updated_at',
-        description: 'Timestamp when last updated',
+        description: 'Last update time.',
         examples: [new Date('2026-01-10T14:45:00Z')]
       })
     })

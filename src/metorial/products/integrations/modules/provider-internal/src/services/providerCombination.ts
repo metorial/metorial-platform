@@ -1,8 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  db as defaultDb,
-  dbPrimary,
   type Environment,
   Prisma,
   type Provider,
@@ -16,7 +14,6 @@ import {
   type ProviderVariant,
   type ProviderVersion,
   type Tenant,
-  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import { checkDeletedRelation } from '@metorial-subspace/list-utils';
@@ -130,11 +127,7 @@ class providerCombinationServiceImpl {
     let solution = await getMetorialSolution();
 
     return withTransaction(
-      async tdb => {
-        // Without an enclosing transaction withTransaction hands back the replica-routed
-        // client; inputs created moments ago must be visible, so read from the primary.
-        let db = (tdb === defaultDb ? dbPrimary : tdb) as TransactionDB;
-
+      async db => {
         let ts = {
           solutionOid: solution.oid,
           tenantOid: d.tenant.oid,

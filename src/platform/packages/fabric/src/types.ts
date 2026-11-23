@@ -36,7 +36,9 @@ import {
   AccessPolicyProject,
   AccessPolicyRole,
   AccessRole,
-  AgentTelemetryIngestToken,
+  AgentTrackingContentMode,
+  AgentTrackingIngestSource,
+  AgentTrackingIngestToken,
   ApiKey,
   AuditLogStream,
   Consumer,
@@ -851,6 +853,37 @@ export type AuditSandboxImageBuild = {
   status: string;
 };
 
+export type AuditAiGatewayConfig = {
+  logRetentionDays: number;
+  settings: Record<string, unknown>;
+  limits: unknown[];
+};
+
+export type AuditAiGatewayToken = {
+  id: string;
+  name: string;
+  consumerRef: string | null;
+  allowedModels: string[];
+  expiresAt: Date | null;
+  revokedAt: Date | null;
+};
+
+export type AuditAiGatewayProviderConnection = {
+  id: string;
+  name: string;
+  providerSlug: string;
+  status: string;
+  priority: number;
+};
+
+export type AuditAiGatewayVirtualModel = {
+  id: string;
+  slug: string;
+  name: string;
+  versionId: string | null;
+  versionNumber: number | null;
+};
+
 export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
 export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
 export type SandboxMachineExecOutcome = 'exited' | 'deadline' | 'disconnected' | 'rejected';
@@ -899,9 +932,44 @@ export type AuditConsumerDevice = ConsumerDevice & {
   })[];
 };
 
-export type AuditAgentTelemetryIngestToken = AgentTelemetryIngestToken & {
+export type AuditAgentTrackingIngestToken = AgentTrackingIngestToken & {
   consumer: Pick<Consumer, 'id'>;
   consumerDevice: Pick<ConsumerDevice, 'id'> | null;
+};
+
+export type AuditAgentTrackingIngestSource = AgentTrackingIngestSource & {
+  instance: Pick<Instance, 'id'>;
+};
+
+export type AgentTrackingOrganizationSettingsValues = {
+  organizationId: string;
+  privacy: { hideIndividuals: boolean; minGroupUsers: number };
+};
+
+export type AgentTrackingProjectSettingsValues = {
+  organizationId: string;
+  projectId: string;
+  retention: { recordDays: number | null; contentDays: number | null; usageDays: number | null };
+};
+
+export type AgentTrackingInstanceSettingsValues = {
+  organizationId: string;
+  projectId: string;
+  instanceId: string;
+  content: { mode: AgentTrackingContentMode };
+  classification: { deterministicEnabled: boolean; aiEnabled: boolean };
+};
+
+export type AgentTrackingSettingsValues =
+  | AgentTrackingOrganizationSettingsValues
+  | AgentTrackingProjectSettingsValues
+  | AgentTrackingInstanceSettingsValues;
+
+export type AgentTrackingSettingsInput = {
+  privacy?: Partial<AgentTrackingOrganizationSettingsValues['privacy']>;
+  retention?: Partial<AgentTrackingProjectSettingsValues['retention']>;
+  content?: Partial<AgentTrackingInstanceSettingsValues['content']>;
+  classification?: Partial<AgentTrackingInstanceSettingsValues['classification']>;
 };
 
 export type AuditPortal = Portal & {
@@ -964,6 +1032,18 @@ export type MagicMcpServerMembershipFabricChange = {
 // prettier-ignore
 export interface FabricEvents {
   'sandbox.tenant.created:after': { tenant: SandboxTenant };
+
+  'ai_gateway.project.created:after': { organization: Organization; project: Project; gatewayProjectId: string };
+  'ai_gateway.config.updated:after': { auditScope: AuditScope; instance: Instance; config: AuditAiGatewayConfig; previousConfig: AuditAiGatewayConfig };
+  'ai_gateway.token.created:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken };
+  'ai_gateway.token.updated:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken; previousToken: AuditAiGatewayToken };
+  'ai_gateway.token.revoked:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken };
+  'ai_gateway.provider_connection.created:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection };
+  'ai_gateway.provider_connection.updated:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection; previousConnection: AuditAiGatewayProviderConnection };
+  'ai_gateway.provider_connection.archived:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection };
+  'ai_gateway.virtual_model.created:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel };
+  'ai_gateway.virtual_model.updated:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel; previousVirtualModel: AuditAiGatewayVirtualModel };
+  'ai_gateway.virtual_model.archived:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel };
 
   'sandbox.machine.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.updated:after': { auditScope: AuditScope; machine: AuditSandboxMachine; previousMachine: AuditSandboxMachine };
@@ -1396,7 +1476,14 @@ export interface FabricEvents {
   'consumer.device.updated:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.ended:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
 
-  'agent_telemetry.ingest_token.created:after': { ingestToken: AuditAgentTelemetryIngestToken; replacedIngestTokenIds: string[]; auditScope: AuditScope };
+  'agent_tracking.ingest_token.created:after': { ingestToken: AuditAgentTrackingIngestToken; replacedIngestTokenIds: string[]; auditScope: AuditScope };
+
+  'agent_tracking.ingest_source.created:before': { organization: Organization; instance: Instance; input: { name: string; clientFamily: string }; auditScope: AuditScope };
+  'agent_tracking.ingest_source.created:after': { ingestSource: AuditAgentTrackingIngestSource; auditScope: AuditScope };
+  'agent_tracking.ingest_source.revoked:after': { ingestSource: AuditAgentTrackingIngestSource; previousIngestSource: AuditAgentTrackingIngestSource; auditScope: AuditScope };
+
+  'agent_tracking.settings.updated:before': { organization: Organization; project?: Project; instance?: Instance; input: AgentTrackingSettingsInput; auditScope: AuditScope };
+  'agent_tracking.settings.updated:after': { settings: AgentTrackingSettingsValues; previousSettings: AgentTrackingSettingsValues; auditScope: AuditScope };
 
   'consumer.surface.created:after': { organization: Organization; instance: Instance; consumerSurface: ConsumerSurface; auditScope: AuditScope };
   'consumer.surface.updated:after': { consumerSurface: ConsumerSurface; previousConsumerSurface: ConsumerSurface; auditScope: AuditScope };

@@ -86,7 +86,8 @@ import {
   AccessTag,
   AccessTagEntity,
   AccessTagPolicy,
-  AgentTelemetryIngestToken,
+  AgentTrackingIngestSource,
+  AgentTrackingIngestToken,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -194,7 +195,44 @@ import {
   UserType,
   WebhookDestination
 } from '@metorial/db';
+import type {
+  AgentTrackingInstanceSettingsValues,
+  AgentTrackingOrganizationSettingsValues,
+  AgentTrackingProjectSettingsValues
+} from '@metorial/fabric';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
+import type {
+  AgentTrackingFilterValues,
+  AgentTrackingSeenMember,
+  AgentTrackingSessionDetail,
+  AgentTrackingSessionView,
+  AgentTrackingSetupStatus,
+  AgentTrackingSpendBreakdown,
+  AgentTrackingSpendTimeline
+} from '@metorial/module-agent-tracking-query';
+import type {
+  AgentTrackingPrivacy,
+  AgentTrackingSettingsServiceStatus,
+  serviceRetentionDefaults
+} from '@metorial/module-agent-tracking-sync';
+import type {
+  AiGatewayCatalogProvider,
+  aiGatewayCatalogService,
+  aiGatewayConfigService,
+  AiGatewayConsumer,
+  AiGatewayInferenceLog,
+  AiGatewayLab,
+  AiGatewayModel,
+  AiGatewayModelOffering,
+  AiGatewayProviderConnection,
+  aiGatewayRoutingService,
+  AiGatewayToken,
+  aiGatewayUsageService,
+  AiGatewayVirtualModel,
+  aiGatewayVirtualModelService,
+  AiGatewayVirtualModelTemplate,
+  AiGatewayVirtualModelVersion
+} from '@metorial/module-ai-gateway';
 import type { AuditLog } from '@metorial/module-audit-log';
 import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
@@ -2674,15 +2712,70 @@ export let consumerDeviceType = PresentableType.create<{
     })[];
     consumerProfile: ConsumerProfile;
   };
+  telemetry?: { enabled: boolean; tokenId: string | null };
 }>()('consumer.device');
 
 export let consumerDeviceTelemetryTokenType = PresentableType.create<{
   consumerDevice: Pick<ConsumerDevice, 'id'>;
-  ingestToken: AgentTelemetryIngestToken;
+  ingestToken: AgentTrackingIngestToken;
   secret: string;
   ingestUrl: string;
   expiresAt: Date | null;
 }>()('consumer.device.telemetry_token');
+
+export let agentTrackingIngestSourceType = PresentableType.create<{
+  ingestSource: AgentTrackingIngestSource;
+  ingestUrl: string | null;
+  lastUsedAt: Date | null;
+  lastUsedStatus: 'used' | 'never_used' | 'unknown';
+  secret: string | null;
+}>()('agent_tracking.ingest_source');
+
+export let agentTrackingSpendTimelineType = PresentableType.create<{
+  timeline: AgentTrackingSpendTimeline;
+}>()('agent_tracking.spend_timeline');
+
+export let agentTrackingSpendBreakdownType = PresentableType.create<{
+  breakdown: AgentTrackingSpendBreakdown;
+}>()('agent_tracking.spend_breakdown');
+
+export let agentTrackingSessionType = PresentableType.create<{
+  session: AgentTrackingSessionView;
+}>()('agent_tracking.session');
+
+export let agentTrackingSessionDetailType = PresentableType.create<{
+  session: AgentTrackingSessionDetail;
+}>()('agent_tracking.session_detail');
+
+export let agentTrackingFilterValuesType = PresentableType.create<{
+  filterValues: AgentTrackingFilterValues;
+}>()('agent_tracking.filter_values');
+
+export let agentTrackingMemberType = PresentableType.create<{
+  member: AgentTrackingSeenMember;
+  listTruncated: boolean;
+}>()('agent_tracking.member');
+
+export let agentTrackingSetupStatusType = PresentableType.create<{
+  setupStatus: AgentTrackingSetupStatus;
+}>()('agent_tracking.setup_status');
+
+export let agentTrackingOrganizationSettingsType = PresentableType.create<{
+  settings: AgentTrackingOrganizationSettingsValues;
+  serviceStatus: AgentTrackingSettingsServiceStatus;
+}>()('agent_tracking.organization_settings');
+
+export let agentTrackingProjectSettingsType = PresentableType.create<{
+  settings: AgentTrackingProjectSettingsValues;
+  serviceStatus: AgentTrackingSettingsServiceStatus;
+  retentionDefaults: typeof serviceRetentionDefaults;
+}>()('agent_tracking.project_settings');
+
+export let agentTrackingInstanceSettingsType = PresentableType.create<{
+  settings: AgentTrackingInstanceSettingsValues;
+  serviceStatus: AgentTrackingSettingsServiceStatus;
+  privacy: AgentTrackingPrivacy;
+}>()('agent_tracking.instance_settings');
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
@@ -3393,6 +3486,79 @@ export let sandboxImageBuildType = PresentableType.create<{
 export let sandboxLogLinesType = PresentableType.create<{
   logs: SandboxResolved<typeof sandboxMachineInstanceService.logs>;
 }>()('sandbox.log_lines');
+
+type AiGatewayResolved<F extends (...args: any[]) => Promise<any>> = Awaited<ReturnType<F>>;
+
+export let aiGatewayConfigType = PresentableType.create<{
+  config: AiGatewayResolved<typeof aiGatewayConfigService.get>;
+}>()('ai_gateway.config');
+
+export let aiGatewayTokenType = PresentableType.create<{
+  gatewayToken: AiGatewayToken;
+  consumer: AiGatewayConsumer | null;
+  secret?: string;
+}>()('ai_gateway.token');
+
+export let aiGatewayProviderConnectionType = PresentableType.create<{
+  connection: AiGatewayProviderConnection;
+}>()('ai_gateway.provider_connection');
+
+export let aiGatewayVirtualModelType = PresentableType.create<{
+  virtualModel: AiGatewayVirtualModel;
+}>()('ai_gateway.virtual_model');
+
+export let aiGatewayVirtualModelVersionType = PresentableType.create<{
+  version: AiGatewayVirtualModelVersion;
+}>()('ai_gateway.virtual_model.version');
+
+export let aiGatewayVirtualModelTemplateType = PresentableType.create<{
+  template: AiGatewayVirtualModelTemplate;
+}>()('ai_gateway.virtual_model.template');
+
+export let aiGatewayVirtualModelTestType = PresentableType.create<{
+  result: AiGatewayResolved<typeof aiGatewayVirtualModelService.test>;
+}>()('ai_gateway.virtual_model.test');
+
+export let aiGatewayVirtualModelReplayType = PresentableType.create<{
+  replay: AiGatewayResolved<typeof aiGatewayVirtualModelService.replay>;
+}>()('ai_gateway.virtual_model.replay');
+
+export let aiGatewayVirtualModelInsightsType = PresentableType.create<{
+  insights: AiGatewayResolved<typeof aiGatewayVirtualModelService.insights>;
+}>()('ai_gateway.virtual_model.insights');
+
+export let aiGatewayLabType = PresentableType.create<{
+  lab: AiGatewayLab;
+}>()('ai_gateway.lab');
+
+export let aiGatewayProviderType = PresentableType.create<{
+  provider: AiGatewayCatalogProvider;
+}>()('ai_gateway.provider');
+
+export let aiGatewayModelType = PresentableType.create<{
+  model: AiGatewayModel;
+}>()('ai_gateway.model');
+
+export let aiGatewayModelOfferingType = PresentableType.create<{
+  offering: AiGatewayModelOffering;
+}>()('ai_gateway.model.offering');
+
+export let aiGatewayModelResolutionType = PresentableType.create<{
+  resolution: AiGatewayResolved<typeof aiGatewayCatalogService.resolveModel>;
+}>()('ai_gateway.model.resolution');
+
+export let aiGatewayRoutePreviewType = PresentableType.create<{
+  preview: AiGatewayResolved<typeof aiGatewayRoutingService.preview>;
+}>()('ai_gateway.route_preview');
+
+export let aiGatewayInferenceLogType = PresentableType.create<{
+  log: AiGatewayInferenceLog;
+  consumer: AiGatewayConsumer | null;
+}>()('ai_gateway.inference_log');
+
+export let aiGatewayUsageTimelineType = PresentableType.create<{
+  usage: AiGatewayResolved<typeof aiGatewayUsageService.timeline>;
+}>()('ai_gateway.usage.timeline');
 
 export let integrationType = PresentableType.create<{
   integration: SubspaceIntegration;

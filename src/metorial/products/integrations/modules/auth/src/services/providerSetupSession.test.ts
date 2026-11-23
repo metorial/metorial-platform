@@ -348,6 +348,42 @@ describe('createProviderSetupSessionInternal admin sessions', () => {
   });
 });
 
+describe('createProviderSetupSessionInternal redirect url', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.providerSetupSessionCreate.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+    mocks.providerSetupSessionFindUniqueOrThrow.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+  });
+
+  let createWithRedirectUrl = (redirectUrl: string) => {
+    let params = makeParams();
+
+    return providerSetupSessionService.createProviderSetupSessionInternal({
+      ...params,
+      input: { ...params.input, redirectUrl }
+    } as any);
+  };
+
+  it('stores an external https redirect url as given', async () => {
+    await createWithRedirectUrl('https://app.example.com/oauth/callback?state=1');
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data.redirectUrl).toBe(
+      'https://app.example.com/oauth/callback?state=1'
+    );
+  });
+
+  it.each(['javascript:alert(1)', 'data:text/html,hi', '/relative/path', ''])(
+    'rejects %j before writing anything',
+    async redirectUrl => {
+      await expect(createWithRedirectUrl(redirectUrl)).rejects.toMatchObject({
+        data: { status: 400, code: 'invalid_redirect_url' }
+      });
+
+      expect(mocks.providerSetupSessionCreate).not.toHaveBeenCalled();
+    }
+  );
+});
+
 describe('updateProviderSetupSessionInternal admin sessions', () => {
   beforeEach(() => {
     vi.clearAllMocks();

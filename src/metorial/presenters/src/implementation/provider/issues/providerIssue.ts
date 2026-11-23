@@ -31,11 +31,11 @@ export let v1ProviderIssuePresenter = Presenter.create(providerIssueType)
   .schema(
     v.object({
       object: v.literal('provider.issue', {
-        description: "String representing the object's type"
+        description: 'String representing the object’s type.'
       }),
       id: v.string({
         name: 'id',
-        description: 'Unique provider issue identifier',
+        description: 'Unique ID.',
         examples: ['pis_9kLmNpQrStUvWxYz']
       }),
       type: v.enumOf(['provider_error', 'auth_error', 'protoguard_warning'], {
@@ -109,7 +109,7 @@ export let v1ProviderIssuePresenter = Presenter.create(providerIssueType)
       }),
       created_at: v.date({
         name: 'created_at',
-        description: 'Timestamp when created',
+        description: 'Creation time.',
         examples: [new Date('2025-09-15T10:30:00Z')]
       })
     })

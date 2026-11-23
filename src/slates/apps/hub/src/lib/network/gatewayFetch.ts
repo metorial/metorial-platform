@@ -71,9 +71,10 @@ export let gatewayFetch = async (
   }
 ) => {
   let currentUrl = validateUrl(input);
+  let headers = d.headers;
 
   for (let i = 0; i <= d.maxRedirects; i++) {
-    let response = await fetchThroughGateway(currentUrl, d);
+    let response = await fetchThroughGateway(currentUrl, { ...d, headers });
 
     let location = response.headers.get('location');
     if (response.status < 300 || response.status >= 400 || !location) return response;
@@ -81,7 +82,9 @@ export let gatewayFetch = async (
     await response.body?.cancel().catch(() => {});
     if (i == d.maxRedirects) throw new Error('Too many redirects');
 
-    currentUrl = validateUrl(new URL(location, currentUrl).toString());
+    let nextUrl = validateUrl(new URL(location, currentUrl).toString());
+    if (nextUrl.origin != currentUrl.origin) headers = undefined;
+    currentUrl = nextUrl;
   }
 
   throw new Error('Unreachable');

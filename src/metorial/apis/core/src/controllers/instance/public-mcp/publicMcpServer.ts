@@ -140,13 +140,13 @@ export let publicMcpServerController = Controller.create(
           v.object({
             status: v.optional(
               v.union([v.enumOf(statusValues), v.array(v.enumOf(statusValues))]),
-              { description: 'Filter by status' }
+              { description: 'Only return public MCP servers with one of these statuses.' }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by public MCP server ID(s)'
+              description: 'Only return public MCP servers with one of these IDs.'
             }),
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider deployment ID(s)'
+              description: 'Only return public MCP servers for one of these provider deployments.'
             }),
             search: v.optional(v.string(), {
               description: 'Search by name, slug, description, or provider name',
@@ -205,7 +205,7 @@ export let publicMcpServerController = Controller.create(
     get: publicMcpServerGroup
       .get(instancePath('public-mcp-servers/:publicMcpServerId', 'publicMcpServers.get'), {
         name: 'Get public MCP server',
-        description: 'Retrieves a specific public MCP server by ID.'
+        description: 'Retrieves a public MCP server.'
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.public_mcp_server:read'] }))
       .output(publicMcpServerPresenter)
@@ -236,10 +236,10 @@ export let publicMcpServerController = Controller.create(
             description: 'Globally unique slug used in the connect URL',
             examples: ['acme-crm']
           }),
-          description: v.optional(v.string({ description: 'Description of the server' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Custom key-value pairs for storing additional information'
+              description: 'Custom data to identify or organize the public MCP server.'
             })
           ),
           ...settingsFields
@@ -275,24 +275,27 @@ export let publicMcpServerController = Controller.create(
         instancePath('public-mcp-servers/:publicMcpServerId', 'publicMcpServers.update'),
         {
           name: 'Update public MCP server',
-          description:
-            'Updates a public MCP server. Set status to disabled to stop accepting connections.'
+        description:
+          'Updates a public MCP server. Setting `status` to `disabled` stops accepting new connections.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.public_mcp_server:write'] }))
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ description: 'Display name' })),
+          name: v.optional(v.string({ description: 'Display name.' })),
           slug: v.optional(
             v.string({
               description: 'New slug. Existing connect URLs stop working after a rename.'
             })
           ),
-          description: v.optional(v.nullable(v.string({ description: 'Description' }))),
+          description: v.optional(
+            v.nullable(v.string({ description: 'Free-text description. `null` clears it.' }))
+          ),
           metadata: v.optional(
             v.record(v.any(), {
-              description: 'Custom key-value pairs for storing additional information'
+              description:
+                'Custom data to identify or organize the public MCP server. Replaces existing metadata.'
             })
           ),
           status: v.optional(
@@ -328,7 +331,7 @@ export let publicMcpServerController = Controller.create(
       .delete(
         instancePath('public-mcp-servers/:publicMcpServerId', 'publicMcpServers.delete'),
         {
-          name: 'Delete public MCP server',
+          name: 'Archive public MCP server',
           description:
             'Archives a public MCP server, revokes every grant, and releases its slug.'
         }
@@ -355,7 +358,7 @@ export let publicMcpServerController = Controller.create(
         ),
         {
           name: 'List public MCP server grants',
-          description: 'Returns the end-user grants of a public MCP server.'
+          description: 'Returns a paginated list of end-user grants for a public MCP server.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.public_mcp_server:read'] }))
@@ -366,10 +369,13 @@ export let publicMcpServerController = Controller.create(
           v.object({
             status: v.optional(
               v.union([v.enumOf(grantStatusValues), v.array(v.enumOf(grantStatusValues))]),
-              { description: 'Filter by status. Excludes pending_exchange by default.' }
+              {
+                description:
+                  'Only return grants with one of these statuses. Excludes `pending_exchange` by default.'
+              }
             ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by grant ID(s)'
+              description: 'Only return grants with one of these IDs.'
             }),
             created_at: dateFilterValidator('grant creation time')
           })
@@ -399,7 +405,7 @@ export let publicMcpServerController = Controller.create(
         ),
         {
           name: 'Get public MCP server grant',
-          description: 'Retrieves a specific end-user grant.'
+          description: 'Retrieves an end-user grant.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.public_mcp_server:read'] }))
@@ -439,7 +445,8 @@ export let publicMcpServerController = Controller.create(
         ),
         {
           name: 'List public MCP server clients',
-          description: 'Returns the OAuth clients registered with a public MCP server.'
+          description:
+            'Returns a paginated list of OAuth clients registered with a public MCP server.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.public_mcp_server:read'] }))

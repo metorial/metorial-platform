@@ -28,6 +28,7 @@ export type NetworkPoliciesRulesDeleteOutput = {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
+  warnings: string[];
 };
 
 export let mapNetworkPoliciesRulesDeleteOutput =

@@ -1,5 +1,6 @@
 import { declarePresenter } from '@metorial/presenter';
 import {
+  consumerConsumerDevicePresenter,
   consumerMagicMcpEndpointPresenter,
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
@@ -49,6 +50,17 @@ import {
   v1AccessRoleVersionPresenter,
   v1AgentInstancePresenter,
   v1AgentPresenter,
+  v1AgentTrackingFilterValuesPresenter,
+  v1AgentTrackingIngestSourcePresenter,
+  v1AgentTrackingMemberPresenter,
+  v1AgentTrackingSessionDetailPresenter,
+  v1AgentTrackingSessionPresenter,
+  v1AgentTrackingInstanceSettingsPresenter,
+  v1AgentTrackingOrganizationSettingsPresenter,
+  v1AgentTrackingProjectSettingsPresenter,
+  v1AgentTrackingSetupStatusPresenter,
+  v1AgentTrackingSpendBreakdownPresenter,
+  v1AgentTrackingSpendTimelinePresenter,
   v1ApiKeyPresenter,
   v1AssistantConversationPresenter,
   v1AssistantMessagePresenter,
@@ -335,11 +347,58 @@ import {
   v1WebhookEventPresenter
 } from './implementation';
 import {
+  v1AiGatewayConfigPresenter,
+  v1AiGatewayInferenceLogPresenter,
+  v1AiGatewayLabPresenter,
+  v1AiGatewayModelOfferingPresenter,
+  v1AiGatewayModelPresenter,
+  v1AiGatewayModelResolutionPresenter,
+  v1AiGatewayProviderConnectionPresenter,
+  v1AiGatewayProviderPresenter,
+  v1AiGatewayRoutePreviewPresenter,
+  v1AiGatewayTokenPresenter,
+  v1AiGatewayUsageTimelinePresenter,
+  v1AiGatewayVirtualModelInsightsPresenter,
+  v1AiGatewayVirtualModelPresenter,
+  v1AiGatewayVirtualModelReplayPresenter,
+  v1AiGatewayVirtualModelTemplatePresenter,
+  v1AiGatewayVirtualModelTestPresenter,
+  v1AiGatewayVirtualModelVersionPresenter
+} from './implementation/aiGateway';
+import {
+  aiGatewayConfigType,
+  aiGatewayInferenceLogType,
+  aiGatewayLabType,
+  aiGatewayModelOfferingType,
+  aiGatewayModelResolutionType,
+  aiGatewayModelType,
+  aiGatewayProviderConnectionType,
+  aiGatewayProviderType,
+  aiGatewayRoutePreviewType,
+  aiGatewayTokenType,
+  aiGatewayUsageTimelineType,
+  aiGatewayVirtualModelInsightsType,
+  aiGatewayVirtualModelReplayType,
+  aiGatewayVirtualModelTemplateType,
+  aiGatewayVirtualModelTestType,
+  aiGatewayVirtualModelType,
+  aiGatewayVirtualModelVersionType,
   accessPolicyType,
   accessPolicyVersionType,
   accessRoleType,
   accessRoleVersionType,
   agentInstanceType,
+  agentTrackingFilterValuesType,
+  agentTrackingIngestSourceType,
+  agentTrackingMemberType,
+  agentTrackingSessionDetailType,
+  agentTrackingSessionType,
+  agentTrackingInstanceSettingsType,
+  agentTrackingOrganizationSettingsType,
+  agentTrackingProjectSettingsType,
+  agentTrackingSetupStatusType,
+  agentTrackingSpendBreakdownType,
+  agentTrackingSpendTimelineType,
   agentType,
   apiKeyType,
   assistantConversationType,
@@ -1459,7 +1518,7 @@ export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
 export let consumerDevicePresenter = declarePresenter(consumerDeviceType, {
   mt_2025_01_01_dashboard: v1ConsumerDevicePresenter,
   mt_2026_01_01_magnetar: v1ConsumerDevicePresenter,
-  mt_2026_04_01_consumer: v1ConsumerDevicePresenter
+  mt_2026_04_01_consumer: consumerConsumerDevicePresenter
 });
 
 export let consumerDeviceTelemetryTokenPresenter = declarePresenter(
@@ -1470,6 +1529,85 @@ export let consumerDeviceTelemetryTokenPresenter = declarePresenter(
     mt_2026_04_01_consumer: v1ConsumerDeviceTelemetryTokenPresenter
   }
 );
+
+export let agentTrackingIngestSourcePresenter = declarePresenter(
+  agentTrackingIngestSourceType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingIngestSourcePresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingIngestSourcePresenter
+  }
+);
+
+export let agentTrackingSpendTimelinePresenter = declarePresenter(
+  agentTrackingSpendTimelineType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSpendTimelinePresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSpendTimelinePresenter
+  }
+);
+
+export let agentTrackingSpendBreakdownPresenter = declarePresenter(
+  agentTrackingSpendBreakdownType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSpendBreakdownPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSpendBreakdownPresenter
+  }
+);
+
+export let agentTrackingSessionPresenter = declarePresenter(agentTrackingSessionType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSessionPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSessionPresenter
+});
+
+export let agentTrackingSessionDetailPresenter = declarePresenter(
+  agentTrackingSessionDetailType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSessionDetailPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSessionDetailPresenter
+  }
+);
+
+export let agentTrackingFilterValuesPresenter = declarePresenter(
+  agentTrackingFilterValuesType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingFilterValuesPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingFilterValuesPresenter
+  }
+);
+
+export let agentTrackingMemberPresenter = declarePresenter(agentTrackingMemberType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingMemberPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingMemberPresenter
+});
+
+export let agentTrackingOrganizationSettingsPresenter = declarePresenter(
+  agentTrackingOrganizationSettingsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingOrganizationSettingsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingOrganizationSettingsPresenter
+  }
+);
+
+export let agentTrackingProjectSettingsPresenter = declarePresenter(
+  agentTrackingProjectSettingsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingProjectSettingsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingProjectSettingsPresenter
+  }
+);
+
+export let agentTrackingInstanceSettingsPresenter = declarePresenter(
+  agentTrackingInstanceSettingsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingInstanceSettingsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingInstanceSettingsPresenter
+  }
+);
+
+export let agentTrackingSetupStatusPresenter = declarePresenter(agentTrackingSetupStatusType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSetupStatusPresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSetupStatusPresenter
+});
 
 export let consumerOAuthAuthorizationPresenter = declarePresenter(
   consumerOAuthAuthorizationType,
@@ -2231,4 +2369,107 @@ export let sandboxImageBuildPresenter = declarePresenter(sandboxImageBuildType, 
 export let sandboxLogLinesPresenter = declarePresenter(sandboxLogLinesType, {
   mt_2025_01_01_dashboard: v1SandboxLogLinesPresenter,
   mt_2026_01_01_magnetar: v1SandboxLogLinesPresenter
+});
+
+export let aiGatewayConfigPresenter = declarePresenter(aiGatewayConfigType, {
+  mt_2025_01_01_dashboard: v1AiGatewayConfigPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayConfigPresenter
+});
+
+export let aiGatewayTokenPresenter = declarePresenter(aiGatewayTokenType, {
+  mt_2025_01_01_dashboard: v1AiGatewayTokenPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayTokenPresenter
+});
+
+export let aiGatewayProviderConnectionPresenter = declarePresenter(
+  aiGatewayProviderConnectionType,
+  {
+    mt_2025_01_01_dashboard: v1AiGatewayProviderConnectionPresenter,
+    mt_2026_01_01_magnetar: v1AiGatewayProviderConnectionPresenter
+  }
+);
+
+export let aiGatewayVirtualModelPresenter = declarePresenter(aiGatewayVirtualModelType, {
+  mt_2025_01_01_dashboard: v1AiGatewayVirtualModelPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayVirtualModelPresenter
+});
+
+export let aiGatewayVirtualModelVersionPresenter = declarePresenter(
+  aiGatewayVirtualModelVersionType,
+  {
+    mt_2025_01_01_dashboard: v1AiGatewayVirtualModelVersionPresenter,
+    mt_2026_01_01_magnetar: v1AiGatewayVirtualModelVersionPresenter
+  }
+);
+
+export let aiGatewayVirtualModelTemplatePresenter = declarePresenter(
+  aiGatewayVirtualModelTemplateType,
+  {
+    mt_2025_01_01_dashboard: v1AiGatewayVirtualModelTemplatePresenter,
+    mt_2026_01_01_magnetar: v1AiGatewayVirtualModelTemplatePresenter
+  }
+);
+
+export let aiGatewayVirtualModelTestPresenter = declarePresenter(
+  aiGatewayVirtualModelTestType,
+  {
+    mt_2025_01_01_dashboard: v1AiGatewayVirtualModelTestPresenter,
+    mt_2026_01_01_magnetar: v1AiGatewayVirtualModelTestPresenter
+  }
+);
+
+export let aiGatewayVirtualModelReplayPresenter = declarePresenter(
+  aiGatewayVirtualModelReplayType,
+  {
+    mt_2025_01_01_dashboard: v1AiGatewayVirtualModelReplayPresenter,
+    mt_2026_01_01_magnetar: v1AiGatewayVirtualModelReplayPresenter
+  }
+);
+
+export let aiGatewayVirtualModelInsightsPresenter = declarePresenter(
+  aiGatewayVirtualModelInsightsType,
+  {
+    mt_2025_01_01_dashboard: v1AiGatewayVirtualModelInsightsPresenter,
+    mt_2026_01_01_magnetar: v1AiGatewayVirtualModelInsightsPresenter
+  }
+);
+
+export let aiGatewayLabPresenter = declarePresenter(aiGatewayLabType, {
+  mt_2025_01_01_dashboard: v1AiGatewayLabPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayLabPresenter
+});
+
+export let aiGatewayProviderPresenter = declarePresenter(aiGatewayProviderType, {
+  mt_2025_01_01_dashboard: v1AiGatewayProviderPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayProviderPresenter
+});
+
+export let aiGatewayModelPresenter = declarePresenter(aiGatewayModelType, {
+  mt_2025_01_01_dashboard: v1AiGatewayModelPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayModelPresenter
+});
+
+export let aiGatewayModelOfferingPresenter = declarePresenter(aiGatewayModelOfferingType, {
+  mt_2025_01_01_dashboard: v1AiGatewayModelOfferingPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayModelOfferingPresenter
+});
+
+export let aiGatewayModelResolutionPresenter = declarePresenter(aiGatewayModelResolutionType, {
+  mt_2025_01_01_dashboard: v1AiGatewayModelResolutionPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayModelResolutionPresenter
+});
+
+export let aiGatewayRoutePreviewPresenter = declarePresenter(aiGatewayRoutePreviewType, {
+  mt_2025_01_01_dashboard: v1AiGatewayRoutePreviewPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayRoutePreviewPresenter
+});
+
+export let aiGatewayInferenceLogPresenter = declarePresenter(aiGatewayInferenceLogType, {
+  mt_2025_01_01_dashboard: v1AiGatewayInferenceLogPresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayInferenceLogPresenter
+});
+
+export let aiGatewayUsageTimelinePresenter = declarePresenter(aiGatewayUsageTimelineType, {
+  mt_2025_01_01_dashboard: v1AiGatewayUsageTimelinePresenter,
+  mt_2026_01_01_magnetar: v1AiGatewayUsageTimelinePresenter
 });

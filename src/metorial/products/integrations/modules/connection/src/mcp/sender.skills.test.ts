@@ -11,8 +11,7 @@ vi.mock('@lowerdeck/sentry', () => ({
   getSentry: () => ({ captureException: vi.fn() })
 }));
 vi.mock('@metorial-subspace/db', () => ({
-  db: {},
-  dbPrimary: { sessionMessage: { findFirst: vi.fn() } },
+  db: { sessionMessage: { findFirst: vi.fn() } },
   messageTranslator: { outputToMcpBasic: vi.fn(async () => null) }
 }));
 vi.mock('@metorial-subspace/connection-utils', () => ({

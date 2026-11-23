@@ -32,7 +32,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
   {
     name: 'Portal Consumer Surface Provider Groups',
     description:
-      'Manage the provider groups linked to a portal consumer surface for organizing providers.'
+      'A portal surface provider group is a named section of a portal catalog. Listings are added to groups to organize what consumers see.'
   },
   {
     list: portalGroup
@@ -43,8 +43,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         ),
         {
           name: 'List portal surface provider groups',
-          description:
-            'Returns a paginated list of provider groups linked to the portal consumer surface.'
+          description: 'Returns a paginated list of surface provider groups for a portal.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
@@ -70,7 +69,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         ),
         {
           name: 'Get portal surface provider group',
-          description: 'Retrieves a portal surface provider group by ID.'
+          description: 'Retrieves a portal surface provider group.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
@@ -90,7 +89,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         ),
         {
           name: 'Create portal surface provider group',
-          description: 'Creates a new provider group linked to the portal consumer surface.'
+          description: 'Creates a surface provider group for a portal.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -98,8 +97,8 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.string(),
-          description: v.optional(v.string())
+          name: v.string({ description: 'Display name.' }),
+          description: v.optional(v.string({ description: 'Free-text description.' }))
         })
       )
       .output(consumerSurfaceProviderGroupPresenter)
@@ -124,7 +123,8 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         ),
         {
           name: 'Update portal surface provider group',
-          description: 'Updates a provider group linked to the portal consumer surface.'
+          description:
+            'Updates a surface provider group for a portal. Omitted fields keep their current value.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -132,9 +132,14 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string()),
-          description: v.optional(v.string()),
-          index: v.optional(v.number({ modifiers: [v.integer()] }))
+          name: v.optional(v.string({ description: 'Display name.' })),
+          description: v.optional(v.string({ description: 'Free-text description.' })),
+          index: v.optional(
+            v.number({
+              description: 'Order of the group in the portal catalog.',
+              modifiers: [v.integer()]
+            })
+          )
         })
       )
       .output(consumerSurfaceProviderGroupPresenter)
@@ -161,7 +166,7 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
         ),
         {
           name: 'Delete portal surface provider group',
-          description: 'Deletes a provider group linked to the portal consumer surface.'
+          description: 'Deletes a surface provider group for a portal.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
@@ -197,7 +202,9 @@ export let portalConsumerSurfaceProviderGroupController = Controller.create(
       .body(
         'default',
         v.object({
-          consumer_access_listing_id: v.string()
+          consumer_access_listing_id: v.string({
+            description: 'Listing to add to the group.'
+          })
         })
       )
       .output(consumerSurfaceProviderGroupPresenter)

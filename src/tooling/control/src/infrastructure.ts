@@ -1,6 +1,14 @@
 import { atomicWrite } from './files';
 import type { LoadedManifest, ServicePorts } from './types';
 
+export let postgresReplicaService = 'postgres-replica';
+
+export let postgresReplicaVolume = 'postgres-replica-data';
+
+let replicationRole = 'replicator';
+
+let replicationSettings = ['wal_level=replica', 'max_wal_senders=10', 'wal_keep_size=512MB'];
+
 export interface Requirements {
   postgres: boolean;
   mongo: boolean;
@@ -17,9 +25,70 @@ export interface RenderOptions {
   mail_proxy_alias?: string;
   db_explorer_proxy_alias?: string;
   postgres_databases?: string[];
+  postgres_replica?: { delay: string };
   ports?: ServicePorts;
   restart: boolean;
 }
+
+let escapeCompose = (value: string) => value.replaceAll('$', () => '$$');
+
+export let postgresPrimaryArguments = (replica: boolean) =>
+  replica ? replicationSettings.flatMap(setting => ['-c', setting]) : [];
+
+// Runs inside the primary on every start because existing data volumes never rerun initdb scripts.
+export let postgresPrimaryReplicationScript = `set -euo pipefail
+line='host replication ${replicationRole} all scram-sha-256'
+grep -qxF "$line" "$PGDATA/pg_hba.conf" || echo "$line" >> "$PGDATA/pg_hba.conf"
+psql -v ON_ERROR_STOP=1 -U postgres -d postgres -XAtq >/dev/null <<'SQL'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${replicationRole}') THEN
+    CREATE ROLE ${replicationRole} WITH REPLICATION LOGIN PASSWORD '${replicationRole}';
+  END IF;
+END
+$$;
+SELECT pg_reload_conf();
+SQL
+`;
+
+// Re-seeds whenever the data directory is empty or belongs to a different primary cluster, e.g.
+// after the primary volume was recreated.
+let postgresReplicaScript = (delay: string) => `set -euo pipefail
+primary='host=postgres-db2 port=5432 user=${replicationRole} password=${replicationRole} application_name=${postgresReplicaService}'
+until primary_id=$(psql "$primary dbname=replication replication=true" -XAtc IDENTIFY_SYSTEM 2>/dev/null | cut -d '|' -f 1) && [ -n "$primary_id" ]; do
+  echo 'waiting for postgres-db2 to accept replication connections'
+  sleep 1
+done
+replica_id=
+if [ -s "$PGDATA/PG_VERSION" ]; then
+  replica_id=$(pg_controldata "$PGDATA" | sed -n 's/^Database system identifier: *//p')
+fi
+if [ "$replica_id" != "$primary_id" ]; then
+  echo "seeding from postgres-db2 (system identifier $primary_id)"
+  mkdir -p "$PGDATA"
+  find "$PGDATA" -mindepth 1 -delete
+  chown postgres:postgres "$PGDATA"
+  chmod 700 "$PGDATA"
+  gosu postgres pg_basebackup --dbname="$primary" --pgdata="$PGDATA" --write-recovery-conf --wal-method=stream --checkpoint=fast
+fi
+exec gosu postgres postgres -c hot_standby=on -c max_connections=1000 -c recovery_min_apply_delay=${delay}
+`;
+
+export let postgresReplicaDefinition = (delay: string): Record<string, unknown> => ({
+  image: 'postgres:17',
+  entrypoint: ['bash', '-c', escapeCompose(postgresReplicaScript(delay))],
+  depends_on: { 'postgres-db2': { condition: 'service_healthy', restart: true } },
+  healthcheck: {
+    test: [
+      'CMD-SHELL',
+      `psql -U postgres -d postgres -XAtc "select pg_is_in_recovery() and exists (select from pg_stat_wal_receiver where status = 'streaming')" | grep -qx t`
+    ],
+    interval: '2s',
+    timeout: '5s',
+    retries: 5,
+    start_period: '120s'
+  }
+});
 
 export let requirementsFromManifests = (manifests: LoadedManifest[]): Requirements => {
   let result = {
@@ -64,11 +133,13 @@ export let serviceNames = (requirements: Requirements) =>
     )
     .map(([, name]) => name);
 
-export let volumeNames = (requirements: Requirements) =>
-  Object.entries({ ...requirements, db_explorer: requirements.postgres })
-    .filter(([, needed]) => needed)
-    .map(([name]) => `${name}-data`)
-    .sort();
+export let volumeNames = (requirements: Requirements, replica = false) =>
+  [
+    ...Object.entries({ ...requirements, db_explorer: requirements.postgres })
+      .filter(([, needed]) => needed)
+      .map(([name]) => `${name}-data`),
+    ...(replica && requirements.postgres ? [postgresReplicaVolume] : [])
+  ].sort();
 
 export let serviceDefinitions = (
   requirements: Requirements,
@@ -113,13 +184,30 @@ export let serviceDefinitions = (
     'postgres',
     {
       image: 'postgres:17',
-      command: 'postgres -c max_connections=1000',
+      command: [
+        'postgres',
+        '-c',
+        'max_connections=1000',
+        ...postgresPrimaryArguments(!!options.postgres_replica)
+      ].join(' '),
       environment: { POSTGRES_USER: 'postgres', POSTGRES_PASSWORD: 'postgres' }
     },
     5432,
     ['CMD-SHELL', 'pg_isready -U postgres -d postgres'],
     '5s'
   );
+
+  if (requirements.postgres && options.postgres_replica)
+    services[postgresReplicaService] = {
+      ...postgresReplicaDefinition(options.postgres_replica.delay),
+      ...(options.ports?.postgres_replica
+        ? { ports: [`${options.ports.postgres_replica}:5432`] }
+        : {}),
+      volumes: [`${postgresReplicaVolume}:/var/lib/postgresql/data`],
+      networks: [options.network],
+      ...(options.restart ? { restart: 'unless-stopped' } : {})
+    };
+
   add(
     'mongodb',
     'mongo',
@@ -205,25 +293,30 @@ export let serviceDefinitions = (
   return services;
 };
 
-export let renderCompose = (requirements: Requirements, options: RenderOptions) =>
-  JSON.stringify(
-    {
-      ...(options.project_name ? { name: options.project_name } : {}),
-      services: serviceDefinitions(requirements, options),
-      networks: {
-        [options.network]: options.network_name ? { name: options.network_name } : {},
-        ...((requirements.mail && options.mail_proxy_alias) ||
-        (requirements.postgres && options.db_explorer_proxy_alias)
-          ? { 'control-proxy': { name: 'control_proxy', external: true } }
+export let renderCompose = (requirements: Requirements, options: RenderOptions) => {
+  let volumes = volumeNames(requirements, !!options.postgres_replica);
+
+  return (
+    JSON.stringify(
+      {
+        ...(options.project_name ? { name: options.project_name } : {}),
+        services: serviceDefinitions(requirements, options),
+        networks: {
+          [options.network]: options.network_name ? { name: options.network_name } : {},
+          ...((requirements.mail && options.mail_proxy_alias) ||
+          (requirements.postgres && options.db_explorer_proxy_alias)
+            ? { 'control-proxy': { name: 'control_proxy', external: true } }
+            : {})
+        },
+        ...(volumes.length
+          ? { volumes: Object.fromEntries(volumes.map(name => [name, {}])) }
           : {})
       },
-      ...(volumeNames(requirements).length
-        ? { volumes: Object.fromEntries(volumeNames(requirements).map(name => [name, {}])) }
-        : {})
-    },
-    null,
-    2
-  ) + '\n';
+      null,
+      2
+    ) + '\n'
+  );
+};
 
 export let writeCompose = (
   path: string,

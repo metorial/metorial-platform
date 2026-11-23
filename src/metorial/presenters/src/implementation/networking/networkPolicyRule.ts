@@ -2,25 +2,62 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { networkPolicyRuleType } from '../../types';
 
-export let networkPolicyRuleSchema = v.object({
-  object: v.literal('networking.network_policy.rule'),
-  id: v.string(),
-  effect: v.enumOf(['allow', 'deny']),
-  direction: v.enumOf(['ingress', 'egress']),
-  cidrs: v.array(v.string()),
-  description: v.nullable(v.string()),
-  enabled: v.boolean(),
-  priority: v.number(),
-  ports: v.nullable(
-    v.array(
-      v.object({
-        object: v.literal('networking.network_policy.port_range'),
-        from: v.number(),
-        to: v.number()
+export let networkPolicyRuleSchema = v.object(
+  {
+    object: v.literal('networking.network_policy.rule', {
+      description: 'String representing the object’s type.'
+    }),
+    id: v.string({
+      description: 'Unique ID.'
+    }),
+    effect: v.enumOf(['allow', 'deny'], {
+      description: '`allow` permits matching traffic. `deny` blocks it.'
+    }),
+    direction: v.enumOf(['ingress', 'egress'], {
+      description: '`ingress` matches incoming traffic. `egress` matches outgoing traffic.'
+    }),
+    cidrs: v.array(
+      v.string({
+        description: 'CIDR range the rule matches, for example `10.0.0.0/8`.'
+      }),
+      {
+        description: 'CIDR ranges the rule matches.'
+      }
+    ),
+    description: v.nullable(
+      v.string({
+        description: 'Free-text description.'
       })
+    ),
+    enabled: v.boolean({
+      description: 'Whether the rule is enforced. Disabled rules are kept but ignored.'
+    }),
+    priority: v.number({
+      description: 'Priority of the rule. Higher values are evaluated first.'
+    }),
+    ports: v.nullable(
+      v.array(
+        v.object({
+          object: v.literal('networking.network_policy.port_range', {
+            description: 'String representing the object’s type.'
+          }),
+          from: v.number({
+            description: 'First port in the range, inclusive.'
+          }),
+          to: v.number({
+            description: 'Last port in the range, inclusive.'
+          })
+        }),
+        {
+          description: 'Port ranges the rule matches. Omitted matches all ports.'
+        }
+      )
     )
-  )
-});
+  },
+  {
+    description: 'Rule in the network policy.'
+  }
+);
 
 export let presentNetworkPolicyRule = (rule: PrismaJson.NetworkPolicyRule) => ({
   object: 'networking.network_policy.rule' as const,

@@ -169,6 +169,40 @@ export let rateLimitCatalog = {
         unit: 'tool calls'
       })
     }
+  }),
+
+  ai_gateway: resourceGroup({
+    name: 'AI Gateway',
+    description: 'Limits for model requests made through the AI gateway.',
+    usageTypes: {
+      requests: usageType({
+        kind: 'rate',
+        enforcement: 'synced',
+        name: 'Model requests',
+        description: 'Requests over every connection, including your own provider keys.',
+        unit: 'requests',
+        supportsBurst: false
+      }),
+
+      tokens: usageType({
+        kind: 'rate',
+        enforcement: 'synced',
+        name: 'Model tokens',
+        description: 'Input and output tokens over every connection.',
+        unit: 'tokens',
+        supportsBurst: false
+      }),
+
+      metorial_spend: usageType({
+        kind: 'rate',
+        enforcement: 'synced',
+        name: 'Metorial-billed spend',
+        description:
+          'Spend on models served over Metorial connections. Traffic over your own provider keys is not counted.',
+        unit: 'USD',
+        supportsBurst: false
+      })
+    }
   })
 };
 

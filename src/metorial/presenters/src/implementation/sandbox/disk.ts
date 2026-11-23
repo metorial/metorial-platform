@@ -86,9 +86,9 @@ export let v1SandboxDiskPresenter = Presenter.create(sandboxDiskType)
         )
       ),
 
-      created_at: v.date(),
-      updated_at: v.date(),
-      deleted_at: v.nullable(v.date())
+      created_at: v.date({ description: 'Creation time.' }),
+      updated_at: v.date({ description: 'Last update time.' }),
+      deleted_at: v.nullable(v.date({ description: 'When this was deleted. `null` while active.' }))
     })
   )
   .build();

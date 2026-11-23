@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint {
     query?: DashboardInstanceProviderAuthConfigErrorsGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigErrorsGroupsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-error-groups`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-error-groups`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint {
     providerAuthConfigErrorGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigErrorsGroupsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-error-groups/${providerAuthConfigErrorGroupId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-error-groups/${encodeURIComponent(providerAuthConfigErrorGroupId)}`;
 
     let request = {
       path,

@@ -8,6 +8,7 @@ import {
   providerAuthCredentialsService,
   providerSetupSessionEmailService,
   providerSetupSessionService,
+  setupSessionRedirectUrlPattern,
   SETUP_SESSION_EMAIL_MAX_RECIPIENTS,
   SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_DAY,
   SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_INSTANCE_PER_DAY,
@@ -27,26 +28,80 @@ import {
 } from '@metorial/presenters';
 import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
+let redirectUrlValidator = v.optional(
+  v.string({
+    examples: ['https://app.example.com/oauth/callback'],
+    modifiers: [
+      v.url(),
+      v.regex(setupSessionRedirectUrlPattern, { message: 'Must be an http or https URL' })
+    ]
+  }),
+  { description: 'URL to redirect to after setup.' }
+);
+
 let providerSetupSessionConfigurationValidator = v.optional(
-  v.object({
-    provider_search: v.optional(
-      v.object({
-        groups: v.optional(v.array(v.object({ group_id: v.string() }))),
-        collections: v.optional(v.array(v.object({ collection_id: v.string() }))),
-        categories: v.optional(v.array(v.object({ category_id: v.string() })))
-      })
-    ),
-    tool_filters: v.optional(
-      v.object({
-        enabled: v.optional(v.boolean())
-      })
-    ),
-    ui: v.optional(
-      v.object({
-        layout: v.optional(v.enumOf(['box', 'side', 'light']))
-      })
-    )
-  })
+  v.object(
+    {
+      provider_search: v.optional(
+        v.object(
+          {
+            groups: v.optional(
+              v.array(
+                v.object({
+                  group_id: v.string({ description: 'Group to include.' })
+                }),
+                { description: 'Only show providers in these groups.' }
+              )
+            ),
+            collections: v.optional(
+              v.array(
+                v.object({
+                  collection_id: v.string({
+                    description: 'Collection to include.'
+                  })
+                }),
+                { description: 'Only show providers in these collections.' }
+              )
+            ),
+            categories: v.optional(
+              v.array(
+                v.object({
+                  category_id: v.string({
+                    description: 'Category to include.'
+                  })
+                }),
+                { description: 'Only show providers in these categories.' }
+              )
+            )
+          },
+          { description: 'Limit the providers the user can pick from.' }
+        )
+      ),
+      tool_filters: v.optional(
+        v.object(
+          {
+            enabled: v.optional(v.boolean(), {
+              description: 'Show the tool filter step.'
+            })
+          },
+          {
+            description: 'Whether the user can filter tools in the session UI.'
+          }
+        )
+      ),
+      ui: v.optional(
+        v.object(
+          {
+            layout: v.optional(v.enumOf(['box', 'side', 'light']), {
+              description: 'Layout of the session UI.'
+            })
+          },
+          { description: 'How the session UI looks.' }
+        )
+      )
+    },
+    { description: 'Options shaping the session flow.' }
+  )
 );
 
 let providerSetupSessionTypes = [
@@ -99,7 +154,7 @@ export let providerSetupSessionController = Controller.create(
   {
     name: 'Provider Setup Sessions',
     description:
-      "A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token."
+      'A provider setup session is a guided flow that collects authentication, configuration, or both for a provider. `admin` sessions create a consent link for someone else to complete instead.'
   },
   {
     list: integrationsGroup
@@ -224,7 +279,7 @@ export let providerSetupSessionController = Controller.create(
         instancePath('provider-setup-sessions', 'providerDeployments.setupSessions.create'),
         {
           name: 'Create provider setup session',
-          description: 'Creates a new provider setup session for OAuth authentication.'
+          description: 'Creates a provider setup session.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -234,22 +289,29 @@ export let providerSetupSessionController = Controller.create(
           provider_id: v.optional(
             v.string({
               examples: ['pro_5gHjKlMnPqRsTuVw'],
-              description: 'The provider ID'
+              description: 'Provider to set up.'
             })
           ),
           provider_deployment_id: v.optional(
             v.string({
               examples: ['pdp_4dEfGhJkLmNpQrSt'],
-              description: 'Optional provider deployment ID'
+              description: 'Deployment to set up.'
             })
           ),
-          name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] })),
-          description: v.optional(v.string({ examples: ['Connect your GitHub account'] })),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] }), {
+            description: 'Display name.'
+          }),
+          description: v.optional(v.string({ examples: ['Connect your GitHub account'] }), {
+            description: 'Free-text description.'
+          }),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ redirect_uri: 'https://app.example.com/callback' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider setup session. Replaces existing metadata.'
+            }
           ),
           provider_auth_method_id: v.optional(
             v.string({
@@ -275,9 +337,7 @@ export let providerSetupSessionController = Controller.create(
               description: 'Optional consumer to link this setup session to'
             })
           ),
-          redirect_url: v.optional(
-            v.string({ examples: ['https://app.example.com/oauth/callback'] })
-          ),
+          redirect_url: redirectUrlValidator,
           type: v.optional(
             v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin', 'auto'], {
               description:
@@ -294,22 +354,29 @@ export let providerSetupSessionController = Controller.create(
           provider_id: v.optional(
             v.string({
               examples: ['pro_5gHjKlMnPqRsTuVw'],
-              description: 'The provider ID'
+              description: 'Provider to set up.'
             })
           ),
           provider_deployment_id: v.optional(
             v.string({
               examples: ['pdp_4dEfGhJkLmNpQrSt'],
-              description: 'Optional provider deployment ID'
+              description: 'Deployment to set up.'
             })
           ),
-          name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] })),
-          description: v.optional(v.string({ examples: ['Connect your GitHub account'] })),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] }), {
+            description: 'Display name.'
+          }),
+          description: v.optional(v.string({ examples: ['Connect your GitHub account'] }), {
+            description: 'Free-text description.'
+          }),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ redirect_uri: 'https://app.example.com/callback' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider setup session. Replaces existing metadata.'
+            }
           ),
           provider_auth_method_id: v.optional(
             v.string({
@@ -335,9 +402,7 @@ export let providerSetupSessionController = Controller.create(
               description: 'Optional consumer to link this setup session to'
             })
           ),
-          redirect_url: v.optional(
-            v.string({ examples: ['https://app.example.com/oauth/callback'] })
-          ),
+          redirect_url: redirectUrlValidator,
           type: v.optional(
             v.enumOf([...providerSetupSessionTypes, 'auto'], {
               description:
@@ -463,15 +528,21 @@ export let providerSetupSessionController = Controller.create(
       .body(
         'default',
         v.object({
-          name: v.optional(v.string({ examples: ['Updated Setup Session'] })),
+          name: v.optional(v.string({ examples: ['Updated Setup Session'] }), {
+            description: 'Display name.'
+          }),
           description: v.optional(
-            v.string({ examples: ['Updated setup session description'] })
+            v.string({ examples: ['Updated setup session description'] }),
+            { description: 'Free-text description.' }
           ),
           metadata: v.optional(
             v.record(v.any(), {
               examples: [{ redirect_uri: 'https://app.example.com/new-callback' }]
             }),
-            { description: 'Custom key-value pairs for storing additional information' }
+            {
+              description:
+                'Custom data to identify or organize the provider setup session. Replaces existing metadata.'
+            }
           ),
           identity_id: v.optional(
             v.string({
@@ -521,8 +592,9 @@ export let providerSetupSessionController = Controller.create(
           'providerDeployments.setupSessions.delete'
         ),
         {
-          name: 'Delete provider setup session',
-          description: 'Deletes a provider setup session.'
+          name: 'Archive provider setup session',
+          description:
+            'Archives a provider setup session. It stays listable with `status=archived`.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -547,7 +619,7 @@ export let providerSetupSessionController = Controller.create(
         ),
         {
           name: 'Email provider setup session link',
-          description: `Queues the link of an admin setup session for delivery to up to ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS} recipients in total, given as email addresses and/or organization member IDs. Recipients are deduplicated case-insensitively and processed in order; if a later recipient fails, earlier ones may already have been queued, and retrying the request within the same window does not email them again. A recipient already emailed this setup link in the current fixed ${SETUP_SESSION_EMAIL_THROTTLE_WINDOW_MINUTES}-minute window is not emailed again; their earlier record is returned with \`deduplicated\` set to true. A setup link can be emailed to at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_DAY} different recipients within 24 hours, and the setup links of an instance to at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_INSTANCE_PER_DAY} different recipients combined; a request that would exceed either limit is rejected with \`admin_setup_email_limit_reached\` before any email is queued. Passing \`organization_member_ids\` also requires the \`organization.member:read\` scope, since the response contains the members' email addresses.`
+          description: `Queues the link of an admin setup session for delivery to up to ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS} recipients, given as email addresses and/or organization member IDs. A recipient already emailed this setup link in the current fixed ${SETUP_SESSION_EMAIL_THROTTLE_WINDOW_MINUTES}-minute window isn't emailed again.`
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
@@ -563,7 +635,7 @@ export let providerSetupSessionController = Controller.create(
               }),
               {
                 modifiers: [v.maxLength(SETUP_SESSION_EMAIL_MAX_RECIPIENTS)],
-                description: `Email addresses to send the setup link to, at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS}`
+                description: `Email addresses to send the setup link to, at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS}. Recipients are deduplicated case-insensitively and processed in order; if a later recipient fails, earlier ones may already have been queued. A setup link can be emailed to at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_DAY} different recipients within 24 hours, and the setup links of an instance to at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS_PER_INSTANCE_PER_DAY} different recipients combined; a request that would exceed either limit is rejected with \`admin_setup_email_limit_reached\` before any email is queued.`
               }
             )
           ),
@@ -575,7 +647,7 @@ export let providerSetupSessionController = Controller.create(
               }),
               {
                 modifiers: [v.maxLength(SETUP_SESSION_EMAIL_MAX_RECIPIENTS)],
-                description: `Organization members to send the setup link to, at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS}. Each member is emailed at their organization profile email address, falling back to their account email when the profile has none.`
+                description: `Organization members to send the setup link to, at most ${SETUP_SESSION_EMAIL_MAX_RECIPIENTS}. Each member is emailed at their organization profile email address, falling back to their account email when the profile has none. Passing organization member IDs requires the \`organization.member:read\` scope, since the response contains the members' email addresses.`
               }
             )
           )

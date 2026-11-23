@@ -1,6 +1,7 @@
 import { checkEdition } from '@metorial/editions';
 import { Controller } from '@metorial/rest';
 import {
+  aiGatewayDocsCategory,
   callbackDocsCategory,
   chatDocsCategory,
   configurationDocsCategory,
@@ -18,6 +19,7 @@ import {
   sessionDocsCategory,
   skillDocsCategory
 } from './_categories';
+import * as aiGatewayControllers from './instance/ai-gateway/controllers';
 import {
   consumerActivityController,
   consumerDeviceController,
@@ -26,6 +28,14 @@ import {
   consumerSessionController
 } from './consumer';
 import {
+  dashboardAgentTrackingFilterValueController,
+  dashboardAgentTrackingIngestSourceController,
+  dashboardAgentTrackingMemberController,
+  dashboardAgentTrackingOrganizationSettingsController,
+  dashboardAgentTrackingProjectSettingsController,
+  dashboardAgentTrackingSettingsController,
+  dashboardAgentTrackingSetupStatusController,
+  dashboardAgentTrackingSpendController,
   dashboardAiAnalysisConfigurationController,
   dashboardAssistantController,
   dashboardAuditLogRetentionController,
@@ -55,6 +65,7 @@ import {
   scopesController
 } from './dashboard';
 import {
+  agentTrackingSessionController,
   agentController,
   callbackController,
   callbackEventController,
@@ -359,6 +370,12 @@ Object.values(sandboxControllers).forEach(controller =>
   })
 );
 
+Object.values(aiGatewayControllers).forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: aiGatewayDocsCategory
+  })
+);
+
 [
   integrationInternetGatewayController,
   integrationEnclaveController,
@@ -566,6 +583,7 @@ export let magnetarController = Controller.create<any>(
     networkPolicyController,
 
     ...sandboxControllers,
+    ...aiGatewayControllers,
 
     sessionController,
     sessionTemplateController,
@@ -719,6 +737,15 @@ export let dashboardController = Controller.create<any>(
     testHelperConsumerOAuthController,
     dashboardUsageController,
     dashboardInstanceUsageController,
+    dashboardAgentTrackingIngestSourceController,
+    dashboardAgentTrackingSpendController,
+    agentTrackingSessionController,
+    dashboardAgentTrackingFilterValueController,
+    dashboardAgentTrackingMemberController,
+    dashboardAgentTrackingOrganizationSettingsController,
+    dashboardAgentTrackingProjectSettingsController,
+    dashboardAgentTrackingSettingsController,
+    dashboardAgentTrackingSetupStatusController,
     dashboardAssistantController,
     dashboardWorkforceConfigurationController,
     flagsController,
@@ -870,6 +897,7 @@ export let dashboardController = Controller.create<any>(
     networkPolicyController,
 
     ...sandboxControllers,
+    ...aiGatewayControllers,
 
     sessionTemplateController,
     sessionTemplateProviderController,

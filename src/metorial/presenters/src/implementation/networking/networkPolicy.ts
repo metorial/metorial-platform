@@ -22,17 +22,53 @@ export let v1NetworkPolicyPresenter = Presenter.create(networkPolicyType)
   }))
   .schema(
     v.object({
-      object: v.literal('networking.network_policy'),
-      id: v.string(),
-      name: v.string(),
-      description: v.nullable(v.string()),
-      status: v.enumOf(['active', 'archived', 'deleted']),
-      version: v.number(),
-      rules: v.array(networkPolicyRuleSchema),
-      firewall_ids: v.nullable(v.array(v.string())),
-      created_at: v.date(),
-      updated_at: v.date(),
-      archived_at: v.nullable(v.date())
+      object: v.literal('networking.network_policy', {
+        description: 'String representing the object’s type.'
+      }),
+      id: v.string({
+        description: 'Unique ID.',
+        examples: ['npo_3nOpRsTuVwXyZaBc']
+      }),
+      name: v.string({
+        description: 'Display name.'
+      }),
+      description: v.nullable(
+        v.string({
+          description: 'Free-text description.'
+        })
+      ),
+      status: v.enumOf(['active', 'archived', 'deleted'], {
+        description:
+          'Current lifecycle status of the network policy. `archived` once you archive the policy.'
+      }),
+      version: v.number({
+        description: 'Version number of the policy. Increments with every rule change.'
+      }),
+      rules: v.array(networkPolicyRuleSchema, {
+        description: 'Rules in the current version of the network policy.'
+      }),
+      firewall_ids: v.nullable(
+        v.array(
+          v.string({
+            description: 'Firewall the policy is attached to.',
+            examples: ['fwl_7dEfGhJkLmNpQrSt']
+          }),
+          {
+            description: 'Firewalls this policy is attached to.'
+          }
+        )
+      ),
+      created_at: v.date({
+        description: 'Creation time.'
+      }),
+      updated_at: v.date({
+        description: 'Last update time.'
+      }),
+      archived_at: v.nullable(
+        v.date({
+          description: 'When this was archived. `null` while active.'
+        })
+      )
     })
   )
   .build();
