@@ -20,7 +20,7 @@ let fetchTransport = (timeoutMs: number) => (options: Sentry.BaseTransportOption
   Sentry.createTransport(options, async request => {
     let response = await fetch(options.url, {
       method: 'POST',
-      body: request.body as BodyInit,
+      body: request.body as RequestInit['body'],
       headers: options.headers,
       signal: AbortSignal.timeout(timeoutMs)
     });
