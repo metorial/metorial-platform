@@ -1,6 +1,6 @@
+import { withTransaction } from '@metorial/db';
 import { eventually, uniqueId, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture } from '@metorial/e2e/db';
-import { Fabric } from '@metorial/fabric';
 import { Ed25519 } from '@metorial-outpost/crypto';
 import { INSTANCE_TOKEN_TYPE } from '@metorial-outpost/server';
 import {
@@ -9,7 +9,7 @@ import {
   OUTPOST_SIGNATURE_HEADER
 } from '@metorial-outpost/signature';
 import { OutpostTokens } from '@metorial-outpost/tokens';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   cachedInstanceAuthorization,
   getOutpostSigningTokens,
@@ -399,35 +399,31 @@ describe('module-outpost request authentication', () => {
     expect((await callVerifier(reregistered)).status).toBe(200);
   });
 
-  it('does not let a lookup during the disable transaction keep the outpost authorized', async () => {
+  it('invalidates cached authorization after the outpost disable transaction commits', async () => {
     let { fixture, outpost, key } = await createOutpostWithCredential(org.ids);
     let instance = await registerInstance(server, { credential: key });
     expect((await callVerifier(instance)).status).toBe(200);
 
-    let inFlight: Awaited<ReturnType<typeof callVerifier>> | undefined;
-    let unlisten = Fabric.listen('outpost.disabled:after', async event => {
-      if (event.outpost.id != outpost.id) return;
-
-      await cachedInstanceAuthorization.clearByTagAndWait(outpostTag(outpost.id));
-      inFlight = await callVerifier(instance);
-    });
-
+    let invalidate = vi.spyOn(cachedInstanceAuthorization, 'clearByTagAndWait');
     try {
-      await outpostService.disableOutpost({
-        organization: fixture.organization,
-        auditScope: fixture.auditScope,
-        outpost
+      await withTransaction(async () => {
+        await outpostService.disableOutpost({
+          organization: fixture.organization,
+          auditScope: fixture.auditScope,
+          outpost
+        });
+
+        expect(invalidate).not.toHaveBeenCalled();
       });
+
+      expect(invalidate).toHaveBeenCalledExactlyOnceWith(outpostTag(outpost.id));
     } finally {
-      unlisten();
+      invalidate.mockRestore();
     }
 
-    expect(inFlight?.status).toBe(200);
-    await afterInvalidation(async () => {
-      expect(await callVerifier(instance)).toMatchObject({
-        status: 403,
-        body: { error: 'outpost_disabled' }
-      });
+    expect(await callVerifier(instance)).toMatchObject({
+      status: 403,
+      body: { error: 'outpost_disabled' }
     });
   });
 

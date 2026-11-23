@@ -1,5 +1,6 @@
 import { useOrganization } from '@metorial/e2e';
 import { loadOrganizationFixture } from '@metorial/e2e/db';
+import { isAiReviewConfigured } from '@metorial/shared-settings';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   aiAvailabilityUnavailableReason,
@@ -30,12 +31,13 @@ describe('module-flags', () => {
       project: fixture.project,
       user: fixture.user ?? undefined
     });
-    expect(flags).toEqual(
-      applyAiAvailability(
+    expect(flags).toEqual({
+      ...applyAiAvailability(
         applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS),
         isAiAvailable()
-      )
-    );
+      ),
+      'ai-reviews-available': isAiReviewConfigured()
+    });
     expect(isFlagEnabled(flags['paid-audit-logs'])).toBe(true);
   });
 
