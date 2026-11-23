@@ -194,7 +194,7 @@ export let oauthApi = createOAuthAppSkeleton({
           }
         });
 
-      let verificationUrl = new URL(`/oauth/authorize`, getConfig().urls.apiUrl);
+      let verificationUrl = new URL(`/oauth/authorize`, getConfig().urls.connectUrl);
       verificationUrl.searchParams.set('token', oauthAuthorizationRequest.urlToken);
 
       return c.json({
@@ -287,7 +287,7 @@ export let oauthApi = createOAuthAppSkeleton({
           subjectType
         });
 
-      let authorizationUrl = new URL(`/oauth/authorize`, getConfig().urls.apiUrl);
+      let authorizationUrl = new URL(`/oauth/authorize`, getConfig().urls.connectUrl);
       authorizationUrl.searchParams.set('token', oauthAuthorizationRequest.urlToken);
 
       return c.json({

@@ -154,7 +154,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
           alias: a.slug,
           url: portalConnectUrl
             ? `${portalConnectUrl}/${a.slug}`
-            : `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
+            : `${getConfig().urls.connectUrl}/connect/magic/${a.slug}`
         })),
 
         providers: await Promise.all(

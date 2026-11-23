@@ -20,6 +20,7 @@ let config = {
   env: 'production' as 'production' | 'development' | 'staging',
   urls: {
     apiUrl: 'https://api.metorial.test',
+    connectUrl: 'https://api.metorial.test',
     portalsUrl: 'http://localhost:4300'
   }
 };
@@ -87,6 +88,7 @@ describe('portalService.getPrimaryPortalUrls', () => {
     vi.clearAllMocks();
     config.env = 'production';
     config.urls.apiUrl = 'https://api.metorial.test';
+    config.urls.connectUrl = 'https://api.metorial.test';
     config.urls.portalsUrl = 'http://localhost:4300';
   });
 
@@ -210,6 +212,7 @@ describe('portalService.getPrimaryPortalUrls', () => {
   it('uses the API connect URL for namespaced portals in development', async () => {
     config.env = 'development';
     config.urls.apiUrl = 'http://metorial-root.localhost:4310';
+    config.urls.connectUrl = 'http://metorial-root.localhost:4310';
     mockNamespaces([
       namespaceProperty({
         value: 'acme',
@@ -228,6 +231,7 @@ describe('portalService.getPrimaryPortalUrls', () => {
     async magicMcpOrigin => {
       config.env = 'staging';
       config.urls.apiUrl = 'https://api.metorial-staging.com/';
+    config.urls.connectUrl = 'https://api.metorial-staging.com/';
       mockNamespaces([
         namespaceProperty({
           value: 'acme-portal',

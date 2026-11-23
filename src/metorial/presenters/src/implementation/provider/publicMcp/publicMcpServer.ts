@@ -13,7 +13,7 @@ import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPrevie
 
 let getConnectUrls = (slug: string) => {
   let urls = getConfig().urls;
-  let apiUrl = `${urls.apiUrl.replace(/\/+$/, '')}/connect/public/${slug}`;
+  let apiUrl = `${urls.connectUrl.replace(/\/+$/, '')}/connect/public/${slug}`;
   let proxyUrl = urls.publicMcpUrl ? `${urls.publicMcpUrl}/${slug}` : null;
 
   return {

@@ -103,7 +103,7 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       slug: magicMcpEndpoint.slug,
       url: portalConnectUrl
         ? `${portalConnectUrl}/${magicMcpEndpoint.slug}`
-        : `${getConfig().urls.apiUrl}/connect/magic/${magicMcpEndpoint.slug}`,
+        : `${getConfig().urls.connectUrl}/connect/magic/${magicMcpEndpoint.slug}`,
       servers: magicMcpEndpoint.servers.map(server => ({
         ...v1MagicMcpServerPreview(server.magicMcpServer),
         tool_filters: server.toolFilters ?? null

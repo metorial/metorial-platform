@@ -44,6 +44,7 @@ vi.mock('@metorial/config', () => ({
   getConfig: () => ({
     urls: {
       apiUrl: 'https://api.metorial.test',
+      connectUrl: 'https://api.metorial.test',
       publicMcpUrl: 'https://mcp.metorial.test'
     }
   })
