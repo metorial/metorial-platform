@@ -535,6 +535,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-14b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "OpenRouter's listing identifies huggingFaceId Qwen/Qwen3-14B and canonical slug qwen/qwen3-14b-04-28, matching alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "qwen/qwen3-tts-1.7b": {
     "decision": "defer",
     "until": "2026-12-21",

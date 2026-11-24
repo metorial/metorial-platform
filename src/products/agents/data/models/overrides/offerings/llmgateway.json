@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-17"
   },
+  "greenference/qwen3-14b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "LLM Gateway lists this as Greenference's serving of Qwen3 14B, Alibaba's dense Qwen3 checkpoint; matches alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "grok-4": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -164,6 +171,13 @@
     "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "qwen3-14b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "LLM Gateway's Qwen3 14B model is Alibaba's dense Qwen3 checkpoint, matching the exact catalog entry alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
   },
   "seed-2-0-code-preview-260328": {
     "decision": "defer",

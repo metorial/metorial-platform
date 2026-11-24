@@ -363,6 +363,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen-3-14b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "Kilo's Qwen: Qwen3-14B offering is Alibaba's 14.8B dense Qwen3 checkpoint; the exact catalog entry is alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
+  "qwen/qwen3-14b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "Hugging Face metadata identifies the offering as Qwen/Qwen3-14B, Alibaba's 14.8B dense Qwen3 checkpoint; matches alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "qwen/qwen3-max-thinking": {
     "decision": "link",
     "model": "alibaba/qwen3-max",
