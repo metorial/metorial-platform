@@ -1,7 +1,7 @@
 # runtime-function-node24. Docker context is the OSS monorepo root (./oss):
 #   docker build -f src/products/runtime/services/cluster-manager/images/function-node24/Dockerfile -t runtime-function-node24 .
 
-FROM golang:1.26-alpine AS supervisor
+FROM golang:1.27-alpine AS supervisor
 
 WORKDIR /src
 
