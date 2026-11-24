@@ -1,9 +1,15 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
+import {
+  reportServerDeploymentFailure,
+  type ServerDeploymentSystemFailure
+} from '../../lib/reportFailure';
 
 export let deployServerFailedQueue = createQueue<{
   serverDeploymentId: string;
+  // Set when the platform caused the failure rather than the server's own code or image.
+  systemFailure?: ServerDeploymentSystemFailure;
 }>({
   name: 'shut/deploy/failed',
   workerOpts: { concurrency: 50 },
@@ -40,4 +46,11 @@ export let deployServerFailedQueueProcessor = deployServerFailedQueue.process(as
       endedAt
     }
   });
+
+  if (data.systemFailure) {
+    await reportServerDeploymentFailure({
+      serverDeploymentId: data.serverDeploymentId,
+      failure: data.systemFailure
+    });
+  }
 });

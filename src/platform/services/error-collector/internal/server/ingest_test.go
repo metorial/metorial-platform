@@ -169,6 +169,8 @@ func TestStoreEndpointAndBrokenEvents(t *testing.T) {
 func TestComponentName(t *testing.T) {
 	cases := map[[2]string]string{
 		{"Core-API", "x"}:              "core-api",
+		{"integration_controller", ""}: "integration-controller",
+		{"", "core_api"}:               "core_api",
 		{"", "worker"}:                 "worker",
 		{"", ""}:                       unknownComponent,
 		{"../../etc", ""}:              "....etc",

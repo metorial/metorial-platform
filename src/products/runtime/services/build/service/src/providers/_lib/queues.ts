@@ -7,6 +7,7 @@ import {
 } from '@lowerdeck/queue';
 import { db, withTransaction } from '../../db';
 import { env } from '../../env';
+import { reportBuildFailure } from '../../lib/reportBuildFailure';
 import { workflowArtifactService } from '../../services';
 import { storage } from '../../storage';
 
@@ -20,6 +21,7 @@ type BuildEnded = {
   status: 'failed' | 'succeeded';
   endedAt: Date;
   failure?: { code: string; message: string };
+  infrastructureFailure?: { code: string; message: string };
   stepArtifacts: { stepId: string; bucket: string; storageKey: string }[];
 };
 
@@ -83,6 +85,14 @@ let buildEndedQueueProcessor = buildEndedQueue.process(async data => {
       });
     }
     if (status !== data.status) return;
+
+    let failure = data.failure ?? data.infrastructureFailure;
+    if (status === 'failed' && failure) {
+      await reportBuildFailure({ runId: data.runId, failure }).catch(error =>
+        console.error('Could not report build failure', error)
+      );
+    }
+
     if (status === 'succeeded') {
       await createArtifactsQueue.add(
         { runId: data.runId, stepArtifacts: data.stepArtifacts },

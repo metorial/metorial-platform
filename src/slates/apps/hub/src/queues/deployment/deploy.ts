@@ -9,6 +9,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
+import { reportSlateDeploymentFailure } from '../../lib/failureReports';
 import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
 import { fetchSlatesRuntime } from '../../lib/slatesRuntime';
 import { getRegistryClient, getRegistryDownloadQuery } from '../../registry';
@@ -392,6 +393,12 @@ export let deploySlateVersionFailedQueueProcessor = deploySlateVersionFailedQueu
           }
         });
       }
+
+      await reportSlateDeploymentFailure({
+        deployment,
+        errorCode: data.errorCode,
+        errorMessage: data.errorMessage
+      }).catch(error => console.error('Could not report slate deployment failure', error));
 
       await db.slateEvent.create({
         data: {

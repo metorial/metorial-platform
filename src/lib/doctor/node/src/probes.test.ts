@@ -59,7 +59,64 @@ describe('probes', () => {
       warnLatencyMs: 1
     })(ctx());
 
-    expect(outcome).toMatchObject({ status: 'warn', details: { thresholdMs: 1 } });
+    expect(outcome).toMatchObject({
+      status: 'warn',
+      message: expect.stringContaining('(fastest of 3 attempts)'),
+      details: {
+        thresholdMs: 1,
+        attemptsMs: [expect.any(Number), expect.any(Number), expect.any(Number)]
+      }
+    });
+  });
+
+  it('retries a slow answer and passes when a later attempt is fast', async () => {
+    let queries = 0;
+    let outcome = await probes.sql({
+      query: () => new Promise(resolve => setTimeout(resolve, queries++ == 0 ? 60 : 0)),
+      warnLatencyMs: 30
+    })(ctx());
+
+    expect(queries).toBe(2);
+    expect(outcome.status).toBe('pass');
+    expect(outcome.details?.latencyMs).toBeLessThan(30);
+    expect(outcome.details?.attemptsMs).toHaveLength(2);
+  });
+
+  it('measures a fast answer only once', async () => {
+    let queries = 0;
+    let outcome = await probes.sql({
+      query: async () => {
+        queries++;
+      }
+    })(ctx());
+
+    expect(queries).toBe(1);
+    expect(outcome).toMatchObject({
+      status: 'pass',
+      message: expect.not.stringContaining('attempts')
+    });
+    expect(outcome.details).not.toHaveProperty('attemptsMs');
+  });
+
+  it('stops retrying once the check is aborted', async () => {
+    let controller = new AbortController();
+    let { ctx: abortingCtx } = createCheckContext(controller.signal, () => undefined);
+    let queries = 0;
+
+    let outcome = await probes.sql({
+      query: () =>
+        new Promise(resolve =>
+          setTimeout(() => {
+            queries++;
+            controller.abort(new Error('timed out'));
+            resolve(undefined);
+          }, 5)
+        ),
+      warnLatencyMs: 0
+    })(abortingCtx);
+
+    expect(queries).toBe(1);
+    expect(outcome.status).toBe('warn');
   });
 
   it('does not count connection setup against the redis latency threshold', async () => {

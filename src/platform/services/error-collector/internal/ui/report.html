@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="{{.CSP}}" />
+    <title>Error Report · Metorial</title>
+    <link rel="icon" href="{{.Icon}}" />
+    <style>
+      {{.CSS}}
+    </style>
+    <script type="application/json" id="report-data">
+      {{.Data}}
+    </script>
+  </head>
+  <body>
+    <header class="top gutter">
+      <div class="wrap">{{template "brand"}}</div>
+    </header>
+
+    <main class="gutter">
+      <div class="wrap">
+        <div class="privacy">
+          {{template "lock"}}
+          <div>
+            <p>
+              <strong>Exported from the installation's error collector.</strong> It contains
+              counts and one scrubbed example per error group, nothing else.
+            </p>
+            {{template "removed"}}
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <select class="select" id="component" aria-label="Component">
+            <option value="">All components</option>
+          </select>
+          <label class="field grow">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="m10.5 10.5 3 3" />
+            </svg>
+            <input
+              class="input"
+              id="search"
+              type="search"
+              placeholder="Search errors, functions or files"
+              aria-label="Search errors"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+
+        <div id="content">
+          <div class="panel loading">Loading error reports…</div>
+        </div>
+
+        <noscript>
+          <div class="panel noscript">
+            This page needs JavaScript. The same errors are in <code>summary.csv</code> and
+            <code>issues.json</code> next to this file.
+          </div>
+        </noscript>
+      </div>
+    </main>
+
+    <footer class="foot gutter">
+      <div class="wrap"><span id="foot-meta"></span></div>
+    </footer>
+
+    <div class="overlay" id="overlay" hidden></div>
+    <aside class="sheet" id="sheet" aria-label="Error group details" hidden></aside>
+    <div class="toast" id="toast" role="status"></div>
+    {{.Script}}
+  </body>
+</html>

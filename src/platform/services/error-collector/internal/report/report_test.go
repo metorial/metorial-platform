@@ -155,10 +155,15 @@ func TestZipContents(t *testing.T) {
 		_ = opened.Close()
 	}
 
-	for _, name := range []string{"README.txt", "manifest.json", "issues.json", "summary.csv"} {
+	for _, name := range []string{"README.txt", "report.html", "manifest.json", "issues.json", "summary.csv"} {
 		if len(files[name]) == 0 {
 			t.Errorf("%s is missing or empty", name)
 		}
+	}
+
+	page := string(files["report.html"])
+	if !strings.Contains(page, `id="report-data"`) || !strings.Contains(page, `"run (main.mjs)"`) {
+		t.Error("report.html does not embed the report")
 	}
 
 	var issues issuesFile

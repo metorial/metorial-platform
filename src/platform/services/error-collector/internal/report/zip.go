@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/metorial/metorial-platform/src/platform/services/error-collector/internal/ui"
 )
 
 type issuesFile struct {
@@ -36,6 +38,7 @@ func (r *Report) WriteZip(w io.Writer) error {
 		write func(io.Writer) error
 	}{
 		{"README.txt", r.writeReadme},
+		{"report.html", func(w io.Writer) error { return ui.WriteStaticPage(w, r) }},
 		{"manifest.json", func(w io.Writer) error { return writeJSON(w, r.Manifest) }},
 		{"issues.json", func(w io.Writer) error {
 			return writeJSON(w, issuesFile{Bucket: r.Manifest.Window.Bucket, Buckets: r.Manifest.Window.Buckets, Issues: r.Issues})
@@ -65,7 +68,7 @@ func (r *Report) WriteCSV(w io.Writer) error {
 	writer := csv.NewWriter(w)
 	header := []string{
 		"hash", "component", "level", "type", "value", "culprit", "count_in_window", "total_count",
-		"first_seen", "last_seen", "latest_release",
+		"first_seen", "last_seen", "latest_release", "integration", "error_code", "step",
 	}
 	if err := writer.Write(header); err != nil {
 		return err
@@ -76,6 +79,10 @@ func (r *Report) WriteCSV(w io.Writer) error {
 		if len(item.Releases) > 0 {
 			latestRelease = item.Releases[0].Release
 		}
+		var sample struct {
+			Tags map[string]string `json:"tags"`
+		}
+		_ = json.Unmarshal(item.LatestSample, &sample)
 
 		err := writer.Write([]string{
 			item.Hash,
@@ -89,6 +96,9 @@ func (r *Report) WriteCSV(w io.Writer) error {
 			item.FirstSeen.Format(time.RFC3339),
 			item.LastSeen.Format(time.RFC3339),
 			csvSafe(latestRelease),
+			csvSafe(sample.Tags["integration"]),
+			csvSafe(sample.Tags["error_code"]),
+			csvSafe(sample.Tags["step"]),
 		})
 		if err != nil {
 			return err
@@ -128,6 +138,8 @@ Nothing was sent anywhere; the archive leaves the installation only if you send 
 Files
 -----
 
+report.html    The errors with charts, stack traces and releases. Opens in any browser; it loads
+               nothing from the network.
 manifest.json  Window, totals per component, releases seen, retention and versions.
 issues.json    One entry per error group: counts, occurrences over time, releases, and the first
                and latest sample event.
@@ -139,9 +151,14 @@ What was removed before anything was stored
 Requests, users, breadcrumbs, extra data, local variables and source lines are never stored.
 Error messages are scrubbed: credentials, tokens, keys, email addresses, public IP addresses and
 URL query strings are replaced with placeholders. Tags are limited to where an error happened
-(component, queue, route, method, status, handler).
+(component, queue, route, method, status, handler, boot step, and for failed builds, deployments
+and integration calls: integration, error code, provider and step).
 
-Review summary.csv if you want to check the contents before sending the file.
+Failed builds, deployments and integration calls also keep their details (the integration and
+version, ids of the build or deployment, error code and message, timings) and up to 50 of their
+last log lines, scrubbed the same way.
+
+Open report.html or review summary.csv if you want to check the contents before sending the file.
 `,
 		manifest.GeneratedAt.Format(time.RFC3339),
 		manifest.Window.From.Format(time.RFC3339),

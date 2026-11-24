@@ -143,6 +143,72 @@ func TestFromEventKeepsOnlyTheAllowlist(t *testing.T) {
 	}
 }
 
+func TestFromEventKeepsFailureDetailsAndLog(t *testing.T) {
+	lines := make([]string, 0, 60)
+	for index := 0; index < 60; index++ {
+		lines = append(lines, `"line `+itoa(index)+`"`)
+	}
+	event := parse(t, `{
+		"fingerprint": ["integration-deployment-failed", "github", "build_failed"],
+		"exception": {"values": [{"type": "IntegrationDeploymentFailed", "value": "GitHub 1.2.0 failed to deploy"}]},
+		"tags": {"integration": "github", "error_code": "build_failed", "provider": "kubernetes", "step": "build", "tenant": "acme"},
+		"contexts": {
+			"details": {
+				"Integration Version": "1.2.0",
+				"duration_ms": 5400,
+				"staged": true,
+				"error_message": "npm login as bob@example.com failed",
+				"nested": {"secret": "hunter2"},
+				"list": ["hunter2"],
+				"empty": "  "
+			},
+			"log": {"lines": [`+strings.Join(lines, ",")+`, 7, "  ", "token ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]}
+		}
+	}`)
+
+	sample := FromEvent("integration-controller", event, time.Now()).Sample
+	for key, want := range map[string]string{"integration": "github", "error_code": "build_failed", "provider": "kubernetes", "step": "build"} {
+		if sample.Tags[key] != want {
+			t.Errorf("tag %s = %q, want %q", key, sample.Tags[key], want)
+		}
+	}
+	if _, found := sample.Tags["tenant"]; found {
+		t.Error("tags outside the allowlist are kept")
+	}
+
+	details, _ := sample.Contexts["details"].(map[string]string)
+	want := map[string]string{
+		"integrationversion": "1.2.0",
+		"duration_ms":        "5400",
+		"staged":             "true",
+		"error_message":      "npm login as <email> failed",
+	}
+	if len(details) != len(want) {
+		t.Errorf("details = %v", details)
+	}
+	for key, value := range want {
+		if details[key] != value {
+			t.Errorf("details[%s] = %q, want %q", key, details[key], value)
+		}
+	}
+
+	log, _ := sample.Contexts["log"].(map[string][]string)
+	if len(log["lines"]) != maxLogLines {
+		t.Fatalf("log keeps %d lines, want %d", len(log["lines"]), maxLogLines)
+	}
+	if first := log["lines"][0]; first != "line 11" {
+		t.Errorf("log should keep the last lines, starts with %q", first)
+	}
+	if last := log["lines"][maxLogLines-1]; strings.Contains(last, "ghp_") {
+		t.Errorf("log line not scrubbed: %q", last)
+	}
+
+	encoded, _ := json.Marshal(sample)
+	if strings.Contains(string(encoded), "hunter2") {
+		t.Errorf("nested details are kept: %s", encoded)
+	}
+}
+
 func TestUnparseableGroupsPerComponent(t *testing.T) {
 	now := time.Now()
 	if Unparseable("worker", now).Hash == Unparseable("core-api", now).Hash {

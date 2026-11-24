@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   captureException: vi.fn(),
-  captureMessage: vi.fn()
+  captureMessage: vi.fn(),
+  reportSlateInvocationFailure: vi.fn(async () => {})
+}));
+
+vi.mock('../failureReports', () => ({
+  reportSlateInvocationFailure: mocks.reportSlateInvocationFailure
 }));
 
 vi.mock('@lowerdeck/sentry', () => ({
@@ -121,5 +126,60 @@ describe('reportSlateInvocationServerError', () => {
     expect(mocks.captureException).not.toHaveBeenCalled();
     expect(mocks.captureMessage).not.toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledTimes(2);
+  });
+
+  describe('in the on-prem edition', () => {
+    let slateVersion = { id: 'shvr_1', slateOid: 4n, version: '1.2.0' } as any;
+
+    beforeEach(() => {
+      process.env.METORIAL_EDITION = 'on-prem';
+    });
+
+    afterEach(() => {
+      delete process.env.METORIAL_EDITION;
+    });
+
+    it('reports the failure with the integration instead of the generic Sentry event', async () => {
+      let logs = [{ timestamp: 1, message: 'TypeError: x is undefined' }];
+
+      reportSlateInvocationServerError({
+        reason: 'function_bay_error',
+        invocationId: 'shiv_5',
+        slateVersionId: 'shvr_1',
+        slateVersion,
+        providerInvocationId: 'fbiv_2',
+        error: { code: 'function_error', message: 'Function crashed' },
+        logs,
+        methods: ['slates/actions.call']
+      });
+
+      await vi.waitFor(() => expect(mocks.reportSlateInvocationFailure).toHaveBeenCalled());
+      expect(mocks.reportSlateInvocationFailure).toHaveBeenCalledWith({
+        reason: 'function_bay_error',
+        slateVersion,
+        invocationId: 'shiv_5',
+        providerInvocationId: 'fbiv_2',
+        tenantIdentifier: undefined,
+        methods: ['slates/actions.call'],
+        error: { code: 'function_error', message: 'Function crashed' },
+        logs
+      });
+      expect(mocks.captureException).not.toHaveBeenCalled();
+      expect(mocks.captureMessage).not.toHaveBeenCalled();
+    });
+
+    it('still respects suppressSentry', async () => {
+      reportSlateInvocationServerError({
+        reason: 'invocation_exception',
+        invocationId: 'shiv_6',
+        slateVersionId: 'shvr_1',
+        slateVersion,
+        error: new Error('again'),
+        suppressSentry: true
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(mocks.reportSlateInvocationFailure).not.toHaveBeenCalled();
+    });
   });
 });

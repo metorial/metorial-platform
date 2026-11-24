@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Error Reports · Metorial</title>
+    <link rel="icon" href="/system/errors/assets/logo.svg" />
+    <link rel="stylesheet" href="/system/errors/assets/app.css" />
+    <script src="/system/errors/assets/portal.js" defer></script>
+  </head>
+  <body>
+    <header class="top gutter">
+      <div class="wrap narrow">{{template "brand"}}</div>
+    </header>
+
+    <main class="gutter">
+      <div class="wrap narrow">
+        <div class="privacy">
+          {{template "lock"}}
+          <div>
+            <p>
+              <strong>These errors never leave this installation.</strong> Metorial only sees
+              them if you download a report and send it to support.
+            </p>
+            {{template "removed"}}
+          </div>
+        </div>
+
+        <section class="panel download" id="download" aria-labelledby="dl-title">
+          <div class="download-body">
+            <h2 id="dl-title">Download Error Report</h2>
+            <p class="lead">
+              A zip file you can review and attach to a support ticket. It contains counts and
+              one scrubbed example per error group, nothing else.
+            </p>
+            <div class="form-row">
+              <label
+                >Period
+                <select class="select" id="dl-period" disabled>
+                  <option value="1">Last 24 hours</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="30" selected>Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                  <option value="180">Last 180 days</option>
+                </select>
+              </label>
+              <label
+                >Components
+                <select class="select" id="dl-component" disabled>
+                  <option value="">All components</option>
+                </select>
+              </label>
+            </div>
+            <div class="summary-line" id="dl-summary"><span>Counting errors…</span></div>
+            <div class="files">
+              <div>
+                <code>report.html</code
+                ><span
+                  >The errors with charts, stack traces and releases. Opens in any browser
+                  without a connection.</span
+                >
+              </div>
+              <div>
+                <code>summary.csv</code
+                ><span
+                  >One row per error group. Open it in a spreadsheet to check the contents
+                  before you send it.</span
+                >
+              </div>
+              <div>
+                <code>issues.json</code
+                ><span
+                  >Every error group with its counts over time, releases and one example</span
+                >
+              </div>
+              <div>
+                <code>manifest.json</code
+                ><span>Period, totals, retention and the releases of every component</span>
+              </div>
+              <div>
+                <code>README.txt</code><span>What the file contains and what was removed</span>
+              </div>
+            </div>
+            <p class="filename" id="dl-filename"></p>
+          </div>
+          <div class="download-foot">
+            <a
+              class="btn primary"
+              id="dl-link"
+              href="/system/errors/report.zip"
+              aria-disabled="true"
+              tabindex="-1"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" />
+              </svg>
+              Download .zip
+            </a>
+          </div>
+        </section>
+
+        <div id="problem" hidden></div>
+
+        <noscript>
+          <div class="panel noscript">
+            This page needs JavaScript. You can still
+            <a href="/system/errors/report.zip">download the report for the last 30 days</a>.
+          </div>
+        </noscript>
+      </div>
+    </main>
+
+    <footer class="foot gutter">
+      <div class="wrap narrow">
+        <span id="foot-meta"></span>
+        <span class="links"
+          ><a href="/system/doctor">System Doctor</a
+          ><a href="/license">License Portal</a></span
+        >
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="status"></div>
+  </body>
+</html>

@@ -112,6 +112,9 @@ a {
   max-width: 1180px;
   margin: 0 auto;
 }
+.wrap.narrow {
+  max-width: 760px;
+}
 
 header.top .wrap {
   display: flex;
@@ -1139,6 +1142,15 @@ footer.foot .links {
   overflow-wrap: anywhere;
   margin: 0;
 }
+.details {
+  margin-top: 14px;
+}
+.message.log {
+  max-height: 320px;
+  overflow: auto;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
 .frames {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1216,38 +1228,20 @@ footer.foot .links {
   flex-wrap: wrap;
 }
 
-.modal-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: 16px;
+.download,
+#problem {
+  margin-top: 18px;
 }
-.modal-wrap .overlay {
-  opacity: 1;
-}
-.modal {
-  position: relative;
-  z-index: 1;
-  width: min(560px, 100%);
-  max-height: calc(100% - 32px);
-  overflow-y: auto;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-}
-.modal-body {
+.download-body {
   padding: 22px 24px 8px;
 }
-.modal h2 {
+.download h2 {
   margin: 0 0 4px;
   font-size: 17px;
   font-weight: 600;
   color: var(--ink);
 }
-.modal .lead {
+.download .lead {
   margin: 0 0 18px;
   color: var(--muted);
   font-size: 13px;
@@ -1317,7 +1311,7 @@ footer.foot .links {
   color: var(--faint);
   overflow-wrap: anywhere;
 }
-.modal-foot {
+.download-foot {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -1416,6 +1410,16 @@ footer.foot .links {
   .outage {
     grid-template-columns: 1fr;
     padding: 20px;
+  }
+  .download-body {
+    padding: 18px 16px 4px;
+  }
+  .download-foot {
+    padding: 12px 16px 16px;
+  }
+  .download-foot .btn {
+    flex: 1;
+    justify-content: center;
   }
 }
 

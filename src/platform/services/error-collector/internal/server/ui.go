@@ -1,22 +1,13 @@
 package server
 
 import (
-	"embed"
 	"net/http"
-	"path"
 	"strings"
+
+	"github.com/metorial/metorial-platform/src/platform/services/error-collector/internal/ui"
 )
 
-//go:embed ui
-var uiFiles embed.FS
-
 const assetsPath = BasePath + "/assets/"
-
-var assetTypes = map[string]string{
-	".css": "text/css; charset=utf-8",
-	".js":  "text/javascript; charset=utf-8",
-	".svg": "image/svg+xml",
-}
 
 // IsUIPath reports whether the path is part of the page itself rather than a report. The page has
 // to load before the database is ready so it can say that the collector is still starting.
@@ -34,9 +25,9 @@ func UIHandler() http.Handler {
 }
 
 func servePage(w http.ResponseWriter, r *http.Request) {
-	body, err := uiFiles.ReadFile("ui/index.html")
+	body, err := ui.Page()
 	if err != nil {
-		http.Error(w, "the page is missing from this build", http.StatusInternalServerError)
+		http.Error(w, "the page could not be rendered", http.StatusInternalServerError)
 		return
 	}
 
@@ -45,14 +36,7 @@ func servePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveAsset(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("file")
-	contentType, known := assetTypes[path.Ext(name)]
-	if !known || name == "index.html" {
-		http.NotFound(w, r)
-		return
-	}
-
-	body, err := uiFiles.ReadFile("ui/" + name)
+	body, contentType, err := ui.Asset(r.PathValue("file"))
 	if err != nil {
 		http.NotFound(w, r)
 		return

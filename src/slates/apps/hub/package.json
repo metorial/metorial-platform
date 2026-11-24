@@ -101,6 +101,7 @@
     "@metorial-services/slates-registry-client": "workspace:*",
     "@metorial-services/slates-registry-internal-client": "^1.0.0",
     "@metorial/editions": "workspace:*",
+    "@metorial/error-reporting": "workspace:*",
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",
     "@prisma/client": "^7.10.1",

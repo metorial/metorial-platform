@@ -1,6 +1,9 @@
 package issue
 
 import (
+	"encoding/json"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +15,11 @@ const (
 	maxSampleExceptions = 5
 	maxFieldLength      = 256
 	clockSkewTolerance  = 5 * time.Minute
+	maxDetails          = 40
+	maxDetailKeyLength  = 64
+	maxDetailLength     = 512
+	maxLogLines         = 50
+	maxLogLineLength    = 500
 )
 
 // Tags that describe where an error happened without saying who triggered it.
@@ -23,6 +31,11 @@ var allowedTags = map[string]bool{
 	"status":    true,
 	"handler":   true,
 	"boot_step": true,
+	// Failed builds, deployments and integration calls (@metorial/error-reporting reportFailure).
+	"integration": true,
+	"error_code":  true,
+	"provider":    true,
+	"step":        true,
 }
 
 var levels = map[string]bool{"fatal": true, "error": true, "warning": true, "info": true, "debug": true}
@@ -40,7 +53,8 @@ type Occurrence struct {
 }
 
 // Sample is a scrubbed event in Sentry's event shape. Request, user, breadcrumbs, extra data,
-// local variables and source lines are never stored.
+// local variables and source lines are never stored. Of the contexts, only runtime and os, plus
+// the details (flat values) and log (last lines) of failures the services report themselves.
 type Sample struct {
 	EventID     string            `json:"event_id,omitempty"`
 	Timestamp   string            `json:"timestamp"`
@@ -190,6 +204,19 @@ func sampleFromEvent(component string, event *sentry.Event, occurrence Occurrenc
 		}
 	}
 
+	if details := sampleDetails(event.Contexts["details"]); len(details) > 0 {
+		if sample.Contexts == nil {
+			sample.Contexts = map[string]any{}
+		}
+		sample.Contexts["details"] = details
+	}
+	if lines := sampleLog(event.Contexts["log"]); len(lines) > 0 {
+		if sample.Contexts == nil {
+			sample.Contexts = map[string]any{}
+		}
+		sample.Contexts["log"] = map[string][]string{"lines": lines}
+	}
+
 	exceptions := event.Exception
 	if len(exceptions) > maxSampleExceptions {
 		exceptions = exceptions[len(exceptions)-maxSampleExceptions:]
@@ -245,4 +272,82 @@ func sampleException(exception sentry.Exception) SampleException {
 		})
 	}
 	return result
+}
+
+// sampleDetails keeps the scalar values of the details context, scrubbed. Nested values are
+// dropped, so the context can't carry request bodies or other structured data.
+func sampleDetails(raw json.RawMessage) map[string]string {
+	var values map[string]any
+	if len(raw) == 0 || json.Unmarshal(raw, &values) != nil {
+		return nil
+	}
+
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	result := map[string]string{}
+	for _, key := range keys {
+		if len(result) >= maxDetails {
+			break
+		}
+		name := detailKey(key)
+		if name == "" {
+			continue
+		}
+
+		var text string
+		switch value := values[key].(type) {
+		case string:
+			text = value
+		case float64:
+			text = strconv.FormatFloat(value, 'f', -1, 64)
+		case bool:
+			text = strconv.FormatBool(value)
+		default:
+			continue
+		}
+		if text = truncate(Scrub(strings.TrimSpace(text)), maxDetailLength); text != "" {
+			result[name] = text
+		}
+	}
+	return result
+}
+
+func detailKey(key string) string {
+	var builder strings.Builder
+	for _, char := range strings.ToLower(key) {
+		if builder.Len() >= maxDetailKeyLength {
+			break
+		}
+		if char >= 'a' && char <= 'z' || char >= '0' && char <= '9' || char == '_' || char == '.' || char == '-' {
+			builder.WriteRune(char)
+		}
+	}
+	return builder.String()
+}
+
+// sampleLog keeps the last lines of the log context, each scrubbed like a message.
+func sampleLog(raw json.RawMessage) []string {
+	var log struct {
+		Lines []any `json:"lines"`
+	}
+	if len(raw) == 0 || json.Unmarshal(raw, &log) != nil {
+		return nil
+	}
+
+	var lines []string
+	for _, entry := range log.Lines {
+		line, ok := entry.(string)
+		if !ok || strings.TrimSpace(line) == "" {
+			continue
+		}
+		lines = append(lines, truncate(Scrub(strings.TrimRight(line, " \t\r\n")), maxLogLineLength))
+	}
+	if len(lines) > maxLogLines {
+		lines = lines[len(lines)-maxLogLines:]
+	}
+	return lines
 }

@@ -187,9 +187,10 @@ func readBody(r *http.Request, maxBody, maxExpanded int64) ([]byte, error) {
 }
 
 // componentName identifies the sending component from its DSN key (each component gets its own
-// DSN), falling back to the event's component tag.
+// DSN), falling back to the event's component tag. Sentry SDKs reject DSN keys with hyphens, so
+// the key spells core-api as core_api.
 func componentName(key, tag string) string {
-	for _, candidate := range []string{key, tag} {
+	for _, candidate := range []string{strings.ReplaceAll(key, "_", "-"), tag} {
 		var builder strings.Builder
 		for _, char := range strings.ToLower(candidate) {
 			if builder.Len() >= maxComponentLength {

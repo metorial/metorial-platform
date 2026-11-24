@@ -25,8 +25,15 @@ let beforeSend = (event: ErrorEvent, hint: EventHint) => {
   return event;
 };
 
+// Sentry SDKs reject DSN keys with hyphens; the error-collector reads core_api as core-api.
+export let normalizeDsnKey = (dsn: string) =>
+  dsn.replace(
+    /^(\w+:\/\/)([^@/:]+)@/,
+    (_, scheme, key) => `${scheme}${key.replaceAll('-', '_')}@`
+  );
+
 export let initErrorReporting = () => {
-  let dsn = errorReportingSettings.dsn;
+  let dsn = errorReportingSettings.dsn && normalizeDsnKey(errorReportingSettings.dsn);
   if (!dsn || global.sentryInitialized) return false;
 
   global.sentryInitialized = true;
