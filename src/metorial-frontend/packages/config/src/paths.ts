@@ -1511,6 +1511,10 @@ let LicensesPaths = Object.assign(
     downloads: (organizationId: string | null | undefined, ...subPages: SubPages) => {
       if (!organizationId) return '#';
       return LicensesPaths(organizationId, 'downloads', ...subPages);
+    },
+    images: (organizationId: string | null | undefined, ...subPages: SubPages) => {
+      if (!organizationId) return '#';
+      return LicensesPaths(organizationId, 'images', ...subPages);
     }
   }
 );
