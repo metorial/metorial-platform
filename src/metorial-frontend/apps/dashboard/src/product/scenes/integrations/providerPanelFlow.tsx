@@ -1,5 +1,6 @@
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import {
   IntegrationInstance,
   IntegrationInstanceProvider,
@@ -16,6 +17,7 @@ import {
   useProviderAuthCredentials,
   useProviderAuthMethod,
   useProviderAuthMethods,
+  useProviderDeployment,
   useDashboardFlags,
   useProviderConfigSchemaTarget,
   useProviderListing,
@@ -47,6 +49,11 @@ import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationC
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
 import { toSdkToolFilterRules } from '../../lib/toolFilterRules';
 import { AuthMethodPicker } from '../providerAuthConfigs/authMethodPicker';
+import {
+  getPreferredProviderAuthCredential,
+  getProviderAuthCredentialsQuery
+} from '../providerAuthConfigs/credentialPicker';
+import { isProviderSetupCredentialError } from '../providerDeployments/setupSessionRunner';
 import { showProviderAuthCredentialsFormModal } from '../providerAuthCredentials/modal';
 import {
   ProviderCreationPanelShell,
@@ -380,6 +387,13 @@ let IntegrationProviderAuthSection = (p: {
   onSelectedAuthMethodIdChange: (value: string) => void;
   selectedAuthCredentialsId: string;
   selectedAuthCredentialsLabel?: string;
+  credentialsLoading: boolean;
+  credentialsLoadError?: string;
+  onRetryCredentials: () => void;
+  credentialCount: number;
+  hasMoreCredentials: boolean;
+  rejectedCredentialId: string | null;
+  savedCredentialUnavailable: boolean;
   onSelectedAuthCredentialsIdChange: (
     value: string,
     credentials?: { id: string; name?: string | null }
@@ -412,19 +426,23 @@ let IntegrationProviderAuthSection = (p: {
               completed={Boolean(p.selectedAuthMethodId)}
             >
               <Flex direction="column" gap={10}>
-                <AuthMethodPicker
-                  label="Authentication Method"
-                  hideLabel
-                  value={selectedAuthMethodInList ? p.selectedAuthMethodId : ''}
-                  onChange={value => {
-                    p.onSelectedAuthMethodIdChange(value);
-                  }}
-                  items={authMethodItems.map(method => ({
-                    id: method.id,
-                    name: method.name,
-                    description: method.description
-                  }))}
-                />
+                {authMethodItems.length > 1 || hasUnlistedSelectedAuthMethod ? (
+                  <AuthMethodPicker
+                    label="Authentication Method"
+                    hideLabel
+                    value={selectedAuthMethodInList ? p.selectedAuthMethodId : ''}
+                    onChange={p.onSelectedAuthMethodIdChange}
+                    items={authMethodItems.map(method => ({
+                      id: method.id,
+                      name: method.name,
+                      description: method.description
+                    }))}
+                  />
+                ) : (
+                  <Text size="2" weight="strong">
+                    {authMethodItems[0]?.name}
+                  </Text>
+                )}
                 {hasUnlistedSelectedAuthMethod ? (
                   <Callout color="gray">
                     This integration is using a previously selected auth method
@@ -459,72 +477,97 @@ let IntegrationProviderAuthSection = (p: {
                   completed={Boolean(p.selectedAuthCredentialsId)}
                 >
                   <Flex direction="column" gap={10}>
-                    <Flex gap={8} align="end">
-                      <div style={{ flex: 1 }}>
-                        <Combobox
-                          key={p.selectedAuthMethodId || 'auth-credentials'}
-                          label="Auth Credentials"
-                          placeholder="Search auth credentials"
-                          value={p.selectedAuthCredentialsId || null}
-                          valueLabel={p.selectedAuthCredentialsLabel}
-                          provider={({ searchQuery }) => {
-                            let comboboxCredentials = useProviderAuthCredentials(
-                              p.instanceId,
-                              {
-                                ...(p.providerDeploymentId
-                                  ? { providerDeploymentId: p.providerDeploymentId }
-                                  : { providerId: p.providerId }),
-                                ...(p.selectedAuthMethodId
-                                  ? { providerAuthMethodId: p.selectedAuthMethodId }
-                                  : {}),
-                                origin: ['custom', 'managed'],
-                                limit: 25,
-                                search: searchQuery || undefined
-                              }
-                            );
-
-                            return {
-                              items: (comboboxCredentials.data?.items ?? []).map(
-                                credentials => ({
-                                  id: credentials.id,
-                                  label: credentials.name ?? credentials.id
-                                })
-                              ),
-                              isLoading: comboboxCredentials.isLoading,
-                              empty: searchQuery
-                                ? 'No matching auth credentials found.'
-                                : 'No auth credentials available.'
-                            };
-                          }}
-                          onChange={value => {
-                            p.onSelectedAuthCredentialsIdChange(value ?? '');
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Button
-                          type="button"
-                          size="3"
-                          iconLeft={<RiAddLine />}
-                          onClick={() =>
-                            showProviderAuthCredentialsFormModal({
-                              instanceId: p.instanceId,
-                              providerId: p.providerId,
-                              deploymentId: p.providerDeploymentId,
-                              providerAuthMethodId: p.selectedAuthMethodId,
-                              onCreate: credentials => {
-                                p.onSelectedAuthCredentialsIdChange(
-                                  credentials.id,
-                                  credentials
-                                );
-                              }
-                            })
-                          }
-                        >
-                          Create Auth Credentials
+                    {p.savedCredentialUnavailable && (
+                      <Callout color="orange">
+                        The saved OAuth app is unavailable for this method. Save the
+                        integration with an available app to restore sign-in.
+                      </Callout>
+                    )}
+                    {p.credentialsLoadError ? (
+                      <>
+                        <Callout color="orange">Could not load OAuth apps.</Callout>
+                        <Button variant="outline" onClick={p.onRetryCredentials}>
+                          Try Again
                         </Button>
-                      </div>
-                    </Flex>
+                      </>
+                    ) : p.credentialsLoading ? (
+                      <CenteredSpinner />
+                    ) : (
+                      <Flex gap={8} align="end">
+                        {p.credentialCount > 1 || p.hasMoreCredentials ? (
+                          <div style={{ flex: 1 }}>
+                            <Combobox
+                              key={p.selectedAuthMethodId || 'auth-credentials'}
+                              label="Auth Credentials"
+                              placeholder="Search auth credentials"
+                              value={p.selectedAuthCredentialsId || null}
+                              valueLabel={p.selectedAuthCredentialsLabel}
+                              provider={({ searchQuery }) => {
+                                let comboboxCredentials = useProviderAuthCredentials(
+                                  p.instanceId,
+                                  {
+                                    ...getProviderAuthCredentialsQuery({
+                                      providerId: p.providerId,
+                                      providerAuthMethodId: p.selectedAuthMethodId,
+                                      search: searchQuery || undefined
+                                    })
+                                  }
+                                );
+
+                                return {
+                                  items: (comboboxCredentials.data?.items ?? [])
+                                    .filter(
+                                      credentials => credentials.id !== p.rejectedCredentialId
+                                    )
+                                    .map(credentials => ({
+                                      id: credentials.id,
+                                      label: credentials.name ?? credentials.id
+                                    })),
+                                  isLoading: comboboxCredentials.isLoading,
+                                  empty: searchQuery
+                                    ? 'No matching auth credentials found.'
+                                    : 'No auth credentials available.'
+                                };
+                              }}
+                              onChange={(value, item) => {
+                                p.onSelectedAuthCredentialsIdChange(
+                                  value ?? '',
+                                  item ? { id: item.id, name: item.label } : undefined
+                                );
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <Text size="2" color="gray600">
+                            {p.selectedAuthCredentialsLabel ??
+                              'Add an OAuth app to enable sign-in.'}
+                          </Text>
+                        )}
+                        <div>
+                          <Button
+                            type="button"
+                            size="3"
+                            iconLeft={<RiAddLine />}
+                            onClick={() =>
+                              showProviderAuthCredentialsFormModal({
+                                instanceId: p.instanceId,
+                                providerId: p.providerId,
+                                deploymentId: p.providerDeploymentId,
+                                providerAuthMethodId: p.selectedAuthMethodId,
+                                onCreate: credentials => {
+                                  p.onSelectedAuthCredentialsIdChange(
+                                    credentials.id,
+                                    credentials
+                                  );
+                                }
+                              })
+                            }
+                          >
+                            Create Auth Credentials
+                          </Button>
+                        </div>
+                      </Flex>
+                    )}
                     {p.authCredentialsError}
                   </Flex>
                 </ConfigureSectionCard>
@@ -577,8 +620,8 @@ let IntegrationProviderSetupStep = (p: {
   let createIntegrationProvider = useCreateIntegrationProvider();
   let updateIntegrationProvider = useUpdateIntegrationProvider();
   let autoSubmitAttemptedRef = useRef(false);
-  let managedAuthCredentialsDefaultedKeysRef = useRef(new Set<string>());
-  let manuallySelectedAuthMethodIdsRef = useRef(new Set<string>());
+  let [savedCredentialUnavailable, setSavedCredentialUnavailable] = useState(false);
+  let [rejectedCredentialId, setRejectedCredentialId] = useState<string | null>(null);
   let [authConfigMode, setAuthConfigMode] = useState<IntegrationProviderAuthConfigMode | null>(
     p.initialAuthConfigMode ?? (p.requireAuthConfigModeSelection ? null : 'not_provided')
   );
@@ -605,13 +648,17 @@ let IntegrationProviderSetupStep = (p: {
     providerTriggers?.status === 'enabled';
   let showCallbackToolsOption = showCallbacks && !!p.showCallbackToolsOption;
   let existingCallback = p.integrationProvider?.callbacks.callback ?? null;
+  let deployment = useProviderDeployment(
+    instance.data?.id,
+    p.integrationProvider?.deployment.id
+  );
+  let isDeploymentLoading = !!p.integrationProvider?.deployment.id && deployment.isLoading;
+  let effectiveVersionId =
+    deployment.data?.lockedVersion?.id ?? visibility.provider.data?.currentVersion?.id;
   let authMethods = useProviderAuthMethods(
     instance.data?.id,
-    visibility.showAuth && visibility.provider.data?.currentVersion?.id
-      ? {
-          providerVersionId: visibility.provider.data.currentVersion.id,
-          adapter: p.authMethodAdapter
-        }
+    visibility.showAuth && !isDeploymentLoading && effectiveVersionId
+      ? { providerVersionId: effectiveVersionId, adapter: p.authMethodAdapter }
       : null
   );
   let showConnectionMode =
@@ -655,7 +702,7 @@ let IntegrationProviderSetupStep = (p: {
     let toolFilters = getToolFilters(values);
 
     if (p.integrationProvider) {
-      let [updated] = await updateIntegrationProvider.mutate({
+      let [updated, error] = await updateIntegrationProvider.mutate({
         instanceId: instance.data.id,
         integrationProviderId: p.integrationProvider.id,
         providerConfigId: providerConfigId ?? null,
@@ -664,7 +711,15 @@ let IntegrationProviderSetupStep = (p: {
         toolFilters,
         callbacks: showCallbacks ? { status: values.callbacksStatus } : undefined
       });
-      if (!updated) return false;
+      if (!updated) {
+        if (isProviderSetupCredentialError(error?.data, providerAuthCredentialsId)) {
+          setSavedCredentialUnavailable(true);
+          setRejectedCredentialId(providerAuthCredentialsId ?? null);
+          resetSelectedAuthCredentials();
+          void authCredentials.refetch();
+        }
+        return false;
+      }
       p.onComplete();
       p.close();
       return true;
@@ -847,42 +902,25 @@ let IntegrationProviderSetupStep = (p: {
     : undefined;
   let requiresAuthCredentials =
     selectedAuthMethod?.type === 'oauth' && !oauthAutoRegistrationEnabled;
-  let authCredentials = useProviderAuthCredentials(
-    instance.data?.id,
-    effectiveShowAuth && requiresAuthCredentials
-      ? {
-          ...(p.integrationProvider?.deployment.id
-            ? { providerDeploymentId: p.integrationProvider.deployment.id }
-            : { providerId: p.providerId }),
-          ...(form.values.selectedAuthMethodId
-            ? { providerAuthMethodId: form.values.selectedAuthMethodId }
-            : {}),
-          origin: ['custom', 'managed']
-        }
-      : null
-  );
-  let managedAuthCredentials = useProviderAuthCredentials(
-    instance.data?.id,
+  let credentialsQuery =
     effectiveShowAuth && requiresAuthCredentials && form.values.selectedAuthMethodId
-      ? {
-          ...(p.integrationProvider?.deployment.id
-            ? { providerDeploymentId: p.integrationProvider.deployment.id }
-            : { providerId: p.providerId }),
-          providerAuthMethodId: form.values.selectedAuthMethodId,
-          origin: ['managed'],
-          limit: 10
-        }
+      ? getProviderAuthCredentialsQuery({
+          providerId: p.providerId,
+          providerAuthMethodId: form.values.selectedAuthMethodId
+        })
+      : null;
+  let authCredentials = useProviderAuthCredentials(instance.data?.id, credentialsQuery);
+  let selectedCredentialEligibility = useProviderAuthCredentials(
+    instance.data?.id,
+    credentialsQuery && form.values.selectedAuthCredentialsId
+      ? { ...credentialsQuery, id: form.values.selectedAuthCredentialsId, limit: 1 }
       : null
   );
-  let preferredManagedAuthCredential =
-    managedAuthCredentials.data?.items.find(credential => credential.isDefault) ??
-    managedAuthCredentials.data?.items[0];
-  let managedAuthCredentialsDefaultKey = [
-    instance.data?.id ?? '',
-    p.providerId,
-    p.integrationProvider?.deployment.id ?? '',
-    form.values.selectedAuthMethodId
-  ].join(':');
+  let preferredAuthCredential = getPreferredProviderAuthCredential(
+    (authCredentials.data?.items ?? []).filter(
+      credential => credential.id !== rejectedCredentialId
+    )
+  );
   let selectedAuthCredential = useProviderAuthCredential(
     instance.data?.id,
     form.values.selectedAuthCredentialsId || null
@@ -938,56 +976,37 @@ let IntegrationProviderSetupStep = (p: {
   ]);
 
   useEffect(() => {
-    if (!effectiveShowAuth) return;
-    if (!requiresAuthCredentials) return;
-    if (!form.values.selectedAuthMethodId) return;
-    if (form.values.selectedAuthCredentialsId) return;
-    if (managedAuthCredentials.isLoading) return;
-    if (!preferredManagedAuthCredential) return;
-    if (manuallySelectedAuthMethodIdsRef.current.has(form.values.selectedAuthMethodId)) return;
-    if (managedAuthCredentialsDefaultedKeysRef.current.has(managedAuthCredentialsDefaultKey)) {
+    if (
+      !credentialsQuery ||
+      !preferredAuthCredential ||
+      form.values.selectedAuthCredentialsId
+    ) {
       return;
     }
 
-    managedAuthCredentialsDefaultedKeysRef.current.add(managedAuthCredentialsDefaultKey);
-    form.setFieldValue('selectedAuthCredentialsId', preferredManagedAuthCredential.id);
-    form.setFieldTouched('selectedAuthCredentialsId', false, false);
-    form.setFieldError('selectedAuthCredentialsId', undefined);
-    setCreatedAuthCredentialsSelection({
-      id: preferredManagedAuthCredential.id,
-      label: preferredManagedAuthCredential.name ?? preferredManagedAuthCredential.id
-    });
+    void form.setFieldValue('selectedAuthCredentialsId', preferredAuthCredential.id);
   }, [
-    effectiveShowAuth,
-    requiresAuthCredentials,
-    managedAuthCredentials.isLoading,
-    managedAuthCredentialsDefaultKey,
-    preferredManagedAuthCredential?.id,
-    preferredManagedAuthCredential?.name,
-    form.values.selectedAuthMethodId,
+    credentialsQuery?.providerAuthMethodId,
+    preferredAuthCredential?.id,
     form.values.selectedAuthCredentialsId
   ]);
 
   useEffect(() => {
-    if (!effectiveShowAuth) return;
-    if (!form.values.selectedAuthCredentialsId) return;
-    if (authCredentials.isLoading) return;
+    let id = form.values.selectedAuthCredentialsId;
+    if (!credentialsQuery || !id || !selectedCredentialEligibility.data) return;
+    if (createdAuthCredentialsSelection?.id === id) return;
+    if (selectedCredentialEligibility.data.items.some(credential => credential.id === id))
+      return;
 
-    let credentialExists = (authCredentials.data?.items ?? []).some(
-      credential => credential.id === form.values.selectedAuthCredentialsId
-    );
-    let createdCredentialSelected =
-      createdAuthCredentialsSelection?.id === form.values.selectedAuthCredentialsId;
-
-    if (!credentialExists && !createdCredentialSelected) {
-      resetSelectedAuthCredentials();
-    }
+    if (p.integrationProvider?.authCredentials?.id === id) setSavedCredentialUnavailable(true);
+    setRejectedCredentialId(id);
+    resetSelectedAuthCredentials();
   }, [
-    effectiveShowAuth,
-    authCredentials.isLoading,
-    authCredentials.data?.items,
+    credentialsQuery?.providerAuthMethodId,
+    selectedCredentialEligibility.data,
     createdAuthCredentialsSelection?.id,
-    form.values.selectedAuthCredentialsId
+    form.values.selectedAuthCredentialsId,
+    p.integrationProvider?.authCredentials?.id
   ]);
 
   let hasVisibleInputs =
@@ -1148,7 +1167,7 @@ let IntegrationProviderSetupStep = (p: {
               onSelectedAuthMethodIdChange={value => {
                 if (value === form.values.selectedAuthMethodId) return;
 
-                manuallySelectedAuthMethodIdsRef.current.add(value);
+                setRejectedCredentialId(null);
                 form.setFieldValue('selectedAuthMethodId', value);
                 form.setFieldTouched('selectedAuthMethodId', false, false);
                 form.setFieldError('selectedAuthMethodId', undefined);
@@ -1169,10 +1188,14 @@ let IntegrationProviderSetupStep = (p: {
                     form.values.selectedAuthCredentialsId)
                   : undefined
               }
+              credentialsLoading={authCredentials.isLoading}
+              credentialsLoadError={authCredentials.error?.message}
+              onRetryCredentials={authCredentials.refetch}
+              credentialCount={authCredentials.data?.items.length ?? 0}
+              hasMoreCredentials={!!authCredentials.data?.pagination.hasMoreAfter}
+              savedCredentialUnavailable={savedCredentialUnavailable}
+              rejectedCredentialId={rejectedCredentialId}
               onSelectedAuthCredentialsIdChange={(value, credentials) => {
-                managedAuthCredentialsDefaultedKeysRef.current.add(
-                  managedAuthCredentialsDefaultKey
-                );
                 form.setFieldValue('selectedAuthCredentialsId', value);
                 form.setFieldTouched('selectedAuthCredentialsId', false, false);
                 form.setFieldError('selectedAuthCredentialsId', undefined);
@@ -1757,6 +1780,12 @@ let IntegrationInstanceProviderPanel = (p: {
                 providerDeploymentId={p.integrationProvider.deployment.id}
                 fixedAuthMethodId={fixedAuthMethodId}
                 fixedAuthCredentialsId={p.integrationProvider.authCredentials?.id}
+                fixedAuthCredentialsSettingsHref={Paths.instance.integration(
+                  instance.data!.organization,
+                  instance.data!.project,
+                  instance.data!,
+                  p.integration.id
+                )}
                 providerName={visibility.providerName}
                 selectedConfiguration={form.values.selectedConfiguration}
                 onSelectedConfigurationChange={value => {

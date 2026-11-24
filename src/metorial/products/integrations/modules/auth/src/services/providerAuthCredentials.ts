@@ -11,6 +11,7 @@ import {
   type Provider,
   type ProviderAuthCredentials,
   type ProviderAuthCredentialsStatus,
+  type ProviderAuthMethod,
   type ProviderType,
   type ProviderVariant,
   type Solution,
@@ -151,14 +152,16 @@ let getManagedBackingWhereForTenantList = (d: {
   solution: Solution;
   providerAuthMethodGlobalOids?: bigint[];
   ids?: string[];
+  includeArchived?: boolean;
 }) => ({
   ...getManagedBackingWhere({ tenant: d.tenant, solution: d.solution }),
   ...(d.ids !== undefined ? { id: { in: d.ids } } : {}),
-  ...(d.providerAuthMethodGlobalOids?.length
+  ...(d.providerAuthMethodGlobalOids !== undefined
     ? {
         managedCredentialsBacking: {
           is: {
             managedCredentials: {
+              status: d.includeArchived ? undefined : ('active' as const),
               OR: [
                 {
                   providerAuthMethodGlobalOid: {
@@ -179,6 +182,21 @@ let getManagedBackingWhereForTenantList = (d: {
         }
       }
     : {})
+});
+
+let getInstallationAuthMethodFilter = (
+  authMethods: Pick<ProviderAuthMethod, 'providerOid' | 'key'>[]
+): Prisma.ProviderAuthCredentialsWhereInput => ({
+  OR: [
+    {
+      fixedAuthMethodKey: null,
+      providerOid: { in: authMethods.map(method => method.providerOid) }
+    },
+    ...authMethods.map(method => ({
+      providerOid: method.providerOid,
+      fixedAuthMethodKey: method.key
+    }))
+  ]
 });
 
 export type UpdateProviderAuthCredentialsParams = {
@@ -348,6 +366,20 @@ class providerAuthCredentialsServiceImpl {
     let includeManagedBacking = origin.includes('managed_backing');
     let includeInstallationTemplate = origin.includes('installation_template');
 
+    let installationAuthMethods =
+      includeInstallationTemplate && authMethodsGlobal && d.providerAuthMethodIds
+        ? await db.providerAuthMethod.findMany({
+            where: {
+              globalOid: authMethodsGlobal.in,
+              type: 'oauth',
+              OR: [
+                { id: { in: d.providerAuthMethodIds } },
+                { global: { id: { in: d.providerAuthMethodIds } } }
+              ]
+            }
+          })
+        : null;
+
     let search = await buildSearchFilter<Prisma.ProviderAuthCredentialsWhereInput>({
       search: d.search,
       findIds: async query => {
@@ -405,13 +437,16 @@ class providerAuthCredentialsServiceImpl {
                         tenant: d.tenant,
                         solution,
                         ids: d.ids,
-                        providerAuthMethodGlobalOids: authMethodsGlobal?.oids
+                        providerAuthMethodGlobalOids: authMethodsGlobal?.oids,
+                        includeArchived: d.allowDeleted || d.status?.includes('archived')
                       })
                     : undefined!,
                   includeInstallationTemplate
                     ? {
                         ...getInstallationTemplateWhere({ tenant: d.tenant, solution }),
-                        ...(d.ids ? { id: { in: d.ids } } : {})
+                        ...(installationAuthMethods
+                          ? getInstallationAuthMethodFilter(installationAuthMethods)
+                          : {})
                       }
                     : undefined!
                 ].filter(Boolean)
@@ -882,18 +917,70 @@ class providerAuthCredentialsServiceImpl {
     );
   }
 
-  async getInstallationTemplateDefaultInternal(d: { tenant: Tenant; provider: Provider }) {
+  async getInstallationTemplateDefaultInternal(d: {
+    tenant: Tenant;
+    provider: Provider;
+    authMethods: Pick<ProviderAuthMethod, 'key' | 'providerOid'>[];
+  }) {
+    if (!d.authMethods.length) return null;
+
     let solution = await getMetorialSolution();
 
     return await db.providerAuthCredentials.findFirst({
       where: {
         ...getInstallationTemplateWhere({ tenant: d.tenant, solution }),
         providerOid: d.provider.oid,
-        status: 'active'
+        status: 'active',
+        ...getInstallationAuthMethodFilter(d.authMethods)
       },
       include,
-      orderBy: { createdAt: 'asc' }
+      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
     });
+  }
+
+  async getDefaultOAuthCredentialsForMethodInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    provider: Provider;
+    authMethod: Pick<ProviderAuthMethod, 'key' | 'providerOid' | 'globalOid'>;
+  }) {
+    let solution = await getMetorialSolution();
+    let projectDefault = await db.providerAuthCredentials.findFirst({
+      where: {
+        ...getTenantOwnedWhere({ ...d, solution }),
+        providerOid: d.provider.oid,
+        isDefault: true,
+        isEphemeral: false,
+        status: 'active'
+      }
+    });
+
+    if (projectDefault) return projectDefault;
+
+    let installationDefault = await this.getInstallationTemplateDefaultInternal({
+      ...d,
+      authMethods: [d.authMethod]
+    });
+    if (installationDefault) return installationDefault;
+
+    let candidates = await db.providerAuthCredentials.findMany({
+      where: {
+        providerOid: d.provider.oid,
+        isEphemeral: false,
+        status: 'active',
+        OR: [
+          getTenantOwnedWhere({ ...d, solution }),
+          getManagedBackingWhereForTenantList({
+            tenant: d.tenant,
+            solution,
+            providerAuthMethodGlobalOids: [d.authMethod.globalOid]
+          })
+        ]
+      },
+      take: 2
+    });
+
+    return candidates.length === 1 ? candidates[0]! : null;
   }
 
   async resolveReplacementProviderAuthCredentialsInternal(d: {
@@ -901,7 +988,7 @@ class providerAuthCredentialsServiceImpl {
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
     providerAuthCredentials: ProviderAuthCredentials;
-    providerAuthMethod?: { globalOid: bigint } | null;
+    providerAuthMethod?: Pick<ProviderAuthMethod, 'globalOid' | 'key' | 'providerOid'> | null;
   }): Promise<
     | { type: 'replace'; providerAuthCredentials: ProviderAuthCredentials }
     | { type: 'clear' }
@@ -938,8 +1025,19 @@ class providerAuthCredentialsServiceImpl {
         oid: { not: d.providerAuthCredentials.oid },
         OR: [
           getTenantOwnedWhere({ ...d, solution }),
-          getManagedBackingWhere({ tenant: d.tenant, solution }),
-          getInstallationTemplateWhere({ tenant: d.tenant, solution })
+          ...(d.providerAuthMethod
+            ? [
+                getManagedBackingWhereForTenantList({
+                  tenant: d.tenant,
+                  solution,
+                  providerAuthMethodGlobalOids: [d.providerAuthMethod.globalOid]
+                }),
+                {
+                  ...getInstallationTemplateWhere({ tenant: d.tenant, solution }),
+                  ...getInstallationAuthMethodFilter([d.providerAuthMethod])
+                }
+              ]
+            : [])
         ]
       },
       take: 2

@@ -21,8 +21,10 @@ export let ProviderAuthConfigCreateButton = (
     providerId: p.providerId,
     fixedAuthMethodId: p.fixedAuthMethodId,
     fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+    fixedAuthCredentialsSettingsHref: p.fixedAuthCredentialsSettingsHref,
     authMethodAdapter: p.authMethodAdapter,
     defaultAuthConfigName: p.defaultAuthConfigName,
+    source: p.source,
     onCreate: p.onCreate,
     onBack: p.onBack
   });

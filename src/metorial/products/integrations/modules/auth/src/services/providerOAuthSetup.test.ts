@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   oauthSetupCreate: vi.fn(),
   createBackendOAuthSetup: vi.fn(),
-  getVersionAndAuthMethod: vi.fn()
+  getVersionAndAuthMethod: vi.fn(),
+  getDefaultOAuthCredentialsForMethodInternal: vi.fn(),
+  getInstallationTemplateDefaultInternal: vi.fn(),
+  findAuthMethods: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -25,7 +28,8 @@ vi.mock('@metorial-subspace/db', () => {
       update: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn()
-    }
+    },
+    providerAuthMethod: { findMany: mocks.findAuthMethods }
   };
 
   return {
@@ -77,6 +81,9 @@ vi.mock('./providerAuthConfigInternal', () => ({
 
 vi.mock('./providerAuthCredentials', () => ({
   providerAuthCredentialsService: {
+    getDefaultOAuthCredentialsForMethodInternal:
+      mocks.getDefaultOAuthCredentialsForMethodInternal,
+    getInstallationTemplateDefaultInternal: mocks.getInstallationTemplateDefaultInternal,
     getProviderAuthCredentialsForBackendUseInternal: vi.fn(
       async (d: { providerAuthCredentials: unknown }) => d.providerAuthCredentials
     )
@@ -85,12 +92,18 @@ vi.mock('./providerAuthCredentials', () => ({
 
 import { providerOAuthSetupService } from './providerOAuthSetup';
 
-let create = (input: Record<string, any> = {}) =>
+let create = (input: Record<string, any> = {}, useExplicitCredentials = true) =>
   providerOAuthSetupService.createProviderOAuthSetupInternal({
     tenant: { oid: 10n, projectOid: 20n } as any,
     environment: { oid: 30n, instanceOid: 40n } as any,
-    provider: { oid: 50n, defaultVariant: { oid: 51n }, type: { attributes: {} } } as any,
-    credentials: { oid: 70n, origin: 'managed_public' } as any,
+    provider: {
+      oid: 50n,
+      defaultVariant: { oid: 51n },
+      type: { attributes: { auth: {} } }
+    } as any,
+    credentials: useExplicitCredentials
+      ? ({ oid: 70n, origin: 'managed_public' } as any)
+      : undefined,
     input: { config: {}, ...input }
   });
 
@@ -100,11 +113,43 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   mocks.getVersionAndAuthMethod.mockResolvedValue({
-    version: { oid: 80n },
-    authMethod: { oid: 60n, type: 'oauth' }
+    version: { oid: 80n, specificationOid: 90n },
+    authMethod: { oid: 60n, id: 'pam_github', key: 'github', type: 'oauth' }
   });
+  mocks.getDefaultOAuthCredentialsForMethodInternal.mockResolvedValue(null);
   mocks.createBackendOAuthSetup.mockResolvedValue({ url: 'https://hub.test/authorize' });
   mocks.oauthSetupCreate.mockImplementation(async ({ data }: { data: unknown }) => data);
+});
+
+describe('createProviderOAuthSetupInternal OAuth app choice', () => {
+  let enterpriseMethod = { oid: 61n, key: 'github_enterprise', type: 'oauth' };
+  let enterpriseApp = {
+    oid: 71n,
+    fixedAuthMethodKey: enterpriseMethod.key,
+    origin: 'installation_template'
+  };
+
+  it('keeps the requested method when it has no compatible credentials', async () => {
+    await expect(create({ authMethodId: 'pam_github' }, false)).rejects.toMatchObject({
+      data: { code: 'missing_auth_credentials' }
+    });
+    expect(mocks.getDefaultOAuthCredentialsForMethodInternal).toHaveBeenCalledWith(
+      expect.objectContaining({ authMethod: expect.objectContaining({ id: 'pam_github' }) })
+    );
+    expect(mocks.getInstallationTemplateDefaultInternal).not.toHaveBeenCalled();
+    expect(mocks.createBackendOAuthSetup).not.toHaveBeenCalled();
+  });
+
+  it('uses an available installation app when the caller leaves the method open', async () => {
+    mocks.findAuthMethods.mockResolvedValue([enterpriseMethod]);
+    mocks.getInstallationTemplateDefaultInternal.mockResolvedValue(enterpriseApp);
+
+    await create({}, false);
+
+    expect(mocks.createBackendOAuthSetup).toHaveBeenCalledWith(
+      expect.objectContaining({ authMethod: enterpriseMethod, credentials: enterpriseApp })
+    );
+  });
 });
 
 describe('createProviderOAuthSetupInternal expiry', () => {

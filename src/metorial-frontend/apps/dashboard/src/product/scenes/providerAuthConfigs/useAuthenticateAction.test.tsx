@@ -16,7 +16,9 @@ let state = vi.hoisted(() => ({
   rememberedId: null as string | null,
   start: vi.fn(),
   openModal: vi.fn(),
-  credentialsHook: vi.fn()
+  credentialsHook: vi.fn(),
+  refetch: vi.fn(),
+  onCredentialError: undefined as ((error: { credentialId?: string }) => void) | undefined
 }));
 
 vi.mock('@metorial/state', () => ({
@@ -24,7 +26,7 @@ vi.mock('@metorial/state', () => ({
   useProviderListing: () => ({ data: { name: 'Provider' } }),
   useProviderAuthCredentialsForMethods: (...args: unknown[]) => {
     state.credentialsHook(...args);
-    return { data: state.credentials, error: null };
+    return { data: state.credentials, error: null, refetch: state.refetch };
   }
 }));
 
@@ -47,11 +49,12 @@ vi.mock('../../lib/providerCreationCapabilities', () => ({
 }));
 
 vi.mock('../providerDeployments/setupSessionRunner', () => ({
-  useProviderSetupSessionRunner: () => ({
-    start: state.start,
-    isStarting: false,
-    isAwaitingCompletion: false
-  })
+  useProviderSetupSessionRunner: (opts: {
+    onCredentialError: typeof state.onCredentialError;
+  }) => {
+    state.onCredentialError = opts.onCredentialError;
+    return { start: state.start, isStarting: false, isAwaitingCompletion: false };
+  }
 }));
 
 vi.mock('./createModal', () => ({ showProviderAuthConfigCreateModal: state.openModal }));
@@ -172,6 +175,38 @@ describe('OAuth credential selection', () => {
     ]);
     action.start('oauth_b');
     expect(state.start).toHaveBeenCalled();
+  });
+
+  it('recovers in the same method without submitting the rejected credential again', async () => {
+    await act(async () => root.render(<Harness />));
+    action.start('oauth_b');
+    state.onCredentialError?.({ credentialId: 'credential_b' });
+
+    expect(state.refetch).toHaveBeenCalledOnce();
+    expect(state.openModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialAuthMethodId: 'oauth_b',
+        credentialError: { credentialId: 'credential_b' }
+      })
+    );
+
+    action.start('oauth_b');
+    expect(state.start).toHaveBeenCalledTimes(1);
+    expect(state.openModal).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves a configured integration app pinned during recovery', async () => {
+    await act(async () => root.render(<Harness fixedAuthCredentialsId="fixed_credential" />));
+    action.start('oauth_b');
+    state.onCredentialError?.({ credentialId: 'fixed_credential' });
+
+    expect(state.openModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialAuthMethodId: 'oauth_b',
+        fixedAuthCredentialsId: 'fixed_credential',
+        credentialError: { credentialId: 'fixed_credential' }
+      })
+    );
   });
 
   it('preserves remembered choices for multiple credentials', async () => {

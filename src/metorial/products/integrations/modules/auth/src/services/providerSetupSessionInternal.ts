@@ -27,10 +27,7 @@ import {
   assertAuthMethodAllowedForTenant,
   checkProviderMatch
 } from '@metorial-subspace/module-provider-internal';
-import {
-  getMetorialSolution,
-  getSubspaceSystemProviderEventBase
-} from '@metorial-subspace/module-tenant';
+import { getSubspaceSystemProviderEventBase } from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { Fabric } from '@metorial/fabric';
 import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
@@ -76,7 +73,6 @@ class providerSetupSessionInternalServiceImpl {
       ua: string | undefined;
     };
   }) {
-    let solution = await getMetorialSolution();
     return withTransaction(
       async db => {
         if (!d.provider.defaultVariant) {
@@ -158,31 +154,15 @@ class providerSetupSessionInternalServiceImpl {
             d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !==
               'supported'
           ) {
-            let defaultCredentials = await db.providerAuthCredentials.findFirst({
-              where: {
-                providerOid: d.provider.oid,
-                tenantOid: d.tenant.oid,
-                solutionOid: solution.oid,
-                environmentOid: d.environment.oid,
-                isDefault: true,
-                status: 'active'
-              }
-            });
-
-            if (!defaultCredentials) {
-              let templateCredentials =
-                await providerAuthCredentialsService.getInstallationTemplateDefaultInternal({
+            let defaultCredentials =
+              await providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal(
+                {
                   tenant: d.tenant,
-                  provider: d.provider
-                });
-              if (
-                templateCredentials &&
-                (!templateCredentials.fixedAuthMethodKey ||
-                  templateCredentials.fixedAuthMethodKey === authMethod.key)
-              ) {
-                defaultCredentials = templateCredentials;
-              }
-            }
+                  environment: d.environment,
+                  provider: d.provider,
+                  authMethod
+                }
+              );
 
             if (!defaultCredentials) {
               if (d.input.type === 'auto' && concreteType === 'auth_and_config') {

@@ -6,10 +6,9 @@ let mocks = vi.hoisted(() => ({
   sessionEventCreateMany: vi.fn(async () => ({ count: 1 })),
   oauthSetupUpdate: vi.fn(),
   authConfigUpdate: vi.fn(),
-  defaultCredentialsFindFirst: vi.fn(),
   getVersionAndAuthMethod: vi.fn(),
   createProviderOAuthSetupInternal: vi.fn(),
-  getInstallationTemplateDefaultInternal: vi.fn(async (): Promise<unknown> => null),
+  getDefaultOAuthCredentialsForMethodInternal: vi.fn(async (): Promise<unknown> => null),
   createIdentityCredentialInternal: vi.fn(),
   createProviderConfigInternal: vi.fn(),
   queueAdd: vi.fn()
@@ -33,7 +32,6 @@ vi.mock('@metorial-subspace/db', () => {
     providerOAuthSetup: { update: mocks.oauthSetupUpdate },
     providerAuthConfig: { update: mocks.authConfigUpdate, updateMany: vi.fn() },
     providerConfig: { updateMany: vi.fn() },
-    providerAuthCredentials: { findFirst: mocks.defaultCredentialsFindFirst },
     identity: { findFirstOrThrow: vi.fn(async () => ({ oid: 5n })) },
     tenant: { findFirstOrThrow: vi.fn(async () => ({ oid: 10n })) },
     environment: { findFirstOrThrow: vi.fn(async () => ({ oid: 30n, instanceOid: 40n })) }
@@ -105,7 +103,8 @@ vi.mock('./providerOAuthSetup', () => ({
 
 vi.mock('./providerAuthCredentials', () => ({
   providerAuthCredentialsService: {
-    getInstallationTemplateDefaultInternal: mocks.getInstallationTemplateDefaultInternal
+    getDefaultOAuthCredentialsForMethodInternal:
+      mocks.getDefaultOAuthCredentialsForMethodInternal
   }
 }));
 
@@ -231,25 +230,25 @@ describe('installation template credentials', () => {
     mocks.getVersionAndAuthMethod.mockResolvedValue({
       authMethod: { ...adminAuthMethod(), key: 'ghe' }
     });
-    mocks.defaultCredentialsFindFirst.mockResolvedValue(null);
-    mocks.getInstallationTemplateDefaultInternal.mockResolvedValue(templateCredentials as any);
+    mocks.getDefaultOAuthCredentialsForMethodInternal.mockResolvedValue(
+      templateCredentials as any
+    );
 
     await initialize({ authConfigInput: {} }, null);
 
+    expect(mocks.getDefaultOAuthCredentialsForMethodInternal).toHaveBeenCalledWith(
+      expect.objectContaining({ authMethod: expect.objectContaining({ key: 'ghe' }) })
+    );
     expect(mocks.createProviderOAuthSetupInternal).toHaveBeenCalledWith(
       expect.objectContaining({ credentials: templateCredentials })
     );
   });
 
-  it('ignores a template copy pinned to another auth method', async () => {
+  it('asks for credentials when the selected method has no compatible default', async () => {
     mocks.getVersionAndAuthMethod.mockResolvedValue({
       authMethod: { ...adminAuthMethod(), key: 'github' }
     });
-    mocks.defaultCredentialsFindFirst.mockResolvedValue(null);
-    mocks.getInstallationTemplateDefaultInternal.mockResolvedValue({
-      oid: 80n,
-      fixedAuthMethodKey: 'ghe'
-    } as any);
+    mocks.getDefaultOAuthCredentialsForMethodInternal.mockResolvedValue(null);
 
     await expect(initialize({ authConfigInput: {} }, null)).rejects.toMatchObject({
       data: expect.objectContaining({ code: 'missing_auth_credentials' })

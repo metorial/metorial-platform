@@ -48,20 +48,22 @@ export let matchProviderAuthMethodInSpecification = <
   authMethodId: string;
   specificationAuthMethods: AuthMethod[];
   previousAuthMethod: MatchableProviderAuthMethod | null;
+  allowTypeFallback?: boolean;
 }): AuthMethod | null => {
   let candidates = [...d.specificationAuthMethods].sort(byAuthMethodPreference);
   let authMethodId = d.authMethodId;
   let isTypeId = !!ProviderAuthMethodType[authMethodId as keyof typeof ProviderAuthMethodType];
 
-  let requested = candidates.find(
-    authMethod =>
-      authMethod.id === authMethodId ||
-      authMethod.specId === authMethodId ||
-      authMethod.specUniqueIdentifier === authMethodId ||
-      authMethod.key === authMethodId ||
-      authMethod.callableId === authMethodId ||
-      (isTypeId && authMethod.type === authMethodId)
-  );
+  let requested =
+    candidates.find(authMethod => authMethod.id === authMethodId) ??
+    candidates.find(
+      authMethod =>
+        authMethod.specId === authMethodId ||
+        authMethod.specUniqueIdentifier === authMethodId ||
+        authMethod.key === authMethodId ||
+        authMethod.callableId === authMethodId ||
+        (isTypeId && authMethod.type === authMethodId)
+    );
   if (requested) return requested;
 
   let previous = d.previousAuthMethod;
@@ -76,7 +78,9 @@ export let matchProviderAuthMethodInSpecification = <
         authMethod.key === previous.key ||
         authMethod.callableId === previous.callableId
     ) ??
-    candidates.find(authMethod => authMethod.type === previous.type) ??
+    (d.allowTypeFallback !== false
+      ? candidates.find(authMethod => authMethod.type === previous.type)
+      : null) ??
     null
   );
 };

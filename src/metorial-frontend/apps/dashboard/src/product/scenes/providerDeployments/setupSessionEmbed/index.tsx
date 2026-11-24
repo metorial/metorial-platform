@@ -11,10 +11,13 @@ import {
   useProviderListing
 } from '@metorial/state';
 import { Text } from '@metorial/ui';
-import { sortBy } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAuthMethodOAuthDoc } from '../../../lib/providerDocs';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../../lib/providerOAuthAutoRegistration';
+import {
+  getProviderAuthCredentialsQuery,
+  sortProviderAuthCredentials
+} from '../../providerAuthConfigs/credentialPicker';
 import { useProviderSetupSessionRunner } from '../setupSessionRunner';
 import {
   ConnectStep,
@@ -43,17 +46,37 @@ export let ProviderSetupSessionEmbed = ({
   let effectiveVersionId = lockedVersionId ?? provider.data?.currentVersion?.id;
 
   let [step, setStep] = useState(0);
-  let [latestCreatedCredentialId, setLatestCreatedCredentialId] = useState<string | null>(null);
-  let [latestCreatedCredentialLabel, setLatestCreatedCredentialLabel] = useState<string | null>(
+  let [latestCreatedCredentialId, setLatestCreatedCredentialId] = useState<string | null>(
     null
   );
-  let autoStartedRef = useRef(false);
+  let [latestCreatedCredentialLabel, setLatestCreatedCredentialLabel] = useState<
+    string | null
+  >(null);
   let autoCredentialModeRef = useRef(false);
+  let [rejectedCredentialIds, setRejectedCredentialIds] = useState<string[]>([]);
+  let [projectCredentialsBlocked, setProjectCredentialsBlocked] = useState(false);
 
   let runner = useProviderSetupSessionRunner({
     instanceId,
     providerId,
     providerDeploymentId: deploymentId,
+    onCredentialError: ({ credentialId }) => {
+      if (!requiresManualOAuthCredentials) {
+        runner.setError(
+          'No OAuth app is available for this method. Ask your administrator to check the provider’s settings.'
+        );
+        return;
+      }
+
+      if (credentialId) setRejectedCredentialIds(ids => [...ids, credentialId]);
+      setLatestCreatedCredentialId(null);
+      void credentialsForm.setFieldValue('selectedCredentialId', '');
+      setStep(includeMethodStep ? 1 : 0);
+      void authCredentials.refetch();
+      runner.setError(
+        'The previous OAuth app is unavailable. Use an available app or add your own to continue.'
+      );
+    },
     onComplete
   });
 
@@ -83,15 +106,8 @@ export let ProviderSetupSessionEmbed = ({
   let authCredentials = useProviderAuthCredentials(
     instanceId,
     selectedMethodId
-      ? {
-          origin: ['custom', 'managed'],
-          providerId,
-          providerAuthMethodId: selectedMethodId
-        }
-      : {
-          providerId,
-          origin: ['custom']
-        }
+      ? getProviderAuthCredentialsQuery({ providerId, providerAuthMethodId: selectedMethodId })
+      : null
   );
 
   let createCredentials = useCreateProviderAuthCredentials();
@@ -163,21 +179,20 @@ export let ProviderSetupSessionEmbed = ({
   let providerImageUrl = provider.data?.publisher.imageUrl;
   let oauthDoc = getAuthMethodOAuthDoc(providerListing.data, selectedMethod);
 
-  let visibleAuthCredentials = sortBy(authCredentials.data?.items ?? [], [
-    credential => Number(!credential.isManaged),
-    credential => Number(!credential.isDefault),
-    credential => credential.name ?? credential.id
-  ]);
-  let managedVisibleCredentials = visibleAuthCredentials.filter(credential => credential.isManaged);
-  let customVisibleCredentials = visibleAuthCredentials.filter(credential => !credential.isManaged);
+  let visibleAuthCredentials = sortProviderAuthCredentials(
+    (authCredentials.data?.items ?? []).filter(
+      credential => !rejectedCredentialIds.includes(credential.id)
+    )
+  );
+  let managedVisibleCredentials = visibleAuthCredentials.filter(
+    credential => credential.isManaged
+  );
+  let customVisibleCredentials = visibleAuthCredentials.filter(
+    credential => !credential.isManaged
+  );
   let hasManagedVisibleCredentials = managedVisibleCredentials.length > 0;
   let requiresManualOAuthCredentials = isOAuth && !oauthAutoRegistrationEnabled;
-  let preferredVisibleCredential =
-    managedVisibleCredentials.find(credential => credential.isDefault) ??
-    managedVisibleCredentials[0] ??
-    customVisibleCredentials.find(credential => credential.isDefault) ??
-    customVisibleCredentials[0] ??
-    null;
+  let preferredVisibleCredential = visibleAuthCredentials[0];
   let effectiveSelectedCredentialId =
     credentialsForm.values.credentialMode === 'new'
       ? ''
@@ -190,12 +205,12 @@ export let ProviderSetupSessionEmbed = ({
       ? [
           {
             id: '__managed_heading__',
-            label: 'Metorial Managed',
+            label: 'Managed OAuth Apps',
             disabled: true
           } as const,
           ...managedVisibleCredentials.map(credential => ({
             id: credential.id,
-            label: `${credential.name || credential.id} (Metorial Managed)`
+            label: `${credential.name || credential.id} (Managed)`
           }))
         ]
       : []),
@@ -217,8 +232,12 @@ export let ProviderSetupSessionEmbed = ({
           }))
         ]
       : []),
-    ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
-    { id: '__create_new__', label: 'Add credentials' }
+    ...(projectCredentialsBlocked
+      ? []
+      : [
+          ...(visibleAuthCredentials.length > 0 ? [{ type: 'separator' as const }] : []),
+          { id: '__create_new__', label: 'Add Credentials' }
+        ])
   ];
 
   let isCreatingCredentials = credentialsForm.values.credentialMode === 'new';
@@ -226,7 +245,11 @@ export let ProviderSetupSessionEmbed = ({
   let isLatestCreatedCredentialSelected =
     !!latestCreatedCredentialId &&
     credentialsForm.values.selectedCredentialId === latestCreatedCredentialId;
-  let hasCredentialsStep = requiresManualOAuthCredentials;
+  let hasSingleCredential =
+    visibleAuthCredentials.length === 1 &&
+    !authCredentials.data?.pagination.hasMoreAfter &&
+    !authCredentials.data?.pagination.hasMoreBefore;
+  let hasCredentialsStep = requiresManualOAuthCredentials && !hasSingleCredential;
   let includeMethodStep = !hasSingleMethod;
   let connectStepIndex = (includeMethodStep ? 1 : 0) + (hasCredentialsStep ? 1 : 0);
   let isFirstVisibleStep = step === 0;
@@ -240,16 +263,21 @@ export let ProviderSetupSessionEmbed = ({
   let handleMethodChange = (value: string) => {
     methodForm.setFieldValue('selectedMethodId', value);
     autoCredentialModeRef.current = false;
-    autoStartedRef.current = false;
+    setRejectedCredentialIds([]);
     credentialsForm.resetForm();
     runner.reset();
   };
 
   useEffect(() => {
-    if (!selectedMethodId && hasSingleMethod) {
+    if (!methodForm.values.selectedMethodId && hasSingleMethod) {
       methodForm.setFieldValue('selectedMethodId', authMethods.data!.items![0].id);
     }
-  }, [authMethods.data?.items, hasSingleMethod, methodForm.setFieldValue, selectedMethodId]);
+  }, [
+    authMethods.data?.items,
+    hasSingleMethod,
+    methodForm.setFieldValue,
+    methodForm.values.selectedMethodId
+  ]);
 
   useEffect(() => {
     if (!requiresManualOAuthCredentials) return;
@@ -270,7 +298,10 @@ export let ProviderSetupSessionEmbed = ({
       autoCredentialModeRef.current = false;
       void credentialsForm.setFieldValue('credentialMode', 'existing');
       if (preferredVisibleCredential) {
-        void credentialsForm.setFieldValue('selectedCredentialId', preferredVisibleCredential.id);
+        void credentialsForm.setFieldValue(
+          'selectedCredentialId',
+          preferredVisibleCredential.id
+        );
       }
       return;
     }
@@ -284,7 +315,10 @@ export let ProviderSetupSessionEmbed = ({
 
     if (preferredVisibleCredential) {
       autoCredentialModeRef.current = false;
-      void credentialsForm.setFieldValue('selectedCredentialId', preferredVisibleCredential.id);
+      void credentialsForm.setFieldValue(
+        'selectedCredentialId',
+        preferredVisibleCredential.id
+      );
       return;
     }
 
@@ -305,7 +339,8 @@ export let ProviderSetupSessionEmbed = ({
 
   let handleCreateCredentials = async (): Promise<string | null> => {
     let { newCredClientId, newCredClientSecret, newCredName } = credentialsForm.values;
-    if (!newCredName || !newCredClientId || !newCredClientSecret || !selectedMethod) return null;
+    if (!newCredName || !newCredClientId || !newCredClientSecret || !selectedMethod)
+      return null;
 
     runner.setError(null);
 
@@ -321,9 +356,10 @@ export let ProviderSetupSessionEmbed = ({
       }
     });
 
-    if (err) {
-      console.error('Failed to create credentials:', err);
-      return null;
+    if (err?.data.code === 'project_auth_credentials_not_allowed') {
+      setProjectCredentialsBlocked(true);
+      void credentialsForm.setFieldValue('credentialMode', 'existing');
+      void authCredentials.refetch();
     }
     if (!result) return null;
 
@@ -382,33 +418,11 @@ export let ProviderSetupSessionEmbed = ({
     });
   };
 
-  useEffect(() => {
-    if (
-      !runner.setupSession &&
-      !runner.isStarting &&
-      !autoStartedRef.current &&
-      selectedMethodId &&
-      isOAuth &&
-      oauthAutoRegistrationEnabled &&
-      !includeMethodStep
-    ) {
-      autoStartedRef.current = true;
-      void handleStartSetup();
-    }
-  }, [
-    includeMethodStep,
-    isOAuth,
-    runner.isStarting,
-    oauthAutoRegistrationEnabled,
-    selectedMethodId,
-    runner.setupSession
-  ]);
-
   if (
     (!!deploymentId && deployment.isLoading) ||
     (!lockedVersionId && provider.isLoading) ||
     (effectiveVersionId ? authMethods.isLoading : false) ||
-    authCredentials.isLoading
+    (!!selectedMethodId && authCredentials.isLoading)
   ) {
     return (
       <Text size="2" color="gray600">
@@ -440,7 +454,10 @@ export let ProviderSetupSessionEmbed = ({
   }
 
   if (!lockedVersionId && provider.error) {
-    return renderStateMessage(provider.error.message ?? 'Failed to load provider details.', true);
+    return renderStateMessage(
+      provider.error.message ?? 'Failed to load provider details.',
+      true
+    );
   }
 
   if (!effectiveVersionId) {
@@ -459,6 +476,17 @@ export let ProviderSetupSessionEmbed = ({
   if (authCredentials.error) {
     return renderStateMessage(
       authCredentials.error.message ?? 'Failed to load authentication credentials.',
+      true
+    );
+  }
+
+  if (
+    requiresManualOAuthCredentials &&
+    projectCredentialsBlocked &&
+    !visibleAuthCredentials.length
+  ) {
+    return renderStateMessage(
+      `Ask your installation administrator to configure an OAuth app for ${oauthMethodName}.`,
       true
     );
   }

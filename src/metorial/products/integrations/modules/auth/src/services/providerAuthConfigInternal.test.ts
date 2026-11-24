@@ -10,6 +10,7 @@ let mocks = vi.hoisted(() => ({
   providerDeploymentUpdate: vi.fn(),
   providerAuthMethodFindMany: vi.fn(),
   providerAuthMethodFindFirst: vi.fn(),
+  findManagedBacking: vi.fn(),
   getCurrentVersionOptional: vi.fn(),
   addAfterTransactionHook: vi.fn(),
   queueAdd: vi.fn()
@@ -34,6 +35,7 @@ vi.mock('@metorial-subspace/db', () => {
     providerAuthConfigUpdate: { create: mocks.providerAuthConfigUpdateCreate },
     providerAuthImport: { create: mocks.providerAuthImportCreate },
     providerDeployment: { update: mocks.providerDeploymentUpdate },
+    managedProviderAuthCredentialsBacking: { findFirst: mocks.findManagedBacking },
     providerAuthMethod: {
       findMany: mocks.providerAuthMethodFindMany,
       findFirst: mocks.providerAuthMethodFindFirst
@@ -179,12 +181,13 @@ describe('getVersionAndAuthMethod auth method resolution', () => {
     createdAt: timestamp
   });
 
-  let resolve = (authMethodId: string) =>
+  let resolve = (authMethodId: string, credentials?: any) =>
     providerAuthConfigInternalService.getVersionAndAuthMethod({
       tenant: { oid: 10n } as any,
       environment: { oid: 30n } as any,
       provider: { oid: 50n, defaultVariant: null } as any,
-      authMethodId
+      authMethodId,
+      credentials
     });
 
   beforeEach(() => {
@@ -233,6 +236,63 @@ describe('getVersionAndAuthMethod auth method resolution', () => {
 
     await expect(resolve('pam_missing')).rejects.toMatchObject({
       data: expect.objectContaining({ code: 'invalid_auth_method' })
+    });
+  });
+  it('resolves a legacy managed app by its original method family in the effective version', async () => {
+    let current = authMethod({ id: 'pam_current', globalOid: 1n, key: 'github' });
+    mocks.findManagedBacking.mockResolvedValue({
+      managedCredentials: {
+        providerAuthMethodGlobalOid: null,
+        initialProviderAuthMethod: { globalOid: 1n }
+      }
+    });
+    mocks.providerAuthMethodFindFirst.mockResolvedValue(current);
+    mocks.providerAuthMethodFindMany.mockResolvedValue([current]);
+
+    await expect(
+      resolve('pam_current', { oid: 1n, origin: 'managed_backing' })
+    ).resolves.toMatchObject({
+      authMethod: current
+    });
+    expect(mocks.providerAuthMethodFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { providerOid: 50n, specificationOid: 90n, type: 'oauth', globalOid: 1n }
+      })
+    );
+  });
+
+  it('rejects a different managed auth method even if it has the same callable ID', async () => {
+    let bound = authMethod({ id: 'pam_a', globalOid: 1n, key: 'github' });
+    let requested = {
+      ...authMethod({ id: 'pam_b', globalOid: 2n, key: 'github_enterprise' }),
+      callableId: bound.callableId
+    };
+    mocks.findManagedBacking.mockResolvedValue({
+      managedCredentials: { providerAuthMethodGlobalOid: 1n }
+    });
+    mocks.providerAuthMethodFindFirst.mockResolvedValue(bound);
+    mocks.providerAuthMethodFindMany.mockResolvedValue([bound, requested]);
+
+    await expect(
+      resolve(requested.id, { oid: 1n, origin: 'managed_backing' })
+    ).rejects.toMatchObject({
+      data: { code: 'managed_credentials_auth_method_mismatch' }
+    });
+  });
+
+  it('rejects an installation-managed OAuth app for another method on the same provider', async () => {
+    let bound = authMethod({ id: 'pam_a', globalOid: 1n, key: 'github' });
+    let requested = authMethod({ id: 'pam_b', globalOid: 2n, key: 'github_enterprise' });
+    mocks.providerAuthMethodFindFirst.mockResolvedValue(bound);
+    mocks.providerAuthMethodFindMany.mockResolvedValue([bound, requested]);
+
+    await expect(
+      resolve(requested.id, {
+        origin: 'installation_template',
+        fixedAuthMethodKey: bound.key
+      })
+    ).rejects.toMatchObject({
+      data: { code: 'managed_credentials_auth_method_mismatch' }
     });
   });
 });
