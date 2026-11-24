@@ -120,12 +120,13 @@ func (c *Control) FunctionInvoke(ctx context.Context, in *cm.InvokeInput) (*cm.I
 
 func (c *Control) BuildStart(ctx context.Context, in *cm.BuildStartInput) (*cm.Build, error) {
 	req := &builds.StartRequest{
-		RunID:          in.RunID,
-		Image:          string(in.Image),
-		Script:         in.Script,
-		Env:            in.Env,
-		TimeoutSeconds: int(in.TimeoutSeconds),
-		EgressGrant:    in.EgressGrant,
+		RunID:                    in.RunID,
+		Image:                    string(in.Image),
+		Script:                   in.Script,
+		Env:                      in.Env,
+		TimeoutSeconds:           int(in.TimeoutSeconds),
+		SchedulingTimeoutSeconds: int(ptr.Deref(in.SchedulingTimeoutSeconds, 0)),
+		EgressGrant:              in.EgressGrant,
 	}
 	for _, d := range in.Downloads {
 		req.Downloads = append(req.Downloads, builds.Download{ArtifactID: d.ArtifactID, Bucket: d.Bucket, Key: d.Key})
@@ -183,6 +184,12 @@ func buildOutput(b *builds.Build) *cm.Build {
 		UploadedSteps: b.UploadedSteps,
 		StartedAt:     b.StartedAt,
 		FinishedAt:    b.FinishedAt,
+	}
+	if b.PendingCode != "" {
+		out.PendingCode = ptr.To(b.PendingCode)
+	}
+	if b.FailureCode != "" {
+		out.FailureCode = ptr.To(b.FailureCode)
 	}
 	if b.ExitCode != nil {
 		out.ExitCode = ptr.To(int64(*b.ExitCode))

@@ -22,12 +22,13 @@ func rpcError(err error) error {
 	}
 
 	var (
-		notAllowed    *access.ObjectNotAllowedError
-		bundleInvalid *bundles.InvalidError
-		notReady      *functions.NotReadyError
-		unauthorized  *functions.UnauthorizedError
-		fnInvalid     *functions.ValidationError
-		buildInvalid  *builds.ValidationError
+		notAllowed     *access.ObjectNotAllowedError
+		bundleInvalid  *bundles.InvalidError
+		notReady       *functions.NotReadyError
+		unauthorized   *functions.UnauthorizedError
+		fnInvalid      *functions.ValidationError
+		buildInvalid   *builds.ValidationError
+		buildAdmission *builds.AdmissionError
 	)
 
 	switch {
@@ -45,6 +46,11 @@ func rpcError(err error) error {
 		return cm.ErrFunctionUnavailable().WithCause(err)
 	case errors.Is(err, functions.ErrCapacity):
 		return cm.ErrClusterCapacity().WithCause(err)
+	case errors.As(err, &buildAdmission):
+		if buildAdmission.Quota {
+			return cm.ErrBuildQuotaExceeded(buildAdmission.Reason).WithCause(err)
+		}
+		return cm.ErrBuildAdmissionRejected(buildAdmission.Reason).WithCause(err)
 	case errors.Is(err, builds.ErrNotFound):
 		return cm.ErrBuildNotFound().WithCause(err)
 	case errors.As(err, &fnInvalid):

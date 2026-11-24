@@ -212,6 +212,12 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
         delay: 5000
       }
     );
+  } else if (run.failure) {
+    await errorQueue.add({
+      deploymentId: data.deploymentId,
+      code: `function_bay.${run.failure.code}`,
+      message: run.failure.message
+    });
   } else {
     let output = await forge.workflowRun.getOutput({
       tenantId: data.tenantId,

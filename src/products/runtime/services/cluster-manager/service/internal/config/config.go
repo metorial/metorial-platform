@@ -269,7 +269,7 @@ func Load() (*Config, error) {
 		SpeculativeInitialScaleCap: l.int("CLUSTER_MANAGER_SPECULATIVE_INITIAL_SCALE_CAP", 3),
 		ScaleDownDelay:             l.str("CLUSTER_MANAGER_SCALE_DOWN_DELAY", "0s"),
 		AutoscalingWindow:          l.str("CLUSTER_MANAGER_AUTOSCALING_WINDOW", ""),
-		MaxMaterialized:            l.int("CLUSTER_MANAGER_MAX_MATERIALIZED", 1000),
+		MaxMaterialized:            l.int("CLUSTER_MANAGER_MAX_MATERIALIZED", 30),
 		SpeculativeWindow:          l.duration("CLUSTER_MANAGER_SPECULATIVE_WINDOW", 24*time.Hour),
 		SpeculativeTTL:             l.duration("CLUSTER_MANAGER_SPECULATIVE_TTL", time.Hour),
 		IdleTTL:                    l.duration("CLUSTER_MANAGER_IDLE_TTL", 6*time.Hour),

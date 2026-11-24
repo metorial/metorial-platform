@@ -157,13 +157,18 @@ export class BuildContext {
   async completeBuild(d: {
     status: 'succeeded' | 'failed';
     endedAt?: Date;
+    failure?: { code: string; message: string };
     stepArtifacts?: { stepId: string; bucket: string; storageKey: string }[];
   }) {
-    await buildEndedQueue.add({
-      runId: this.run.id,
-      status: d.status,
-      endedAt: d.endedAt ?? new Date(),
-      stepArtifacts: d.stepArtifacts ?? []
-    });
+    await buildEndedQueue.add(
+      {
+        runId: this.run.id,
+        status: d.status,
+        endedAt: d.endedAt ?? new Date(),
+        failure: d.failure,
+        stepArtifacts: d.stepArtifacts ?? []
+      },
+      { id: this.run.id }
+    );
   }
 }

@@ -50,7 +50,21 @@ export let env = defineSettings({
   kubernetes: {
     KUBERNETES_BUILD_TIMEOUT_SECONDS: setting(
       v.number({ modifiers: [v.minValue(60), v.maxValue(7200)] }),
-      { default: 3600, description: 'Deadline of a kubernetes build Job' }
+      {
+        default: 3600,
+        description: 'Maximum Kubernetes build execution time after the container starts'
+      }
+    ),
+    KUBERNETES_BUILD_SCHEDULING_TIMEOUT_SECONDS: setting(
+      v.number({ modifiers: [v.integer(), v.minValue(15), v.maxValue(3600)] }),
+      {
+        default: 900,
+        description: 'Time a build can wait for admission and its container to start'
+      }
+    ),
+    KUBERNETES_BUILD_MAX_IN_FLIGHT: setting(
+      v.number({ modifiers: [v.integer(), v.minValue(1), v.maxValue(1000)] }),
+      { default: 1, description: 'Maximum admitted pending and running Kubernetes builds' }
     ),
     BUILD_SIGNING_KEY: setting(v.optional(v.string()), {
       secret: true,

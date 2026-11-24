@@ -121,6 +121,7 @@ export type BuildStartInput = {
   downloads: BuildStartInputDownloadsItem[];
   uploads: BuildStartInputUploadsItem[];
   timeoutSeconds: number;
+  schedulingTimeoutSeconds?: number;
   sandbox?: Sandbox;
   egressGrant: string;
 };
@@ -146,6 +147,8 @@ export type Build = {
   exitCode: number | null;
   failureReason: string | null;
   pendingReason: string | null;
+  pendingCode?: string;
+  failureCode?: string;
   uploadedSteps: string[];
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -203,7 +206,7 @@ export type ClusterManagerClient = {
   };
 };
 
-export let clusterManagerErrorCodes = ["bundle_invalid", "object_not_allowed", "function_not_ready", "cluster_capacity", "function_not_materialized", "function_unavailable", "invocation_unauthorized", "build_not_found"] as const;
+export let clusterManagerErrorCodes = ["bundle_invalid", "object_not_allowed", "function_not_ready", "cluster_capacity", "function_not_materialized", "function_unavailable", "invocation_unauthorized", "build_quota_exceeded", "build_admission_rejected", "build_not_found"] as const;
 
 export type ClusterManagerErrorCode = (typeof clusterManagerErrorCodes)[number];
 
@@ -221,6 +224,12 @@ export type ClusterManagerErrorData = {
   function_not_materialized: {};
   function_unavailable: {};
   invocation_unauthorized: {
+    reason: string;
+  };
+  build_quota_exceeded: {
+    reason: string;
+  };
+  build_admission_rejected: {
     reason: string;
   };
   build_not_found: {};

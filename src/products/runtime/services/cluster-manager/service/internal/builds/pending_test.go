@@ -1,9 +1,12 @@
 package builds
 
 import (
+	"errors"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestPodPendingReason(t *testing.T) {
@@ -70,5 +73,36 @@ func TestPodPendingReason(t *testing.T) {
 				t.Fatalf("expected %q, got %v", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestClassifyBuildCapacity(t *testing.T) {
+	cases := map[string]string{
+		"Unschedulable: 0/1 nodes are available: 1 Insufficient cpu. No preemption victims found": "capacity",
+		"Unschedulable: 0/1 nodes are available: 1 Insufficient ephemeral-storage.":               "capacity",
+		"Unschedulable: 0/1 nodes are available: 1 node(s) had untolerated taint.":                "scheduling",
+		"ImagePullBackOff: Back-off pulling image":                                                "startup",
+	}
+	for reason, want := range cases {
+		if got := classifyPendingReason(reason); got != want {
+			t.Errorf("classifyPendingReason(%q) = %q, want %q", reason, got, want)
+		}
+	}
+}
+
+func TestAdmissionQuotaAndPermanentRejection(t *testing.T) {
+	jobs := schema.GroupResource{Group: "batch", Resource: "jobs"}
+	for _, tc := range []struct {
+		message string
+		quota   bool
+	}{
+		{"exceeded quota: builds, requested: count/jobs.batch=1", true},
+		{"admission webhook denied the request", false},
+	} {
+		err := admissionError("create build job", apierrors.NewForbidden(jobs, "build-test", errors.New(tc.message)))
+		var rejected *AdmissionError
+		if !errors.As(err, &rejected) || rejected.Quota != tc.quota {
+			t.Errorf("admissionError(%q) = %#v, want quota=%t", tc.message, err, tc.quota)
+		}
 	}
 }
