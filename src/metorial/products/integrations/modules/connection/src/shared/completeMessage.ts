@@ -1,7 +1,6 @@
 import { getJsonSizeBytes } from '@metorial-subspace/connection-utils';
 import {
   db,
-  dbPrimary,
   getId,
   getRawToolCallAttachmentsFromOutput,
   getToolCallAttachmentUrlKey,
@@ -51,7 +50,7 @@ export let completeMessage = async (
     };
   }
 
-  let currentMessage = await dbPrimary.sessionMessage.findUniqueOrThrow({
+  let currentMessage = await db.sessionMessage.findUniqueOrThrow({
     where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
     select: {
       oid: true,

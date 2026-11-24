@@ -65,7 +65,7 @@ export class MetorialDocumentsCommentThreadsEndpoint {
     query?: DashboardInstanceDocumentsCommentThreadsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsListOutput> {
-    let path = `documents/${documentId}/comment-threads`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDocumentsCommentThreadsEndpoint {
     documentCommentThreadId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsGetOutput> {
-    let path = `documents/${documentId}/comment-threads/${documentCommentThreadId}`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads/${encodeURIComponent(documentCommentThreadId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDocumentsCommentThreadsEndpoint {
     body: DashboardInstanceDocumentsCommentThreadsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsCreateOutput> {
-    let path = `documents/${documentId}/comment-threads`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDocumentsCommentThreadsEndpoint {
     body: DashboardInstanceDocumentsCommentThreadsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsUpdateOutput> {
-    let path = `documents/${documentId}/comment-threads/${documentCommentThreadId}`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads/${encodeURIComponent(documentCommentThreadId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDocumentsCommentThreadsEndpoint {
     documentCommentThreadId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCommentThreadsDeleteOutput> {
-    let path = `documents/${documentId}/comment-threads/${documentCommentThreadId}`;
+    let path = `documents/${encodeURIComponent(documentId)}/comment-threads/${encodeURIComponent(documentCommentThreadId)}`;
 
     let request = {
       path,

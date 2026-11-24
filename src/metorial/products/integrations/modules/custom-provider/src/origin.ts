@@ -91,6 +91,7 @@ export type ScmProvider = {
   webUrl: string;
   appSlug: string | null;
   isDefault: boolean;
+  isManaged?: boolean;
   hasCredentials: boolean;
   appWebhookUrl?: string;
   createdAt: Date;

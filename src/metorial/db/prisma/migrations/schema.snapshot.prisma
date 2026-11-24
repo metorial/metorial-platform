@@ -3218,6 +3218,10 @@ model FileUpload {
 
   storeId String @unique
 
+  multipartUploadId         String?
+  multipartPartSize         Int?
+  multipartCompletionDigest String?
+
   fileName String
   fileSize BigInt
   fileType String
@@ -4914,6 +4918,7 @@ model Instance {
   synthesisEnvironmentId String?
   lastSubspaceSyncAt     DateTime?
 
+  aiGatewayInstanceId   String?
   agentTrackingLinkedAt DateTime?
 
   createdAt DateTime  @default(now())
@@ -8202,7 +8207,7 @@ model Skill {
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]               @ignore
+  skillParticipants               SkillParticipant[]                  @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]

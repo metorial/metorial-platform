@@ -7,6 +7,7 @@ let load = async (types?: string, domains?: string, edition = 'on-prem') => {
   process.env.METORIAL_EDITION = edition;
   delete process.env.ORIGIN_SCM_ALLOWED_PROVIDER_TYPES;
   delete process.env.ORIGIN_SCM_ALLOWED_DOMAINS;
+  delete process.env.ORIGIN_SCM_ALLOW_PROJECT_PROVIDERS;
   if (types !== undefined) process.env.ORIGIN_SCM_ALLOWED_PROVIDER_TYPES = types;
   if (domains !== undefined) process.env.ORIGIN_SCM_ALLOWED_DOMAINS = domains;
 
@@ -145,5 +146,65 @@ describe('on-prem SCM policy', () => {
     ]);
     expect(() => policy.assertScmBackendAllowed()).not.toThrow();
     expect(() => policy.assertScmBackendAllowed(backend)).not.toThrow();
+  });
+});
+
+describe('project-owned SCM providers', () => {
+  let loadWithProjectProviders = async (value: string | undefined, edition = 'on-prem') => {
+    let policy = await load(undefined, undefined, edition);
+    if (value === undefined) return policy;
+
+    vi.resetModules();
+    process.env.ORIGIN_SCM_ALLOW_PROJECT_PROVIDERS = value;
+
+    return await import('./scmPolicy');
+  };
+
+  it('allows project-owned providers by default', async () => {
+    let policy = await loadWithProjectProviders(undefined);
+
+    expect(policy.areProjectProvidersAllowed()).toBe(true);
+    expect(() => policy.assertScmBackendAllowed(backend)).not.toThrow();
+  });
+
+  it('blocks project-owned providers but keeps managed copies when disabled', async () => {
+    let policy = await loadWithProjectProviders('false');
+
+    expect(policy.areProjectProvidersAllowed()).toBe(false);
+    expect(() => policy.assertProjectProvidersAllowed()).toThrow(/enterprise administrator/);
+    expect(() => policy.assertScmBackendAllowed(backend)).toThrow(/enterprise administrator/);
+    expect(() =>
+      policy.assertScmBackendAllowed({ ...backend, templateOid: 1n })
+    ).not.toThrow();
+  });
+
+  it('still applies provider policy to managed copies', async () => {
+    let policy = await loadWithProjectProviders('false');
+
+    expect(() =>
+      policy.assertScmBackendAllowed({
+        ...backend,
+        templateOid: 1n,
+        apiUrl: 'https://elsewhere.example.com/api/v3'
+      })
+    ).not.toThrow();
+
+    vi.resetModules();
+    process.env.ORIGIN_SCM_ALLOWED_DOMAINS = 'git.example.com';
+    let restricted = await import('./scmPolicy');
+
+    expect(() =>
+      restricted.assertScmBackendAllowed({
+        ...backend,
+        templateOid: 1n,
+        apiUrl: 'https://elsewhere.example.com/api/v3'
+      })
+    ).toThrow(/domain/);
+  });
+
+  it('ignores the setting in the cloud edition', async () => {
+    let policy = await loadWithProjectProviders('false', 'cloud');
+
+    expect(policy.areProjectProvidersAllowed()).toBe(true);
   });
 });

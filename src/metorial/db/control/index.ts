@@ -21,7 +21,7 @@ export default project({
       PORTAL_HOST_TEMPLATE: services.dashboard.url('/p/{portalId}'),
       PORTAL_REDIRECT_DOMAINS: '{{HOSTNAME}}',
       REDIS_URL: 'redis://localhost:{{CONTROL_PORT_REDIS}}/0',
-      SYNTHESIS_API_URL: services.synthesis.url('/metorial-synthesis'),
+      AI_GATEWAY_API_URL: services.aiGateway.url('/metorial-ai-gateway'),
       PROVIDER_OAUTH_TICKET_SECRET: 'provider-oauth-ticket-secret',
       AUTH_TICKET_SECRET: 'auth-ticket-secret',
       ENCRYPTION_SECRET: 'encryption-secret',

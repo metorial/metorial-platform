@@ -27,6 +27,7 @@ export let workflowRunPresenter = async (
 
   id: run.id,
   status: run.status,
+  pendingReason: run.pendingReason,
 
   workflowId: run.workflow.id,
   version: run.version.id,

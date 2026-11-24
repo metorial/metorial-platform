@@ -95,7 +95,7 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
     providerConfigVaultId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsGetOutput> {
-    let path = `provider-config-vaults/${providerConfigVaultId}`;
+    let path = `provider-config-vaults/${encodeURIComponent(providerConfigVaultId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
     body: DashboardInstanceProviderDeploymentsConfigVaultsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsUpdateOutput> {
-    let path = `provider-config-vaults/${providerConfigVaultId}`;
+    let path = `provider-config-vaults/${encodeURIComponent(providerConfigVaultId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialProviderDeploymentsConfigVaultsEndpoint {
     providerConfigVaultId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsConfigVaultsDeleteOutput> {
-    let path = `provider-config-vaults/${providerConfigVaultId}`;
+    let path = `provider-config-vaults/${encodeURIComponent(providerConfigVaultId)}`;
 
     let request = {
       path,

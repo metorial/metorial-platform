@@ -79,7 +79,7 @@ export class MetorialConsumerAgentsEndpoint {
     agentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerAgentsGetOutput> {
-    let path = `consumer/agents/${agentId}`;
+    let path = `consumer/agents/${encodeURIComponent(agentId)}`;
 
     let request = {
       path,

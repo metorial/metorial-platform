@@ -68,9 +68,12 @@ let buildSpec = strictObject({
   packages: v.optional(
     strictObject({ build: v.optional(strings), runtime: v.optional(strings) })
   ),
-  modules: v.optional(v.enumOf(['production', 'none'])),
+  modules: v.optional(v.enumOf(['production', 'none', 'external'])),
   sentry: v.optional(v.boolean()),
   node: v.optional(v.boolean()),
+  curl: v.optional(v.boolean()),
+  upgradePackages: v.optional(v.boolean()),
+  prisma: v.optional(v.boolean()),
   env: v.optional(v.record(str)),
   buildEnv: v.optional(v.record(str)),
   sources: v.optional(strings),
@@ -308,6 +311,7 @@ export let workspaceMetadataSchema = v.object({
   service_ports: v.optional(
     v.object({
       postgres: port,
+      postgres_replica: v.optional(port),
       mongo: port,
       redis: port,
       nats: port,

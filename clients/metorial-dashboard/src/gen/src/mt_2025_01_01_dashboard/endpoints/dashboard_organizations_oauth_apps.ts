@@ -65,7 +65,7 @@ export class MetorialDashboardOrganizationsOauthAppsEndpoint {
     query?: DashboardOrganizationsOauthAppsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/apps`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/apps`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardOrganizationsOauthAppsEndpoint {
     oauthApplicationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/apps/${oauthApplicationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/apps/${encodeURIComponent(oauthApplicationId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardOrganizationsOauthAppsEndpoint {
     body: DashboardOrganizationsOauthAppsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/apps`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/apps`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardOrganizationsOauthAppsEndpoint {
     body: DashboardOrganizationsOauthAppsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/apps/${oauthApplicationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/apps/${encodeURIComponent(oauthApplicationId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardOrganizationsOauthAppsEndpoint {
     oauthApplicationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/oauth/apps/${oauthApplicationId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/oauth/apps/${encodeURIComponent(oauthApplicationId)}`;
 
     let request = {
       path,

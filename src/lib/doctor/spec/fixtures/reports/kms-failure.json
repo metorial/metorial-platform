@@ -1,0 +1,61 @@
+{
+  "doctor": 1,
+  "component": "secret-store",
+  "instance": "secret-store-7d9f8-abcde",
+  "releaseVersion": "1.4.0-2026-11-14-3c1f9a2b7d-release",
+  "buildVersion": "1.4.0-2026-11-02-8e4d1b0c6a-release",
+  "channel": "release",
+  "publicUrl": "https://metorial.example.com",
+  "fingerprints": { "installationSecret": "3f9a1c0b2e7d" },
+  "processStartedAt": "2026-11-17T09:12:03.000Z",
+  "startedAt": "2026-11-17T10:00:00.000Z",
+  "generatedAt": "2026-11-17T10:00:00.412Z",
+  "durationMs": 412,
+  "runId": "4f1c9e2a7b30",
+  "cached": false,
+  "ageMs": 0,
+  "checks": [
+    {
+      "id": "postgres.secret-store.connect",
+      "title": "Secret store can reach its database",
+      "category": "database",
+      "target": "postgres:metorial_secret_store@db.internal:5432",
+      "status": "pass",
+      "severity": "critical",
+      "durationMs": 12,
+      "message": "Connected in 12ms.",
+      "resolution": null,
+      "details": { "latencyMs": 12 },
+      "cachedAt": null
+    },
+    {
+      "id": "kms.system-key.access",
+      "title": "Secret store can use its KMS key",
+      "category": "external",
+      "target": "aws-kms:arn:aws:kms:eu-central-1:111122223333:key/0b6e2c1d",
+      "status": "fail",
+      "severity": "critical",
+      "durationMs": 182,
+      "message": "Generating a data key was denied by AWS KMS.",
+      "resolution": {
+        "summary": "Grant the secret-store role access to the KMS key.",
+        "steps": [
+          "Allow kms:GenerateDataKey, kms:Decrypt and kms:DescribeKey on the key for the role in components.secret-store.serviceAccount.annotations (IRSA), or for the access key in providers.secretStore.awsKms.existingSecret.",
+          "Check that the key policy does not deny the role."
+        ],
+        "docs": "datacenter/configuration/secret-store#aws-kms"
+      },
+      "details": {
+        "provider": "aws.kms",
+        "region": "eu-central-1",
+        "error": {
+          "kind": "permission",
+          "code": "AccessDeniedException",
+          "message": "User: arn:aws:sts::111122223333:assumed-role/metorial-secret-store/i-0 is not authorized to perform: kms:GenerateDataKey",
+          "hint": "The credentials are valid but lack permission for this operation. Grant the missing permission."
+        }
+      },
+      "cachedAt": null
+    }
+  ]
+}

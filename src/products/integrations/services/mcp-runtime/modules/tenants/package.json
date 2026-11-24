@@ -8,9 +8,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@lowerdeck/cron": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
-    "@mtsrc/mcp-runtime-db": "workspace:*"
+    "@mtsrc/mcp-runtime-db": "workspace:*",
+    "@mtsrc/mcp-runtime-env": "workspace:*",
+    "@mtsrc/mcp-runtime-function-bay": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

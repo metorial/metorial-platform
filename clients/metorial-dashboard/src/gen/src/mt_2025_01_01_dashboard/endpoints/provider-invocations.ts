@@ -53,7 +53,7 @@ export class MetorialProviderInvocationsEndpoint {
     providerInvocationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderInvocationsGetOutput> {
-    let path = `provider-invocations/${providerInvocationId}`;
+    let path = `provider-invocations/${encodeURIComponent(providerInvocationId)}`;
 
     let request = {
       path,

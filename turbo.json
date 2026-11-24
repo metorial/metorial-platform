@@ -2,7 +2,12 @@
   "$schema": "https://turborepo.com/schema.json",
   "agentGuidance": false,
   "ui": "tui",
-  "globalEnv": ["METORIAL_EDITION", "METORIAL_RELEASE_CHANNEL", "METORIAL_BUILD_ARCH"],
+  "globalEnv": [
+    "METORIAL_EDITION",
+    "METORIAL_RELEASE_CHANNEL",
+    "METORIAL_BUILD_ARCH",
+    "METORIAL_BUNDLE_MANIFEST"
+  ],
   "tasks": {
     "enterprise:dev": {
       "cache": false,
@@ -272,6 +277,8 @@
         "!**/*.Dockerfile",
         "!.dockerignore",
         "!**/control/**",
+        "$TURBO_ROOT$/src/lib/doctor/go/**/*.go",
+        "$TURBO_ROOT$/src/lib/doctor/go/go.mod",
         "$TURBO_ROOT$/src/lib/rpc/go/**/*.go",
         "$TURBO_ROOT$/src/lib/rpc/go/**/go.mod",
         "$TURBO_ROOT$/src/lib/rpc/go/**/go.sum",

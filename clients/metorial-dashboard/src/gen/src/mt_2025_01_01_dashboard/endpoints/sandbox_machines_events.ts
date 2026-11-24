@@ -55,7 +55,7 @@ export class MetorialSandboxMachinesEventsEndpoint {
     query?: DashboardInstanceSandboxMachinesEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesEventsListOutput> {
-    let path = `sandbox/machines/${machineId}/events`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/events`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialSandboxMachinesEventsEndpoint {
     eventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesEventsGetOutput> {
-    let path = `sandbox/machines/${machineId}/events/${eventId}`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/events/${encodeURIComponent(eventId)}`;
 
     let request = {
       path,

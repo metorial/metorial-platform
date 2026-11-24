@@ -125,7 +125,7 @@ export class MetorialDocumentsEndpoint {
     documentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsGetOutput> {
-    let path = `documents/${documentId}`;
+    let path = `documents/${encodeURIComponent(documentId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialDocumentsEndpoint {
     body: DashboardInstanceDocumentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsUpdateOutput> {
-    let path = `documents/${documentId}`;
+    let path = `documents/${encodeURIComponent(documentId)}`;
 
     let request = {
       path,
@@ -180,7 +180,7 @@ export class MetorialDocumentsEndpoint {
     documentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsDeleteOutput> {
-    let path = `documents/${documentId}`;
+    let path = `documents/${encodeURIComponent(documentId)}`;
 
     let request = {
       path,
@@ -209,7 +209,7 @@ export class MetorialDocumentsEndpoint {
     body: DashboardInstanceDocumentsCloneBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCloneOutput> {
-    let path = `documents/${documentId}/clone`;
+    let path = `documents/${encodeURIComponent(documentId)}/clone`;
 
     let request = {
       path,

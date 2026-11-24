@@ -69,7 +69,7 @@ export class MetorialDashboardOrganizationsAccessRolesEndpoint {
     query?: DashboardOrganizationsAccessRolesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessRolesListOutput> {
-    let path = `dashboard/organizations/${organizationId}/access-roles`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/access-roles`;
 
     let request = {
       path,
@@ -101,7 +101,7 @@ export class MetorialDashboardOrganizationsAccessRolesEndpoint {
     accessRoleId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessRolesGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/access-roles/${accessRoleId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/access-roles/${encodeURIComponent(accessRoleId)}`;
 
     let request = {
       path,
@@ -132,7 +132,7 @@ export class MetorialDashboardOrganizationsAccessRolesEndpoint {
     query?: DashboardOrganizationsAccessRolesVersionsQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessRolesVersionsOutput> {
-    let path = `dashboard/organizations/${organizationId}/access-roles/${accessRoleId}/versions`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/access-roles/${encodeURIComponent(accessRoleId)}/versions`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialDashboardOrganizationsAccessRolesEndpoint {
     body: DashboardOrganizationsAccessRolesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessRolesCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/access-roles`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/access-roles`;
 
     let request = {
       path,
@@ -196,7 +196,7 @@ export class MetorialDashboardOrganizationsAccessRolesEndpoint {
     body: DashboardOrganizationsAccessRolesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessRolesUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/access-roles/${accessRoleId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/access-roles/${encodeURIComponent(accessRoleId)}`;
 
     let request = {
       path,
@@ -226,7 +226,7 @@ export class MetorialDashboardOrganizationsAccessRolesEndpoint {
     accessRoleId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAccessRolesDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/access-roles/${accessRoleId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/access-roles/${encodeURIComponent(accessRoleId)}`;
 
     let request = {
       path,

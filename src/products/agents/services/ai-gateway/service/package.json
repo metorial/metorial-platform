@@ -9,9 +9,9 @@
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "worker:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/worker.ts",
     "enterprise:dev": "bun run dev",
-    "server:build": "ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
-    "worker:build": "ncc build ./src/worker.ts -o ./dist-worker --source-map --transpile-only",
-    "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-synthesis ./dist && sentry-cli sourcemaps upload --org metorial --project mte-synthesis ./dist) || true",
+    "server:build": "metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js",
+    "worker:build": "metorial-editions build ./src/worker.ts --edition cloud --outfile ./dist-worker/index.js",
+    "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-ai-gateway ./dist && sentry-cli sourcemaps upload --org metorial --project mte-ai-gateway ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
     "worker:start": "bun ./dist-worker/index.js",
@@ -19,24 +19,39 @@
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
-    "e2e:start": "bun ./src/server.ts"
+    "e2e:start": "bun ./src/server.ts",
+    "test:e2e": "metorial-e2e"
   },
   "dependencies": {
-    "@mtsrc/ai-gateway-api-internal": "workspace:*",
-    "@mtsrc/ai-gateway-db": "workspace:*",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/telemetry": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/editions": "workspace:*",
+    "@metorial/service-init": "workspace:*",
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",
-    "@sentry/bun": "^11.11.0"
+    "@mtsrc/ai-gateway-api-inference": "workspace:*",
+    "@mtsrc/ai-gateway-api-internal": "workspace:*",
+    "@mtsrc/ai-gateway-db": "workspace:*",
+    "@mtsrc/ai-gateway-module-access": "workspace:*",
+    "@mtsrc/ai-gateway-module-billing": "workspace:*",
+    "@mtsrc/ai-gateway-module-catalog": "workspace:*",
+    "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+    "@mtsrc/ai-gateway-module-logs": "workspace:*",
+    "@mtsrc/ai-gateway-providers": "workspace:*",
+    "@sentry/bun": "^11.12.0"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial/e2e": "1.0.0",
+    "@mtsrc/ai-gateway-store": "workspace:*",
+    "@mtsrc/ai-gateway-testing": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.45.0",
-    "vitest": "^5.0.4",
-    "typescript": "5.9.3"
+    "openai": "7.56.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

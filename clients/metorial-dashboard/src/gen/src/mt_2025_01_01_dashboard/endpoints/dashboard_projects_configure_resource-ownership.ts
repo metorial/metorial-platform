@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureResourceOwnershipEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureResourceOwnershipGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/resource-ownership`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/resource-ownership`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureResourceOwnershipEndpoint {
     body: DashboardProjectsConfigureResourceOwnershipUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureResourceOwnershipUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/resource-ownership`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/resource-ownership`;
 
     let request = {
       path,

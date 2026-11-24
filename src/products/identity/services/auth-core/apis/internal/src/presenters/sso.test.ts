@@ -1,3 +1,4 @@
+import type { SsoScimOperation } from '@mtsrc/auth-core-db';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@mtsrc/auth-core-module-sso', () => ({ jackson: {} }));
@@ -8,7 +9,8 @@ import {
   ssoCatalogDirectoryGroupPresenter,
   ssoCatalogDirectoryRolePresenter,
   ssoCatalogGroupPresenter,
-  ssoCatalogRolePresenter
+  ssoCatalogRolePresenter,
+  ssoScimLogPresenter
 } from './sso';
 
 let createdAt = new Date('2026-01-01');
@@ -128,4 +130,19 @@ describe('catalog snapshot presenters', () => {
       updatedAt
     });
   });
+});
+
+it('renders historical SCIM errors without their original details or unauthorized payloads', () => {
+  let log = ssoScimLogPresenter({
+    statusCode: 401,
+    errorMessage: 'Private diagnostic',
+    requestBody: { userName: 'person' },
+    query: { filter: 'private filter', count: 10 },
+    responseBody: { detail: 'Private diagnostic' }
+  } as SsoScimOperation);
+
+  expect(log.errorMessage).toBe('Unauthorized');
+  expect(log.query).toEqual({ filter: '[Redacted]', count: 10 });
+  expect(log.requestBody).toBeNull();
+  expect(log.responseBody).toMatchObject({ detail: 'Unauthorized', status: '401' });
 });

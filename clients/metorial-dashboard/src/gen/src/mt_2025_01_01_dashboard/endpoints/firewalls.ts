@@ -93,7 +93,7 @@ export class MetorialFirewallsEndpoint {
     firewallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsGetOutput> {
-    let path = `firewalls/${firewallId}`;
+    let path = `firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,
@@ -148,7 +148,7 @@ export class MetorialFirewallsEndpoint {
     body: DashboardInstanceFirewallsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsUpdateOutput> {
-    let path = `firewalls/${firewallId}`;
+    let path = `firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,
@@ -176,7 +176,7 @@ export class MetorialFirewallsEndpoint {
     firewallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsDeleteOutput> {
-    let path = `firewalls/${firewallId}`;
+    let path = `firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,

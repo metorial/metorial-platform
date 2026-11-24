@@ -117,7 +117,7 @@ export type GenesisInternalClient = {
         requestsPer10MinutesPerMachine: number | null;
         maxConcurrentBuilds: number | null;
       };
-      maxConcurrentBuilds: number | null;
+      maxConcurrentBuilds: number;
       boostMultiplier: number | null;
       quotas: {
         limits: {
@@ -158,7 +158,7 @@ export type GenesisInternalClient = {
             requestsPer10MinutesPerMachine: number | null;
             maxConcurrentBuilds: number | null;
           };
-          maxConcurrentBuilds: number | null;
+          maxConcurrentBuilds: number;
           boostMultiplier: number | null;
           quotas: {
             limits: {
@@ -236,7 +236,7 @@ export type GenesisInternalClient = {
         requestsPer10MinutesPerMachine: number | null;
         maxConcurrentBuilds: number | null;
       };
-      maxConcurrentBuilds: number | null;
+      maxConcurrentBuilds: number;
       boostMultiplier: number | null;
       quotas: {
         limits: {
@@ -311,7 +311,7 @@ export type GenesisInternalClient = {
             requestsPer10MinutesPerMachine: number | null;
             maxConcurrentBuilds: number | null;
           };
-          maxConcurrentBuilds: number | null;
+          maxConcurrentBuilds: number;
           boostMultiplier: number | null;
           quotas: {
             limits: {

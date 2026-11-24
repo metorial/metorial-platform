@@ -83,7 +83,7 @@ export class MetorialConsumerIdentityCredentialsEndpoint {
     identityCredentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerIdentityCredentialsGetOutput> {
-    let path = `consumer/identity-credentials/${identityCredentialId}`;
+    let path = `consumer/identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,

@@ -11,7 +11,7 @@ export let useMutation = <Input, Response>(
   mutator: ((i: Input) => Promise<Response>) | undefined,
   opts?: {
     disableToast?: boolean;
-    onSuccess?: (data: Response) => void;
+    onSuccess?: (data: Response, input: Input) => void;
   }
 ) => {
   let [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ export let useMutation = <Input, Response>(
       setLoading(false);
       setSuccess(true);
 
-      opts?.onSuccess?.(res);
+      opts?.onSuccess?.(res, input);
 
       return [res, null] as [Awaited<Awaited<Response>>, null];
     } catch (err: any) {

@@ -12,6 +12,7 @@ export interface MetorialConfig {
       type: 'email' | 'link' | 'enterprise';
     }) => string;
     apiUrl: string;
+    connectUrl: string;
     appUrl: string;
     filesUrl: string;
     portalsUrl: string;

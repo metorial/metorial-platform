@@ -6,11 +6,11 @@ import type {
   SlateInvocation
 } from '../../prisma/generated/client';
 import { db } from '../db';
-import { env } from '../env';
 import { getId, ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
 import { getInvocationErrorCode } from '../lib/invocation/error';
 import { normalizeAuthorizationUrl } from '../lib/normalizeAuthorizationUrl';
+import { oauthCallbackUrl } from '../lib/oauthCallbackUrl';
 import {
   type CallbackSetupLookup,
   resolveCallbackSetupId
@@ -20,9 +20,7 @@ import { secretService } from './secret';
 import { slateErrorService } from './slateError';
 import { slateInvocationService } from './slateInvocation';
 
-let callbackUrlBase = new URL(env.service.SERVICE_PUBLIC_URL);
-callbackUrlBase.pathname = '/slates-hub/callback';
-let callbackUrl = callbackUrlBase.toString();
+let callbackUrl = oauthCallbackUrl;
 
 let setupInclude = {
   slateVersion: true,

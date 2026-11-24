@@ -1,13 +1,20 @@
 import { delay } from '@lowerdeck/delay';
 import { generatePlainId } from '@lowerdeck/id';
 import { getSentry } from '@lowerdeck/sentry';
+import { egressGatewayRefusalFromError } from '@metorial-platform-systems/runtime-egress-grants';
 import { hostname } from 'node:os';
 import { db } from '../../db';
 import type { SlateInvocationStack } from '../../lib/invocation/stack';
 import {
   assertPublicWebSocketUrl,
+  parseGatewayWebSocketUrl,
   WebSocketUrlNotAllowedError
 } from '../../lib/network/assertPublicWebSocketUrl';
+import {
+  getEgressGateway,
+  isGatewayEgress,
+  resolveEgressSubject
+} from '../../lib/network/egressGateway';
 import { AuthConfigSecretSerializer } from '../../lib/secretSerializer';
 import { slateInvocationService } from '../../services/slateInvocation';
 import {
@@ -70,6 +77,18 @@ let loadGateway = async (oid: bigint) => {
 };
 
 type GatewayRecord = NonNullable<Awaited<ReturnType<typeof loadGateway>>>;
+
+// Trigger registrations have no instance configuration, so the grant carries no policy and
+// the gateway only allows public destinations.
+let socketOptions = async (record: GatewayRecord) => {
+  if (!isGatewayEgress()) return undefined;
+
+  let subject = await resolveEgressSubject({
+    tenant: record.triggerRegistrationInstance.triggerRegistration.tenant
+  });
+
+  return { proxy: getEgressGateway().proxy(subject, 'stream') };
+};
 
 type CloseNotice = { code: number; reason: string };
 
@@ -212,8 +231,10 @@ export class GatewayConnection {
       return false;
     }
 
+    // In gateway mode the egress gateway resolves and checks the host itself.
     try {
-      await assertPublicWebSocketUrl(connected.data.url);
+      if (isGatewayEgress()) parseGatewayWebSocketUrl(connected.data.url);
+      else await assertPublicWebSocketUrl(connected.data.url);
     } catch (err) {
       if (!(err instanceof WebSocketUrlNotAllowedError)) throw err;
       await this.#recordConnectFailure(err.code, err.message);
@@ -235,13 +256,21 @@ export class GatewayConnection {
     this.#lastPingAt = Date.now();
     this.#pingSentAt = null;
 
-    let socket = new WebSocket(connected.data.url) as GatewaySocket;
+    let socket = new WebSocket(
+      connected.data.url,
+      await socketOptions(record)
+    ) as GatewaySocket;
     socket.binaryType = 'arraybuffer';
     this.#socket = socket;
     this.#startIdleTimer();
 
     let openedAt: number | null = null;
+    let refusal: ReturnType<typeof egressGatewayRefusalFromError> = null;
     await new Promise<void>(resolve => {
+      socket.addEventListener('error', event => {
+        if (openedAt === null) refusal = egressGatewayRefusalFromError(event);
+      });
+
       socket.addEventListener('open', () => {
         openedAt = Date.now();
         void db.triggerRegistrationGateway
@@ -277,6 +306,13 @@ export class GatewayConnection {
         this.#clearIdleTimer();
         if (this.#flushTimer) clearTimeout(this.#flushTimer);
         this.#flushTimer = null;
+
+        // A refused tunnel never reached the provider, so the slate gets no close notice.
+        if (refusal) {
+          this.#closeNotice = null;
+          void this.#recordEgressRefusal(refusal).then(() => resolve());
+          return;
+        }
 
         let unexpected = !this.#stopped && !this.#closeRequested;
         this.#closeNotice = unexpected
@@ -484,6 +520,21 @@ export class GatewayConnection {
         data: { lastErrorCode: code, lastErrorMessage: message.slice(0, 2000) }
       })
       .catch(() => {});
+  }
+
+  async #recordEgressRefusal(refusal: 'denied' | 'unauthorized') {
+    if (refusal == 'denied') {
+      await this.#recordConnectFailure(
+        'gateway_egress_blocked',
+        'The network policy does not allow connecting to the provider event gateway.'
+      );
+      return;
+    }
+
+    await this.#recordConnectFailure(
+      'gateway_egress_unauthorized',
+      'The egress gateway rejected the credentials of the hub.'
+    );
   }
 
   async #recordConnectFailure(code: string, message: string) {

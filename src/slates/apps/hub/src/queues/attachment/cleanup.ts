@@ -40,7 +40,13 @@ export let slateAttachmentUploadCleanupManyQueueProcessor =
       },
       orderBy: { id: 'asc' },
       take: RETENTION_BATCH_SIZE,
-      select: { id: true, status: true, storageBucket: true, storageKey: true }
+      select: {
+        id: true,
+        status: true,
+        storageBucket: true,
+        storageKey: true,
+        multipartUploadId: true
+      }
     });
     if (uploads.length === 0) return;
 
@@ -49,7 +55,8 @@ export let slateAttachmentUploadCleanupManyQueueProcessor =
         uploadId: upload.id,
         deleteObject: upload.status !== 'confirmed',
         bucket: upload.storageBucket,
-        key: upload.storageKey
+        key: upload.storageKey,
+        multipartUploadId: upload.multipartUploadId ?? undefined
       }))
     );
 
@@ -66,6 +73,7 @@ export let slateAttachmentUploadCleanupSingleQueue = createQueue<{
   deleteObject: boolean;
   bucket: string;
   key: string;
+  multipartUploadId?: string;
 }>({
   name: 'shub/att/upload/cleanup/single',
   redisUrl: env.service.REDIS_URL,
@@ -75,6 +83,12 @@ export let slateAttachmentUploadCleanupSingleQueue = createQueue<{
 export let slateAttachmentUploadCleanupSingleQueueProcessor =
   slateAttachmentUploadCleanupSingleQueue.process(async data => {
     if (data.deleteObject) {
+      if (data.multipartUploadId) {
+        await storage
+          .abortMultipartUpload(data.bucket, data.key, data.multipartUploadId)
+          .catch(() => {});
+      }
+
       await storage.deleteObject(data.bucket, data.key).catch(() => {});
     }
 

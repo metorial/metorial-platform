@@ -63,7 +63,7 @@ export class MetorialManagementInstanceScmReposEndpoint {
     query?: DashboardInstanceScmReposListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmReposListOutput> {
-    let path = `instances/${instanceId}/scm/repos`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/repos`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstanceScmReposEndpoint {
     scmRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmReposGetOutput> {
-    let path = `instances/${instanceId}/scm/repos/${scmRepositoryId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/repos/${encodeURIComponent(scmRepositoryId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialManagementInstanceScmReposEndpoint {
     body: DashboardInstanceScmReposPreviewBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmReposPreviewOutput> {
-    let path = `instances/${instanceId}/scm/repos/preview`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/repos/preview`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialManagementInstanceScmReposEndpoint {
     body: DashboardInstanceScmReposCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmReposCreateOutput> {
-    let path = `instances/${instanceId}/scm/repos`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/repos`;
 
     let request = {
       path,

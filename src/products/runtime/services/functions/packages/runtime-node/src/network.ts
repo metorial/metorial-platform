@@ -3,11 +3,14 @@ import dns from 'node:dns';
 import net from 'node:net';
 import tls from 'node:tls';
 import { promisify } from 'node:util';
-import { currentContext } from './context';
+import { currentContext, scopedContext } from './context';
 import { codedError, randomId } from './control';
 import { encodeFrame } from './frames';
+import { writeInstanceLog } from './logs';
 
 export let kTunnel = Symbol.for('metorial.tunnel');
+
+let kOwner = Symbol('metorial.socketOwner');
 
 export interface NetworkControl {
   trackTunnel(id: string, socket: net.Socket): void;
@@ -179,8 +182,29 @@ let installSockets = (control: NetworkControl, socketPath: string) => {
     // TLSSocket already re-emits the wrapped socket's errors; forwarding them again would emit
     // a second, unhandled error after the caller has moved on and crash the worker.
     if (options.timeout) secure.setTimeout(options.timeout);
+    (secure as any)[kOwner] = (plain as any)[kTunnel]?.requestId;
     return secure;
   } as typeof tls.connect;
+};
+
+// A client or pool kept at module level hands one request's connection to the next, which then
+// talks to the destination over the earlier request's tunnel and egress grant. This only warns
+// for now. Writes with no request in scope (socket internals, timers) are not attributed.
+let installOwnershipCheck = () => {
+  let write = net.Socket.prototype.write;
+  let warned = new WeakSet<net.Socket>();
+
+  net.Socket.prototype.write = function (this: net.Socket, ...args: any[]) {
+    let owner = (this as any)[kOwner] ?? (this as any)[kTunnel]?.requestId;
+    let ctx = owner && scopedContext();
+    if (ctx && ctx.requestId != owner && !warned.has(this)) {
+      warned.add(this);
+      writeInstanceLog(
+        `request ${ctx.requestId} wrote to a connection opened by request ${owner}; a client or connection pool is shared between invocations`
+      );
+    }
+    return (write as Function).apply(this, args);
+  } as typeof write;
 };
 
 let familyOf = (family: unknown) => {
@@ -332,6 +356,7 @@ let installUdp = () => {
 
 export let installNetwork = (control: NetworkControl, socketPath: string) => {
   installSockets(control, socketPath);
+  installOwnershipCheck();
   installDns(control);
   installUdp();
 };

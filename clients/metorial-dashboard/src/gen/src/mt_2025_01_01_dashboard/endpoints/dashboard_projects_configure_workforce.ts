@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureWorkforceEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureWorkforceGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/workforce`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/workforce`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureWorkforceEndpoint {
     body: DashboardProjectsConfigureWorkforceUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureWorkforceUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/workforce`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/workforce`;
 
     let request = {
       path,

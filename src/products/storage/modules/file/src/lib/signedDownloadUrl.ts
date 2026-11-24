@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Tokens } from '@lowerdeck/tokens';
+import { getConfig } from '@metorial/config';
 import { env } from '../env';
 import type { File } from '@metorial/db';
 
@@ -36,14 +37,17 @@ export let createSignedFileDownloadKey = async (
   return token + regionSuffix;
 };
 
+let getDownloadBaseUrl = () => env.service.DOWNLOAD_PUBLIC_URL || getConfig().urls.filesUrl;
+
 export let getSignedFileDownloadUrl = async (
   file: Pick<File, 'id' | 'storeId'>,
   opts?: { expiresInSeconds?: number }
 ) => {
-  if (!env.service.DOWNLOAD_PUBLIC_URL) return undefined;
+  let baseUrl = getDownloadBaseUrl();
+  if (!baseUrl) return undefined;
 
   let key = await createSignedFileDownloadKey(file, opts);
-  return `${env.service.DOWNLOAD_PUBLIC_URL.replace(/\/$/, '')}/files/${file.id}/${encodeURIComponent(key)}`;
+  return `${baseUrl.replace(/\/$/, '')}/files/${file.id}/${encodeURIComponent(key)}`;
 };
 
 export let getSignedFileDownloadUrlOrThrow = async (

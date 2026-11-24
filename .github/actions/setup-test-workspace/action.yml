@@ -107,7 +107,15 @@ runs:
           bun "$tooling" restore
         else
           cd "$TEST_WORKSPACE"
-          time bun install --frozen-lockfile --linker=hoisted
+          for attempt in 1 2 3; do
+            if time bun install --frozen-lockfile --linker=hoisted; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((attempt * 5))"
+          done
           bun "$tooling" capture
         fi
         echo "TEST_CACHE_RUNTIME=$(uname -sm)-$(node --version)-$(bun --version)" >> "$GITHUB_ENV"

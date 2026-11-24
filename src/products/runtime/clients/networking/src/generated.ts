@@ -27,7 +27,7 @@ export type Observation = {
 
 export type Decision = "allowed" | "denied";
 
-export type Source = "lambda" | "knative" | "build";
+export type Source = "lambda" | "knative" | "build" | "mcp";
 
 export type ObservationIngestManyOutput = {
   inserted: boolean;

@@ -87,7 +87,7 @@ export class MetorialScmConnectionsEndpoint {
     scmConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmConnectionsGetOutput> {
-    let path = `scm/connections/${scmConnectionId}`;
+    let path = `scm/connections/${encodeURIComponent(scmConnectionId)}`;
 
     let request = {
       path,

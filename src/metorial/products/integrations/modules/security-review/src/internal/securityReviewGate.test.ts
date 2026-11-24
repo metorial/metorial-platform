@@ -6,6 +6,7 @@ let mocks = vi.hoisted(() => ({
   project: vi.fn(),
   coreProject: vi.fn(),
   allowed: vi.fn(),
+  isAiReviewAvailable: vi.fn(),
   consume: vi.fn(),
   check: vi.fn()
 }));
@@ -33,7 +34,7 @@ vi.mock('@metorial/module-rate-limit', () => ({
 vi.mock('@metorial/multi-region', () => ({ securityReviewGlobalRepository: {} }));
 
 vi.mock('../definitions/thoroughness', () => ({
-  isAiReviewAvailable: () => true,
+  isAiReviewAvailable: mocks.isAiReviewAvailable,
   parseThoroughness: () => 'standard'
 }));
 
@@ -48,6 +49,7 @@ beforeEach(() => {
   mocks.project.mockResolvedValue({ oid: 2n, id: 'prj_1' });
   mocks.coreProject.mockResolvedValue(project);
   mocks.allowed.mockResolvedValue(true);
+  mocks.isAiReviewAvailable.mockReturnValue(true);
   mocks.consume.mockResolvedValue({ allowed: true });
   mocks.check.mockResolvedValue({ allowed: true });
 });
@@ -125,6 +127,19 @@ describe('usage review access', () => {
       })
     ).toBe(false);
     expect(await enabled(null)).toBe(false);
+  });
+
+  it('is off without AI credentials even for tenants that opted in', async () => {
+    mocks.isAiReviewAvailable.mockReturnValue(false);
+
+    expect(
+      await enabled({
+        usageReviewsEnabled: true,
+        aiAnalysisEnabled: true,
+        reducedSubprocessors: false
+      })
+    ).toBe(false);
+    expect(mocks.tenantSettings).not.toHaveBeenCalled();
   });
 
   it('needs AI analysis and no reduced subprocessors', async () => {

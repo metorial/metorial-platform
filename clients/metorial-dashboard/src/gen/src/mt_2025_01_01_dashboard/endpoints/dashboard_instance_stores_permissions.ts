@@ -51,7 +51,7 @@ export class MetorialDashboardInstanceStoresPermissionsEndpoint {
     storeId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresPermissionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/stores/${storeId}/permissions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/stores/${encodeURIComponent(storeId)}/permissions`;
 
     let request = {
       path,

@@ -18,6 +18,10 @@ vi.mock('../../lib/invocation/liveToken', () => ({
   releaseAttachmentBudget: vi.fn()
 }));
 
+vi.mock('../../queues/attachment/uploadDelete', () => ({
+  slateAttachmentUploadDeleteQueue: { add: vi.fn() }
+}));
+
 vi.mock('../../env', () => ({
   env: {
     storage: { MAX_ATTACHMENT_SIZE_BYTES: undefined }

@@ -23,6 +23,8 @@ pub struct DeleteObjectResult {
 
 pub const DEFAULT_MAX_CONCURRENT_DIGESTS: usize = 16;
 
+const PUBLIC_PART_BUFFER_BUDGET_MIB: usize = 256;
+
 #[derive(Debug, Clone)]
 pub struct DigestedObject {
     pub metadata: ObjectMetadata,
@@ -33,6 +35,8 @@ pub struct ObjectStoreService {
     backend: Arc<dyn Backend>,
     metadata: Arc<MetadataStore>,
     public_signer: Option<Arc<PublicUrlSigner>>,
+    public_multipart: bool,
+    pub(crate) public_part_budget: Semaphore,
     archive_uploader: Option<Arc<Uploader>>,
     digests: Arc<Semaphore>,
 }
@@ -43,6 +47,8 @@ impl ObjectStoreService {
             backend,
             metadata,
             public_signer: None,
+            public_multipart: false,
+            public_part_budget: Semaphore::new(PUBLIC_PART_BUFFER_BUDGET_MIB),
             archive_uploader: None,
             digests: Arc::new(Semaphore::new(DEFAULT_MAX_CONCURRENT_DIGESTS)),
         }
@@ -55,6 +61,20 @@ impl ObjectStoreService {
 
     pub fn public_signer(&self) -> Option<&Arc<PublicUrlSigner>> {
         self.public_signer.as_ref()
+    }
+
+    pub fn with_public_multipart(mut self, enabled: bool) -> Self {
+        self.public_multipart = enabled;
+        self
+    }
+
+    pub(crate) fn multipart_signer(&self) -> ServiceResult<&PublicUrlSigner> {
+        self.public_signer
+            .as_deref()
+            .filter(|_| self.public_multipart)
+            .ok_or_else(|| {
+                BackendError::Unsupported("Public multipart uploads are disabled".into()).into()
+            })
     }
 
     /// Objects hashed at once by `digest_object`; further requests wait for a slot.
@@ -465,16 +485,26 @@ impl ObjectStoreService {
         }
     }
 
+    // Only this service's own public URLs can bind a size; backend-presigned URLs ignore it, so
+    // callers that need the size enforced still compare the stored object's size.
     pub async fn get_public_url(
         &self,
         bucket: &str,
         key: &str,
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
+        size: Option<u64>,
     ) -> ServiceResult<SignedUrl> {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
+
+        if size.is_some() && !matches!(purpose, PublicUrlPurpose::Upload) {
+            return Err(object_store_backends::BackendError::InvalidRequest(
+                "Only upload URLs can bind a size".into(),
+            )
+            .into());
+        }
 
         if let Some(signer) = &self.public_signer {
             return Ok(signer.sign(
@@ -482,6 +512,7 @@ impl ObjectStoreService {
                 key,
                 purpose,
                 expiration_secs,
+                size,
                 chrono::Utc::now().timestamp(),
             ));
         }
@@ -531,6 +562,39 @@ impl ObjectStoreService {
             .backend
             .upload_durable_part(&format!("{}/{}", bucket, key), upload_id, number, data)
             .await?)
+    }
+
+    pub(crate) async fn upload_public_part(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> ServiceResult<DurablePart> {
+        self.metadata.get_bucket(bucket).await?;
+        validate_deletable_object_key(key)?;
+        Ok(self
+            .backend
+            .upload_public_part(&format!("{bucket}/{key}"), upload_id, number, data)
+            .await?)
+    }
+
+    pub(crate) async fn complete_public_multipart(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> ServiceResult<ObjectMetadata> {
+        self.metadata.get_bucket(bucket).await?;
+        validate_deletable_object_key(key)?;
+        let mut metadata = self
+            .backend
+            .complete_public_multipart(&format!("{bucket}/{key}"), upload_id, parts)
+            .await?;
+        metadata.key = key.to_string();
+        Ok(metadata)
     }
 
     pub async fn complete_durable_upload(

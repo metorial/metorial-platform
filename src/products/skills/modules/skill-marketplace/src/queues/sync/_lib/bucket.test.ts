@@ -52,8 +52,15 @@ describe('shared destination bucket ownership', () => {
     expect(await destinationBucketIsAvailable(sync)).toBe(true);
   });
 
-  it('does not treat a missing remote result as permission to overwrite the bucket', async () => {
+  it('treats an Origin sync deleted by retention as finished', async () => {
     remote.mockResolvedValue({ syncs: [] });
+
+    expect(await destinationBucketIsAvailable(sync)).toBe(true);
+  });
+
+  it('still blocks when a deleted Origin sync sits next to an active one', async () => {
+    findMany.mockResolvedValue([propagation, { ...propagation, originSyncId: 'active' }]);
+    remote.mockResolvedValue({ syncs: [{ id: 'active', status: 'syncing_contents' }] });
 
     expect(await destinationBucketIsAvailable(sync)).toBe(false);
   });

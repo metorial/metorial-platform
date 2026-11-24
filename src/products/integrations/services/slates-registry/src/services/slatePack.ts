@@ -1,4 +1,4 @@
-import { badRequestError, createError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { Zip, ZipPassThrough } from 'fflate';
@@ -38,47 +38,13 @@ import { normalizePackChannelUrl, slatePackBatchService } from './slatePackBatch
 import { signingKeyService } from './signingKey';
 import { slateToolingService } from './slateTooling';
 
-let GB = 1024 * 1024 * 1024;
-
-let defaultMaxPackBytes = 8 * GB;
-
 let maxManifestBytes = 64 * 1024 * 1024;
 
 let maxEntryBytes = 256 * 1024 * 1024;
 
 let maxSignatureBytes = 1024 * 1024;
 
-let maxFileNameLength = 255;
-
 let progressEvery = 25;
-
-let payloadTooLargeError = createError({
-  status: 413,
-  code: 'payload_too_large',
-  message: 'The slate pack is too large.'
-});
-
-let getMaxPackBytes = () => env.mirror.SLATES_PACK_MAX_BYTES ?? defaultMaxPackBytes;
-
-let limitStream = (stream: ReadableStream<Uint8Array>, maxBytes: number) => {
-  let size = 0;
-
-  return {
-    getSize: () => size,
-    stream: stream.pipeThrough(
-      new TransformStream<Uint8Array, Uint8Array>({
-        transform(chunk, controller) {
-          size += chunk.byteLength;
-          if (size > maxBytes) {
-            controller.error(new ServiceError(payloadTooLargeError()));
-            return;
-          }
-          controller.enqueue(chunk);
-        }
-      })
-    )
-  };
-};
 
 let readBounded = async (file: unzipper.File, maxBytes: number) => {
   let chunks: Buffer[] = [];
@@ -119,42 +85,7 @@ type PackBundle = { path: string; bucket: string; storageKey: string };
 
 let encoder = new TextEncoder();
 
-let sanitizeFileName = (fileName: string) =>
-  fileName.replace(/[^\w.\- ]+/g, '_').slice(0, maxFileNameLength) || 'upload.slatepack';
-
 class slatePackServiceImpl {
-  async createImport(d: {
-    fileName: string;
-    body: ReadableStream<Uint8Array>;
-    batch?: { oid: bigint };
-  }) {
-    let ids = getId('slatePackImport');
-    let bucket = env.storage.PACKAGE_BUCKET_NAME;
-    let storageKey = `slate-packs/${ids.id}.slatepack`;
-
-    let limited = limitStream(d.body, getMaxPackBytes());
-    await storage.putObject(bucket, storageKey, limited.stream, 'application/zip');
-
-    if (limited.getSize() === 0) {
-      await storage.deleteObject(bucket, storageKey).catch(() => {});
-      throw new ServiceError(
-        badRequestError({ message: 'The uploaded slate pack is empty.' })
-      );
-    }
-
-    return db.slatePackImport.create({
-      data: {
-        ...ids,
-        status: 'pending',
-        fileName: sanitizeFileName(d.fileName),
-        size: BigInt(limited.getSize()),
-        bucket,
-        storageKey,
-        batchOid: d.batch?.oid
-      }
-    });
-  }
-
   async listImports(d: { batchId?: string } = {}) {
     let batch = d.batchId ? await slatePackBatchService.getBatch({ id: d.batchId }) : null;
 
@@ -483,7 +414,9 @@ class slatePackServiceImpl {
 
   async streamSignedPack(d: { manifest: SlatePackManifest; bundles: PackBundle[] }) {
     let manifestBytes = encoder.encode(JSON.stringify(d.manifest, null, 2));
-    let signatures = await signingKeyService.signSlatePackManifest({ manifest: manifestBytes });
+    let signatures = await signingKeyService.signSlatePackManifest({
+      manifest: manifestBytes
+    });
 
     return this.streamPack({
       files: [
@@ -501,7 +434,10 @@ class slatePackServiceImpl {
     });
   }
 
-  private streamPack(d: { files: { path: string; content: Uint8Array }[]; bundles: PackBundle[] }) {
+  private streamPack(d: {
+    files: { path: string; content: Uint8Array }[];
+    bundles: PackBundle[];
+  }) {
     let resumePull: (() => void) | null = null;
 
     return new ReadableStream<Uint8Array>(

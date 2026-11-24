@@ -57,3 +57,24 @@ func TestLoadConfig(t *testing.T) {
 		t.Error("missing database: expected an error")
 	}
 }
+
+func TestLoadConfigFromServerURL(t *testing.T) {
+	env := map[string]string{
+		"NETWORK_LOGS_RPC_SECRET": "s",
+		"DATABASE_NAME":           "metorial_network_logs",
+		"DATABASE_SERVER_URL":     "postgres://u:p%40ss@db.internal:5433/?sslmode=verify-full",
+	}
+
+	cfg, err := loadConfig(func(name string) string { return env[name] })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.database.DSN("metorial_network_logs"); got != "postgres://u:p%40ss@db.internal:5433/metorial_network_logs?sslmode=verify-full" {
+		t.Fatalf("dsn %s", got)
+	}
+
+	env["DATABASE_SERVER_URL"] = "mysql://db"
+	if _, err := loadConfig(func(name string) string { return env[name] }); err == nil {
+		t.Error("non-postgres server URL: expected an error")
+	}
+}

@@ -1,4 +1,4 @@
-import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono, type Context as HonoContext } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
@@ -153,13 +153,12 @@ let renderSsoError = (ctx: HonoContext, error: unknown) => {
     return ctx.html(ssoDomainNotAllowedHtml(error), 403);
   }
 
-  console.error('SSO hook failed:', error);
+  console.error('SSO hook failed');
 
   return ctx.html(
     errorHtml({
       title: 'Unable to Authenticate',
-      message: 'An error occurred during authentication.',
-      details: isServiceError(error) ? error.data.message : undefined
+      message: 'An error occurred during authentication.'
     }),
     500
   );

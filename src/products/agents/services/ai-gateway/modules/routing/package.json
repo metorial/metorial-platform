@@ -1,0 +1,29 @@
+{
+  "name": "@mtsrc/ai-gateway-module-routing",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@metorial/model-catalog": "workspace:*",
+    "@mtsrc/ai-gateway-cost": "workspace:*",
+    "@mtsrc/ai-gateway-db": "workspace:*",
+    "@mtsrc/ai-gateway-module-catalog": "workspace:*",
+    "@mtsrc/ai-gateway-module-credentials": "workspace:*",
+    "@mtsrc/ai-gateway-providers": "workspace:*",
+    "@mtsrc/ai-gateway-spec": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

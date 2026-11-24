@@ -93,7 +93,7 @@ export class MetorialSessionsProvidersEndpoint {
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersGetOutput> {
-    let path = `session-providers/${sessionProviderId}`;
+    let path = `session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialSessionsProvidersEndpoint {
     body: DashboardInstanceSessionsProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersUpdateOutput> {
-    let path = `session-providers/${sessionProviderId}`;
+    let path = `session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialSessionsProvidersEndpoint {
     sessionProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsProvidersDeleteOutput> {
-    let path = `session-providers/${sessionProviderId}`;
+    let path = `session-providers/${encodeURIComponent(sessionProviderId)}`;
 
     let request = {
       path,

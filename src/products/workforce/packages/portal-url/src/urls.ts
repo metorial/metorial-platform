@@ -112,7 +112,7 @@ export let getPortalConnectUrl = (d: {
 }) => {
   let config = getConfig();
   if (config.env == 'staging') {
-    return `${config.urls.apiUrl.replace(/\/+$/, '')}/connect/portal/${d.portal.slug}`;
+    return `${config.urls.connectUrl.replace(/\/+$/, '')}/connect/portal/${d.portal.slug}`;
   }
 
   let namespaceOrigin =
@@ -120,7 +120,7 @@ export let getPortalConnectUrl = (d: {
       ? new URL(getPortalUrls(d)[0]!.url).origin
       : null;
   let origin =
-    toOrigin(d.magicMcpOrigin) ?? namespaceOrigin ?? config.urls.apiUrl.replace(/\/+$/, '');
+    toOrigin(d.magicMcpOrigin) ?? namespaceOrigin ?? config.urls.connectUrl.replace(/\/+$/, '');
 
   return `${origin}/connect/portal/${d.portal.slug}`;
 };

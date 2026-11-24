@@ -93,7 +93,7 @@ export class MetorialIdentitiesEndpoint {
     identityId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesGetOutput> {
-    let path = `identities/${identityId}`;
+    let path = `identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialIdentitiesEndpoint {
     body: DashboardInstanceIdentitiesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesUpdateOutput> {
-    let path = `identities/${identityId}`;
+    let path = `identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialIdentitiesEndpoint {
     identityId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDeleteOutput> {
-    let path = `identities/${identityId}`;
+    let path = `identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,

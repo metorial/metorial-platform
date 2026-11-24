@@ -163,5 +163,9 @@ if (checkEdition('cloud')) {
 }
 
 if (checkEdition('on-prem')) {
-  scmController.route('/', (await import('./scmAppWebhook')).scmAppWebhookController);
+  let { scmAppWebhookController, scmTemplateAppWebhookController } =
+    await import('./scmAppWebhook');
+
+  scmController.route('/', scmAppWebhookController);
+  scmController.route('/', scmTemplateAppWebhookController);
 }

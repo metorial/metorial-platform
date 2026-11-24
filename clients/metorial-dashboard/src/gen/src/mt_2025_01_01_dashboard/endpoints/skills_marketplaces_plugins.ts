@@ -61,7 +61,7 @@ export class MetorialSkillsMarketplacesPluginsEndpoint {
     query?: DashboardInstanceSkillsMarketplacesPluginsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsListOutput> {
-    let path = `skill-marketplaces/${skillMarketplaceId}/plugins`;
+    let path = `skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialSkillsMarketplacesPluginsEndpoint {
     body: DashboardInstanceSkillsMarketplacesPluginsAddBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsAddOutput> {
-    let path = `skill-marketplaces/${skillMarketplaceId}/plugins`;
+    let path = `skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins`;
 
     let request = {
       path,
@@ -127,7 +127,7 @@ export class MetorialSkillsMarketplacesPluginsEndpoint {
     skillMarketplacePluginId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsGetOutput> {
-    let path = `skill-marketplaces/${skillMarketplaceId}/plugins/${skillMarketplacePluginId}`;
+    let path = `skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins/${encodeURIComponent(skillMarketplacePluginId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialSkillsMarketplacesPluginsEndpoint {
     skillMarketplacePluginId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsRemoveOutput> {
-    let path = `skill-marketplaces/${skillMarketplaceId}/plugins/${skillMarketplacePluginId}`;
+    let path = `skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins/${encodeURIComponent(skillMarketplacePluginId)}`;
 
     let request = {
       path,

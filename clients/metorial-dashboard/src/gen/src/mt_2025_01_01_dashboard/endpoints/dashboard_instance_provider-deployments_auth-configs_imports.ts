@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsImportsEndpo
     query?: DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-imports`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsImportsEndpo
     providerAuthImportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-imports/${providerAuthImportId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports/${encodeURIComponent(providerAuthImportId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsImportsEndpo
     body: DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-imports`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsImportsEndpo
     query?: DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-imports/schema`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports/schema`;
 
     let request = {
       path,

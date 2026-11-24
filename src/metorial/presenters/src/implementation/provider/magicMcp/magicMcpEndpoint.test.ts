@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 
 vi.mock('@metorial/config', () => ({
-  getConfig: () => ({ urls: { apiUrl: 'https://api.metorial.test' } })
+  getConfig: () => ({ urls: { apiUrl: 'https://api.metorial.test', connectUrl: 'https://api.metorial.test' } })
 }));
 
 vi.mock('@metorial/db', () => ({ db: {}, getImageUrl: vi.fn() }));

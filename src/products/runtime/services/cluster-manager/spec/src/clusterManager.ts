@@ -42,6 +42,7 @@ export let Build = t
     status: BuildStatus,
     exitCode: t.int().nullable(),
     failureReason: t.string().nullable(),
+    pendingReason: t.string().nullable(),
     uploadedSteps: t.array(t.string()),
     startedAt: t.datetime().nullable(),
     finishedAt: t.datetime().nullable()

@@ -32,9 +32,12 @@ export interface BuildSpec {
   migrations: BuildMigration[];
   assets: BuildAsset[];
   packages: { build: string[]; runtime: string[] };
-  modules: 'production' | 'none';
+  modules: 'production' | 'none' | 'external';
   sentry: boolean;
   node: boolean;
+  curl: boolean;
+  upgradePackages: boolean;
+  prisma: boolean;
   env: Record<string, string>;
   buildEnv: Record<string, string>;
   sources: string[];

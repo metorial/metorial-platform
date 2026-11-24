@@ -8,8 +8,12 @@ import type { RemoteOAuthConfig, RemoteOAuthConnection, Tenant } from '@mtsrc/mc
 import { oauthCallbackUrl } from '@mtsrc/mcp-runtime-env';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { getId } from '@mtsrc/mcp-runtime-db';
-import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
-import { assertUrlAllowedByEgressPolicy } from '@mtsrc/mcp-runtime-network';
+import {
+  assertUrlAllowedByEgressPolicy,
+  createEgressContext,
+  getAxiosEgressOptions,
+  type EgressContext
+} from '@mtsrc/mcp-runtime-network';
 import { oauthDebug } from './oauthDebug';
 import {
   buildClientBrandingMetadata,
@@ -117,7 +121,7 @@ export class OAuthUtils {
     codeVerifier,
     config,
     tokenEndpointAuthMethod,
-    egressPolicy
+    egress
   }: {
     tokenEndpoint: string;
     clientId: string;
@@ -127,7 +131,7 @@ export class OAuthUtils {
     codeVerifier?: string;
     config: OAuthConfiguration;
     tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
-    egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
+    egress: EgressContext;
   }): Promise<TokenResponse> {
     let body = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -153,13 +157,16 @@ export class OAuthUtils {
     applyClientAuthentication({ method: authMethod, clientId, clientSecret, headers, body });
 
     try {
-      await assertUrlAllowedByEgressPolicy({ url: tokenEndpoint, egressPolicy });
+      await assertUrlAllowedByEgressPolicy({
+        url: tokenEndpoint,
+        egressPolicy: egress.egressPolicy
+      });
 
       let response = await axios.post<TokenResponse>(tokenEndpoint, body.toString(), {
         headers,
         maxRedirects: 5,
         timeout: 5000,
-        ...getAxiosSsrfFilter(tokenEndpoint)
+        ...getAxiosEgressOptions(tokenEndpoint, egress)
       });
 
       // @ts-ignore
@@ -202,7 +209,8 @@ export class OAuthUtils {
     clientSecret,
     refreshToken,
     config,
-    tokenEndpointAuthMethod
+    tokenEndpointAuthMethod,
+    egress
   }: {
     tokenEndpoint: string;
     clientId: string;
@@ -210,6 +218,7 @@ export class OAuthUtils {
     refreshToken: string;
     config: OAuthConfiguration;
     tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
+    egress: EgressContext;
   }): Promise<
     | { ok: true; response: TokenResponse }
     | { ok: false; error: OAuthRequestErrorDetails; message: string }
@@ -238,7 +247,7 @@ export class OAuthUtils {
           headers,
           maxRedirects: 5,
           timeout: 5000,
-          ...getAxiosSsrfFilter(tokenEndpoint)
+          ...getAxiosEgressOptions(tokenEndpoint, egress)
         });
         return {
           ok: true,
@@ -265,14 +274,17 @@ export class OAuthUtils {
   static async getUserProfile({
     userInfoEndpoint,
     accessToken,
-    egressPolicy
+    egress
   }: {
     userInfoEndpoint: string;
     accessToken: string;
-    egressPolicy?: McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null;
+    egress: EgressContext;
   }): Promise<UserProfile | null> {
     try {
-      await assertUrlAllowedByEgressPolicy({ url: userInfoEndpoint, egressPolicy });
+      await assertUrlAllowedByEgressPolicy({
+        url: userInfoEndpoint,
+        egressPolicy: egress.egressPolicy
+      });
 
       let response = await axios.get(userInfoEndpoint, {
         headers: {
@@ -282,7 +294,7 @@ export class OAuthUtils {
         },
         maxRedirects: 5,
         timeout: 5000,
-        ...getAxiosSsrfFilter(userInfoEndpoint)
+        ...getAxiosEgressOptions(userInfoEndpoint, egress)
       });
 
       let data = response.data;
@@ -397,7 +409,7 @@ export class OAuthUtils {
             },
             maxRedirects: 5,
             timeout: 5000,
-            ...getAxiosSsrfFilter(registrationEndpoint)
+            ...getAxiosEgressOptions(registrationEndpoint, createEgressContext({ tenant }))
           }
         );
 

@@ -53,7 +53,7 @@ export class MetorialDashboardInstanceIntegrationInternetGatewayEndpoint {
     instanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationInternetGatewayGetOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-internet-gateway`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-internet-gateway`;
 
     let request = {
       path,
@@ -82,7 +82,7 @@ export class MetorialDashboardInstanceIntegrationInternetGatewayEndpoint {
     query?: DashboardInstanceIntegrationInternetGatewayListNetworkLogsQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationInternetGatewayListNetworkLogsOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-internet-gateway/network-logs`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-internet-gateway/network-logs`;
 
     let request = {
       path,

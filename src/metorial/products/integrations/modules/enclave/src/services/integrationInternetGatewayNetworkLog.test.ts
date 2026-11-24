@@ -67,11 +67,8 @@ describe('integrationInternetGatewayNetworkLogService.listNetworkLogsInternal', 
     mockGetMetorialSolution.mockResolvedValue(solution);
   });
 
-  it('returns empty records when no enclaves have Function Bay backing', async () => {
-    mockDb.integrationEnclave.findMany.mockResolvedValueOnce([
-      { oid: BigInt(1), id: 'enc_a', hasFunctionBayBacking: false },
-      { oid: BigInt(2), id: 'enc_b', hasFunctionBayBacking: false }
-    ]);
+  it('returns empty records when the environment has no enclaves', async () => {
+    mockDb.integrationEnclave.findMany.mockResolvedValueOnce([]);
 
     let result = await integrationInternetGatewayNetworkLogService.listNetworkLogsInternal({
       tenant,
@@ -89,7 +86,7 @@ describe('integrationInternetGatewayNetworkLogService.listNetworkLogsInternal', 
     expect(mockFunctionBay.networkLog.list).not.toHaveBeenCalled();
   });
 
-  it('queries only backed enclaves when explicit enclaveIds are provided', async () => {
+  it('queries enclaves without Function Bay backing too', async () => {
     mockDb.integrationEnclave.findMany.mockResolvedValueOnce([
       { oid: BigInt(1), id: 'enc_backed', hasFunctionBayBacking: true },
       { oid: BigInt(2), id: 'enc_unbacked', hasFunctionBayBacking: false }
@@ -106,14 +103,14 @@ describe('integrationInternetGatewayNetworkLogService.listNetworkLogsInternal', 
 
     expect(mockFunctionBay.networkLog.list).toHaveBeenCalledWith({
       tenantId: 'fb_tenant_1',
-      enclaveIds: ['enc_backed'],
+      enclaveIds: ['enc_backed', 'enc_unbacked'],
       hostnames: ['example.com'],
       ips: undefined,
       from: undefined,
       to: undefined,
       intervalMinutes: undefined
     });
-    expect(result.enclaveIds).toEqual(['enc_backed']);
+    expect(result.enclaveIds).toEqual(['enc_backed', 'enc_unbacked']);
     expect(result.records).toHaveLength(1);
   });
 

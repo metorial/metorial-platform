@@ -1,5 +1,5 @@
 import { getAllowedScmBackendIds } from '../lib/scmPolicy';
-import { assertScmTypeAllowed } from '../lib/scmPolicy';
+import { assertProjectProvidersAllowed, assertScmTypeAllowed } from '../lib/scmPolicy';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { randomBytes } from 'crypto';
@@ -148,6 +148,7 @@ class ScmInstallationSessionServiceImpl {
     parentInstallationSession?: ScmInstallationSession;
     redirectUrl?: string;
   }) {
+    assertProjectProvidersAllowed();
     assertScmTypeAllowed(d.type);
 
     let state = randomBytes(32).toString('hex');
@@ -252,6 +253,7 @@ class ScmInstallationSessionServiceImpl {
     return await db.scmBackend.findMany({
       where: {
         OR: [{ isDefault: true, tenantOid: null }, { tenantOid: d.tenant.oid }],
+        AND: [{ OR: [{ templateOid: null }, { template: { status: 'active' } }] }],
         oid: allowed ? { in: allowed } : undefined
       },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]

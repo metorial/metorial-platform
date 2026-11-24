@@ -504,6 +504,40 @@ func TestIntegrationCrashRestartsWorker(t *testing.T) {
 	}
 }
 
+func TestIntegrationCrashMessageStaysWithItsRequest(t *testing.T) {
+	h := newHarness(t, harnessOptions{files: map[string]string{"index.js": `
+		exports.handler = async input => {
+			if (input.secret) {
+				setTimeout(() => { throw new Error('upstream said ' + input.secret); }, 200);
+				return new Promise(() => {});
+			}
+			await new Promise(resolve => setTimeout(resolve, 5000));
+			return 'finished';
+		};
+	`}})
+	h.waitReady()
+
+	bystander := make(chan envelope, 1)
+	go func() {
+		_, env := h.invoke(h.input(map[string]any{}, nil))
+		bystander <- env
+	}()
+	time.Sleep(50 * time.Millisecond)
+
+	_, crashed := h.invoke(h.input(map[string]any{"secret": "tok_123"}, nil))
+	if crashed.Body.Error.Code != "function_bay.crash" || !strings.Contains(crashed.Body.Error.Message, "upstream said tok_123") {
+		t.Fatalf("crashing request lost its message: %+v", crashed)
+	}
+
+	other := <-bystander
+	if other.Body.Error.Code != "function_bay.crash" || strings.Contains(other.Body.Error.Message, "tok_123") {
+		t.Fatalf("bystander saw the crash message: %+v", other)
+	}
+	if other.Body.Error.Message != "Function process exited unexpectedly: "+bystanderCrashReason {
+		t.Fatalf("unexpected bystander message %q", other.Body.Error.Message)
+	}
+}
+
 func TestIntegrationRepeatedCrashesFailReadiness(t *testing.T) {
 	h := newHarness(t, harnessOptions{files: map[string]string{"index.js": `
 		setTimeout(() => process.exit(7), 20);

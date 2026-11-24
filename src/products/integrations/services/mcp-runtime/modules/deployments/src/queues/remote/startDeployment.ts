@@ -15,6 +15,7 @@ import { versionIdentifier } from '@mtsrc/mcp-runtime-data-utils';
 import { OAuthDiscovery } from '@mtsrc/mcp-runtime-oauth-utils';
 import { oauthConfigValidator, type OAuthConfiguration } from '@mtsrc/mcp-runtime-oauth-utils';
 import { checkRemote } from '@mtsrc/mcp-runtime-remote-protocol';
+import { createEgressContext, systemEgressContext } from '@mtsrc/mcp-runtime-network';
 import {
   remoteOAuthDiscoveryService,
   remoteOAuthRegistrationService,
@@ -68,7 +69,11 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
     try {
       let url = new URL(data.remoteUrl);
 
-      let checkRes = await checkRemote(data.remoteUrl);
+      let egress = deployment.tenant
+        ? createEgressContext({ tenant: deployment.tenant })
+        : systemEgressContext;
+
+      let checkRes = await checkRemote(data.remoteUrl, egress);
       if (!checkRes.ok) {
         deployingStep.log(`Remote server check failed for URL ${data.remoteUrl}.`);
         deployingStep.log(`Error: ${checkRes.errorMessage}`);
@@ -277,7 +282,8 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
         }
       } else {
         let manualAuth = await OAuthDiscovery.checkIfManualAuthIsNeeded(data.remoteUrl, {
-          protocol: data.remoteProtocol
+          protocol: data.remoteProtocol,
+          egress
         });
 
         if (manualAuth) {

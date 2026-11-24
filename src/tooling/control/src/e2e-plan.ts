@@ -24,12 +24,14 @@ export interface Options {
   keep: boolean;
   planOnly: boolean;
   concurrency?: number;
+  replica?: { delay?: string };
   testArgs: string[];
 }
 
 export interface Plan extends RunnerPlan {
   testArgs: string[];
   postgres: Database[];
+  postgresReplica?: { delay: string };
   mongo: Database[];
   objectStorage: boolean;
   objectStorageImage?: string;
@@ -38,6 +40,7 @@ export interface Plan extends RunnerPlan {
 export let serializedPlan = (plan: Plan): RunnerPlan => {
   let {
     postgres: _postgres,
+    postgresReplica: _postgresReplica,
     mongo: _mongo,
     objectStorage: _objectStorage,
     objectStorageImage: _objectStorageImage,
@@ -47,7 +50,10 @@ export let serializedPlan = (plan: Plan): RunnerPlan => {
   return serialized;
 };
 
-export let rootEnvironment = (project: ProjectRoot): Environment => ({
+export let rootEnvironment = (
+  project: ProjectRoot,
+  replica?: Options['replica']
+): Environment => ({
   METORIAL_ENV: 'development',
   METORIAL_SOURCE: project.kind,
   IS_ENTERPRISE: String(project.kind === 'enterprise'),
@@ -59,6 +65,7 @@ export let rootEnvironment = (project: ProjectRoot): Environment => ({
       String(port)
     ])
   ),
+  ...environment.postgresReplicaEnvironment(replica ? '1' : undefined, replica?.delay),
   [environment.isolated]: '1'
 });
 
@@ -117,7 +124,7 @@ export let buildPlan = (
   options: Options
 ): Plan => {
   let mode: 'images' | 'local' = options.images !== undefined ? 'images' : 'local';
-  let root = rootEnvironment(project);
+  let root = rootEnvironment(project, options.replica);
   let applicable = manifests.filter(item => manifest.applies(item.manifest, project.kind));
   let byName = new Map(
     applicable
@@ -388,6 +395,7 @@ export let buildPlan = (
     suts: sutServices,
     stacks: plannedStacks,
     postgres: databases('postgres'),
+    postgresReplica: environment.postgresReplica(root),
     mongo: databases('mongo'),
     objectStorage,
     ...(objectStorage && options.images !== undefined

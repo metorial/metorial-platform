@@ -95,7 +95,7 @@ export class MetorialSessionTemplatesEndpoint {
     sessionTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesGetOutput> {
-    let path = `session-templates/${sessionTemplateId}`;
+    let path = `session-templates/${encodeURIComponent(sessionTemplateId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialSessionTemplatesEndpoint {
     body: DashboardInstanceSessionTemplatesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesUpdateOutput> {
-    let path = `session-templates/${sessionTemplateId}`;
+    let path = `session-templates/${encodeURIComponent(sessionTemplateId)}`;
 
     let request = {
       path,
@@ -180,7 +180,7 @@ export class MetorialSessionTemplatesEndpoint {
     sessionTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesDeleteOutput> {
-    let path = `session-templates/${sessionTemplateId}`;
+    let path = `session-templates/${encodeURIComponent(sessionTemplateId)}`;
 
     let request = {
       path,
@@ -207,7 +207,7 @@ export class MetorialSessionTemplatesEndpoint {
     sessionTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionTemplatesListToolsOutput> {
-    let path = `session-templates/${sessionTemplateId}/tools`;
+    let path = `session-templates/${encodeURIComponent(sessionTemplateId)}/tools`;
 
     let request = {
       path,

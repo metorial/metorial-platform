@@ -5,6 +5,7 @@ import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/modul
 import { accessQueueProcessor } from '@metorial/module-access';
 import { agentTrackingAccessQueueProcessor } from '@metorial/module-agent-tracking-access';
 import { agentTrackingSyncQueueProcessor } from '@metorial/module-agent-tracking-sync';
+import { aiGatewayQueueProcessor } from '@metorial/module-ai-gateway';
 import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
 import { auditLogQueueProcessor } from '@metorial/module-audit-log';
 import { auditTrackerQueueProcessor } from '@metorial/module-audit-tracker';
@@ -87,6 +88,7 @@ export let worker = runQueueProcessors([
   magicQueueProcessor,
   agentTrackingSyncQueueProcessor,
   agentTrackingAccessQueueProcessor,
+  aiGatewayQueueProcessor,
   multiRegionQueueProcessor
 ]);
 

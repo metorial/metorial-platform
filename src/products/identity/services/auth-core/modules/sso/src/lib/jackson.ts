@@ -26,6 +26,13 @@ let ret = await jack({
   oidcPath: '/sso/jxn/oidc/callback',
   scimPath: '/sso/scim',
   samlAudience: env.sso.SAML_AUDIENCE,
+  // Jackson can include assertions and tokens in its diagnostic payloads.
+  ssoTraces: { disable: true },
+  logger: {
+    error: () => console.error('SSO provider operation failed'),
+    warn: () => console.warn('SSO provider operation warning'),
+    info: () => {}
+  },
   db: {
     engine: 'sql',
     type: 'postgres',

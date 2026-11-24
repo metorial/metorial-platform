@@ -12,6 +12,12 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
 
     is_default: authCredentials.isDefault,
     is_managed: authCredentials.origin !== 'tenant_created',
+    managed_by:
+      authCredentials.origin === 'tenant_created'
+        ? null
+        : authCredentials.origin === 'installation_template'
+          ? ('installation' as const)
+          : ('metorial' as const),
 
     name: authCredentials.name,
     description: authCredentials.description,
@@ -47,9 +53,16 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
       is_managed: v.boolean({
         name: 'is_managed',
         description:
-          'Whether these use the OAuth app Metorial provides instead of a custom app you registered.',
+          'Whether Metorial or the installation administrator manages these OAuth credentials.',
         examples: [true, false]
       }),
+      managed_by: v.nullable(
+        v.enumOf(['metorial', 'installation'], {
+          name: 'managed_by',
+          description:
+            'Who manages these credentials: Metorial, or the administrator of this self-hosted installation. Null for credentials created in the project.'
+        })
+      ),
       name: v.nullable(
         v.string({ name: 'name', description: 'Display name.', examples: ['GitHub OAuth'] })
       ),

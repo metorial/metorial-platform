@@ -3,6 +3,7 @@ import type {
   Adapter,
   SlateAdapter,
   Slate,
+  SlateDeployment,
   SlateSpecification,
   SlateVersion,
   SlateVersionAdapter,
@@ -10,6 +11,7 @@ import type {
   AdapterCapability
 } from '../../prisma/generated/client';
 import { slateVersionAdapterPresenter } from './adapter';
+import { slateDeploymentLightPresenter } from './slateDeployment';
 
 export let slateVersionPresenter = (
   slateVersion: SlateVersion & {
@@ -21,6 +23,7 @@ export let slateVersionPresenter = (
         adapterCapability: AdapterCapability;
       })[];
     })[];
+    slateDeployments?: SlateDeployment[];
   }
 ) => ({
   object: 'slate.version',
@@ -30,8 +33,10 @@ export let slateVersionPresenter = (
   status: slateVersion.status,
   version: slateVersion.version,
   isCurrent: slateVersion.isCurrent,
+  willBeCurrent: slateVersion.willBeCurrent,
 
   slateId: slateVersion.slate.id,
+  registrySlateId: slateVersion.slate.slateIdOnRegistry,
   registryVersionId: slateVersion.versionIdOnRegistry,
 
   manifest: slateVersion.manifest,
@@ -52,5 +57,11 @@ export let slateVersionPresenter = (
       }
     : null,
 
-  createdAt: slateVersion.createdAt
+  latestDeployment: slateVersion.slateDeployments?.[0]
+    ? slateDeploymentLightPresenter(slateVersion.slateDeployments[0])
+    : null,
+
+  createdAt: slateVersion.createdAt,
+  updatedAt: slateVersion.updatedAt,
+  lastDiscoveredAt: slateVersion.lastDiscoveredAt
 });

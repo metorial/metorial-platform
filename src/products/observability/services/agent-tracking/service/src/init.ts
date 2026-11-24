@@ -1,22 +1,12 @@
+import { buildMongoUrl, initializeDatabaseUrl } from '@metorial/service-init';
 import { env } from './env';
-import { buildMongoUrl } from '@metorial/service-init';
 
 if (!process.env.DATABASE_URL) {
-  if (
-    !process.env.DATABASE_USERNAME ||
-    !process.env.DATABASE_PASSWORD ||
-    !process.env.DATABASE_HOST ||
-    !process.env.DATABASE_PORT ||
-    !process.env.DATABASE_NAME
-  ) {
-    throw new Error('DATABASE_URL is not set and database component env vars are missing');
-  }
-
-  process.env.DATABASE_URL = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
-
-  if (process.env.DATABASE_READER === 'true') {
-    process.env.DATABASE_URL_READER = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST?.replace('.cluster-', '.cluster-ro-')}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
-  }
+  initializeDatabaseUrl(process.env, {
+    prefix: 'DATABASE',
+    urlKey: 'DATABASE_URL',
+    required: true
+  });
 }
 
 if (!process.env.REDIS_URL) {

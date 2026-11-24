@@ -51,7 +51,7 @@ export class MetorialManagementOrganizationOauthAppsClientSecretsEndpoint {
     oauthApplicationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsClientSecretsCreateOutput> {
-    let path = `organization/oauth/apps/${oauthApplicationId}/client-secrets`;
+    let path = `organization/oauth/apps/${encodeURIComponent(oauthApplicationId)}/client-secrets`;
 
     let request = {
       path,
@@ -80,7 +80,7 @@ export class MetorialManagementOrganizationOauthAppsClientSecretsEndpoint {
     oauthApplicationClientSecretId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAppsClientSecretsDeleteOutput> {
-    let path = `organization/oauth/apps/${oauthApplicationId}/client-secrets/${oauthApplicationClientSecretId}`;
+    let path = `organization/oauth/apps/${encodeURIComponent(oauthApplicationId)}/client-secrets/${encodeURIComponent(oauthApplicationClientSecretId)}`;
 
     let request = {
       path,

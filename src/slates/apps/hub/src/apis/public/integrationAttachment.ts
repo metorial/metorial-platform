@@ -11,6 +11,9 @@ import { PublicUrlPurpose } from 'object-storage-client';
 import { db } from '../../db';
 import { env } from '../../env';
 import { verifyAttachmentSignature } from '../../lib/attachmentSignature';
+import { resolveAttachmentEgress } from '../../lib/invocation/attachmentEgress';
+import { isGatewayEgress, resolveEgressSubject } from '../../lib/network/egressGateway';
+import { EgressGatewayRefusedError, gatewayFetch } from '../../lib/network/gatewayFetch';
 import {
   AuthConfigSecretSerializer,
   containsSecretPlaceholder
@@ -47,6 +50,31 @@ let attachmentUrlResponseHeaders = (contentType: string) => ({
   'content-type': contentType,
   'content-disposition': ATTACHMENT_CONTENT_DISPOSITION
 });
+
+let fetchUpstream = async (
+  attachment: RefreshableAttachment,
+  url: URL,
+  headers: Record<string, string>
+) => {
+  if (!isGatewayEgress()) {
+    return safeFetch(url.toString(), {
+      headers,
+      maxRedirects: MAX_REDIRECTS,
+      crossOriginRedirectStripHeaders: Object.keys(headers)
+    });
+  }
+
+  // A download can outlast a request grant, so it gets the stream lifetime.
+  return gatewayFetch(url.toString(), {
+    subject: await resolveEgressSubject({
+      tenant: attachment.tenant,
+      ...resolveAttachmentEgress(attachment)
+    }),
+    headers,
+    maxRedirects: MAX_REDIRECTS,
+    lifetime: 'stream'
+  });
+};
 
 let proxiedResponseHeaders = (upstream: Headers) => {
   let headers = new Headers();
@@ -272,12 +300,18 @@ export let integrationAttachmentApp = createHono().get(
 
       let upstream: Response;
       try {
-        upstream = await safeFetch(url.toString(), {
-          headers,
-          maxRedirects: MAX_REDIRECTS,
-          crossOriginRedirectStripHeaders: Object.keys(headers)
-        });
+        upstream = await fetchUpstream(attachment, url, headers);
       } catch (err) {
+        if (err instanceof EgressGatewayRefusedError && err.refusal == 'denied') {
+          throw new ServiceError(
+            badRequestError({
+              code: 'integration_attachment_egress_blocked',
+              message:
+                "The integration's network policy does not allow downloading this attachment."
+            })
+          );
+        }
+
         let reason = err instanceof Error ? err.message : String(err);
         throw new ServiceError(
           badRequestError({

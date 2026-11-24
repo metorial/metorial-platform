@@ -93,7 +93,7 @@ export class MetorialSkillsGroupsEndpoint {
     skillGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsGetOutput> {
-    let path = `skill-groups/${skillGroupId}`;
+    let path = `skill-groups/${encodeURIComponent(skillGroupId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialSkillsGroupsEndpoint {
     body: DashboardInstanceSkillsGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsUpdateOutput> {
-    let path = `skill-groups/${skillGroupId}`;
+    let path = `skill-groups/${encodeURIComponent(skillGroupId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialSkillsGroupsEndpoint {
     skillGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsDeleteOutput> {
-    let path = `skill-groups/${skillGroupId}`;
+    let path = `skill-groups/${encodeURIComponent(skillGroupId)}`;
 
     let request = {
       path,

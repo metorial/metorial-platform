@@ -65,7 +65,7 @@ export class MetorialManagementInstanceCallbacksEndpoint {
     query?: DashboardInstanceCallbacksListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksListOutput> {
-    let path = `instances/${instanceId}/callbacks`;
+    let path = `instances/${encodeURIComponent(instanceId)}/callbacks`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceCallbacksEndpoint {
     body: DashboardInstanceCallbacksCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksCreateOutput> {
-    let path = `instances/${instanceId}/callbacks`;
+    let path = `instances/${encodeURIComponent(instanceId)}/callbacks`;
 
     let request = {
       path,
@@ -127,7 +127,7 @@ export class MetorialManagementInstanceCallbacksEndpoint {
     callbackId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksGetOutput> {
-    let path = `instances/${instanceId}/callbacks/${callbackId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialManagementInstanceCallbacksEndpoint {
     body: DashboardInstanceCallbacksUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksUpdateOutput> {
-    let path = `instances/${instanceId}/callbacks/${callbackId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialManagementInstanceCallbacksEndpoint {
     callbackId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksDeleteOutput> {
-    let path = `instances/${instanceId}/callbacks/${callbackId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,

@@ -313,23 +313,26 @@ export let useScmProviderOptions = (instanceId: string | null | undefined) => {
   let options = scmProviderOptionsLoader.use(
     checkEdition('on-prem') && instanceId ? { instanceId } : null
   );
-  return checkEdition('on-prem')
-    ? (options.data ?? [])
-    : [
-        {
-          type: 'github_enterprise' as const,
-          label: 'GitHub Enterprise',
-          allowedDomains: null
-        },
-        {
-          type: 'gitlab_selfhosted' as const,
-          label: 'GitLab Self-Managed',
-          allowedDomains: null
-        },
-        {
-          type: 'bitbucket_data_center' as const,
-          label: 'Bitbucket Data Center',
-          allowedDomains: null
-        }
-      ];
+
+  if (checkEdition('on-prem')) {
+    return options.data?.projectProvidersAllowed ? options.data.items : [];
+  }
+
+  return [
+    {
+      type: 'github_enterprise' as const,
+      label: 'GitHub Enterprise',
+      allowedDomains: null
+    },
+    {
+      type: 'gitlab_selfhosted' as const,
+      label: 'GitLab Self-Managed',
+      allowedDomains: null
+    },
+    {
+      type: 'bitbucket_data_center' as const,
+      label: 'Bitbucket Data Center',
+      allowedDomains: null
+    }
+  ];
 };

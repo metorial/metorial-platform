@@ -82,7 +82,9 @@ export type DashboardInstanceSkillsParticipantsListOutput = {
     surfaces:
       | {
           id: string;
-          roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
+          roles: (
+            'creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker'
+          )[];
           actor: {
             type: 'organization_actor' | 'consumer' | 'resource_actor';
             name: string;
@@ -198,7 +200,13 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                             [
                               'teams',
                               0,
-                              [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                              [
+                                2,
+                                [
+                                  1,
+                                  ['assignment_id', 'created_at', 'updated_at']
+                                ]
+                              ]
                             ],
                             'created_at',
                             'updated_at'
@@ -208,7 +216,10 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                       [
                         'consumer',
                         0,
-                        [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                        [
+                          1,
+                          ['image_url', 'user_id', 'created_at', 'updated_at']
+                        ]
                       ],
                       [
                         'consumer_profile',
@@ -237,7 +248,14 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                                           [
                                             'group',
                                             0,
-                                            [1, ['is_default', 'created_at', 'updated_at']]
+                                            [
+                                              1,
+                                              [
+                                                'is_default',
+                                                'created_at',
+                                                'updated_at'
+                                              ]
+                                            ]
                                           ],
                                           'assigned_via',
                                           'sso_group_ids'
@@ -280,7 +298,17 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                                     [
                                       'teams',
                                       0,
-                                      [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                                      [
+                                        2,
+                                        [
+                                          1,
+                                          [
+                                            'assignment_id',
+                                            'created_at',
+                                            'updated_at'
+                                          ]
+                                        ]
+                                      ]
                                     ],
                                     'created_at',
                                     'updated_at'
@@ -290,7 +318,15 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                               [
                                 'consumer',
                                 0,
-                                [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                                [
+                                  1,
+                                  [
+                                    'image_url',
+                                    'user_id',
+                                    'created_at',
+                                    'updated_at'
+                                  ]
+                                ]
                               ],
                               [
                                 'consumer_profile',

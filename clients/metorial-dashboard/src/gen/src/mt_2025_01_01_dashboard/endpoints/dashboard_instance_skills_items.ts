@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
     query?: DashboardInstanceSkillsItemsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsItemsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/items`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
     skillItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsItemsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/items/${skillItemId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/items/${encodeURIComponent(skillItemId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
     body: DashboardInstanceSkillsItemsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsItemsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/items`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
     skillItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsItemsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/items/${skillItemId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/items/${encodeURIComponent(skillItemId)}`;
 
     let request = {
       path,

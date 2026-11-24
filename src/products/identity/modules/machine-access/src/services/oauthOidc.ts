@@ -58,7 +58,7 @@ class OAuthOidcService {
   }
 
   async getOpenIdConfiguration() {
-    let issuer = getConfig().urls.apiUrl;
+    let issuer = getConfig().urls.connectUrl;
 
     return {
       issuer,
@@ -100,7 +100,7 @@ class OAuthOidcService {
   }
 
   async getOAuthProtectedResourceMetadata() {
-    let issuer = getConfig().urls.apiUrl;
+    let issuer = getConfig().urls.connectUrl;
 
     return {
       resource: issuer,
@@ -165,7 +165,7 @@ class OAuthOidcService {
     };
 
     let payload: Record<string, unknown> = {
-      iss: getConfig().urls.apiUrl,
+      iss: getConfig().urls.connectUrl,
       sub: getSubject(d.oauthToken.oauthAuthorization),
       aud: d.oauthToken.oauthAuthorization.oauthApplication?.clientId,
       iat: Math.floor(d.oauthToken.createdAt.getTime() / 1000),

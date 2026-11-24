@@ -29,6 +29,7 @@ const (
 	DenyHardDeny         DenyReason = "hard_deny"
 	DenyInternalDisabled DenyReason = "internal_disabled"
 	DenyNoAddress        DenyReason = "no_address"
+	DenyPlatformRoute    DenyReason = "platform_route"
 )
 
 type Resolver interface {
@@ -62,16 +63,17 @@ func (e *DialError) Unwrap() error {
 }
 
 type Core struct {
-	Keys        egress.Keys
-	Evaluator   *policy.Evaluator
-	Resolver    Resolver
-	Dial        DialFunc
-	DialTimeout time.Duration
-	Memory      *ResolveMemory
-	Recorder    *Recorder
-	Metrics     *Metrics
-	Logger      *slog.Logger
-	Now         func() time.Time
+	Keys           egress.Keys
+	Evaluator      *policy.Evaluator
+	Resolver       Resolver
+	PlatformRoutes *PlatformRoutes
+	Dial           DialFunc
+	DialTimeout    time.Duration
+	Memory         *ResolveMemory
+	Recorder       *Recorder
+	Metrics        *Metrics
+	Logger         *slog.Logger
+	Now            func() time.Time
 }
 
 type Target struct {
@@ -134,6 +136,10 @@ func (c *Core) VerifyGrant(frontEnd FrontEnd, token string) (*egress.Grant, erro
 
 // Connect resolves target, evaluates every address and dials the first allowed one.
 func (c *Core) Connect(ctx context.Context, frontEnd FrontEnd, grant *egress.Grant, target Target) (*Upstream, error) {
+	if route, ok := platformRouteName(target.Host); ok {
+		return c.connectPlatformRoute(ctx, frontEnd, grant, route, target)
+	}
+
 	hostname, addrs, err := c.candidates(ctx, grant, target)
 	if err != nil {
 		c.metrics().Denials.WithLabelValues(string(frontEnd), string(DenyNoAddress)).Inc()
@@ -191,6 +197,12 @@ func (c *Core) Connect(ctx context.Context, frontEnd FrontEnd, grant *egress.Gra
 // Resolve answers a tunnel client's DNS lookup with the addresses the grant may reach on
 // some port, and remembers them so later CONNECTs to those IPs are evaluated as hostname.
 func (c *Core) Resolve(ctx context.Context, grant *egress.Grant, host string) ([]netip.Addr, error) {
+	// Route hosts never resolve: their upstream address stays private to the gateway, and the
+	// client reaches them by name through Connect.
+	if _, ok := platformRouteName(host); ok {
+		return []netip.Addr{}, nil
+	}
+
 	if addr, err := netip.ParseAddr(host); err == nil {
 		addr = addr.Unmap()
 		if c.allowedOnSomePort(grant, "", addr) {
@@ -249,6 +261,21 @@ func (c *Core) candidates(ctx context.Context, grant *egress.Grant, target Targe
 		addrs[i] = addrs[i].Unmap()
 	}
 	return target.Host, addrs, nil
+}
+
+func (c *Core) deny(frontEnd FrontEnd, grant *egress.Grant, target Target, reason DenyReason, err error) error {
+	c.metrics().Denials.WithLabelValues(string(frontEnd), string(reason)).Inc()
+	c.metrics().Connections.WithLabelValues(string(frontEnd), "denied").Inc()
+	c.logger().Info("egress denied",
+		"frontEnd", frontEnd,
+		"jti", grant.ID,
+		"tenantId", grant.TenantID,
+		"functionId", grant.FunctionID,
+		"buildRunId", grant.BuildRunID,
+		"target", target.String(),
+		"reason", reason,
+	)
+	return &DeniedError{Reason: reason, Err: err}
 }
 
 func (c *Core) dial(ctx context.Context, addr netip.AddrPort) (net.Conn, error) {

@@ -35,7 +35,8 @@ export default project({
       CONSUMER_INSTANCE_TOKEN_TTL_SECONDS: '3600',
       CONSUMER_REGISTRATION_SLATES: 'local-dev-nebula-slates-registration-secret',
       CONSUMER_REGISTRATION_SHUTTLE: 'local-dev-nebula-shuttle-registration-secret',
-      CONSUMER_REGISTRATION_ORIGIN: 'local-dev-nebula-origin-registration-secret'
+      CONSUMER_REGISTRATION_ORIGIN: 'local-dev-nebula-origin-registration-secret',
+      CONSUMER_REGISTRATION_AI_GATEWAY: 'local-dev-nebula-ai-gateway-registration-secret'
     }),
     databases: {
       main: postgres({

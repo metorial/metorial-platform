@@ -10,7 +10,11 @@ import type {
 } from '@mtsrc/mcp-runtime-db';
 import { safeFetch } from '@mtsrc/mcp-runtime-network';
 import { safeParse } from '@mtsrc/mcp-runtime-remote-protocol';
-import { fetchEventSource } from '@mtsrc/mcp-runtime-network';
+import {
+  createEgressContext,
+  fetchEventSource,
+  type EgressContext
+} from '@mtsrc/mcp-runtime-network';
 import type { McpConnectionBackendAdapter } from '../connection/adapter';
 import { ConnectionManager } from '../utils/connection';
 import {
@@ -30,6 +34,7 @@ let Sentry = getSentry();
 export class SSERemoteConnection implements McpConnectionBackendAdapter {
   readonly #initPromise = new ProgrammablePromise<void>();
   readonly #authManager: RemoteConnectionAuthManager;
+  readonly #egress: EgressContext;
 
   readonly logger: ConnectionLogger;
   readonly messenger: ConnectionMessenger;
@@ -60,6 +65,10 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     this.manager = new ConnectionManager(this.connection);
 
     this.#authManager = new RemoteConnectionAuthManager(this.logger, tenant, connection);
+    this.#egress = createEgressContext({
+      tenant,
+      serverInstanceConfiguration: connection.serverInstanceConfiguration
+    });
 
     // Initialization failures are reported through the messenger; waiters observe
     // them via waitForInitialization().
@@ -112,8 +121,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
     try {
       response = await safeFetch(this.#endpointUrl, {
         method: 'POST',
-        egressPolicy: this.connection.serverInstanceConfiguration
-          ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
+        egress: this.#egress,
         headers: {
           ...(await this.getHeaders()),
           'Content-Type': 'application/json'
@@ -183,8 +191,7 @@ export class SSERemoteConnection implements McpConnectionBackendAdapter {
 
       await fetchEventSource(url.toString(), {
         method: 'GET',
-        egressPolicy: this.connection.serverInstanceConfiguration
-          ?.egressPolicy as McpRuntimePrismaJson.CompiledEgressNetworkAllowList | null,
+        egress: this.#egress,
         headers: await this.getHeaders(),
 
         signal: this.#abortController.signal,

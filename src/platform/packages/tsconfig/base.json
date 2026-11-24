@@ -10,6 +10,7 @@
     "inlineSources": false,
     "isolatedModules": true,
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "lib": [
       "ESNext",
       "DOM",

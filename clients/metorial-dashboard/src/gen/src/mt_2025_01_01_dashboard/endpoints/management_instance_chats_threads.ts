@@ -59,7 +59,7 @@ export class MetorialManagementInstanceChatsThreadsEndpoint {
     query?: DashboardInstanceChatsThreadsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsThreadsListOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/threads`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/threads`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialManagementInstanceChatsThreadsEndpoint {
     query?: DashboardInstanceChatsThreadsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsThreadsGetOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/threads/${threadId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/threads/${encodeURIComponent(threadId)}`;
 
     let request = {
       path,

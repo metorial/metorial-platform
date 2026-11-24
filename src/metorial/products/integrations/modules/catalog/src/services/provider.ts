@@ -191,7 +191,9 @@ export let getProviderAuthSetupFilter = (
                   environmentOid: d.environmentOid
                 },
                 {
-                  origin: 'managed_backing' as const,
+                  origin: {
+                    in: ['managed_backing' as const, 'installation_template' as const]
+                  },
                   tenantOid: d.tenantOid,
                   solutionOid: d.solutionOid
                 }

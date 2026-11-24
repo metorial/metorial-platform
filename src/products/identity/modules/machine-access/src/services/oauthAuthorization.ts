@@ -250,28 +250,23 @@ class OAuthAuthorizationService {
     return oauthApplication;
   }
 
-  private async consumeOAuthAuthorizationFlow(oauthAuthorizationFlow: { oid: bigint }) {
-    await withTransaction(async db => {
-      let consumed = await db.oAuthAuthorizationFlow.updateMany({
-        where: { oid: oauthAuthorizationFlow.oid, status: 'accepted' },
-        data: {
-          status: 'consumed',
-          consumedAt: new Date()
-        }
-      });
-
-      if (consumed.count != 1) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Authorization request has been consumed',
-            oauth: {
-              error: 'invalid_grant',
-              errorMessage: 'Authorization request has been consumed'
-            }
-          })
-        );
+  private async consumeOAuthAuthorizationFlow(d: { oid: bigint; errorMessage: string }) {
+    let consumed = await db.oAuthAuthorizationFlow.updateMany({
+      where: { oid: d.oid, status: 'accepted' },
+      data: {
+        status: 'consumed',
+        consumedAt: new Date()
       }
     });
+
+    if (!consumed.count) {
+      throw new ServiceError(
+        badRequestError({
+          message: d.errorMessage,
+          oauth: { error: 'invalid_grant', errorMessage: d.errorMessage }
+        })
+      );
+    }
   }
 
   private async getOAuthAuthorizationFlowById(d: { id: string }) {
@@ -585,7 +580,10 @@ class OAuthAuthorizationService {
     }
 
     return await withTransaction(async () => {
-      await this.consumeOAuthAuthorizationFlow(oauthAuthorizationFlow);
+      await this.consumeOAuthAuthorizationFlow({
+        oid: oauthAuthorizationFlow.oid,
+        errorMessage: 'Invalid authorization code'
+      });
 
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
@@ -691,7 +689,10 @@ class OAuthAuthorizationService {
     }
 
     return await withTransaction(async () => {
-      await this.consumeOAuthAuthorizationFlow(oauthAuthorizationFlow);
+      await this.consumeOAuthAuthorizationFlow({
+        oid: oauthAuthorizationFlow.oid,
+        errorMessage: 'Authorization request has been consumed'
+      });
 
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,

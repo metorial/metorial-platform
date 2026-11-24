@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   findUpload: vi.fn(),
+  createUpload: vi.fn(),
   claimUpload: vi.fn(),
   updateUpload: vi.fn(),
   findActiveFile: vi.fn(),
   putObject: vi.fn(),
   headObject: vi.fn(),
   deleteObject: vi.fn(),
+  startMultipartUpload: vi.fn(),
+  getPartManifests: vi.fn(),
   executeRaw: vi.fn(),
   createFile: vi.fn(),
   requestContentHashes: vi.fn()
@@ -18,6 +21,7 @@ vi.mock('@metorial/db', () => {
     $executeRaw: mocks.executeRaw,
     fileUpload: {
       findFirst: mocks.findUpload,
+      create: mocks.createUpload,
       updateMany: mocks.claimUpload,
       update: mocks.updateUpload
     },
@@ -31,17 +35,22 @@ vi.mock('@metorial/db', () => {
   };
 });
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: async () => {} } }));
+vi.mock('@metorial/lock', () => ({ createLock: vi.fn() }));
 vi.mock('@metorial/module-store', () => ({
   storeAccessService: {},
   storeWritePermission: 'write'
 }));
-vi.mock('../env', () => ({ env: { service: {}, storage: {} } }));
+vi.mock('../env', () => ({
+  env: { service: { FILE_MULTIPART_PART_BYTES: 5 * 1024 ** 2 }, storage: {} }
+}));
 vi.mock('../storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files',
   getStorage: () => ({
     putObject: mocks.putObject,
     headObject: mocks.headObject,
-    deleteObject: mocks.deleteObject
+    deleteObject: mocks.deleteObject,
+    startMultipartUpload: mocks.startMultipartUpload,
+    getPartManifests: mocks.getPartManifests
   })
 }));
 vi.mock('../queues/fileUploadCleanup', () => ({
@@ -55,7 +64,7 @@ vi.mock('./file', () => ({
 }));
 vi.mock('./filePurpose', () => ({
   documentFilePurposeSlug: 'document',
-  filePurposeService: {}
+  filePurposeService: { getFilePurposeById: async () => ({ oid: 1n, slug: 'generic' }) }
 }));
 
 let { fileUploadService } = await import('./fileUpload');
@@ -84,6 +93,50 @@ let complete = () =>
     uploadId: upload.id,
     authorization: { type: 'privileged' } as any
   });
+
+describe('multipart upload creation', () => {
+  it('plans a 100 GiB on-prem upload within the object store part limit', async () => {
+    vi.stubEnv('METORIAL_EDITION', 'on-prem');
+    mocks.startMultipartUpload.mockResolvedValue('upload_1');
+    mocks.getPartManifests.mockResolvedValue([]);
+    mocks.createUpload.mockImplementation(async ({ data }) => data);
+
+    try {
+      let size = 100 * 1024 ** 3;
+      let request = {
+        instance: { oid: 1n },
+        project: { oid: 1n },
+        authorization: { type: 'privileged' },
+        purpose: 'generic',
+        acceptMultipart: true,
+        input: { name: 'archive.zip', size }
+      } satisfies Parameters<typeof fileUploadService.createPendingUpload>[0];
+
+      let pending = await fileUploadService.createPendingUpload(request);
+      expect(pending.upload.fileSize).toBe(BigInt(size));
+      expect(pending.multipart?.partCount).toBeLessThanOrEqual(10_000);
+      expect(pending.multipart?.partSize).toBeGreaterThan(5 * 1024 ** 2);
+
+      await expect(
+        fileUploadService.createPendingUpload({
+          ...request,
+          input: { ...request.input, size: size + 1 }
+        })
+      ).rejects.toThrow('Files can be at most 100 GB');
+
+      await expect(
+        fileUploadService.createPendingUpload({ ...request, acceptMultipart: false })
+      ).rejects.toThrow('Files can be at most 2 GB');
+
+      vi.stubEnv('METORIAL_EDITION', 'cloud');
+      await expect(fileUploadService.createPendingUpload(request)).rejects.toThrow(
+        'Files can be at most 2 GB'
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
 
 describe('signed-URL upload completion', () => {
   beforeEach(() => {

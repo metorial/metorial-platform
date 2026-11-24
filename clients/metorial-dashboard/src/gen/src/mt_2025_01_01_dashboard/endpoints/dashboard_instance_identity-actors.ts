@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceIdentityActorsEndpoint {
     query?: DashboardInstanceIdentityActorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsListOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-actors`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-actors`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceIdentityActorsEndpoint {
     identityActorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-actors/${identityActorId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceIdentityActorsEndpoint {
     body: DashboardInstanceIdentityActorsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-actors`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-actors`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceIdentityActorsEndpoint {
     body: DashboardInstanceIdentityActorsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-actors/${identityActorId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceIdentityActorsEndpoint {
     identityActorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-actors/${identityActorId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,

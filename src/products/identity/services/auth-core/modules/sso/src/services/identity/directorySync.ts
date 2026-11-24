@@ -213,8 +213,8 @@ class SsoDirectorySyncServiceImpl {
           eventNames: []
         }
       });
-    } catch (error) {
-      console.warn('Failed to begin SCIM operation', error);
+    } catch {
+      console.warn('Failed to begin SCIM operation');
       return null;
     }
   }
@@ -242,8 +242,8 @@ class SsoDirectorySyncServiceImpl {
           errorMessage: d.input.errorMessage
         }
       });
-    } catch (error) {
-      console.warn('Failed to complete SCIM operation', error);
+    } catch {
+      console.warn('Failed to complete SCIM operation');
     }
   }
 
@@ -284,8 +284,8 @@ class SsoDirectorySyncServiceImpl {
           errorMessage: d.input.errorMessage
         }
       });
-    } catch (error) {
-      console.warn('Failed to record SCIM operation', error);
+    } catch {
+      console.warn('Failed to record SCIM operation');
     }
   }
 

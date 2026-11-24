@@ -2,7 +2,13 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import { db, type Environment, getId, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  type Environment,
+  getId,
+  type Tenant,
+  withReplicaReads
+} from '@metorial-subspace/db';
 import { resolveProviderListings, resolveProviders } from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
@@ -55,20 +61,24 @@ class providerListingCollectionServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
-          await db.providerListingCollection.findMany({
-            ...opts,
-            where: {
-              AND: [
-                d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? searchTaxonomyWhere(search) : undefined!,
+          await withReplicaReads(() =>
+            db.providerListingCollection.findMany({
+              ...opts,
+              where: {
+                AND: [
+                  d.ids ? { id: { in: d.ids } } : undefined!,
+                  search ? searchTaxonomyWhere(search) : undefined!,
 
-                providers ? { listings: { some: { providerOid: providers.in } } } : undefined!,
-                providerListings
-                  ? { listings: { some: { oid: providerListings.in } } }
-                  : undefined!
-              ].filter(Boolean)
-            }
-          })
+                  providers
+                    ? { listings: { some: { providerOid: providers.in } } }
+                    : undefined!,
+                  providerListings
+                    ? { listings: { some: { oid: providerListings.in } } }
+                    : undefined!
+                ].filter(Boolean)
+              }
+            })
+          )
       )
     );
   }

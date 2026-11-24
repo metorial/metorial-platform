@@ -113,6 +113,70 @@ describe('generated Dockerfiles', () => {
     );
   });
 
+  test('builds external modules from the bundle manifests before stripping', () => {
+    let { root, directory } = fixture({
+      runtime: 'bundle',
+      modules: 'external',
+      start: 'dist/main.mjs',
+      strip: ['mongodb'],
+      assets: [{ from: 'frontend/dist', to: 'public' }]
+    });
+    generate(root, { write: true });
+
+    let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
+    let builder = contents.split('FROM dependencies AS builder')[1]!.split('\nFROM ')[0]!;
+    let runner = contents.split(' AS runner\n')[1]!;
+
+    expect(contents).not.toContain('AS production-dependencies');
+    expect(builder).toContain(
+      'RUN bun ./src/tooling/docker-build/runtime-modules.ts --node-modules /app/node_modules --out /out/node_modules --manifests /app/src/service/dist --manifests /app/src/service/frontend/dist'
+    );
+    expect(builder.indexOf('runtime-modules.ts --node-modules')).toBeGreaterThan(
+      builder.indexOf('run-turbo.sh')
+    );
+    expect(builder.indexOf('runtime-modules.ts --node-modules')).toBeLessThan(
+      builder.indexOf("-path '*/node_modules/mongodb'")
+    );
+    expect(runner).toContain('LABEL com.metorial.npm-inventory=node_modules');
+    expect(runner).toContain('/out/node_modules ./node_modules');
+  });
+
+  test('rejects external modules for source runtimes', () => {
+    expect(() =>
+      normalizeBuild({ kind: 'bun-service', runtime: 'source', modules: 'external' })
+    ).toThrow('external modules need a bundled runtime');
+  });
+
+  test('checks health with bun and upgrades OS packages when curl is left out', () => {
+    let { root, directory } = fixture({
+      curl: false,
+      upgradePackages: true,
+      health: [{ port: 3000, path: '/ping' }]
+    });
+    generate(root, { write: true });
+
+    let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
+    let base = contents.split(' AS runner-base\n')[1]!.split('\nFROM ')[0]!;
+
+    expect(base).not.toContain('curl');
+    expect(base).toContain('apt-get update && apt-get upgrade -y --no-install-recommends');
+    expect(contents).toContain('"bun","-e"');
+    expect(contents).toContain('http://127.0.0.1:3000/ping');
+    expect(contents).not.toContain('curl -fsS');
+  });
+
+  test('ships the prisma CLI without migrations when prisma is set', () => {
+    let { root, directory } = fixture({ prisma: true });
+    generate(root, { write: true });
+
+    let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
+
+    expect(contents).toContain('AS prisma-cli');
+    expect(contents).toContain('/opt/prisma /opt/prisma');
+    expect(contents).toContain('ENV PRISMA_BIN=/opt/prisma/node_modules/.bin/prisma');
+    expect(contents).not.toContain('control-runtime');
+  });
+
   test('normalizes defaults', () => {
     let build = normalizeBuild({ kind: 'bun-service' });
 

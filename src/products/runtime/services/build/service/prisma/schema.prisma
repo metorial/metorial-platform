@@ -180,6 +180,9 @@ model WorkflowRun {
 
   encryptedEnvironmentVariables String
 
+  pendingReason          String?
+  pendingReasonUpdatedAt DateTime?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   startedAt DateTime?

@@ -57,7 +57,7 @@ export class MetorialManagementInstanceScmInstallationEndpoint {
     query?: DashboardInstanceScmInstallationListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmInstallationListOutput> {
-    let path = `instances/${instanceId}/scm/installations`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/installations`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialManagementInstanceScmInstallationEndpoint {
     body: DashboardInstanceScmInstallationCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmInstallationCreateOutput> {
-    let path = `instances/${instanceId}/scm/installations`;
+    let path = `instances/${encodeURIComponent(instanceId)}/scm/installations`;
 
     let request = {
       path,

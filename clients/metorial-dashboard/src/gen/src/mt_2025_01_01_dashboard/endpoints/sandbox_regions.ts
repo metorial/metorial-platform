@@ -83,7 +83,7 @@ export class MetorialSandboxRegionsEndpoint {
     regionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxRegionsGetOutput> {
-    let path = `sandbox/regions/${regionId}`;
+    let path = `sandbox/regions/${encodeURIComponent(regionId)}`;
 
     let request = {
       path,

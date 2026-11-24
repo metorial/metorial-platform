@@ -101,7 +101,7 @@ export class MetorialSkillsPluginsEndpoint {
     skillPluginId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsGetOutput> {
-    let path = `skill-plugins/${skillPluginId}`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialSkillsPluginsEndpoint {
     body: DashboardInstanceSkillsPluginsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsUpdateOutput> {
-    let path = `skill-plugins/${skillPluginId}`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialSkillsPluginsEndpoint {
     skillPluginId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsArchiveOutput> {
-    let path = `skill-plugins/${skillPluginId}`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}`;
 
     let request = {
       path,
@@ -215,7 +215,7 @@ export class MetorialSkillsPluginsEndpoint {
     body: DashboardInstanceSkillsPluginsDetachSkillGroupBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsDetachSkillGroupOutput> {
-    let path = `skill-plugins/${skillPluginId}/detach-skill-group`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/detach-skill-group`;
 
     let request = {
       path,
@@ -247,7 +247,7 @@ export class MetorialSkillsPluginsEndpoint {
     body: DashboardInstanceSkillsPluginsSyncBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsSyncOutput> {
-    let path = `skill-plugins/${skillPluginId}/sync`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/sync`;
 
     let request = {
       path,

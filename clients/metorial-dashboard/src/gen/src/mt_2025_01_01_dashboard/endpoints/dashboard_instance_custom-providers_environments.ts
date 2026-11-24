@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint {
     query?: DashboardInstanceCustomProvidersEnvironmentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsListOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-environments`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-environments`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint {
     customProviderEnvironmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-provider-environments/${customProviderEnvironmentId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-provider-environments/${encodeURIComponent(customProviderEnvironmentId)}`;
 
     let request = {
       path,

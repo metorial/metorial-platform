@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureSessionlessMcpEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureSessionlessMcpGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/sessionless-mcp`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/sessionless-mcp`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureSessionlessMcpEndpoint {
     body: DashboardProjectsConfigureSessionlessMcpUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureSessionlessMcpUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/sessionless-mcp`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/sessionless-mcp`;
 
     let request = {
       path,

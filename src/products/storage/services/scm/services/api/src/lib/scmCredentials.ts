@@ -1,13 +1,18 @@
 import type {
   Prisma,
   ScmBackend,
+  ScmBackendTemplate,
   ScmInstallation,
   ScmRepositoryWebhook
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { delegateSecretsToNebula } from '../env';
 import { getId } from '../id';
-import { getNebulaClient, getNebulaTenantForOriginTenant } from '../nebula';
+import {
+  getNebulaClient,
+  getNebulaTenantForOriginTenant,
+  getNebulaTenantForTemplates
+} from '../nebula';
 
 let STABLE_SECRET_TTL_MS = 60_000;
 let STABLE_SECRET_MAX_ENTRIES = 500;
@@ -78,39 +83,44 @@ type WebhookSecretRow = Pick<
 let stableSecrets = new Map<string, { value: string; expiresAt: number }>();
 let stableSecretReads = new Map<string, Promise<string>>();
 
+type SecretPayload = InstallationTokensPayload | SingleValuePayload;
+
+type SecretDescription = {
+  nebulaTenantId: string;
+  proof: { originResourceId: string; tenantId: string; purpose: ScmSecretPurpose };
+  encryptionContext: { originTenantId: string; originResourceId: string };
+};
+
+let buildSecretDescription = (
+  tenant: { id: string; nebulaTenantId: string },
+  d: { resourceId: string; purpose: ScmSecretPurpose }
+): SecretDescription => ({
+  nebulaTenantId: tenant.nebulaTenantId,
+  proof: {
+    originResourceId: d.resourceId,
+    tenantId: tenant.id,
+    purpose: d.purpose
+  },
+  encryptionContext: {
+    originTenantId: tenant.id,
+    originResourceId: d.resourceId
+  }
+});
+
 let describeSecret = async (d: {
   tenantOid: bigint;
   resourceId: string;
   purpose: ScmSecretPurpose;
-}) => {
-  let tenant = await getNebulaTenantForOriginTenant(d.tenantOid);
+}) => buildSecretDescription(await getNebulaTenantForOriginTenant(d.tenantOid), d);
 
-  return {
-    nebulaTenantId: tenant.nebulaTenantId,
-    proof: {
-      originResourceId: d.resourceId,
-      tenantId: tenant.id,
-      purpose: d.purpose
-    },
-    encryptionContext: {
-      originTenantId: tenant.id,
-      originResourceId: d.resourceId
-    }
-  };
-};
+let describeTemplateSecret = async (d: { resourceId: string; purpose: ScmSecretPurpose }) =>
+  buildSecretDescription(await getNebulaTenantForTemplates(), d);
 
-let createNebulaSecret = async (d: {
-  tenantOid: bigint;
-  resourceId: string;
-  purpose: ScmSecretPurpose;
-  payload: InstallationTokensPayload | SingleValuePayload;
-}) => {
-  let description = await describeSecret(d);
-
+let createDescribedSecret = async (description: SecretDescription, payload: SecretPayload) => {
   let secret = await getNebulaClient().secret.create({
     tenantId: description.nebulaTenantId,
-    purpose: d.purpose,
-    secret: JSON.stringify(d.payload),
+    purpose: description.proof.purpose,
+    secret: JSON.stringify(payload),
     proof: description.proof,
     encryptionContext: description.encryptionContext
   });
@@ -118,25 +128,51 @@ let createNebulaSecret = async (d: {
   return secret.id;
 };
 
+let updateDescribedSecret = async (
+  description: SecretDescription,
+  nebulaSecretId: string,
+  payload: SecretPayload
+) => {
+  await getNebulaClient().secret.update({
+    tenantId: description.nebulaTenantId,
+    secretId: nebulaSecretId,
+    secret: JSON.stringify(payload),
+    proof: description.proof,
+    encryptionContext: description.encryptionContext
+  });
+
+  stableSecrets.delete(nebulaSecretId);
+};
+
+let useDescribedSecret = async <Payload>(
+  description: SecretDescription,
+  nebulaSecretId: string,
+  note: string
+) => {
+  let used = await getNebulaClient().secret.use({
+    tenantId: description.nebulaTenantId,
+    secretId: nebulaSecretId,
+    proof: description.proof,
+    note
+  });
+
+  return JSON.parse(used.plaintext) as Payload;
+};
+
+let createNebulaSecret = async (d: {
+  tenantOid: bigint;
+  resourceId: string;
+  purpose: ScmSecretPurpose;
+  payload: SecretPayload;
+}) => await createDescribedSecret(await describeSecret(d), d.payload);
+
 let updateNebulaSecret = async (d: {
   tenantOid: bigint;
   resourceId: string;
   purpose: ScmSecretPurpose;
   nebulaSecretId: string;
-  payload: InstallationTokensPayload | SingleValuePayload;
-}) => {
-  let description = await describeSecret(d);
-
-  await getNebulaClient().secret.update({
-    tenantId: description.nebulaTenantId,
-    secretId: d.nebulaSecretId,
-    secret: JSON.stringify(d.payload),
-    proof: description.proof,
-    encryptionContext: description.encryptionContext
-  });
-
-  stableSecrets.delete(d.nebulaSecretId);
-};
+  payload: SecretPayload;
+}) => await updateDescribedSecret(await describeSecret(d), d.nebulaSecretId, d.payload);
 
 let useNebulaSecret = async <Payload>(d: {
   tenantOid: bigint;
@@ -144,17 +180,37 @@ let useNebulaSecret = async <Payload>(d: {
   purpose: ScmSecretPurpose;
   nebulaSecretId: string;
   note: string;
-}) => {
-  let description = await describeSecret(d);
+}) => await useDescribedSecret<Payload>(await describeSecret(d), d.nebulaSecretId, d.note);
 
-  let used = await getNebulaClient().secret.use({
-    tenantId: description.nebulaTenantId,
-    secretId: d.nebulaSecretId,
-    proof: description.proof,
-    note: d.note
-  });
+let readStableSecret = async (d: { cacheKey: string; read: () => Promise<string> }) => {
+  let cached = stableSecrets.get(d.cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  return JSON.parse(used.plaintext) as Payload;
+  let inFlight = stableSecretReads.get(d.cacheKey);
+  if (inFlight) return await inFlight;
+
+  let read = (async () => {
+    let value = await d.read();
+
+    if (stableSecrets.size >= STABLE_SECRET_MAX_ENTRIES) {
+      stableSecrets.delete(stableSecrets.keys().next().value!);
+    }
+
+    stableSecrets.set(d.cacheKey, {
+      value,
+      expiresAt: Date.now() + STABLE_SECRET_TTL_MS
+    });
+
+    return value;
+  })();
+
+  stableSecretReads.set(d.cacheKey, read);
+
+  try {
+    return await read;
+  } finally {
+    stableSecretReads.delete(d.cacheKey);
+  }
 };
 
 let readStableNebulaSecret = async (d: {
@@ -163,36 +219,11 @@ let readStableNebulaSecret = async (d: {
   purpose: ScmSecretPurpose;
   nebulaSecretId: string;
   note: string;
-}) => {
-  let cached = stableSecrets.get(d.nebulaSecretId);
-  if (cached && cached.expiresAt > Date.now()) return cached.value;
-
-  let inFlight = stableSecretReads.get(d.nebulaSecretId);
-  if (inFlight) return await inFlight;
-
-  let read = (async () => {
-    let payload = await useNebulaSecret<SingleValuePayload>(d);
-
-    if (stableSecrets.size >= STABLE_SECRET_MAX_ENTRIES) {
-      stableSecrets.delete(stableSecrets.keys().next().value!);
-    }
-
-    stableSecrets.set(d.nebulaSecretId, {
-      value: payload.value,
-      expiresAt: Date.now() + STABLE_SECRET_TTL_MS
-    });
-
-    return payload.value;
-  })();
-
-  stableSecretReads.set(d.nebulaSecretId, read);
-
-  try {
-    return await read;
-  } finally {
-    stableSecretReads.delete(d.nebulaSecretId);
-  }
-};
+}) =>
+  await readStableSecret({
+    cacheKey: d.nebulaSecretId,
+    read: async () => (await useNebulaSecret<SingleValuePayload>(d)).value
+  });
 
 export let discardNebulaSecrets = async (d: {
   tenantOid: bigint | null;
@@ -492,3 +523,96 @@ export let readWebhookSigningSecret = async (
     note
   });
 };
+
+type TemplateSecretRow = Pick<
+  ScmBackendTemplate,
+  'id' | 'secretVersion' | BackendSecretPointer
+>;
+
+export let hasTemplateSecret = (
+  template: Pick<ScmBackendTemplate, BackendSecretPointer>,
+  field: BackendSecretField
+) => !!template[backendFields[field].pointer];
+
+export let readTemplateSecret = async (
+  template: TemplateSecretRow,
+  field: BackendSecretField,
+  note: string
+) => {
+  let definition = backendFields[field];
+  let nebulaSecretId = template[definition.pointer];
+  if (!nebulaSecretId) return null;
+
+  // Keyed by secret version so a rotation in another process can never be served from a stale
+  // cache entry while copies are being re-stamped with the new version.
+  return await readStableSecret({
+    cacheKey: `${nebulaSecretId}:${template.secretVersion}`,
+    read: async () => {
+      let description = await describeTemplateSecret({
+        resourceId: template.id,
+        purpose: definition.purpose
+      });
+
+      let payload = await useDescribedSecret<SingleValuePayload>(
+        description,
+        nebulaSecretId,
+        note
+      );
+
+      return payload.value;
+    }
+  });
+};
+
+export let writeTemplateSecrets = async (d: {
+  template: Pick<ScmBackendTemplate, 'id' | BackendSecretPointer>;
+  secrets: { [Field in BackendSecretField]?: string };
+}) => {
+  let patch: { [Pointer in BackendSecretPointer]?: string } = {};
+  let createdNebulaSecretIds: string[] = [];
+
+  for (let field of Object.keys(backendFields) as BackendSecretField[]) {
+    let value = d.secrets[field];
+    if (value === undefined) continue;
+
+    let definition = backendFields[field];
+    let nebulaSecretId = d.template[definition.pointer];
+    let description = await describeTemplateSecret({
+      resourceId: d.template.id,
+      purpose: definition.purpose
+    });
+
+    if (nebulaSecretId) {
+      await updateDescribedSecret(description, nebulaSecretId, { value });
+      continue;
+    }
+
+    let createdId = await createDescribedSecret(description, { value });
+
+    createdNebulaSecretIds.push(createdId);
+    patch[definition.pointer] = createdId;
+  }
+
+  return { patch, createdNebulaSecretIds };
+};
+
+export let discardTemplateSecrets = async (nebulaSecretIds: (string | null | undefined)[]) => {
+  for (let nebulaSecretId of nebulaSecretIds) {
+    if (!nebulaSecretId) continue;
+
+    try {
+      let tenant = await getNebulaTenantForTemplates();
+
+      await getNebulaClient().secret.disable({
+        tenantId: tenant.nebulaTenantId,
+        secretId: nebulaSecretId
+      });
+    } catch (error) {
+      console.warn('Could not disable Nebula template secret', nebulaSecretId, error);
+    }
+  }
+};
+
+export let templateSecretPointers = (
+  template: Pick<ScmBackendTemplate, BackendSecretPointer>
+) => Object.values(backendFields).map(definition => template[definition.pointer]);

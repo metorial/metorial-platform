@@ -10,7 +10,8 @@
     "inlineSources": false,
     "isolatedModules": true,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "noUnusedLocals": false,
@@ -18,7 +19,6 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "downlevelIteration": true,
     "resolveJsonModule": true
   },
   "exclude": ["node_modules"]

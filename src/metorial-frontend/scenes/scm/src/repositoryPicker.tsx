@@ -691,22 +691,28 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
             >
               Add connection
             </Button>
-            <Spacer size={8} />
-            <Menu
-              lightMode
-              items={providerOptions.map(option => ({ id: option.type, label: option.label }))}
-              onItemClick={id => setupProvider(id as OnPremScmProviderType)}
-            >
-              <Button
-                size="2"
-                variant="outline"
-                loading={createProvider.isLoading}
-                disabled={!providerOptions.length}
-                iconLeft={<RiSettings3Line />}
-              >
-                Set up custom provider
-              </Button>
-            </Menu>
+            {providerOptions.length > 0 && (
+              <>
+                <Spacer size={8} />
+                <Menu
+                  lightMode
+                  items={providerOptions.map(option => ({
+                    id: option.type,
+                    label: option.label
+                  }))}
+                  onItemClick={id => setupProvider(id as OnPremScmProviderType)}
+                >
+                  <Button
+                    size="2"
+                    variant="outline"
+                    loading={createProvider.isLoading}
+                    iconLeft={<RiSettings3Line />}
+                  >
+                    Set up custom provider
+                  </Button>
+                </Menu>
+              </>
+            )}
             <createInstallation.RenderError />
             <createProvider.RenderError />
           </ConnectState>
@@ -842,25 +848,26 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
                         >
                           Add connection
                         </Button>
-                        <Menu
-                          matchTriggerWidth
-                          lightMode
-                          items={providerOptions.map(option => ({
-                            id: option.type,
-                            label: option.label
-                          }))}
-                          onItemClick={id => setupProvider(id as OnPremScmProviderType)}
-                        >
-                          <Button
-                            size="2"
-                            variant="outline"
-                            loading={createProvider.isLoading}
-                            disabled={!providerOptions.length}
-                            iconLeft={<RiSettings3Line />}
+                        {providerOptions.length > 0 && (
+                          <Menu
+                            matchTriggerWidth
+                            lightMode
+                            items={providerOptions.map(option => ({
+                              id: option.type,
+                              label: option.label
+                            }))}
+                            onItemClick={id => setupProvider(id as OnPremScmProviderType)}
                           >
-                            Set up provider
-                          </Button>
-                        </Menu>
+                            <Button
+                              size="2"
+                              variant="outline"
+                              loading={createProvider.isLoading}
+                              iconLeft={<RiSettings3Line />}
+                            >
+                              Set up provider
+                            </Button>
+                          </Menu>
+                        )}
                       </AccountMenuActions>
                     </AccountMenu>
                   </Popover.Content>

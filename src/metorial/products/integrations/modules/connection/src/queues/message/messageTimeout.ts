@@ -1,6 +1,6 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import type { ConduitResult } from '@metorial-subspace/connection-utils';
-import { dbPrimary } from '@metorial-subspace/db';
+import { db } from '@metorial-subspace/db';
 import { serialize } from '@lowerdeck/serialize';
 import { env } from '../../env';
 import { broadcastNats } from '../../lib/nats';
@@ -18,7 +18,7 @@ export let messageTimeoutQueue = createQueue<{ messageId: string; attempt?: numb
 });
 
 export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data => {
-  let message = await dbPrimary.sessionMessage.findUnique({
+  let message = await db.sessionMessage.findUnique({
     where: { id: data.messageId },
     select: {
       id: true,

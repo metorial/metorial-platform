@@ -67,7 +67,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEndpoint {
     query?: DashboardOrganizationsAuditLogStreamsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEndpoint {
     auditLogStreamId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams/${auditLogStreamId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams/${encodeURIComponent(auditLogStreamId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEndpoint {
     body: DashboardOrganizationsAuditLogStreamsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEndpoint {
     body: DashboardOrganizationsAuditLogStreamsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams/${auditLogStreamId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams/${encodeURIComponent(auditLogStreamId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEndpoint {
     auditLogStreamId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsResumeOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams/${auditLogStreamId}/resume`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams/${encodeURIComponent(auditLogStreamId)}/resume`;
 
     let request = {
       path,
@@ -223,7 +223,7 @@ export class MetorialDashboardOrganizationsAuditLogStreamsEndpoint {
     auditLogStreamId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsAuditLogStreamsDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/audit-log-streams/${auditLogStreamId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/audit-log-streams/${encodeURIComponent(auditLogStreamId)}`;
 
     let request = {
       path,

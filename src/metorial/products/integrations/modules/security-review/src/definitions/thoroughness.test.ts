@@ -30,6 +30,25 @@ describe('thoroughness tiers', () => {
     expect(isAiReviewAvailable()).toBe(false);
   });
 
+  it('treats whitespace-only credentials as missing', async () => {
+    let { isAiReviewAvailable } = await load({
+      AI_GATEWAY_API_KEY: '  ',
+      CLOUDFLARE_AI_API_TOKEN: '  ',
+      CLOUDFLARE_ACCOUNT_ID: 'account'
+    });
+
+    expect(isAiReviewAvailable()).toBe(false);
+  });
+
+  it('supports Cloudflare without an AI Gateway key', async () => {
+    let { isAiReviewAvailable } = await load({
+      CLOUDFLARE_AI_API_TOKEN: 'token',
+      CLOUDFLARE_ACCOUNT_ID: 'account'
+    });
+
+    expect(isAiReviewAvailable()).toBe(true);
+  });
+
   it('gives slates at least $6 and 2000 steps of analysis budget', async () => {
     let { getThoroughnessTier } = await load({ AI_GATEWAY_API_KEY: 'key' });
 

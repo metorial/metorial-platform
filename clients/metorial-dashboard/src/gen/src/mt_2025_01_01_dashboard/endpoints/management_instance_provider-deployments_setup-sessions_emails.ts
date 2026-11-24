@@ -59,7 +59,7 @@ export class MetorialManagementInstanceProviderDeploymentsSetupSessionsEmailsEnd
     body: DashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateOutput> {
-    let path = `instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}/emails`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-setup-sessions/${encodeURIComponent(providerSetupSessionId)}/emails`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstanceProviderDeploymentsSetupSessionsEmailsEnd
     query?: DashboardInstanceProviderDeploymentsSetupSessionsEmailsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsSetupSessionsEmailsListOutput> {
-    let path = `instances/${instanceId}/provider-setup-sessions/${providerSetupSessionId}/emails`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-setup-sessions/${encodeURIComponent(providerSetupSessionId)}/emails`;
 
     let request = {
       path,

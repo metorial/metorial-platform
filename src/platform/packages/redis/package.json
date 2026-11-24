@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "bullmq": "^6.7.1",
+    "bullmq": "^6.7.3",
     "ioredis": "^6.0.0",
     "mitt": "^3.0.1",
     "nanoid": "^6.0.2",

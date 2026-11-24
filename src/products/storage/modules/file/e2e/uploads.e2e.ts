@@ -111,7 +111,7 @@ describe('module-file pending uploads', () => {
 
     let { upload, uploadUrl } = await createPendingUpload(fixture, { name, size: 16 });
 
-    expect(() => new URL(uploadUrl)).not.toThrow();
+    expect(() => new URL(uploadUrl!)).not.toThrow();
     expect(upload.fileName).toBe(name);
     expect(upload.fileSize).toBe(16n);
 

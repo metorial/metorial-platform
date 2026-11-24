@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureIntegrationNamingEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureIntegrationNamingGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/integration-naming`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/integration-naming`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureIntegrationNamingEndpoint {
     body: DashboardProjectsConfigureIntegrationNamingUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureIntegrationNamingUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/integration-naming`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/integration-naming`;
 
     let request = {
       path,

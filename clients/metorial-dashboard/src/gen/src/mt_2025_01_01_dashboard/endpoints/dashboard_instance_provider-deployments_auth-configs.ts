@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
     query?: DashboardInstanceProviderDeploymentsAuthConfigsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-configs`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-configs`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
     providerAuthConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-configs/${providerAuthConfigId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-configs/${encodeURIComponent(providerAuthConfigId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
     body: DashboardInstanceProviderDeploymentsAuthConfigsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-configs`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-configs`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
     body: DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-configs/${providerAuthConfigId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-configs/${encodeURIComponent(providerAuthConfigId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint {
     providerAuthConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-configs/${providerAuthConfigId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-configs/${encodeURIComponent(providerAuthConfigId)}`;
 
     let request = {
       path,

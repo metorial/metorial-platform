@@ -23,6 +23,7 @@ export let defaultConfig: MetorialConfig = {
     },
 
     apiUrl: urlSettings.apiUrl,
+    connectUrl: (urlSettings.connectUrl ?? urlSettings.apiUrl).replace(/\/+$/, ''),
     filesUrl: urlSettings.filesUrl,
     appUrl: urlSettings.appUrl,
     portalsUrl: urlSettings.portalsUrl,

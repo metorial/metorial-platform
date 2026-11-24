@@ -55,7 +55,7 @@ export class MetorialManagementOrganizationTeamsMembersEndpoint {
     body: DashboardOrganizationsTeamsMembersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsMembersCreateOutput> {
-    let path = `organization/teams/${teamId}/members`;
+    let path = `organization/teams/${encodeURIComponent(teamId)}/members`;
 
     let request = {
       path,
@@ -85,7 +85,7 @@ export class MetorialManagementOrganizationTeamsMembersEndpoint {
     actorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsMembersDeleteOutput> {
-    let path = `organization/teams/${teamId}/members/${actorId}`;
+    let path = `organization/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(actorId)}`;
 
     let request = {
       path,

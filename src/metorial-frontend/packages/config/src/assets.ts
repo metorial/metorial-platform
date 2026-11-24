@@ -2,9 +2,10 @@ import { checkEdition, perEdition } from '@metorial/editions';
 import { runtimeEnv } from './runtime';
 
 let avatarHosts = new Set(['avatar-cdn.metorial.com', 'avatar.metorial-cdn.com']);
+let faviconOrigin = 'https://favicons.metorial-cdn.com';
 let imageHosts = new Set([
   ...avatarHosts,
-  'favicons.metorial-cdn.com',
+  new URL(faviconOrigin).hostname,
   'cdn.metorial.com'
 ]);
 let directHosts = new Set(['provider-logos.metorial-cdn.com']);
@@ -64,6 +65,7 @@ export let resolveImageUrl = <T extends string | null | undefined>(value: T): T 
     return value;
   }
 
+  if (url.origin == faviconOrigin) return value;
   if (!imageHosts.has(url.hostname)) return proxyExternalImage(value, url) as T;
   if (avatarHosts.has(url.hostname) && /^[A-Za-z0-9_-]{1,128}$/.test(url.pathname.slice(1))) {
     return getAvatarUrl(url.pathname.slice(1)) as T;
@@ -91,4 +93,4 @@ export let getProviderLogoUrl = (name: string) =>
   resolveImageUrl(`https://provider-logos.metorial-cdn.com/${name}`);
 
 export let getFaviconUrl = (origin: string) =>
-  resolveImageUrl(`https://favicons.metorial-cdn.com/?url=${encodeURIComponent(origin)}`);
+  resolveImageUrl(`${faviconOrigin}/?url=${encodeURIComponent(origin)}`);

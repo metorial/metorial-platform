@@ -48,6 +48,10 @@ fn durable_block_id(upload_id: &str, number: u32) -> String {
     format!("{}-{:010}", upload_id, number)
 }
 
+fn public_block_id(upload_id: &str, number: u32, digest: &str) -> String {
+    crate::backend::compute_etag(format!("{upload_id}:{number}:{digest}").as_bytes())
+}
+
 fn durable_manifest_key(upload_id: &str) -> String {
     format!("{}{}.json", DURABLE_MANIFEST_PREFIX, upload_id)
 }
@@ -537,6 +541,83 @@ impl MultipartUpload for AzureBlockUpload {
 }
 
 impl AzureBackend {
+    async fn stage_durable_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+        public: bool,
+    ) -> BackendResult<DurablePart> {
+        validate_part_number(number)?;
+        validate_part_size(data.len() as u64)?;
+        self.read_durable_manifest(key, upload_id).await?;
+
+        let size = data.len() as u64;
+        let etag = crate::backend::compute_etag(&data);
+
+        let block_id = if public {
+            public_block_id(upload_id, number, &etag)
+        } else {
+            durable_block_id(upload_id, number)
+        };
+
+        self.client
+            .blob_client(key)
+            .put_block(block_id, data)
+            .await
+            .map_err(|e| provider_error(&format!("stage block {} of", number), key, e))?;
+
+        Ok(DurablePart { number, size, etag })
+    }
+
+    async fn commit_durable_parts(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+        public: bool,
+    ) -> BackendResult<ObjectMetadata> {
+        validate_part_list(parts)?;
+        let manifest = self.read_durable_manifest(key, upload_id).await?;
+
+        let block_list = BlockList {
+            blocks: parts
+                .iter()
+                .map(|part| {
+                    let id = if public {
+                        public_block_id(upload_id, part.number, &part.etag)
+                    } else {
+                        durable_block_id(upload_id, part.number)
+                    };
+                    BlobBlockType::new_latest(id)
+                })
+                .collect(),
+        };
+
+        let mut request = self
+            .client
+            .blob_client(key)
+            .put_block_list(block_list)
+            .metadata(to_metadata(&manifest.metadata));
+        if let Some(ct) = manifest.content_type.as_ref() {
+            request = request.content_type(ct.clone());
+        }
+
+        request.await.map_err(|e| {
+            if is_invalid_block_list(&e) {
+                return BackendError::InvalidRequest(format!(
+                    "the blocks of upload {} of '{}' are missing or were discarded",
+                    upload_id, key
+                ));
+            }
+            provider_error("commit blocks for blob", key, e)
+        })?;
+
+        self.delete_durable_manifest(upload_id).await?;
+        self.head_object(key).await
+    }
+
     async fn read_durable_manifest(
         &self,
         key: &str,
@@ -926,20 +1007,19 @@ impl Backend for AzureBackend {
         number: u32,
         data: Bytes,
     ) -> BackendResult<DurablePart> {
-        validate_part_number(number)?;
-        validate_part_size(data.len() as u64)?;
-        self.read_durable_manifest(key, upload_id).await?;
-
-        let size = data.len() as u64;
-        let etag = crate::backend::compute_etag(&data);
-
-        self.client
-            .blob_client(key)
-            .put_block(durable_block_id(upload_id, number), data)
+        self.stage_durable_part(key, upload_id, number, data, false)
             .await
-            .map_err(|e| provider_error(&format!("stage block {} of", number), key, e))?;
+    }
 
-        Ok(DurablePart { number, size, etag })
+    async fn upload_public_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        number: u32,
+        data: Bytes,
+    ) -> BackendResult<DurablePart> {
+        self.stage_durable_part(key, upload_id, number, data, true)
+            .await
     }
 
     async fn complete_durable_multipart(
@@ -948,37 +1028,17 @@ impl Backend for AzureBackend {
         upload_id: &str,
         parts: &[DurablePartRef],
     ) -> BackendResult<ObjectMetadata> {
-        validate_part_list(parts)?;
-        let manifest = self.read_durable_manifest(key, upload_id).await?;
+        self.commit_durable_parts(key, upload_id, parts, false)
+            .await
+    }
 
-        let block_list = BlockList {
-            blocks: parts
-                .iter()
-                .map(|part| BlobBlockType::new_latest(durable_block_id(upload_id, part.number)))
-                .collect(),
-        };
-
-        let mut request = self
-            .client
-            .blob_client(key)
-            .put_block_list(block_list)
-            .metadata(to_metadata(&manifest.metadata));
-        if let Some(ct) = manifest.content_type.as_ref() {
-            request = request.content_type(ct.clone());
-        }
-
-        request.await.map_err(|e| {
-            if is_invalid_block_list(&e) {
-                return BackendError::InvalidRequest(format!(
-                    "the blocks of upload {} of '{}' are missing or were discarded",
-                    upload_id, key
-                ));
-            }
-            provider_error("commit blocks for blob", key, e)
-        })?;
-
-        self.delete_durable_manifest(upload_id).await?;
-        self.head_object(key).await
+    async fn complete_public_multipart(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[DurablePartRef],
+    ) -> BackendResult<ObjectMetadata> {
+        self.commit_durable_parts(key, upload_id, parts, true).await
     }
 
     // Uncommitted blocks are never visible and Azure discards them after a week.

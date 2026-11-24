@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "mongoose": "^9.11.4"
+    "mongoose": "^9.12.1"
   },
   "devDependencies": {
     "@types/bun": "latest",

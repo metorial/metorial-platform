@@ -109,10 +109,10 @@ class slatePackBuildServiceImpl {
   }
 
   async listForChannel(d: { channelOid: bigint }) {
-    return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.slatePackBuild.findMany({
+    return Paginator.create(
+      ({ prisma }) =>
+        prisma(async opts =>
+          db.slatePackBuild.findMany({
             ...opts,
             where: { channelOid: d.channelOid },
             select: {
@@ -129,7 +129,8 @@ class slatePackBuildServiceImpl {
               completedAt: true
             }
           })
-      )
+        ),
+      { defaultOrder: 'desc' }
     );
   }
 

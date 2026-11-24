@@ -1,0 +1,62 @@
+{
+  "doctor": 1,
+  "component": "core-api",
+  "instance": "core-api-5c8d7-x2k9p",
+  "releaseVersion": "1.4.0-2026-11-14-3c1f9a2b7d-release",
+  "buildVersion": "1.4.0-2026-11-14-3c1f9a2b7d-release",
+  "channel": "release",
+  "publicUrl": "https://metorial.example.com",
+  "fingerprints": { "installationSecret": "3f9a1c0b2e7d", "bootstrapRevision": "a1b2c3d4e5" },
+  "processStartedAt": "2026-11-17T09:12:03.000Z",
+  "startedAt": "2026-11-17T10:00:00.000Z",
+  "generatedAt": "2026-11-17T10:00:00.051Z",
+  "durationMs": 51,
+  "runId": "9a0b1c2d3e4f",
+  "cached": false,
+  "ageMs": 3,
+  "checks": [
+    {
+      "id": "config.settings",
+      "title": "Configuration is complete",
+      "category": "configuration",
+      "target": null,
+      "status": "pass",
+      "severity": "critical",
+      "durationMs": 0,
+      "message": "All settings are valid.",
+      "resolution": null,
+      "details": null,
+      "cachedAt": null
+    },
+    {
+      "id": "redis.ping",
+      "title": "Core API can reach Redis",
+      "category": "cache",
+      "target": "redis:valkey:6379/0",
+      "status": "warn",
+      "severity": "warning",
+      "durationMs": 48,
+      "message": "Redis answered in 48ms, slower than 25ms.",
+      "resolution": {
+        "summary": "Check the latency between the cluster and Redis.",
+        "steps": [],
+        "docs": null
+      },
+      "details": { "latencyMs": 48, "thresholdMs": 25, "nested": { "list": [1, 2.5, "three", false, null] } },
+      "cachedAt": null
+    },
+    {
+      "id": "license.state",
+      "title": "License",
+      "category": "configuration",
+      "target": null,
+      "status": "pass",
+      "severity": "info",
+      "durationMs": 2,
+      "message": "Licensed until 2027-11-01.",
+      "resolution": null,
+      "details": { "plan": "enterprise" },
+      "cachedAt": null
+    }
+  ]
+}

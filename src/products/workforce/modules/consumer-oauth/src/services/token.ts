@@ -12,7 +12,8 @@ import {
   Organization,
   SkillPlugin,
   type ConsumerSurface,
-  type Instance
+  type Instance,
+  withTransaction
 } from '@metorial/db';
 import { magicMcpTokenService, type MagicMcpResolvedTarget } from '@metorial/module-magic';
 import { grantConsumerOwnedMagicMcpTokenAccess } from '@metorial/consumer-magic-access';
@@ -595,45 +596,40 @@ class ConsumerOAuthTokenService {
     });
 
     let nextRefreshToken = generateCustomId('prtl_oatre_', 35);
-    let claimedRefreshToken = await db.consumerAuthAttempt.updateMany({
-      where: {
-        id: attempt.id,
-        status: 'active',
-        refreshToken: d.refreshToken
-      },
-      data: {
-        refreshToken: nextRefreshToken,
-        expiresAt: getConsumerAuthRefreshTokenExpiry()
+    let rotatedAccessToken = await withTransaction(async db => {
+      let rotated = await db.consumerAuthAttempt.updateMany({
+        where: {
+          id: attempt.id,
+          status: 'active',
+          refreshToken: d.refreshToken
+        },
+        data: {
+          refreshToken: nextRefreshToken,
+          expiresAt: getConsumerAuthRefreshTokenExpiry()
+        }
+      });
+      if (!rotated.count) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid refresh token',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Invalid refresh token'
+            }
+          })
+        );
       }
-    });
-    if (claimedRefreshToken.count == 0) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid refresh token',
-          oauth: {
-            error: 'invalid_grant',
-            errorMessage: 'Invalid refresh token'
-          }
-        })
-      );
-    }
 
-    let rotatedAccessToken = await magicMcpTokenService
-      .rotateMagicMcpTokenSecret({
+      return await magicMcpTokenService.rotateMagicMcpTokenSecret({
         token: accessToken,
         expiresAt: getConsumerAuthAccessTokenExpiry(),
         auditScope: consumerOAuthAuditScope({
           consumerSurface: d.consumerSurface,
           consumerProfile: attempt.consumerProfile
         })
-      })
-      .catch(async error => {
-        await db.consumerAuthAttempt.updateMany({
-          where: { id: attempt.id, refreshToken: nextRefreshToken },
-          data: { refreshToken: d.refreshToken, expiresAt: attempt.expiresAt }
-        });
-        throw error;
       });
+    });
+
     await slideConsumerAuthClientExpiration({ consumerAuthClient: d.client });
 
     return {
