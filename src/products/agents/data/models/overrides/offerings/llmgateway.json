@@ -63,9 +63,9 @@
     "at": "2026-11-17"
   },
   "greenference/qwen3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "LLM Gateway lists this as Greenference's serving of Qwen3 14B, Alibaba's dense Qwen3 checkpoint; matches alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "LLM Gateway's greenference/qwen3-14b is Greenference's serving of Alibaba's Qwen3 14B, but the catalog's alibaba/qwen3-14b entry is retired and not in the active index; no active model id to link, so defer until the index carries Qwen3-14B again.",
     "by": "agent",
     "at": "2026-11-24"
   },
@@ -173,9 +173,9 @@
     "at": "2026-11-12"
   },
   "qwen3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "LLM Gateway's Qwen3 14B model is Alibaba's dense Qwen3 checkpoint, matching the exact catalog entry alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "LLM Gateway's qwen3-14b routes to Alibaba's dense Qwen3 14B checkpoint, but alibaba/qwen3-14b is retired and absent from the live catalog index; there is no active model to link, so defer until Qwen3-14B reappears in the index.",
     "by": "agent",
     "at": "2026-11-24"
   },
