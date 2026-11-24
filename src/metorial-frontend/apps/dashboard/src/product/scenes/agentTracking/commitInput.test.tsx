@@ -128,6 +128,18 @@ describe('CommitNumberInput', () => {
     expect(onCommit).not.toHaveBeenCalled();
   });
 
+  it('does not commit when a navigation takes the field away', () => {
+    let href = window.location.href;
+
+    render(80, true);
+    type('40');
+    window.history.pushState({}, '', '/elsewhere');
+    removeField();
+    expect(onCommit).not.toHaveBeenCalled();
+
+    window.history.replaceState({}, '', href);
+  });
+
   it('does not commit again when the field goes away after a commit', () => {
     render(80, true);
     type('40');

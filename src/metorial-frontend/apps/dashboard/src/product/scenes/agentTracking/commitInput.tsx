@@ -21,17 +21,19 @@ export let CommitNumberInput = ({
   let { key } = useLocation();
   let [draft, setDraft] = useState<number | null>(value);
 
-  let latest = useRef({ draft, value, min, max, onCommit });
-  latest.current = { draft, value, min, max, onCommit };
+  let latest = useRef({ draft, value, min, max, onCommit, href: window.location.href });
+  latest.current = { draft, value, min, max, onCommit, href: window.location.href };
 
   useEffect(() => setDraft(value), [value, key]);
 
-  // A popover closed with Escape unmounts the field without a blur, so commit on unmount.
+  // A popover closed with Escape unmounts the field without a blur, so commit on unmount,
+  // unless a navigation removed the field: the commit would then go to the page being opened.
   useEffect(() => {
     if (!commitOnUnmount) return;
 
     return () => {
-      let { draft, value, min, max, onCommit } = latest.current;
+      let { draft, value, min, max, onCommit, href } = latest.current;
+      if (href != window.location.href) return;
       if (draft === null || !Number.isFinite(draft)) return;
 
       let next = clamp(draft, min, max);
