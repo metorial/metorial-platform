@@ -14,12 +14,19 @@ let defaultWarnLatencyMs = {
   tcp: 250
 };
 
+let latencyAttempts = 3;
+
 let dayMs = 24 * 60 * 60 * 1000;
 
 export type ProbeRun = (ctx: CheckContext) => Promise<CheckOutcome>;
 
 export interface LatencyProbeOptions {
   warnLatencyMs?: number;
+}
+
+interface LatencySample {
+  latencyMs: number;
+  attemptsMs: number[];
 }
 
 let measure = async <T>(fn: () => Promise<T>) => {
@@ -29,23 +36,47 @@ let measure = async <T>(fn: () => Promise<T>) => {
   return { value, latencyMs: Math.round(performance.now() - started) };
 };
 
+// Every replica runs its checks at the same moment, so one request can land in a transient
+// stall (a packet retransmit, a busy event loop) that says nothing about the dependency. A slow
+// answer is retried and only the fastest attempt counts, so a warning means it stayed slow.
+let measureFastest = async (
+  fn: () => Promise<unknown>,
+  warnLatencyMs: number,
+  signal: AbortSignal
+): Promise<LatencySample> => {
+  let attemptsMs: number[] = [];
+
+  while (attemptsMs.length < latencyAttempts) {
+    let { latencyMs } = await measure(fn);
+    attemptsMs.push(latencyMs);
+
+    if (latencyMs <= warnLatencyMs || signal.aborted) break;
+  }
+
+  return { latencyMs: Math.min(...attemptsMs), attemptsMs };
+};
+
 let latencyOutcome = (
   label: string,
-  latencyMs: number,
+  { latencyMs, attemptsMs }: LatencySample,
   warnLatencyMs: number,
-  details: Record<string, unknown> = {}
-): CheckOutcome =>
-  latencyMs > warnLatencyMs
-    ? {
-        status: 'warn',
-        message: `${label} answered in ${latencyMs}ms, slower than ${warnLatencyMs}ms.`,
-        details: { ...details, latencyMs, thresholdMs: warnLatencyMs }
-      }
-    : {
-        status: 'pass',
-        message: `${label} answered in ${latencyMs}ms.`,
-        details: { ...details, latencyMs }
-      };
+  extra: Record<string, unknown> = {}
+): CheckOutcome => {
+  let details =
+    attemptsMs.length > 1 ? { ...extra, latencyMs, attemptsMs } : { ...extra, latencyMs };
+
+  if (latencyMs <= warnLatencyMs) {
+    return { status: 'pass', message: `${label} answered in ${latencyMs}ms.`, details };
+  }
+
+  let attempts = attemptsMs.length > 1 ? ` (fastest of ${attemptsMs.length} attempts)` : '';
+
+  return {
+    status: 'warn',
+    message: `${label} answered in ${latencyMs}ms, slower than ${warnLatencyMs}ms${attempts}.`,
+    details: { ...details, thresholdMs: warnLatencyMs }
+  };
+};
 
 let call =
   (
@@ -54,8 +85,8 @@ let call =
     warnLatencyMs: number
   ): ProbeRun =>
   async ctx => {
-    let { latencyMs } = await measure(() => run(ctx.signal));
-    return latencyOutcome(label, latencyMs, warnLatencyMs);
+    let sample = await measureFastest(() => run(ctx.signal), warnLatencyMs, ctx.signal);
+    return latencyOutcome(label, sample, warnLatencyMs);
   };
 
 let sql = (opts: { query: (signal: AbortSignal) => Promise<unknown> } & LatencyProbeOptions) =>
@@ -68,9 +99,9 @@ let redis = (
 
   return async ctx => {
     let { latencyMs: connectMs } = await measure(() => opts.client.ping());
-    let { latencyMs } = await measure(() => opts.client.ping());
+    let sample = await measureFastest(() => opts.client.ping(), warnLatencyMs, ctx.signal);
 
-    return latencyOutcome('Redis', latencyMs, warnLatencyMs, { connectMs });
+    return latencyOutcome('Redis', sample, warnLatencyMs, { connectMs });
   };
 };
 
@@ -121,7 +152,7 @@ let http =
 
     return latencyOutcome(
       `${method} ${opts.url}`,
-      latencyMs,
+      { latencyMs, attemptsMs: [latencyMs] },
       opts.warnLatencyMs ?? defaultWarnLatencyMs.http,
       { url: opts.url, status: response.status }
     );
@@ -130,7 +161,8 @@ let http =
 let tcp =
   (opts: { host: string; port: number } & LatencyProbeOptions): ProbeRun =>
   async ctx => {
-    let { latencyMs } = await measure(
+    let warnLatencyMs = opts.warnLatencyMs ?? defaultWarnLatencyMs.tcp;
+    let sample = await measureFastest(
       () =>
         new Promise<void>((resolve, reject) => {
           let socket = connectTcp({ host: opts.host, port: opts.port });
@@ -146,15 +178,15 @@ let tcp =
             ctx.signal.removeEventListener('abort', onAbort);
             reject(error);
           });
-        })
+        }),
+      warnLatencyMs,
+      ctx.signal
     );
 
-    return latencyOutcome(
-      `${opts.host}:${opts.port}`,
-      latencyMs,
-      opts.warnLatencyMs ?? defaultWarnLatencyMs.tcp,
-      { host: opts.host, port: opts.port }
-    );
+    return latencyOutcome(`${opts.host}:${opts.port}`, sample, warnLatencyMs, {
+      host: opts.host,
+      port: opts.port
+    });
   };
 
 let dns =
