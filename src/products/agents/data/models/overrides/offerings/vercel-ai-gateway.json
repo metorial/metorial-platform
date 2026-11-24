@@ -265,6 +265,13 @@
     "by": "agent",
     "at": "2026-11-18"
   },
+  "google/gemini-4-neon-fast": {
+    "decision": "link",
+    "model": "google/gemini-4-neon",
+    "reason": "Vercel's 'Gemini 4 Neon (Fast)' is a -fast serving of Gemini 4 Neon (released 2026-11-18, 1M context, matching the offering); the index has google/gemini-4-neon and a -fast serving is still that model. The higher price is Vercel's aggregator markup.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",
     "model": "google/veo-3.1-fast-generate-preview",
