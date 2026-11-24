@@ -1492,7 +1492,11 @@ let LicensesPaths = Object.assign(
       return LicensesPaths.licenses(organizationId, licenseId);
     },
     exchange: (organizationId?: string | null) =>
-      organizationId ? LicensesPaths(organizationId, 'exchange') : LicensesPaths('exchange')
+      organizationId ? LicensesPaths(organizationId, 'exchange') : LicensesPaths('exchange'),
+    downloads: (organizationId: string | null | undefined, ...subPages: SubPages) => {
+      if (!organizationId) return '#';
+      return LicensesPaths(organizationId, 'downloads', ...subPages);
+    }
   }
 );
 
