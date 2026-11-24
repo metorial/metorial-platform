@@ -158,6 +158,8 @@ export class BuildContext {
     status: 'succeeded' | 'failed';
     endedAt?: Date;
     failure?: { code: string; message: string };
+    // Reported to the error collector without being stored on the run.
+    infrastructureFailure?: { code: string; message: string };
     stepArtifacts?: { stepId: string; bucket: string; storageKey: string }[];
   }) {
     await buildEndedQueue.add(
@@ -166,6 +168,7 @@ export class BuildContext {
         status: d.status,
         endedAt: d.endedAt ?? new Date(),
         failure: d.failure,
+        infrastructureFailure: d.infrastructureFailure,
         stepArtifacts: d.stepArtifacts ?? []
       },
       { id: this.run.id }

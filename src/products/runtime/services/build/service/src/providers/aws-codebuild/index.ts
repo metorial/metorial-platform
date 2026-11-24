@@ -242,8 +242,25 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
 
     let ctx = await BuildContext.of(data.runId);
 
+    let failedPhase = build.phases?.find(
+      phase => phase.phaseStatus && phase.phaseStatus !== 'SUCCEEDED'
+    );
+    let phaseDetail = failedPhase
+      ? ` in phase ${failedPhase.phaseType}: ${(failedPhase.contexts ?? [])
+          .map(c => c.message)
+          .filter(Boolean)
+          .join('; ')}`
+      : '';
+
     await ctx.completeBuild({
       status: build.buildStatus == 'SUCCEEDED' ? 'succeeded' : 'failed',
+      infrastructureFailure:
+        build.buildStatus == 'SUCCEEDED' || build.buildStatus == 'FAILED'
+          ? undefined
+          : {
+              code: `codebuild_${build.buildStatus.toLowerCase()}`,
+              message: `AWS CodeBuild build ${build.id} ended with ${build.buildStatus}${phaseDetail}`
+            },
       stepArtifacts: Object.entries(data.artifactData).map(([stepId, info]) => ({
         stepId,
         ...info

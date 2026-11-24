@@ -3,6 +3,9 @@ import { buildNpmRegistryUrl } from '../../env';
 import { npmRegistryEnv } from '../../lib/npmRegistry';
 import { BuildContext } from './buildContext';
 
+// The local provider throws this when a workflow command exits non-zero (see runCommands).
+let isScriptFailure = (message: string) => message.startsWith('Command failed with exit code');
+
 export type BuildRunStep = Awaited<ReturnType<BuildContext['listSteps']>>[number];
 
 export abstract class ForgeBuildAdapter {
@@ -121,8 +124,12 @@ export abstract class ForgeBuildAdapter {
   protected async failBuild(ctx: BuildContext, err: unknown, label = 'Forge build failed') {
     console.error(label, err);
 
+    let message = this.toErrorMessage(err);
     await ctx.completeBuild({
-      status: 'failed'
+      status: 'failed',
+      infrastructureFailure: isScriptFailure(message)
+        ? undefined
+        : { code: 'build_infrastructure_error', message }
     });
   }
 

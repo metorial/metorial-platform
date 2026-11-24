@@ -82,6 +82,7 @@
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",
     "@metorial/editions": "workspace:*",
+    "@metorial/error-reporting": "workspace:*",
     "@lowerdeck/prisma-pg": "workspace:2.0.0"
   }
 }
