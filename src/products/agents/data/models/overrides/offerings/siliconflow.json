@@ -20,6 +20,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Qwen/Qwen3-14B": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "SiliconFlow serves the Qwen/Qwen3-14B Hugging Face checkpoint, Alibaba's 14.8B dense Qwen3 model; matches alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "Qwen/Qwen3-VL-30B-A3B-Thinking": {
     "decision": "defer",
     "until": "2026-12-12",

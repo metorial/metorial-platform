@@ -1400,6 +1400,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-14b": {
+    "decision": "link",
+    "model": "alibaba/qwen3-14b",
+    "reason": "Hugging Face metadata identifies the offering as Qwen/Qwen3-14B, Alibaba's 14.8B dense Qwen3 checkpoint; matches alibaba/qwen3-14b.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "qwen/qwen3.5-omni-flash": {
     "decision": "defer",
     "until": "2026-12-12",
