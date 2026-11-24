@@ -90,6 +90,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "baseten/bison-1": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Bison-1 is a 31B decision model post-trained from Gemma 4 31B by Base Labs at Baseten, released 2026-11-20 (per Baseten changelog and HF card baselabs/bison-1). No matching entry exists in the model index; the closest candidates (elephant-1, mammoth-1) are different models.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
+  "baseten/groundhog-1": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Groundhog-1 is a 26B A4B decision model post-trained from Gemma 4 26B A4B by Base Labs at Baseten, released 2026-11-20 (per Baseten changelog and HF card baselabs/groundhog-1). No matching entry exists in the model index; elephant-1 and mammoth-1 are different models.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "baseten/joey-1": {
     "decision": "defer",
     "until": "2026-12-12",
