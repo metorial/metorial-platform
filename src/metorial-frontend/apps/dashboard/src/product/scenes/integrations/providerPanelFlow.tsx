@@ -390,8 +390,6 @@ let IntegrationProviderAuthSection = (p: {
   credentialsLoading: boolean;
   credentialsLoadError?: string;
   onRetryCredentials: () => void;
-  credentialCount: number;
-  hasMoreCredentials: boolean;
   rejectedCredentialId: string | null;
   savedCredentialUnavailable: boolean;
   onSelectedAuthCredentialsIdChange: (
@@ -494,55 +492,48 @@ let IntegrationProviderAuthSection = (p: {
                       <CenteredSpinner />
                     ) : (
                       <Flex gap={8} align="end">
-                        {p.credentialCount > 1 || p.hasMoreCredentials ? (
-                          <div style={{ flex: 1 }}>
-                            <Combobox
-                              key={p.selectedAuthMethodId || 'auth-credentials'}
-                              label="Auth Credentials"
-                              placeholder="Search auth credentials"
-                              value={p.selectedAuthCredentialsId || null}
-                              valueLabel={p.selectedAuthCredentialsLabel}
-                              provider={({ searchQuery }) => {
-                                let comboboxCredentials = useProviderAuthCredentials(
-                                  p.instanceId,
-                                  {
-                                    ...getProviderAuthCredentialsQuery({
-                                      providerId: p.providerId,
-                                      providerAuthMethodId: p.selectedAuthMethodId,
-                                      search: searchQuery || undefined
-                                    })
-                                  }
-                                );
+                        <div style={{ flex: 1 }}>
+                          <Combobox
+                            key={p.selectedAuthMethodId || 'auth-credentials'}
+                            label="Auth Credentials"
+                            placeholder="Search auth credentials"
+                            value={p.selectedAuthCredentialsId || null}
+                            valueLabel={p.selectedAuthCredentialsLabel}
+                            provider={({ searchQuery }) => {
+                              let comboboxCredentials = useProviderAuthCredentials(
+                                p.instanceId,
+                                {
+                                  ...getProviderAuthCredentialsQuery({
+                                    providerId: p.providerId,
+                                    providerAuthMethodId: p.selectedAuthMethodId,
+                                    search: searchQuery || undefined
+                                  })
+                                }
+                              );
 
-                                return {
-                                  items: (comboboxCredentials.data?.items ?? [])
-                                    .filter(
-                                      credentials => credentials.id !== p.rejectedCredentialId
-                                    )
-                                    .map(credentials => ({
-                                      id: credentials.id,
-                                      label: credentials.name ?? credentials.id
-                                    })),
-                                  isLoading: comboboxCredentials.isLoading,
-                                  empty: searchQuery
-                                    ? 'No matching auth credentials found.'
-                                    : 'No auth credentials available.'
-                                };
-                              }}
-                              onChange={(value, item) => {
-                                p.onSelectedAuthCredentialsIdChange(
-                                  value ?? '',
-                                  item ? { id: item.id, name: item.label } : undefined
-                                );
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <Text size="2" color="gray600">
-                            {p.selectedAuthCredentialsLabel ??
-                              'Add an OAuth app to enable sign-in.'}
-                          </Text>
-                        )}
+                              return {
+                                items: (comboboxCredentials.data?.items ?? [])
+                                  .filter(
+                                    credentials => credentials.id !== p.rejectedCredentialId
+                                  )
+                                  .map(credentials => ({
+                                    id: credentials.id,
+                                    label: credentials.name ?? credentials.id
+                                  })),
+                                isLoading: comboboxCredentials.isLoading,
+                                empty: searchQuery
+                                  ? 'No matching auth credentials found.'
+                                  : 'No auth credentials available.'
+                              };
+                            }}
+                            onChange={(value, item) => {
+                              p.onSelectedAuthCredentialsIdChange(
+                                value ?? '',
+                                item ? { id: item.id, name: item.label } : undefined
+                              );
+                            }}
+                          />
+                        </div>
                         <div>
                           <Button
                             type="button"
@@ -1191,8 +1182,6 @@ let IntegrationProviderSetupStep = (p: {
               credentialsLoading={authCredentials.isLoading}
               credentialsLoadError={authCredentials.error?.message}
               onRetryCredentials={authCredentials.refetch}
-              credentialCount={authCredentials.data?.items.length ?? 0}
-              hasMoreCredentials={!!authCredentials.data?.pagination.hasMoreAfter}
               savedCredentialUnavailable={savedCredentialUnavailable}
               rejectedCredentialId={rejectedCredentialId}
               onSelectedAuthCredentialsIdChange={(value, credentials) => {
