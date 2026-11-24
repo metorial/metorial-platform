@@ -14,6 +14,7 @@ import { Box } from '@metorial/ui-product';
 import React from 'react';
 import { useAgentTrackingSettingsAccess } from './access';
 import { agentTrackingErrorStatus, AgentTrackingErrorState, notSetUpText } from './errorState';
+import { WithInfo } from './info';
 
 let minGroupUsersRange = { min: 3, max: 100 };
 
@@ -47,7 +48,7 @@ let SettingsSection = ({
   canWrite: boolean;
   children: React.ReactNode;
 }) => (
-  <Box title={title} description={description}>
+  <Box title={<WithInfo info={description}>{title}</WithInfo>}>
     <form onSubmit={form.handleSubmit}>
       <Flex direction="column" gap={18}>
         {children}
@@ -125,16 +126,22 @@ let PrivacySection = ({
       readOnlyText="Only organization admins can change these settings."
     >
       <Switch
-        label="Hide Individuals"
-        description="Shows only daily totals of whole UTC days, without sessions, members, filters or breakdowns, while the data is still stored per person."
+        label={
+          <WithInfo info="Shows only daily totals of whole UTC days, without sessions, members, filters or breakdowns, while the data is still stored per person.">
+            Hide Individuals
+          </WithInfo>
+        }
         checked={form.values.hideIndividuals}
         disabled={!canWrite}
         onCheckedChange={checked => form.setFieldValue('hideIndividuals', checked)}
       />
 
       <NumberInput
-        label="Minimum Group Size"
-        description="With Hide Individuals, days with fewer people than this are hidden."
+        label={
+          <WithInfo info="With Hide Individuals, days with fewer people than this are hidden.">
+            Minimum Group Size
+          </WithInfo>
+        }
         unit="people"
         min={minGroupUsersRange.min}
         max={minGroupUsersRange.max}
@@ -208,8 +215,13 @@ let RetentionSection = ({
       {retentionFields.map(field => (
         <Flex key={field.id} direction="column" gap={4}>
           <NumberInput
-            label={field.label}
-            description={`${field.description}, ${settings.retention[field.defaultId]} days by default.`}
+            label={
+              <WithInfo
+                info={`${field.description}, ${settings.retention[field.defaultId]} days by default.`}
+              >
+                {field.label}
+              </WithInfo>
+            }
             unit="days"
             min={retentionDaysRange.min}
             max={retentionDaysRange.max}
@@ -257,16 +269,22 @@ let ClassificationSection = ({
       readOnlyText="Only organization admins can change these settings."
     >
       <Switch
-        label="Rule-Based Classification"
-        description="Matches sessions by ticket references such as ENG-123 and by earlier matches of the same repository, without external calls."
+        label={
+          <WithInfo info="Matches sessions by ticket references such as ENG-123 and by earlier matches of the same repository, without external calls.">
+            Rule-Based Classification
+          </WithInfo>
+        }
         checked={form.values.deterministicEnabled}
         disabled={!canWrite}
         onCheckedChange={checked => form.setFieldValue('deterministicEnabled', checked)}
       />
 
       <Switch
-        label="Hosted Model Classification"
-        description="Sends session context, such as repository, branch, ticket references and team names to a hosted model that may run outside your organization's region."
+        label={
+          <WithInfo info="Sends session context, such as repository, branch, ticket references and team names to a hosted model that may run outside your organization's region.">
+            Hosted Model Classification
+          </WithInfo>
+        }
         checked={form.values.aiEnabled}
         disabled={!canWrite}
         onCheckedChange={checked => form.setFieldValue('aiEnabled', checked)}

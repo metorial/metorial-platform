@@ -2,6 +2,7 @@ import { db } from '@metorial/db';
 import {
   type AgentTracking,
   consumerEntitySource,
+  ignoreNotFound,
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
 import type { ReadScope } from './scope';
@@ -11,6 +12,10 @@ import type { AgentTrackingMember } from './types';
 export let unknownMemberKey = 'unknown';
 
 let maxMemberLookup = 100;
+
+let consumerLookupConcurrency = 20;
+
+export let maxConsumerLookups = 500;
 
 let lookupStatuses = ['managed', 'discovered', 'merged'] as const;
 
@@ -161,4 +166,54 @@ export let lookupMembers = async (d: {
       ] as const;
     })
   );
+};
+
+let consumerMemberId = async (d: { organizationId: string; consumerId: string }) => {
+  let entity = await ignoreNotFound(
+    requireAgentTracking().entity.getByRef(
+      {
+        organizationId: d.organizationId,
+        kind: 'user',
+        source: consumerEntitySource,
+        ref: d.consumerId
+      },
+      readCallOptions
+    )
+  );
+  if (!entity) return null;
+  if (entity.status == 'merged') return entity.mergedIntoId ?? null;
+
+  return lookupStatuses.includes(entity.status as (typeof lookupStatuses)[number])
+    ? entity.id
+    : null;
+};
+
+export let instanceConsumerMemberIds = async (d: {
+  scope: Pick<ReadScope, 'organization' | 'instance'>;
+}) => {
+  let found = await db.instanceConsumer.findMany({
+    where: {
+      instanceOid: d.scope.instance.oid,
+      isPending: false,
+      consumer: { isServiceAccount: false }
+    },
+    select: { consumer: { select: { id: true } } },
+    orderBy: { oid: 'asc' },
+    take: maxConsumerLookups + 1
+  });
+
+  let ids: string[] = [];
+  for (let batch of chunks(found.slice(0, maxConsumerLookups), consumerLookupConcurrency)) {
+    let resolved = await Promise.all(
+      batch.map(instanceConsumer =>
+        consumerMemberId({
+          organizationId: d.scope.organization.id,
+          consumerId: instanceConsumer.consumer.id
+        })
+      )
+    );
+    ids.push(...resolved.filter((id): id is string => !!id));
+  }
+
+  return { ids, capped: found.length > maxConsumerLookups };
 };

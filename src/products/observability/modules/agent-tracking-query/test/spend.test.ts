@@ -293,6 +293,24 @@ describe('agentTrackingSpendService', () => {
     });
   });
 
+  it('filters the breakdown by member, with unknown meaning no member', async () => {
+    rpc.handlers['query:run'] = () => ({ rows: [], totals: null, meta: {} });
+
+    await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'model',
+      range: { preset: 'last_7_days' },
+      filters: { memberIds: ['unknown', 'aten_bob', 'aten_ada'] }
+    });
+
+    expect(callsTo('query:run')[0]!.input.query.where).toEqual({
+      or: [
+        { field: 'user', op: 'in', value: ['aten_ada', 'aten_bob'] },
+        { field: 'user', op: 'isNull' }
+      ]
+    });
+  });
+
   it('reads counts of zero and a complete previous period without warnings', async () => {
     rpc.handlers['query:run'] = () => ({ rows: [], totals: figures(0), labels: {} });
 

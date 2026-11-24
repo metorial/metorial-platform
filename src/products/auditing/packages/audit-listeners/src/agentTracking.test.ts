@@ -18,7 +18,10 @@ vi.mock('@metorial/fabric', () => ({
 import {
   recordAgentTrackingIngestSourceCreated,
   recordAgentTrackingIngestSourceRevoked,
-  recordAgentTrackingSettingsUpdated
+  recordAgentTrackingSettingsUpdated,
+  recordAgentTrackingViewCreated,
+  recordAgentTrackingViewDeleted,
+  recordAgentTrackingViewUpdated
 } from './agentTracking';
 
 let auditScope = {
@@ -125,5 +128,107 @@ describe('agent tracking settings audit listener', () => {
       previousPayload: previousSettings,
       recordedAt: expect.any(Date)
     });
+  });
+});
+
+describe('agent tracking view audit listeners', () => {
+  let view = {
+    oid: 9n,
+    id: 'atvw_1',
+    status: 'active',
+    page: 'team',
+    kind: 'practices',
+    name: 'High effort',
+    nameKey: 'high effort',
+    params: { version: 1, range: 'last_30_days', high_effort_share_min: 0.5 },
+    instanceOid: 3n,
+    instance: { id: 'inst_1', organization: { id: 'org_1' } },
+    creatorActorOid: 4n,
+    creatorActor: { id: 'oac_1', email: 'admin@example.com', name: 'Admin' },
+    deletedAt: null,
+    createdAt: new Date('2026-11-22T10:00:00Z'),
+    updatedAt: new Date('2026-11-22T10:00:00Z')
+  };
+
+  let payloadFields = [
+    'id',
+    'name',
+    'status',
+    'page',
+    'kind',
+    'params',
+    'instanceId',
+    'creatorActorId',
+    'deletedAt'
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    recordEvent.mockResolvedValue(undefined);
+  });
+
+  it('records creation with hand-picked fields', async () => {
+    await recordAgentTrackingViewCreated({ view, auditScope } as any);
+
+    expect(recordEvent).toHaveBeenCalledWith(auditScope, 'agent_tracking_view', 'create', {
+      payload: {
+        id: 'atvw_1',
+        name: 'High effort',
+        status: 'active',
+        page: 'team',
+        kind: 'practices',
+        params: view.params,
+        instanceId: 'inst_1',
+        creatorActorId: 'oac_1',
+        deletedAt: null
+      },
+      recordedAt: expect.any(Date)
+    });
+
+    let { payload } = recordEvent.mock.calls[0]![3];
+    expect(Object.keys(payload).sort()).toEqual([...payloadFields].sort());
+    expect(JSON.stringify(payload)).not.toContain('admin@example.com');
+  });
+
+  it('records an update with the previous state', async () => {
+    await recordAgentTrackingViewUpdated({
+      view: { ...view, name: 'Effort' },
+      previousView: view,
+      auditScope
+    } as any);
+
+    expect(recordEvent).toHaveBeenCalledWith(
+      auditScope,
+      'agent_tracking_view',
+      'update',
+      expect.objectContaining({
+        payload: expect.objectContaining({ name: 'Effort' }),
+        previousPayload: expect.objectContaining({ name: 'High effort' })
+      })
+    );
+  });
+
+  it('records a deletion of a view whose creator is gone', async () => {
+    let deletedAt = new Date('2026-11-22T12:00:00Z');
+
+    await recordAgentTrackingViewDeleted({
+      view: { ...view, status: 'deleted', deletedAt, nameKey: null, creatorActor: null },
+      previousView: { ...view, creatorActor: null },
+      auditScope
+    } as any);
+
+    expect(recordEvent).toHaveBeenCalledWith(
+      auditScope,
+      'agent_tracking_view',
+      'delete',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          status: 'deleted',
+          deletedAt,
+          creatorActorId: null
+        }),
+        previousPayload: expect.objectContaining({ status: 'active', deletedAt: null })
+      })
+    );
   });
 });

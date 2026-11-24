@@ -7,6 +7,10 @@ export let toDollars = (micros: number | null) =>
 
 export let toMicros = (dollars: number) => Math.round(dollars * microsPerDollar);
 
+export let percentToFraction = (percent: number) => Math.round(percent * 100) / 10_000;
+
+export let fractionToPercent = (fraction: number) => Math.round(fraction * 10_000) / 100;
+
 export let dollarsOf = (micros: number) => {
   let digits = String(Math.abs(micros)).padStart(7, '0');
 

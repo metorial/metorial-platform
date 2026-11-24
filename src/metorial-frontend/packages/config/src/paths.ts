@@ -1186,6 +1186,13 @@ let InstancePaths = Object.assign(
     },
 
     agentTracking: {
+      root: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'agent-usage', ...subPages),
+
       spend: (
         organization: EntityParam,
         project: EntityParam,
@@ -1226,6 +1233,14 @@ let InstancePaths = Object.assign(
         instance: EntityParam,
         ...subPages: SubPages
       ) => InstancePaths(organization, project, instance, 'agent-usage', 'team', ...subPages),
+
+      report: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'agent-usage', 'report', ...subPages),
 
       member: (
         organization: EntityParam,

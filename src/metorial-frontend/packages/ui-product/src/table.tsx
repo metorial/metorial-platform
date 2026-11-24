@@ -92,7 +92,7 @@ let HeaderText = styled.span`
 `;
 
 export type TableProps = {
-  headers: string[];
+  headers: React.ReactNode[];
   padding?: { sides: string };
   data: (
     React.ReactNode[] | { data: React.ReactNode[]; href?: string; onClick?: () => void }

@@ -53,6 +53,7 @@ export * from './dashboard_instance_agent-tracking_sessions';
 export * from './dashboard_instance_agent-tracking_settings';
 export * from './dashboard_instance_agent-tracking_setup-status';
 export * from './dashboard_instance_agent-tracking_spend';
+export * from './dashboard_instance_agent-tracking_views';
 export * from './dashboard_instance_agents';
 export * from './dashboard_instance_agents_instances';
 export * from './dashboard_instance_ai-gateway_config';

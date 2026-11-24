@@ -8,7 +8,7 @@ import { useAgentTrackingAvailability } from '../../scenes/agentTracking/access'
 export let AgentTrackingPageGate = ({ children }: { children: React.ReactNode }) => {
   let { flags, access, enabled } = useAgentTrackingAvailability();
 
-  return renderWithLoader({ flags, access })(() => {
+  return renderWithLoader({ flags, access: enabled ? access : false })(() => {
     if (!enabled) {
       return (
         <ContentLayout>

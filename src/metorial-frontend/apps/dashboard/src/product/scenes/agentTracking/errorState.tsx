@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { Paths } from '@metorial/frontend-config';
 import { Button, Callout } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
@@ -119,3 +120,12 @@ export let AgentTrackingErrorState = ({
     </Callout>
   );
 };
+
+export let agentTrackingErrorFor =
+  (loader: { input: unknown; refetch: () => void }) => (error: unknown) => (
+    <AgentTrackingErrorState
+      key={canonicalize(loader.input)}
+      error={error}
+      onRetry={loader.refetch}
+    />
+  );

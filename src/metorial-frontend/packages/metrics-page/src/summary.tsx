@@ -2,7 +2,7 @@ import { Skeleton, Text, theme } from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
 
-let Strip = styled.dl<{ $columns?: number }>`
+let Strip = styled.dl<{ $columns?: number; $frameless?: boolean }>`
   display: grid;
   grid-template-columns: ${({ $columns }) =>
     $columns ? `repeat(${$columns}, minmax(0, 1fr))` : 'repeat(auto-fit, minmax(160px, 1fr))'};
@@ -13,6 +13,16 @@ let Strip = styled.dl<{ $columns?: number }>`
   border-radius: 8px;
   box-shadow: ${theme.shadows.small};
   overflow: hidden;
+
+  ${({ $frameless }) =>
+    $frameless
+      ? `
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  `
+      : ''}
 
   ${({ $columns }) =>
     $columns
@@ -55,13 +65,15 @@ export type MetricsSummaryItem = {
 export let MetricsSummary = ({
   items,
   loading,
-  columns
+  columns,
+  frameless
 }: {
   items: MetricsSummaryItem[];
   loading?: boolean;
   columns?: number;
+  frameless?: boolean;
 }) => (
-  <Strip $columns={columns} aria-busy={loading || undefined}>
+  <Strip $columns={columns} $frameless={frameless} aria-busy={loading || undefined}>
     {items.map((item, i) => (
       <Item key={item.id ?? i}>
         <Term>

@@ -16,6 +16,7 @@ import { agentTrackingSettingsService } from '@metorial/module-agent-tracking-sy
 import { describe, expect, it } from 'vitest';
 import {
   agentTrackingFilterValueService,
+  agentTrackingMemberInsightService,
   agentTrackingMemberService,
   agentTrackingSessionService,
   agentTrackingSpendService
@@ -98,6 +99,27 @@ describe('module-agent-tracking-query with individuals hidden: reads about one p
           ...scope,
           page: { limit: 10 },
           range: { preset: 'last_7_days' }
+        }),
+      () =>
+        agentTrackingMemberInsightService.listMemberInsights({
+          ...scope,
+          page: { limit: 10 },
+          include: ['models', 'practices', 'seat'],
+          modelIds: ['claude-sonnet-4-5'],
+          includeInactive: true
+        }),
+      () =>
+        agentTrackingSpendService.getBreakdown({
+          ...scope,
+          groupBy: 'model',
+          range: {},
+          filters: { memberIds: [session!.member!.id] }
+        }),
+      () =>
+        agentTrackingFilterValueService.listFilterValues({
+          ...scope,
+          field: 'seat',
+          range: {}
         })
     ];
 
