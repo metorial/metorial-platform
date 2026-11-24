@@ -20,6 +20,19 @@ export type DashboardInstanceConsumersDevicesRevokeOutput = {
     excludedMagicMcpServerIds: string[];
     excludedSkillIds: string[];
   }[];
+  detections: {
+    object: 'consumer.device.detection';
+    id: string;
+    toolKey: string;
+    toolName: string;
+    state: 'installed' | 'running';
+    confidence: 'high' | 'medium' | 'low';
+    signalKinds: ('config_dir' | 'app' | 'path' | 'ide_extension' | 'process')[];
+    version: string | null;
+    stale: boolean;
+    firstSeenAt: Date;
+    lastSeenAt: Date;
+  }[];
   lastSeenAt: Date;
   revokedAt: Date | null;
   createdAt: Date;
@@ -34,17 +47,12 @@ export let mapDashboardInstanceConsumersDevicesRevokeOutput =
       [
         'clients',
         0,
-        [
-          2,
-          [
-            1,
-            [
-              'supports_skills',
-              'excluded_magic_mcp_server_ids',
-              'excluded_skill_ids'
-            ]
-          ]
-        ]
+        [2, [1, ['supports_skills', 'excluded_magic_mcp_server_ids', 'excluded_skill_ids']]]
+      ],
+      [
+        'detections',
+        0,
+        [2, [1, ['tool_key', 'tool_name', 'signal_kinds', 'first_seen_at', 'last_seen_at']]]
       ],
       'last_seen_at',
       'revoked_at',
