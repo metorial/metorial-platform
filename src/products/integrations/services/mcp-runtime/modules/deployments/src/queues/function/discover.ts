@@ -48,6 +48,7 @@ export let deployFunctionServerDiscoverQueueProcessor =
       errorCode: string;
       errorMessage: string;
       logMessage?: string | string[];
+      isSystemFailure?: boolean;
     }) => {
       await db.functionServer.update({
         where: { id: functionServer.id },
@@ -62,7 +63,10 @@ export let deployFunctionServerDiscoverQueueProcessor =
       await step.fail();
 
       await deployServerFailedQueue.add({
-        serverDeploymentId: data.serverDeploymentId
+        serverDeploymentId: data.serverDeploymentId,
+        systemFailure: d.isSystemFailure
+          ? { code: d.errorCode, message: d.errorMessage }
+          : undefined
       });
     };
 
@@ -171,6 +175,7 @@ export let deployFunctionServerDiscoverQueueProcessor =
             ? 'discovery_timeout'
             : 'discovery_failed',
         errorMessage,
+        isSystemFailure: !(e instanceof FunctionDiscoveryTimeoutError),
         logMessage:
           e instanceof FunctionDiscoveryTimeoutError
             ? errorMessage

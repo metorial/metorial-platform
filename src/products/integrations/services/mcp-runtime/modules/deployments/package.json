@@ -16,6 +16,7 @@
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial/error-reporting": "workspace:*",
     "@lowerdeck/service": "workspace:2.0.0",
     "@mtsrc/mcp-runtime-data-utils": "workspace:*",
     "@mtsrc/mcp-runtime-db": "workspace:*",

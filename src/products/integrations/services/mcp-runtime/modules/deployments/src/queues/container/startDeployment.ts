@@ -120,7 +120,13 @@ export let deployContainerServerStartQueueProcessor = deployContainerServerStart
       await deployingStep.fail();
 
       await deployServerFailedQueue.add({
-        serverDeploymentId: data.serverDeploymentId
+        serverDeploymentId: data.serverDeploymentId,
+        systemFailure: isServiceError(e)
+          ? undefined
+          : {
+              code: 'deployment_start_failed',
+              message: e instanceof Error ? e.message : String(e)
+            }
       });
     }
   }

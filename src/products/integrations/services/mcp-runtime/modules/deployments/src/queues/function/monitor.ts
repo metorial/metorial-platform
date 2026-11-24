@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
 import { functionBay } from '@mtsrc/mcp-runtime-function-bay';
+import { isSystemFunctionBayFailure } from '../../lib/reportFailure';
 import { deployServerFailedQueue } from '../deployment/failed';
 import { deployFunctionServerDiscoverQueue } from './discover';
 
@@ -50,7 +51,13 @@ export let deployFunctionServerWatchQueueProcessor = deployFunctionServerWatchQu
 
     if (func.status == 'failed') {
       await deployServerFailedQueue.add({
-        serverDeploymentId: data.serverDeploymentId
+        serverDeploymentId: data.serverDeploymentId,
+        systemFailure: isSystemFunctionBayFailure(func.error?.code)
+          ? {
+              code: func.error?.code ?? 'function_bay.unknown_error',
+              message: func.error?.message ?? 'Function Bay reported the deployment as failed'
+            }
+          : undefined
       });
     } else if (func.status == 'succeeded') {
       await db.serverDeploymentStep.update({

@@ -126,7 +126,11 @@ export let deployFunctionServerStartQueueProcessor = deployFunctionServerStartQu
       await step.fail();
 
       await deployServerFailedQueue.add({
-        serverDeploymentId: data.serverDeploymentId
+        serverDeploymentId: data.serverDeploymentId,
+        systemFailure: {
+          code: 'deployment_start_failed',
+          message: e instanceof Error ? e.message : String(e)
+        }
       });
     }
   }
