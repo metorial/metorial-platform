@@ -27126,7 +27126,7 @@ export type GenesisInternalClient = {
         id: string;
         tenantId: string;
         kind: LogStreamKind;
-        status: 'sealed' | 'open';
+        status: 'open' | 'sealed';
         lineCount: number;
         byteCount: number;
         droppedLineCount: number;
@@ -27148,7 +27148,7 @@ export type GenesisInternalClient = {
           id: string;
           tenantId: string;
           kind: LogStreamKind;
-          status: 'sealed' | 'open';
+          status: 'open' | 'sealed';
           lineCount: number;
           byteCount: number;
           droppedLineCount: number;
@@ -27172,7 +27172,7 @@ export type GenesisInternalClient = {
       id: string;
       tenantId: string;
       kind: LogStreamKind;
-      status: 'sealed' | 'open';
+      status: 'open' | 'sealed';
       lineCount: number;
       byteCount: number;
       droppedLineCount: number;
@@ -27193,7 +27193,7 @@ export type GenesisInternalClient = {
           id: string;
           tenantId: string;
           kind: LogStreamKind;
-          status: 'sealed' | 'open';
+          status: 'open' | 'sealed';
           lineCount: number;
           byteCount: number;
           droppedLineCount: number;
@@ -27231,7 +27231,7 @@ export type GenesisInternalClient = {
       nextCursor: number;
       hasMore: boolean;
       lineCount: number;
-      status: 'sealed' | 'open';
+      status: 'open' | 'sealed';
       truncated: boolean;
     }>) & {
       getFull: (
@@ -27260,7 +27260,7 @@ export type GenesisInternalClient = {
           nextCursor: number;
           hasMore: boolean;
           lineCount: number;
-          status: 'sealed' | 'open';
+          status: 'open' | 'sealed';
           truncated: boolean;
         };
         status: number;
@@ -28243,11 +28243,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -28396,11 +28396,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -28643,11 +28643,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -28823,11 +28823,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -29074,7 +29074,6 @@ export type GenesisInternalClient = {
               endedAt: Date | null;
             } | null;
           } & {
-            options: GenesisMachineImageBuildOptions;
             oid: bigint;
             id: string;
             createdAt: Date;
@@ -29092,6 +29091,7 @@ export type GenesisInternalClient = {
             diskOid: bigint | null;
             deadlineAt: Date | null;
             endedAt: Date | null;
+            options: GenesisMachineImageBuildOptions;
             uploadTokenHash: string | null;
             uploadExpiresAt: Date | null;
             contextFormat: MachineImageBuildContextFormat | null;
@@ -29374,7 +29374,6 @@ export type GenesisInternalClient = {
               endedAt: Date | null;
             } | null;
           } & {
-            options: GenesisMachineImageBuildOptions;
             oid: bigint;
             id: string;
             createdAt: Date;
@@ -29392,6 +29391,7 @@ export type GenesisInternalClient = {
             diskOid: bigint | null;
             deadlineAt: Date | null;
             endedAt: Date | null;
+            options: GenesisMachineImageBuildOptions;
             uploadTokenHash: string | null;
             uploadExpiresAt: Date | null;
             contextFormat: MachineImageBuildContextFormat | null;
@@ -29664,7 +29664,6 @@ export type GenesisInternalClient = {
               endedAt: Date | null;
             } | null;
           } & {
-            options: GenesisMachineImageBuildOptions;
             oid: bigint;
             id: string;
             createdAt: Date;
@@ -29682,6 +29681,7 @@ export type GenesisInternalClient = {
             diskOid: bigint | null;
             deadlineAt: Date | null;
             endedAt: Date | null;
+            options: GenesisMachineImageBuildOptions;
             uploadTokenHash: string | null;
             uploadExpiresAt: Date | null;
             contextFormat: MachineImageBuildContextFormat | null;
@@ -30059,7 +30059,6 @@ export type GenesisInternalClient = {
               endedAt: Date | null;
             } | null;
           } & {
-            options: GenesisMachineImageBuildOptions;
             oid: bigint;
             id: string;
             createdAt: Date;
@@ -30077,6 +30076,7 @@ export type GenesisInternalClient = {
             diskOid: bigint | null;
             deadlineAt: Date | null;
             endedAt: Date | null;
+            options: GenesisMachineImageBuildOptions;
             uploadTokenHash: string | null;
             uploadExpiresAt: Date | null;
             contextFormat: MachineImageBuildContextFormat | null;
@@ -30761,11 +30761,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -30907,11 +30907,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -31078,11 +31078,11 @@ export type GenesisInternalClient = {
               diskOid: bigint;
             } | null;
             importedImage: {
+              description: string | null;
               oid: bigint;
               id: string;
               createdAt: Date;
               name: string;
-              description: string | null;
               runtime: string;
               updatedAt: Date;
               platform: string;
@@ -31360,7 +31360,6 @@ export type GenesisInternalClient = {
               endedAt: Date | null;
             } | null;
           } & {
-            options: GenesisMachineImageBuildOptions;
             oid: bigint;
             id: string;
             createdAt: Date;
@@ -31378,6 +31377,7 @@ export type GenesisInternalClient = {
             diskOid: bigint | null;
             deadlineAt: Date | null;
             endedAt: Date | null;
+            options: GenesisMachineImageBuildOptions;
             uploadTokenHash: string | null;
             uploadExpiresAt: Date | null;
             contextFormat: MachineImageBuildContextFormat | null;
@@ -31751,7 +31751,6 @@ export type GenesisInternalClient = {
               endedAt: Date | null;
             } | null;
           } & {
-            options: GenesisMachineImageBuildOptions;
             oid: bigint;
             id: string;
             createdAt: Date;
@@ -31769,6 +31768,7 @@ export type GenesisInternalClient = {
             diskOid: bigint | null;
             deadlineAt: Date | null;
             endedAt: Date | null;
+            options: GenesisMachineImageBuildOptions;
             uploadTokenHash: string | null;
             uploadExpiresAt: Date | null;
             contextFormat: MachineImageBuildContextFormat | null;
@@ -31928,7 +31928,7 @@ export type LogLineSource = 'system' | 'stdout' | 'stderr';
 
 export type LogStreamKind = 'machine_image_build' | 'machine_instance' | 'disk_resize';
 
-export type LogStreamStatus = 'deleted' | 'sealed' | 'open';
+export type LogStreamStatus = 'open' | 'deleted' | 'sealed';
 
 export type MachineDiskState =
   | 'failed'

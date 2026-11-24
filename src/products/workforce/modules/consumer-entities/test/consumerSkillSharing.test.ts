@@ -10,6 +10,7 @@ let {
   ensureConsumerActorMock,
   ensureOrganizationActorMock,
   getSkillByIdMock,
+  lockStoreParticipantsMock,
   setAccessRoleMock,
   getActorAccessRoleMock,
   fireMock,
@@ -58,6 +59,7 @@ let {
   ensureConsumerActorMock: vi.fn(),
   ensureOrganizationActorMock: vi.fn(),
   getSkillByIdMock: vi.fn(),
+  lockStoreParticipantsMock: vi.fn(),
   setAccessRoleMock: vi.fn(),
   getActorAccessRoleMock: vi.fn(),
   fireMock: vi.fn(),
@@ -90,6 +92,7 @@ vi.mock('@metorial/module-skill', () => ({
 
 vi.mock('@metorial/module-store', () => ({
   storeParticipantService: {
+    lockStoreParticipants: lockStoreParticipantsMock,
     setAccessRole: setAccessRoleMock,
     getActorAccessRole: getActorAccessRoleMock
   }
@@ -261,6 +264,9 @@ describe('consumer skill sharing', () => {
     expect(ensureConsumerActorMock.mock.invocationCallOrder[0]).toBeLessThan(
       withTransactionMock.mock.invocationCallOrder[0]!
     );
+    expect(lockStoreParticipantsMock.mock.invocationCallOrder[0]).toBeLessThan(
+      getActorAccessRoleMock.mock.invocationCallOrder[0]!
+    );
     expect(grantAccessMock).toHaveBeenCalledWith(
       expect.objectContaining({
         subject: { personalConsumerGroupForProfile: targetProfile }
@@ -372,14 +378,19 @@ describe('consumer skill sharing', () => {
   });
 
   describe('organization-member consumers', () => {
-    let share = (permission: 'read' | 'write' | 'owner' | 'none') =>
+    let share = (
+      permission: 'read' | 'write' | 'owner' | 'none',
+      consumerProfileIds = [targetProfile.id],
+      consumerProfile?: typeof callerProfile
+    ) =>
       consumerSkillService.shareSkill({
         organization: organization as any,
         instance: instance as any,
         auditScope: auditScope as any,
         skill: skill as any,
         permission,
-        targets: { consumerProfileIds: [targetProfile.id] }
+        consumerProfile: consumerProfile as any,
+        targets: { consumerProfileIds }
       });
 
     beforeEach(() => {
@@ -397,10 +408,112 @@ describe('consumer skill sharing', () => {
       expect(revokeSkillShareAccessMock).toHaveBeenCalled();
     });
 
-    it('rejects raising their access above view', async () => {
-      await expect(share('write')).rejects.toThrow('can only be given view access');
-      await expect(share('owner')).rejects.toThrow('can only be given view access');
+    it.each(['write', 'owner'] as const)(
+      'grants portal visibility for %s',
+      async permission => {
+        await share(permission);
 
+        expect(setAccessRoleMock).toHaveBeenCalledWith(
+          expect.objectContaining({ role: 'viewer' })
+        );
+        expect(grantAccessMock).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({ permission: 'skill_read' })
+        );
+        expect(fireMock).toHaveBeenCalledWith('skill.audit.shared:after', {
+          auditScope,
+          skill,
+          shares: [
+            {
+              consumerProfileId: targetProfile.id,
+              permission: 'read',
+              previousPermission: 'none'
+            }
+          ]
+        });
+      }
+    );
+
+    it('keeps existing direct ownership when adding portal visibility', async () => {
+      db.skill.findFirst.mockResolvedValue({ oid: skill.oid });
+      getActorAccessRoleMock.mockResolvedValue('owner');
+
+      await share('write', [targetProfile.id], callerProfile);
+
+      expect(setAccessRoleMock).not.toHaveBeenCalled();
+      expect(revokeSkillShareAccessMock).not.toHaveBeenCalled();
+      expect(grantAccessMock).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ permission: 'skill_read' })
+      );
+      expect(fireMock).not.toHaveBeenCalled();
+    });
+
+    it('lets a consumer who can share select owner for a visibility-only grant', async () => {
+      db.skill.findFirst.mockResolvedValue({ oid: skill.oid });
+
+      await share('owner', [targetProfile.id], callerProfile);
+
+      expect(setAccessRoleMock).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'viewer' })
+      );
+    });
+
+    it('applies and audits each recipient’s grant in a mixed selection', async () => {
+      let externalProfile = {
+        ...targetProfile,
+        oid: 17n,
+        id: 'profile_external',
+        personalConsumerGroupOid: 18n
+      };
+      db.consumerProfile.findMany.mockResolvedValue([targetProfile, externalProfile]);
+      hasOrganizationMemberSkillAccessMock.mockImplementation(
+        async ({ consumerProfileOid }) => consumerProfileOid == targetProfile.oid
+      );
+      ensureConsumerActorMock.mockImplementation(async ({ consumerProfile }) => ({
+        oid: consumerProfile.oid
+      }));
+
+      await share('owner', [targetProfile.id, externalProfile.id]);
+
+      expect(setAccessRoleMock).toHaveBeenCalledWith(
+        expect.objectContaining({ actor: { oid: targetProfile.oid }, role: 'viewer' })
+      );
+      expect(setAccessRoleMock).toHaveBeenCalledWith(
+        expect.objectContaining({ actor: { oid: externalProfile.oid }, role: 'owner' })
+      );
+      expect(
+        grantAccessMock.mock.calls.map(([grant]) => [
+          grant.subject.personalConsumerGroupForProfile.id,
+          grant.permission
+        ])
+      ).toEqual([
+        [targetProfile.id, 'skill_read'],
+        [externalProfile.id, 'skill_read'],
+        [externalProfile.id, 'skill_write'],
+        [externalProfile.id, 'skill_manage_access']
+      ]);
+      expect(fireMock).toHaveBeenCalledWith('skill.audit.shared:after', {
+        auditScope,
+        skill,
+        shares: [
+          {
+            consumerProfileId: targetProfile.id,
+            permission: 'read',
+            previousPermission: 'none'
+          },
+          {
+            consumerProfileId: externalProfile.id,
+            permission: 'owner',
+            previousPermission: 'none'
+          }
+        ]
+      });
+
+      vi.clearAllMocks();
+      db.skill.findFirst.mockResolvedValue({ oid: skill.oid });
+
+      await expect(
+        share('owner', [targetProfile.id, externalProfile.id], callerProfile)
+      ).rejects.toThrow('Only owners of this skill can add other owners.');
       expect(grantAccessMock).not.toHaveBeenCalled();
     });
 
@@ -545,7 +658,7 @@ describe('consumer skill sharing', () => {
     await expect(share()).rejects.toThrow('Only owners of this skill can add other owners.');
     expect(setAccessRoleMock).not.toHaveBeenCalled();
 
-    getActorAccessRoleMock.mockResolvedValueOnce('owner').mockResolvedValueOnce('viewer');
+    getActorAccessRoleMock.mockResolvedValueOnce('viewer').mockResolvedValueOnce('owner');
     await share();
 
     expect(setAccessRoleMock).toHaveBeenCalledWith(

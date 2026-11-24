@@ -245,16 +245,8 @@ class ConsumerSkillServiceImpl {
     return role ? permissionByShareRole[role] : 'none';
   }
 
-  private async assertConsumerIsSkillOwner(d: {
-    instance: Instance;
-    skill: Skill;
-    consumerProfile: ConsumerProfile;
-  }) {
-    let { actor } = await this.getConsumerActor({
-      instance: d.instance,
-      consumerProfile: d.consumerProfile
-    });
-    let permission = await this.getSkillSharePermission({ skill: d.skill, actor });
+  private async assertConsumerIsSkillOwner(d: { skill: Skill; actor: { oid: bigint } }) {
+    let permission = await this.getSkillSharePermission(d);
 
     if (permission != 'owner') {
       throw new ServiceError(
@@ -609,36 +601,6 @@ class ConsumerSkillServiceImpl {
     return await skillResourceService.hydrateSkill(localSkill);
   }
 
-  // Organization members can already edit and share skills; a view-only grant only controls
-  // whether the skill shows up in their portal.
-  private async assertOrganizationMemberTargetsGetViewOnly(d: {
-    instance: Instance;
-    permission: SkillSharePermission;
-    targetProfiles: Pick<ConsumerProfile, 'oid'>[];
-  }) {
-    if (d.permission == 'read' || d.permission == 'none') return;
-
-    let project = await db.project.findUniqueOrThrow({
-      where: { oid: d.instance.projectOid },
-      select: { oid: true, allowOrganizationMemberFullSkillAccess: true }
-    });
-
-    for (let targetProfile of d.targetProfiles) {
-      let hasMemberAccess = await hasOrganizationMemberSkillAccess({
-        project,
-        consumerProfileOid: targetProfile.oid
-      });
-      if (!hasMemberAccess) continue;
-
-      throw new ServiceError(
-        forbiddenError({
-          message:
-            'Organization members can already edit and share skills. They can only be given view access, which makes the skill show up in their portal.'
-        })
-      );
-    }
-  }
-
   async shareSkill(d: {
     organization: Organization;
     instance: Instance;
@@ -683,17 +645,7 @@ class ConsumerSkillServiceImpl {
         skill: d.skill,
         consumerProfile: d.consumerProfile
       });
-
-      if (d.permission == 'owner') {
-        await this.assertConsumerIsSkillOwner({
-          instance: d.instance,
-          skill: d.skill,
-          consumerProfile: d.consumerProfile
-        });
-      }
     }
-
-    if (!consumerProfileIds.length) return;
 
     let targetProfiles = await db.consumerProfile.findMany({
       where: {
@@ -720,55 +672,103 @@ class ConsumerSkillServiceImpl {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
 
-    await this.assertOrganizationMemberTargetsGetViewOnly({
-      instance: d.instance,
-      permission: d.permission,
-      targetProfiles
-    });
-
-    let shares = await Promise.all(
+    let caller =
+      d.consumerProfile && d.permission == 'owner'
+        ? await this.getConsumerActor({
+            instance: d.instance,
+            consumerProfile: d.consumerProfile
+          })
+        : null;
+    let targetActors = await Promise.all(
       targetProfiles.map(async consumerProfile => {
         let { actor } = await this.getConsumerActor({
           instance: d.instance,
           consumerProfile
         });
-
-        return {
-          consumerProfile,
-          actor,
-          previousPermission: await this.getSkillSharePermission({ skill: d.skill, actor })
-        };
+        return { consumerProfile, actor };
       })
     );
 
-    // Owners can add owners, but only admins (callers without a consumer profile) can remove
-    // or downgrade one.
-    if (
-      d.consumerProfile &&
-      d.permission != 'owner' &&
-      shares.some(share => share.previousPermission == 'owner')
-    ) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'Only admins can remove or downgrade the owners of a skill.'
+    await withTransaction(async () => {
+      if (d.skill.storeOid) {
+        await storeParticipantService.lockStoreParticipants({
+          store: { oid: d.skill.storeOid }
+        });
+      }
+
+      let project =
+        d.permission == 'write' || d.permission == 'owner'
+          ? await db.project.findUniqueOrThrow({ where: { oid: d.instance.projectOid } })
+          : null;
+      let shares = await Promise.all(
+        targetActors.map(async ({ consumerProfile, actor }) => {
+          let previousPermission = await this.getSkillSharePermission({
+            skill: d.skill,
+            actor
+          });
+          let visibilityOnly =
+            !!project &&
+            (await hasOrganizationMemberSkillAccess({
+              project,
+              consumerProfileOid: consumerProfile.oid
+            }));
+          let preserveExistingRole =
+            visibilityOnly && (previousPermission == 'write' || previousPermission == 'owner');
+
+          let permission = d.permission;
+          if (visibilityOnly) permission = preserveExistingRole ? previousPermission : 'read';
+
+          return {
+            consumerProfile,
+            actor,
+            permission,
+            previousPermission,
+            preserveExistingRole
+          };
         })
       );
-    }
 
-    let changedShares = shares.filter(share => share.previousPermission != d.permission);
+      if (
+        caller &&
+        shares.some(share => share.permission == 'owner' && !share.preserveExistingRole)
+      ) {
+        await this.assertConsumerIsSkillOwner({ skill: d.skill, actor: caller.actor });
+      }
+      if (
+        d.consumerProfile &&
+        shares.some(
+          share => share.previousPermission == 'owner' && share.permission != 'owner'
+        )
+      ) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Only admins can remove or downgrade the owners of a skill.'
+          })
+        );
+      }
 
-    await withTransaction(async () => {
       for (let share of shares) {
+        if (share.preserveExistingRole) {
+          await this.grantConsumerPersonalSkillAccess({
+            organization: d.organization,
+            consumerProfile: share.consumerProfile,
+            skill: d.skill,
+            permission: 'read'
+          });
+          continue;
+        }
+
         await this.setConsumerSkillSharePermission({
           organization: d.organization,
           auditScope: d.auditScope,
           consumerProfile: share.consumerProfile,
           actor: share.actor,
           skill: d.skill,
-          permission: d.permission
+          permission: share.permission
         });
       }
 
+      let changedShares = shares.filter(share => share.previousPermission != share.permission);
       if (!changedShares.length) return;
 
       await Fabric.fire('skill.audit.shared:after', {
@@ -776,7 +776,7 @@ class ConsumerSkillServiceImpl {
         skill: d.skill,
         shares: changedShares.map(share => ({
           consumerProfileId: share.consumerProfile.id,
-          permission: d.permission,
+          permission: share.permission,
           previousPermission: share.previousPermission
         }))
       });
