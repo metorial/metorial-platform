@@ -1,8 +1,8 @@
 {
   "alibaba/qwen-3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "Vercel's Qwen3-14B page identifies Alibaba's 14B dense Qwen3 model; it matches the catalog entry alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Vercel's Qwen3-14B page describes Alibaba's 14B dense Qwen3 model, but the catalog's alibaba/qwen3-14b entry is retired and absent from the active index; there is no active model id to link, so defer until the index regains a Qwen3-14B entry.",
     "by": "agent",
     "at": "2026-11-24"
   },

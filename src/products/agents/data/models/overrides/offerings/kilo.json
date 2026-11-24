@@ -364,16 +364,16 @@
     "at": "2026-11-12"
   },
   "qwen/qwen-3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "Kilo's Qwen: Qwen3-14B offering is Alibaba's 14.8B dense Qwen3 checkpoint; the exact catalog entry is alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Kilo's 'Qwen: Qwen3-14B' is Alibaba's dense 14.8B Qwen3 checkpoint (HF Qwen/Qwen3-14B), but the catalog's alibaba/qwen3-14b entry is retired and no longer in the live index; no active model to link, so defer until the index carries Qwen3-14B again.",
     "by": "agent",
     "at": "2026-11-24"
   },
   "qwen/qwen3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "Hugging Face metadata identifies the offering as Qwen/Qwen3-14B, Alibaba's 14.8B dense Qwen3 checkpoint; matches alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Hugging Face metadata (Qwen/Qwen3-14B, text-generation, April 2025) identifies this as Alibaba's dense 14.8B Qwen3 model, but alibaba/qwen3-14b is retired and no longer in the live index; no active model to link, so defer until Qwen3-14B is back in the catalog.",
     "by": "agent",
     "at": "2026-11-24"
   },

@@ -536,9 +536,9 @@
     "at": "2026-11-12"
   },
   "qwen/qwen3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "OpenRouter's listing identifies huggingFaceId Qwen/Qwen3-14B and canonical slug qwen/qwen3-14b-04-28, matching alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "OpenRouter lists huggingFaceId Qwen/Qwen3-14B with canonical slug qwen/qwen3-14b-04-28, i.e. Alibaba's dense 14.8B Qwen3 checkpoint, but the catalog's alibaba/qwen3-14b entry is retired and gone from the active index; no active model to link, so defer.",
     "by": "agent",
     "at": "2026-11-24"
   },

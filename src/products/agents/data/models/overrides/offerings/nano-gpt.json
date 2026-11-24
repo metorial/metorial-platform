@@ -1401,9 +1401,9 @@
     "at": "2026-11-12"
   },
   "qwen/qwen3-14b": {
-    "decision": "link",
-    "model": "alibaba/qwen3-14b",
-    "reason": "Hugging Face metadata identifies the offering as Qwen/Qwen3-14B, Alibaba's 14.8B dense Qwen3 checkpoint; matches alibaba/qwen3-14b.",
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Hugging Face metadata (Qwen/Qwen3-14B, text-generation, April 2025) identifies NanoGPT's offering as Alibaba's dense 14.8B Qwen3 model, but alibaba/qwen3-14b is retired and no longer in the active index; no active model to link, so defer.",
     "by": "agent",
     "at": "2026-11-24"
   },
