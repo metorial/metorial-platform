@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Stores controller
- * @description A store is a shared collection of files and documents. Participants get read or write access to its contents.
+ * @description Create and manage instance stores backed by Cargo.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -37,7 +37,7 @@ export class MetorialDashboardInstanceStoresPermissionsEndpoint {
 
   /**
    * @name Get store permissions
-   * @description Returns what the caller can do with a store.
+   * @description Returns the effective Cargo permissions for the current actor on a specific store.
    *
    * @param `instanceId` - string
    * @param `storeId` - string

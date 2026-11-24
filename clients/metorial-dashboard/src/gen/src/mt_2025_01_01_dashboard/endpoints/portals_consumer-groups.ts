@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Portal Consumer Groups controller
- * @description A portal consumer group is a set of consumers on a portal. Groups decide which listings each consumer sees.
+ * @description Manage the consumer groups that drive portal visibility and access rules.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
 
   /**
    * @name Get portal consumer group
-   * @description Retrieves a portal consumer group.
+   * @description Retrieves a portal consumer group by ID.
    *
    * @param `portalId` - string
    * @param `consumerGroupId` - string
@@ -112,7 +112,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
 
   /**
    * @name Create portal consumer group
-   * @description Creates a consumer group for a portal.
+   * @description Creates a new consumer group for the portal.
    *
    * @param `portalId` - string
    * @param `body` - DashboardInstancePortalsConsumerGroupsCreateBody
@@ -144,7 +144,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
 
   /**
    * @name Update portal consumer group
-   * @description Updates a portal consumer group. Omitted fields keep their current value.
+   * @description Updates a consumer group for the portal.
    *
    * @param `portalId` - string
    * @param `consumerGroupId` - string
@@ -177,8 +177,8 @@ export class MetorialPortalsConsumerGroupsEndpoint {
   }
 
   /**
-   * @name Archive portal consumer group
-   * @description Archives a portal consumer group.
+   * @name Delete portal consumer group
+   * @description Archives a consumer group for the portal.
    *
    * @param `portalId` - string
    * @param `consumerGroupId` - string

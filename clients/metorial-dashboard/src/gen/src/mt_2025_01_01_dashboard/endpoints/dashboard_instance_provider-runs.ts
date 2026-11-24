@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Provider Runs controller
- * @description A provider run is one execution of a provider in a session. Runs track activity from start to completion.
+ * @description Provider runs track the execution of provider operations within a session. This read-only resource provides visibility into provider activity.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -42,7 +42,7 @@ export class MetorialDashboardInstanceProviderRunsEndpoint {
   }
 
   /**
-   * @name List provider runs
+   * @name List all provider runs
    * @description Returns a paginated list of provider runs across all sessions.
    *
    * @param `instanceId` - string
@@ -75,7 +75,7 @@ export class MetorialDashboardInstanceProviderRunsEndpoint {
 
   /**
    * @name Get provider run
-   * @description Retrieves a provider run.
+   * @description Retrieves a specific provider run by ID.
    *
    * @param `instanceId` - string
    * @param `providerRunId` - string
@@ -104,7 +104,7 @@ export class MetorialDashboardInstanceProviderRunsEndpoint {
 
   /**
    * @name Get provider run logs
-   * @description Retrieves the logs for a provider run.
+   * @description Retrieves the logs for a specific provider run.
    *
    * @param `instanceId` - string
    * @param `providerRunId` - string

@@ -8,13 +8,11 @@ export type DashboardOrganizationsConfigureAgentTrackingUpdateOutput = {
 };
 
 export let mapDashboardOrganizationsConfigureAgentTrackingUpdateOutput =
-  /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingUpdateOutput>(
-    [
-      'organization_id',
-      'service_status',
-      ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
-    ]
-  );
+  /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingUpdateOutput>([
+    'organization_id',
+    'service_status',
+    ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
+  ]);
 
 export type DashboardOrganizationsConfigureAgentTrackingUpdateBody = {
   privacy: {
@@ -24,6 +22,6 @@ export type DashboardOrganizationsConfigureAgentTrackingUpdateBody = {
 };
 
 export let mapDashboardOrganizationsConfigureAgentTrackingUpdateBody =
-  /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingUpdateBody>(
-    [['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]]
-  );
+  /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingUpdateBody>([
+    ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
+  ]);

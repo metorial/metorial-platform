@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Collections controller
- * @description A provider collection is a curated set of providers.
+ * @description A collection is a curated set of providers like 'Featured', 'Most Popular', or 'New Arrivals'.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

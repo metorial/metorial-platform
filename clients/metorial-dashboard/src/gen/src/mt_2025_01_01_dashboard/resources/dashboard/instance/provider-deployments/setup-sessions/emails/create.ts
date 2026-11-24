@@ -5,7 +5,6 @@ import {
 
 export type DashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateOutput =
   {
-    object: 'list';
     items: ({
       object: 'provider.setup_session.email';
       id: string;
@@ -17,12 +16,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateOutput 
     } & {
       sender: { organizationActorId: string | null; name: string } | null;
     })[];
-    pagination: {
-      hasMoreBefore: boolean;
-      hasMoreAfter: boolean;
-      before?: string | undefined;
-      after?: string | undefined;
-    };
+    pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
   };
 
 export let mapDashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateOutput =

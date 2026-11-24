@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceFilesListOutput = {
-  object: 'list';
   items: ({
     object: 'file';
     id: string;
@@ -87,12 +86,7 @@ export type ManagementInstanceFilesListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { downloadUrl: string | null })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceFilesListOutput =

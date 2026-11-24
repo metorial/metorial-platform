@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type AgentTrackingSessionsListOutput = {
-  object: 'list';
   items: {
     object: 'agent_tracking.session';
     id: string;
@@ -48,12 +47,7 @@ export type AgentTrackingSessionsListOutput = {
     lastActivityAt: Date;
     endedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapAgentTrackingSessionsListOutput =
@@ -104,12 +98,7 @@ export type AgentTrackingSessionsListQuery = {
   clientFamily?: string | string[] | undefined;
   orderBy?: 'last_activity' | 'cost' | undefined;
   range?:
-    | 'today'
-    | 'last_7_days'
-    | 'last_30_days'
-    | 'month_to_date'
-    | 'last_month'
-    | undefined;
+    'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
   from?: Date | undefined;
   to?: Date | undefined;
   timeZone?: string | undefined;

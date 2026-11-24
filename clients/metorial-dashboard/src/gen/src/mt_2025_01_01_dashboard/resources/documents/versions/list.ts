@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DocumentsVersionsListOutput = {
-  object: 'list';
   items: {
     object: 'document.version';
     id: string;
@@ -85,12 +84,7 @@ export type DocumentsVersionsListOutput = {
     }[];
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDocumentsVersionsListOutput =

@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Portal Access Requests controller
- * @description A portal access request is a consumer's request for access to a listing. Approving it grants access through a consumer group.
+ * @description Review and resolve access requests for a portal.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -77,7 +77,7 @@ export class MetorialPortalsAccessRequestsEndpoint {
 
   /**
    * @name Get portal access request
-   * @description Retrieves a portal access request.
+   * @description Retrieves a access request by ID.
    *
    * @param `portalId` - string
    * @param `accessRequestId` - string
@@ -106,7 +106,7 @@ export class MetorialPortalsAccessRequestsEndpoint {
 
   /**
    * @name Review portal access request
-   * @description Approves or rejects a portal access request. Approving with a consumer group grants access through that group.
+   * @description Approves or rejects a access request.
    *
    * @param `portalId` - string
    * @param `accessRequestId` - string

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceCustomProvidersEnvironmentsListOutput = {
-  object: 'list';
   items: {
     object: 'custom_provider.environment';
     id: string;
@@ -12,12 +11,7 @@ export type ManagementInstanceCustomProvidersEnvironmentsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceCustomProvidersEnvironmentsListOutput =

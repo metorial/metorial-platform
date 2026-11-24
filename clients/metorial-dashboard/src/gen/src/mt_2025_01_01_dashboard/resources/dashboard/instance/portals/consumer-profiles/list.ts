@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsConsumerProfilesListOutput = {
-  object: 'list';
   items: (({
     object: 'consumer.profile';
     id: string;
@@ -61,12 +60,7 @@ export type DashboardInstancePortalsConsumerProfilesListOutput = {
       portalId: string | null;
     };
   })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstancePortalsConsumerProfilesListOutput =

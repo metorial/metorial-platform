@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Incoming Webhooks controller
- * @description An incoming webhook is a raw inbound HTTP request received for a provider. You see every request received on your own webhook registrations, plus requests received on endpoints Metorial operates for a provider when they produced one of your callback events.
+ * @description The raw inbound HTTP requests behind your callback events. Useful for confirming a provider is actually delivering, including for requests that matched no trigger. You see every request received on your own webhook registrations, plus requests received on endpoints Metorial operates for a provider that produced a callback event of yours.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -71,7 +71,7 @@ export class MetorialIncomingWebhooksEndpoint {
 
   /**
    * @name Get incoming webhook
-   * @description Retrieves an incoming webhook.
+   * @description Retrieves a specific incoming webhook.
    *
    * @param `incomingWebhookId` - string
    * @param `opts` - { headers?: Record<string, string> }

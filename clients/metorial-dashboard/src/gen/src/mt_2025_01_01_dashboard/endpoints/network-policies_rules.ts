@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Network Policies controller
- * @description A network policy is a reusable set of allow and deny rules. Firewalls attach policies to enforce them.
+ * @description Manage reusable network policy definitions and their rules.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

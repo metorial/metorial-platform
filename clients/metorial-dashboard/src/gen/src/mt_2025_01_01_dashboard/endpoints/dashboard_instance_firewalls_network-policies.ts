@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Firewalls controller
- * @description A firewall is a set of network policies applied to targets. Firewalls apply to integration enclaves, providers, and sandbox machines.
+ * @description Manage firewalls and their attached network policies. Firewalls apply to integration enclaves, providers, and sandbox machines.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Provider Auth Exports controller
- * @description A provider auth export is a copy of authentication credentials taken out of Metorial for use in another system.
+ * @description An auth export lets you extract OAuth tokens or credentials from Metorial to use in other systems, avoiding duplicate authentication flows.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -104,7 +104,7 @@ export class MetorialProviderDeploymentsAuthConfigsExportsEndpoint {
 
   /**
    * @name Create provider auth export
-   * @description Exports the credentials of a provider auth config for use outside Metorial.
+   * @description Exports authentication credentials from a provider.
    *
    * @param `body` - DashboardInstanceProviderDeploymentsAuthConfigsExportsCreateBody
    * @param `opts` - { headers?: Record<string, string> }

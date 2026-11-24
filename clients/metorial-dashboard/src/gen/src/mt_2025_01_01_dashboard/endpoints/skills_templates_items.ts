@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Template Items controller
- * @description A skill template item is a provider or integration attached to a skill template.
+ * @description Skill template items link template definitions to provider and integration items.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialSkillsTemplatesItemsEndpoint {
 
   /**
    * @name List skill template items
-   * @description Returns a paginated list of skill template items.
+   * @description Returns a paginated list of items for a skill template.
    *
    * @param `skillTemplateId` - string
    * @param `query` - DashboardInstanceSkillsTemplatesItemsListQuery
@@ -79,7 +79,7 @@ export class MetorialSkillsTemplatesItemsEndpoint {
 
   /**
    * @name Get skill template item
-   * @description Retrieves a skill template item.
+   * @description Retrieves a specific skill template item.
    *
    * @param `skillTemplateId` - string
    * @param `skillTemplateItemId` - string

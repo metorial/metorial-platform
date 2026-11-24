@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Integration Instance Providers controller
- * @description An integration instance provider binds one provider of an integration instance to the deployment, config, credentials, and tool filters it runs with.
+ * @description Integration instance providers resolve the effective per-instance provider materialization for an integration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -79,7 +79,7 @@ export class MetorialManagementInstanceIntegrationsInstancesProvidersEndpoint {
 
   /**
    * @name Get integration instance provider
-   * @description Retrieves an integration instance provider.
+   * @description Retrieves a specific integration instance provider.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceProviderId` - string
@@ -108,7 +108,7 @@ export class MetorialManagementInstanceIntegrationsInstancesProvidersEndpoint {
 
   /**
    * @name Set integration instance provider
-   * @description Sets the deployment, config, credentials, and tool filters one provider of an integration instance runs with. Creates the entry when none exists, otherwise updates it.
+   * @description Creates or updates the effective integration instance provider materialization.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceId` - string

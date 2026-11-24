@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceWebhookRegistrationsListOutput = {
-  object: 'list';
   items: {
     object: 'webhook_registration';
     id: string;
@@ -30,12 +29,7 @@ export type DashboardInstanceWebhookRegistrationsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceWebhookRegistrationsListOutput =

@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Integration Firewall Assignments controller
- * @description An integration firewall assignment is a firewall applied to one target. Targets are integration enclaves, providers, or the integration internet gateway.
+ * @description Manage assignments that apply firewalls to integration enclaves, providers, or the integration internet gateway.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name List integration firewall assignments
-   * @description Returns a paginated list of integration firewall assignments in the instance.
+   * @description Returns a paginated list of integration firewall assignments.
    *
    * @param `query` - DashboardInstanceIntegrationFirewallAssignmentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -79,7 +79,7 @@ export class MetorialIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name Get integration firewall assignment
-   * @description Retrieves an integration firewall assignment.
+   * @description Retrieves a specific integration firewall assignment by ID.
    *
    * @param `integrationFirewallAssignmentId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -106,7 +106,7 @@ export class MetorialIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name Create integration firewall assignment
-   * @description Creates an integration firewall assignment.
+   * @description Creates an assignment that applies a firewall to a target.
    *
    * @param `body` - DashboardInstanceIntegrationFirewallAssignmentsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -136,7 +136,7 @@ export class MetorialIntegrationFirewallAssignmentsEndpoint {
 
   /**
    * @name Delete integration firewall assignment
-   * @description Permanently deletes an integration firewall assignment. The firewall stops applying to the target.
+   * @description Deletes an integration firewall assignment.
    *
    * @param `integrationFirewallAssignmentId` - string
    * @param `opts` - { headers?: Record<string, string> }

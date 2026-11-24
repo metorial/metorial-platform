@@ -26,7 +26,7 @@ import {
 
 /**
  * @name Chat Instances controller
- * @description A chat instance is a chat connection running with its own configuration and identity.
+ * @description Chat instances materialize a chat connection for a specific runtime configuration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialChatInstancesEndpoint {
 
   /**
    * @name Get chat instance
-   * @description Retrieves a chat instance.
+   * @description Retrieves a specific chat instance.
    *
    * @param `chatInstanceId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -138,7 +138,7 @@ export class MetorialChatInstancesEndpoint {
 
   /**
    * @name Update chat instance
-   * @description Updates a chat instance. Omitted fields keep their current value.
+   * @description Updates a specific chat instance.
    *
    * @param `chatInstanceId` - string
    * @param `body` - DashboardInstanceChatInstancesUpdateBody
@@ -167,8 +167,8 @@ export class MetorialChatInstancesEndpoint {
   }
 
   /**
-   * @name Archive chat instance
-   * @description Archives a chat instance. It stays listable with `status=archived`.
+   * @name Delete chat instance
+   * @description Archives a specific chat instance.
    *
    * @param `chatInstanceId` - string
    * @param `opts` - { headers?: Record<string, string> }

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Firewalls controller
- * @description A firewall is a set of network policies applied to targets. Firewalls apply to integration enclaves, providers, and sandbox machines.
+ * @description Manage firewalls and their attached network policies. Firewalls apply to integration enclaves, providers, and sandbox machines.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
 
   /**
    * @name List firewalls
-   * @description Returns a paginated list of firewalls in the instance.
+   * @description Returns a paginated list of firewalls.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceFirewallsListQuery
@@ -83,7 +83,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
 
   /**
    * @name Get firewall
-   * @description Retrieves a firewall.
+   * @description Retrieves a specific firewall by ID.
    *
    * @param `instanceId` - string
    * @param `firewallId` - string
@@ -110,7 +110,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
 
   /**
    * @name Create firewall
-   * @description Creates a firewall.
+   * @description Creates a new firewall.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceFirewallsCreateBody
@@ -140,7 +140,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
 
   /**
    * @name Update firewall
-   * @description Updates a firewall. Omitted fields keep their current value.
+   * @description Updates a firewall definition.
    *
    * @param `instanceId` - string
    * @param `firewallId` - string
@@ -171,8 +171,8 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
   }
 
   /**
-   * @name Archive firewall
-   * @description Archives a firewall. It stays listable with `status=archived`.
+   * @name Delete firewall
+   * @description Archives a firewall.
    *
    * @param `instanceId` - string
    * @param `firewallId` - string

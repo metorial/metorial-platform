@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Listings controller
- * @description A provider listing is a provider with its marketplace details.
+ * @description A listing is a provider enriched with marketplace metadata.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

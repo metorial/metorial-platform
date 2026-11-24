@@ -25,30 +25,25 @@ export type DashboardInstanceAgentTrackingFilterValuesListOutput = {
 };
 
 export let mapDashboardInstanceAgentTrackingFilterValuesListOutput =
-  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingFilterValuesListOutput>(
-    [
-      ['range', 0, [1, [['from', 0, 4], ['to', 0, 4], 'time_zone']]],
-      ['items', 0, [2, [1, [['member', 0, [1, ['needs_review']]]]]]]
-    ]
-  );
+  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingFilterValuesListOutput>([
+    ['range', 0, [1, [['from', 0, 4], ['to', 0, 4], 'time_zone']]],
+    ['items', 0, [2, [1, [['member', 0, [1, ['needs_review']]]]]]]
+  ]);
 
 export type DashboardInstanceAgentTrackingFilterValuesListQuery = {
   field: 'member' | 'model' | 'client' | 'seat';
   search?: string | undefined;
   value?: string | string[] | undefined;
   range?:
-    | 'today'
-    | 'last_7_days'
-    | 'last_30_days'
-    | 'month_to_date'
-    | 'last_month'
-    | undefined;
+    'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
   from?: Date | undefined;
   to?: Date | undefined;
   timeZone?: string | undefined;
 };
 
 export let mapDashboardInstanceAgentTrackingFilterValuesListQuery =
-  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingFilterValuesListQuery>(
-    [['from', 0, 4], ['to', 0, 4], 'time_zone']
-  );
+  /* @__PURE__ */ mapObject<DashboardInstanceAgentTrackingFilterValuesListQuery>([
+    ['from', 0, 4],
+    ['to', 0, 4],
+    'time_zone'
+  ]);

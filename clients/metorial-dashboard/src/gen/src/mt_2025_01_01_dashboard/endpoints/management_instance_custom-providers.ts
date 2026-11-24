@@ -26,7 +26,7 @@ import {
 
 /**
  * @name Custom Providers controller
- * @description A custom provider is an MCP server you deploy and use through your instance. It runs from a container image, a remote URL, or serverless function code.
+ * @description Custom providers allow you to deploy your own MCP servers. Create providers from container images, remote URLs, or serverless functions.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -85,7 +85,7 @@ export class MetorialManagementInstanceCustomProvidersEndpoint {
 
   /**
    * @name Get custom provider
-   * @description Retrieves a custom provider.
+   * @description Retrieves a specific custom provider by ID.
    *
    * @param `instanceId` - string
    * @param `customProviderId` - string
@@ -114,7 +114,7 @@ export class MetorialManagementInstanceCustomProvidersEndpoint {
 
   /**
    * @name Get custom provider environment
-   * @description Retrieves the environment variables for a custom provider.
+   * @description Retrieves the environment variables for a specific custom provider by ID.
    *
    * @param `instanceId` - string
    * @param `customProviderId` - string
@@ -173,7 +173,7 @@ export class MetorialManagementInstanceCustomProvidersEndpoint {
 
   /**
    * @name Update custom provider
-   * @description Updates a custom provider.
+   * @description Updates a specific custom provider.
    *
    * @param `instanceId` - string
    * @param `customProviderId` - string
@@ -205,7 +205,7 @@ export class MetorialManagementInstanceCustomProvidersEndpoint {
 
   /**
    * @name Archive custom provider
-   * @description Archives a custom provider and disables new connections to it.
+   * @description Archives a specific custom provider and disables new connections to it.
    *
    * @param `instanceId` - string
    * @param `customProviderId` - string

@@ -32,7 +32,7 @@ import {
 
 /**
  * @name Integration Instances controller
- * @description An integration instance is an integration set up for a specific actor or identity. It binds each of the integration’s providers to the deployment, config, credentials, and tool filters it runs with.
+ * @description Integration instances materialize an integration for a specific actor, identity, or runtime configuration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
 
   /**
    * @name Get integration instance
-   * @description Retrieves an integration instance.
+   * @description Retrieves a specific integration instance.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceId` - string
@@ -120,7 +120,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
 
   /**
    * @name Create integration instance session template
-   * @description Creates or updates the shared session template for the integration instance.
+   * @description Creates or updates the shared session template for a specific integration instance.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceId` - string
@@ -154,7 +154,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
 
   /**
    * @name Create integration instance session
-   * @description Creates a session from the shared session template of the integration instance.
+   * @description Creates a session from the shared session template of a specific integration instance.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceId` - string
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
 
   /**
    * @name Create integration instance
-   * @description Creates an integration instance.
+   * @description Creates a new integration instance.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIntegrationsInstancesCreateBody
@@ -220,7 +220,7 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
 
   /**
    * @name Update integration instance
-   * @description Updates an integration instance. Omitted fields keep their current value.
+   * @description Updates a specific integration instance.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceId` - string
@@ -253,8 +253,8 @@ export class MetorialManagementInstanceIntegrationsInstancesEndpoint {
   }
 
   /**
-   * @name Archive integration instance
-   * @description Archives an integration instance. It stays retrievable by ID and listable with `status=archived`.
+   * @name Delete integration instance
+   * @description Archives a specific integration instance.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceId` - string

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOauthInstallationsListOutput = {
-  object: 'list';
   items: {
     object: 'machine_access.oauth_installation';
     id: string;
@@ -129,12 +128,7 @@ export type ManagementOrganizationOauthInstallationsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementOrganizationOauthInstallationsListOutput =

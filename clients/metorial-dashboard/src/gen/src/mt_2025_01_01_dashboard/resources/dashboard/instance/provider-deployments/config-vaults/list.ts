@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsConfigVaultsListOutput = {
-  object: 'list';
   items: {
     object: 'provider.config_vault';
     id: string;
@@ -24,12 +23,7 @@ export type DashboardInstanceProviderDeploymentsConfigVaultsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceProviderDeploymentsConfigVaultsListOutput =

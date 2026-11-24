@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Integration Instance Group Providers controller
- * @description An integration instance group provider links one integration instance provider into a group, with optional tool filters.
+ * @description Integration instance group providers define the effective routed provider set for an integration instance group.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsProvidersEndpoin
 
   /**
    * @name Get integration instance group provider
-   * @description Retrieves an integration instance group provider.
+   * @description Retrieves a specific integration instance group provider.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupProviderId` - string
@@ -110,7 +110,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsProvidersEndpoin
 
   /**
    * @name Set integration instance group provider
-   * @description Links an existing integration instance provider into the group, with optional tool filters. Creates the link when none exists, otherwise updates its tool filters.
+   * @description Creates or updates the effective integration instance group provider materialization.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupId` - string
@@ -145,8 +145,8 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsProvidersEndpoin
   }
 
   /**
-   * @name Archive integration instance group provider
-   * @description Archives an integration instance group provider. It stays retrievable by ID and listable with `status=archived`.
+   * @name Delete integration instance group provider
+   * @description Archives a specific integration instance group provider.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupProviderId` - string

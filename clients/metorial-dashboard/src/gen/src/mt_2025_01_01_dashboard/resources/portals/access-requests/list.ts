@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type PortalsAccessRequestsListOutput = {
-  object: 'list';
   items: {
     object: 'consumer.access_request';
     id: string;
@@ -43,12 +42,7 @@ export type PortalsAccessRequestsListOutput = {
     updatedAt: Date;
     reviewedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapPortalsAccessRequestsListOutput =

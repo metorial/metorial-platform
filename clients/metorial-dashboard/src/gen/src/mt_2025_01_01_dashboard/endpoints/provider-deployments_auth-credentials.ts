@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Provider Auth Credentials controller
- * @description Provider auth credentials are an OAuth app registration used with a provider: a client ID, a client secret, and scopes.
+ * @description Auth credentials store your OAuth app registration (client ID, client secret, and scopes). These are the app-level credentials you get from a service like GitHub or Slack.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
 
   /**
    * @name Get provider auth credentials
-   * @description Retrieves provider auth credentials.
+   * @description Retrieves specific provider auth credentials by ID.
    *
    * @param `providerAuthCredentialsId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -110,7 +110,7 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
 
   /**
    * @name Create provider auth credentials
-   * @description Creates provider auth credentials.
+   * @description Creates new provider auth credentials.
    *
    * @param `body` - DashboardInstanceProviderDeploymentsAuthCredentialsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -140,7 +140,7 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
 
   /**
    * @name Update provider auth credentials
-   * @description Updates provider auth credentials.
+   * @description Updates specific provider auth credentials.
    *
    * @param `providerAuthCredentialsId` - string
    * @param `body` - DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody
@@ -171,8 +171,8 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
   }
 
   /**
-   * @name Archive provider auth credentials
-   * @description Archives provider auth credentials. They stay listable with `status=archived`.
+   * @name Delete provider auth credentials
+   * @description Permanently deletes provider auth credentials.
    *
    * @param `providerAuthCredentialsId` - string
    * @param `opts` - { headers?: Record<string, string> }

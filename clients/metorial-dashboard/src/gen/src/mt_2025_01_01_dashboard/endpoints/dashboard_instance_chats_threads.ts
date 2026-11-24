@@ -77,7 +77,7 @@ export class MetorialDashboardInstanceChatsThreadsEndpoint {
 
   /**
    * @name Get chat thread
-   * @description Retrieves a chat thread.
+   * @description Retrieves a specific chat thread.
    *
    * @param `instanceId` - string
    * @param `chatId` - string

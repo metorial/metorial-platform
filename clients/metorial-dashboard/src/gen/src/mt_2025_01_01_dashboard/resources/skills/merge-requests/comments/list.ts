@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsMergeRequestsCommentsListOutput = {
-  object: 'list';
   items: {
     object: 'skill.merge_request.comment';
     id: string;
@@ -86,12 +85,7 @@ export type SkillsMergeRequestsCommentsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapSkillsMergeRequestsCommentsListOutput =

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsAuthCredentialsListOutput = {
-  object: 'list';
   items: {
     object: 'provider.auth_credentials';
     id: string;
@@ -17,12 +16,7 @@ export type DashboardInstanceProviderDeploymentsAuthCredentialsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceProviderDeploymentsAuthCredentialsListOutput =

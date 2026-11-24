@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Custom Provider Commits controller
- * @description A custom provider commit is a promotion of a version into an environment, or a rollback to a previous version.
+ * @description Commits represent version promotions between environments. Merge versions from one environment to another or rollback to a previous version.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -45,7 +45,7 @@ export class MetorialCustomProvidersCommitsEndpoint {
 
   /**
    * @name List custom provider commits
-   * @description Returns a paginated list of custom provider commits.
+   * @description Returns a paginated list of commits for a custom provider.
    *
    * @param `query` - DashboardInstanceCustomProvidersCommitsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -75,7 +75,7 @@ export class MetorialCustomProvidersCommitsEndpoint {
 
   /**
    * @name Get custom provider commit
-   * @description Retrieves a custom provider commit.
+   * @description Retrieves a specific commit.
    *
    * @param `customProviderCommitId` - string
    * @param `opts` - { headers?: Record<string, string> }

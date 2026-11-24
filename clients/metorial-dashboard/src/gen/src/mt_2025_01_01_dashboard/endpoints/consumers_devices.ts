@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Consumer Devices controller
- * @description A consumer device is a Metorial Desktop installation a consumer has enrolled. Revoking a device signs it out and removes its access.
+ * @description Inspect and revoke the Metorial Desktop devices consumers have enrolled.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -43,7 +43,7 @@ export class MetorialConsumersDevicesEndpoint {
 
   /**
    * @name List consumer devices
-   * @description Returns a paginated list of consumer devices.
+   * @description Returns the Metorial Desktop devices enrolled by consumers of an instance.
    *
    * @param `query` - DashboardInstanceConsumersDevicesListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -73,7 +73,7 @@ export class MetorialConsumersDevicesEndpoint {
 
   /**
    * @name Get consumer device
-   * @description Retrieves a consumer device.
+   * @description Retrieves a Metorial Desktop device enrolled by a consumer.
    *
    * @param `consumerDeviceId` - string
    * @param `opts` - { headers?: Record<string, string> }

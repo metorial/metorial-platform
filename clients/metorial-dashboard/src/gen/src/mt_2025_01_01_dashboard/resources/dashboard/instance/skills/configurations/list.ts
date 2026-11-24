@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsConfigurationsListOutput = {
-  object: 'list';
   items: {
     object: 'skill.configuration';
     id: string;
@@ -14,12 +13,7 @@ export type DashboardInstanceSkillsConfigurationsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSkillsConfigurationsListOutput =

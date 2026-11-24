@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsOauthCliDevicesListOutput = {
-  object: 'list';
   items: {
     object: 'machine_access.cli_device';
     id: string;
@@ -24,12 +23,7 @@ export type DashboardOrganizationsOauthCliDevicesListOutput = {
       updatedAt: Date;
     };
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardOrganizationsOauthCliDevicesListOutput =

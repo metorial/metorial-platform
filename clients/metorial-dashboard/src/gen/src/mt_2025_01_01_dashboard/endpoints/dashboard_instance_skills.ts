@@ -38,7 +38,7 @@ import {
 
 /**
  * @name Skills controller
- * @description A skill is a reusable composition of provider and integration capabilities.
+ * @description Skills group provider and integration capabilities into reusable, owned compositions.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -95,7 +95,7 @@ export class MetorialDashboardInstanceSkillsEndpoint {
 
   /**
    * @name Get skill
-   * @description Retrieves a skill.
+   * @description Retrieves a specific skill.
    *
    * @param `instanceId` - string
    * @param `skillId` - string
@@ -152,7 +152,7 @@ export class MetorialDashboardInstanceSkillsEndpoint {
 
   /**
    * @name Update skill
-   * @description Updates a skill. Omitted fields keep their current value.
+   * @description Updates a specific skill.
    *
    * @param `instanceId` - string
    * @param `skillId` - string
@@ -183,8 +183,8 @@ export class MetorialDashboardInstanceSkillsEndpoint {
   }
 
   /**
-   * @name Archive skill
-   * @description Archives a skill.
+   * @name Delete skill
+   * @description Archives a specific skill.
    *
    * @param `instanceId` - string
    * @param `skillId` - string
@@ -272,7 +272,7 @@ export class MetorialDashboardInstanceSkillsEndpoint {
 
   /**
    * @name Share skill
-   * @description Shares a skill with consumers.
+   * @description Shares a skill with consumers or organization members.
    *
    * @param `instanceId` - string
    * @param `skillId` - string

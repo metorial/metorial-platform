@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type IntegrationsSetupSessionsListOutput = {
-  object: 'list';
   items: {
     object: 'integration.setup_session';
     id: string;
@@ -202,12 +201,7 @@ export type IntegrationsSetupSessionsListOutput = {
       updatedAt: Date;
     }[];
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapIntegrationsSetupSessionsListOutput =

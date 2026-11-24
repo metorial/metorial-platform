@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceFirewallsListOutput = {
-  object: 'list';
   items: {
     object: 'networking.firewall';
     id: string;
@@ -36,12 +35,7 @@ export type ManagementInstanceFirewallsListOutput = {
     updatedAt: Date;
     archivedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceFirewallsListOutput =

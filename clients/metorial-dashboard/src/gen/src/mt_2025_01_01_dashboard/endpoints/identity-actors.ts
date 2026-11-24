@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Identity Actors controller
- * @description An identity actor is a person or agent that can own identities and take part in delegations.
+ * @description Identity actors represent people or agents that can own identities and participate in delegations.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialIdentityActorsEndpoint {
 
   /**
    * @name Get identity actor
-   * @description Retrieves an identity actor.
+   * @description Retrieves a specific identity actor by ID.
    *
    * @param `identityActorId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -108,7 +108,7 @@ export class MetorialIdentityActorsEndpoint {
 
   /**
    * @name Create identity actor
-   * @description Creates an identity actor.
+   * @description Creates a new identity actor.
    *
    * @param `body` - DashboardInstanceIdentityActorsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -136,7 +136,7 @@ export class MetorialIdentityActorsEndpoint {
 
   /**
    * @name Update identity actor
-   * @description Updates an identity actor. Omitted fields keep their current value.
+   * @description Updates mutable fields on an existing identity actor.
    *
    * @param `identityActorId` - string
    * @param `body` - DashboardInstanceIdentityActorsUpdateBody
@@ -165,8 +165,8 @@ export class MetorialIdentityActorsEndpoint {
   }
 
   /**
-   * @name Archive identity actor
-   * @description Archives an identity actor. It stays listable with `status=archived`.
+   * @name Delete identity actor
+   * @description Archives an identity actor.
    *
    * @param `identityActorId` - string
    * @param `opts` - { headers?: Record<string, string> }

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Errors controller
- * @description A session error is an error recorded while running a session. Similar errors group together for review.
+ * @description Session errors track errors that occurred during a session. This read-only resource provides visibility into issues that happened during provider execution.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -40,7 +40,7 @@ export class MetorialDashboardInstanceSessionsErrorsEndpoint {
   }
 
   /**
-   * @name List session errors
+   * @name List all session errors
    * @description Returns a paginated list of errors across all sessions.
    *
    * @param `instanceId` - string
@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceSessionsErrorsEndpoint {
 
   /**
    * @name Get session error
-   * @description Retrieves a session error.
+   * @description Retrieves a specific error that occurred in a session.
    *
    * @param `instanceId` - string
    * @param `sessionErrorId` - string

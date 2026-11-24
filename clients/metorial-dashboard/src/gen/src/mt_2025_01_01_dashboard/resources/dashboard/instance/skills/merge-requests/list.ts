@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsMergeRequestsListOutput = {
-  object: 'list';
   items: {
     object: 'skill.merge_request';
     id: string;
@@ -109,12 +108,7 @@ export type DashboardInstanceSkillsMergeRequestsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSkillsMergeRequestsListOutput =

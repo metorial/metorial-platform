@@ -26,7 +26,7 @@ import {
 
 /**
  * @name Session Templates controller
- * @description A session template is a reusable configuration for creating sessions with the same providers.
+ * @description Session templates define reusable configurations for sessions, including which providers to include. Templates can be used to quickly create new sessions with consistent settings.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -85,7 +85,7 @@ export class MetorialDashboardInstanceSessionTemplatesEndpoint {
 
   /**
    * @name Get session template
-   * @description Retrieves a session template.
+   * @description Retrieves a specific session template by ID.
    *
    * @param `instanceId` - string
    * @param `sessionTemplateId` - string
@@ -114,7 +114,7 @@ export class MetorialDashboardInstanceSessionTemplatesEndpoint {
 
   /**
    * @name Create session template
-   * @description Creates a session template.
+   * @description Creates a new session template.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceSessionTemplatesCreateBody
@@ -144,7 +144,7 @@ export class MetorialDashboardInstanceSessionTemplatesEndpoint {
 
   /**
    * @name Update session template
-   * @description Updates a session template. Omitted fields keep their current value.
+   * @description Updates a specific session template.
    *
    * @param `instanceId` - string
    * @param `sessionTemplateId` - string
@@ -175,8 +175,8 @@ export class MetorialDashboardInstanceSessionTemplatesEndpoint {
   }
 
   /**
-   * @name Archive session template
-   * @description Archives a session template. It stays listable with `status=archived`.
+   * @name Delete session template
+   * @description Deletes a specific session template.
    *
    * @param `instanceId` - string
    * @param `sessionTemplateId` - string

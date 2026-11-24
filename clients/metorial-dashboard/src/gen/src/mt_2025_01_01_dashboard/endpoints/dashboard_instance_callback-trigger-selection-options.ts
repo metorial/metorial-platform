@@ -12,7 +12,7 @@ import {
 
 /**
  * @name Callback Trigger Selection Options controller
- * @description A callback trigger selection option is a value a connected account can pick for a field of a trigger group selection.
+ * @description The values a connected account can pick for a field of a trigger group selection.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

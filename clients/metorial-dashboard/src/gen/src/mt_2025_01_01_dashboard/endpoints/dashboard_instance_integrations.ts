@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Integrations controller
- * @description An integration is a reusable set of providers with shared configuration. Integration instances connect it for a specific actor or identity.
+ * @description Integrations define reusable provider contracts that can then be materialized into integration instances.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
 
   /**
    * @name Get integration
-   * @description Retrieves an integration.
+   * @description Retrieves a specific integration.
    *
    * @param `instanceId` - string
    * @param `integrationId` - string
@@ -112,7 +112,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
 
   /**
    * @name Create integration
-   * @description Creates an integration.
+   * @description Creates a new integration.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIntegrationsCreateBody
@@ -142,7 +142,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
 
   /**
    * @name Update integration
-   * @description Updates an integration. Omitted fields keep their current value.
+   * @description Updates a specific integration.
    *
    * @param `instanceId` - string
    * @param `integrationId` - string
@@ -173,8 +173,8 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
   }
 
   /**
-   * @name Archive integration
-   * @description Archives an integration. It stays retrievable by ID and listable with `status=archived`.
+   * @name Delete integration
+   * @description Archives a specific integration.
    *
    * @param `instanceId` - string
    * @param `integrationId` - string

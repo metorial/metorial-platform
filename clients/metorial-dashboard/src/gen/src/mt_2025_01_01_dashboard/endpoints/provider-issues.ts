@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Issues controller
- * @description A provider issue is a group of repeated provider errors, authentication failures, or ProtoGuard warnings sharing one underlying problem.
+ * @description Provider issues aggregate repeated provider errors, authentication failures and ProtoGuard warnings into one record per distinct problem.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

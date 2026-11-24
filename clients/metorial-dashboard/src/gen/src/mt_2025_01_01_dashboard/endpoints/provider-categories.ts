@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Provider Categories controller
- * @description A provider category is a grouping of providers by function.
+ * @description A category groups providers by function like 'Developer Tools' or 'ERPs'.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

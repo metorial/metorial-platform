@@ -85,7 +85,7 @@ export class MetorialMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Create magic MCP server provider
-   * @description Adds a provider to a magic MCP server.
+   * @description Creates a configurable provider row for a magic MCP server.
    *
    * @param `magicMcpServerId` - string
    * @param `body` - DashboardInstanceMagicMcpServersProvidersCreateBody
@@ -117,7 +117,7 @@ export class MetorialMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Get magic MCP server provider
-   * @description Retrieves a provider of a magic MCP server.
+   * @description Retrieves a specific backing integration instance provider for a magic MCP server.
    *
    * @param `magicMcpServerId` - string
    * @param `magicMcpServerProviderId` - string
@@ -146,7 +146,7 @@ export class MetorialMagicMcpServersProvidersEndpoint {
 
   /**
    * @name Update magic MCP server provider
-   * @description Updates a provider of a magic MCP server. Omitted fields keep their current value.
+   * @description Updates a backing integration provider and then sets the corresponding integration instance provider for a magic MCP server.
    *
    * @param `magicMcpServerId` - string
    * @param `magicMcpServerProviderId` - string
@@ -179,7 +179,7 @@ export class MetorialMagicMcpServersProvidersEndpoint {
   }
 
   /**
-   * @name Archive magic MCP server provider
+   * @name Delete magic MCP server provider
    * @description Archives a backing integration instance provider from a magic MCP server and removes the shared integration provider when unused.
    *
    * @param `magicMcpServerId` - string

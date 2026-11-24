@@ -75,7 +75,7 @@ export class MetorialManagementInstanceChatWorkspacesEndpoint {
 
   /**
    * @name Get chat workspace
-   * @description Retrieves a chat workspace.
+   * @description Retrieves a specific chat workspace.
    *
    * @param `instanceId` - string
    * @param `chatWorkspaceId` - string

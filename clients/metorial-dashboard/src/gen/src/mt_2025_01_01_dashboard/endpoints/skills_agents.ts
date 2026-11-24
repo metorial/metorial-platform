@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Skill Agents controller
- * @description A skill agent is a reusable sub-agent document stored in a skill.
+ * @description Manage sub-agents attached to a skill.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialSkillsAgentsEndpoint {
 
   /**
    * @name List skill agents
-   * @description Returns a paginated list of skill agents.
+   * @description Returns a paginated list of agents for a specific skill.
    *
    * @param `skillId` - string
    * @param `query` - DashboardInstanceSkillsAgentsListQuery
@@ -112,8 +112,8 @@ export class MetorialSkillsAgentsEndpoint {
   }
 
   /**
-   * @name Get skill agent
-   * @description Retrieves a skill agent.
+   * @name Get skill agent by ID
+   * @description Retrieves a specific agent within a skill.
    *
    * @param `skillId` - string
    * @param `skillAgentId` - string
@@ -142,7 +142,7 @@ export class MetorialSkillsAgentsEndpoint {
 
   /**
    * @name Update skill agent
-   * @description Updates a skill agent. Omitted fields keep their current value.
+   * @description Updates the name or description for a specific skill agent.
    *
    * @param `skillId` - string
    * @param `skillAgentId` - string
@@ -173,8 +173,8 @@ export class MetorialSkillsAgentsEndpoint {
   }
 
   /**
-   * @name Archive skill agent
-   * @description Archives a skill agent and removes its linked store item.
+   * @name Delete skill agent
+   * @description Archives a specific skill agent and removes its linked store item.
    *
    * @param `skillId` - string
    * @param `skillAgentId` - string

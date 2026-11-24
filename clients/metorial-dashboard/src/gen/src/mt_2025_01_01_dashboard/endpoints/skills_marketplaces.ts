@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Skill Marketplaces controller
- * @description A skill marketplace is a curated collection of skill plugins.
+ * @description Manage skill marketplaces for an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -140,7 +140,7 @@ export class MetorialSkillsMarketplacesEndpoint {
 
   /**
    * @name Update skill marketplace
-   * @description Updates a skill marketplace. Omitted fields keep their current value.
+   * @description Updates a skill marketplace.
    *
    * @param `skillMarketplaceId` - string
    * @param `body` - DashboardInstanceSkillsMarketplacesUpdateBody
@@ -197,7 +197,7 @@ export class MetorialSkillsMarketplacesEndpoint {
 
   /**
    * @name Sync skill marketplace
-   * @description Starts a sync of the skill marketplace to its linked repositories, even if nothing changed.
+   * @description Forces a skill marketplace sync.
    *
    * @param `skillMarketplaceId` - string
    * @param `body` - DashboardInstanceSkillsMarketplacesSyncBody

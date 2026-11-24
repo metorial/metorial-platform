@@ -169,11 +169,7 @@ export let mapDashboardInstanceAgentTrackingSpendTimelineOutput =
           ]
         ]
       ],
-      [
-        'privacy',
-        0,
-        [1, ['hide_individuals', 'min_group_users', 'hidden_groups']]
-      ],
+      ['privacy', 0, [1, ['hide_individuals', 'min_group_users', 'hidden_groups']]],
       [
         'items',
         0,
@@ -219,12 +215,7 @@ export let mapDashboardInstanceAgentTrackingSpendTimelineOutput =
 
 export type DashboardInstanceAgentTrackingSpendTimelineQuery = {
   range?:
-    | 'today'
-    | 'last_7_days'
-    | 'last_30_days'
-    | 'month_to_date'
-    | 'last_month'
-    | undefined;
+    'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
   from?: Date | undefined;
   to?: Date | undefined;
   timeZone?: string | undefined;

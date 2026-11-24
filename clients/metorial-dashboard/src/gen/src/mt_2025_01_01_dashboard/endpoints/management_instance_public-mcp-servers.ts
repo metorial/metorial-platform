@@ -83,7 +83,7 @@ export class MetorialManagementInstancePublicMcpServersEndpoint {
 
   /**
    * @name Get public MCP server
-   * @description Retrieves a public MCP server.
+   * @description Retrieves a specific public MCP server by ID.
    *
    * @param `instanceId` - string
    * @param `publicMcpServerId` - string
@@ -142,7 +142,7 @@ export class MetorialManagementInstancePublicMcpServersEndpoint {
 
   /**
    * @name Update public MCP server
-   * @description Updates a public MCP server. Setting `status` to `disabled` stops accepting new connections.
+   * @description Updates a public MCP server. Set status to disabled to stop accepting connections.
    *
    * @param `instanceId` - string
    * @param `publicMcpServerId` - string
@@ -173,7 +173,7 @@ export class MetorialManagementInstancePublicMcpServersEndpoint {
   }
 
   /**
-   * @name Archive public MCP server
+   * @name Delete public MCP server
    * @description Archives a public MCP server, revokes every grant, and releases its slug.
    *
    * @param `instanceId` - string

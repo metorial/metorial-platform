@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Identity Delegations controller
- * @description An identity delegation is a grant of provider permissions from an identity owner to another actor. It can narrow permissions per credential.
+ * @description Identity delegations grant provider permissions from one identity owner to another actor, with optional per-credential overrides.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -79,7 +79,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
 
   /**
    * @name Get identity delegation
-   * @description Retrieves an identity delegation.
+   * @description Retrieves a specific identity delegation by ID.
    *
    * @param `instanceId` - string
    * @param `identityDelegationId` - string
@@ -108,7 +108,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
 
   /**
    * @name Create identity delegation
-   * @description Creates an identity delegation.
+   * @description Creates a new identity delegation.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIdentitiesDelegationsCreateBody
@@ -140,7 +140,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationsEndpoint {
 
   /**
    * @name Revoke identity delegation
-   * @description Revokes an identity delegation.
+   * @description Revokes an existing identity delegation.
    *
    * @param `instanceId` - string
    * @param `identityDelegationId` - string

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Messages controller
- * @description A session message is one MCP message exchanged between a client and a provider. Messages are recorded automatically as the session runs.
+ * @description Session messages represent the MCP protocol messages exchanged during a session. This read-only resource provides visibility into the communication between clients and providers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialDashboardInstanceSessionsMessagesEndpoint {
 
   /**
    * @name List session messages
-   * @description Returns a paginated list of session messages.
+   * @description Returns a paginated list of messages for a session.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceSessionsMessagesListQuery
@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceSessionsMessagesEndpoint {
 
   /**
    * @name Get session message
-   * @description Retrieves a session message.
+   * @description Retrieves a specific message from a session.
    *
    * @param `instanceId` - string
    * @param `sessionMessageId` - string

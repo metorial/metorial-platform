@@ -32,7 +32,7 @@ import {
 
 /**
  * @name Magic MCP Tokens controller
- * @description A magic MCP token is a credential that authorizes access to magic MCP servers and endpoints.
+ * @description Magic MCP tokens authorize access to Magic MCP servers via the /magic connection API.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -116,7 +116,7 @@ export class MetorialMagicMcpTokensEndpoint {
 
   /**
    * @name Create magic MCP token
-   * @description Creates a magic MCP token.
+   * @description Creates a new magic MCP token.
    *
    * @param `body` - DashboardInstanceMagicMcpTokensCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -171,7 +171,7 @@ export class MetorialMagicMcpTokensEndpoint {
 
   /**
    * @name Update magic MCP token
-   * @description Updates a magic MCP token. Omitted fields keep their current value.
+   * @description Updates a magic MCP token.
    *
    * @param `magicMcpTokenId` - string
    * @param `body` - DashboardInstanceMagicMcpTokensUpdateBody

@@ -83,7 +83,7 @@ export class MetorialDashboardInstanceChatConnectionsEndpoint {
 
   /**
    * @name Get chat connection
-   * @description Retrieves a chat connection.
+   * @description Retrieves a specific chat connection.
    *
    * @param `instanceId` - string
    * @param `chatConnectionId` - string
@@ -142,7 +142,7 @@ export class MetorialDashboardInstanceChatConnectionsEndpoint {
 
   /**
    * @name Update chat connection
-   * @description Updates a chat connection. Omitted fields keep their current value.
+   * @description Updates a specific chat connection.
    *
    * @param `instanceId` - string
    * @param `chatConnectionId` - string
@@ -173,8 +173,8 @@ export class MetorialDashboardInstanceChatConnectionsEndpoint {
   }
 
   /**
-   * @name Archive chat connection
-   * @description Archives a chat connection. It stays listable with `status=archived`.
+   * @name Delete chat connection
+   * @description Archives a specific chat connection.
    *
    * @param `instanceId` - string
    * @param `chatConnectionId` - string

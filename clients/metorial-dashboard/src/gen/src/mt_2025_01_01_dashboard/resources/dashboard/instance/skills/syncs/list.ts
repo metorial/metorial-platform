@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsSyncsListOutput = {
-  object: 'list';
   items: {
     object: 'skill.sync';
     id: string;
@@ -52,12 +51,7 @@ export type DashboardInstanceSkillsSyncsListOutput = {
     startedAt: Date | null;
     completedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSkillsSyncsListOutput =

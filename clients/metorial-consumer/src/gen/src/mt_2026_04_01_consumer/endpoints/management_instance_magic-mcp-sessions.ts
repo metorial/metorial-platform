@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Magic MCP Sessions controller
- * @description A magic MCP session is the live connection behind a magic MCP server or endpoint. Sessions are created on demand when a client connects.
+ * @description Magic MCP sessions map a Magic MCP server to one Subspace session and are created on demand by the MCP connection API.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProtoGuardAlertsListOutput = {
-  object: 'list';
   items: {
     object: 'protoguard.alert';
     id: string;
@@ -51,12 +50,7 @@ export type ManagementInstanceProtoGuardAlertsListOutput = {
     lastSeenAt: Date;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceProtoGuardAlertsListOutput =

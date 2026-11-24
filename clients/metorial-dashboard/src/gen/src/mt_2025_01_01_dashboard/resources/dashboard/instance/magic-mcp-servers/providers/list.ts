@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMagicMcpServersProvidersListOutput = {
-  object: 'list';
   items: ({
     object: 'magic_mcp.server.provider';
     id: string;
@@ -116,12 +115,7 @@ export type DashboardInstanceMagicMcpServersProvidersListOutput = {
     updatedAt: Date;
     archivedAt: Date | null;
   } & { canUpdate: boolean; canDelete: boolean })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceMagicMcpServersProvidersListOutput =

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Integration Enclaves controller
- * @description An integration enclave is the isolated network a provider deployment runs in. It connects the deployment to its internet gateway and firewalls.
+ * @description Read integration enclave records for provider deployments in an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialIntegrationEnclavesEndpoint {
 
   /**
    * @name List integration enclaves
-   * @description Returns a paginated list of integration enclaves in the instance.
+   * @description Returns a paginated list of integration enclaves.
    *
    * @param `query` - DashboardInstanceIntegrationEnclavesListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -71,7 +71,7 @@ export class MetorialIntegrationEnclavesEndpoint {
 
   /**
    * @name Get integration enclave
-   * @description Retrieves an integration enclave.
+   * @description Retrieves a specific integration enclave by ID.
    *
    * @param `integrationEnclaveId` - string
    * @param `opts` - { headers?: Record<string, string> }

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Identity Credentials controller
- * @description An identity credential is one provider attachment on an identity. It links the identity to a provider deployment, config, or auth config.
+ * @description Identity credentials bind an identity to concrete provider deployment, config, and auth resources.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -81,7 +81,7 @@ export class MetorialIdentitiesCredentialsEndpoint {
 
   /**
    * @name Get identity credential
-   * @description Retrieves an identity credential.
+   * @description Retrieves a specific identity credential by ID.
    *
    * @param `identityCredentialId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -108,7 +108,7 @@ export class MetorialIdentitiesCredentialsEndpoint {
 
   /**
    * @name Create identity credential
-   * @description Creates an identity credential.
+   * @description Creates a new credential and attaches it to an identity.
    *
    * @param `body` - DashboardInstanceIdentitiesCredentialsCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -169,8 +169,8 @@ export class MetorialIdentitiesCredentialsEndpoint {
   }
 
   /**
-   * @name Archive identity credential
-   * @description Archives an identity credential. It stays listable with `status=archived`.
+   * @name Delete identity credential
+   * @description Archives an identity credential.
    *
    * @param `identityCredentialId` - string
    * @param `opts` - { headers?: Record<string, string> }

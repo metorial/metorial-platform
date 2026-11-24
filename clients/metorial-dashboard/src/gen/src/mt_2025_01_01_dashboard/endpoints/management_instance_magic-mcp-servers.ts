@@ -143,7 +143,7 @@ export class MetorialManagementInstanceMagicMcpServersEndpoint {
 
   /**
    * @name Create magic MCP server
-   * @description Creates a magic MCP server. A session is created automatically on first connection and then reused.
+   * @description Creates a magic MCP server with a new session template. A Subspace session is created automatically on first connection and then reused.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceMagicMcpServersCreateBody
@@ -172,7 +172,7 @@ export class MetorialManagementInstanceMagicMcpServersEndpoint {
   }
 
   /**
-   * @name Archive magic MCP server
+   * @name Delete magic MCP server
    * @description Archives a magic MCP server.
    *
    * @param `instanceId` - string
@@ -202,7 +202,7 @@ export class MetorialManagementInstanceMagicMcpServersEndpoint {
 
   /**
    * @name Update magic MCP server
-   * @description Updates a magic MCP server. Omitted fields keep their current value.
+   * @description Updates a magic MCP server.
    *
    * @param `instanceId` - string
    * @param `magicMcpServerId` - string

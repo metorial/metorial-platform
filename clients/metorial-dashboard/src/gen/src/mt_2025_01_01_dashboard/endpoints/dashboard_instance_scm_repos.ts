@@ -22,7 +22,7 @@ import {
 
 /**
  * @name SCM Repos controller
- * @description An SCM repo is a source control repository linked to an instance.
+ * @description Manage source control repositories.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -79,7 +79,7 @@ export class MetorialDashboardInstanceScmReposEndpoint {
 
   /**
    * @name Get SCM repo
-   * @description Retrieves an SCM repo.
+   * @description Retrieves a specific SCM repository by ID.
    *
    * @param `instanceId` - string
    * @param `scmRepositoryId` - string
@@ -136,7 +136,7 @@ export class MetorialDashboardInstanceScmReposEndpoint {
 
   /**
    * @name Create SCM repo
-   * @description Links an existing repository or creates a new one in an SCM installation.
+   * @description Links or creates a repository in an SCM installation.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceScmReposCreateBody

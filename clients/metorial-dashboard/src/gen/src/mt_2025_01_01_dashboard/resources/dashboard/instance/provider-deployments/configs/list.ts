@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsConfigsListOutput = {
-  object: 'list';
   items: ({
     object: 'provider.config';
     id: string;
@@ -78,12 +77,7 @@ export type DashboardInstanceProviderDeploymentsConfigsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { publicMcpServerId: string | null })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceProviderDeploymentsConfigsListOutput =

@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Integration Setup Sessions controller
- * @description An integration setup session is a shareable flow that connects each provider an integration instance needs. It creates a draft instance unless you pass one, and expires 30 minutes after creation unless `expires_at` is set.
+ * @description Integration setup sessions orchestrate configuring every provider required by an integration instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -77,7 +77,7 @@ export class MetorialIntegrationsSetupSessionsEndpoint {
 
   /**
    * @name Get integration setup session
-   * @description Retrieves an integration setup session.
+   * @description Retrieves a specific integration setup session.
    *
    * @param `integrationSetupSessionId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -104,7 +104,7 @@ export class MetorialIntegrationsSetupSessionsEndpoint {
 
   /**
    * @name Create integration setup session
-   * @description Creates an integration setup session. Creates a draft integration instance unless `integration_instance_id` is given, in which case that instance is reused and its providers are configured on completion.
+   * @description Creates a new integration setup session. Creates a draft integration instance unless integration_instance_id is given, in which case that instance is reused and its config and auth config are overwritten on completion.
    *
    * @param `body` - DashboardInstanceIntegrationsSetupSessionsCreateBody
    * @param `opts` - { headers?: Record<string, string> }

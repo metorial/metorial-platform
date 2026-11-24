@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationOauthAuthorizationLogsListOutput = {
-  object: 'list';
   items: {
     object: 'machine_access.oauth_authorization_log';
     id: string;
@@ -83,12 +82,7 @@ export type ManagementOrganizationOauthAuthorizationLogsListOutput = {
     acceptedAt: Date | null;
     deniedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementOrganizationOauthAuthorizationLogsListOutput =

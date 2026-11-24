@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SandboxMachinesErrorsListOutput = {
-  object: 'list';
   items: {
     object: 'sandbox.machine.error';
     id: string;
@@ -19,12 +18,7 @@ export type SandboxMachinesErrorsListOutput = {
     stdout: string | null;
     occurredAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapSandboxMachinesErrorsListOutput =

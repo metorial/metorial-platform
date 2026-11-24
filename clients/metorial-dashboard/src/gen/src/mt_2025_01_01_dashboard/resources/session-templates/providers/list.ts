@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SessionTemplatesProvidersListOutput = {
-  object: 'list';
   items: {
     object: 'session.template.provider';
     id: string;
@@ -49,12 +48,7 @@ export type SessionTemplatesProvidersListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapSessionTemplatesProvidersListOutput =

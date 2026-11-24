@@ -26,7 +26,7 @@ import {
 
 /**
  * @name Magic MCP Servers controller
- * @description A magic MCP server is a stable MCP entrypoint with its own providers and tool filters. Servers can be grouped and bound to tokens, or combined behind an endpoint.
+ * @description Magic MCP servers are stable MCP entrypoints backed by one Subspace session template.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -143,7 +143,7 @@ export class MetorialDashboardInstanceMagicMcpServersEndpoint {
 
   /**
    * @name Create magic MCP server
-   * @description Creates a magic MCP server. A session is created automatically on first connection and then reused.
+   * @description Creates a magic MCP server with a new session template. A Subspace session is created automatically on first connection and then reused.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceMagicMcpServersCreateBody
@@ -172,7 +172,7 @@ export class MetorialDashboardInstanceMagicMcpServersEndpoint {
   }
 
   /**
-   * @name Archive magic MCP server
+   * @name Delete magic MCP server
    * @description Archives a magic MCP server.
    *
    * @param `instanceId` - string
@@ -202,7 +202,7 @@ export class MetorialDashboardInstanceMagicMcpServersEndpoint {
 
   /**
    * @name Update magic MCP server
-   * @description Updates a magic MCP server. Omitted fields keep their current value.
+   * @description Updates a magic MCP server.
    *
    * @param `instanceId` - string
    * @param `magicMcpServerId` - string

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Integration Providers controller
- * @description An integration provider is one provider in an integration, with the deployment, configuration, credentials, and tool filters it runs with.
+ * @description Integration providers define the shared provider-level contract for a given integration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
 
   /**
    * @name Get integration provider
-   * @description Retrieves an integration provider.
+   * @description Retrieves a specific integration provider.
    *
    * @param `instanceId` - string
    * @param `integrationProviderId` - string
@@ -112,7 +112,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
 
   /**
    * @name Create integration provider
-   * @description Creates an integration provider.
+   * @description Creates a new integration provider.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIntegrationsProvidersCreateBody
@@ -144,7 +144,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
 
   /**
    * @name Update integration provider
-   * @description Updates an integration provider. Omitted fields keep their current value.
+   * @description Updates a specific integration provider.
    *
    * @param `instanceId` - string
    * @param `integrationProviderId` - string
@@ -177,8 +177,8 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
   }
 
   /**
-   * @name Archive integration provider
-   * @description Archives an integration provider. It stays retrievable by ID and listable with `status=archived`.
+   * @name Delete integration provider
+   * @description Archives a specific integration provider.
    *
    * @param `instanceId` - string
    * @param `integrationProviderId` - string

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Portal Access controller
- * @description A portal access rule grants one consumer group access to one listing target, such as an integration, skill, or skill set.
+ * @description Manage which consumer groups can access portal provider templates and MCP servers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialPortalsAccessEndpoint {
 
   /**
    * @name Get portal access
-   * @description Retrieves a portal access rule.
+   * @description Retrieves a portal access rule by ID.
    *
    * @param `portalId` - string
    * @param `accessId` - string
@@ -112,7 +112,7 @@ export class MetorialPortalsAccessEndpoint {
 
   /**
    * @name Create portal access
-   * @description Creates a consumer access rule for a portal.
+   * @description Creates a new consumer access rule for the portal.
    *
    * @param `portalId` - string
    * @param `body` - DashboardInstancePortalsAccessCreateBody
@@ -142,7 +142,7 @@ export class MetorialPortalsAccessEndpoint {
 
   /**
    * @name Update portal access
-   * @description Updates a portal access rule. Only skill and skill group rules use `permission`. Omitted fields keep their current value.
+   * @description Updates the shared listing fields of a portal access rule, and the access level of skill and skill group rules.
    *
    * @param `portalId` - string
    * @param `accessId` - string
@@ -174,7 +174,7 @@ export class MetorialPortalsAccessEndpoint {
 
   /**
    * @name Delete portal access
-   * @description Deletes a portal access rule.
+   * @description Deletes a consumer access rule from the portal.
    *
    * @param `portalId` - string
    * @param `accessId` - string

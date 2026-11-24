@@ -81,7 +81,7 @@ export class MetorialChatConnectionsEndpoint {
 
   /**
    * @name Get chat connection
-   * @description Retrieves a chat connection.
+   * @description Retrieves a specific chat connection.
    *
    * @param `chatConnectionId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -136,7 +136,7 @@ export class MetorialChatConnectionsEndpoint {
 
   /**
    * @name Update chat connection
-   * @description Updates a chat connection. Omitted fields keep their current value.
+   * @description Updates a specific chat connection.
    *
    * @param `chatConnectionId` - string
    * @param `body` - DashboardInstanceChatConnectionsUpdateBody
@@ -165,8 +165,8 @@ export class MetorialChatConnectionsEndpoint {
   }
 
   /**
-   * @name Archive chat connection
-   * @description Archives a chat connection. It stays listable with `status=archived`.
+   * @name Delete chat connection
+   * @description Archives a specific chat connection.
    *
    * @param `chatConnectionId` - string
    * @param `opts` - { headers?: Record<string, string> }

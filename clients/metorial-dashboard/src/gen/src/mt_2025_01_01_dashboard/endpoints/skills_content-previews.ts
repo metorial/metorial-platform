@@ -12,7 +12,7 @@ import {
 
 /**
  * @name Skill Content Previews controller
- * @description A skill content preview is the beginning of a skill or skill template `SKILL.md` file.
+ * @description Read the beginning of the SKILL.md of many skills and skill templates at once.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

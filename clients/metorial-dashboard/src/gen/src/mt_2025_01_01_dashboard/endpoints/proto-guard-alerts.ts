@@ -14,7 +14,7 @@ import {
 
 /**
  * @name ProtoGuard Alerts controller
- * @description A ProtoGuard alert is a record of related prompt-injection findings. Findings that recur are folded into the same alert.
+ * @description ProtoGuard alerts describe prompt-injection detections.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialProtoGuardAlertsEndpoint {
 
   /**
    * @name List ProtoGuard alerts
-   * @description Returns a paginated list of ProtoGuard alerts in the instance.
+   * @description Returns a paginated list of ProtoGuard alerts for this instance.
    *
    * @param `query` - DashboardInstanceProtoGuardAlertsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -71,7 +71,7 @@ export class MetorialProtoGuardAlertsEndpoint {
 
   /**
    * @name Get ProtoGuard alert
-   * @description Retrieves a ProtoGuard alert.
+   * @description Retrieves a ProtoGuard alert by ID.
    *
    * @param `protoGuardAlertId` - string
    * @param `opts` - { headers?: Record<string, string> }

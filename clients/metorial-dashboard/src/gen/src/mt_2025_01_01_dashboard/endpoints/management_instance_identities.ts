@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Identities controller
- * @description An identity is a set of provider credentials owned by one actor. It lets you manage and delegate provider access consistently.
+ * @description Identities bundle credentials under a single owner actor so provider access can be managed and delegated consistently.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
 
   /**
    * @name Get identity
-   * @description Retrieves an identity.
+   * @description Retrieves a specific identity by ID.
    *
    * @param `instanceId` - string
    * @param `identityId` - string
@@ -112,7 +112,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
 
   /**
    * @name Create identity
-   * @description Creates an identity.
+   * @description Creates a new identity owned by an existing identity actor.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIdentitiesCreateBody
@@ -142,7 +142,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
 
   /**
    * @name Update identity
-   * @description Updates an identity. Omitted fields keep their current value.
+   * @description Updates mutable fields on an existing identity.
    *
    * @param `instanceId` - string
    * @param `identityId` - string
@@ -173,8 +173,8 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
   }
 
   /**
-   * @name Archive identity
-   * @description Archives an identity. It stays listable with `status=archived`.
+   * @name Delete identity
+   * @description Archives an identity.
    *
    * @param `instanceId` - string
    * @param `identityId` - string

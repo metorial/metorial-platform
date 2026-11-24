@@ -30,7 +30,7 @@ import {
 
 /**
  * @name Portal Consumer Surface Provider Groups controller
- * @description A portal surface provider group is a named section of a portal catalog. Listings are added to groups to organize what consumers see.
+ * @description Manage the provider groups linked to a portal consumer surface for organizing providers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -57,7 +57,7 @@ export class MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name List portal surface provider groups
-   * @description Returns a paginated list of surface provider groups for a portal.
+   * @description Returns a paginated list of provider groups linked to the portal consumer surface.
    *
    * @param `instanceId` - string
    * @param `portalId` - string
@@ -93,7 +93,7 @@ export class MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Get portal surface provider group
-   * @description Retrieves a portal surface provider group.
+   * @description Retrieves a portal surface provider group by ID.
    *
    * @param `instanceId` - string
    * @param `portalId` - string
@@ -124,7 +124,7 @@ export class MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Create portal surface provider group
-   * @description Creates a surface provider group for a portal.
+   * @description Creates a new provider group linked to the portal consumer surface.
    *
    * @param `instanceId` - string
    * @param `portalId` - string
@@ -158,7 +158,7 @@ export class MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Update portal surface provider group
-   * @description Updates a surface provider group for a portal. Omitted fields keep their current value.
+   * @description Updates a provider group linked to the portal consumer surface.
    *
    * @param `instanceId` - string
    * @param `portalId` - string
@@ -194,7 +194,7 @@ export class MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint {
 
   /**
    * @name Delete portal surface provider group
-   * @description Deletes a surface provider group for a portal.
+   * @description Deletes a provider group linked to the portal consumer surface.
    *
    * @param `instanceId` - string
    * @param `portalId` - string

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ConsumerOauthAuthorizationsListOutput = {
-  object: 'list';
   items: {
     object: 'consumer.oauth_authorization';
     id: string;
@@ -18,12 +17,7 @@ export type ConsumerOauthAuthorizationsListOutput = {
     revokedAt: Date | null;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapConsumerOauthAuthorizationsListOutput =

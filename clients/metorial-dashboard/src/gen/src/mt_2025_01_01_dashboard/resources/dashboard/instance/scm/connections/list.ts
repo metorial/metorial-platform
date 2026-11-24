@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceScmConnectionsListOutput = {
-  object: 'list';
   items: {
     object: 'scm.connection';
     id: string;
@@ -18,12 +17,7 @@ export type DashboardInstanceScmConnectionsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceScmConnectionsListOutput =

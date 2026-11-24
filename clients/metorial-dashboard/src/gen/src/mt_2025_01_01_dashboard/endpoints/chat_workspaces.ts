@@ -73,7 +73,7 @@ export class MetorialChatWorkspacesEndpoint {
 
   /**
    * @name Get chat workspace
-   * @description Retrieves a chat workspace.
+   * @description Retrieves a specific chat workspace.
    *
    * @param `chatWorkspaceId` - string
    * @param `query` - DashboardInstanceChatWorkspacesGetQuery

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type PublicMcpServersGrantsListOutput = {
-  object: 'list';
   items: {
     object: 'provider.public_mcp_server.grant';
     id: string;
@@ -29,12 +28,7 @@ export type PublicMcpServersGrantsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapPublicMcpServersGrantsListOutput =

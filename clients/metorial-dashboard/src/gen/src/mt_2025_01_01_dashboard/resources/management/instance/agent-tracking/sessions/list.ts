@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceAgentTrackingSessionsListOutput = {
-  object: 'list';
   items: {
     object: 'agent_tracking.session';
     id: string;
@@ -48,12 +47,7 @@ export type ManagementInstanceAgentTrackingSessionsListOutput = {
     lastActivityAt: Date;
     endedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceAgentTrackingSessionsListOutput =
@@ -104,37 +98,30 @@ export type ManagementInstanceAgentTrackingSessionsListQuery = {
   clientFamily?: string | string[] | undefined;
   orderBy?: 'last_activity' | 'cost' | undefined;
   range?:
-    | 'today'
-    | 'last_7_days'
-    | 'last_30_days'
-    | 'month_to_date'
-    | 'last_month'
-    | undefined;
+    'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
   from?: Date | undefined;
   to?: Date | undefined;
   timeZone?: string | undefined;
 };
 
 export let mapManagementInstanceAgentTrackingSessionsListQuery =
-  /* @__PURE__ */ createMapper<ManagementInstanceAgentTrackingSessionsListQuery>(
+  /* @__PURE__ */ createMapper<ManagementInstanceAgentTrackingSessionsListQuery>([
+    3,
     [
-      3,
       [
+        0,
         [
-          0,
+          1,
           [
-            1,
-            [
-              'member_id',
-              'model_id',
-              'client_family',
-              'order_by',
-              ['from', 0, 4],
-              ['to', 0, 4],
-              'time_zone'
-            ]
+            'member_id',
+            'model_id',
+            'client_family',
+            'order_by',
+            ['from', 0, 4],
+            ['to', 0, 4],
+            'time_zone'
           ]
         ]
       ]
     ]
-  );
+  ]);

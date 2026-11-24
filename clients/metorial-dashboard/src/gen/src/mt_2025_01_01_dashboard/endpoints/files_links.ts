@@ -20,7 +20,7 @@ import {
 
 /**
  * @name File Links controller
- * @description A file link is a public URL for a file. Anyone with the link can download the file without authenticating, until the link expires or is deleted.
+ * @description Files are private by default. If you want to share a file, you can create a link for it. Links are public and do not require authentication to access, so be careful with what you share.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialFilesLinksEndpoint {
 
   /**
    * @name List file links
-   * @description Returns a paginated list of file links.
+   * @description Returns a paginated list of file links owned by the instance organization.
    *
    * @param `query` - DashboardInstanceFilesLinksListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -76,8 +76,8 @@ export class MetorialFilesLinksEndpoint {
   }
 
   /**
-   * @name Get file link
-   * @description Retrieves a file link.
+   * @name Get file link by ID
+   * @description Retrieves the details of a specific file link by its ID.
    *
    * @param `linkId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -104,7 +104,7 @@ export class MetorialFilesLinksEndpoint {
 
   /**
    * @name Create file link
-   * @description Creates a link for a file.
+   * @description Creates a new link for a specific file.
    *
    * @param `body` - DashboardInstanceFilesLinksCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -131,8 +131,8 @@ export class MetorialFilesLinksEndpoint {
   }
 
   /**
-   * @name Delete file link
-   * @description Deletes a file link. The file itself is kept.
+   * @name Delete file link by ID
+   * @description Deletes a specific file link by its ID.
    *
    * @param `linkId` - string
    * @param `opts` - { headers?: Record<string, string> }

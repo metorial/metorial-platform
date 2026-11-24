@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Skill Plugin Skills controller
- * @description A skill plugin skill is one skill in a skill plugin.
+ * @description Manage skill links for skill plugins.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -83,7 +83,7 @@ export class MetorialSkillsPluginsSkillsEndpoint {
 
   /**
    * @name Add skill plugin skill
-   * @description Adds a skill to a skill plugin. Adding a skill that was removed reactivates its link.
+   * @description Adds a skill to a skill plugin.
    *
    * @param `skillPluginId` - string
    * @param `body` - DashboardInstanceSkillsPluginsSkillsAddBody

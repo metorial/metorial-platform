@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Custom Provider Environments controller
- * @description A custom provider environment is a deployment target for custom provider versions, such as staging or production.
+ * @description Environments represent deployment targets for custom provider versions (e.g., staging, production).
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
 
   /**
    * @name List custom provider environments
-   * @description Returns a paginated list of custom provider environments.
+   * @description Returns a paginated list of environments for a custom provider.
    *
    * @param `query` - DashboardInstanceCustomProvidersEnvironmentsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -73,7 +73,7 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
 
   /**
    * @name Get custom provider environment
-   * @description Retrieves a custom provider environment.
+   * @description Retrieves a specific environment.
    *
    * @param `customProviderEnvironmentId` - string
    * @param `opts` - { headers?: Record<string, string> }

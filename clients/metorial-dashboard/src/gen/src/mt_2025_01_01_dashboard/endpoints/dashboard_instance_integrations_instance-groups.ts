@@ -32,7 +32,7 @@ import {
 
 /**
  * @name Integration Instance Groups controller
- * @description An integration instance group combines providers from multiple integration instances into one set, with a shared session template.
+ * @description Integration instance groups combine instance providers into a grouped routed configuration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint {
 
   /**
    * @name Get integration instance group
-   * @description Retrieves an integration instance group.
+   * @description Retrieves a specific integration instance group.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupId` - string
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint {
 
   /**
    * @name Create integration instance group session template
-   * @description Creates or updates the shared session template for the integration instance group.
+   * @description Creates or updates the shared session template for a specific integration instance group.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupId` - string
@@ -156,7 +156,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint {
 
   /**
    * @name Create integration instance group session
-   * @description Creates a session from the shared session template of the integration instance group.
+   * @description Creates a session from the shared session template of a specific integration instance group.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupId` - string
@@ -190,7 +190,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint {
 
   /**
    * @name Create integration instance group
-   * @description Creates an integration instance group.
+   * @description Creates a new integration instance group.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceIntegrationsInstanceGroupsCreateBody
@@ -222,7 +222,7 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint {
 
   /**
    * @name Update integration instance group
-   * @description Updates an integration instance group. Omitted fields keep their current value.
+   * @description Updates a specific integration instance group.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupId` - string
@@ -255,8 +255,8 @@ export class MetorialDashboardInstanceIntegrationsInstanceGroupsEndpoint {
   }
 
   /**
-   * @name Archive integration instance group
-   * @description Archives an integration instance group. It stays retrievable by ID and listable with `status=archived`.
+   * @name Delete integration instance group
+   * @description Archives a specific integration instance group.
    *
    * @param `instanceId` - string
    * @param `integrationInstanceGroupId` - string

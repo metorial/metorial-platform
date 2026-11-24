@@ -39,7 +39,7 @@ export class MetorialManagementInstancePublicMcpServersClientsEndpoint {
 
   /**
    * @name List public MCP server clients
-   * @description Returns a paginated list of OAuth clients registered with a public MCP server.
+   * @description Returns the OAuth clients registered with a public MCP server.
    *
    * @param `instanceId` - string
    * @param `publicMcpServerId` - string

@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceChatEventsEndpoint {
 
   /**
    * @name Get chat event
-   * @description Retrieves a chat event.
+   * @description Retrieves a specific chat event.
    *
    * @param `instanceId` - string
    * @param `chatEventId` - string

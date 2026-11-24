@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpSessionsListOutput = {
-  object: 'list';
   items: ({
     object: 'magic_mcp.session';
     id: string;
@@ -242,12 +241,7 @@ export type MagicMcpSessionsListOutput = {
       updatedAt: Date;
     }[];
   })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapMagicMcpSessionsListOutput =

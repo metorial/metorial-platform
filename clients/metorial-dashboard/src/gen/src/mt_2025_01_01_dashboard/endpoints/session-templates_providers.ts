@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Session Template Providers controller
- * @description A session template provider is one provider in a session template, with its deployment, config, auth config, and tool filters.
+ * @description Session template providers define which providers should be included when a session is created from a template.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialSessionTemplatesProvidersEndpoint {
 
   /**
    * @name List session template providers
-   * @description Returns a paginated list of session template providers.
+   * @description Returns a paginated list of providers configured for a session template.
    *
    * @param `query` - DashboardInstanceSessionTemplatesProvidersListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -83,7 +83,7 @@ export class MetorialSessionTemplatesProvidersEndpoint {
 
   /**
    * @name Get session template provider
-   * @description Retrieves a session template provider.
+   * @description Retrieves a specific provider configuration from a session template.
    *
    * @param `sessionTemplateProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -110,7 +110,7 @@ export class MetorialSessionTemplatesProvidersEndpoint {
 
   /**
    * @name Create session template provider
-   * @description Creates a session template provider.
+   * @description Adds a new provider configuration to a session template.
    *
    * @param `body` - DashboardInstanceSessionTemplatesProvidersCreateBody
    * @param `opts` - { headers?: Record<string, string> }
@@ -140,7 +140,7 @@ export class MetorialSessionTemplatesProvidersEndpoint {
 
   /**
    * @name Update session template provider
-   * @description Updates a session template provider.
+   * @description Updates a provider configuration in a session template.
    *
    * @param `sessionTemplateProviderId` - string
    * @param `body` - DashboardInstanceSessionTemplatesProvidersUpdateBody
@@ -171,8 +171,8 @@ export class MetorialSessionTemplatesProvidersEndpoint {
   }
 
   /**
-   * @name Archive session template provider
-   * @description Archives a session template provider. It stays listable with `status=archived`.
+   * @name Delete session template provider
+   * @description Removes a provider configuration from a session template.
    *
    * @param `sessionTemplateProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }

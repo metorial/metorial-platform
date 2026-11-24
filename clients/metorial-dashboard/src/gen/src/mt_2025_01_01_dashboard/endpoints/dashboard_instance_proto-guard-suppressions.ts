@@ -20,7 +20,7 @@ import {
 
 /**
  * @name ProtoGuard Suppression controller
- * @description A ProtoGuard suppression is a rule that hides known-benign findings. Matching findings no longer raise alerts.
+ * @description ProtoGuard suppressions mark known-benign findings so they no longer raise alerts.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialDashboardInstanceProtoGuardSuppressionsEndpoint {
 
   /**
    * @name List ProtoGuard suppressions
-   * @description Returns a paginated list of ProtoGuard suppressions in the instance.
+   * @description Returns the ProtoGuard suppressions of this instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceProtoGuardSuppressionsListQuery

@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Skill Merge Request Events controller
- * @description A skill merge request event is one entry in a merge request activity history.
+ * @description Inspect the activity history of skill merge requests.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

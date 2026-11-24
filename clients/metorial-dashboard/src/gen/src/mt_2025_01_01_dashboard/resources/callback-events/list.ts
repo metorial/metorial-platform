@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type CallbackEventsListOutput = {
-  object: 'list';
   items: {
     object: 'callback_event';
     id: string;
@@ -16,12 +15,7 @@ export type CallbackEventsListOutput = {
     occurredAt: Date;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapCallbackEventsListOutput =

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceProviderDeploymentsAuthConfigsListOutput = {
-  object: 'list';
   items: ({
     object: 'provider.auth_config';
     id: string;
@@ -97,12 +96,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { publicMcpServerId: string | null })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceProviderDeploymentsAuthConfigsListOutput =

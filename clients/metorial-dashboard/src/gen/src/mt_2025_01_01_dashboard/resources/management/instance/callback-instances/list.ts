@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceCallbackInstancesListOutput = {
-  object: 'list';
   items: {
     object: 'callback.instance';
     id: string;
@@ -22,12 +21,7 @@ export type ManagementInstanceCallbackInstancesListOutput = {
       syncedAt: Date | null;
     };
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceCallbackInstancesListOutput =

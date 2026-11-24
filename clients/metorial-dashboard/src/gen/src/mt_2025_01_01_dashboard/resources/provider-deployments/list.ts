@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ProviderDeploymentsListOutput = {
-  object: 'list';
   items: {
     object: 'provider.deployment';
     id: string;
@@ -53,12 +52,7 @@ export type ProviderDeploymentsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapProviderDeploymentsListOutput =

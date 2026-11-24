@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsVersionsListOutput = {
-  object: 'list';
   items: {
     object: 'skill.version';
     id: string;
@@ -11,12 +10,7 @@ export type SkillsVersionsListOutput = {
     versionNumber: number;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapSkillsVersionsListOutput =

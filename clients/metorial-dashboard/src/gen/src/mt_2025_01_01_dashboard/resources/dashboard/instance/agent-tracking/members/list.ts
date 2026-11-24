@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceAgentTrackingMembersListOutput = {
-  object: 'list';
   items: {
     object: 'agent_tracking.member';
     id: string;
@@ -24,12 +23,7 @@ export type DashboardInstanceAgentTrackingMembersListOutput = {
     };
     listTruncated: boolean;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceAgentTrackingMembersListOutput =
@@ -72,12 +66,7 @@ export type DashboardInstanceAgentTrackingMembersListQuery = {
 } & {
   memberId?: string | string[] | undefined;
   range?:
-    | 'today'
-    | 'last_7_days'
-    | 'last_30_days'
-    | 'month_to_date'
-    | 'last_month'
-    | undefined;
+    'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
   from?: Date | undefined;
   to?: Date | undefined;
   timeZone?: string | undefined;

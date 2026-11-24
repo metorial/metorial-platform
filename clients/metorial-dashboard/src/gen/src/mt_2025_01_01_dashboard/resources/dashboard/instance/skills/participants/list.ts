@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsParticipantsListOutput = {
-  object: 'list';
   items: ({
     object: 'skill.participant';
     id: string;
@@ -167,12 +166,7 @@ export type DashboardInstanceSkillsParticipantsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { consumerId: string | null; hasOrganizationMemberAccess: boolean })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSkillsParticipantsListOutput =

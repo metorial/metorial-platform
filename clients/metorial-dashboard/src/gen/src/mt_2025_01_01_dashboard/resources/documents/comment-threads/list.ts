@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DocumentsCommentThreadsListOutput = {
-  object: 'list';
   items: {
     object: 'document.comment_thread';
     id: string;
@@ -244,12 +243,7 @@ export type DocumentsCommentThreadsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDocumentsCommentThreadsListOutput =

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderAuthConfigErrorsListOutput = {
-  object: 'list';
   items: {
     object: 'provider.auth_config_error';
     id: string;
@@ -20,12 +19,7 @@ export type DashboardInstanceProviderAuthConfigErrorsListOutput = {
     issueId: string | null;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceProviderAuthConfigErrorsListOutput =

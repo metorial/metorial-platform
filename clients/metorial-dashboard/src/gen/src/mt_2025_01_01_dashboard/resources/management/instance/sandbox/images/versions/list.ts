@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSandboxImagesVersionsListOutput = {
-  object: 'list';
   items: {
     object: 'sandbox.image.version';
     id: string;
@@ -13,12 +12,7 @@ export type ManagementInstanceSandboxImagesVersionsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceSandboxImagesVersionsListOutput =

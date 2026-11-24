@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Skill Imports controller
- * @description A skill import is a queued import of skills from a repository or uploaded file.
+ * @description Import skills from public repositories or uploaded files.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -75,7 +75,7 @@ export class MetorialSkillsImportsEndpoint {
 
   /**
    * @name Get skill import
-   * @description Retrieves a skill import and its results.
+   * @description Retrieves an individual skill import and its results.
    *
    * @param `skillImportId` - string
    * @param `opts` - { headers?: Record<string, string> }

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOauthAuthorizationRequestsConsumerTargetsListOutput = {
-  object: 'list';
   items: {
     object: 'machine_access.oauth_authorization_request.consumer_target';
     consumerProfileId: string;
@@ -10,12 +9,7 @@ export type DashboardOauthAuthorizationRequestsConsumerTargetsListOutput = {
     instance: { id: string; name: string };
     consumer: { name: string; email: string };
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardOauthAuthorizationRequestsConsumerTargetsListOutput =

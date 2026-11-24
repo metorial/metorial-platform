@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceMonitorAlertsListOutput = {
-  object: 'list';
   items: {
     object: 'monitor.alert';
     id: string;
@@ -81,12 +80,7 @@ export type ManagementInstanceMonitorAlertsListOutput = {
       createdAt: Date;
     }[];
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceMonitorAlertsListOutput =

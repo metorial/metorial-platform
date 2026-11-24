@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Skill Items controller
- * @description A skill item is a provider or integration attached to a skill.
+ * @description Skill items attach integrations and providers to skills.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -47,7 +47,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
 
   /**
    * @name List skill items
-   * @description Returns a paginated list of skill items.
+   * @description Returns a paginated list of items for a skill.
    *
    * @param `instanceId` - string
    * @param `skillId` - string
@@ -81,7 +81,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
 
   /**
    * @name Get skill item
-   * @description Retrieves a skill item.
+   * @description Retrieves a specific skill item.
    *
    * @param `instanceId` - string
    * @param `skillId` - string
@@ -143,7 +143,7 @@ export class MetorialDashboardInstanceSkillsItemsEndpoint {
   }
 
   /**
-   * @name Archive skill item
+   * @name Delete skill item
    * @description Archives a skill item.
    *
    * @param `instanceId` - string

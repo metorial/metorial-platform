@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsAuditLogStreamsEventsListOutput = {
-  object: 'list';
   items: {
     object: 'organization.audit_log_stream.event';
     id: string;
@@ -32,12 +31,7 @@ export type DashboardOrganizationsAuditLogStreamsEventsListOutput = {
     } | null;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardOrganizationsAuditLogStreamsEventsListOutput =

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
-  object: 'list';
   items: ({
     object: 'provider.setup_session';
     id: string;
@@ -266,12 +265,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListOutput = {
     updatedAt: Date;
     expiresAt: Date;
   } & { publicMcpServerId: string | null })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceProviderDeploymentsSetupSessionsListOutput =

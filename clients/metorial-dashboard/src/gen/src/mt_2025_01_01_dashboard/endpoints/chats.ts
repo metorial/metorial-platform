@@ -69,7 +69,7 @@ export class MetorialChatsEndpoint {
 
   /**
    * @name Get chat
-   * @description Retrieves a chat.
+   * @description Retrieves a specific chat.
    *
    * @param `chatId` - string
    * @param `opts` - { headers?: Record<string, string> }

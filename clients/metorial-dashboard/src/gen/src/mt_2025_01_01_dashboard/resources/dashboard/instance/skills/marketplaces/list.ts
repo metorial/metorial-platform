@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsMarketplacesListOutput = {
-  object: 'list';
   items: ({
     object: 'skill.marketplace';
     id: string;
@@ -292,12 +291,7 @@ export type DashboardInstanceSkillsMarketplacesListOutput = {
         | null;
     })[];
   })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSkillsMarketplacesListOutput =

@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Chat Instances controller
- * @description A chat instance is a chat connection running with its own configuration and identity.
+ * @description Chat instances materialize a chat connection for a specific runtime configuration.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

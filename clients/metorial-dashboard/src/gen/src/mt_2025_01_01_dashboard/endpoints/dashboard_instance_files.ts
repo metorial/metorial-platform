@@ -16,7 +16,7 @@ import {
 
 /**
  * @name Files controller
- * @description A file is content uploaded to an instance, such as an image or an attachment. Its purpose controls what it can be linked to.
+ * @description Represents files that you have uploaded to Metorial. Files can be linked to various resources based on their purpose. Metorial can also automatically extract files for you, for example for data exports.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -42,8 +42,8 @@ export class MetorialDashboardInstanceFilesEndpoint {
   }
 
   /**
-   * @name List files
-   * @description Returns a paginated list of files.
+   * @name List instance files
+   * @description Returns a paginated list of files owned by the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceFilesListQuery
@@ -72,8 +72,8 @@ export class MetorialDashboardInstanceFilesEndpoint {
   }
 
   /**
-   * @name Get file
-   * @description Retrieves a file.
+   * @name Get file by ID
+   * @description Retrieves details for a specific file by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string
@@ -99,8 +99,8 @@ export class MetorialDashboardInstanceFilesEndpoint {
   }
 
   /**
-   * @name Delete file
-   * @description Deletes a file.
+   * @name Delete file by ID
+   * @description Deletes a specific file by its ID.
    *
    * @param `instanceId` - string
    * @param `fileId` - string

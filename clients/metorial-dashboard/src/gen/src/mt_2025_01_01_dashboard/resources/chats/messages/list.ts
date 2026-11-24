@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ChatsMessagesListOutput = {
-  object: 'list';
   items: {
     object: 'chat.message';
     id: string;
@@ -89,12 +88,7 @@ export type ChatsMessagesListOutput = {
     lastInteractionAt: Date | null;
     deletedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapChatsMessagesListOutput =

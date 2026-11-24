@@ -18,7 +18,7 @@ import {
 
 /**
  * @name SCM Providers controller
- * @description An SCM provider is a source control server an instance connects to.
+ * @description Manage SCM providers configured for an instance.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -75,7 +75,7 @@ export class MetorialScmProvidersEndpoint {
 
   /**
    * @name Get SCM provider
-   * @description Retrieves an SCM provider.
+   * @description Retrieves a specific SCM provider by ID.
    *
    * @param `scmProviderId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -102,7 +102,7 @@ export class MetorialScmProvidersEndpoint {
 
   /**
    * @name Create SCM provider
-   * @description Creates a setup session for an SCM provider.
+   * @description Initiates a setup session for a self-hosted SCM provider.
    *
    * @param `body` - DashboardInstanceScmProvidersCreateBody
    * @param `opts` - { headers?: Record<string, string> }

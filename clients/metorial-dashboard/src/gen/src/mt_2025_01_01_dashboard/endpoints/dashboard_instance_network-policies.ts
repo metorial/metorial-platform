@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Network Policies controller
- * @description A network policy is a reusable set of allow and deny rules. Firewalls attach policies to enforce them.
+ * @description Manage reusable network policy definitions and their rules.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
 
   /**
    * @name List network policies
-   * @description Returns a paginated list of network policies in the instance.
+   * @description Returns a paginated list of network policies.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceNetworkPoliciesListQuery
@@ -83,7 +83,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
 
   /**
    * @name Get network policy
-   * @description Retrieves a network policy.
+   * @description Retrieves a specific network policy by ID.
    *
    * @param `instanceId` - string
    * @param `networkPolicyId` - string
@@ -112,7 +112,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
 
   /**
    * @name Create network policy
-   * @description Creates a network policy.
+   * @description Creates a new network policy.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceNetworkPoliciesCreateBody
@@ -142,7 +142,7 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
 
   /**
    * @name Update network policy
-   * @description Updates a network policy. Omitted fields keep their current value.
+   * @description Updates a network policy definition.
    *
    * @param `instanceId` - string
    * @param `networkPolicyId` - string
@@ -173,8 +173,8 @@ export class MetorialDashboardInstanceNetworkPoliciesEndpoint {
   }
 
   /**
-   * @name Archive network policy
-   * @description Archives a network policy. It stays listable with `status=archived`.
+   * @name Delete network policy
+   * @description Archives a network policy.
    *
    * @param `instanceId` - string
    * @param `networkPolicyId` - string

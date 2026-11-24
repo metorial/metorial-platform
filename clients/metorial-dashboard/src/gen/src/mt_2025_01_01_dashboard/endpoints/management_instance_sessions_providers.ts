@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Session Providers controller
- * @description A session provider is one provider connected to a session, with the deployment, config, and credentials it runs with.
+ * @description Session providers represent the providers that are actively connected to a session. Each session can have multiple providers, and providers can be added or removed during the session lifecycle.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -51,7 +51,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
 
   /**
    * @name List session providers
-   * @description Returns a paginated list of session providers.
+   * @description Returns a paginated list of providers connected to a session.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceSessionsProvidersListQuery
@@ -83,7 +83,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
 
   /**
    * @name Get session provider
-   * @description Retrieves a session provider.
+   * @description Retrieves a specific provider connected to a session.
    *
    * @param `instanceId` - string
    * @param `sessionProviderId` - string
@@ -112,7 +112,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
 
   /**
    * @name Create session provider
-   * @description Creates a session provider. The session must be active.
+   * @description Adds a new provider to an active session.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceSessionsProvidersCreateBody
@@ -142,7 +142,7 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
 
   /**
    * @name Update session provider
-   * @description Updates a session provider.
+   * @description Updates a provider connected to a session.
    *
    * @param `instanceId` - string
    * @param `sessionProviderId` - string
@@ -173,8 +173,8 @@ export class MetorialManagementInstanceSessionsProvidersEndpoint {
   }
 
   /**
-   * @name Archive session provider
-   * @description Archives a session provider. It stays listable with `status=archived`.
+   * @name Delete session provider
+   * @description Removes a provider from a session.
    *
    * @param `instanceId` - string
    * @param `sessionProviderId` - string

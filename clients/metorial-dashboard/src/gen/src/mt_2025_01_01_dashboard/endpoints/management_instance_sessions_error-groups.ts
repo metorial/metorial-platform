@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Error Groups controller
- * @description A session error group is a set of similar session errors. Groups show how often each failure repeats.
+ * @description Session error groups aggregate similar errors that occurred during a session. This read-only resource helps identify patterns in errors.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -40,7 +40,7 @@ export class MetorialManagementInstanceSessionsErrorGroupsEndpoint {
   }
 
   /**
-   * @name List session error groups
+   * @name List all session error groups
    * @description Returns a paginated list of error groups across all sessions.
    *
    * @param `instanceId` - string
@@ -73,7 +73,7 @@ export class MetorialManagementInstanceSessionsErrorGroupsEndpoint {
 
   /**
    * @name Get session error group
-   * @description Retrieves a session error group.
+   * @description Retrieves a specific error group by ID across all sessions.
    *
    * @param `instanceId` - string
    * @param `sessionErrorGroupId` - string

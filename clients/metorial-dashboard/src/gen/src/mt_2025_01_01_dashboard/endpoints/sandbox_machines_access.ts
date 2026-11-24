@@ -20,7 +20,7 @@ import {
 
 /**
  * @name Sandbox machines controller
- * @description A sandbox machine is a virtual machine that boots from an image and can mount disks. Machines move between running, paused, and hibernated states.
+ * @description Create and operate sandbox machines. A machine boots from an image, can mount disks, and moves between running, paused, and hibernated states.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Documents controller
- * @description A document is rich text with comments, versions, and participants.
+ * @description Create and manage instance documents backed by Cargo.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
 
   /**
    * @name List documents
-   * @description Returns a paginated list of documents.
+   * @description Returns a paginated list of documents owned by the instance.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceDocumentsListQuery
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
 
   /**
    * @name Create document
-   * @description Creates a document.
+   * @description Creates a new document for the instance.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceDocumentsCreateBody
@@ -116,8 +116,8 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
   }
 
   /**
-   * @name Get document
-   * @description Retrieves a document.
+   * @name Get document by ID
+   * @description Retrieves a document by its ID.
    *
    * @param `instanceId` - string
    * @param `documentId` - string
@@ -143,8 +143,8 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
   }
 
   /**
-   * @name Update document
-   * @description Updates a document.
+   * @name Update document by ID
+   * @description Updates a specific document.
    *
    * @param `instanceId` - string
    * @param `documentId` - string
@@ -175,8 +175,8 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
   }
 
   /**
-   * @name Delete document
-   * @description Deletes a document.
+   * @name Delete document by ID
+   * @description Deletes a specific document.
    *
    * @param `instanceId` - string
    * @param `documentId` - string
@@ -204,8 +204,8 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
   }
 
   /**
-   * @name Clone document
-   * @description Creates a copy of a document.
+   * @name Clone document by ID
+   * @description Clones a specific document.
    *
    * @param `instanceId` - string
    * @param `documentId` - string

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpTokensListOutput = {
-  object: 'list';
   items: ({
     object: 'magic_mcp.token';
     id: string;
@@ -48,12 +47,7 @@ export type MagicMcpTokensListOutput = {
       updatedAt: Date;
     }[];
   })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapMagicMcpTokensListOutput =

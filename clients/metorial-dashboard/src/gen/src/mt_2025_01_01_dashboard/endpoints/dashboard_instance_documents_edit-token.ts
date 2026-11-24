@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Documents controller
- * @description A document is rich text with comments, versions, and participants.
+ * @description Create and manage instance documents backed by Cargo.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -37,7 +37,7 @@ export class MetorialDashboardInstanceDocumentsEditTokenEndpoint {
 
   /**
    * @name Get document edit token
-   * @description Returns a short-lived read or write token for establishing a live document session. Requires write scopes, even when the issued token only grants read access.
+   * @description Returns a short-lived read or write token for establishing a live document session.
    *
    * @param `instanceId` - string
    * @param `documentId` - string

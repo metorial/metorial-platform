@@ -22,7 +22,7 @@ import {
 
 /**
  * @name Provider Auth Imports controller
- * @description A provider auth import is existing authentication credentials brought into Metorial from another system, so users skip re-authenticating.
+ * @description An auth import lets you bring in existing OAuth tokens or credentials from another system, so users don't need to re-authenticate to use Metorial.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -108,7 +108,7 @@ export class MetorialProviderDeploymentsAuthConfigsImportsEndpoint {
 
   /**
    * @name Create provider auth import
-   * @description Imports existing authentication credentials into Metorial.
+   * @description Imports authentication credentials for a provider.
    *
    * @param `body` - DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody
    * @param `opts` - { headers?: Record<string, string> }

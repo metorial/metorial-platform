@@ -77,7 +77,7 @@ export class MetorialDashboardInstanceChatsChannelsMembersEndpoint {
 
   /**
    * @name Get chat channel member
-   * @description Retrieves a member of a chat channel.
+   * @description Retrieves a specific member of a chat channel.
    *
    * @param `instanceId` - string
    * @param `chatId` - string

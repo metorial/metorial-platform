@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type SkillsMergeRequestsEventsListOutput = {
-  object: 'list';
   items: {
     object: 'skill.merge_request.event';
     id: string;
@@ -182,12 +181,7 @@ export type SkillsMergeRequestsEventsListOutput = {
     errorMessage: string | null;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapSkillsMergeRequestsEventsListOutput =

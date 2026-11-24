@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSandboxDisksResizesListOutput = {
-  object: 'list';
   items: {
     object: 'sandbox.disk.resize';
     id: string;
@@ -33,12 +32,7 @@ export type DashboardInstanceSandboxDisksResizesListOutput = {
     updatedAt: Date;
     completedAt: Date | null;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceSandboxDisksResizesListOutput =

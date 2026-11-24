@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationServiceAccountsListOutput = {
-  object: 'list';
   items: {
     object: 'machine_access.service_account';
     id: string;
@@ -32,12 +31,7 @@ export type ManagementOrganizationServiceAccountsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementOrganizationServiceAccountsListOutput =

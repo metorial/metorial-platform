@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Document Participants controller
- * @description A document participant is an actor with access to a document.
+ * @description Inspect document participants and their linked Metorial resources.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialManagementInstanceDocumentsParticipantsEndpoint {
 
   /**
    * @name List document participants
-   * @description Returns a paginated list of participants in a document.
+   * @description Returns a paginated list of participants for a specific document.
    *
    * @param `instanceId` - string
    * @param `documentId` - string
@@ -74,8 +74,8 @@ export class MetorialManagementInstanceDocumentsParticipantsEndpoint {
   }
 
   /**
-   * @name Get document participant
-   * @description Retrieves a participant in a document.
+   * @name Get document participant by ID
+   * @description Retrieves a specific document participant by its ID.
    *
    * @param `instanceId` - string
    * @param `documentId` - string

@@ -24,7 +24,7 @@ import {
 
 /**
  * @name Skill Configurations controller
- * @description A skill configuration is a profile controlling how skills execute.
+ * @description Manage configuration profiles for skill execution.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -111,7 +111,7 @@ export class MetorialSkillsConfigurationsEndpoint {
 
   /**
    * @name Get skill configuration
-   * @description Retrieves a skill configuration. Pass `default` for the default configuration.
+   * @description Retrieves a specific skill configuration by ID, or the default.
    *
    * @param `skillConfigurationId` - string
    * @param `opts` - { headers?: Record<string, string> }
@@ -138,7 +138,7 @@ export class MetorialSkillsConfigurationsEndpoint {
 
   /**
    * @name Update skill configuration
-   * @description Updates a skill configuration. Omitted fields keep their current value. Updating `default` creates it first if needed.
+   * @description Updates a specific skill configuration. Updating default creates it first if needed.
    *
    * @param `skillConfigurationId` - string
    * @param `body` - DashboardInstanceSkillsConfigurationsUpdateBody
@@ -170,7 +170,7 @@ export class MetorialSkillsConfigurationsEndpoint {
 
   /**
    * @name Delete skill configuration
-   * @description Deletes a skill configuration. The default and internal configurations cannot be deleted.
+   * @description Soft deletes a specific non-internal skill configuration.
    *
    * @param `skillConfigurationId` - string
    * @param `opts` - { headers?: Record<string, string> }

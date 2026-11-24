@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Skill Merge Requests controller
- * @description A skill merge request is a proposed change from one skill into another.
+ * @description Review, resolve, and apply changes between skills.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardOrganizationsOutpostsAccessListOutput = {
-  object: 'list';
   items: {
     object: 'outpost_access';
     id: string;
@@ -12,12 +11,7 @@ export type DashboardOrganizationsOutpostsAccessListOutput = {
     services: ('mcp_connection_proxy' | 'outpost_registration_proxy')[];
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardOrganizationsOutpostsAccessListOutput =

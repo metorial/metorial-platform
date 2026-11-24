@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementOrganizationAccessRolesVersionsOutput = {
-  object: 'list';
   items: {
     object: 'management.access_role_version';
     id: string;
@@ -13,12 +12,7 @@ export type ManagementOrganizationAccessRolesVersionsOutput = {
     message: string | null;
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementOrganizationAccessRolesVersionsOutput =

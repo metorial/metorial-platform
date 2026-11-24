@@ -14,7 +14,7 @@ import {
 
 /**
  * @name Session Connections controller
- * @description A session connection is one MCP connection in a session. Connections report their state, transport, and capabilities.
+ * @description Session connections represent the MCP connections established within a session. This read-only resource provides visibility into the connection state and capabilities.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialSessionsConnectionsEndpoint {
 
   /**
    * @name List session connections
-   * @description Returns a paginated list of session connections.
+   * @description Returns a paginated list of connections for a session.
    *
    * @param `query` - DashboardInstanceSessionsConnectionsListQuery
    * @param `opts` - { headers?: Record<string, string> }
@@ -71,7 +71,7 @@ export class MetorialSessionsConnectionsEndpoint {
 
   /**
    * @name Get session connection
-   * @description Retrieves a session connection.
+   * @description Retrieves a specific connection from a session.
    *
    * @param `sessionConnectionId` - string
    * @param `opts` - { headers?: Record<string, string> }

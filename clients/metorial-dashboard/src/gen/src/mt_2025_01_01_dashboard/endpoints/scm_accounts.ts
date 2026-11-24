@@ -12,7 +12,7 @@ import {
 
 /**
  * @name SCM Accounts controller
- * @description An SCM account is a user or organization on a source control provider. This previews the accounts an installation can access.
+ * @description Preview SCM accounts from an installation.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

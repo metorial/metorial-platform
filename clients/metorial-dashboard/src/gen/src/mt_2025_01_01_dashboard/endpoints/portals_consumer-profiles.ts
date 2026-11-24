@@ -28,7 +28,7 @@ import {
 
 /**
  * @name Portal Consumer Profiles controller
- * @description A portal consumer profile is the identity of one person on a portal. Group assignments decide what the consumer can access.
+ * @description Manage the consumers and effective group assignments for a portal.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -89,7 +89,7 @@ export class MetorialPortalsConsumerProfilesEndpoint {
 
   /**
    * @name Get portal consumer profile
-   * @description Retrieves a portal consumer profile.
+   * @description Retrieves a portal consumer profile by ID.
    *
    * @param `portalId` - string
    * @param `consumerProfileId` - string
@@ -118,7 +118,7 @@ export class MetorialPortalsConsumerProfilesEndpoint {
 
   /**
    * @name Create portal consumer profile
-   * @description Creates a portal consumer profile.
+   * @description Creates a new portal consumer profile.
    *
    * @param `portalId` - string
    * @param `body` - DashboardInstancePortalsConsumerProfilesCreateBody

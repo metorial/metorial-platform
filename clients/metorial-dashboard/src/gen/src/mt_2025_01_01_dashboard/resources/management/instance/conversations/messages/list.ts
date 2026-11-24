@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceConversationsMessagesListOutput = {
-  object: 'list';
   items: {
     object: 'assistant.message';
     id: string;
@@ -113,12 +112,7 @@ export type ManagementInstanceConversationsMessagesListOutput = {
     items: Record<string, any>[];
     createdAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapManagementInstanceConversationsMessagesListOutput =

@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Skill Exports controller
- * @description A skill export is a zip file containing a skill, plugin, or marketplace.
+ * @description Export skills, skill plugins, and skill marketplaces as zip files.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

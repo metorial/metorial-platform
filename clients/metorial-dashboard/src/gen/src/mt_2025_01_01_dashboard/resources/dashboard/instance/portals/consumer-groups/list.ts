@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstancePortalsConsumerGroupsListOutput = {
-  object: 'list';
   items: ({
     object: 'consumer.group';
     id: string;
@@ -12,12 +11,7 @@ export type DashboardInstancePortalsConsumerGroupsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   } & { isManaged: boolean; isDefaultEveryoneGroup: boolean })[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstancePortalsConsumerGroupsListOutput =

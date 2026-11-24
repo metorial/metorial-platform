@@ -1,7 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProtoGuardSuppressionsListOutput = {
-  object: 'list';
   items: {
     object: 'protoguard.suppression';
     id: string;
@@ -21,12 +20,7 @@ export type DashboardInstanceProtoGuardSuppressionsListOutput = {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  pagination: {
-    hasMoreBefore: boolean;
-    hasMoreAfter: boolean;
-    before?: string | undefined;
-    after?: string | undefined;
-  };
+  pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
 export let mapDashboardInstanceProtoGuardSuppressionsListOutput =

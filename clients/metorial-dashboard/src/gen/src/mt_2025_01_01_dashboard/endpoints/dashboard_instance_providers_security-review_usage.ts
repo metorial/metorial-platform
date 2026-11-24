@@ -10,7 +10,7 @@ import {
 
 /**
  * @name Provider Security Reviews controller
- * @description A provider security review is an assessment of how trustworthy a provider version is and what its tools can do. Reviews of Metorial integrations are shared across organizations; reviews of custom providers are private to the organization.
+ * @description An AI security review assesses how trustworthy a provider version is and what its tools can do. Reviews of Metorial integrations are shared across organizations; reviews of custom providers are private to the organization.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
