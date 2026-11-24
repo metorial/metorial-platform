@@ -59,7 +59,6 @@ describe('module-auth provider OAuth setups', () => {
 
   it('requires OAuth credentials and an OAuth auth method before contacting the backend', async () => {
     let name = uniqueId('rejected-oauth-setup');
-    let credentials = await seedCredentials(scope, provider);
 
     await expectServiceError(
       providerOAuthSetupService.createProviderOAuthSetup({
@@ -69,6 +68,9 @@ describe('module-auth provider OAuth setups', () => {
       }),
       'missing_auth_credentials'
     );
+
+    let credentials = await seedCredentials(scope, provider);
+
     await expectServiceError(
       providerOAuthSetupService.createProviderOAuthSetup({
         instance: scope.instance,
