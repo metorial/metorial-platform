@@ -79,9 +79,9 @@ func TestAdminServesPageAndAssets(t *testing.T) {
 		contentType string
 		contains    string
 	}{
-		{"/system/errors", "text/html", `<script src="/system/errors/assets/app.js"`},
+		{"/system/errors", "text/html", `<script src="/system/errors/assets/portal.js"`},
 		{"/system/errors/", "text/html", "Error Reports"},
-		{"/system/errors/assets/app.js", "text/javascript", "report.${kind}"},
+		{"/system/errors/assets/portal.js", "text/javascript", "report.${kind}"},
 		{"/system/errors/assets/app.css", "text/css", "--bg"},
 		{"/system/errors/assets/logo.svg", "image/svg+xml", "<svg"},
 	} {
@@ -110,7 +110,8 @@ func TestAdminRejectsUnknownAssets(t *testing.T) {
 	handler := newAdmin(&adminSource{})
 
 	for _, path := range []string{
-		"/system/errors/assets/index.html",
+		"/system/errors/assets/portal.html",
+		"/system/errors/assets/report.js",
 		"/system/errors/assets/missing.js",
 		"/system/errors/assets/app.go",
 		"/system/errors/assets/..%2fui.go",
@@ -162,12 +163,12 @@ func TestAdminRejectsInvalidWindow(t *testing.T) {
 
 func TestIsUIPath(t *testing.T) {
 	for path, want := range map[string]bool{
-		"/system/errors":               true,
-		"/system/errors/":              true,
-		"/system/errors/assets/app.js": true,
-		"/system/errors/report.json":   false,
-		"/system/errors/report.zip":    false,
-		"/system/errorsx":              false,
+		"/system/errors":                  true,
+		"/system/errors/":                 true,
+		"/system/errors/assets/portal.js": true,
+		"/system/errors/report.json":      false,
+		"/system/errors/report.zip":       false,
+		"/system/errorsx":                 false,
 	} {
 		if got := IsUIPath(path); got != want {
 			t.Fatalf("IsUIPath(%q) = %v, want %v", path, got, want)

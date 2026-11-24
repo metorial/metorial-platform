@@ -1,10 +1,6 @@
 (() => {
   let HOUR = 36e5;
   let DAY = 864e5;
-  let WINDOW_CHOICES = [1, 7, 30, 90, 180];
-  let DEFAULT_DAYS = 30;
-  let STARTING_RETRY_MS = 5000;
-  let OUTAGE_RETRY_MS = 15000;
   let MONTHS = [
     'Jan',
     'Feb',
@@ -23,21 +19,16 @@
   let PALETTE = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)'];
   let OTHER_COLOR = 'var(--c6)';
 
-  let base = location.pathname.replace(/\/+$/, '') || '/system/errors';
+  let embedded = JSON.parse(document.getElementById('report-data').textContent);
   let nf = new Intl.NumberFormat('en-US');
 
   let icons = {
     check:
       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>',
     warn: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2 1.5 13.5h13L8 2Z"/><path d="M8 6.5v3M8 11.5v.01"/></svg>',
-    plug: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 14 5 11M6 4l6 6M10 2 8 4M14 6l-2 2M5.5 7.5l3 3-1.5 1.5a2.12 2.12 0 0 1-3-3l1.5-1.5Z"/></svg>',
-    clock:
-      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>',
     close:
       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
-    copy: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>',
-    download:
-      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>'
+    copy: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>'
   };
 
   let $ = selector => document.querySelector(selector);
@@ -74,7 +65,6 @@
   let windowShort = days => (days === 1 ? '24 hours' : `${days} days`);
 
   let state = {
-    days: DEFAULT_DAYS,
     component: '',
     q: '',
     level: 'all',
@@ -83,90 +73,17 @@
     open: null
   };
 
-  let readUrl = () => {
-    let params = new URLSearchParams(location.search);
-    let days = parseInt(params.get('days') || '', 10);
-    if (days > 0) state.days = days;
-
-    state.component = params.get('component') || '';
-    state.q = params.get('q') || '';
-    if (['error', 'warning'].includes(params.get('level'))) state.level = params.get('level');
-    state.newOnly = params.get('new') === '1';
-    if (['recent', 'newest'].includes(params.get('sort'))) state.sort = params.get('sort');
-
-    let open = parseInt(params.get('issue') || '', 10);
-    state.open = open > 0 ? open : null;
-  };
-
-  let writeUrl = () => {
-    let params = new URLSearchParams();
-    if (state.days !== DEFAULT_DAYS) params.set('days', String(state.days));
-    if (state.component) params.set('component', state.component);
-    if (state.q) params.set('q', state.q);
-    if (state.level !== 'all') params.set('level', state.level);
-    if (state.newOnly) params.set('new', '1');
-    if (state.sort !== 'count') params.set('sort', state.sort);
-    if (state.open != null) params.set('issue', String(state.open));
-
-    let search = params.toString();
-    history.replaceState(null, '', `${base}${search ? `?${search}` : ''}`);
-  };
-
-  // Reports are fetched per period and filtered by component in the browser. Only when the
-  // collector cut the list short is a component's own report fetched, so none of its groups is lost.
-  let cache = new Map();
-
-  let reportUrl = (kind, days, component) => {
-    let params = new URLSearchParams({ days: String(days) });
-    if (component) params.set('component', component);
-    return `${base}/report.${kind}?${params}`;
-  };
-
-  class LoadError extends Error {
-    constructor(kind, message, status) {
-      super(message);
-      this.kind = kind;
-      this.status = status;
-    }
-  }
-
-  let fetchReport = (days, component) => {
-    let key = `${days}|${component}`;
-    if (cache.has(key)) return cache.get(key);
-
-    let requestedAt = Date.now();
-    let promise = fetch(reportUrl('json', days, component), {
-      headers: { accept: 'application/json' },
-      credentials: 'same-origin',
-      cache: 'no-store'
-    })
-      .catch(() => {
-        throw new LoadError('outage', 'The page could not reach the server.');
-      })
-      .then(async response => {
-        if (response.ok) return prepare(await response.json(), requestedAt);
-
-        let text = (await response.text().catch(() => '')).trim();
-        if (response.status === 503 && /connecting/i.test(text))
-          throw new LoadError('starting', text, 503);
-        if (response.status === 400) throw new LoadError('invalid', text, 400);
-        if (response.status === 401 || response.status === 403)
-          throw new LoadError('denied', text, response.status);
-        if (response.status === 502 || response.status === 504)
-          throw new LoadError('outage', text, response.status);
-        throw new LoadError(
-          'failed',
-          text || `The collector answered with status ${response.status}.`,
-          response.status
-        );
-      });
-
-    cache.set(key, promise);
-    promise.catch(() => cache.delete(key));
-    return promise;
-  };
-
   let parseTime = value => (value ? Date.parse(value) : 0);
+
+  let sampleDetails = sample => (sample && sample.contexts && sample.contexts.details) || {};
+
+  let sampleLog = sample =>
+    (sample && sample.contexts && sample.contexts.log && sample.contexts.log.lines) || [];
+
+  let detailLabel = key => {
+    let label = key.replace(/_ms$/, ' (ms)').replace(/[_.]+/g, ' ');
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
 
   let prepare = (report, requestedAt) => {
     let manifest = report.manifest;
@@ -195,6 +112,9 @@
       let firstSample = raw.first_sample || null;
       let bootStep = (latestSample && latestSample.tags && latestSample.tags.boot_step) || '';
       let firstSeen = parseTime(raw.first_seen);
+      let tags = (latestSample && latestSample.tags) || {};
+      let details = sampleDetails(latestSample);
+      let subject = [tags.integration, tags.step].filter(Boolean).join(' · ');
 
       return {
         raw,
@@ -217,7 +137,17 @@
         firstSample,
         bootStep,
         isNew: firstSeen >= from,
-        search: `${raw.type} ${raw.value} ${raw.culprit} ${raw.component}`.toLowerCase()
+        subject,
+        search: [
+          raw.type,
+          raw.value,
+          raw.culprit,
+          raw.component,
+          ...Object.values(tags),
+          ...Object.values(details)
+        ]
+          .join(' ')
+          .toLowerCase()
       };
     });
 
@@ -254,10 +184,7 @@
     };
   };
 
-  let current = null;
-  let scopedReport = null;
-  let loadToken = 0;
-  let retryTimer = null;
+  let current = prepare(embedded, Date.now());
 
   let now = () => Date.now() + (current ? current.clockOffset : 0);
 
@@ -268,118 +195,6 @@
     if (s < 86400) return `${Math.round(s / 3600)} h ago`;
     let d = Math.round(s / 86400);
     return d === 1 ? 'yesterday' : `${d} days ago`;
-  };
-
-  let load = async () => {
-    let token = ++loadToken;
-    clearTimeout(retryTimer);
-
-    try {
-      let report = await fetchReport(state.days, '');
-      let scoped = report;
-      if (state.component && report.truncated)
-        scoped = await fetchReport(state.days, state.component);
-      if (token !== loadToken) return;
-
-      current = report;
-      scopedReport = scoped;
-      render();
-    } catch (error) {
-      if (token !== loadToken) return;
-      handleLoadError(error);
-    }
-  };
-
-  let handleLoadError = error => {
-    if (error.kind === 'invalid') {
-      let match = /between 1 and (\d+)/.exec(error.message);
-      let maxDays = match ? parseInt(match[1], 10) : 0;
-      if (maxDays > 0 && state.days > maxDays) {
-        state.days = WINDOW_CHOICES.filter(d => d <= maxDays).pop() || maxDays;
-        writeUrl();
-        load();
-        return;
-      }
-    }
-
-    current = null;
-    scopedReport = null;
-    renderProblem(error);
-  };
-
-  let setToolbarEnabled = enabled => {
-    $('#open-download').disabled = !enabled;
-    document
-      .querySelectorAll('#window button, #component, #search')
-      .forEach(el => (el.disabled = !enabled));
-  };
-
-  let renderProblem = error => {
-    setToolbarEnabled(false);
-    document
-      .querySelectorAll('#window button')
-      .forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.days === state.days)));
-    $('#subtitle').innerHTML = '';
-    $('#foot-meta').textContent = `Last checked ${fmtDateTime(Date.now())}`;
-
-    let retryIn =
-      error.kind === 'starting'
-        ? STARTING_RETRY_MS
-        : error.kind === 'outage'
-          ? OUTAGE_RETRY_MS
-          : 0;
-    let content;
-
-    if (error.kind === 'starting') {
-      content = `
-        <div class="panel outage">
-          <div class="icon" style="background:var(--warn-bg);color:var(--warn)">${icons.clock}</div>
-          <div>
-            <h3>The error collector is starting</h3>
-            <p>It is still connecting to its database, <span class="mono">metorial_error_collector</span>. Errors that arrive in the meantime are kept in memory and counted once the database is ready.</p>
-            <p>If this does not go away within a few minutes, the System Doctor's Error Collector check shows what is failing.</p>
-            <div class="actions"><a class="btn" href="/system/doctor">Open System Doctor</a><span class="retrying">Checking again every few seconds…</span></div>
-          </div>
-        </div>`;
-    } else if (error.kind === 'denied') {
-      content = `
-        <div class="panel outage">
-          <div class="icon">${icons.warn}</div>
-          <div>
-            <h3>Your access to this page expired</h3>
-            <p>Open Error Reports from the license portal again to continue.</p>
-            <div class="actions"><a class="btn primary" href="/license">Open License Portal</a></div>
-          </div>
-        </div>`;
-    } else if (error.kind === 'outage') {
-      content = `
-        <div class="panel outage">
-          <div class="icon">${icons.plug}</div>
-          <div>
-            <h3>The error collector is not responding</h3>
-            <p>The gateway could not reach the <span class="mono">error-collector</span> component. Components keep running and still write errors to their logs, but nothing new is counted until the collector is back.</p>
-            <ol>
-              <li>In Kubernetes, check that its pods are running: <code>kubectl get pods -l app.kubernetes.io/component=error-collector</code></li>
-              <li>On a single box, run <code>metorial status</code>.</li>
-              <li>Open the System Doctor. Its Error Collector check shows whether the collector can reach its database.</li>
-            </ol>
-            <div class="actions"><a class="btn primary" href="/system/doctor">Open System Doctor</a><button class="btn" type="button" data-retry>Try Again</button></div>
-          </div>
-        </div>`;
-    } else {
-      content = `
-        <div class="panel outage">
-          <div class="icon">${icons.warn}</div>
-          <div>
-            <h3>The report could not be loaded</h3>
-            <p>${esc(error.message || 'Something went wrong while loading the report.')}</p>
-            <div class="actions"><button class="btn primary" type="button" data-retry>Try Again</button><a class="btn" href="/system/doctor">Open System Doctor</a></div>
-          </div>
-        </div>`;
-    }
-
-    $('#content').innerHTML = content;
-    if (retryIn) retryTimer = setTimeout(load, retryIn);
   };
 
   let niceMax = v => {
@@ -578,8 +393,7 @@
 
   let compute = () => {
     let report = current;
-    let source = state.component ? scopedReport || report : report;
-    let scoped = source.issues.filter(
+    let scoped = report.issues.filter(
       i => !state.component || i.component === state.component
     );
     let q = state.q.trim().toLowerCase();
@@ -599,17 +413,10 @@
     };
     list.sort(sorters[state.sort]);
 
-    return { report, source, scoped, list };
+    return { report, scoped, list };
   };
 
-  let findIssue = id => {
-    if (!current) return null;
-    for (let report of [scopedReport, current]) {
-      let found = report && report.issues.find(i => i.id === id);
-      if (found) return found;
-    }
-    return null;
-  };
+  let findIssue = id => current.issues.find(i => i.id === id) || null;
 
   let renderSubtitle = report => {
     let parts = [];
@@ -619,18 +426,18 @@
       parts.push(
         `<span>Latest release with errors: <span class="mono">${esc(report.latest)}</span></span>`
       );
-    parts.push(`<span>Updated ${esc(fmtDateTime(report.generatedAt || Date.now()))}</span>`);
+    parts.push(
+      `<span>${esc(windowShort(report.days))}, ${esc(fmtDate(report.from))} – ${esc(fmtDate(report.to))}</span>`
+    );
+    if (report.manifest.component)
+      parts.push(
+        `<span>Only <span class="mono">${esc(report.manifest.component)}</span></span>`
+      );
+    parts.push(`<span>Exported ${esc(fmtDateTime(report.generatedAt))}</span>`);
     $('#subtitle').innerHTML = parts.join('');
   };
 
   let renderToolbar = report => {
-    let maxDays = report.retention.days || 180;
-    document.querySelectorAll('#window button').forEach(b => {
-      let days = +b.dataset.days;
-      b.setAttribute('aria-pressed', String(days === state.days));
-      b.disabled = days > maxDays;
-    });
-
     let select = $('#component');
     let options = report.components.map(c => c.component);
     if (state.component && !options.includes(state.component)) options.push(state.component);
@@ -648,9 +455,6 @@
   };
 
   let render = () => {
-    if (!current) return;
-
-    setToolbarEnabled(true);
     let { report, scoped, list } = compute();
     renderSubtitle(report);
     renderToolbar(report);
@@ -669,9 +473,6 @@
     let lastEvent = scoped.reduce((a, i) => Math.max(a, i.lastSeen), 0);
     let componentCount = new Set(scoped.map(i => i.component)).size;
     let overflowIssues = scoped.filter(i => i.overflow);
-    let shownTruncated = state.component
-      ? (scopedReport || report).truncated
-      : report.truncated;
 
     let layers;
     if (state.component) {
@@ -683,14 +484,12 @@
         }
       ];
     } else {
-      layers = components
-        .slice(0, PALETTE.length)
-        .map(c => ({
-          name: c.component,
-          color: colorFor(report, c.component),
-          values: c.series,
-          component: c.component
-        }));
+      layers = components.slice(0, PALETTE.length).map(c => ({
+        name: c.component,
+        color: colorFor(report, c.component),
+        values: c.series,
+        component: c.component
+      }));
       let rest = components.slice(PALETTE.length);
       if (rest.length) {
         layers.push({
@@ -732,7 +531,7 @@
           <span class="stripe ${esc(i.level)}"></span>
           <span class="main">
             <span class="title"><b>${esc(i.type)}</b>${esc(i.value)}</span>
-            <span class="meta"><span class="comp"><i class="sw" style="background:${colorFor(report, i.component)}"></i>${esc(i.component)}</span>${i.culprit ? `<span class="culprit">${esc(i.culprit)}</span>` : ''}${badges(i, report)}</span>
+            <span class="meta"><span class="comp"><i class="sw" style="background:${colorFor(report, i.component)}"></i>${esc(i.component)}</span>${i.culprit || i.subject ? `<span class="culprit">${esc(i.culprit || i.subject)}</span>` : ''}${badges(i, report)}</span>
           </span>
           <span class="trend">${spark(i.series, colorFor(report, i.component))}</span>
           <span class="cnt">${nf.format(i.count)}</span>
@@ -746,7 +545,7 @@
       emptyList = `<div class="empty"><div class="icon">${icons.check}</div><h3>No errors in the ${long}</h3><p>${
         state.component
           ? `<span class="mono">${esc(state.component)}</span> reported no errors in this period.`
-          : 'Components report errors to the collector as they happen. When something fails, it shows up here within a minute.'
+          : 'No component reported an error in this period.'
       }</p></div>`;
     } else if (!list.length) {
       emptyList =
@@ -756,7 +555,7 @@
     let footNotes = [`Counts are ${report.bucket === 'hour' ? 'hourly' : 'daily'} in UTC.`];
     if (report.releases.length)
       footNotes.push('Dashed lines mark the first error from each release.');
-    if (shownTruncated)
+    if (report.truncated)
       footNotes.push(
         `Only the ${nf.format(scoped.length)} error groups with the most errors are listed.`
       );
@@ -767,7 +566,7 @@
         <section class="panel" aria-label="Summary">
           <div class="stats">
             <div class="stat"><div class="label">Errors</div><div class="value">${nf.format(total)}</div><div class="hint">in the ${long}</div></div>
-            <div class="stat"><div class="label">Error Groups</div><div class="value">${nf.format(scoped.length)}${shownTruncated ? '+' : ''}</div><div class="hint">${plural(componentCount, 'component', 'components')}</div></div>
+            <div class="stat"><div class="label">Error Groups</div><div class="value">${nf.format(scoped.length)}${report.truncated ? '+' : ''}</div><div class="hint">${plural(componentCount, 'component', 'components')}</div></div>
             <div class="stat"><div class="label">New</div><div class="value">${nf.format(newCount)}</div><div class="hint">first seen in this period</div></div>
             <div class="stat"><div class="label">Last Error</div><div class="value">${lastEvent ? esc(ago(lastEvent).replace(' ago', '')) : '—'}</div><div class="hint">${lastEvent ? esc(fmtDateTime(lastEvent)) : 'none in this period'}</div></div>
           </div>
@@ -927,8 +726,31 @@
 
     if (sample.message && !exceptions.length)
       parts.push(`<pre class="message">${esc(sample.message)}</pre>`);
+
+    let details = Object.entries(sampleDetails(sample));
+    if (details.length) {
+      parts.push(
+        `<dl class="kv details">${details
+          .map(([k, v]) => `<dt>${esc(detailLabel(k))}</dt><dd>${esc(v)}</dd>`)
+          .join('')}</dl>`
+      );
+    }
+    let log = sampleLog(sample);
+    if (log.length) {
+      parts.push(
+        `<p class="exc-head">Last ${plural(log.length, 'log line', 'log lines')}</p><pre class="message log">${esc(log.join('\n'))}</pre>`
+      );
+    }
+
+    let reportedFailure = exceptions.some(
+      e => e.mechanism && e.mechanism.type === 'metorial.failure' && !e.stacktrace
+    );
     if (issue.overflow)
       parts.push('<p class="note">Errors counted together have no stack trace.</p>');
+    else if (reportedFailure)
+      parts.push(
+        '<p class="note">Reported by the component when it noticed the failure. The details and log say where it happened.</p>'
+      );
     else if (!hasFrames && exceptions.length)
       parts.push('<p class="note">This error was reported without a stack trace.</p>');
     if (hasFrames) {
@@ -976,7 +798,7 @@
         </div>
         <h2 class="dtitle">${esc(issue.type)}</h2>
         ${issue.value ? `<p class="dvalue">${esc(issue.value)}</p>` : ''}
-        ${issue.culprit ? `<p class="dculprit">${esc(issue.culprit)}</p>` : ''}
+        ${issue.culprit || issue.subject ? `<p class="dculprit">${esc(issue.culprit || issue.subject)}</p>` : ''}
         <dl class="dstats">
           <div><dt>${esc(windowShort(report.days))}</dt><dd>${nf.format(issue.count)}</dd></div>
           <div><dt>All Time</dt><dd>${nf.format(issue.total)}</dd></div>
@@ -1052,7 +874,6 @@
 
     if (state.open !== id) sheetState = { sample: 'latest', expanded: false };
     state.open = id;
-    writeUrl();
     if (focus) lastFocus = document.activeElement;
 
     let sheet = $('#sheet');
@@ -1075,7 +896,6 @@
   let closeSheet = () => {
     if (state.open == null) return;
     state.open = null;
-    writeUrl();
 
     let sheet = $('#sheet');
     let overlay = $('#overlay');
@@ -1122,145 +942,15 @@
     if (!copied) throw new Error('copy failed');
   };
 
-  let dl = { days: DEFAULT_DAYS, component: '', report: null, error: null };
-
-  let fileName = report => {
-    let day = t => new Date(t).toISOString().slice(0, 10).replace(/-/g, '');
-    let parts = ['metorial-error-report'];
-    if (report.installation) parts.push(report.installation);
-    parts.push(`${day(report.from)}_${day(report.to)}`);
-    return `${parts.join('-')}.zip`;
-  };
-
-  let renderModal = () => {
-    let report = dl.report;
-    let maxDays = (current && current.retention.days) || 180;
-    let componentNames = new Set((current ? current.components : []).map(c => c.component));
-    if (report) report.components.forEach(c => componentNames.add(c.component));
-    if (dl.component) componentNames.add(dl.component);
-
-    let summary;
-    let ready = false;
-    if (dl.error) {
-      summary = `<span>${esc(dl.error)}</span>`;
-    } else if (!report) {
-      summary = '<span>Counting errors…</span>';
-    } else {
-      let issues = report.issues.filter(i => !dl.component || i.component === dl.component);
-      let total = dl.component
-        ? (report.components.find(c => c.component === dl.component) || { count: 0 }).count
-        : report.manifest.totals.occurrences || 0;
-      let groups = `${nf.format(issues.length)}${report.truncated && !dl.component ? '+' : ''}`;
-      summary = `<span><b>${groups}</b> error ${issues.length === 1 ? 'group' : 'groups'}</span><span><b>${nf.format(total)}</b> errors</span><span>${report.bucket === 'hour' ? 'Hourly' : 'Daily'} counts</span>`;
-      ready = true;
-    }
-
-    $('#modal').innerHTML = `
-      <div class="overlay show" data-dismiss></div>
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dl-title">
-        <div class="modal-body">
-          <h2 id="dl-title">Download Error Report</h2>
-          <p class="lead">A zip file you can review and attach to a support ticket. It contains counts and one scrubbed example per error group, nothing else.</p>
-          <div class="form-row">
-            <label>Period
-              <select class="select" id="dl-period">${WINDOW_CHOICES.filter(d => d <= maxDays)
-                .map(
-                  d =>
-                    `<option value="${d}"${d === dl.days ? ' selected' : ''}>Last ${windowShort(d)}</option>`
-                )
-                .join('')}</select>
-            </label>
-            <label>Components
-              <select class="select" id="dl-component"><option value="">All components</option>${[
-                ...componentNames
-              ]
-                .sort()
-                .map(
-                  c =>
-                    `<option value="${esc(c)}"${c === dl.component ? ' selected' : ''}>${esc(c)}</option>`
-                )
-                .join('')}</select>
-            </label>
-          </div>
-          <div class="summary-line">${summary}</div>
-          <div class="files">
-            <div><code>README.txt</code><span>What the file contains and what was removed</span></div>
-            <div><code>summary.csv</code><span>One row per error group. Open it in a spreadsheet to check the contents before you send it.</span></div>
-            <div><code>issues.json</code><span>Every error group with its counts over time, releases and one example</span></div>
-            <div><code>manifest.json</code><span>Period, totals, retention and the releases of every component</span></div>
-          </div>
-          ${report ? `<p class="filename">${esc(fileName(report))}</p>` : ''}
-        </div>
-        <div class="modal-foot">
-          <button class="btn" type="button" data-dismiss>Cancel</button>
-          <a class="btn primary" href="${esc(reportUrl('zip', dl.days, dl.component))}" data-download${ready ? '' : ' aria-disabled="true" tabindex="-1"'}>${icons.download} Download .zip</a>
-        </div>
-      </div>`;
-  };
-
-  let loadModalReport = async () => {
-    let key = `${dl.days}|${dl.component}`;
-    dl.report = null;
-    dl.error = null;
-    renderModal();
-
-    try {
-      let report = await fetchReport(dl.days, '');
-      if (dl.component && report.truncated) report = await fetchReport(dl.days, dl.component);
-      if (`${dl.days}|${dl.component}` !== key || $('#modal').hidden) return;
-      dl.report = report;
-    } catch (error) {
-      if (`${dl.days}|${dl.component}` !== key || $('#modal').hidden) return;
-      dl.error =
-        error.kind === 'outage'
-          ? 'The error collector is not responding.'
-          : 'The report could not be prepared.';
-    }
-
-    let focused = document.activeElement && document.activeElement.id;
-    renderModal();
-    if (focused && document.getElementById(focused)) document.getElementById(focused).focus();
-  };
-
-  let openModal = () => {
-    if (!current) return;
-    dl = { days: current.days, component: state.component, report: null, error: null };
-    lastFocus = document.activeElement;
-    $('#modal').hidden = false;
-    loadModalReport();
-    $('#dl-period').focus();
-  };
-
-  let closeModal = () => {
-    $('#modal').hidden = true;
-    $('#modal').innerHTML = '';
-    if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
-  };
-
   let setState = patch => {
-    let reload = 'days' in patch && patch.days !== state.days;
-    let refetchComponent =
-      'component' in patch &&
-      patch.component !== state.component &&
-      current &&
-      current.truncated;
     Object.assign(state, patch);
-    writeUrl();
-
-    if (reload || refetchComponent) {
-      if (reload)
-        $('#content').innerHTML = '<div class="panel loading">Loading error reports…</div>';
-      load();
-      return;
-    }
     render();
   };
 
   document.addEventListener('click', event => {
-    let t = event.target.closest('button, a, [data-dismiss]');
+    let t = event.target.closest('button, a');
     if (!t) return;
 
-    if (t.closest('#window') && t.dataset.days) return setState({ days: +t.dataset.days });
     if (t.dataset.level) return setState({ level: t.dataset.level });
     if (t.hasAttribute('data-comp') && !t.closest('#sheet')) {
       return setState({ component: t.dataset.comp === state.component ? '' : t.dataset.comp });
@@ -1271,11 +961,6 @@
     if (t.hasAttribute('data-clear')) {
       $('#search').value = '';
       return setState({ q: '', level: 'all', newOnly: false });
-    }
-
-    if (t.hasAttribute('data-retry')) {
-      $('#content').innerHTML = '<div class="panel loading">Loading error reports…</div>';
-      return load();
     }
 
     if (t.dataset.sample) {
@@ -1301,28 +986,12 @@
       );
       return;
     }
-
-    if (t.id === 'open-download') return openModal();
-
-    if (t.hasAttribute('data-download')) {
-      if (t.getAttribute('aria-disabled') === 'true') {
-        event.preventDefault();
-        return;
-      }
-      setTimeout(closeModal, 0);
-      toast('Preparing the report. Your download starts in a moment.');
-      return;
-    }
-
-    if (t.hasAttribute('data-dismiss')) return closeModal();
   });
 
   $('#overlay').addEventListener('click', closeSheet);
 
   document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
-    if (!$('#modal').hidden) closeModal();
-    else closeSheet();
+    if (event.key === 'Escape') closeSheet();
   });
 
   document.addEventListener('change', event => {
@@ -1330,18 +999,6 @@
     if (id === 'component') setState({ component: event.target.value });
     if (id === 'sort') setState({ sort: event.target.value });
     if (id === 'new-only') setState({ newOnly: event.target.checked });
-
-    if (id === 'dl-period') {
-      dl.days = +event.target.value;
-      loadModalReport();
-      $('#dl-period').focus();
-    }
-
-    if (id === 'dl-component') {
-      dl.component = event.target.value;
-      loadModalReport();
-      $('#dl-component').focus();
-    }
   });
 
   let searchTimer;
@@ -1356,7 +1013,5 @@
     resizeTimer = setTimeout(render, 120);
   });
 
-  readUrl();
-  $('#search').value = state.q;
-  load();
+  render();
 })();

@@ -2,15 +2,17 @@
 
 A small Sentry-compatible error collector for installations without access to Sentry. Services keep
 using their Sentry SDKs; their DSN points here instead. The collector groups the errors, keeps
-counts over time with a scrubbed sample per group in its own PostgreSQL database, and serves an
-error report (HTML page and a zip to send to support).
+counts over time with a scrubbed sample per group in its own PostgreSQL database, and serves a
+download page for the error report, a zip to send to support. The page itself lists no errors. The
+zip includes `report.html`, a viewer with charts, stack traces and the report inlined, which opens
+from disk and blocks every network request.
 
 ## Ports
 
 | Port    | Purpose                                                                              |
 | ------- | ------------------------------------------------------------------------------------ |
 | `8095`  | Ingest: `POST /api/{project}/envelope/` and the legacy `POST /api/{project}/store/`. |
-| `8096`  | Admin: `/system/errors` (page), `/system/errors/report.zip`, `/system/errors/report.json`. No authentication; expose it only to a trusted proxy. |
+| `8096`  | Admin: `/system/errors` (download page), `/system/errors/report.zip`, `/system/errors/report.json`. No authentication; expose it only to a trusted proxy. |
 | `12121` | Health: `/` and `/doctor`.                                                           |
 
 Report endpoints take `days` (default 30, up to the retention), `component` and `limit` (default
