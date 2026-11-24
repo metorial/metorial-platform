@@ -21,6 +21,7 @@ export type ClaudeCodeRequest = {
   cacheReadTokens: number;
   cacheCreationTokens: number;
   costUsd: number;
+  attributes?: Record<string, string>;
 };
 
 type IngestTarget = { ingestUrl: string; secret: string };
@@ -83,7 +84,8 @@ let apiRequestRecord = (request: ClaudeCodeRequest) => ({
     int('output_tokens', request.outputTokens),
     int('cache_read_tokens', request.cacheReadTokens),
     int('cache_creation_tokens', request.cacheCreationTokens),
-    double('cost_usd', request.costUsd)
+    double('cost_usd', request.costUsd),
+    ...Object.entries(request.attributes ?? {}).map(([key, value]) => text(key, value))
   ]
 });
 

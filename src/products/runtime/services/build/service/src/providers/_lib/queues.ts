@@ -1,7 +1,13 @@
 import { createLock } from '@lowerdeck/lock';
-import { combineQueueProcessors, createQueue, type IQueue, type IQueueProcessor } from '@lowerdeck/queue';
-import { db } from '../../db';
+import {
+  combineQueueProcessors,
+  createQueue,
+  type IQueue,
+  type IQueueProcessor
+} from '@lowerdeck/queue';
+import { db, withTransaction } from '../../db';
 import { env } from '../../env';
+import { reportBuildFailure } from '../../lib/reportBuildFailure';
 import { workflowArtifactService } from '../../services';
 import { storage } from '../../storage';
 
@@ -10,17 +16,16 @@ let runLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-export let buildEndedQueue: IQueue<{
+type BuildEnded = {
   runId: string;
   status: 'failed' | 'succeeded';
   endedAt: Date;
+  failure?: { code: string; message: string };
+  infrastructureFailure?: { code: string; message: string };
   stepArtifacts: { stepId: string; bucket: string; storageKey: string }[];
-}, any> = createQueue<{
-  runId: string;
-  status: 'failed' | 'succeeded';
-  endedAt: Date;
-  stepArtifacts: { stepId: string; bucket: string; storageKey: string }[];
-}>({
+};
+
+export let buildEndedQueue: IQueue<BuildEnded, any> = createQueue<BuildEnded>({
   redisUrl: env.service.REDIS_URL,
   name: 'frg/bctx/end',
   workerOpts: { concurrency: 50 }
@@ -28,30 +33,73 @@ export let buildEndedQueue: IQueue<{
 
 let buildEndedQueueProcessor = buildEndedQueue.process(async data => {
   await runLock.usingLock(data.runId, async () => {
-    let run = await db.workflowRun.findFirst({ where: { id: data.runId } });
-    if (!run || run.status == 'succeeded' || run.status == 'failed') return;
+    let { status, timing } = await withTransaction(async () => {
+      let run = await db.workflowRun.findFirst({ where: { id: data.runId } });
+      if (!run || run.status === 'succeeded' || run.status === 'failed')
+        return { status: run?.status };
 
-    await db.workflowRun.updateMany({
-      where: { id: data.runId },
-      data: { status: data.status, endedAt: data.endedAt }
-    });
-    await db.workflowRunStep.updateMany({
-      where: { runOid: run.oid, status: 'running' },
-      data: { status: data.status, endedAt: data.endedAt }
-    });
-    await db.workflowRunStep.updateMany({
-      where: { runOid: run.oid, status: 'pending' },
-      data: { status: 'canceled' }
+      await db.workflowRun.update({
+        where: { oid: run.oid },
+        data: {
+          status: data.status,
+          endedAt: data.endedAt,
+          pendingReason: null,
+          failureCode: data.failure?.code,
+          failureReason: data.failure?.message
+        }
+      });
+      await db.workflowRunStep.updateMany({
+        where: { runOid: run.oid, status: 'running' },
+        data: { status: data.status, endedAt: data.endedAt }
+      });
+      if (data.failure) {
+        await db.workflowRunStep.updateMany({
+          where: { runOid: run.oid, type: 'setup', status: 'pending' },
+          data: { status: 'failed', endedAt: data.endedAt }
+        });
+      }
+      await db.workflowRunStep.updateMany({
+        where: { runOid: run.oid, status: 'pending' },
+        data: { status: 'canceled' }
+      });
+      let queuedAt = run.kubernetesQueuedAt?.getTime();
+      let admittedAt = run.kubernetesAdmittedAt?.getTime();
+      let startedAt = run.startedAt?.getTime();
+      let timing =
+        queuedAt == null
+          ? undefined
+          : {
+              queueWaitMs: (admittedAt ?? data.endedAt.getTime()) - queuedAt,
+              timeToStartMs: startedAt == null ? null : startedAt - queuedAt
+            };
+
+      return { status: data.status, timing };
     });
 
-    if (data.status == 'succeeded') {
-      await createArtifactsQueue.add({
+    if (timing) {
+      console.info('Kubernetes build finished', {
         runId: data.runId,
-        stepArtifacts: data.stepArtifacts
+        status,
+        failureCode: data.failure?.code,
+        ...timing
       });
     }
+    if (status !== data.status) return;
 
-    await storeOutputQueue.add({ runId: data.runId });
+    let failure = data.failure ?? data.infrastructureFailure;
+    if (status === 'failed' && failure) {
+      await reportBuildFailure({ runId: data.runId, failure }).catch(error =>
+        console.error('Could not report build failure', error)
+      );
+    }
+
+    if (status === 'succeeded') {
+      await createArtifactsQueue.add(
+        { runId: data.runId, stepArtifacts: data.stepArtifacts },
+        { id: data.runId }
+      );
+    }
+    await storeOutputQueue.add({ runId: data.runId }, { id: data.runId });
   });
 });
 
@@ -132,6 +180,8 @@ let storeOutputQueueProcessor = storeOutputQueue.process(async data => {
   });
 
   for (let step of steps) {
+    if (step.outputStorageKey) continue;
+
     let outputs = await db.workflowRunOutputTemp.findMany({
       where: { stepOid: step.oid },
       orderBy: { createdAt: 'asc' }

@@ -67,7 +67,7 @@ export class MetorialManagementInstanceChatInstancesEndpoint {
     query?: DashboardInstanceChatInstancesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesListOutput> {
-    let path = `instances/${instanceId}/chat/instances`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialManagementInstanceChatInstancesEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesGetOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialManagementInstanceChatInstancesEndpoint {
     body: DashboardInstanceChatInstancesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesCreateOutput> {
-    let path = `instances/${instanceId}/chat/instances`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialManagementInstanceChatInstancesEndpoint {
     body: DashboardInstanceChatInstancesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesUpdateOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}`;
 
     let request = {
       path,
@@ -190,7 +190,7 @@ export class MetorialManagementInstanceChatInstancesEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesDeleteOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}`;
 
     let request = {
       path,
@@ -219,7 +219,7 @@ export class MetorialManagementInstanceChatInstancesEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesSyncOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}/sync`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}/sync`;
 
     let request = {
       path,

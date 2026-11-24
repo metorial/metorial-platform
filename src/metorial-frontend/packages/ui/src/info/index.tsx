@@ -39,7 +39,7 @@ let Button = styled('button').attrs({
 export let InfoTooltip = (props: { children: React.ReactNode; size?: string | number }) => {
   return (
     <Tooltip content={props.children}>
-      <Button>
+      <Button aria-label="More Information">
         <div
           style={{
             height: props.size ?? 20,

@@ -24,6 +24,10 @@ export {
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
 export { AgentTrackingSettings } from './product/scenes/agentTracking/settings';
+export {
+  useSavedTeamViewsSidebarGroups,
+  useTeamViewSidebarChildren
+} from './product/scenes/agentTracking/views/sidebar';
 export { useSkillsSidebarGroups } from './product/scenes/skills/navigation/sidebarGroups';
 export { useSkillMarketplacesNav } from './product/scenes/skills/navigation/useSkillMarketplacesNav';
 export {

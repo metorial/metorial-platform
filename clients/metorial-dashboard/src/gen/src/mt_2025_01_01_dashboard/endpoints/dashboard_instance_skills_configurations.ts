@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceSkillsConfigurationsEndpoint {
     body: DashboardInstanceSkillsConfigurationsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/configurations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/configurations`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSkillsConfigurationsEndpoint {
     query?: DashboardInstanceSkillsConfigurationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/configurations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/configurations`;
 
     let request = {
       path,
@@ -129,7 +129,7 @@ export class MetorialDashboardInstanceSkillsConfigurationsEndpoint {
     skillConfigurationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/configurations/${skillConfigurationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/configurations/${encodeURIComponent(skillConfigurationId)}`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialDashboardInstanceSkillsConfigurationsEndpoint {
     body: DashboardInstanceSkillsConfigurationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/configurations/${skillConfigurationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/configurations/${encodeURIComponent(skillConfigurationId)}`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialDashboardInstanceSkillsConfigurationsEndpoint {
     skillConfigurationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/configurations/${skillConfigurationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/configurations/${encodeURIComponent(skillConfigurationId)}`;
 
     let request = {
       path,

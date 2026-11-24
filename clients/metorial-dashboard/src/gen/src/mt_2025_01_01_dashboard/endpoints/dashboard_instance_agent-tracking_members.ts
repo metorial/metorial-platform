@@ -4,8 +4,12 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceAgentTrackingMembersInsightsOutput,
+  mapDashboardInstanceAgentTrackingMembersInsightsQuery,
   mapDashboardInstanceAgentTrackingMembersListOutput,
   mapDashboardInstanceAgentTrackingMembersListQuery,
+  type DashboardInstanceAgentTrackingMembersInsightsOutput,
+  type DashboardInstanceAgentTrackingMembersInsightsQuery,
   type DashboardInstanceAgentTrackingMembersListOutput,
   type DashboardInstanceAgentTrackingMembersListQuery
 } from '../resources';
@@ -66,6 +70,38 @@ export class MetorialDashboardInstanceAgentTrackingMembersEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceAgentTrackingMembersListOutput
+    );
+  }
+
+  /**
+   * @name List member insights
+   * @description Returns the members of this instance ranked over a range by cost or another figure, with optional model usage, practices and seat columns, flags for the thresholds passed, and instance totals. Ranks at most 2000 members. Practices and seat need a range of at most 90 days. Pages by item id. Results can be up to a minute old.
+   *
+   * @param `instanceId` - string
+   * @param `query` - DashboardInstanceAgentTrackingMembersInsightsQuery
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceAgentTrackingMembersInsightsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  insights(
+    instanceId: string,
+    query?: DashboardInstanceAgentTrackingMembersInsightsQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceAgentTrackingMembersInsightsOutput> {
+    let path = `dashboard/instances/${instanceId}/agent-tracking/members/insights`;
+
+    let request = {
+      path,
+
+      query: query
+        ? mapDashboardInstanceAgentTrackingMembersInsightsQuery.transformTo(query)
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceAgentTrackingMembersInsightsOutput
     );
   }
 }

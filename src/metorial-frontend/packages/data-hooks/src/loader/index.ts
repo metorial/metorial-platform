@@ -67,6 +67,7 @@ export let createLoader = <
     state: Observable<LoaderState<I, O>>;
     lastFetchedAt: number;
     active: boolean;
+    invalidated: boolean;
   };
 
   let states = allStates.get(opts.name) as Map<string, State>;
@@ -87,7 +88,8 @@ export let createLoader = <
           error: null
         }),
         lastFetchedAt: 0,
-        active: false
+        active: false,
+        invalidated: false
       };
 
       states.set(hash, state);
@@ -157,13 +159,13 @@ export let createLoader = <
     let fetchInner = async (input: I, fetchOpts?: { force?: boolean }) => {
       if (typeof window == 'undefined') return;
 
-      if (current.active) {
-        // If the fetch is already in progress, wait for it to complete
+      while (current.active) {
         if (fetchOpts?.force) await new Promise(r => current.state.subscribeOnce(r));
         else return;
       }
 
       current.active = true;
+      current.invalidated = false;
 
       console.log(`[${opts.name}] Fetching`, { input });
 
@@ -215,12 +217,18 @@ export let createLoader = <
       } finally {
         current.active = false;
         current.lastFetchedAt = Date.now();
+
+        if (current.invalidated && current.state.hasSubscribers()) void fetchInner(input);
       }
     };
 
     let fetch = async (input: I, fetchOpts?: { force?: boolean }) => {
-      if (!fetchOpts?.force && Date.now() - current.lastFetchedAt < 10_000)
-        return Promise.resolve();
+      if (
+        !fetchOpts?.force &&
+        !current.invalidated &&
+        Date.now() - current.lastFetchedAt < 10_000
+      )
+        return;
 
       await fetchInner(input, fetchOpts);
     };
@@ -253,6 +261,18 @@ export let createLoader = <
         // into stale cached variants from previously visited screens.
         if (!state.state.hasSubscribers()) continue;
         getInstance(state.state.value!.input!).fetch({ force: true });
+      }
+    }
+  };
+
+  let invalidate = (matches: (input: I) => boolean) => {
+    for (let state of states.values()) {
+      let { input } = state.state.value;
+      if (!matches(input)) continue;
+
+      state.invalidated = true;
+      if (state.state.hasSubscribers() && !state.active) {
+        void getInstance(input).fetch();
       }
     }
   };
@@ -366,6 +386,7 @@ export let createLoader = <
       });
 
   return {
+    invalidate,
     refetchAll,
     $$refetchAll$$: refetchAll,
 

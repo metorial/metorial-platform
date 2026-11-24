@@ -63,7 +63,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsImportsEndp
     query?: DashboardInstanceProviderDeploymentsAuthConfigsImportsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsListOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-imports`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsImportsEndp
     providerAuthImportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-imports/${providerAuthImportId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports/${encodeURIComponent(providerAuthImportId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsImportsEndp
     body: DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsCreateOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-imports`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceProviderDeploymentsAuthConfigsImportsEndp
     query?: DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsImportsGetSchemaOutput> {
-    let path = `instances/${instanceId}/provider-auth-config-imports/schema`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-auth-config-imports/schema`;
 
     let request = {
       path,

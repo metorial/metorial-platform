@@ -49,7 +49,7 @@ export class MetorialDocumentsPermissionsEndpoint {
     documentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsPermissionsGetOutput> {
-    let path = `documents/${documentId}/permissions`;
+    let path = `documents/${encodeURIComponent(documentId)}/permissions`;
 
     let request = {
       path,

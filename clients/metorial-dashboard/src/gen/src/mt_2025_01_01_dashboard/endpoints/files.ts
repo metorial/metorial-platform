@@ -83,7 +83,7 @@ export class MetorialFilesEndpoint {
     fileId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesGetOutput> {
-    let path = `files/${fileId}`;
+    let path = `files/${encodeURIComponent(fileId)}`;
 
     let request = {
       path,
@@ -108,7 +108,7 @@ export class MetorialFilesEndpoint {
     fileId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesDeleteOutput> {
-    let path = `files/${fileId}`;
+    let path = `files/${encodeURIComponent(fileId)}`;
 
     let request = {
       path,

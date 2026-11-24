@@ -1,17 +1,15 @@
-import { PrismaPg } from '@prisma/adapter-pg';
-import type { PoolConfig } from 'pg';
-import { RetryingPool } from './retryingPool';
-import type { PrismaPgAdapterOptions } from './reporting';
-
+export { createPrismaPgAdapter } from './adapter';
+export {
+  createDatabase,
+  DatabaseConfigError,
+  resolveDatabaseUrls,
+  type DatabaseOptions
+} from './database';
+export { ReadOnlyPrimaryError } from './pool';
+export { isReplicaReadScope, withPrimaryReads, withReplicaReads } from './readRouting';
 export type { PrismaPgAdapterOptions } from './reporting';
-
-export let createPrismaPgAdapter = (
-  poolConfig: PoolConfig,
-  options: PrismaPgAdapterOptions
-): PrismaPg => {
-  if (options.environment !== 'development' && options.environment !== 'staging') {
-    return new PrismaPg(poolConfig);
-  }
-
-  return new PrismaPg(new RetryingPool(poolConfig, options), { disposeExternalPool: true });
-};
+export {
+  createTransactionManager,
+  type TransactionClientOf,
+  type WithTransactionOptions
+} from './transactions';

@@ -123,7 +123,7 @@ export class MetorialSkillsConfigurationsEndpoint {
     skillConfigurationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsGetOutput> {
-    let path = `skills/configurations/${skillConfigurationId}`;
+    let path = `skills/configurations/${encodeURIComponent(skillConfigurationId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialSkillsConfigurationsEndpoint {
     body: DashboardInstanceSkillsConfigurationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsUpdateOutput> {
-    let path = `skills/configurations/${skillConfigurationId}`;
+    let path = `skills/configurations/${encodeURIComponent(skillConfigurationId)}`;
 
     let request = {
       path,
@@ -182,7 +182,7 @@ export class MetorialSkillsConfigurationsEndpoint {
     skillConfigurationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsConfigurationsDeleteOutput> {
-    let path = `skills/configurations/${skillConfigurationId}`;
+    let path = `skills/configurations/${encodeURIComponent(skillConfigurationId)}`;
 
     let request = {
       path,

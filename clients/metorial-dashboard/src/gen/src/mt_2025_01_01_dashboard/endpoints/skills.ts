@@ -105,7 +105,7 @@ export class MetorialSkillsEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGetOutput> {
-    let path = `skills/${skillId}`;
+    let path = `skills/${encodeURIComponent(skillId)}`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialSkillsEndpoint {
     body: DashboardInstanceSkillsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsUpdateOutput> {
-    let path = `skills/${skillId}`;
+    let path = `skills/${encodeURIComponent(skillId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialSkillsEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsDeleteOutput> {
-    let path = `skills/${skillId}`;
+    let path = `skills/${encodeURIComponent(skillId)}`;
 
     let request = {
       path,
@@ -217,7 +217,7 @@ export class MetorialSkillsEndpoint {
     body: DashboardInstanceSkillsForkBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsForkOutput> {
-    let path = `skills/${skillId}/fork`;
+    let path = `skills/${encodeURIComponent(skillId)}/fork`;
 
     let request = {
       path,
@@ -243,7 +243,7 @@ export class MetorialSkillsEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPublishConsumerSkillOutput> {
-    let path = `skills/${skillId}/publish`;
+    let path = `skills/${encodeURIComponent(skillId)}/publish`;
 
     let request = {
       path,
@@ -272,7 +272,7 @@ export class MetorialSkillsEndpoint {
     body: DashboardInstanceSkillsShareBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsShareOutput> {
-    let path = `skills/${skillId}/shares`;
+    let path = `skills/${encodeURIComponent(skillId)}/shares`;
 
     let request = {
       path,
@@ -300,7 +300,7 @@ export class MetorialSkillsEndpoint {
     body: DashboardInstanceSkillsDuplicateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsDuplicateOutput> {
-    let path = `skills/${skillId}/duplicate`;
+    let path = `skills/${encodeURIComponent(skillId)}/duplicate`;
 
     let request = {
       path,

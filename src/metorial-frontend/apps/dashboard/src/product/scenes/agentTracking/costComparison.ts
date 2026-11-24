@@ -1,5 +1,5 @@
 import { formatNumber } from '@metorial/chart';
-import { formatRequests } from './sessionParts';
+import { formatRequests } from './spendSummary';
 
 let listPriceSentence = (d: {
   listPriceMicros: number | null;

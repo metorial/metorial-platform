@@ -1,5 +1,6 @@
 import {
   badRequestError,
+  isServiceError,
   notFoundError,
   preconditionFailedError,
   ServiceError
@@ -16,6 +17,8 @@ import {
   type IntegrationProvider,
   type IntegrationProviderStatus,
   type Provider,
+  type ProviderAuthCredentials,
+  type ProviderAuthMethod,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
   type ProviderType,
@@ -39,7 +42,10 @@ import {
   resolveProviderDeployments,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { providerAuthCredentialsService } from '@metorial-subspace/module-auth';
+import {
+  providerAuthConfigInternalService,
+  providerAuthCredentialsService
+} from '@metorial-subspace/module-auth';
 import { callbackInclude, callbackInternalService } from '@metorial-subspace/module-callback';
 import { providerAuthMethodService, providerService } from '@metorial-subspace/module-catalog';
 import {
@@ -138,19 +144,18 @@ let assertCallbacksAllowed = (d: {
   }
 };
 
-let resolveAuthMethod = async (d: {
+let listDeploymentAuthMethods = async (d: {
   tenant: Tenant;
   environment: Environment;
-  provider: Provider & { type: ProviderType; defaultVariant: ProviderVariant | null };
+  provider: Provider & { defaultVariant: ProviderVariant | null };
   deployment: ProviderDeployment & { currentVersion: ProviderDeploymentVersion | null };
-  hasAuthCredentials: boolean;
 }) => {
   let version = await providerDeploymentInternalService.getCurrentVersion({
     environment: d.environment,
     deployment: d.deployment,
     provider: d.provider
   });
-  if (!version) return null;
+  if (!version) return [];
 
   let paginator = await providerAuthMethodService.listProviderAuthMethodsInternal({
     tenant: d.tenant,
@@ -158,22 +163,18 @@ let resolveAuthMethod = async (d: {
     providerVersion: version,
     applyAuthMethodPolicy: false
   });
-  let authMethods = await paginator.run({ limit: 100 });
-  if (!authMethods.items.length) return null;
-
-  if (!d.hasAuthCredentials && !d.provider.type.supportsOAuthAutoRegistration) {
-    let nonOAuth = authMethods.items.find(m => m.type !== 'oauth');
-    if (nonOAuth) return nonOAuth;
-  }
-
-  let oauth = authMethods.items.find(m => m.type === 'oauth');
-  if (oauth) return oauth;
-
-  let defaultAM = authMethods.items.find(m => m.isDefault);
-  if (defaultAM) return defaultAM;
-
-  return authMethods.items[0];
+  return (await paginator.run({ limit: 100 })).items;
 };
+
+let isManagedOAuthCredentials = (credentials?: ProviderAuthCredentials | null) =>
+  credentials?.origin === 'installation_template' ||
+  credentials?.origin === 'managed_backing' ||
+  credentials?.origin === 'managed_public';
+
+let isManagedCredentialsMethodError = (error: unknown) =>
+  isServiceError(error) &&
+  (error.data.code === 'managed_credentials_auth_method_mismatch' ||
+    error.data.code === 'managed_credentials_auth_method_unavailable');
 
 let validateMaterialInput = async (d: {
   tenant: Tenant;
@@ -236,17 +237,68 @@ let validateMaterialInput = async (d: {
     );
   }
 
-  let authMethod = explicitAuthMethod;
-  let authCredentials = explicitAuthCredentials;
+  let authMethod: ProviderAuthMethod | null = explicitAuthMethod;
+  let authCredentials: ProviderAuthCredentials | null = explicitAuthCredentials;
 
-  if (!authMethod && d.provider.type.supportsAuth) {
-    authMethod = await resolveAuthMethod({
+  let authMethods =
+    !authMethod && d.provider.type.supportsAuth
+      ? await listDeploymentAuthMethods({ ...d, deployment })
+      : [];
+
+  if (
+    !authCredentials &&
+    d.provider.type.supportsAuth &&
+    !d.provider.type.supportsOAuthAutoRegistration &&
+    (!authMethod || authMethod.type === 'oauth')
+  ) {
+    if (authMethod) {
+      let resolved = await providerAuthConfigInternalService.getVersionAndAuthMethod({
+        tenant: d.tenant,
+        environment: d.environment,
+        provider: d.provider,
+        providerDeployment: deployment,
+        authMethodId: authMethod.id
+      });
+      authMethod = resolved.authMethod;
+      if (authMethod.type === 'oauth') {
+        authCredentials =
+          await providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal({
+            tenant: d.tenant,
+            environment: d.environment,
+            provider: d.provider,
+            authMethod
+          });
+      }
+    } else {
+      authCredentials =
+        await providerAuthCredentialsService.getInstallationTemplateDefaultInternal({
+          tenant: d.tenant,
+          provider: d.provider,
+          authMethods: authMethods.filter(method => method.type === 'oauth')
+        });
+    }
+  }
+
+  if (authCredentials && isManagedOAuthCredentials(authCredentials)) {
+    let resolved = await providerAuthConfigInternalService.getVersionAndAuthMethod({
       tenant: d.tenant,
       environment: d.environment,
       provider: d.provider,
-      deployment,
-      hasAuthCredentials: !!authCredentials
+      providerDeployment: deployment,
+      credentials: authCredentials,
+      authMethodId: authMethod?.id
     });
+    authMethod = resolved.authMethod;
+  }
+
+  if (!authMethod) {
+    let prefersNonOAuth = !authCredentials && !d.provider.type.supportsOAuthAutoRegistration;
+    authMethod =
+      (prefersNonOAuth ? authMethods.find(method => method.type !== 'oauth') : undefined) ??
+      authMethods.find(method => method.type === 'oauth') ??
+      authMethods.find(method => method.isDefault) ??
+      authMethods[0] ??
+      null;
   }
 
   if (authCredentials && !authMethod) {
@@ -350,27 +402,27 @@ let inferReconciliationAuthMaterial = async (d: {
     };
   }
 
-  let credentialsPaginator =
-    await providerAuthCredentialsService.listProviderAuthCredentialsInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      providerIds: [provider.id],
-      status: ['active']
-    });
-  let credentials = await credentialsPaginator.run({ limit: 100 });
-  let authCredentials = credentials.items[0] ?? null;
-  let authMethod = await resolveAuthMethod({
-    tenant: d.tenant,
-    environment: d.environment,
-    provider,
-    deployment: d.deployment,
-    hasAuthCredentials: !!authCredentials
-  });
+  let authMethods = await listDeploymentAuthMethods({ ...d, provider });
+  let nonOAuth = authMethods.find(method => method.type !== 'oauth');
+  let oauth = authMethods.find(method => method.type === 'oauth');
+
+  if (oauth && provider.type.supportsOAuthAutoRegistration) {
+    return { authMethodOid: oauth.oid, authCredentialsOid: null };
+  }
+
+  let authCredentials = oauth
+    ? await providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        provider,
+        authMethod: oauth
+      })
+    : null;
+  let authMethod = authCredentials ? oauth : (nonOAuth ?? oauth);
 
   return {
     authMethodOid: authMethod?.oid ?? null,
-    authCredentialsOid:
-      authCredentials && authMethod?.type === 'oauth' ? authCredentials.oid : null
+    authCredentialsOid: authCredentials?.oid ?? null
   };
 };
 
@@ -822,13 +874,9 @@ class integrationProviderServiceImpl {
             providerOid: deployment.providerOid
           }
         },
-        include: { currentVersion: { include: { authCredentials: true } } }
+        include: { currentVersion: true }
       });
-      let existingAuthCredentials = existing?.currentVersion?.authCredentials;
-      let existingAuthCredentialsOid =
-        existingAuthCredentials && !isRecordDeleted(existingAuthCredentials)
-          ? existingAuthCredentials.oid
-          : null;
+      let existingAuth = existing?.currentVersion ?? inferredAuth;
 
       let toolFilter =
         d.input.toolFilters === undefined && existing?.currentVersion
@@ -878,8 +926,8 @@ class integrationProviderServiceImpl {
 
       let materialInput = {
         deploymentOid: deployment.oid,
-        authMethodOid: existing?.currentVersion?.authMethodOid ?? inferredAuth.authMethodOid,
-        authCredentialsOid: existingAuthCredentialsOid ?? inferredAuth.authCredentialsOid,
+        authMethodOid: existingAuth.authMethodOid,
+        authCredentialsOid: existingAuth.authCredentialsOid,
         configOid: existing?.currentVersion?.configOid ?? deployment.defaultConfigOid ?? null,
         toolFilter
       };
@@ -1111,7 +1159,13 @@ class integrationProviderServiceImpl {
         include: {
           integration: true,
           provider: { include: { defaultVariant: true, type: true } },
-          currentVersion: { include: { authCredentials: true, authMethod: true } }
+          currentVersion: {
+            include: {
+              authCredentials: true,
+              authMethod: true,
+              deployment: { include: { currentVersion: true } }
+            }
+          }
         }
       });
     let getStaleCredentials = (current: Awaited<ReturnType<typeof getCurrent>>) => {
@@ -1122,7 +1176,37 @@ class integrationProviderServiceImpl {
       return credentials;
     };
 
-    if (!getStaleCredentials(await getCurrent())) return { isHealed: false };
+    let current = await getCurrent();
+    let material = current.currentVersion;
+    if (!getStaleCredentials(current)) {
+      if (
+        current.status === 'active' &&
+        material?.authCredentials &&
+        isManagedOAuthCredentials(material.authCredentials)
+      ) {
+        try {
+          await providerAuthConfigInternalService.getVersionAndAuthMethod({
+            tenant: d.tenant,
+            environment: d.environment,
+            provider: current.provider,
+            providerDeployment: material.deployment,
+            credentials: material.authCredentials,
+            authMethodId: material.authMethod?.id
+          });
+        } catch (error) {
+          if (!isManagedCredentialsMethodError(error)) throw error;
+
+          throw new ServiceError(
+            preconditionFailedError({
+              code: 'integration_provider_oauth_app_incompatible',
+              message: `The OAuth app for ${current.provider.name} no longer supports the configured authentication method. Ask your administrator to update the "${current.integration.name}" integration.`
+            })
+          );
+        }
+      }
+
+      return { isHealed: false };
+    }
 
     return await integrationProviderUpdateLock.usingLock(
       d.integrationProvider.id,

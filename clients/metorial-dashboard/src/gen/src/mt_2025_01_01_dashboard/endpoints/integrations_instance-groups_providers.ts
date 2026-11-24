@@ -91,7 +91,7 @@ export class MetorialIntegrationsInstanceGroupsProvidersEndpoint {
     integrationInstanceGroupProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersGetOutput> {
-    let path = `integration-instance-group-providers/${integrationInstanceGroupProviderId}`;
+    let path = `integration-instance-group-providers/${encodeURIComponent(integrationInstanceGroupProviderId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialIntegrationsInstanceGroupsProvidersEndpoint {
     body: DashboardInstanceIntegrationsInstanceGroupsProvidersSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersSetOutput> {
-    let path = `integration-instance-groups/${integrationInstanceGroupId}/providers/${integrationInstanceProviderId}`;
+    let path = `integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}/providers/${encodeURIComponent(integrationInstanceProviderId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialIntegrationsInstanceGroupsProvidersEndpoint {
     integrationInstanceGroupProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsProvidersDeleteOutput> {
-    let path = `integration-instance-group-providers/${integrationInstanceGroupProviderId}`;
+    let path = `integration-instance-group-providers/${encodeURIComponent(integrationInstanceGroupProviderId)}`;
 
     let request = {
       path,

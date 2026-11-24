@@ -139,18 +139,9 @@ class serverServiceImpl {
     }
 
     if (d.input.from.type == 'container.from_image_ref') {
-      return await this.createServerContainer({
-        scope: d.scope,
-        input: {
-          imageRef: d.input.from.imageRef,
-          username: d.input.from.username,
-          password: d.input.from.password,
-          config: d.input.config,
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata
-        }
-      });
+      throw new ServiceError(
+        forbiddenError({ message: 'Docker MCP servers are currently disabled.' })
+      );
     }
 
     if (d.input.from.type == 'function') {
@@ -313,34 +304,9 @@ class serverServiceImpl {
     }
 
     if (d.server.type == 'container') {
-      let from = d.input.from;
-      if (from.type != 'container.from_image_ref') {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot change server type when creating a new version.'
-          })
-        );
-      }
-
-      if (d.input.config) {
-        await db.server.update({
-          where: { oid: d.server.oid },
-          data: {
-            draftConfigSchema: d.input.config.schema,
-            draftConfigTransformer: d.input.config.transformer
-          }
-        });
-      }
-
-      return await serverDeploymentCreateService.deployContainerServer({
-        scope: { type: 'tenant', tenant: d.tenant },
-        server: d.server,
-        input: {
-          imageRef: from.imageRef,
-          username: from.username,
-          password: from.password
-        }
-      });
+      throw new ServiceError(
+        forbiddenError({ message: 'Docker MCP servers are currently disabled.' })
+      );
     }
 
     if (d.server.type == 'remote') {

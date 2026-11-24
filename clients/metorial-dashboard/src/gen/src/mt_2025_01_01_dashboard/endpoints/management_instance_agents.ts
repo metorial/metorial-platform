@@ -55,7 +55,7 @@ export class MetorialManagementInstanceAgentsEndpoint {
     query?: DashboardInstanceAgentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceAgentsListOutput> {
-    let path = `instances/${instanceId}/agents`;
+    let path = `instances/${encodeURIComponent(instanceId)}/agents`;
 
     let request = {
       path,
@@ -85,7 +85,7 @@ export class MetorialManagementInstanceAgentsEndpoint {
     agentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceAgentsGetOutput> {
-    let path = `instances/${instanceId}/agents/${agentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/agents/${encodeURIComponent(agentId)}`;
 
     let request = {
       path,

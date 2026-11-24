@@ -180,6 +180,15 @@ model WorkflowRun {
 
   encryptedEnvironmentVariables String
 
+  pendingReason          String?
+  pendingReasonUpdatedAt DateTime?
+
+  failureCode   String?
+  failureReason String?
+
+  kubernetesQueuedAt   DateTime?
+  kubernetesAdmittedAt DateTime?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   startedAt DateTime?
@@ -188,6 +197,8 @@ model WorkflowRun {
   artifacts              WorkflowArtifact[]
   steps                  WorkflowRunStep[]
   workflowRunOutputTemps WorkflowRunOutputTemp[]
+
+  @@index([providerOid, status, kubernetesAdmittedAt, kubernetesQueuedAt, oid])
 }
 
 enum WorkflowRunStepType {

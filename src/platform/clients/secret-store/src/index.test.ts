@@ -67,7 +67,8 @@ describe('createNebulaClient', () => {
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
-      proof: {}
+      proof: {},
+      note: 'test'
     });
 
     vi.setSystemTime(new Date(now.getTime() + 3_600_001));
@@ -75,7 +76,8 @@ describe('createNebulaClient', () => {
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
-      proof: {}
+      proof: {},
+      note: 'test'
     });
 
     expect(mockRegister).toHaveBeenCalledTimes(2);
@@ -123,7 +125,8 @@ describe('createNebulaClient', () => {
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
-      proof: {}
+      proof: {},
+      note: 'test'
     });
 
     vi.setSystemTime(new Date(now.getTime() + 3_540_001));
@@ -131,7 +134,8 @@ describe('createNebulaClient', () => {
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
-      proof: {}
+      proof: {},
+      note: 'test'
     });
 
     expect(mockRegister).toHaveBeenCalledTimes(1);
@@ -181,7 +185,8 @@ describe('createNebulaClient', () => {
     await client.secret.use({
       tenantId: 'tenant-1',
       secretId: 'secret-1',
-      proof: {}
+      proof: {},
+      note: 'test'
     });
 
     expect(mockRegister).toHaveBeenCalledTimes(1);

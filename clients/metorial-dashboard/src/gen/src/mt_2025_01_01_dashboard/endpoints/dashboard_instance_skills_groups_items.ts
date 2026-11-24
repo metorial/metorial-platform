@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceSkillsGroupsItemsEndpoint {
     query?: DashboardInstanceSkillsGroupsItemsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsItemsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-groups/${skillGroupId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}/items`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSkillsGroupsItemsEndpoint {
     skillGroupItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsItemsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-groups/${skillGroupId}/items/${skillGroupItemId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}/items/${encodeURIComponent(skillGroupItemId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardInstanceSkillsGroupsItemsEndpoint {
     body: DashboardInstanceSkillsGroupsItemsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsItemsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-groups/${skillGroupId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}/items`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialDashboardInstanceSkillsGroupsItemsEndpoint {
     skillGroupItemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsItemsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-groups/${skillGroupId}/items/${skillGroupItemId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}/items/${encodeURIComponent(skillGroupItemId)}`;
 
     let request = {
       path,

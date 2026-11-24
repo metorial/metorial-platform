@@ -55,7 +55,7 @@ export class MetorialSkillsParticipantsEndpoint {
     query?: DashboardInstanceSkillsParticipantsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsParticipantsListOutput> {
-    let path = `skills/${skillId}/participants`;
+    let path = `skills/${encodeURIComponent(skillId)}/participants`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialSkillsParticipantsEndpoint {
     skillParticipantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsParticipantsGetOutput> {
-    let path = `skills/${skillId}/participants/${skillParticipantId}`;
+    let path = `skills/${encodeURIComponent(skillId)}/participants/${encodeURIComponent(skillParticipantId)}`;
 
     let request = {
       path,

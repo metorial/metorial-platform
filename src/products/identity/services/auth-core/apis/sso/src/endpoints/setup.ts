@@ -26,12 +26,13 @@ export let setupApp = createHono()
       }
 
       return c.html(setupSelectHtml({ clientSecret }));
-    } catch (error: any) {
+    } catch (error) {
+      console.error('SSO setup lookup failed:', error);
+
       return c.html(
         errorHtml({
           title: 'Setup Not Found',
-          message: 'The setup link you are trying to access does not exist or has expired.',
-          details: error.message
+          message: 'The setup link you are trying to access does not exist or has expired.'
         })
       );
     }
@@ -78,12 +79,13 @@ export let setupApp = createHono()
           ssoServiceHost
         })
       );
-    } catch (error: any) {
+    } catch (error) {
+      console.error('SSO setup configuration page failed:', error);
+
       return c.html(
         errorHtml({
           title: 'Unable to set up connection',
-          message: 'An error occurred while loading the configuration page.',
-          details: error.message
+          message: 'An error occurred while loading the configuration page.'
         })
       );
     }
@@ -142,9 +144,16 @@ export let setupApp = createHono()
       });
 
       return c.json({ success: true });
-    } catch (error: any) {
-      console.error('Error creating connection:', error);
-      return c.json({ error: error.message || 'Failed to create connection' }, 500);
+    } catch (error) {
+      console.error('SSO connection setup failed:', error);
+
+      return c.json(
+        {
+          error:
+            'Failed to create connection. Check your identity provider settings and try again.'
+        },
+        500
+      );
     }
   })
   .get('/complete', async c => {
@@ -168,12 +177,13 @@ export let setupApp = createHono()
       redirectUri.searchParams.set('setup_id', setup.id);
 
       return c.redirect(redirectUri.toString());
-    } catch (error: any) {
+    } catch (error) {
+      console.error('SSO setup completion page failed:', error);
+
       return c.html(
         errorHtml({
           title: 'Unable to set up connection',
-          message: 'An error occurred while loading the completion page.',
-          details: error.message
+          message: 'An error occurred while loading the completion page.'
         })
       );
     }

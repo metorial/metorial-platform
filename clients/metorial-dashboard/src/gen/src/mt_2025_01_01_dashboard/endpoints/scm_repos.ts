@@ -89,7 +89,7 @@ export class MetorialScmReposEndpoint {
     scmRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmReposGetOutput> {
-    let path = `scm/repos/${scmRepositoryId}`;
+    let path = `scm/repos/${encodeURIComponent(scmRepositoryId)}`;
 
     let request = {
       path,

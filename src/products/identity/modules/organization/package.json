@@ -36,6 +36,7 @@
     "date-fns": "^4.4.0",
     "react": "19.3.0",
     "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
     "@metorial/branding": "workspace:*"
   },
   "devDependencies": {

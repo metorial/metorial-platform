@@ -1,5 +1,4 @@
-import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
-import { readReplicas } from '@prisma/extension-read-replicas';
+import { createDatabase } from '@lowerdeck/prisma-pg';
 import type {
   SlatesAction as ProtoSlatesAction,
   SlateAdapter as ProtoSlateAdapter,
@@ -11,47 +10,18 @@ import type {
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
-let mainAdapter = createPrismaPgAdapter(
-  {
-    connectionString: process.env.SLATES_HUB_DATABASE_URL ?? process.env.DATABASE_URL
-  },
-  {
-    environment: process.env.METORIAL_ENV,
-    databaseName: 'slates-hub',
-    role: 'primary'
-  }
-);
-
-let replicaAdapter = process.env.DATABASE_URL_READER
-  ? createPrismaPgAdapter(
-      {
-        connectionString: process.env.DATABASE_URL_READER
-      },
-      {
-        environment: process.env.METORIAL_ENV,
-        databaseName: 'slates-hub',
-        role: 'replica'
+export let { db } = createDatabase({
+  name: 'slates-hub',
+  url: ['SLATES_HUB_DATABASE_URL', 'DATABASE_URL'],
+  createClient: adapter =>
+    new PrismaClient({
+      adapter,
+      transactionOptions: {
+        maxWait: 10000,
+        timeout: 12000
       }
-    )
-  : undefined;
-
-let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;
-
-let baseClient = new PrismaClient({
-  adapter: mainAdapter,
-  transactionOptions: {
-    maxWait: 10000,
-    timeout: 12000
-  }
+    })
 });
-
-if (replicaClient) {
-  baseClient = baseClient.$extends(
-    readReplicas({ replicas: [replicaClient] })
-  ) as any as PrismaClient;
-}
-
-export let db = baseClient;
 
 declare global {
   namespace PrismaJson {
@@ -131,6 +101,8 @@ declare global {
         capabilitiesNotification?: boolean;
         // Understands slates/hub.live_invocation.set
         liveInvocation?: boolean;
+        // Uploads live invocation attachments as signed multipart parts
+        multipartUpload?: boolean;
         runtimeInfo?: boolean;
       };
       provider?: {
@@ -149,6 +121,8 @@ declare global {
       imageUrl?: string;
       [key: string]: any;
     };
+
+    type SlateOAuthCredentialsFixedInput = Record<string, string>;
 
     type SlateWebhookEventRequest = {
       method: string;

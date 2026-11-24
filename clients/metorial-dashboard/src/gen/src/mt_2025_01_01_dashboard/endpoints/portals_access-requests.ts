@@ -59,7 +59,7 @@ export class MetorialPortalsAccessRequestsEndpoint {
     query?: DashboardInstancePortalsAccessRequestsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessRequestsListOutput> {
-    let path = `portals/${portalId}/access-requests`;
+    let path = `portals/${encodeURIComponent(portalId)}/access-requests`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialPortalsAccessRequestsEndpoint {
     accessRequestId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessRequestsGetOutput> {
-    let path = `portals/${portalId}/access-requests/${accessRequestId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/access-requests/${encodeURIComponent(accessRequestId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialPortalsAccessRequestsEndpoint {
     body: DashboardInstancePortalsAccessRequestsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsAccessRequestsUpdateOutput> {
-    let path = `portals/${portalId}/access-requests/${accessRequestId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/access-requests/${encodeURIComponent(accessRequestId)}`;
 
     let request = {
       path,

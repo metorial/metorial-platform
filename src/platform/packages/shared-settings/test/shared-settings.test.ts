@@ -97,6 +97,19 @@ describe('platform settings', () => {
     for (let key of ['API_URL', 'FILES_URL', 'PORTALS_URL']) delete process.env[key];
   });
 
+  it('serves the unversioned connect surface from the public url on-prem', async () => {
+    process.env.METORIAL_EDITION = 'on-prem';
+    process.env.METORIAL_PUBLIC_URL = 'https://metorial.example.com';
+
+    let { publicUrls } = await load();
+    let { defineSettings: define } = await import('@metorial/settings');
+
+    let urls = define('urls', publicUrls);
+
+    expect(urls.apiUrl).toBe('https://metorial.example.com/v1');
+    expect(urls.connectUrl).toBe('https://metorial.example.com');
+  });
+
   it('only configures public mcp in the cloud edition', async () => {
     process.env.PUBLIC_MCP_URL = 'https://mcp.example.com';
 

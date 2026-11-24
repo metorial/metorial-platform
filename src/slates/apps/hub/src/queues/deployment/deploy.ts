@@ -1,20 +1,26 @@
 import { createCron } from '@lowerdeck/cron';
 import { generateCode } from '@lowerdeck/id';
 import { createLock } from '@lowerdeck/lock';
-import { createQueue, dailyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
-import { subDays } from 'date-fns';
+import { createQueue, hourlyPacedDelay, QueueRetryError } from '@lowerdeck/queue';
+import { subMinutes } from 'date-fns';
 import SuperJSON from 'superjson';
 import unzipper from 'unzipper';
 import { db } from '../../db';
 import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
+import { reportSlateDeploymentFailure } from '../../lib/failureReports';
 import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
 import { fetchSlatesRuntime } from '../../lib/slatesRuntime';
 import { getRegistryClient, getRegistryDownloadQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
 import { resolveSlateDeploymentConfig } from './config';
 import { buildSlateDeploymentFiles } from './packageFiles';
+
+let FAIL_OLD_DEPLOYMENTS_BATCH_SIZE = 500;
+
+export let isTerminalSlateDeploymentStatus = (status: string) =>
+  status === 'failed' || status === 'succeeded';
 
 export let hasServingSlateDeployment = (version: {
   status: string;
@@ -261,6 +267,7 @@ export let deploySlateVersionMonitorQueueProcessor = deploySlateVersionMonitorQu
       });
       if (!deployment) throw new QueueRetryError();
       if (deployment.isCancelledByRedeploy) return;
+      if (isTerminalSlateDeploymentStatus(deployment.status)) return;
 
       let funcDep = await functionBay.functionDeployment.get({
         functionId: data.functionId,
@@ -277,10 +284,11 @@ export let deploySlateVersionMonitorQueueProcessor = deploySlateVersionMonitorQu
         return;
       }
 
-      if (funcDep.status !== deployment.status) {
-        await db.slateDeployment.update({
-          where: { id: deployment.id },
-          data: { status: funcDep.status }
+      let pendingReason = funcDep.status === 'pending' ? funcDep.pendingReason : null;
+      if (funcDep.status !== deployment.status || pendingReason !== deployment.pendingReason) {
+        await db.slateDeployment.updateMany({
+          where: { id: deployment.id, status: { in: ['pending', 'running'] } },
+          data: { status: funcDep.status, pendingReason }
         });
       }
 
@@ -306,6 +314,7 @@ export let deploySlateVersionProviderCompletedQueueProcessor =
       });
       if (!deployment) throw new QueueRetryError();
       if (deployment.isCancelledByRedeploy) return;
+      if (isTerminalSlateDeploymentStatus(deployment.status)) return;
 
       await log(deployment, `Function deployment completed, checking final status...`);
 
@@ -358,6 +367,7 @@ export let deploySlateVersionFailedQueueProcessor = deploySlateVersionFailedQueu
       });
       if (!deployment) throw new QueueRetryError();
       if (deployment.isCancelledByRedeploy) return;
+      if (isTerminalSlateDeploymentStatus(deployment.status)) return;
 
       await log(
         deployment,
@@ -368,6 +378,7 @@ export let deploySlateVersionFailedQueueProcessor = deploySlateVersionFailedQueu
         where: { id: deployment.id },
         data: {
           status: 'failed',
+          endedAt: new Date(),
 
           errorCode: data.errorCode,
           errorMessage: data.errorMessage
@@ -382,6 +393,12 @@ export let deploySlateVersionFailedQueueProcessor = deploySlateVersionFailedQueu
           }
         });
       }
+
+      await reportSlateDeploymentFailure({
+        deployment,
+        errorCode: data.errorCode,
+        errorMessage: data.errorMessage
+      }).catch(error => console.error('Could not report slate deployment failure', error));
 
       await db.slateEvent.create({
         data: {
@@ -419,6 +436,7 @@ export let deploySlateVersionCompletedQueueProcessor =
       });
       if (!outerDeployment) throw new QueueRetryError();
       if (outerDeployment.isCancelledByRedeploy) return;
+      if (isTerminalSlateDeploymentStatus(outerDeployment.status)) return;
 
       return publishLock.usingLock(outerDeployment.slate.id, async () => {
         let deployment = await db.slateDeployment.findUniqueOrThrow({
@@ -441,6 +459,8 @@ export let deploySlateVersionCompletedQueueProcessor =
           where: { id: deployment.id },
           data: {
             status: 'succeeded',
+            endedAt: new Date(),
+            pendingReason: null,
 
             providerDeploymentInfo: {
               functionId: data.functionId,
@@ -479,8 +499,6 @@ export let deploySlateVersionCompletedQueueProcessor =
     })
   );
 
-let FAIL_OLD_DEPLOYMENTS_BATCH_SIZE = 500;
-
 export let failOldDeploymentsQueue = createQueue<{ cursor?: string }>({
   name: 'shub/slv/dep/fail-old/many',
   redisUrl: env.service.REDIS_URL,
@@ -488,10 +506,12 @@ export let failOldDeploymentsQueue = createQueue<{ cursor?: string }>({
 });
 
 export let failOldDeploymentsQueueProcessor = failOldDeploymentsQueue.process(async data => {
+  let timeoutMinutes = env.functionBay.SLATE_DEPLOYMENT_TIMEOUT_MINUTES;
+
   let oldDeployments = await db.slateDeployment.findMany({
     where: {
-      status: 'pending',
-      createdAt: { lt: subDays(new Date(), 5) },
+      status: { in: ['pending', 'running'] },
+      createdAt: { lt: subMinutes(new Date(), timeoutMinutes) },
       id: data.cursor ? { gt: data.cursor } : undefined
     },
     orderBy: { id: 'asc' },
@@ -505,16 +525,16 @@ export let failOldDeploymentsQueueProcessor = failOldDeploymentsQueue.process(as
       data: {
         deploymentId: d.id,
         errorCode: 'deployment_timeout',
-        errorMessage: 'Deployment did not complete within 1 hour'
+        errorMessage: `Deployment did not complete within ${timeoutMinutes} minutes`
       },
-      opts: { id: d.id }
+      opts: { id: `timeout-${d.id}` }
     }))
   );
 
   if (oldDeployments.length === FAIL_OLD_DEPLOYMENTS_BATCH_SIZE) {
     await failOldDeploymentsQueue.add(
       { cursor: oldDeployments[oldDeployments.length - 1]!.id },
-      dailyPacedDelay()
+      hourlyPacedDelay()
     );
   }
 });
@@ -523,7 +543,7 @@ export let failOldDeploymentsCron = createCron(
   {
     name: 'shub/slv/dep/fail-old',
     redisUrl: env.service.REDIS_URL,
-    cron: '0 0 * * *'
+    cron: '*/10 * * * *'
   },
   async () => {
     await failOldDeploymentsQueue.add({}, { id: 'many' });

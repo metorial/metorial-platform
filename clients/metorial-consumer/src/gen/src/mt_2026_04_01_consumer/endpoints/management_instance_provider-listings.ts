@@ -55,7 +55,7 @@ export class MetorialManagementInstanceProviderListingsEndpoint {
     query?: DashboardInstanceProviderListingsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderListingsListOutput> {
-    let path = `instances/${instanceId}/provider-listings`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-listings`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialManagementInstanceProviderListingsEndpoint {
     providerListingId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderListingsGetOutput> {
-    let path = `instances/${instanceId}/provider-listings/${providerListingId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-listings/${encodeURIComponent(providerListingId)}`;
 
     let request = {
       path,

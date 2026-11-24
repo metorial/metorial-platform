@@ -204,6 +204,18 @@ Choose a database connection to explore it.
 Gateway settings persist in a separate volume for each workspace or stack.
 Native development exposes it at `http://localhost:<CONTROL_PORT_DB_EXPLORER>`.
 
+Setting `CONTROL_POSTGRES_REPLICA=1` (in `env.json` or the process environment)
+adds `postgres-replica` to the root checkout and host workspaces: a physical
+streaming standby of `postgres-db2`, seeded with `pg_basebackup` once the primary
+is up and replaying with `recovery_min_apply_delay` set to
+`CONTROL_POSTGRES_REPLICA_DELAY` (a Postgres duration, default `1s`). Every
+Postgres URL then gets a `<KEY>_READER` twin with the same database and
+credentials on `CONTROL_PORT_POSTGRES_REPLICA`, for reproducing read-after-write
+lag in code that opts into replica reads. The replica re-seeds when its data
+belongs to a different primary cluster or it stops streaming. Without the setting
+no replica runs, no `_READER` variables are written, and an old replica container
+is removed. Stacks and Docker-runtime workspaces never run one.
+
 With the workspace running and its Mailpit link reachable, use
 `control email list` to find message IDs and `control email open <id>` to read a
 message in the terminal. HTML bodies are converted to Markdown with Turndown.
@@ -279,6 +291,7 @@ control test:e2e @metorial/module-user '@metorial/api-*'
 control test:e2e @metorial/app-api --keep          # one stack, leave containers up
 control test:e2e @metorial/api-core -- e2e/management -t creates   # Vitest args per suite
 control test:e2e --plan                            # print the resolved plan as JSON
+control test:e2e --replica --replica-delay 2s      # add a lagging Postgres replica and _READER URLs
 control test:e2e --images DIR --workspace PATH     # CI: run tested images
 ```
 
@@ -332,7 +345,9 @@ finish.
 A run creates a Compose project under `.control/e2e/<run>/` with tmpfs
 Postgres, MongoDB, Redis, NATS (and object storage when requested), then:
 
-1. creates every declared database;
+1. creates every declared database and, with `--replica`, starts a tmpfs
+   streaming standby (`localhost:35433`, default delay `1s`) that every
+   database's `<KEY>_READER` URL points at;
 2. starts all dependencies at once and waits until every health check passes;
 3. starts all SUTs and waits for their health checks;
 4. runs `turbo run test:e2e` for each stack's selected test packages with the

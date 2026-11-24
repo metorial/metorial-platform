@@ -101,7 +101,7 @@ export class MetorialMagicMcpEndpointsEndpoint {
     magicMcpEndpointId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsGetOutput> {
-    let path = `magic-mcp-endpoints/${magicMcpEndpointId}`;
+    let path = `magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialMagicMcpEndpointsEndpoint {
     magicMcpEndpointId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsDeleteOutput> {
-    let path = `magic-mcp-endpoints/${magicMcpEndpointId}`;
+    let path = `magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}`;
 
     let request = {
       path,
@@ -185,7 +185,7 @@ export class MetorialMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsUpdateOutput> {
-    let path = `magic-mcp-endpoints/${magicMcpEndpointId}`;
+    let path = `magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}`;
 
     let request = {
       path,
@@ -215,7 +215,7 @@ export class MetorialMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsAddServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsAddServersOutput> {
-    let path = `magic-mcp-endpoints/${magicMcpEndpointId}/add-servers`;
+    let path = `magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}/add-servers`;
 
     let request = {
       path,
@@ -247,7 +247,7 @@ export class MetorialMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsRemoveServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsRemoveServersOutput> {
-    let path = `magic-mcp-endpoints/${magicMcpEndpointId}/remove-servers`;
+    let path = `magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}/remove-servers`;
 
     let request = {
       path,

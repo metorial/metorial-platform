@@ -1,9 +1,7 @@
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
+import { initializeDatabaseUrl } from '@metorial/service-init';
 
-  if (process.env.DATABASE_READER === 'true') {
-    process.env.DATABASE_URL_READER = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST?.replace('.cluster-', '.cluster-ro-')}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
-  }
+if (!process.env.DATABASE_URL) {
+  initializeDatabaseUrl(process.env, { prefix: 'DATABASE', urlKey: 'DATABASE_URL' });
 }
 
 if (!process.env.REDIS_URL) {

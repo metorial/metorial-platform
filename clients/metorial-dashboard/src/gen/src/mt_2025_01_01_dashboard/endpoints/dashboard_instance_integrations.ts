@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
     query?: DashboardInstanceIntegrationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/integrations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integrations`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
     integrationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/integrations/${integrationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integrations/${encodeURIComponent(integrationId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
     body: DashboardInstanceIntegrationsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/integrations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integrations`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
     body: DashboardInstanceIntegrationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/integrations/${integrationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integrations/${encodeURIComponent(integrationId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceIntegrationsEndpoint {
     integrationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/integrations/${integrationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integrations/${encodeURIComponent(integrationId)}`;
 
     let request = {
       path,

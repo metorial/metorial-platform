@@ -45,3 +45,19 @@ func TestPolicyGate(t *testing.T) {
 		t.Fatalf("unknown mode: %v", err)
 	}
 }
+
+func TestMaxMaterializedDefault(t *testing.T) {
+	t.Setenv("CLUSTER_MANAGER_FUNCTION_IMAGE_NODE24", "fn")
+	t.Setenv("CLUSTER_MANAGER_BUILD_IMAGE_UBUNTU", "build")
+	t.Setenv("OBJECT_STORAGE_URL", "http://object-storage")
+	t.Setenv("CLUSTER_MANAGER_POD_ADDR", "https://10.43.0.20:52241")
+	t.Setenv("CLUSTER_MANAGER_MAX_MATERIALIZED", "")
+
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.MaxMaterialized != 30 {
+		t.Fatalf("MaxMaterialized = %d, want 30", c.MaxMaterialized)
+	}
+}

@@ -19,6 +19,7 @@ export let getProviderAuthCredentialsQuery = (p: {
   search?: string;
 }) => ({
   origin: ['custom' as const, 'managed' as const],
+  status: 'active' as const,
   providerId: p.providerId,
   providerAuthMethodId: p.providerAuthMethodId,
   limit: CREDENTIALS_PAGE_SIZE,
@@ -27,8 +28,8 @@ export let getProviderAuthCredentialsQuery = (p: {
 
 export let sortProviderAuthCredentials = (credentials: ProviderAuthCredential[]) =>
   sortBy(credentials, [
-    credential => Number(!credential.isManaged),
     credential => Number(!credential.isDefault),
+    credential => Number(!credential.isManaged),
     credential => credential.name ?? credential.id
   ]);
 
@@ -73,11 +74,11 @@ let toItem = (credential: ProviderAuthCredential): SelectListItem => ({
   label: credential.name || credential.id,
   description:
     credential.description?.trim() ||
-    (credential.isManaged ? 'Use the Metorial OAuth app, great for quick testing.' : undefined),
+    (credential.isManaged ? 'Managed OAuth app available to this project.' : undefined),
   badge:
     credential.isManaged || credential.isDefault ? (
       <Flex gap={6}>
-        {credential.isManaged && <Badge color="gray">Metorial Managed</Badge>}
+        {credential.isManaged && <Badge color="gray">Managed</Badge>}
         {credential.isDefault && <Badge color="blue">Default</Badge>}
       </Flex>
     ) : undefined
@@ -91,6 +92,8 @@ export let ProviderAuthCredentialPicker = (p: {
   value: string | null;
   onChange: (value: string | null) => void;
   disabled?: boolean;
+  allowNewCredentials: boolean;
+  rejectedCredentialIds: string[];
   children?: ReactNode;
 }) => {
   let [search, setSearch] = useState('');
@@ -107,17 +110,21 @@ export let ProviderAuthCredentialPicker = (p: {
     () => credentials.data?.items ?? []
   );
   useEffect(() => {
-    if (!credentials.isLoading && credentials.data) setVisibleCredentials(credentials.data.items);
+    if (!credentials.isLoading && credentials.data)
+      setVisibleCredentials(credentials.data.items);
   }, [credentials.isLoading, credentials.data]);
 
-  let items: SelectListItem[] = [
-    ...(search ? visibleCredentials : sortProviderAuthCredentials(visibleCredentials)).map(toItem),
-    {
+  let available = visibleCredentials.filter(
+    credential => !p.rejectedCredentialIds.includes(credential.id)
+  );
+  let items = (search ? available : sortProviderAuthCredentials(available)).map(toItem);
+  if (p.allowNewCredentials) {
+    items.push({
       id: NEW_CREDENTIALS_ID,
       label: 'Add New Credentials',
       description: 'Use your own OAuth app with a client ID and secret.'
-    }
-  ];
+    });
+  }
 
   return (
     <SelectList

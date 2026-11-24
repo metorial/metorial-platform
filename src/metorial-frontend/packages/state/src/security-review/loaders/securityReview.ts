@@ -118,7 +118,9 @@ export let useSecurityReviewGenerationEnabled = () => {
 
   if (override) return override.canGenerate;
 
-  return flags.useFlag('paid-ai-reviews') === true && flags.useFlag('ai-available') === true;
+  return (
+    flags.useFlag('paid-ai-reviews') === true && flags.useFlag('ai-reviews-available') === true
+  );
 };
 
 export let useSecurityReviewGenerationBlockedByAi = () => {
@@ -128,7 +130,7 @@ export let useSecurityReviewGenerationBlockedByAi = () => {
   return (
     !override &&
     flags.useFlag('paid-ai-reviews') === true &&
-    flags.useFlag('ai-available') === false
+    flags.useFlag('ai-reviews-available') === false
   );
 };
 

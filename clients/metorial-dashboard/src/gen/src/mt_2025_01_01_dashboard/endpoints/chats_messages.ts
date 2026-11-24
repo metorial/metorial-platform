@@ -73,7 +73,7 @@ export class MetorialChatsMessagesEndpoint {
     query?: DashboardInstanceChatsMessagesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesListOutput> {
-    let path = `chats/${chatId}/messages`;
+    let path = `chats/${encodeURIComponent(chatId)}/messages`;
 
     let request = {
       path,
@@ -107,7 +107,7 @@ export class MetorialChatsMessagesEndpoint {
     query?: DashboardInstanceChatsMessagesGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesGetOutput> {
-    let path = `chats/${chatId}/messages/${messageId}`;
+    let path = `chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
 
     let request = {
       path,
@@ -139,7 +139,7 @@ export class MetorialChatsMessagesEndpoint {
     body: DashboardInstanceChatsMessagesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesCreateOutput> {
-    let path = `chats/${chatId}/messages`;
+    let path = `chats/${encodeURIComponent(chatId)}/messages`;
 
     let request = {
       path,
@@ -171,7 +171,7 @@ export class MetorialChatsMessagesEndpoint {
     body: DashboardInstanceChatsMessagesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesUpdateOutput> {
-    let path = `chats/${chatId}/messages/${messageId}`;
+    let path = `chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
 
     let request = {
       path,
@@ -203,7 +203,7 @@ export class MetorialChatsMessagesEndpoint {
     query?: DashboardInstanceChatsMessagesDeleteQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesDeleteOutput> {
-    let path = `chats/${chatId}/messages/${messageId}`;
+    let path = `chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
 
     let request = {
       path,
@@ -237,7 +237,7 @@ export class MetorialChatsMessagesEndpoint {
     body: DashboardInstanceChatsMessagesReadBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesReadOutput> {
-    let path = `chats/${chatId}/messages/${messageId}/read`;
+    let path = `chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}/read`;
 
     let request = {
       path,

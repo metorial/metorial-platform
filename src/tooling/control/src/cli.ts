@@ -92,8 +92,12 @@ let commandOptions: Record<
   'db migration': { min: 2, max: 3 },
   env: { flags: ['json'] },
   run: {},
+  merge: { max: 2 },
   'test:unit': {},
-  'test:e2e': { flags: ['keep', 'plan'], values: ['images', 'workspace', 'concurrency'] },
+  'test:e2e': {
+    flags: ['keep', 'plan', 'replica'],
+    values: ['images', 'workspace', 'concurrency', 'replica-delay']
+  },
   cleanup: { flags: ['dry-run', 'docker'] },
   docker: {},
   'docker stop': {},
@@ -256,6 +260,9 @@ let parseArgumentsUnchecked = (args: string[]): Arguments => {
   if (parsed.values.workspace !== undefined && parsed.values.images === undefined)
     throw new Error('--workspace requires --images');
 
+  if (parsed.values['replica-delay'] !== undefined && !parsed.flags.has('replica'))
+    throw new Error('--replica-delay requires --replica');
+
   if (
     parsed.values.concurrency !== undefined &&
     (!/^\d+$/.test(parsed.values.concurrency) ||
@@ -318,6 +325,15 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
     case 'ci':
       console.log(JSON.stringify(inventory(project), null, 2));
       return;
+    case 'merge': {
+      let entry = join(project.root, 'src/tooling/deploy-merge/cli.ts');
+      if (project.kind !== 'enterprise' || !existsSync(entry)) {
+        throw new CliError('merge requires an enterprise checkout with deploy-merge');
+      }
+
+      await commands.run(process.execPath, [entry, ...positional], project.root);
+      return;
+    }
     case 'dev':
       if (!flags.has('foreground') && !flags.has('dry-run') && !process.env.CI) {
         await daemon.attach({
@@ -430,6 +446,7 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
             : Number(parsed.values.concurrency),
         keep: flags.has('keep'),
         planOnly: flags.has('plan'),
+        replica: flags.has('replica') ? { delay: parsed.values['replica-delay'] } : undefined,
         testArgs: parsed.testArgs
       });
       return;

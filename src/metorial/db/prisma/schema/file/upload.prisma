@@ -12,6 +12,10 @@ model FileUpload {
 
   storeId String @unique
 
+  multipartUploadId         String?
+  multipartPartSize         Int?
+  multipartCompletionDigest String?
+
   fileName String
   fileSize BigInt
   fileType String

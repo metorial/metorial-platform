@@ -8,6 +8,7 @@ let getRedis = createRedisClient({ redisUrl: env.service.REDIS_URL }).lazy();
 export interface LiveInvocationTokenPayload {
   invocationId: string;
   tenantOid: bigint;
+  multipartUpload?: boolean;
 }
 
 let TOKEN_TTL_SECONDS = 60;

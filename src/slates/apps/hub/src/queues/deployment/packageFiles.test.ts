@@ -60,6 +60,19 @@ describe('buildSlateDeploymentFiles', () => {
     expect(entryPoint).toContain('if (!m.id) continue;');
   });
 
+  it('leaves process-wide state alone so concurrent invocations are unaffected', () => {
+    let result = buildSlateDeploymentFiles([
+      toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'src/index.ts' })),
+      toArchiveFile('src/index.ts', 'export let provider = {};')
+    ]);
+
+    let entryPoint = result.files.find(file => file.filename === 'slates_entry_point.js')!
+      .content as string;
+    expect(entryPoint).not.toContain('globalThis');
+    expect(entryPoint).not.toContain('require.cache');
+    expect(entryPoint).not.toContain('reset(');
+  });
+
   it('keeps prebuilt dist when no source entrypoint exists', () => {
     let result = buildSlateDeploymentFiles([
       toArchiveFile('package.json', JSON.stringify({ name: 'slate', main: 'dist/index.js' })),

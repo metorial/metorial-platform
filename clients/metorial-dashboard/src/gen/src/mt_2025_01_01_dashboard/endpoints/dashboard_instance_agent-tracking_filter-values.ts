@@ -12,7 +12,7 @@ import {
 
 /**
  * @name Agent Tracking Filter Values controller
- * @description The members, models and clients a filter can choose from.
+ * @description The members, models, clients and seats a filter can choose from.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -39,7 +39,7 @@ export class MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint {
 
   /**
    * @name List filter values
-   * @description Returns the members, models or clients that sent usage in a range, including members seen only in telemetry. With value, describes those values instead, without reading usage. Results can be up to a minute old.
+   * @description Returns the members, models, clients or seats that sent usage in a range, including members seen only in telemetry. Seats come from request records and need a range of at most 90 days. With `value`, describes those values instead, without reading usage. Results can be up to a minute old.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceAgentTrackingFilterValuesListQuery

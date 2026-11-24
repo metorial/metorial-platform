@@ -20,6 +20,7 @@ Packages live at `lib/<group>/<package>/`.
 | `utils`         | `delay`, `lock`, `memo`, `once`, `programmable-promise`, `proxy`, `flatten`, `merge`, `patch`, `unique`, `case`, `slugify`, `random-from-array`, `random-number`, `timezone` |
 | `framework`     | `error`, `pagination`, `presenter`, `service`, `validation`                                                                                                                  |
 | `observability` | `execution-context`, `sentry`, `telemetry`                                                                                                                                   |
+| `doctor`        | Node `node` (`@lowerdeck/doctor`); shared `spec`; Go module `go`; Rust crate `rust` (`lowerdeck-doctor`)                                                                     |
 | `config`        | `env`                                                                                                                                                                        |
 | `tooling`       | `offline`, `testing-tools`, `tsconfig`                                                                                                                                       |
 | `rpc`           | Node `client`, `server`, and `signature`; shared `spec`; Go runtime and optional `otel` module                                                                               |
@@ -30,7 +31,7 @@ consumable and may depend on packages in other groups.
 
 Groups with implementations in multiple languages may add language directories. See the
 [RPC layout](rpc/README.md), whose Node packages live at `rpc/node/` and whose shared spec package
-lives at `rpc/spec/`.
+lives at `rpc/spec/`, and the [doctor layout](doctor/README.md).
 
 Keep Metorial business concepts in their owning products or platform packages. New libraries
 must follow the [OSS structure specification](../README.md).

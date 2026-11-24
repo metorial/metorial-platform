@@ -57,7 +57,7 @@ export class MetorialDashboardInstanceFirewallsNetworkPoliciesEndpoint {
     body: DashboardInstanceFirewallsNetworkPoliciesAttachBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsNetworkPoliciesAttachOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls/${firewallId}/network-policies`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}/network-policies`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardInstanceFirewallsNetworkPoliciesEndpoint {
     networkPolicyId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsNetworkPoliciesDetachOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls/${firewallId}/network-policies/${networkPolicyId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}/network-policies/${encodeURIComponent(networkPolicyId)}`;
 
     let request = {
       path,

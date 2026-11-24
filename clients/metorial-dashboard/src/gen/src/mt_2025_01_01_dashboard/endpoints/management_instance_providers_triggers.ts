@@ -55,7 +55,7 @@ export class MetorialManagementInstanceProvidersTriggersEndpoint {
     query?: ManagementInstanceProvidersTriggersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<ManagementInstanceProvidersTriggersListOutput> {
-    let path = `instances/${instanceId}/provider-triggers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-triggers`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialManagementInstanceProvidersTriggersEndpoint {
     providerTriggerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersTriggersGetOutput> {
-    let path = `instances/${instanceId}/provider-triggers/${providerTriggerId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-triggers/${encodeURIComponent(providerTriggerId)}`;
 
     let request = {
       path,

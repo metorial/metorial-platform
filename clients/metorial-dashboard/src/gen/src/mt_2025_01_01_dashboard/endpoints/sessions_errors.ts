@@ -83,7 +83,7 @@ export class MetorialSessionsErrorsEndpoint {
     sessionErrorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorsGetOutput> {
-    let path = `session-errors/${sessionErrorId}`;
+    let path = `session-errors/${encodeURIComponent(sessionErrorId)}`;
 
     let request = {
       path,

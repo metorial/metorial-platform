@@ -67,7 +67,7 @@ export class MetorialDashboardInstanceCustomProvidersEndpoint {
     query?: DashboardInstanceCustomProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersListOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-providers`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardInstanceCustomProvidersEndpoint {
     customProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-providers/${customProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-providers/${encodeURIComponent(customProviderId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardInstanceCustomProvidersEndpoint {
     customProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersGetEnvOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-providers/${customProviderId}/env`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-providers/${encodeURIComponent(customProviderId)}/env`;
 
     let request = {
       path,
@@ -157,7 +157,7 @@ export class MetorialDashboardInstanceCustomProvidersEndpoint {
     body: DashboardInstanceCustomProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-providers`;
 
     let request = {
       path,
@@ -189,7 +189,7 @@ export class MetorialDashboardInstanceCustomProvidersEndpoint {
     body: DashboardInstanceCustomProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-providers/${customProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-providers/${encodeURIComponent(customProviderId)}`;
 
     let request = {
       path,
@@ -219,7 +219,7 @@ export class MetorialDashboardInstanceCustomProvidersEndpoint {
     customProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersArchiveOutput> {
-    let path = `dashboard/instances/${instanceId}/custom-providers/${customProviderId}/archive`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/custom-providers/${encodeURIComponent(customProviderId)}/archive`;
 
     let request = {
       path,

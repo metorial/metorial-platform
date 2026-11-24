@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint {
     body: DashboardInstanceSkillsMergeRequestsItemsResolveBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsItemsResolveOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-merge-requests/${skillMergeRequestId}/items/${itemId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/items/${encodeURIComponent(itemId)}`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint {
     body: DashboardInstanceSkillsMergeRequestsItemsBulkResolveBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsItemsBulkResolveOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-merge-requests/${skillMergeRequestId}/items`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/items`;
 
     let request = {
       path,

@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
     query?: DashboardInstanceFirewallsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsListOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
     firewallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls/${firewallId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
     body: DashboardInstanceFirewallsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
     body: DashboardInstanceFirewallsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls/${firewallId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialDashboardInstanceFirewallsEndpoint {
     firewallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/firewalls/${firewallId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,

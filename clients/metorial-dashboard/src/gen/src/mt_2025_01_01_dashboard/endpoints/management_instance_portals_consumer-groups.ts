@@ -67,7 +67,7 @@ export class MetorialManagementInstancePortalsConsumerGroupsEndpoint {
     query?: DashboardInstancePortalsConsumerGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsListOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/consumer-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/consumer-groups`;
 
     let request = {
       path,
@@ -101,7 +101,7 @@ export class MetorialManagementInstancePortalsConsumerGroupsEndpoint {
     consumerGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsGetOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/consumer-groups/${consumerGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/consumer-groups/${encodeURIComponent(consumerGroupId)}`;
 
     let request = {
       path,
@@ -132,7 +132,7 @@ export class MetorialManagementInstancePortalsConsumerGroupsEndpoint {
     body: DashboardInstancePortalsConsumerGroupsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsCreateOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/consumer-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/consumer-groups`;
 
     let request = {
       path,
@@ -168,7 +168,7 @@ export class MetorialManagementInstancePortalsConsumerGroupsEndpoint {
     body: DashboardInstancePortalsConsumerGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsUpdateOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/consumer-groups/${consumerGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/consumer-groups/${encodeURIComponent(consumerGroupId)}`;
 
     let request = {
       path,
@@ -202,7 +202,7 @@ export class MetorialManagementInstancePortalsConsumerGroupsEndpoint {
     consumerGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsDeleteOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/consumer-groups/${consumerGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/consumer-groups/${encodeURIComponent(consumerGroupId)}`;
 
     let request = {
       path,

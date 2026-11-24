@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceSandboxImagesEndpoint {
     query?: DashboardInstanceSandboxImagesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/images`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/images`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceSandboxImagesEndpoint {
     imageId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/images/${imageId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/images/${encodeURIComponent(imageId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceSandboxImagesEndpoint {
     body: DashboardInstanceSandboxImagesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/images`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/images`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstanceSandboxImagesEndpoint {
     body: DashboardInstanceSandboxImagesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/images/${imageId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/images/${encodeURIComponent(imageId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstanceSandboxImagesEndpoint {
     imageId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/images/${imageId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/images/${encodeURIComponent(imageId)}`;
 
     let request = {
       path,

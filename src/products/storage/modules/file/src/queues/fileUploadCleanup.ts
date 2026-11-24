@@ -7,7 +7,8 @@ import {
   hourlyPacedDelay
 } from '@metorial/queue';
 import { pendingUploadTtlMs } from '../lib/uploadPolicy';
-import { getCargoFilesBucketName } from '../storage';
+import { withMultipartUploadLock } from '../lib/multipartUpload';
+import { getCargoFilesBucketName, getStorage } from '../storage';
 import { cargoObjectDelete } from './objectDelete';
 
 let batchSize = 500;
@@ -38,8 +39,10 @@ export let fileUploadPurgeQueue = createQueue<{}>({
 export let listAbandonedFileUploads = async (d: { cursor?: string; limit: number }) =>
   await db.fileUpload.findMany({
     where: {
-      status: 'pending',
-      expiresAt: { lte: new Date() },
+      OR: [
+        { status: 'pending', expiresAt: { lte: new Date() } },
+        { status: 'canceled', multipartUploadId: { not: null } }
+      ],
       id: d.cursor ? { gt: d.cursor } : undefined
     },
     orderBy: {
@@ -55,34 +58,50 @@ export let listAbandonedFileUploads = async (d: { cursor?: string; limit: number
 export let cleanupFileUpload = async (d: { fileUploadId: string }) => {
   let upload = await db.fileUpload.findUnique({
     where: { id: d.fileUploadId },
+    select: { multipartUploadId: true }
+  });
+  if (upload?.multipartUploadId) {
+    return await withMultipartUploadLock(d.fileUploadId, () => cleanupUpload(d.fileUploadId));
+  }
+  return await cleanupUpload(d.fileUploadId);
+};
+
+let cleanupUpload = async (fileUploadId: string) => {
+  let upload = await db.fileUpload.findUnique({
+    where: { id: fileUploadId },
     select: {
       oid: true,
       status: true,
       storeId: true,
+      multipartUploadId: true,
       fileOid: true,
       expiresAt: true
     }
   });
-  if (!upload) return false;
+  if (!upload || upload.status === 'completed' || upload.fileOid) return false;
+  if (upload.status === 'pending' && upload.expiresAt > new Date()) return false;
 
-  if (upload.status === 'pending') {
-    if (upload.expiresAt > new Date()) return false;
+  if (upload.multipartUploadId) {
+    await getStorage().abortMultipartUpload(
+      getCargoFilesBucketName(),
+      upload.storeId,
+      upload.multipartUploadId
+    );
+  }
 
+  if (upload.status === 'pending' || upload.multipartUploadId) {
     let expired = await db.fileUpload.updateMany({
       where: {
         oid: upload.oid,
-        status: 'pending'
+        status: upload.status
       },
       data: {
-        status: 'expired'
+        status: upload.status === 'pending' ? 'expired' : upload.status,
+        multipartUploadId: null
       }
     });
     if (expired.count === 0) return false;
-  } else if (upload.status === 'completed') {
-    return false;
   }
-
-  if (upload.fileOid) return false;
 
   let filesUsingObject = await db.file.count({
     where: {
@@ -98,7 +117,10 @@ export let cleanupFileUpload = async (d: { fileUploadId: string }) => {
 
 export let purgeTerminalFileUploads = async () => {
   let where = {
-    status: { in: ['completed', 'canceled', 'expired'] as Array<'completed' | 'canceled' | 'expired'> },
+    status: {
+      in: ['completed', 'canceled', 'expired'] as Array<'completed' | 'canceled' | 'expired'>
+    },
+    OR: [{ status: 'completed' as const }, { multipartUploadId: null }],
     updatedAt: { lte: new Date(Date.now() - pendingUploadTtlMs) }
   };
 

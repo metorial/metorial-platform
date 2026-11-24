@@ -65,7 +65,7 @@ export class MetorialSkillsMergeRequestsCommentsEndpoint {
     query?: DashboardInstanceSkillsMergeRequestsCommentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCommentsListOutput> {
-    let path = `skill-merge-requests/${skillMergeRequestId}/comments`;
+    let path = `skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/comments`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialSkillsMergeRequestsCommentsEndpoint {
     body: DashboardInstanceSkillsMergeRequestsCommentsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCommentsCreateOutput> {
-    let path = `skill-merge-requests/${skillMergeRequestId}/comments`;
+    let path = `skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/comments`;
 
     let request = {
       path,
@@ -131,7 +131,7 @@ export class MetorialSkillsMergeRequestsCommentsEndpoint {
     commentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCommentsGetOutput> {
-    let path = `skill-merge-requests/${skillMergeRequestId}/comments/${commentId}`;
+    let path = `skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/comments/${encodeURIComponent(commentId)}`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialSkillsMergeRequestsCommentsEndpoint {
     body: DashboardInstanceSkillsMergeRequestsCommentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCommentsUpdateOutput> {
-    let path = `skill-merge-requests/${skillMergeRequestId}/comments/${commentId}`;
+    let path = `skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/comments/${encodeURIComponent(commentId)}`;
 
     let request = {
       path,
@@ -194,7 +194,7 @@ export class MetorialSkillsMergeRequestsCommentsEndpoint {
     commentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMergeRequestsCommentsDeleteOutput> {
-    let path = `skill-merge-requests/${skillMergeRequestId}/comments/${commentId}`;
+    let path = `skill-merge-requests/${encodeURIComponent(skillMergeRequestId)}/comments/${encodeURIComponent(commentId)}`;
 
     let request = {
       path,

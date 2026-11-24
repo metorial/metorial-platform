@@ -50,7 +50,21 @@ export let env = defineSettings({
   kubernetes: {
     KUBERNETES_BUILD_TIMEOUT_SECONDS: setting(
       v.number({ modifiers: [v.minValue(60), v.maxValue(7200)] }),
-      { default: 3600, description: 'Deadline of a kubernetes build Job' }
+      {
+        default: 3600,
+        description: 'Maximum Kubernetes build execution time after the container starts'
+      }
+    ),
+    KUBERNETES_BUILD_SCHEDULING_TIMEOUT_SECONDS: setting(
+      v.number({ modifiers: [v.integer(), v.minValue(15), v.maxValue(3600)] }),
+      {
+        default: 900,
+        description: 'Time a build can wait for admission and its container to start'
+      }
+    ),
+    KUBERNETES_BUILD_MAX_IN_FLIGHT: setting(
+      v.number({ modifiers: [v.integer(), v.minValue(1), v.maxValue(1000)] }),
+      { default: 1, description: 'Maximum admitted pending and running Kubernetes builds' }
     ),
     BUILD_SIGNING_KEY: setting(v.optional(v.string()), {
       secret: true,
@@ -60,6 +74,11 @@ export let env = defineSettings({
     BUILD_SIGNING_KEY_ID: setting(v.optional(v.string()), {
       description:
         'Key id for BUILD_SIGNING_KEY, defaults to the id derived from its public key'
+    }),
+    TRUST_CONFIGMAPS: setting.list(v.string(), {
+      default: [],
+      description:
+        'Kubernetes ConfigMaps ("namespace/name") this service publishes the public key of BUILD_SIGNING_KEY to, for the egress gateway'
     }),
     SLATE_DEPLOYMENT_NPM_REGISTRY_URL: setting(v.optional(v.string()), {
       description: 'Deprecated fallback for BUILD_NPM_REGISTRY_URL'

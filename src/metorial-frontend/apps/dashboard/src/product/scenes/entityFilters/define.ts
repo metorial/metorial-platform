@@ -92,6 +92,9 @@ let uniqueById = (items: TableFilterEntityOption[]) => {
   });
 };
 
+export let isQueriedListLoading = (lists: [query: unknown, list: EntityList][]) =>
+  lists.some(([query, list]) => query != null && list.isLoading);
+
 let emptyMessage = (def: EntityDefinition, search: string) =>
   def.emptyMessage?.(search) ??
   (search ? `No matching ${def.noun} found.` : `No ${def.noun} available.`);
@@ -101,13 +104,14 @@ let createSearchOptions =
   ({ search, filters }: { search: string; filters: TableFilterPayloadMap }) => {
     let query = search.trim();
     let blocked = def.blockedMessage?.(filters);
-    let list = def.useList(
-      blocked ? null : { search: query || undefined, limit: SEARCH_LIMIT, filters }
-    );
+    let listQuery = blocked
+      ? null
+      : { search: query || undefined, limit: SEARCH_LIMIT, filters };
+    let list = def.useList(listQuery);
 
     return {
       items: list.items,
-      isLoading: list.isLoading,
+      isLoading: isQueriedListLoading([[listQuery, list]]),
       empty: blocked ?? emptyMessage(def, query)
     } satisfies TableFilterEntityOptions;
   };
@@ -117,10 +121,11 @@ let createRecentOptions =
   ({ search, filters }: { search: string; filters: TableFilterPayloadMap }) => {
     let query = search.trim();
     let blocked = def.blockedMessage?.(filters);
-    let recent = def.useList(blocked ? null : { limit: RECENT_LIMIT, filters });
-    let exact = def.useList(
-      !blocked && looksLikeId(query) ? { ids: [query], limit: 1, filters } : null
-    );
+    let recentQuery = blocked ? null : { limit: RECENT_LIMIT, filters };
+    let exactQuery =
+      !blocked && looksLikeId(query) ? { ids: [query], limit: 1, filters } : null;
+    let recent = def.useList(recentQuery);
+    let exact = def.useList(exactQuery);
 
     let items = useMemo(
       () => uniqueById([...exact.items, ...recent.items]),
@@ -129,7 +134,10 @@ let createRecentOptions =
 
     return {
       items,
-      isLoading: recent.isLoading || exact.isLoading,
+      isLoading: isQueriedListLoading([
+        [recentQuery, recent],
+        [exactQuery, exact]
+      ]),
       empty: blocked ?? emptyMessage(def, query)
     } satisfies TableFilterEntityOptions;
   };

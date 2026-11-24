@@ -65,7 +65,7 @@ export class MetorialManagementInstanceIdentityActorsEndpoint {
     query?: DashboardInstanceIdentityActorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsListOutput> {
-    let path = `instances/${instanceId}/identity-actors`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-actors`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceIdentityActorsEndpoint {
     identityActorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsGetOutput> {
-    let path = `instances/${instanceId}/identity-actors/${identityActorId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceIdentityActorsEndpoint {
     body: DashboardInstanceIdentityActorsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsCreateOutput> {
-    let path = `instances/${instanceId}/identity-actors`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-actors`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceIdentityActorsEndpoint {
     body: DashboardInstanceIdentityActorsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsUpdateOutput> {
-    let path = `instances/${instanceId}/identity-actors/${identityActorId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceIdentityActorsEndpoint {
     identityActorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentityActorsDeleteOutput> {
-    let path = `instances/${instanceId}/identity-actors/${identityActorId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identity-actors/${encodeURIComponent(identityActorId)}`;
 
     let request = {
       path,

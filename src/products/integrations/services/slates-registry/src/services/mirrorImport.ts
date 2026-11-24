@@ -9,6 +9,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { readZipEntries } from '../lib/slatePackage/archive';
 import { normalizeSlatePackage, parseSlateFullIdentifier } from '../lib/slatePackage/manifest';
+import { outdatedUnbuiltVersionCode } from '../lib/slateVersion/promotion';
 import {
   findValidSlateVersionSignature,
   type SlateVersionSignatureInput
@@ -186,6 +187,12 @@ class mirrorImportServiceImpl {
       });
     } catch (error) {
       if (isConflictError(error)) return { status: 'conflict', message: errorMessage(error) };
+      if (error instanceof ServiceError && error.data.code === outdatedUnbuiltVersionCode) {
+        return {
+          status: 'skipped',
+          message: 'A newer unbuilt version of this integration is already current.'
+        };
+      }
       throw error;
     }
 

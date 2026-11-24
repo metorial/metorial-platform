@@ -41,6 +41,15 @@ let ssoUserChangeInclude = {
   scimOperation: true
 } satisfies Prisma.SsoUserChangeInclude;
 
+let getNamesForNewSsoRecord = (d: {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+}) => ({
+  firstName: d.firstName ?? (d.lastName ? '' : d.email.split('@')[0]!),
+  lastName: d.lastName ?? ''
+});
+
 let setSsoUserOwnerProfile = async (d: {
   user: SsoUser;
   profile: SsoUserProfile;
@@ -84,8 +93,8 @@ class SsoIdentityServiceImpl {
   async upsertUser(d: {
     tenant: SsoTenant;
     email: string;
-    firstName: string;
-    lastName: string;
+    firstName?: string | null;
+    lastName?: string | null;
     status?: 'active' | 'deprovisioned';
   }) {
     let existing = await db.ssoUser.findFirst({
@@ -97,8 +106,8 @@ class SsoIdentityServiceImpl {
         where: { oid: existing.oid },
         data: {
           status: d.status ?? 'active',
-          firstName: d.firstName,
-          lastName: d.lastName
+          firstName: d.firstName ?? undefined,
+          lastName: d.lastName ?? undefined
         },
         include: ssoUserInclude
       });
@@ -110,8 +119,7 @@ class SsoIdentityServiceImpl {
         status: d.status ?? 'active',
         tenantOid: d.tenant.oid,
         email: d.email,
-        firstName: d.firstName,
-        lastName: d.lastName
+        ...getNamesForNewSsoRecord(d)
       },
       include: ssoUserInclude
     });
@@ -448,8 +456,8 @@ class SsoIdentityServiceImpl {
       uid: string;
       uidHash: string;
       sub?: string;
-      firstName: string;
-      lastName: string;
+      firstName?: string | null;
+      lastName?: string | null;
       roles: string[];
       groups: string[];
       raw: any;
@@ -474,8 +482,8 @@ class SsoIdentityServiceImpl {
           email: d.data.email,
           uid: d.data.uid,
           sub: d.data.sub ?? null,
-          firstName: d.data.firstName,
-          lastName: d.data.lastName,
+          firstName: d.data.firstName ?? undefined,
+          lastName: d.data.lastName ?? undefined,
           roles: shouldUpdateMemberships ? d.data.roles : undefined,
           groups: shouldUpdateMemberships ? d.data.groups : undefined,
           isGroupRoleMemberReconciled: shouldUpdateMemberships ? true : undefined,
@@ -523,8 +531,7 @@ class SsoIdentityServiceImpl {
         uid: d.data.uid,
         uidHash: d.data.uidHash,
         sub: d.data.sub ?? null,
-        firstName: d.data.firstName,
-        lastName: d.data.lastName,
+        ...getNamesForNewSsoRecord(d.data),
         roles: d.data.roles,
         groups: d.data.groups,
         isGroupRoleMemberReconciled: d.updateMemberships ?? true,

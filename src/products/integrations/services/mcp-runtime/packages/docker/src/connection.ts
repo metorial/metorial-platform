@@ -1,11 +1,11 @@
 import axios, { type AxiosRequestConfig } from 'axios';
-import { getAxiosSsrfFilter } from '@mtsrc/mcp-runtime-network';
+import { getAxiosEgressOptions, systemEgressContext } from '@mtsrc/mcp-runtime-network';
 
 let REQUEST_TIMEOUT_MS = 10_000;
 
 export let fetchDigest = async (url: string, headers: Record<string, string>) => {
   let response = await axios.head(url, {
-    ...getAxiosSsrfFilter(url),
+    ...getAxiosEgressOptions(url, systemEgressContext),
     headers,
     timeout: REQUEST_TIMEOUT_MS,
     validateStatus: status => status >= 200 && status < 400
@@ -95,7 +95,7 @@ export let fetchBearerToken = async (
     let response = await axios.get(challenge.realm, {
       ...config,
       ...(withCredentials ? authConfig : {}),
-      ...getAxiosSsrfFilter(challenge.realm),
+      ...getAxiosEgressOptions(challenge.realm, systemEgressContext),
       timeout: REQUEST_TIMEOUT_MS
     });
 

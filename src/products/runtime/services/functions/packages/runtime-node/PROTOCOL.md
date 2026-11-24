@@ -42,7 +42,7 @@ Worker → supervisor:
 | `result` | `requestId`, `payload` (any JSON; the `{ statusCode, body }` envelope) | Once per `invoke`, after all of the request's `log` frames |
 | `log` | `requestId`, `ts` (ms since epoch), `stream` (`stdout` \| `stderr`), `line` (no newline) | Each line written inside a request's context |
 | `lookup` | `id`, `requestId`, `hostname` | `dns.lookup` inside a request |
-| `crash` | `phase` (`boot` \| `runtime`), `message`, `stack?` | Before exiting on a load failure or an uncaught exception |
+| `crash` | `phase` (`boot` \| `runtime`), `requestId?`, `message`, `stack?` | Before exiting on a load failure or an uncaught exception; `requestId` is the request the exception was raised in, if any |
 
 Supervisor → worker:
 
@@ -60,13 +60,56 @@ restarting. Any other exit fails the in-flight requests with `function_bay.crash
 worker with backoff; five crashes within five minutes fail readiness for good. A worker exits
 when the control channel closes.
 
+A crash message can carry one invocation's data, so in `shared` mode only the request named by
+the crash frame's `requestId` receives it; the other in-flight requests get a generic message.
+Exits without a crash frame (out of memory, `process.exit`) report the exit to every request.
+
+In `shared` mode an unhandled promise rejection does not crash the worker: the request the
+promise belongs to fails with `function_bay.unhandled_rejection` and the others keep running. A
+rejection outside any request is only logged. `exclusive` mode keeps Node's default and crashes,
+as on Lambda.
+
+## Request context
+
+The worker tracks the current request with `AsyncLocalStorage`; logs, lookups and tunnels are
+attributed to it. A callback that lost its async context (a timer or queue created at load time,
+for example) has no request in `shared` mode, so it can't log to a request or reach the network.
+In `exclusive` mode it belongs to the request in flight, which keeps work queues created at load
+time working. That includes work left over from a previous invocation: if it lost its context it
+runs as the current invocation, with that invocation's egress grant and logs, as on Lambda.
+
+## Connection pools
+
+`fetch`, `http.globalAgent` and `https.globalAgent` route each request to its own pools, which
+are destroyed when the request ends. Agents the function creates itself keep their pools, but
+the request id is part of their pool key, so a keep-alive socket is only reused by the request
+that opened it. If the function replaces the global `fetch` dispatcher, the worker puts the
+routing dispatcher back before the next invocation and logs a warning to the instance log.
+
+Clients that hold a socket themselves (a database client, a websocket kept at module level) are
+not split up. When a request writes to a socket another request opened, the worker logs a
+warning to the instance log, once per socket; the write still goes through.
+
+## Trust model
+
+Requests in one worker are separated against mistakes, not against the function's own code. Any
+code in the bundle, including its dependencies, can read the other in-flight payloads and choose
+the `requestId` of the tunnels it opens. `shared` mode is therefore only safe when every caller
+trusts the function's code, as with platform-owned integrations.
+
 ## Tunnels (`METORIAL_SUPERVISOR_SOCKET`)
 
 Each outbound TCP connection is a new connection to the unix socket. The first bytes are one
 frame:
 
 ```json
-{ "type": "tunnel", "tunnelId": "<worker-chosen id>", "requestId": "req_…", "host": "api.example.com", "port": 443 }
+{
+  "type": "tunnel",
+  "tunnelId": "<worker-chosen id>",
+  "requestId": "req_…",
+  "host": "api.example.com",
+  "port": 443
+}
 ```
 
 followed by the raw byte stream in both directions; TLS stays end to end inside it. `host` is

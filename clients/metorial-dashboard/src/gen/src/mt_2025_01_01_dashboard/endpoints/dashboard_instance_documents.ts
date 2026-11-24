@@ -69,7 +69,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
     query?: DashboardInstanceDocumentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsListOutput> {
-    let path = `dashboard/instances/${instanceId}/documents`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents`;
 
     let request = {
       path,
@@ -101,7 +101,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
     body: DashboardInstanceDocumentsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/documents`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents`;
 
     let request = {
       path,
@@ -131,7 +131,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
     documentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/documents/${documentId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
     body: DashboardInstanceDocumentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/documents/${documentId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}`;
 
     let request = {
       path,
@@ -190,7 +190,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
     documentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/documents/${documentId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}`;
 
     let request = {
       path,
@@ -221,7 +221,7 @@ export class MetorialDashboardInstanceDocumentsEndpoint {
     body: DashboardInstanceDocumentsCloneBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsCloneOutput> {
-    let path = `dashboard/instances/${instanceId}/documents/${documentId}/clone`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}/clone`;
 
     let request = {
       path,

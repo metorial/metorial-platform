@@ -55,7 +55,7 @@ export class MetorialManagementInstanceIncomingWebhooksEndpoint {
     query?: DashboardInstanceIncomingWebhooksListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIncomingWebhooksListOutput> {
-    let path = `instances/${instanceId}/incoming-webhooks`;
+    let path = `instances/${encodeURIComponent(instanceId)}/incoming-webhooks`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialManagementInstanceIncomingWebhooksEndpoint {
     incomingWebhookId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIncomingWebhooksGetOutput> {
-    let path = `instances/${instanceId}/incoming-webhooks/${incomingWebhookId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/incoming-webhooks/${encodeURIComponent(incomingWebhookId)}`;
 
     let request = {
       path,

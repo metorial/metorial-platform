@@ -15,7 +15,6 @@ import {
 } from '@metorial-subspace/connection-utils';
 import {
   db,
-  dbPrimary,
   messageTranslator,
   type SessionConnectionMcpConnectionTransport,
   type SessionMessage
@@ -350,7 +349,7 @@ export class McpSender {
     if (!method) {
       if (id === undefined || id === null) return;
 
-      let message = await dbPrimary.sessionMessage.findFirst({
+      let message = await db.sessionMessage.findFirst({
         where: {
           sessionOid: this.session.oid,
           providerMcpId: id.toString(),

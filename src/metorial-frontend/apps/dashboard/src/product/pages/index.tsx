@@ -1,4 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { checkEdition } from '@metorial/editions';
 import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
@@ -73,42 +74,46 @@ export let ProjectHomePage = () => {
 
       {renderWithLoader({ instance, deployments })(() => (
         <>
-          <div
-            style={{
-              display: 'grid',
-              gap: 20,
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
-            }}
-          >
-            <SideBox
-              title="Integrate Metorial"
-              description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
-            >
-              <Button
-                size="2"
-                onClick={() => {
-                  if (window.metorial_enterprise?.chrome?.showDocs) {
-                    window.metorial_enterprise.chrome.showDocs();
-                  } else {
-                    window.open('https://metorial.com/docs', '_blank');
-                  }
+          {checkEdition('cloud') && (
+            <>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: 20,
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
                 }}
               >
-                Read the Docs
-              </Button>
-            </SideBox>
+                <SideBox
+                  title="Integrate Metorial"
+                  description="Learn how to integrate Metorial with your AI app. We have guides for various programming languages and frameworks."
+                >
+                  <Button
+                    size="2"
+                    onClick={() => {
+                      if (window.metorial_enterprise?.chrome?.showDocs) {
+                        window.metorial_enterprise.chrome.showDocs();
+                      } else {
+                        window.open('https://metorial.com/docs', '_blank');
+                      }
+                    }}
+                  >
+                    Read the Docs
+                  </Button>
+                </SideBox>
 
-            {secretApiKey && (
-              <SideBox
-                title="Connect to Metorial"
-                description="Use this API key to connect to Metorial from your code."
-              >
-                <ApiKeySecret apiKey={secretApiKey} />
-              </SideBox>
-            )}
-          </div>
+                {secretApiKey && (
+                  <SideBox
+                    title="Connect to Metorial"
+                    description="Use this API key to connect to Metorial from your code."
+                  >
+                    <ApiKeySecret apiKey={secretApiKey} />
+                  </SideBox>
+                )}
+              </div>
 
-          <Spacer height={25} />
+              <Spacer height={25} />
+            </>
+          )}
 
           {portalsEnabled && !!portals.data?.items.length && (
             <>

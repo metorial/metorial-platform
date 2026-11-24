@@ -9,12 +9,9 @@ import {
   createToken,
   isoRange,
   rpcErrorCode,
-  runQuery
+  runQuery,
+  usagePollOptions
 } from './support';
-
-let settleTimeoutMs = 120_000;
-
-let settleIntervalMs = 5_000;
 
 let model = 'claude-sonnet-4-5-20250929';
 
@@ -67,14 +64,12 @@ let seed = async () => {
   await sendSessions(secondToken.secret, 1);
   await sendSessions(otherToken.secret, 1);
 
-  await eventually(
-    async () => {
-      expect(await countOf(first.organization.id, 'sessions')).toBe(3);
-      expect(await countOf(first.organization.id, 'usage')).toBe(3);
-      expect(await countOf(other.organization.id, 'sessions')).toBe(1);
-    },
-    { timeoutMs: settleTimeoutMs, intervalMs: settleIntervalMs }
-  );
+  await eventually(async () => {
+    expect(await countOf(first.organization.id, 'usage')).toBe(3);
+    expect(await countOf(other.organization.id, 'usage')).toBe(1);
+    expect(await countOf(first.organization.id, 'sessions')).toBe(3);
+    expect(await countOf(other.organization.id, 'sessions')).toBe(1);
+  }, usagePollOptions);
 
   return { first, secondProject, secondInstance, other };
 };
@@ -84,7 +79,7 @@ describe('query isolation', () => {
 
   beforeAll(async () => {
     seeded = await seed();
-  }, settleTimeoutMs + 30_000);
+  }, usagePollOptions.timeoutMs + 30_000);
 
   it('only counts the organization’s own data', async () => {
     expect(await countOf(seeded.first.organization.id, 'usage')).toBe(3);
@@ -219,13 +214,10 @@ describe('query privacy', () => {
       let token = await createToken({}, scope);
       await sendSessions(token.secret, 1);
 
-      await eventually(
-        async () => {
-          expect(await countOf(scope.organization.id, 'sessions')).toBe(1);
-          expect(await countOf(scope.organization.id, 'usage')).toBe(1);
-        },
-        { timeoutMs: settleTimeoutMs }
-      );
+      await eventually(async () => {
+        expect(await countOf(scope.organization.id, 'usage')).toBe(1);
+        expect(await countOf(scope.organization.id, 'sessions')).toBe(1);
+      }, usagePollOptions);
 
       let setHidden = (hideIndividuals: boolean) =>
         agentTracking().organization.upsert({
@@ -256,6 +248,6 @@ describe('query privacy', () => {
 
       expect((await rows()).rows.length).toBe(1);
     },
-    settleTimeoutMs + 30_000
+    usagePollOptions.timeoutMs + 30_000
   );
 });

@@ -7,7 +7,8 @@ import { useProviderSetupSessionRunner } from './setupSessionRunner';
 
 let state = vi.hoisted(() => ({
   create: vi.fn(),
-  get: vi.fn()
+  get: vi.fn(),
+  onCredentialError: vi.fn()
 }));
 
 vi.mock('@metorial/state', () => ({
@@ -32,6 +33,7 @@ let Harness = (props: { source?: 'explorer' }) => {
     instanceId: 'instance',
     providerId: 'provider',
     source: props.source,
+    onCredentialError: state.onCredentialError,
     onComplete
   });
   return null;
@@ -78,6 +80,44 @@ afterEach(async () => {
 });
 
 describe('useProviderSetupSessionRunner', () => {
+  it.each([
+    { code: 'managed_credentials_auth_method_mismatch' },
+    { code: 'managed_credentials_auth_method_unavailable' },
+    { code: 'not_found', id: 'credential_a' },
+    { code: 'use_after_delete', entityId: 'credential_a' }
+  ])(
+    'closes the blank popup and hands credential failures to the auth flow: $code',
+    async data => {
+      state.create.mockResolvedValue([null, { data }]);
+
+      await act(async () => {
+        await runner.start({
+          providerAuthMethodId: 'oauth_a',
+          providerAuthCredentialsId: 'credential_a'
+        });
+      });
+
+      expect(popup.close).toHaveBeenCalledOnce();
+      expect(state.onCredentialError).toHaveBeenCalledWith({ credentialId: 'credential_a' });
+      expect(runner.error).toBeNull();
+    }
+  );
+
+  it('shows the service message for a failure unrelated to the selected OAuth app', async () => {
+    state.create.mockResolvedValue([
+      null,
+      {
+        message: 'Wrapped error',
+        data: { code: 'not_found', id: 'deployment', message: 'The deployment was removed.' }
+      }
+    ]);
+
+    await startSession();
+
+    expect(state.onCredentialError).not.toHaveBeenCalled();
+    expect(runner.error).toBe('The deployment was removed.');
+  });
+
   it.each([undefined, 'explorer' as const])(
     'only marks explicitly requested explorer sessions (source=%s)',
     async source => {

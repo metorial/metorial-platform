@@ -95,7 +95,7 @@ export class MetorialChatInstancesEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesGetOutput> {
-    let path = `chat/instances/${chatInstanceId}`;
+    let path = `chat/instances/${encodeURIComponent(chatInstanceId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialChatInstancesEndpoint {
     body: DashboardInstanceChatInstancesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesUpdateOutput> {
-    let path = `chat/instances/${chatInstanceId}`;
+    let path = `chat/instances/${encodeURIComponent(chatInstanceId)}`;
 
     let request = {
       path,
@@ -180,7 +180,7 @@ export class MetorialChatInstancesEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesDeleteOutput> {
-    let path = `chat/instances/${chatInstanceId}`;
+    let path = `chat/instances/${encodeURIComponent(chatInstanceId)}`;
 
     let request = {
       path,
@@ -207,7 +207,7 @@ export class MetorialChatInstancesEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesSyncOutput> {
-    let path = `chat/instances/${chatInstanceId}/sync`;
+    let path = `chat/instances/${encodeURIComponent(chatInstanceId)}/sync`;
 
     let request = {
       path,

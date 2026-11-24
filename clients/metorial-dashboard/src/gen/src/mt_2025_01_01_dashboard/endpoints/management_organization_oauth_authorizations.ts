@@ -87,7 +87,7 @@ export class MetorialManagementOrganizationOauthAuthorizationsEndpoint {
     oauthAuthorizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAuthorizationsGetOutput> {
-    let path = `organization/oauth/authorizations/${oauthAuthorizationId}`;
+    let path = `organization/oauth/authorizations/${encodeURIComponent(oauthAuthorizationId)}`;
 
     let request = {
       path,
@@ -114,7 +114,7 @@ export class MetorialManagementOrganizationOauthAuthorizationsEndpoint {
     oauthAuthorizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOauthAuthorizationsRevokeOutput> {
-    let path = `organization/oauth/authorizations/${oauthAuthorizationId}/revoke`;
+    let path = `organization/oauth/authorizations/${encodeURIComponent(oauthAuthorizationId)}/revoke`;
 
     let request = {
       path,

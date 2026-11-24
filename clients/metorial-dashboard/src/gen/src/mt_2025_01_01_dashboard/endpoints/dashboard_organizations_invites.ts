@@ -67,7 +67,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     query?: DashboardOrganizationsInvitesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesListOutput> {
-    let path = `dashboard/organizations/${organizationId}/invites`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/invites`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     inviteId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/invites/${inviteId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/invites/${encodeURIComponent(inviteId)}`;
 
     let request = {
       path,
@@ -128,7 +128,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     body: DashboardOrganizationsInvitesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/invites`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/invites`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesEnsureLinkOutput> {
-    let path = `dashboard/organizations/${organizationId}/invites/ensure`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/invites/ensure`;
 
     let request = {
       path,
@@ -185,7 +185,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     inviteId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/invites/${inviteId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/invites/${encodeURIComponent(inviteId)}`;
 
     let request = {
       path,
@@ -216,7 +216,7 @@ export class MetorialDashboardOrganizationsInvitesEndpoint {
     body: DashboardOrganizationsInvitesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsInvitesUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/invites/${inviteId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/invites/${encodeURIComponent(inviteId)}`;
 
     let request = {
       path,

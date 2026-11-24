@@ -1,6 +1,7 @@
 import { checkEdition } from '@metorial/editions';
 import { Controller } from '@metorial/rest';
 import {
+  aiGatewayDocsCategory,
   callbackDocsCategory,
   chatDocsCategory,
   configurationDocsCategory,
@@ -18,6 +19,7 @@ import {
   sessionDocsCategory,
   skillDocsCategory
 } from './_categories';
+import * as aiGatewayControllers from './instance/ai-gateway/controllers';
 import {
   consumerActivityController,
   consumerDeviceController,
@@ -34,6 +36,7 @@ import {
   dashboardAgentTrackingSettingsController,
   dashboardAgentTrackingSetupStatusController,
   dashboardAgentTrackingSpendController,
+  dashboardAgentTrackingViewController,
   dashboardAiAnalysisConfigurationController,
   dashboardAssistantController,
   dashboardAuditLogRetentionController,
@@ -371,6 +374,12 @@ Object.values(sandboxControllers).forEach(controller =>
   })
 );
 
+Object.values(aiGatewayControllers).forEach(controller =>
+  setControllerDocsMetadata(controller, {
+    category: aiGatewayDocsCategory
+  })
+);
+
 [
   integrationInternetGatewayController,
   integrationEnclaveController,
@@ -578,6 +587,7 @@ export let magnetarController = Controller.create<any>(
     networkPolicyController,
 
     ...sandboxControllers,
+    ...aiGatewayControllers,
 
     sessionController,
     sessionTemplateController,
@@ -743,6 +753,7 @@ export let dashboardController = Controller.create<any>(
     dashboardAgentTrackingProjectSettingsController,
     dashboardAgentTrackingSettingsController,
     dashboardAgentTrackingSetupStatusController,
+    dashboardAgentTrackingViewController,
     dashboardAssistantController,
     dashboardWorkforceConfigurationController,
     flagsController,
@@ -897,6 +908,7 @@ export let dashboardController = Controller.create<any>(
     networkPolicyController,
 
     ...sandboxControllers,
+    ...aiGatewayControllers,
 
     sessionTemplateController,
     sessionTemplateProviderController,

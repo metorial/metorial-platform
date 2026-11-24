@@ -81,7 +81,7 @@ export class MetorialChatsEndpoint {
     chatId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsGetOutput> {
-    let path = `chats/${chatId}`;
+    let path = `chats/${encodeURIComponent(chatId)}`;
 
     let request = {
       path,

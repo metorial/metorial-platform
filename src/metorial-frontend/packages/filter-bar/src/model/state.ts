@@ -14,6 +14,8 @@ export type FilterStateTuple = readonly [
   React.Dispatch<React.SetStateAction<TableFilterState[]>>
 ];
 
+export type FilterPanelLayout = 'auto' | 'full';
+
 export type SearchStateTuple = readonly [string, React.Dispatch<React.SetStateAction<string>>];
 
 export type ListFilter = TableFilter<any> & { type: 'select' | 'entity' };

@@ -85,7 +85,7 @@ export class MetorialProviderAuthConfigErrorsGroupsEndpoint {
     providerAuthConfigErrorGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigErrorsGroupsGetOutput> {
-    let path = `provider-auth-config-error-groups/${providerAuthConfigErrorGroupId}`;
+    let path = `provider-auth-config-error-groups/${encodeURIComponent(providerAuthConfigErrorGroupId)}`;
 
     let request = {
       path,

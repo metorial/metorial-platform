@@ -61,7 +61,7 @@ export class MetorialManagementInstanceMonitorAlertsEndpoint {
     query?: DashboardInstanceMonitorAlertsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsListOutput> {
-    let path = `instances/${instanceId}/monitor-alerts`;
+    let path = `instances/${encodeURIComponent(instanceId)}/monitor-alerts`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstanceMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsGetOutput> {
-    let path = `instances/${instanceId}/monitor-alerts/${monitorAlertId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/monitor-alerts/${encodeURIComponent(monitorAlertId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialManagementInstanceMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsViewedOutput> {
-    let path = `instances/${instanceId}/monitor-alerts/${monitorAlertId}/viewed`;
+    let path = `instances/${encodeURIComponent(instanceId)}/monitor-alerts/${encodeURIComponent(monitorAlertId)}/viewed`;
 
     let request = {
       path,
@@ -151,7 +151,7 @@ export class MetorialManagementInstanceMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsResolveOutput> {
-    let path = `instances/${instanceId}/monitor-alerts/${monitorAlertId}/resolve`;
+    let path = `instances/${encodeURIComponent(instanceId)}/monitor-alerts/${encodeURIComponent(monitorAlertId)}/resolve`;
 
     let request = {
       path,
@@ -180,7 +180,7 @@ export class MetorialManagementInstanceMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsUnresolveOutput> {
-    let path = `instances/${instanceId}/monitor-alerts/${monitorAlertId}/unresolve`;
+    let path = `instances/${encodeURIComponent(instanceId)}/monitor-alerts/${encodeURIComponent(monitorAlertId)}/unresolve`;
 
     let request = {
       path,

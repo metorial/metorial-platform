@@ -73,7 +73,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     query?: DashboardInstanceMagicMcpEndpointsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsListOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints`;
 
     let request = {
       path,
@@ -105,7 +105,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     magicMcpEndpointId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints/${magicMcpEndpointId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}`;
 
     let request = {
       path,
@@ -134,7 +134,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     magicMcpEndpointId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints/${magicMcpEndpointId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}`;
 
     let request = {
       path,
@@ -195,7 +195,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints/${magicMcpEndpointId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}`;
 
     let request = {
       path,
@@ -227,7 +227,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsAddServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsAddServersOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints/${magicMcpEndpointId}/add-servers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}/add-servers`;
 
     let request = {
       path,
@@ -261,7 +261,7 @@ export class MetorialDashboardInstanceMagicMcpEndpointsEndpoint {
     body: DashboardInstanceMagicMcpEndpointsRemoveServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpEndpointsRemoveServersOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-endpoints/${magicMcpEndpointId}/remove-servers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-endpoints/${encodeURIComponent(magicMcpEndpointId)}/remove-servers`;
 
     let request = {
       path,

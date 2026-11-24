@@ -1186,6 +1186,13 @@ let InstancePaths = Object.assign(
     },
 
     agentTracking: {
+      root: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => InstancePaths(organization, project, instance, 'agent-usage', ...subPages),
+
       spend: (
         organization: EntityParam,
         project: EntityParam,
@@ -1226,6 +1233,14 @@ let InstancePaths = Object.assign(
         instance: EntityParam,
         ...subPages: SubPages
       ) => InstancePaths(organization, project, instance, 'agent-usage', 'team', ...subPages),
+
+      report: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) =>
+        InstancePaths(organization, project, instance, 'agent-usage', 'report', ...subPages),
 
       member: (
         organization: EntityParam,
@@ -1492,7 +1507,11 @@ let LicensesPaths = Object.assign(
       return LicensesPaths.licenses(organizationId, licenseId);
     },
     exchange: (organizationId?: string | null) =>
-      organizationId ? LicensesPaths(organizationId, 'exchange') : LicensesPaths('exchange')
+      organizationId ? LicensesPaths(organizationId, 'exchange') : LicensesPaths('exchange'),
+    downloads: (organizationId: string | null | undefined, ...subPages: SubPages) => {
+      if (!organizationId) return '#';
+      return LicensesPaths(organizationId, 'downloads', ...subPages);
+    }
   }
 );
 

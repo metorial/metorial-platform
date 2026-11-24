@@ -2,6 +2,7 @@ import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { env } from '@mtsrc/mcp-runtime-env';
+import { reportServerDeploymentFailure } from '../../lib/reportFailure';
 
 let DEPLOYING_TIMEOUT_MS = 1000 * 60 * 15;
 let QUEUED_TIMEOUT_MS = 1000 * 60 * 60 * 24;
@@ -97,7 +98,7 @@ export let deployServerTimeoutSingleQueueProcessor = deployServerTimeoutSingleQu
           }
         ]
       },
-      select: { oid: true }
+      select: { oid: true, status: true }
     });
     if (!deployment) return;
 
@@ -132,6 +133,20 @@ export let deployServerTimeoutSingleQueueProcessor = deployServerTimeoutSingleQu
         status: 'failed',
         endedAt
       }
+    });
+
+    await reportServerDeploymentFailure({
+      serverDeploymentId: data.serverDeploymentId,
+      failure:
+        deployment.status === 'queued'
+          ? {
+              code: 'deployment_queue_timeout',
+              message: `Deployment was still queued after ${QUEUED_TIMEOUT_MS / 3_600_000} hours`
+            }
+          : {
+              code: 'deployment_timeout',
+              message: `Deployment did not finish within ${DEPLOYING_TIMEOUT_MS / 60_000} minutes`
+            }
     });
   }
 );

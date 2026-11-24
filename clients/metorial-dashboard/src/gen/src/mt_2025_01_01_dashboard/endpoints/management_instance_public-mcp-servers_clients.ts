@@ -55,7 +55,7 @@ export class MetorialManagementInstancePublicMcpServersClientsEndpoint {
     query?: DashboardInstancePublicMcpServersClientsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersClientsListOutput> {
-    let path = `instances/${instanceId}/public-mcp-servers/${publicMcpServerId}/clients`;
+    let path = `instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}/clients`;
 
     let request = {
       path,

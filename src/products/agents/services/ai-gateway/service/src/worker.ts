@@ -1,10 +1,17 @@
+import './upstream';
 import { runQueueProcessors } from '@lowerdeck/queue';
+import { billingQueueProcessor } from '@mtsrc/ai-gateway-module-billing';
+import { catalogQueueProcessor, onCatalogWorkerStart } from '@mtsrc/ai-gateway-module-catalog';
+import {
+  credentialsQueueProcessor,
+  startPlatformConnectionChecks
+} from '@mtsrc/ai-gateway-module-credentials';
 
-async function main() {
-  await runQueueProcessors([]);
-}
+await runQueueProcessors([
+  catalogQueueProcessor,
+  credentialsQueueProcessor,
+  billingQueueProcessor
+]);
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+startPlatformConnectionChecks();
+await onCatalogWorkerStart();

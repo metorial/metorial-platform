@@ -5,6 +5,7 @@ import { individualsHiddenError } from './privacy';
 import { memberCountColumn } from './queries';
 import {
   calendarDateIn,
+  dayMs,
   defaultRangePreset,
   resolveRange,
   startOfDayIn,
@@ -16,13 +17,16 @@ import type { AgentTrackingSpendDay, AgentTrackingSpendFilters } from './types';
 
 export let privateTimeZone = 'UTC';
 
-let dayMs = 24 * 60 * 60 * 1000;
-
 let windowDays = { last_7_days: 7, last_30_days: 30 } as const;
 
 export let filtersHiddenError = individualsHiddenError({
   message:
     'This organization hides individual data in agent usage, so spend cannot be filtered by model or client: a filtered total can single out the few people who use one.'
+});
+
+export let seatValuesHiddenError = individualsHiddenError({
+  message:
+    'This organization hides individual data in agent usage, so seat values are not listed: a seat can single out the few people who hold it.'
 });
 
 export let breakdownHiddenError = individualsHiddenError({
@@ -39,6 +43,7 @@ export let assertPrivateRead = (d: {
   range: RangeInput;
   filters: AgentTrackingSpendFilters;
 }) => {
+  if (d.filters.memberIds?.length) throw new ServiceError(individualsHiddenError);
   if (d.filters.clientFamilies?.length || d.filters.modelIds?.length) {
     throw new ServiceError(filtersHiddenError);
   }

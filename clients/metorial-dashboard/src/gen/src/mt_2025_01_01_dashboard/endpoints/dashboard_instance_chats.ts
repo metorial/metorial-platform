@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceChatsEndpoint {
     query?: DashboardInstanceChatsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsListOutput> {
-    let path = `dashboard/instances/${instanceId}/chats`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/chats`;
 
     let request = {
       path,
@@ -85,7 +85,7 @@ export class MetorialDashboardInstanceChatsEndpoint {
     chatId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/chats/${chatId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}`;
 
     let request = {
       path,

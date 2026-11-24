@@ -57,7 +57,7 @@ export class MetorialDashboardInstanceSkillsVersionsEndpoint {
     query?: DashboardInstanceSkillsVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsVersionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/versions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/versions`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardInstanceSkillsVersionsEndpoint {
     skillVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsVersionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skills/${skillId}/versions/${skillVersionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/versions/${encodeURIComponent(skillVersionId)}`;
 
     let request = {
       path,

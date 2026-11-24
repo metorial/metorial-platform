@@ -85,7 +85,7 @@ export class MetorialCustomProvidersEnvironmentsEndpoint {
     customProviderEnvironmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersEnvironmentsGetOutput> {
-    let path = `custom-provider-environments/${customProviderEnvironmentId}`;
+    let path = `custom-provider-environments/${encodeURIComponent(customProviderEnvironmentId)}`;
 
     let request = {
       path,

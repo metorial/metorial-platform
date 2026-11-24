@@ -26,6 +26,7 @@ import {
   AgentTrackingErrorState,
   noIngestAddressText
 } from './errorState';
+import { WithInfo } from './info';
 import {
   buildClaudeCodeManagedSettings,
   buildManagedSettingsCommands,
@@ -199,20 +200,17 @@ let SettingsOptions = ({
       {optionDescriptors.map(option => (
         <OptionRow key={option.id}>
           <Flex direction="column" gap={4} style={{ minWidth: 0 }}>
-            <Text size="2" weight="strong">
-              {option.label}
-            </Text>
+            <WithInfo info={option.note}>
+              <Text size="2" weight="strong">
+                {option.label}
+              </Text>
+            </WithInfo>
             <Text size="2" color="gray700">
               Sends: {option.sends}
             </Text>
             <Text size="2" color="gray700">
               Unlocks: {option.unlocks}
             </Text>
-            {option.note ? (
-              <Text size="1" color="gray600">
-                {option.note}
-              </Text>
-            ) : null}
           </Flex>
 
           <Flex align="center" gap={12} style={{ flexShrink: 0 }}>

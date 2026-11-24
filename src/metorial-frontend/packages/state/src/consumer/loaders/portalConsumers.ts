@@ -114,7 +114,7 @@ export let useAllPortalConsumerAccess = (
 
 export let portalConsumerAccessLoader = createLoader({
   name: 'portalConsumerAccess',
-  parents: [allPortalConsumerAccessLoader, portalConsumerGroupsLoader],
+  parents: [portalConsumerGroupsLoader],
   fetch: (
     i: {
       instanceId: string;
@@ -122,21 +122,27 @@ export let portalConsumerAccessLoader = createLoader({
     } & DashboardInstancePortalsAccessListQuery
   ) => withAuth(sdk => sdk.portals.consumerAccess.list(i.instanceId, i.portalId, i)),
   mutators: {
-    update: (
+    update: async (
       body: DashboardInstancePortalsAccessUpdateBody & { consumerAccessId: string },
       { input: { instanceId, portalId } }: { input: { instanceId: string; portalId: string } }
-    ) =>
-      withAuth(sdk =>
+    ) => {
+      let access = await withAuth(sdk =>
         sdk.portals.consumerAccess.update(instanceId, portalId, body.consumerAccessId, body)
-      ),
+      );
+      invalidateAllPortalConsumerAccess({ instanceId, portalId });
+      return access;
+    },
 
-    delete: (
+    delete: async (
       body: { consumerAccessId: string },
       { input: { instanceId, portalId } }: { input: { instanceId: string; portalId: string } }
-    ) =>
-      withAuth(sdk =>
+    ) => {
+      let access = await withAuth(sdk =>
         sdk.portals.consumerAccess.delete(instanceId, portalId, body.consumerAccessId)
-      )
+      );
+      invalidateAllPortalConsumerAccess({ instanceId, portalId });
+      return access;
+    }
   }
 });
 
@@ -162,9 +168,18 @@ export let usePortalConsumerAccess = (
   };
 };
 
-let refetchPortalConsumerAccess = () => {
-  allPortalConsumerAccessLoader.refetchAll();
-  portalConsumerAccessLoader.refetchAll();
+type PortalScope = { instanceId: string; portalId: string };
+
+let matchesPortal = (scope: PortalScope) => (input: PortalScope) =>
+  input.instanceId == scope.instanceId && input.portalId == scope.portalId;
+
+let invalidateAllPortalConsumerAccess = (scope: PortalScope) => {
+  allPortalConsumerAccessLoader.invalidate(matchesPortal(scope));
+};
+
+let invalidatePortalConsumerAccess = (_: unknown, scope: PortalScope) => {
+  invalidateAllPortalConsumerAccess(scope);
+  portalConsumerAccessLoader.invalidate(matchesPortal(scope));
 };
 
 export let useCreatePortalConsumerAccessQuiet = () =>
@@ -176,7 +191,7 @@ export let useCreatePortalConsumerAccessQuiet = () =>
       }
     ) => withAuth(sdk => sdk.portals.consumerAccess.create(i.instanceId, i.portalId, i)),
     {
-      onSuccess: refetchPortalConsumerAccess,
+      onSuccess: invalidatePortalConsumerAccess,
       disableToast: true
     }
   );
@@ -188,8 +203,7 @@ export let useDeletePortalConsumerAccess = () =>
         sdk.portals.consumerAccess.delete(i.instanceId, i.portalId, i.consumerAccessId)
       ),
     {
-      onSuccess: refetchPortalConsumerAccess,
+      onSuccess: invalidatePortalConsumerAccess,
       disableToast: true
     }
   );
-

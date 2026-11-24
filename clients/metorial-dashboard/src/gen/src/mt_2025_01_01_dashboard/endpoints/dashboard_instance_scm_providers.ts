@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceScmProvidersEndpoint {
     query?: DashboardInstanceScmProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmProvidersListOutput> {
-    let path = `dashboard/instances/${instanceId}/scm/providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/scm/providers`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardInstanceScmProvidersEndpoint {
     scmProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmProvidersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/scm/providers/${scmProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/scm/providers/${encodeURIComponent(scmProviderId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialDashboardInstanceScmProvidersEndpoint {
     body: DashboardInstanceScmProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmProvidersCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/scm/providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/scm/providers`;
 
     let request = {
       path,

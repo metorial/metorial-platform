@@ -2,12 +2,12 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceAgentTrackingFilterValuesListOutput = {
   object: 'agent_tracking.filter_values';
-  field: 'member' | 'model' | 'client';
+  field: 'member' | 'model' | 'client' | 'seat';
   range: { preset: string | null; from: Date; to: Date; timeZone: string };
   truncated: boolean;
   items: {
     value: string;
-    kind: 'member' | 'model' | 'client' | 'unknown';
+    kind: 'member' | 'model' | 'client' | 'seat' | 'unknown';
     member: {
       object: 'agent_tracking.member';
       id: string;
@@ -33,7 +33,7 @@ export let mapDashboardInstanceAgentTrackingFilterValuesListOutput =
   );
 
 export type DashboardInstanceAgentTrackingFilterValuesListQuery = {
-  field: 'member' | 'model' | 'client';
+  field: 'member' | 'model' | 'client' | 'seat';
   search?: string | undefined;
   value?: string | string[] | undefined;
   range?:

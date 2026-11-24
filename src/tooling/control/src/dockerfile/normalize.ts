@@ -13,6 +13,8 @@ export let normalizeBuild = (raw: RawBuild): BuildSpec => {
       throw new Error(`asset ${asset.from} is workspace-relative and needs an explicit "to"`);
   if (raw.versioned && !raw.release)
     throw new Error('a versioned build must also set release');
+  if (raw.modules === 'external' && raw.runtime === 'source')
+    throw new Error('external modules need a bundled runtime');
 
   return {
     kind: raw.kind,
@@ -36,6 +38,9 @@ export let normalizeBuild = (raw: RawBuild): BuildSpec => {
     modules: raw.modules ?? 'none',
     sentry: raw.sentry ?? false,
     node: raw.node ?? false,
+    curl: raw.curl ?? true,
+    upgradePackages: raw.upgradePackages ?? false,
+    prisma: raw.prisma ?? false,
     env: raw.env ?? {},
     buildEnv: raw.buildEnv ?? {},
     sources: raw.sources ?? [],

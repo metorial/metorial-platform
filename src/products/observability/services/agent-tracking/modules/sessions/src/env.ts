@@ -18,7 +18,18 @@ let recordsSettings = defineSettings('records', {
   })
 });
 
+let sessionsSettings = defineSettings('sessions', {
+  settleDelayMs: setting(v.number({ modifiers: [v.integer(), v.minValue(1)] }), {
+    env: 'AGENT_TRACKING_SETTLE_DELAY_MS',
+    audience: 'deployment',
+    default: 30_000,
+    description:
+      'Delay in milliseconds for coalescing session and sessionless settlement jobs.'
+  })
+});
+
 export let env = {
   ...serviceSettings,
-  records: recordsSettings
+  records: recordsSettings,
+  sessions: sessionsSettings
 };

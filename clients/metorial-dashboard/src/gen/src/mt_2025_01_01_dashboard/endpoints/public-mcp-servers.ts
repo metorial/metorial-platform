@@ -93,7 +93,7 @@ export class MetorialPublicMcpServersEndpoint {
     publicMcpServerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersGetOutput> {
-    let path = `public-mcp-servers/${publicMcpServerId}`;
+    let path = `public-mcp-servers/${encodeURIComponent(publicMcpServerId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialPublicMcpServersEndpoint {
     body: DashboardInstancePublicMcpServersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersUpdateOutput> {
-    let path = `public-mcp-servers/${publicMcpServerId}`;
+    let path = `public-mcp-servers/${encodeURIComponent(publicMcpServerId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialPublicMcpServersEndpoint {
     publicMcpServerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersDeleteOutput> {
-    let path = `public-mcp-servers/${publicMcpServerId}`;
+    let path = `public-mcp-servers/${encodeURIComponent(publicMcpServerId)}`;
 
     let request = {
       path,

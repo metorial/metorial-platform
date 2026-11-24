@@ -71,7 +71,7 @@ export class MetorialManagementInstanceSkillsFilesEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesListOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/files`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/files`;
 
     let request = {
       path,
@@ -102,7 +102,7 @@ export class MetorialManagementInstanceSkillsFilesEndpoint {
     query?: DashboardInstanceSkillsFilesGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesGetOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/files/content`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/files/content`;
 
     let request = {
       path,
@@ -136,7 +136,7 @@ export class MetorialManagementInstanceSkillsFilesEndpoint {
     body: DashboardInstanceSkillsFilesPutBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesPutOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/files`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/files`;
 
     let request = {
       path,
@@ -168,7 +168,7 @@ export class MetorialManagementInstanceSkillsFilesEndpoint {
     query?: DashboardInstanceSkillsFilesDeleteQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesDeleteOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/files`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/files`;
 
     let request = {
       path,
@@ -202,7 +202,7 @@ export class MetorialManagementInstanceSkillsFilesEndpoint {
     body: DashboardInstanceSkillsFilesMoveBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesMoveOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/files/move`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/files/move`;
 
     let request = {
       path,
@@ -234,7 +234,7 @@ export class MetorialManagementInstanceSkillsFilesEndpoint {
     body: DashboardInstanceSkillsFilesBatchBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesBatchOutput> {
-    let path = `instances/${instanceId}/skills/${skillId}/files/batch`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skills/${encodeURIComponent(skillId)}/files/batch`;
 
     let request = {
       path,

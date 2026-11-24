@@ -753,6 +753,7 @@ class ConsumerAccessServiceImpl {
         d.access.magicMcpServer.instanceOid != d.consumerSurface.instanceOid) ||
       ('skill' in d.access && d.access.skill.instanceOid != d.consumerSurface.instanceOid) ||
       ('skillTemplate' in d.access &&
+        d.access.skillTemplate.instanceOid != null &&
         d.access.skillTemplate.instanceOid != d.consumerSurface.instanceOid) ||
       ('skillGroup' in d.access &&
         d.access.skillGroup.instanceOid != d.consumerSurface.instanceOid) ||

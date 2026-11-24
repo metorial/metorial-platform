@@ -39,6 +39,7 @@ import {
   AgentTrackingContentMode,
   AgentTrackingIngestSource,
   AgentTrackingIngestToken,
+  AgentTrackingView,
   AiToolPolicy,
   ApiKey,
   AuditLogStream,
@@ -855,6 +856,37 @@ export type AuditSandboxImageBuild = {
   status: string;
 };
 
+export type AuditAiGatewayConfig = {
+  logRetentionDays: number;
+  settings: Record<string, unknown>;
+  limits: unknown[];
+};
+
+export type AuditAiGatewayToken = {
+  id: string;
+  name: string;
+  consumerRef: string | null;
+  allowedModels: string[];
+  expiresAt: Date | null;
+  revokedAt: Date | null;
+};
+
+export type AuditAiGatewayProviderConnection = {
+  id: string;
+  name: string;
+  providerSlug: string;
+  status: string;
+  priority: number;
+};
+
+export type AuditAiGatewayVirtualModel = {
+  id: string;
+  slug: string;
+  name: string;
+  versionId: string | null;
+  versionNumber: number | null;
+};
+
 export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
 export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
 export type SandboxMachineExecOutcome = 'exited' | 'deadline' | 'disconnected' | 'rejected';
@@ -910,6 +942,17 @@ export type AuditAgentTrackingIngestToken = AgentTrackingIngestToken & {
 
 export type AuditAgentTrackingIngestSource = AgentTrackingIngestSource & {
   instance: Pick<Instance, 'id'>;
+};
+
+export type AuditAgentTrackingView = AgentTrackingView & {
+  instance: Pick<Instance, 'id'>;
+  creatorActor: Pick<OrganizationActor, 'id'> | null;
+};
+
+export type AgentTrackingViewInput = {
+  name?: string;
+  kind?: string;
+  params?: PrismaJson.AgentTrackingViewParams;
 };
 
 export type AgentTrackingOrganizationSettingsValues = {
@@ -1003,6 +1046,18 @@ export type MagicMcpServerMembershipFabricChange = {
 // prettier-ignore
 export interface FabricEvents {
   'sandbox.tenant.created:after': { tenant: SandboxTenant };
+
+  'ai_gateway.project.created:after': { organization: Organization; project: Project; gatewayProjectId: string };
+  'ai_gateway.config.updated:after': { auditScope: AuditScope; instance: Instance; config: AuditAiGatewayConfig; previousConfig: AuditAiGatewayConfig };
+  'ai_gateway.token.created:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken };
+  'ai_gateway.token.updated:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken; previousToken: AuditAiGatewayToken };
+  'ai_gateway.token.revoked:after': { auditScope: AuditScope; instance: Instance; token: AuditAiGatewayToken };
+  'ai_gateway.provider_connection.created:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection };
+  'ai_gateway.provider_connection.updated:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection; previousConnection: AuditAiGatewayProviderConnection };
+  'ai_gateway.provider_connection.archived:after': { auditScope: AuditScope; instance: Instance; connection: AuditAiGatewayProviderConnection };
+  'ai_gateway.virtual_model.created:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel };
+  'ai_gateway.virtual_model.updated:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel; previousVirtualModel: AuditAiGatewayVirtualModel };
+  'ai_gateway.virtual_model.archived:after': { auditScope: AuditScope; instance: Instance; virtualModel: AuditAiGatewayVirtualModel };
 
   'sandbox.machine.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.updated:after': { auditScope: AuditScope; machine: AuditSandboxMachine; previousMachine: AuditSandboxMachine };
@@ -1444,6 +1499,13 @@ export interface FabricEvents {
   'agent_tracking.ingest_source.created:before': { organization: Organization; instance: Instance; input: { name: string; clientFamily: string }; auditScope: AuditScope };
   'agent_tracking.ingest_source.created:after': { ingestSource: AuditAgentTrackingIngestSource; auditScope: AuditScope };
   'agent_tracking.ingest_source.revoked:after': { ingestSource: AuditAgentTrackingIngestSource; previousIngestSource: AuditAgentTrackingIngestSource; auditScope: AuditScope };
+
+  'agent_tracking.view.created:before': { organization: Organization; instance: Instance; input: AgentTrackingViewInput & { page: string }; auditScope: AuditScope };
+  'agent_tracking.view.created:after': { view: AuditAgentTrackingView; auditScope: AuditScope };
+  'agent_tracking.view.updated:before': { view: AuditAgentTrackingView; input: AgentTrackingViewInput; auditScope: AuditScope };
+  'agent_tracking.view.updated:after': { view: AuditAgentTrackingView; previousView: AuditAgentTrackingView; auditScope: AuditScope };
+  'agent_tracking.view.deleted:before': { view: AuditAgentTrackingView; auditScope: AuditScope };
+  'agent_tracking.view.deleted:after': { view: AuditAgentTrackingView; previousView: AuditAgentTrackingView; auditScope: AuditScope };
 
   'agent_tracking.settings.updated:before': { organization: Organization; project?: Project; instance?: Instance; input: AgentTrackingSettingsInput; auditScope: AuditScope };
   'agent_tracking.settings.updated:after': { settings: AgentTrackingSettingsValues; previousSettings: AgentTrackingSettingsValues; auditScope: AuditScope };

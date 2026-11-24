@@ -65,7 +65,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
     query?: DashboardInstancePortalsConsumerGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsListOutput> {
-    let path = `portals/${portalId}/consumer-groups`;
+    let path = `portals/${encodeURIComponent(portalId)}/consumer-groups`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
     consumerGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsGetOutput> {
-    let path = `portals/${portalId}/consumer-groups/${consumerGroupId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/consumer-groups/${encodeURIComponent(consumerGroupId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
     body: DashboardInstancePortalsConsumerGroupsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsCreateOutput> {
-    let path = `portals/${portalId}/consumer-groups`;
+    let path = `portals/${encodeURIComponent(portalId)}/consumer-groups`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
     body: DashboardInstancePortalsConsumerGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsUpdateOutput> {
-    let path = `portals/${portalId}/consumer-groups/${consumerGroupId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/consumer-groups/${encodeURIComponent(consumerGroupId)}`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialPortalsConsumerGroupsEndpoint {
     consumerGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsConsumerGroupsDeleteOutput> {
-    let path = `portals/${portalId}/consumer-groups/${consumerGroupId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/consumer-groups/${encodeURIComponent(consumerGroupId)}`;
 
     let request = {
       path,

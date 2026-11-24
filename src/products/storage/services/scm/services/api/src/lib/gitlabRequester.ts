@@ -6,7 +6,7 @@ import {
   GitbeakerTimeoutError,
   type RateLimiters,
   type RequestOptions,
-  type ResponseBodyTypes
+  type ResponseBodyType
 } from '@gitbeaker/requester-utils';
 import { delay } from '@lowerdeck/delay';
 import { scmFetch } from './scmFetch';
@@ -14,11 +14,11 @@ import { scmFetch } from './scmFetch';
 let retryStatuses = [429, 502];
 let maxRetries = 10;
 
-let readBody = async (response: Response): Promise<ResponseBodyTypes> => {
+let readBody = async (response: Response): Promise<ResponseBodyType> => {
   let contentType = (response.headers.get('content-type') ?? '').split(';')[0]!.trim();
 
   if (contentType === 'application/json') {
-    return ((await response.json()) || {}) as ResponseBodyTypes;
+    return ((await response.json()) || {}) as ResponseBodyType;
   }
   if (contentType.startsWith('text/')) return (await response.text()) || '';
   return await response.blob();

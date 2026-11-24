@@ -101,7 +101,7 @@ export class MetorialMagicMcpTokensEndpoint {
     magicMcpTokenId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpTokensGetOutput> {
-    let path = `magic-mcp-tokens/${magicMcpTokenId}`;
+    let path = `magic-mcp-tokens/${encodeURIComponent(magicMcpTokenId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialMagicMcpTokensEndpoint {
     magicMcpTokenId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpTokensDeleteOutput> {
-    let path = `magic-mcp-tokens/${magicMcpTokenId}`;
+    let path = `magic-mcp-tokens/${encodeURIComponent(magicMcpTokenId)}`;
 
     let request = {
       path,
@@ -185,7 +185,7 @@ export class MetorialMagicMcpTokensEndpoint {
     body: DashboardInstanceMagicMcpTokensUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpTokensUpdateOutput> {
-    let path = `magic-mcp-tokens/${magicMcpTokenId}`;
+    let path = `magic-mcp-tokens/${encodeURIComponent(magicMcpTokenId)}`;
 
     let request = {
       path,
@@ -215,7 +215,7 @@ export class MetorialMagicMcpTokensEndpoint {
     body: DashboardInstanceMagicMcpTokensAddGroupsBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpTokensAddGroupsOutput> {
-    let path = `magic-mcp-tokens/${magicMcpTokenId}/add-groups`;
+    let path = `magic-mcp-tokens/${encodeURIComponent(magicMcpTokenId)}/add-groups`;
 
     let request = {
       path,
@@ -245,7 +245,7 @@ export class MetorialMagicMcpTokensEndpoint {
     body: DashboardInstanceMagicMcpTokensRemoveGroupsBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpTokensRemoveGroupsOutput> {
-    let path = `magic-mcp-tokens/${magicMcpTokenId}/remove-groups`;
+    let path = `magic-mcp-tokens/${encodeURIComponent(magicMcpTokenId)}/remove-groups`;
 
     let request = {
       path,

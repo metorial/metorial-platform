@@ -1,5 +1,6 @@
 import { subspaceAuditResources } from '@metorial/audit-resources-subspace';
 import { combineResourceSets, ResourceSetNames } from '../_lib/resource';
+import { aiGatewayResources } from './aiGateway';
 import { coreResources } from './core';
 import { machineAccessResources } from './machine-access';
 import { observabilityResources } from './observability';
@@ -17,6 +18,7 @@ export let auditResources = combineResourceSets({
   ...observabilityResources,
   ...outpostResources,
   ...sandboxResources,
+  ...aiGatewayResources,
   ...skillResources,
   ...storageResources,
   ...workforceResources,

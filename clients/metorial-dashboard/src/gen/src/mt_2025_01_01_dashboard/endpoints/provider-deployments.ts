@@ -93,7 +93,7 @@ export class MetorialProviderDeploymentsEndpoint {
     providerDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsGetOutput> {
-    let path = `provider-deployments/${providerDeploymentId}`;
+    let path = `provider-deployments/${encodeURIComponent(providerDeploymentId)}`;
 
     let request = {
       path,
@@ -150,7 +150,7 @@ export class MetorialProviderDeploymentsEndpoint {
     body: DashboardInstanceProviderDeploymentsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsUpdateOutput> {
-    let path = `provider-deployments/${providerDeploymentId}`;
+    let path = `provider-deployments/${encodeURIComponent(providerDeploymentId)}`;
 
     let request = {
       path,
@@ -178,7 +178,7 @@ export class MetorialProviderDeploymentsEndpoint {
     providerDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsDeleteOutput> {
-    let path = `provider-deployments/${providerDeploymentId}`;
+    let path = `provider-deployments/${encodeURIComponent(providerDeploymentId)}`;
 
     let request = {
       path,

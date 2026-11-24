@@ -73,7 +73,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     query?: DashboardInstancePortalsSurfaceProviderGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsListOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups`;
 
     let request = {
       path,
@@ -109,7 +109,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     consumerSurfaceProviderGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsGetOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}`;
 
     let request = {
       path,
@@ -140,7 +140,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     body: DashboardInstancePortalsSurfaceProviderGroupsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsCreateOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups`;
 
     let request = {
       path,
@@ -176,7 +176,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     body: DashboardInstancePortalsSurfaceProviderGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsUpdateOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}`;
 
     let request = {
       path,
@@ -210,7 +210,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     consumerSurfaceProviderGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsDeleteOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}`;
 
     let request = {
       path,
@@ -243,7 +243,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     body: DashboardInstancePortalsSurfaceProviderGroupsAddListingBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsAddListingOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}/listings`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}/listings`;
 
     let request = {
       path,
@@ -279,7 +279,7 @@ export class MetorialManagementInstancePortalsSurfaceProviderGroupsEndpoint {
     consumerAccessListingId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsRemoveListingOutput> {
-    let path = `instances/${instanceId}/portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}/listings/${consumerAccessListingId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}/listings/${encodeURIComponent(consumerAccessListingId)}`;
 
     let request = {
       path,

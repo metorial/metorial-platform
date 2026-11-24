@@ -57,7 +57,7 @@ export class MetorialDashboardOauthAuthorizationRequestsEndpoint {
     urlToken: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOauthAuthorizationRequestsGetOutput> {
-    let path = `dashboard/oauth/authorization-requests/${urlToken}`;
+    let path = `dashboard/oauth/authorization-requests/${encodeURIComponent(urlToken)}`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardOauthAuthorizationRequestsEndpoint {
     body: DashboardOauthAuthorizationRequestsApproveBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOauthAuthorizationRequestsApproveOutput> {
-    let path = `dashboard/oauth/authorization-requests/${urlToken}/approve`;
+    let path = `dashboard/oauth/authorization-requests/${encodeURIComponent(urlToken)}/approve`;
 
     let request = {
       path,
@@ -116,7 +116,7 @@ export class MetorialDashboardOauthAuthorizationRequestsEndpoint {
     body: DashboardOauthAuthorizationRequestsRejectBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOauthAuthorizationRequestsRejectOutput> {
-    let path = `dashboard/oauth/authorization-requests/${urlToken}/reject`;
+    let path = `dashboard/oauth/authorization-requests/${encodeURIComponent(urlToken)}/reject`;
 
     let request = {
       path,

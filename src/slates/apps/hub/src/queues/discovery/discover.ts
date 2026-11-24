@@ -12,6 +12,7 @@ import semver from 'semver';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
+import { reportSlateDiscoveryFailure } from '../../lib/failureReports';
 import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/error';
 import type { InvocationError, InvocationResult } from '../../lib/invocation/types';
 import { isReservedActionId } from '../../lib/reservedActions';
@@ -1043,6 +1044,22 @@ export let discoverSlateErrorQueueProcessor = discoverSlateErrorQueue.process(as
     : null;
   let isFailedStagedRedeployOfActiveVersion =
     shouldPreserveActiveVersionOnStagedDiscoveryFailure({ version, stagedDeployment });
+
+  // Matches the invocation reports: a version that already failed discovery is not reported again.
+  if (stagedDeployment || version.status !== 'discovery_failed') {
+    let invocation = data.invocationOid
+      ? await db.slateInvocation.findFirst({
+          where: { oid: data.invocationOid },
+          select: { id: true }
+        })
+      : null;
+    await reportSlateDiscoveryFailure({
+      version,
+      deploymentId: data.deploymentId,
+      invocationId: invocation?.id,
+      error: data.error
+    }).catch(error => console.error('Could not report slate discovery failure', error));
+  }
 
   await db.slateEvent.create({
     data: {

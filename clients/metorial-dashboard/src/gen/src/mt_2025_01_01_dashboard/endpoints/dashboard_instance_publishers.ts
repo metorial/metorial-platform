@@ -55,7 +55,7 @@ export class MetorialDashboardInstancePublishersEndpoint {
     query?: DashboardInstancePublishersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublishersListOutput> {
-    let path = `dashboard/instances/${instanceId}/publishers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/publishers`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstancePublishersEndpoint {
     publisherId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublishersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/publishers/${publisherId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/publishers/${encodeURIComponent(publisherId)}`;
 
     let request = {
       path,

@@ -93,7 +93,7 @@ export class MetorialIntegrationsProvidersEndpoint {
     integrationProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersGetOutput> {
-    let path = `integration-providers/${integrationProviderId}`;
+    let path = `integration-providers/${encodeURIComponent(integrationProviderId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialIntegrationsProvidersEndpoint {
     body: DashboardInstanceIntegrationsProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersUpdateOutput> {
-    let path = `integration-providers/${integrationProviderId}`;
+    let path = `integration-providers/${encodeURIComponent(integrationProviderId)}`;
 
     let request = {
       path,
@@ -182,7 +182,7 @@ export class MetorialIntegrationsProvidersEndpoint {
     integrationProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersDeleteOutput> {
-    let path = `integration-providers/${integrationProviderId}`;
+    let path = `integration-providers/${encodeURIComponent(integrationProviderId)}`;
 
     let request = {
       path,

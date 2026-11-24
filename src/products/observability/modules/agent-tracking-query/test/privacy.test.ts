@@ -1,4 +1,3 @@
-import { isServiceError } from '@lowerdeck/error';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { privateRange, sumSpendCells } from '../src/lib/privateSpend';
@@ -6,7 +5,7 @@ import { agentTrackingFilterValueService } from '../src/services/agentTrackingFi
 import { agentTrackingMemberService } from '../src/services/agentTrackingMember';
 import { agentTrackingSessionService } from '../src/services/agentTrackingSession';
 import { agentTrackingSpendService } from '../src/services/agentTrackingSpend';
-import { callsTo, privacy, resetMocks, rpc, scope } from './_mocks';
+import { callsTo, privacy, rejection, resetMocks, rpc, scope } from './_mocks';
 
 let figures = (cost: number, extra: Record<string, unknown> = {}) => ({
   'cost.usd': cost,
@@ -18,17 +17,6 @@ let figures = (cost: number, extra: Record<string, unknown> = {}) => ({
   tokens: { inputUncached: 1, cacheRead: 1, cacheWrite: 1, output: 1, reasoning: 0, total: 4 },
   ...extra
 });
-
-let rejection = async (promise: Promise<unknown>) => {
-  try {
-    await promise;
-  } catch (error) {
-    if (isServiceError(error)) return error.data;
-    throw error;
-  }
-
-  throw new Error('Expected a rejection');
-};
 
 let hideIndividuals = (minGroupUsers = 5) => {
   privacy.hideIndividuals = true;
@@ -285,6 +273,25 @@ describe('breakdown with individuals hidden', () => {
 
     expect(callsTo('query:run')).toHaveLength(0);
   });
+
+  it('refuses a member filter as a read about individuals', async () => {
+    hideIndividuals();
+
+    let error = await rejection(
+      agentTrackingSpendService.getBreakdown({
+        ...scope,
+        groupBy: 'model',
+        range: { preset: 'last_7_days' },
+        filters: { memberIds: ['aten_ada'] }
+      })
+    );
+
+    expect(error).toMatchObject({
+      status: 403,
+      code: 'agent_tracking_individuals_hidden',
+      message: expect.stringContaining('per member')
+    });
+  });
 });
 
 describe('reads about individuals with individuals hidden', () => {
@@ -332,7 +339,7 @@ describe('reads about individuals with individuals hidden', () => {
   });
 
   it('rejects the filter values of every field', async () => {
-    for (let field of ['member', 'model', 'client'] as const) {
+    for (let field of ['member', 'model', 'client', 'seat'] as const) {
       let error = await rejection(
         agentTrackingFilterValueService.listFilterValues({
           ...scope,

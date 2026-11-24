@@ -28,6 +28,17 @@ let minuteMs = 60 * 1000;
 
 let madeUpModel = 'claude-e2e-unreleased-model';
 
+let yearIn = (timeZone: string) =>
+  Number(new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric' }).format(new Date()));
+
+let inOneYear = async <T>(timeZone: string, run: (year: number) => Promise<T>) => {
+  for (;;) {
+    let year = yearIn(timeZone);
+    let result = await run(year);
+    if (yearIn(timeZone) == year) return { year, result };
+  }
+};
+
 describe('api-core dashboard: agent tracking reads', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
@@ -36,9 +47,11 @@ describe('api-core dashboard: agent tracking reads', () => {
   let reads: [string, Record<string, string>][] = [
     ['/spend/timeline', {}],
     ['/spend/breakdown', { group_by: 'member' }],
+    ['/spend/report', {}],
     ['/sessions', {}],
     ['/filter-values', { field: 'member' }],
     ['/members', {}],
+    ['/members/insights', {}],
     ['/setup-status', {}]
   ];
 
@@ -177,6 +190,160 @@ describe('api-core dashboard: agent tracking reads', () => {
     );
   });
 
+  it('validates member insights parameters', async () => {
+    let insights = (query: RestQuery) =>
+      org.clients.rest.get(agentTrackingPath(org, '/members/insights'), { query });
+
+    let to = new Date();
+    let longRange = {
+      from: new Date(to.getTime() - 120 * 24 * 60 * minuteMs).toISOString(),
+      to: to.toISOString()
+    };
+
+    for (let query of [
+      { include: 'teams' },
+      { sort: 'tokens' },
+      { model_share_min: '1.5' },
+      { seat_usage_max_micros: '1.5' }
+    ] as RestQuery[]) {
+      expectError(await insights(query), 400, 'invalid_data');
+    }
+    for (let query of [
+      { sort: 'model_share' },
+      { include: 'models' },
+      { seat: 'premium' },
+      { include: 'models', model_id: 'claude-sonnet-4-5', seat_usage_max_micros: '5' }
+    ] as RestQuery[]) {
+      expectError(await insights(query), 400, 'bad_request');
+    }
+
+    expectError(await insights({ include: 'practices', ...longRange }), 400, 'bad_request');
+
+    expectOk(await insights(longRange));
+  });
+
+  it('presents empty member insights with organization totals', async () => {
+    let insights = expectPresented(
+      expectOk(
+        await org.clients.rest.get(agentTrackingPath(org, '/members/insights'), {
+          query: {
+            include: ['models', 'practices', 'seat'],
+            model_id: 'claude-sonnet-4-5',
+            seat_usage_max_micros: 1000
+          }
+        })
+      ),
+      'agent_tracking.member_insights'
+    );
+
+    expect(insights).toMatchObject({
+      include: ['models', 'practices', 'seat'],
+      truncated: false,
+      items: [],
+      pagination: { has_more_after: false, has_more_before: false },
+      range: { preset: 'last_30_days', time_zone: 'UTC' },
+      summary: {
+        cost: { currency: 'usd', total_micros: 0 },
+        requests: 0,
+        active_members: 0,
+        members: 0,
+        flag_counts: {
+          model_share: null,
+          high_effort: null,
+          fast_mode: null,
+          outdated_models: null,
+          low_cache_hit_rate: null,
+          low_usage_seat: 0
+        },
+        models: { requests: 0, cost_share: null, request_share: null },
+        practices: { requests_measured: 0, high_effort_share: null, fast_share: null },
+        seat: { unknown_seat_members: 0 },
+        request_records_clipped: false
+      }
+    });
+  });
+
+  it('validates the report year, growth rate and time zone', async () => {
+    let report = (query: Record<string, string>) =>
+      org.clients.rest.get(agentTrackingPath(org, '/spend/report'), { query });
+
+    let malformed: Record<string, string>[] = [
+      { year: 'last' },
+      { year: '2025.5' },
+      { growth_rate: 'fast' },
+      { growth_rate: '1.5' },
+      { growth_rate: '-0.6' },
+      { time_zone: 'x'.repeat(101) }
+    ];
+    for (let query of malformed) expectError(await report(query), 400, 'invalid_data');
+
+    let unanswerable = await inOneYear('UTC', async year => {
+      let responses: Awaited<ReturnType<typeof report>>[] = [];
+      let queries: Record<string, string>[] = [
+        { year: String(year + 1) },
+        { year: String(year - 2) },
+        { time_zone: 'Mars/Olympus' }
+      ];
+      for (let query of queries) responses.push(await report(query));
+      return responses;
+    });
+    for (let response of unanswerable.result) expectError(response, 400, 'bad_request');
+  });
+
+  it('presents an empty report of this year and of last year', async () => {
+    let berlin = await inOneYear(
+      'Europe/Berlin',
+      async () =>
+        await org.clients.rest.get(agentTrackingPath(org, '/spend/report'), {
+          query: { time_zone: 'Europe/Berlin', growth_rate: '0.05' }
+        })
+    );
+    let current = expectPresented(expectOk(berlin.result), 'agent_tracking.spend_report');
+
+    expect(current).toMatchObject({
+      year: berlin.year,
+      range: { preset: null, time_zone: 'Europe/Berlin' },
+      counts: { sessions: 0, members: 0, capped: false },
+      starts_before_retention: false,
+      privacy: { hide_individuals: false, hidden_groups: false },
+      coverage: {
+        first_day: null,
+        days_with_data: 0,
+        hidden_days: 0,
+        starts_before_year: false
+      },
+      breakdowns: { model: [], client: [], member: [] },
+      projection: {
+        status: 'insufficient_data',
+        baseline: null,
+        growth: null,
+        scenarios: null
+      }
+    });
+    expect(current.total.cost).toMatchObject({ currency: 'usd', total_micros: 0 });
+    expect(current.months[0]).toMatchObject({
+      month: `${current.year}-01`,
+      hidden_days: 0,
+      requests: 0,
+      cost: { currency: 'usd', total_micros: 0, requests_without_cost: 0 },
+      counts: { sessions: 0, members: 0 }
+    });
+
+    let utc = await inOneYear(
+      'UTC',
+      async year =>
+        await org.clients.rest.get(agentTrackingPath(org, '/spend/report'), {
+          query: { year: String(year - 1) }
+        })
+    );
+    let lastYear = utc.year - 1;
+    let last = expectPresented(expectOk(utc.result), 'agent_tracking.spend_report');
+    expect(last.year).toBe(lastYear);
+    expect(last.months).toHaveLength(12);
+    expect(last.coverage.last_full_day).toBe(`${lastYear}-12-31`);
+    expect(last.projection.status).toBe('not_applicable');
+  });
+
   it('presents an empty breakdown with its total', async () => {
     for (let group_by of ['member', 'model']) {
       let breakdown = expectPresented(
@@ -282,6 +449,8 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     other: uniqueEmail('agent-tracking')
   };
 
+  let seededAt: Date[] = [];
+
   beforeAll(async () => {
     let portal = await createPortal(org);
     let profile = await createConsumerProfile(org, portal.id, { email: emails.matched });
@@ -297,7 +466,7 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     let now = Date.now();
     let sessions = [uniqueId('session'), uniqueId('session'), uniqueId('session')];
 
-    await ingestFirstUsage(org, [
+    let requests = [
       claudeRequest({
         sessionId: sessions[0],
         email: emails.matched,
@@ -320,7 +489,10 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
         model: madeUpModel,
         costUsd: 0.001
       })
-    ]);
+    ];
+    seededAt = requests.map(request => request.at);
+
+    await ingestFirstUsage(org, requests);
   }, 240_000);
 
   it('presents sessions with member, client, tokens and cost', async () => {
@@ -535,6 +707,47 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     }
   });
 
+  it('presents the spend report with its lists by model, client and member', async () => {
+    let report = expectPresented(await read('/spend/report'), 'agent_tracking.spend_report');
+    expect(report.projection).toMatchObject({ status: 'insufficient_data', scenarios: null });
+    if (seededAt.some(at => at.getUTCFullYear() != report.year)) return;
+
+    expect(report.total).toMatchObject({
+      requests: 4,
+      cost: { currency: 'usd', total_micros: 28000 }
+    });
+    expect(report.coverage.first_day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(report.coverage.days_with_data).toBeGreaterThanOrEqual(1);
+    expect(report.coverage.hidden_days).toBe(0);
+    expect(
+      report.months.reduce((sum: number, month: any) => sum + month.cost.total_micros, 0)
+    ).toBe(28000);
+
+    expect(report.breakdowns.client).toEqual([
+      expect.objectContaining({
+        kind: 'client',
+        key: 'claude_code',
+        client: { family: 'claude_code', name: 'Claude Code' },
+        member: null,
+        model: null,
+        share: 1,
+        requests: 4
+      })
+    ]);
+    expect(report.breakdowns.member.map((item: any) => [item.kind, item.requests])).toEqual([
+      ['member', 2],
+      ['member', 1],
+      ['unknown', 1]
+    ]);
+    expect(report.breakdowns.member[0]).toMatchObject({
+      member: { email: emails.matched, consumer: { email: emails.matched } },
+      client: null
+    });
+
+    let unknown = report.breakdowns.model.find((item: any) => item.kind == 'unknown');
+    expect(unknown.unknown_model_names).toContain(madeUpModel);
+  });
+
   it('presents the client filter values', async () => {
     let clients = expectPresented(
       await read('/filter-values', { field: 'client', range: 'last_7_days' }),
@@ -608,5 +821,94 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
 
     let lastMonth = await read('/members', { member_id: member.id, range: 'last_month' });
     expect(lastMonth.items).toEqual([]);
+  });
+});
+
+describe('api-core dashboard: agent tracking member insights', () => {
+  let org = useOrganization();
+
+  let read = async (path: string, query: RestQuery = {}) =>
+    expectOk(await org.clients.rest.get(agentTrackingPath(org, path), { query }));
+
+  let emails = {
+    sonnet: uniqueEmail('agent-tracking'),
+    haiku: uniqueEmail('agent-tracking'),
+    idle: uniqueEmail('agent-tracking')
+  };
+
+  let byEmail = (items: any[]) =>
+    Object.fromEntries(items.map(item => [item.member.email, item]));
+
+  beforeAll(async () => {
+    let portal = await createPortal(org);
+    let profile = await createConsumerProfile(org, portal.id, { email: emails.idle });
+    let { consumer } = await db.consumerProfile.findUniqueOrThrow({
+      where: { id: profile.id },
+      include: { consumer: true }
+    });
+    await eventually(() => trackedConsumer(org.ids, consumer.id), {
+      timeoutMs: 60_000,
+      intervalMs: 500
+    });
+
+    let now = Date.now();
+    await ingestFirstUsage(org, [
+      claudeRequest({ email: emails.sonnet, at: new Date(now - 20 * minuteMs) }),
+      claudeRequest({ email: emails.sonnet, at: new Date(now - 19 * minuteMs) }),
+      claudeRequest({
+        email: emails.haiku,
+        at: new Date(now - 15 * minuteMs),
+        model: 'claude-haiku-4-5-20251001',
+        costUsd: 0.002
+      })
+    ]);
+  }, 240_000);
+
+  it('presents the members ranked by cost', async () => {
+    let insights = expectPresented(
+      await read('/members/insights'),
+      'agent_tracking.member_insights'
+    );
+
+    expect(insights.items.map((item: any) => [item.member.email, item.rank])).toEqual([
+      [emails.sonnet, 1],
+      [emails.haiku, 2]
+    ]);
+    expect(insights.items[0]).toMatchObject({
+      member: { object: 'agent_tracking.member' },
+      cost: { currency: 'usd' },
+      models: null,
+      practices: null,
+      seat: null,
+      flags: []
+    });
+  });
+
+  it('pages member insights by item id and keeps the rank', async () => {
+    let first = await read('/members/insights', { limit: 1 });
+    expect(first.items.map((item: any) => item.rank)).toEqual([1]);
+    expect(first.pagination.has_more_after).toBe(true);
+
+    let second = await read('/members/insights', {
+      limit: 1,
+      after: first.items[0].member.id
+    });
+    expect(second.items.map((item: any) => [item.member.email, item.rank])).toEqual([
+      [emails.haiku, 2]
+    ]);
+
+    let ascending = await read('/members/insights', { order: 'asc' });
+    expect(ascending.items.map((item: any) => item.member.email)).toEqual([
+      emails.haiku,
+      emails.sonnet
+    ]);
+  });
+
+  it('lists a member without usage only with include_inactive', async () => {
+    let inactive = await read('/members/insights', { include_inactive: true });
+    expect(byEmail(inactive.items)[emails.idle]).toBeDefined();
+
+    let active = await read('/members/insights');
+    expect(byEmail(active.items)[emails.idle]).toBeUndefined();
   });
 });

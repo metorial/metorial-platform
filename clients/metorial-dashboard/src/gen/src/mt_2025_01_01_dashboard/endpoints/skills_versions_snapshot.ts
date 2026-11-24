@@ -51,7 +51,7 @@ export class MetorialSkillsVersionsSnapshotEndpoint {
     skillVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsVersionsSnapshotGetOutput> {
-    let path = `skills/${skillId}/versions/${skillVersionId}/snapshot`;
+    let path = `skills/${encodeURIComponent(skillId)}/versions/${encodeURIComponent(skillVersionId)}/snapshot`;
 
     let request = {
       path,

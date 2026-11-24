@@ -27,6 +27,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { isAiReviewConfigured } from '@metorial/shared-settings';
 import { syncBrandQueue } from '../queues/syncBrand';
 import { instanceService } from './instance';
 
@@ -114,6 +115,7 @@ class ProjectService {
       await Fabric.fire('organization.project.created:before', d);
 
       let isInitial = d.input.name === d.organization.name;
+      let aiReviewConfigured = isAiReviewConfigured();
 
       let project = await db.project.create({
         data: {
@@ -125,8 +127,8 @@ class ProjectService {
           name: d.input.name,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes,
           autoAddOrganizationMembersToPortals: true,
-          aiAnalysisEnabled: true,
-          usageReviewsEnabled: true,
+          aiAnalysisEnabled: aiReviewConfigured,
+          usageReviewsEnabled: aiReviewConfigured,
           allowOrganizationMemberFullSkillAccess: true,
           allowApiAccessToConsumerOwnedResources: false,
           allowMemberAccessToConsumerOwnedResources: false,

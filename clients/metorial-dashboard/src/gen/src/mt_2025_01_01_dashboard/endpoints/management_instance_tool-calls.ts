@@ -59,7 +59,7 @@ export class MetorialManagementInstanceToolCallsEndpoint {
     query?: DashboardInstanceToolCallsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceToolCallsListOutput> {
-    let path = `instances/${instanceId}/tool-calls`;
+    let path = `instances/${encodeURIComponent(instanceId)}/tool-calls`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceToolCallsEndpoint {
     toolCallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceToolCallsGetOutput> {
-    let path = `instances/${instanceId}/tool-calls/${toolCallId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/tool-calls/${encodeURIComponent(toolCallId)}`;
 
     let request = {
       path,
@@ -118,7 +118,7 @@ export class MetorialManagementInstanceToolCallsEndpoint {
     body: DashboardInstanceToolCallsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceToolCallsCreateOutput> {
-    let path = `instances/${instanceId}/tool-calls`;
+    let path = `instances/${encodeURIComponent(instanceId)}/tool-calls`;
 
     let request = {
       path,

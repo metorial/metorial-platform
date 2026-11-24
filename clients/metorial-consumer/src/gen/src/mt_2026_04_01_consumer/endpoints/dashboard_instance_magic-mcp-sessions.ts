@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceMagicMcpSessionsEndpoint {
     query?: DashboardInstanceMagicMcpSessionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpSessionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-sessions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-sessions`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceMagicMcpSessionsEndpoint {
     magicMcpSessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpSessionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/magic-mcp-sessions/${magicMcpSessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/magic-mcp-sessions/${encodeURIComponent(magicMcpSessionId)}`;
 
     let request = {
       path,

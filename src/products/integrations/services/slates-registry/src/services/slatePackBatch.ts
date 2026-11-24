@@ -157,7 +157,7 @@ class slatePackBatchServiceImpl {
   async getUploadingBatch(d: { id: string }) {
     let batch = await db.slatePackImportBatch.findFirst({
       where: { id: d.id },
-      include: { _count: { select: { imports: true } } }
+      include: { _count: { select: { imports: { where: { status: { not: 'failed' } } } } } }
     });
     if (!batch) throw new ServiceError(notFoundError('mirror.pack_import_batch'));
 
@@ -184,6 +184,11 @@ class slatePackBatchServiceImpl {
     if (!batch.imports.length) {
       throw new ServiceError(
         badRequestError({ message: 'Upload at least one slate pack before finishing.' })
+      );
+    }
+    if (batch.imports.some(packImport => packImport.status === 'uploading')) {
+      throw new ServiceError(
+        badRequestError({ message: 'Wait for every slate pack to finish uploading.' })
       );
     }
 
@@ -413,6 +418,15 @@ class slatePackBatchServiceImpl {
 
     for (let batch of batches) {
       for (let packImport of batch.imports) {
+        if (packImport.status === 'uploading' && packImport.multipartUploadId) {
+          await storage
+            .abortMultipartUpload(
+              packImport.bucket,
+              packImport.storageKey,
+              packImport.multipartUploadId
+            )
+            .catch(() => {});
+        }
         await storage.deleteObject(packImport.bucket, packImport.storageKey).catch(() => {});
         await db.slatePackImport.update({
           where: { oid: packImport.oid },

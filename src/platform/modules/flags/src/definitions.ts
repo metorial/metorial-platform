@@ -1,4 +1,5 @@
 import { MachineAccess, Organization, Project, User } from '@metorial/db';
+import { isAiReviewConfigured } from '@metorial/shared-settings';
 
 export type DisabledFlag = {
   enabled: false;
@@ -24,11 +25,13 @@ export type Flags = {
   'skills-enabled': FlagValue;
   'assistant-enabled': FlagValue;
   'ai-available': FlagValue;
+  'ai-reviews-available': FlagValue;
   'advanced-security-management-enabled': FlagValue;
   'key-providers-gcp-kms-enabled': FlagValue;
   'key-providers-azure-key-vault-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
+  'ai-gateway-enabled': FlagValue;
   'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   'devices-enabled': FlagValue;
@@ -58,6 +61,7 @@ export type Flags = {
   'paid-networking': FlagValue;
   'paid-network-ip-access': FlagValue;
   'paid-sandboxes': FlagValue;
+  'paid-ai-gateway': FlagValue;
   'paid-advanced-org-management': FlagValue;
   'paid-ai-reviews': FlagValue;
   'paid-protoguard': FlagValue;
@@ -94,11 +98,13 @@ export let defaultFlags: Flags = {
   'skills-enabled': false,
   'assistant-enabled': false,
   'ai-available': false,
+  'ai-reviews-available': false,
   'advanced-security-management-enabled': false,
   'key-providers-gcp-kms-enabled': false,
   'key-providers-azure-key-vault-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
+  'ai-gateway-enabled': false,
   'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   'devices-enabled': false,
@@ -128,6 +134,7 @@ export let defaultFlags: Flags = {
   'paid-networking': true,
   'paid-network-ip-access': true,
   'paid-sandboxes': true,
+  'paid-ai-gateway': true,
   'paid-advanced-org-management': true,
   'paid-ai-reviews': true,
   'paid-protoguard': true,
@@ -194,5 +201,8 @@ export let applyAiAvailability = (flags: Flags, available: boolean): Flags => {
 
 export let getFlags = async (params: FlagProviderParams): Promise<Flags> => {
   let flags = await flagProviderRef.current(params);
-  return applyAiAvailability(flags, isAiAvailable());
+  return {
+    ...applyAiAvailability(flags, isAiAvailable()),
+    'ai-reviews-available': isAiReviewConfigured()
+  };
 };

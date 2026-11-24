@@ -65,7 +65,7 @@ export class MetorialManagementInstanceChatConnectionsEndpoint {
     query?: DashboardInstanceChatConnectionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatConnectionsListOutput> {
-    let path = `instances/${instanceId}/chat/connections`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/connections`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceChatConnectionsEndpoint {
     chatConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatConnectionsGetOutput> {
-    let path = `instances/${instanceId}/chat/connections/${chatConnectionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/connections/${encodeURIComponent(chatConnectionId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceChatConnectionsEndpoint {
     body: DashboardInstanceChatConnectionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatConnectionsCreateOutput> {
-    let path = `instances/${instanceId}/chat/connections`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/connections`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceChatConnectionsEndpoint {
     body: DashboardInstanceChatConnectionsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatConnectionsUpdateOutput> {
-    let path = `instances/${instanceId}/chat/connections/${chatConnectionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/connections/${encodeURIComponent(chatConnectionId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceChatConnectionsEndpoint {
     chatConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatConnectionsDeleteOutput> {
-    let path = `instances/${instanceId}/chat/connections/${chatConnectionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/connections/${encodeURIComponent(chatConnectionId)}`;
 
     let request = {
       path,

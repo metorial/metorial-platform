@@ -53,7 +53,7 @@ export class MetorialDashboardInstanceScmAccountsEndpoint {
     body: DashboardInstanceScmAccountsPreviewBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceScmAccountsPreviewOutput> {
-    let path = `dashboard/instances/${instanceId}/scm/accounts/preview`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/scm/accounts/preview`;
 
     let request = {
       path,

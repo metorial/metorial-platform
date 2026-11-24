@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceCallbackEventsEndpoint {
     query?: DashboardInstanceCallbackEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbackEventsListOutput> {
-    let path = `dashboard/instances/${instanceId}/callback-events`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callback-events`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceCallbackEventsEndpoint {
     callbackEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbackEventsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/callback-events/${callbackEventId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callback-events/${encodeURIComponent(callbackEventId)}`;
 
     let request = {
       path,

@@ -149,6 +149,16 @@ model SlateAttachment {
   slateInstanceOid BigInt?
   slateInstance    SlateInstance? @relation(fields: [slateInstanceOid], references: [oid], onDelete: SetNull)
 
+  // Where the hub may fetch targetUrl from: the live policy of the instance configuration the
+  // creating tool call ran under, or a copy of the policy it was given inline.
+  instanceConfigurationOid BigInt?
+  instanceConfiguration    SlateInstanceConfiguration? @relation(fields: [instanceConfigurationOid], references: [oid], onDelete: SetNull)
+
+  enclaveId String?
+
+  /// [CompiledEgressNetworkAllowList]
+  egressPolicy Json?
+
   targetUrl String?
 
   storageBucket String?
@@ -200,7 +210,11 @@ model SlateAttachmentUpload {
   mimeType String?
   filename String?
 
-  sizeBytes Int?
+  sizeBytes         Int?
+  declaredSizeBytes Int?
+
+  multipartUploadId String?
+  partSizeBytes     Int?
 
   status String @default("pending")
 
@@ -409,6 +423,7 @@ model SlateInstanceConfiguration {
 
   slateSessions            SlateSession[]
   slateInstanceOAuthSetups SlateInstanceOAuthSetup[]
+  slateAttachments         SlateAttachment[]
 }
 
 enum SlateInstanceEventType {
@@ -478,8 +493,19 @@ model SlateOAuthCredentials {
   clientId String
   scopes   String[]
 
+  authMethodKey String?
+
+  /// [SlateOAuthCredentialsFixedInput]
+  fixedInput Json?
+
   secretOid BigInt
   secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  templateOid BigInt?
+  template    SlateOAuthCredentialsTemplate? @relation(fields: [templateOid], references: [oid], onDelete: Restrict)
+
+  templateVersion       Int?
+  templateSecretVersion Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -487,6 +513,49 @@ model SlateOAuthCredentials {
   authConfigs          SlateAuthConfig[]
   oAuthSetups          SlateInstanceOAuthSetup[]
   webhookRegistrations SlateWebhookRegistrationOAuthCredentials[]
+
+  @@unique([tenantOid, templateOid])
+  @@index([templateOid])
+}
+
+enum SlateOAuthCredentialsTemplateStatus {
+  active
+  archived
+}
+
+model SlateOAuthCredentialsTemplate {
+  oid BigInt @id
+  id  String @unique
+
+  status SlateOAuthCredentialsTemplateStatus @default(active)
+
+  name        String
+  description String?
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  authMethodKey String
+
+  /// [SlateOAuthCredentialsFixedInput]
+  fixedInput Json?
+
+  clientId String
+  scopes   String[]
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  version       Int @default(1)
+  secretVersion Int @default(1)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  copies SlateOAuthCredentials[]
+
+  @@index([status])
 }
 
 enum SlateAuthConfigType {
@@ -809,6 +878,7 @@ model Secret {
   renewalResults            TriggerWebhookRenewalResult[]
   slateAuthConfigs          SlateAuthConfig[]
   slateOAuthCredentials     SlateOAuthCredentials[]
+  oauthCredentialsTemplates SlateOAuthCredentialsTemplate[]
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateWebhookRegistrations SlateWebhookRegistration[]
 }
@@ -843,8 +913,8 @@ model Slate {
   slateVersions    SlateVersion[]
   slateDeployments SlateDeployment[]
 
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @default(now()) @updatedAt
+  createdAt                 DateTime                        @default(now())
+  updatedAt                 DateTime                        @default(now()) @updatedAt
   slateSpecifications       SlateSpecification[]
   slateAuthMethods          SlateAuthMethod[]
   slateConfigSchemas        SlateConfigSchema[]
@@ -853,6 +923,7 @@ model Slate {
   slateEvents               SlateEvent[]
   slateInstances            SlateInstance[]
   slateOAuthCredentials     SlateOAuthCredentials[]
+  oauthCredentialsTemplates SlateOAuthCredentialsTemplate[]
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
   slateAuthConfigs          SlateAuthConfig[]
   slateSessions             SlateSession[]
@@ -1303,8 +1374,9 @@ model SlateDeployment {
   id     String                @unique
   status SlateDeploymentStatus
 
-  errorCode    String?
-  errorMessage String?
+  errorCode     String?
+  errorMessage  String?
+  pendingReason String?
 
   isCancelledByRedeploy Boolean @default(false)
 
@@ -1322,12 +1394,15 @@ model SlateDeployment {
 
   internalLogs String[]
 
-  createdAt DateTime @default(now())
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
 
   slateInvocations SlateInvocation[]
   slateVersions    SlateVersion[]    @relation("activeDeployment")
 
   @@index([slateOid, createdAt])
+  @@index([status, createdAt])
 }
 
 model Tenant {
@@ -1459,7 +1534,7 @@ model SlatePublicToolCall {
   invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
 
   slateOid BigInt
-  slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
 
   slateVersionOid BigInt
   slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)

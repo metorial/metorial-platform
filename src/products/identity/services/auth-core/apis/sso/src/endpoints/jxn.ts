@@ -1,6 +1,5 @@
 import { createHono } from '@lowerdeck/hono';
 import { env } from '../env';
-import { getSentry } from '@lowerdeck/sentry';
 import * as Cookies from 'cookie';
 import { db } from '@mtsrc/auth-core-db';
 import { getRequestContext } from '@mtsrc/auth-core-runtime';
@@ -25,10 +24,20 @@ import {
   SESSION_ID_COOKIE_NAME
 } from '@mtsrc/auth-core-api-auth/src/middleware/device';
 import { errorHtml, ssoDomainNotAllowedHtml } from '@mtsrc/auth-core-http';
-
-let Sentry = getSentry();
+import { normalizeSsoProviderProfile } from '../lib/providerProfile';
 
 export let jxnApp = createHono()
+  .onError((_error, c) => {
+    console.error('SSO provider callback failed');
+
+    return c.html(
+      errorHtml({
+        title: 'Authentication Error',
+        message: 'Metorial could not authenticate you.'
+      }),
+      500
+    );
+  })
   .post('/saml/callback', async c => {
     let form = await c.req.formData();
 
@@ -41,8 +50,8 @@ export let jxnApp = createHono()
         RelayState: RelayState as string,
         SAMLResponse: SAMLResponse as string
       });
-    } catch (error) {
-      Sentry.captureException(error, { extra: { RelayState } });
+    } catch {
+      console.error('SAML callback failed');
 
       return c.html(
         errorHtml({
@@ -52,18 +61,12 @@ export let jxnApp = createHono()
       );
     }
     if (res.error) {
-      Sentry.captureException(new Error(`SAML callback error: ${JSON.stringify(res.error)}`), {
-        extra: {
-          RelayState,
-          SAMLResponse
-        }
-      });
+      console.error('SAML callback rejected by provider');
 
       return c.html(
         errorHtml({
           title: 'Authentication Error',
-          message: 'Metorial could not authenticate you.',
-          details: res.error
+          message: 'Metorial could not authenticate you.'
         })
       );
     }
@@ -162,7 +165,9 @@ export let jxnApp = createHono()
       }
 
       let { connection, accessToken } = authenticated;
-      let userInfo = await jackson.oauthController.userInfo(accessToken);
+      let userInfo = normalizeSsoProviderProfile(
+        await jackson.oauthController.userInfo(accessToken)
+      );
 
       await ssoDomainPolicyService.assertEmailAllowed({
         tenant: connection.tenant,
@@ -181,17 +186,7 @@ export let jxnApp = createHono()
         tenant: connection.tenant,
         connection,
         user,
-        data: {
-          email: userInfo.email,
-          uid: userInfo.id,
-          uidHash: userInfo.idHash,
-          sub: userInfo.sub,
-          firstName: userInfo.firstName,
-          lastName: userInfo.lastName,
-          roles: userInfo.roles ?? [],
-          groups: userInfo.groups ?? [],
-          raw: userInfo.raw
-        }
+        data: userInfo
       });
 
       let delegatedCompletion = resolveIdpInitiatedSamlCompletion({
@@ -258,15 +253,11 @@ export let jxnApp = createHono()
       );
       return res;
     } catch (error) {
-      Sentry.captureException(error, {
-        extra: {
-          query: c.req.query()
-        }
-      });
-
       if (error instanceof SsoDomainNotAllowedError) {
         return c.html(ssoDomainNotAllowedHtml(error), 403);
       }
+
+      console.error('IdP-initiated SAML sign-in failed');
 
       return c.html(
         errorHtml({
@@ -285,18 +276,12 @@ export let jxnApp = createHono()
       state: state
     });
     if (res.error) {
-      Sentry.captureException(new Error(`OIDC callback error: ${JSON.stringify(res.error)}`), {
-        extra: {
-          code,
-          state
-        }
-      });
+      console.error('OIDC callback rejected by provider');
 
       return c.html(
         errorHtml({
           title: 'Authentication Error',
-          message: 'Metorial could not authenticate you.',
-          details: res.error
+          message: 'Metorial could not authenticate you.'
         })
       );
     }

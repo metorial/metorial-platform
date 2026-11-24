@@ -65,7 +65,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
     query?: DashboardInstanceIntegrationsProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersListOutput> {
-    let path = `instances/${instanceId}/integration-providers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-providers`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
     integrationProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersGetOutput> {
-    let path = `instances/${instanceId}/integration-providers/${integrationProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-providers/${encodeURIComponent(integrationProviderId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
     body: DashboardInstanceIntegrationsProvidersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersCreateOutput> {
-    let path = `instances/${instanceId}/integration-providers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-providers`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
     body: DashboardInstanceIntegrationsProvidersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersUpdateOutput> {
-    let path = `instances/${instanceId}/integration-providers/${integrationProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-providers/${encodeURIComponent(integrationProviderId)}`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialManagementInstanceIntegrationsProvidersEndpoint {
     integrationProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsProvidersDeleteOutput> {
-    let path = `instances/${instanceId}/integration-providers/${integrationProviderId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-providers/${encodeURIComponent(integrationProviderId)}`;
 
     let request = {
       path,

@@ -21,7 +21,11 @@ export let env = defineSettings({
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
     SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),
-    SLATES_HUB_ADMIN_PORT: v.optional(v.number())
+    SLATES_HUB_ADMIN_PORT: v.optional(v.number()),
+    SLATES_HUB_LIVE_PORT: setting(v.optional(v.number()), {
+      description:
+        'Port of a listener that serves only the live invocation API, for runtimes that may reach nothing else on the hub; off when unset'
+    })
   },
 
   functionBay: {
@@ -29,17 +33,44 @@ export let env = defineSettings({
     FUNCTION_BAY_TENANT_IDENTIFIER: v.string(),
 
     FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
-    FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number()
+    FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: v.number(),
+
+    SLATE_DEPLOYMENT_TIMEOUT_MINUTES: setting(v.number(), {
+      default: 75,
+      description:
+        'Minutes after which a pending or running slate deployment is marked failed; keep it above the build timeout of the runtime'
+    })
   },
 
   storage: {
     OBJECT_STORAGE_URL: objectStorageUrl,
     INVOCATIONS_BUCKET_NAME: v.string(),
-    MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number()),
+    MAX_ATTACHMENT_SIZE_BYTES: setting(v.number({ modifiers: [v.integer(), v.minValue(0)] }), {
+      description: 'Largest attachment a slate may upload during an invocation',
+      default: perEdition({ cloud: 100 * 1024 * 1024, 'on-prem': 500 * 1024 * 1024 })
+    }),
     SLATES_LIVE_INVOCATION_ENABLED: setting(v.boolean(), {
       description:
-        'Lets slates upload large attachments straight to object storage during an invocation; off on-prem, where function pods cannot reach the public upload URL',
+        'Lets slates upload large attachments straight to object storage during an invocation; off on-prem unless the chart routes function pods to the hub and object storage through the egress gateway',
       default: perEdition({ cloud: true, 'on-prem': false })
+    }),
+    SLATES_LIVE_UPLOAD_MODE: setting(v.enumOf(['single', 'multipart']), {
+      description:
+        'How slates upload attachments during an invocation: one signed PUT per attachment, or signed parts whose sizes object storage enforces. Multipart needs object storage multipart uploads and is only offered to slates that support it',
+      default: perEdition<'single' | 'multipart'>({ cloud: 'single', 'on-prem': 'multipart' })
+    }),
+    SLATES_LIVE_INVOCATION_BASE_URL: setting(v.optional(v.string({ modifiers: [v.url()] })), {
+      description:
+        'Base URL slates call the live invocation API on; SERVICE_PUBLIC_URL when unset'
+    }),
+    SLATES_LIVE_UPLOAD_BASE_URL: setting(v.optional(v.string({ modifiers: [v.url()] })), {
+      description:
+        "Base URL that signed upload URLs handed to slates are moved onto, for runtimes that reach object storage's public listener under another address"
+    }),
+    SLATES_LIVE_INVOCATION_PLATFORM_ROUTES: setting.list(v.string(), {
+      default: [],
+      description:
+        'Function Bay platform routes requested for invocations that get a live invocation token, so the runtime can reach the live API and upload URLs'
     })
   },
 
@@ -86,5 +117,40 @@ export let env = defineSettings({
 
   subspace: {
     SUBSPACE_INTERNAL_URL: v.optional(v.string())
+  },
+
+  egress: {
+    SLATES_HUB_EGRESS_MODE: setting(v.enumOf(['direct', 'gateway']), {
+      default: 'gateway',
+      editions: ['on-prem'],
+      description:
+        'How the hub fetches integration attachments and connects to trigger gateways: "gateway" sends them through the egress gateway, "direct" connects from the hub itself'
+    }),
+    SLATES_HUB_EGRESS_GATEWAY_PROXY_URL: setting(
+      v.optional(v.string({ modifiers: [v.url()] })),
+      {
+        editions: ['on-prem'],
+        description: 'HTTP proxy endpoint of the egress gateway, required in gateway mode'
+      }
+    ),
+    SLATES_HUB_EGRESS_SIGNING_KEY: setting(v.optional(v.string()), {
+      secret: true,
+      audience: 'derived',
+      editions: ['on-prem'],
+      description:
+        'Base64url Ed25519 seed that signs the egress grants of the hub, required in gateway mode'
+    }),
+    SLATES_HUB_EGRESS_SIGNING_KEY_ID: setting(v.optional(v.string()), {
+      audience: 'derived',
+      editions: ['on-prem'],
+      description:
+        'Key id for SLATES_HUB_EGRESS_SIGNING_KEY, defaults to the id derived from its public key'
+    }),
+    TRUST_CONFIGMAPS: setting.list(v.string(), {
+      default: [],
+      editions: ['on-prem'],
+      description:
+        'Kubernetes ConfigMaps ("namespace/name") the hub publishes the public key of SLATES_HUB_EGRESS_SIGNING_KEY to, for the egress gateway'
+    })
   }
 });

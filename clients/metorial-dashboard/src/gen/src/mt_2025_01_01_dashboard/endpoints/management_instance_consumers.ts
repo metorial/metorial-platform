@@ -71,7 +71,7 @@ export class MetorialManagementInstanceConsumersEndpoint {
     query?: DashboardInstanceConsumersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersListOutput> {
-    let path = `instances/${instanceId}/consumers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumers`;
 
     let request = {
       path,
@@ -103,7 +103,7 @@ export class MetorialManagementInstanceConsumersEndpoint {
     consumerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersGetOutput> {
-    let path = `instances/${instanceId}/consumers/${consumerId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumers/${encodeURIComponent(consumerId)}`;
 
     let request = {
       path,
@@ -130,7 +130,7 @@ export class MetorialManagementInstanceConsumersEndpoint {
     body: DashboardInstanceConsumersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersCreateOutput> {
-    let path = `instances/${instanceId}/consumers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumers`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialManagementInstanceConsumersEndpoint {
     body: DashboardInstanceConsumersGetMemberConsumerBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersGetMemberConsumerOutput> {
-    let path = `instances/${instanceId}/get-member-consumer`;
+    let path = `instances/${encodeURIComponent(instanceId)}/get-member-consumer`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialManagementInstanceConsumersEndpoint {
     body: DashboardInstanceConsumersCreateMemberSessionBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersCreateMemberSessionOutput> {
-    let path = `instances/${instanceId}/member-consumer-session`;
+    let path = `instances/${encodeURIComponent(instanceId)}/member-consumer-session`;
 
     let request = {
       path,
@@ -226,7 +226,7 @@ export class MetorialManagementInstanceConsumersEndpoint {
     body: DashboardInstanceConsumersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersUpdateOutput> {
-    let path = `instances/${instanceId}/consumers/${consumerId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/consumers/${encodeURIComponent(consumerId)}`;
 
     let request = {
       path,

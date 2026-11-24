@@ -20,12 +20,16 @@ export class MetorialOnPremScmEndpoint extends BaseMetorialEndpoint<any> {
             label: string;
             allowed_domains: string[] | null;
           }[];
+          project_providers_allowed?: boolean;
         };
-        return data.items.map(item => ({
-          type: item.type,
-          label: item.label,
-          allowedDomains: item.allowed_domains
-        }));
+        return {
+          items: data.items.map(item => ({
+            type: item.type,
+            label: item.label,
+            allowedDomains: item.allowed_domains
+          })),
+          projectProvidersAllowed: data.project_providers_allowed ?? true
+        };
       }
     });
   }
@@ -51,6 +55,7 @@ export class MetorialOnPremScmEndpoint extends BaseMetorialEndpoint<any> {
             apiUrl: item.api_url,
             webUrl: item.web_url,
             isDefault: item.is_default,
+            isManaged: (item.is_managed as boolean | undefined) ?? false,
             appWebhookUrl: item.app_webhook_url as string | null,
             createdAt: new Date(item.created_at),
             updatedAt: new Date(item.updated_at)

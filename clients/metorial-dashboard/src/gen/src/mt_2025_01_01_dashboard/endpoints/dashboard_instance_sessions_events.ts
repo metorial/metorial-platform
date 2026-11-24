@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceSessionsEventsEndpoint {
     query?: DashboardInstanceSessionsEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsEventsListOutput> {
-    let path = `dashboard/instances/${instanceId}/session-events`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-events`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceSessionsEventsEndpoint {
     sessionEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsEventsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/session-events/${sessionEventId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-events/${encodeURIComponent(sessionEventId)}`;
 
     let request = {
       path,

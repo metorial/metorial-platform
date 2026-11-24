@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint {
     query?: DashboardInstanceProviderAuthConfigErrorsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigErrorsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-errors`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-errors`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint {
     providerAuthConfigErrorId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigErrorsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-errors/${providerAuthConfigErrorId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-errors/${encodeURIComponent(providerAuthConfigErrorId)}`;
 
     let request = {
       path,

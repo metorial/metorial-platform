@@ -69,7 +69,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsListOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegation-requests`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegation-requests`;
 
     let request = {
       path,
@@ -105,7 +105,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegation-requests/${identityDelegationRequestId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegation-requests/${encodeURIComponent(identityDelegationRequestId)}`;
 
     let request = {
       path,
@@ -139,7 +139,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
     body: DashboardInstanceIdentitiesDelegationRequestsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegation-requests`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegation-requests`;
 
     let request = {
       path,
@@ -173,7 +173,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsApproveQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsApproveOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegation-requests/${identityDelegationRequestId}/approve`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegation-requests/${encodeURIComponent(identityDelegationRequestId)}/approve`;
 
     let request = {
       path,
@@ -209,7 +209,7 @@ export class MetorialDashboardInstanceIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsDenyQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsDenyOutput> {
-    let path = `dashboard/instances/${instanceId}/identity-delegation-requests/${identityDelegationRequestId}/deny`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/identity-delegation-requests/${encodeURIComponent(identityDelegationRequestId)}/deny`;
 
     let request = {
       path,

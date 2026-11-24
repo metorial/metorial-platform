@@ -191,7 +191,9 @@ export let getProviderAuthSetupFilter = (
                   environmentOid: d.environmentOid
                 },
                 {
-                  origin: 'managed_backing' as const,
+                  origin: {
+                    in: ['managed_backing' as const, 'installation_template' as const]
+                  },
                   tenantOid: d.tenantOid,
                   solutionOid: d.solutionOid
                 }
@@ -243,11 +245,32 @@ class providerServiceImpl {
     let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderByIdInternal({
+    let provider = await this.getProviderByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: publicCatalogOnly ? undefined : scope.environment
     });
+
+    if (publicCatalogOnly || !provider.hasEnvironments || !provider.defaultVariant)
+      return provider;
+
+    let providerEnvironment = await db.providerEnvironment.findUnique({
+      where: {
+        environmentOid_providerOid: {
+          environmentOid: scope.environment.oid,
+          providerOid: provider.oid
+        }
+      },
+      include: { currentVersion: providerVariantInclude.currentVersion }
+    });
+
+    return {
+      ...provider,
+      defaultVariant: {
+        ...provider.defaultVariant,
+        currentVersion: providerEnvironment?.currentVersion ?? null
+      }
+    };
   }
 
   async getProviderByIdInternal(

@@ -65,7 +65,7 @@ export class MetorialDashboardInstancePublicMcpServersEndpoint {
     query?: DashboardInstancePublicMcpServersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersListOutput> {
-    let path = `dashboard/instances/${instanceId}/public-mcp-servers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/public-mcp-servers`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstancePublicMcpServersEndpoint {
     publicMcpServerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/public-mcp-servers/${publicMcpServerId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstancePublicMcpServersEndpoint {
     body: DashboardInstancePublicMcpServersCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/public-mcp-servers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/public-mcp-servers`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialDashboardInstancePublicMcpServersEndpoint {
     body: DashboardInstancePublicMcpServersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/public-mcp-servers/${publicMcpServerId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialDashboardInstancePublicMcpServersEndpoint {
     publicMcpServerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePublicMcpServersDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/public-mcp-servers/${publicMcpServerId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/public-mcp-servers/${encodeURIComponent(publicMcpServerId)}`;
 
     let request = {
       path,

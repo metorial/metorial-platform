@@ -6,8 +6,7 @@ export class WebSocketUrlNotAllowedError extends Error {
   readonly code = 'gateway_url_not_allowed';
 }
 
-// Known limit: the socket resolves the host again, so DNS rebinding after this check is not blocked.
-export let assertPublicWebSocketUrl = async (rawUrl: string) => {
+export let parseGatewayWebSocketUrl = (rawUrl: string) => {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -22,8 +21,17 @@ export let assertPublicWebSocketUrl = async (rawUrl: string) => {
     throw new WebSocketUrlNotAllowedError('The gateway URL must not contain credentials.');
   }
 
+  if (!url.hostname) {
+    throw new WebSocketUrlNotAllowedError('The gateway URL must include a host.');
+  }
+
+  return url;
+};
+
+// Known limit: the socket resolves the host again, so DNS rebinding after this check is not blocked.
+export let assertPublicWebSocketUrl = async (rawUrl: string) => {
+  let url = parseGatewayWebSocketUrl(rawUrl);
   let host = url.hostname.replace(/^\[|\]$/g, '');
-  if (!host) throw new WebSocketUrlNotAllowedError('The gateway URL must include a host.');
 
   let addresses = ipaddr.isValid(host)
     ? [host]

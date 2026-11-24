@@ -1,6 +1,7 @@
 export * from './access';
 export * from './actor';
 export * from './agentTracking';
+export * from './aiGateway';
 export * from './aiTool';
 export * from './apiKey';
 export * from './auditLogRetention';

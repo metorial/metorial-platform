@@ -85,7 +85,7 @@ export class MetorialConsumerOauthAuthorizationsEndpoint {
     oauthAuthorizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerOauthAuthorizationsGetOutput> {
-    let path = `consumer/oauth/authorizations/${oauthAuthorizationId}`;
+    let path = `consumer/oauth/authorizations/${encodeURIComponent(oauthAuthorizationId)}`;
 
     let request = {
       path,
@@ -112,7 +112,7 @@ export class MetorialConsumerOauthAuthorizationsEndpoint {
     oauthAuthorizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerOauthAuthorizationsRevokeOutput> {
-    let path = `consumer/oauth/authorizations/${oauthAuthorizationId}/revoke`;
+    let path = `consumer/oauth/authorizations/${encodeURIComponent(oauthAuthorizationId)}/revoke`;
 
     let request = {
       path,

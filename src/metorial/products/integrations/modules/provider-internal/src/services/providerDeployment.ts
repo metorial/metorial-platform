@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  dbPrimary,
+  db,
   withTransaction,
   type Environment,
   type Provider,
@@ -52,7 +52,7 @@ class providerDeploymentInternalServiceImpl {
 
     let versionOid = inner.oid;
     let isFinished = async () => {
-      let current = await dbPrimary.providerVersion.findFirst({
+      let current = await db.providerVersion.findFirst({
         where: { oid: versionOid },
         select: { specificationDiscoveryStatus: true }
       });
@@ -66,9 +66,7 @@ class providerDeploymentInternalServiceImpl {
       isFinished
     });
 
-    return (
-      (await dbPrimary.providerVersion.findFirst({ where: { oid: versionOid } })) ?? inner
-    );
+    return (await db.providerVersion.findFirst({ where: { oid: versionOid } })) ?? inner;
   }
 
   private async getCurrentVersionInner(d: {

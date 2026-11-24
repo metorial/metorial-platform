@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceProviderAuthConfigEventsEndpoint {
     query?: DashboardInstanceProviderAuthConfigEventsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigEventsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-events`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-events`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardInstanceProviderAuthConfigEventsEndpoint {
     providerAuthConfigEventId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderAuthConfigEventsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-auth-config-events/${providerAuthConfigEventId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-auth-config-events/${encodeURIComponent(providerAuthConfigEventId)}`;
 
     let request = {
       path,

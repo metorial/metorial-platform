@@ -4,6 +4,7 @@ import type { AuditScope } from '@metorial/audit-scope';
 import { db, Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
+import { isAiReviewConfigured } from '@metorial/shared-settings';
 
 class ProjectAiAnalysisConfigurationService {
   private async ensureProjectActive(project: Project) {
@@ -25,13 +26,14 @@ class ProjectAiAnalysisConfigurationService {
     await this.ensureProjectActive(d.project);
 
     let tenant = await this.getSubspaceTenantForProject(d.project);
+    let aiAnalysisEnabled =
+      isAiReviewConfigured() && tenant.aiAnalysisEnabled && !tenant.reducedSubprocessors;
 
     return {
       assistantEnabled: tenant.assistantEnabled,
       reducedSubprocessors: tenant.reducedSubprocessors,
-      aiAnalysisEnabled: tenant.aiAnalysisEnabled && !tenant.reducedSubprocessors,
-      usageReviewsEnabled:
-        tenant.usageReviewsEnabled && tenant.aiAnalysisEnabled && !tenant.reducedSubprocessors,
+      aiAnalysisEnabled,
+      usageReviewsEnabled: aiAnalysisEnabled && tenant.usageReviewsEnabled,
       skillReviewHoldPending: d.project.skillReviewHoldPending
     };
   }
@@ -54,7 +56,9 @@ class ProjectAiAnalysisConfigurationService {
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
     let aiAnalysisEnabled =
-      !tenant.reducedSubprocessors && (d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled);
+      isAiReviewConfigured() &&
+      !tenant.reducedSubprocessors &&
+      (d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled);
     let usageReviewsEnabled =
       aiAnalysisEnabled && (d.input.usageReviewsEnabled ?? tenant.usageReviewsEnabled);
 

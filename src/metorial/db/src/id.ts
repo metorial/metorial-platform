@@ -250,6 +250,7 @@ export let ID = createIdGenerator({
   agentTrackingOrganizationSettings: idType.sorted('atos'),
   agentTrackingProjectSettings: idType.sorted('atps'),
   agentTrackingInstanceSettings: idType.sorted('atns'),
+  agentTrackingView: idType.sorted('atvw'),
   skillTemplate: idType.sorted('skt'),
   skill: idType.sorted('skl_'),
   skillConfiguration: idType.sorted('skc_'),

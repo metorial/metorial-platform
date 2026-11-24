@@ -73,7 +73,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     query?: DashboardInstanceMagicMcpGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsListOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups`;
 
     let request = {
       path,
@@ -105,7 +105,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     magicMcpGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsGetOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups/${encodeURIComponent(magicMcpGroupId)}`;
 
     let request = {
       path,
@@ -134,7 +134,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     body: DashboardInstanceMagicMcpGroupsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsCreateOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     magicMcpGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsDeleteOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups/${encodeURIComponent(magicMcpGroupId)}`;
 
     let request = {
       path,
@@ -195,7 +195,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     body: DashboardInstanceMagicMcpGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsUpdateOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups/${encodeURIComponent(magicMcpGroupId)}`;
 
     let request = {
       path,
@@ -227,7 +227,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     body: DashboardInstanceMagicMcpGroupsAddServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsAddServersOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}/add-servers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups/${encodeURIComponent(magicMcpGroupId)}/add-servers`;
 
     let request = {
       path,
@@ -259,7 +259,7 @@ export class MetorialManagementInstanceMagicMcpGroupsEndpoint {
     body: DashboardInstanceMagicMcpGroupsRemoveServersBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpGroupsRemoveServersOutput> {
-    let path = `instances/${instanceId}/magic-mcp-groups/${magicMcpGroupId}/remove-servers`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-groups/${encodeURIComponent(magicMcpGroupId)}/remove-servers`;
 
     let request = {
       path,

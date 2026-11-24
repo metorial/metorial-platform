@@ -8,15 +8,11 @@ import { RiFileCopyLine, RiUserLine } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
 import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
 import { agentTrackingFilters } from './filters';
+import { WithInfo } from './info';
 import { MemberIdentity, memberPath } from './memberParts';
 import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
-import {
-  clientLabel,
-  SessionCost,
-  SessionModels,
-  SessionSummaryCell,
-  settlingLabel
-} from './sessionParts';
+import { SessionCost, SessionModels, SessionSummaryCell, settlingLabel } from './sessionParts';
+import { clientLabel } from './spendSummary';
 
 let filterRangeText = 'the last 30 days';
 
@@ -24,11 +20,7 @@ type Session = DashboardInstanceAgentTrackingSessionsListOutput['items'][number]
 
 type ListProps = { instanceId: string; memberId?: string };
 
-let legend = [
-  { key: '~', text: 'Estimated, not a bill' },
-  { key: 'No ~', text: 'Billed by the provider' },
-  { key: settlingLabel, text: 'Cost arrives 30 to 90 seconds after activity' }
-];
+let costMarkers = `~ means estimated, not a bill. No ~ means billed by the provider. ${settlingLabel}: the cost arrives 30 to 90 seconds after activity.`;
 
 let memberColumn = col.custom<Session>({
   id: 'member',
@@ -147,16 +139,11 @@ let AgentTrackingMemberSessionsList = buildSessionsList('agent-usage-member-sess
 });
 
 let SessionsLegend = () => (
-  <Flex gap={18} wrap="wrap">
-    {legend.map(item => (
-      <Text key={item.key} as="span" size="1" color="gray600">
-        <Text as="span" size="1" weight="strong" color="gray800">
-          {item.key}
-        </Text>{' '}
-        {item.text}
-      </Text>
-    ))}
-  </Flex>
+  <WithInfo info={costMarkers}>
+    <Text as="span" size="1" color="gray600">
+      About Costs
+    </Text>
+  </WithInfo>
 );
 
 export let AgentTrackingSessionsTable = ({

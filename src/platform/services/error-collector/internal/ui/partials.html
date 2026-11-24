@@ -1,0 +1,37 @@
+{{define "brand"}}
+<div class="brand">
+  <div class="logo" role="img" aria-label="Metorial"></div>
+  <div class="brand-text">
+    <h1>Error Reports</h1>
+    <div class="subtitle" id="subtitle"></div>
+  </div>
+</div>
+{{end}} {{define "lock"}}
+<svg
+  viewBox="0 0 16 16"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.6"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  <rect x="3" y="7" width="10" height="7" rx="1.5" />
+  <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+</svg>
+{{end}} {{define "removed"}}
+<details>
+  <summary>What is removed before an error is stored</summary>
+  <ul>
+    <li>Request bodies, headers and cookies</li>
+    <li>User details and session data</li>
+    <li>Local variables and source code</li>
+    <li>Extra data and breadcrumbs</li>
+    <li>Tokens, keys and credentials in messages</li>
+    <li>Email addresses and public IP addresses</li>
+    <li>Query strings in URLs</li>
+    <li>Server host names</li>
+    <li>All but the last 50 log lines of a failed build or deployment</li>
+  </ul>
+</details>
+{{end}}

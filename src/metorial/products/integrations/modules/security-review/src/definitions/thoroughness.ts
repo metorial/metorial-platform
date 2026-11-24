@@ -5,7 +5,7 @@ import {
   type ReviewModelAccess,
   type ReviewModelSet
 } from '@metorial/review-engine';
-import { env } from '../env';
+import { getAiReviewProviderConfig } from '@metorial/shared-settings';
 import { redisModelRateLimiter } from '../lib/modelRateLimiter';
 
 export type ThoroughnessTier = {
@@ -27,22 +27,7 @@ export let reviewModelAccess: ReviewModelAccess = {
   maxWaitMs: MODEL_RATE_LIMIT_MAX_WAIT_MS
 };
 
-let reviewModels: ReviewModelSet | null = createReviewModels({
-  cloudflare:
-    env.models.CLOUDFLARE_AI_API_TOKEN && env.models.CLOUDFLARE_ACCOUNT_ID
-      ? {
-          accountId: env.models.CLOUDFLARE_ACCOUNT_ID,
-          apiToken: env.models.CLOUDFLARE_AI_API_TOKEN
-        }
-      : undefined,
-  vercel: env.models.AI_GATEWAY_API_KEY ? { apiKey: env.models.AI_GATEWAY_API_KEY } : undefined
-});
-
-if (!!env.models.CLOUDFLARE_AI_API_TOKEN != !!env.models.CLOUDFLARE_ACCOUNT_ID) {
-  console.warn(
-    'Security reviews: CLOUDFLARE_AI_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set to use Cloudflare'
-  );
-}
+let reviewModels: ReviewModelSet | null = createReviewModels(getAiReviewProviderConfig());
 
 export let isAiReviewAvailable = () => reviewModels !== null;
 

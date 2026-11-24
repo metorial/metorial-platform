@@ -65,7 +65,7 @@ export class MetorialManagementInstanceFirewallsEndpoint {
     query?: DashboardInstanceFirewallsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsListOutput> {
-    let path = `instances/${instanceId}/firewalls`;
+    let path = `instances/${encodeURIComponent(instanceId)}/firewalls`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceFirewallsEndpoint {
     firewallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsGetOutput> {
-    let path = `instances/${instanceId}/firewalls/${firewallId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialManagementInstanceFirewallsEndpoint {
     body: DashboardInstanceFirewallsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsCreateOutput> {
-    let path = `instances/${instanceId}/firewalls`;
+    let path = `instances/${encodeURIComponent(instanceId)}/firewalls`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialManagementInstanceFirewallsEndpoint {
     body: DashboardInstanceFirewallsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsUpdateOutput> {
-    let path = `instances/${instanceId}/firewalls/${firewallId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialManagementInstanceFirewallsEndpoint {
     firewallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFirewallsDeleteOutput> {
-    let path = `instances/${instanceId}/firewalls/${firewallId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/firewalls/${encodeURIComponent(firewallId)}`;
 
     let request = {
       path,

@@ -1,4 +1,3 @@
-import { formatNumber } from '@metorial/chart';
 import { Badge, Flex, Text } from '@metorial/ui';
 import { useNow } from '@metorial/use-now';
 import React from 'react';
@@ -11,7 +10,8 @@ import {
   sessionLength
 } from './activity';
 import { CostValue } from './cost';
-import { TruncatedModelName, UnmatchedModelNames } from './modelNames';
+import { WithInfo } from './info';
+import { formatRequests, modelLabel, unknownModelLabel } from './spendSummary';
 
 export let settlingLabel = 'Settling…';
 
@@ -27,12 +27,6 @@ export let DetailColumns = styled.div`
 `;
 
 let unknownModelNamesLimit = 10;
-
-export let formatRequests = (count: number) =>
-  `${formatNumber(count)} ${count == 1 ? 'request' : 'requests'}`;
-
-export let clientLabel = (client: { name: string | null; family: string }) =>
-  client.name ?? client.family;
 
 export let clientVersion = (client: { version: string | null }) =>
   client.version ? `v${client.version}` : null;
@@ -54,13 +48,23 @@ type SessionSummary = {
 
 type Model = { id: string; name: string | null };
 
-let Muted = ({ children }: { children: React.ReactNode }) => (
+export let Muted = ({ children }: { children: React.ReactNode }) => (
   <Text as="span" size="2" color="gray600">
     {children}
   </Text>
 );
 
-export let modelLabel = (model: Model) => model.name ?? model.id;
+let UnmatchedModelNames = ({ names }: { names: string[] }) => {
+  let joined = names.join(', ');
+
+  return (
+    <div title={joined} style={{ minWidth: 0, maxWidth: 240 }}>
+      <Text as="div" size="1" color="gray600" truncate>
+        {joined}
+      </Text>
+    </div>
+  );
+};
 
 export let ModelNameCell = ({
   model,
@@ -72,9 +76,17 @@ export let ModelNameCell = ({
   detail?: boolean;
 }) => (
   <Flex direction="column" gap={2}>
-    <Text as="span" size="2" weight="medium" truncate>
-      {model ? modelLabel(model) : 'Unknown Model'}
-    </Text>
+    <WithInfo
+      info={
+        detail && unknownModelNames.length >= unknownModelNamesLimit
+          ? `Possibly others too: only the ${unknownModelNamesLimit} with the most requests are listed.`
+          : null
+      }
+    >
+      <Text as="span" size="2" weight="medium" truncate>
+        {model ? modelLabel(model) : unknownModelLabel}
+      </Text>
+    </WithInfo>
 
     {detail && model?.name && model.name != model.id ? (
       <Text as="span" size="1" color="gray600" truncate>
@@ -82,22 +94,7 @@ export let ModelNameCell = ({
       </Text>
     ) : null}
 
-    {unknownModelNames.length ? (
-      <>
-        {detail ? (
-          <Text as="span" size="1" color="gray600">
-            Not matched to the model catalog:
-          </Text>
-        ) : null}
-        <UnmatchedModelNames names={unknownModelNames} />
-        {detail && unknownModelNames.length >= unknownModelNamesLimit ? (
-          <Text as="span" size="1" color="gray600">
-            Possibly others too: only the {unknownModelNamesLimit} with the most requests are
-            listed.
-          </Text>
-        ) : null}
-      </>
-    ) : null}
+    {unknownModelNames.length ? <UnmatchedModelNames names={unknownModelNames} /> : null}
   </Flex>
 );
 
@@ -145,21 +142,18 @@ export let SessionModels = ({ session }: { session: SessionSummary }) => {
     if (session.summaryPending) return <Muted>{settlingLabel}</Muted>;
     if (!session.requests) return <Muted>—</Muted>;
 
-    return <Muted>Unknown Model</Muted>;
+    return <Muted>{unknownModelLabel}</Muted>;
   }
 
-  let names = [
-    ...session.models.map(modelLabel),
-    ...unmatched.map(name => `${name} (not in the model catalog)`)
-  ].join(', ');
+  let names = [...session.models.map(modelLabel), ...unmatched].join(', ');
 
   let first = session.models[0];
   let rest = session.models.length + unmatched.length - 1;
 
   return (
-    <span title={names}>
+    <Flex direction="column" gap={2} title={names}>
       <Text as="span" size="2" wrap="nowrap">
-        {first ? modelLabel(first) : <TruncatedModelName name={unmatched[0]!} />}
+        {first ? modelLabel(first) : unknownModelLabel}
         {rest ? (
           <Text as="span" size="2" color="gray600" wrap="nowrap">
             {' '}
@@ -167,7 +161,9 @@ export let SessionModels = ({ session }: { session: SessionSummary }) => {
           </Text>
         ) : null}
       </Text>
-    </span>
+
+      {first ? null : <UnmatchedModelNames names={[unmatched[0]!]} />}
+    </Flex>
   );
 };
 

@@ -67,7 +67,7 @@ export class MetorialManagementInstanceSkillsPluginsSkillsEndpoint {
     query?: DashboardInstanceSkillsPluginsSkillsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsSkillsListOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/skills`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/skills`;
 
     let request = {
       path,
@@ -101,7 +101,7 @@ export class MetorialManagementInstanceSkillsPluginsSkillsEndpoint {
     body: DashboardInstanceSkillsPluginsSkillsAddBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsSkillsAddOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/skills`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/skills`;
 
     let request = {
       path,
@@ -133,7 +133,7 @@ export class MetorialManagementInstanceSkillsPluginsSkillsEndpoint {
     skillPluginSkillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsSkillsGetOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/skills/${skillPluginSkillId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/skills/${encodeURIComponent(skillPluginSkillId)}`;
 
     let request = {
       path,
@@ -166,7 +166,7 @@ export class MetorialManagementInstanceSkillsPluginsSkillsEndpoint {
     body: DashboardInstanceSkillsPluginsSkillsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsSkillsUpdateOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/skills/${skillPluginSkillId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/skills/${encodeURIComponent(skillPluginSkillId)}`;
 
     let request = {
       path,
@@ -198,7 +198,7 @@ export class MetorialManagementInstanceSkillsPluginsSkillsEndpoint {
     skillPluginSkillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsSkillsRemoveOutput> {
-    let path = `instances/${instanceId}/skill-plugins/${skillPluginId}/skills/${skillPluginSkillId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-plugins/${encodeURIComponent(skillPluginId)}/skills/${encodeURIComponent(skillPluginSkillId)}`;
 
     let request = {
       path,

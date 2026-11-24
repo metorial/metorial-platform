@@ -57,7 +57,7 @@ export class MetorialDashboardInstanceDocumentsParticipantsEndpoint {
     query?: DashboardInstanceDocumentsParticipantsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsParticipantsListOutput> {
-    let path = `dashboard/instances/${instanceId}/documents/${documentId}/participants`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}/participants`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialDashboardInstanceDocumentsParticipantsEndpoint {
     documentParticipantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsParticipantsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/documents/${documentId}/participants/${documentParticipantId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}/participants/${encodeURIComponent(documentParticipantId)}`;
 
     let request = {
       path,

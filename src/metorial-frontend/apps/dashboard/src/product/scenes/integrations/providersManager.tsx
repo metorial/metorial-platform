@@ -126,6 +126,7 @@ let IntegrationProvidersTable = createDataList<IntegrationProvidersTableProps>(
           showAdminSetupLinkModal({
             instanceId: props.instanceId,
             integrationProvider: provider,
+            onConfigure: () => openIntegrationProviderPanel(provider, props),
             providerName:
               props.listingLookup[provider.provider.id]?.name ?? getProviderLabel(provider)
           });

@@ -69,7 +69,7 @@ export class MetorialSkillsFilesEndpoint {
     skillId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesListOutput> {
-    let path = `skills/${skillId}/files`;
+    let path = `skills/${encodeURIComponent(skillId)}/files`;
 
     let request = {
       path,
@@ -98,7 +98,7 @@ export class MetorialSkillsFilesEndpoint {
     query?: DashboardInstanceSkillsFilesGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesGetOutput> {
-    let path = `skills/${skillId}/files/content`;
+    let path = `skills/${encodeURIComponent(skillId)}/files/content`;
 
     let request = {
       path,
@@ -130,7 +130,7 @@ export class MetorialSkillsFilesEndpoint {
     body: DashboardInstanceSkillsFilesPutBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesPutOutput> {
-    let path = `skills/${skillId}/files`;
+    let path = `skills/${encodeURIComponent(skillId)}/files`;
 
     let request = {
       path,
@@ -160,7 +160,7 @@ export class MetorialSkillsFilesEndpoint {
     query?: DashboardInstanceSkillsFilesDeleteQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesDeleteOutput> {
-    let path = `skills/${skillId}/files`;
+    let path = `skills/${encodeURIComponent(skillId)}/files`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialSkillsFilesEndpoint {
     body: DashboardInstanceSkillsFilesMoveBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesMoveOutput> {
-    let path = `skills/${skillId}/files/move`;
+    let path = `skills/${encodeURIComponent(skillId)}/files/move`;
 
     let request = {
       path,
@@ -222,7 +222,7 @@ export class MetorialSkillsFilesEndpoint {
     body: DashboardInstanceSkillsFilesBatchBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsFilesBatchOutput> {
-    let path = `skills/${skillId}/files/batch`;
+    let path = `skills/${encodeURIComponent(skillId)}/files/batch`;
 
     let request = {
       path,

@@ -32,7 +32,6 @@ vi.mock('@metorial/module-usage', () => ({
 vi.mock('@lowerdeck/queue', () => ({ createQueue: mocks.createQueue }));
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
-  dbPrimary: mocks.db,
   withTransaction: (cb: (db: unknown) => unknown) => cb(mocks.db)
 }));
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fabricFire } }));

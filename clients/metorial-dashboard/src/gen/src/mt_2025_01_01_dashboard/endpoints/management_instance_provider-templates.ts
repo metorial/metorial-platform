@@ -65,7 +65,7 @@ export class MetorialManagementInstanceProviderTemplatesEndpoint {
     query?: DashboardInstanceProviderTemplatesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesListOutput> {
-    let path = `instances/${instanceId}/provider-templates`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-templates`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceProviderTemplatesEndpoint {
     providerTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesGetOutput> {
-    let path = `instances/${instanceId}/provider-templates/${providerTemplateId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-templates/${encodeURIComponent(providerTemplateId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceProviderTemplatesEndpoint {
     body: DashboardInstanceProviderTemplatesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesCreateOutput> {
-    let path = `instances/${instanceId}/provider-templates`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-templates`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceProviderTemplatesEndpoint {
     body: DashboardInstanceProviderTemplatesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesUpdateOutput> {
-    let path = `instances/${instanceId}/provider-templates/${providerTemplateId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-templates/${encodeURIComponent(providerTemplateId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceProviderTemplatesEndpoint {
     providerTemplateId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderTemplatesDeleteOutput> {
-    let path = `instances/${instanceId}/provider-templates/${providerTemplateId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-templates/${encodeURIComponent(providerTemplateId)}`;
 
     let request = {
       path,

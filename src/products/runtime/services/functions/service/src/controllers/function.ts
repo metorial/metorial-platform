@@ -101,6 +101,7 @@ export let functionController = app.controller({
 
         payload: v.record(v.any()),
         egressPolicy: v.optional(egressAllowListValidator),
+        platformRoutes: v.optional(v.array(v.string())),
 
         enclave: v.optional(
           v.object({
@@ -117,6 +118,7 @@ export let functionController = app.controller({
           functionTenantId: ctx.input.functionTenantId,
           payload: ctx.input.payload,
           egressPolicy: ctx.input.egressPolicy,
+          platformRoutes: ctx.input.platformRoutes,
           enclave: ctx.input.enclave
         })
     )

@@ -590,6 +590,7 @@ model MirrorUpstream {
 }
 
 enum SlatePackImportStatus {
+  uploading
   pending
   processing
   completed
@@ -633,6 +634,10 @@ model SlatePackImport {
   bucket     String
   storageKey String
 
+  multipartUploadId String?
+  multipartPartSize Int?
+  uploadExpiresAt   DateTime?
+
   batchOid BigInt?
   batch    SlatePackImportBatch? @relation(fields: [batchOid], references: [oid], onDelete: Cascade)
 
@@ -662,6 +667,7 @@ model SlatePackImport {
 
   @@index([batchOid])
   @@index([channelUrl, channelSubRegistryId, kind])
+  @@index([status, uploadExpiresAt])
 }
 
 model MirrorPackChannel {

@@ -11,7 +11,7 @@ import type { ConnectionMessage } from '../../utils/messenger';
 
 vi.mock('@mtsrc/mcp-runtime-network', async importOriginal => ({
   ...(await importOriginal<object>()),
-  safeFetch: (input: string, { egressPolicy: _egressPolicy, ...init }: any) =>
+  safeFetch: (input: string, { egress: _egress, egressLifetime: _lifetime, ...init }: any) =>
     fetch(input, init)
 }));
 
@@ -283,6 +283,7 @@ beforeEach(async () => {
 
   bridge = new StatelessMcpBridge({
     url,
+    egress: { tenantId: 'tenant' },
     getHeaders: async () => ({ Authorization: 'Bearer token' }),
     emit: async message => {
       emitted.push(message);

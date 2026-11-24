@@ -53,7 +53,7 @@ export class MetorialOrganizationsFlagsEndpoint {
     query?: OrganizationsFlagsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<OrganizationsFlagsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/flags`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/flags`;
 
     let request = {
       path,

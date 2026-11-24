@@ -55,7 +55,7 @@ export class MetorialManagementInstanceSessionsConnectionsEndpoint {
     query?: DashboardInstanceSessionsConnectionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsConnectionsListOutput> {
-    let path = `instances/${instanceId}/session-connections`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-connections`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialManagementInstanceSessionsConnectionsEndpoint {
     sessionConnectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsConnectionsGetOutput> {
-    let path = `instances/${instanceId}/session-connections/${sessionConnectionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/session-connections/${encodeURIComponent(sessionConnectionId)}`;
 
     let request = {
       path,

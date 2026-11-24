@@ -1,12 +1,15 @@
 use axum::body::Body;
 use axum::extract::{Path, Query, State};
+use axum::http::header::CONTENT_LENGTH;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::get;
+use axum::routing::{get, put};
 use axum::{Json, Router};
+use futures::StreamExt;
 use object_store_backends::PublicUrlPurpose;
 use serde::Deserialize;
 use serde_json::json;
+use std::io;
 use std::time::Duration;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
@@ -14,25 +17,31 @@ use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::api::{self, SharedService};
+use crate::error::RequestBodyError;
 use crate::public::{purpose_name, PublicUrlError};
+use crate::public_multipart;
 
 #[derive(Debug, Deserialize)]
 pub struct SignedQuery {
     pub expires: Option<i64>,
     pub purpose: Option<String>,
+    pub size: Option<u64>,
     pub signature: Option<String>,
 }
 
-/// The listener that serves signed public URLs in proxy mode. It only exposes reading and
-/// uploading single objects, and only with a valid signature; the management API stays on the
-/// internal listener.
+/// The proxy listener serves signed object URLs and optional encrypted part manifests.
+/// The management API stays on the internal listener.
 pub fn create_public_router(service: SharedService, request_timeout: Duration) -> Router {
-    Router::new()
+    let mut router = Router::new()
         .route("/health", get(api::health_check))
         .route(
             "/:bucket/*key",
             get(public_get).head(public_head).put(public_put),
-        )
+        );
+    if service.multipart_signer().is_ok() {
+        router = router.route("/upload-part", put(public_multipart::put_part));
+    }
+    router
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
@@ -44,6 +53,34 @@ pub fn create_public_router(service: SharedService, request_timeout: Duration) -
 
 fn forbidden(message: &str) -> Response {
     (StatusCode::FORBIDDEN, Json(json!({ "error": message }))).into_response()
+}
+
+fn bad_request(message: &str) -> Response {
+    (StatusCode::BAD_REQUEST, Json(json!({ "error": message }))).into_response()
+}
+
+fn content_length(headers: &HeaderMap) -> Option<u64> {
+    headers
+        .get(CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse().ok())
+}
+
+// HTTP framing already stops a body at its Content-Length; this keeps the signed size the limit
+// whatever transport delivered the body.
+fn limit_body(body: Body, size: u64) -> Body {
+    let mut received = 0u64;
+    Body::from_stream(body.into_data_stream().map(move |chunk| {
+        let chunk = chunk.map_err(RequestBodyError::from_body)?;
+        received += chunk.len() as u64;
+        if received > size {
+            return Err(RequestBodyError::io(
+                io::ErrorKind::InvalidData,
+                "upload is larger than its signed size",
+            ));
+        }
+        Ok(chunk)
+    }))
 }
 
 fn authorize(
@@ -71,6 +108,7 @@ fn authorize(
             key,
             purpose,
             expires,
+            query.size,
             signature,
             chrono::Utc::now().timestamp(),
         )
@@ -126,7 +164,33 @@ pub async fn public_put(
         upload_headers.insert("content-type", content_type.clone());
     }
 
-    match api::put_object(State(service), Path((bucket, key)), upload_headers, body).await {
+    let body = match query.size {
+        Some(size) => {
+            if content_length(&headers) != Some(size) {
+                return bad_request("The upload must declare exactly the signed size");
+            }
+            upload_headers.insert(CONTENT_LENGTH, size.into());
+            limit_body(body, size)
+        }
+        None => body,
+    };
+
+    let uploaded = api::put_object(
+        State(service.clone()),
+        Path((bucket.clone(), key.clone())),
+        upload_headers,
+        body,
+    )
+    .await;
+
+    if let (Ok(Json(metadata)), Some(size)) = (&uploaded, query.size) {
+        if metadata.metadata.size != size {
+            let _ = service.delete_object(&bucket, &key).await;
+            return bad_request("The upload does not match the signed size");
+        }
+    }
+
+    match uploaded {
         Ok(Json(metadata)) => {
             let mut response = StatusCode::OK.into_response();
             if let Ok(etag) = format!("\"{}\"", metadata.metadata.etag).parse() {

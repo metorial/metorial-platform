@@ -55,7 +55,7 @@ export let resolveHandler = (handlerModule: any, exportName?: string) => {
   return handlerFunc;
 };
 
-let formatError = (err: any) => {
+export let formatError = (err: any) => {
   let fullMessage = '';
   if (typeof err == 'object' && err !== null) {
     if ('name' in err && typeof err.name === 'string') {
@@ -122,6 +122,16 @@ export let runHandler = async (
     };
   }
 };
+
+export let unhandledRejectionError = (reason: unknown): Envelope => ({
+  statusCode: 500,
+  body: {
+    error: {
+      code: 'function_bay.unhandled_rejection',
+      message: `Unhandled promise rejection: ${formatError(reason)}`
+    }
+  }
+});
 
 // The error shape the Lambda runtime returned when the launcher itself failed, which
 // parseInvocationPayload understands.

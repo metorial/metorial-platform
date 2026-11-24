@@ -165,6 +165,7 @@ func TestIngestRejectsInvalidRecordsAtomically(t *testing.T) {
 		"unknown source":       func(r *Record) { r.Source = "ec2" },
 		"function without id":  func(r *Record) { r.FunctionID = "" },
 		"build without run id": func(r *Record) { r.Source = SourceBuild },
+		"mcp without tenant":   func(r *Record) { r.Source = SourceMCP; r.TenantID = "" },
 		"missing hostname":     func(r *Record) { r.Hostname = "" },
 		"port out of range":    func(r *Record) { r.Port = 70000 },
 		"negative port":        func(r *Record) { r.Port = -1 },

@@ -61,7 +61,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
     query?: DashboardInstanceIntegrationFirewallAssignmentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationFirewallAssignmentsListOutput> {
-    let path = `instances/${instanceId}/integration-firewall-assignments`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-firewall-assignments`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
     integrationFirewallAssignmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationFirewallAssignmentsGetOutput> {
-    let path = `instances/${instanceId}/integration-firewall-assignments/${integrationFirewallAssignmentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-firewall-assignments/${encodeURIComponent(integrationFirewallAssignmentId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
     body: DashboardInstanceIntegrationFirewallAssignmentsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationFirewallAssignmentsCreateOutput> {
-    let path = `instances/${instanceId}/integration-firewall-assignments`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-firewall-assignments`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialManagementInstanceIntegrationFirewallAssignmentsEndpoint {
     integrationFirewallAssignmentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationFirewallAssignmentsDeleteOutput> {
-    let path = `instances/${instanceId}/integration-firewall-assignments/${integrationFirewallAssignmentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/integration-firewall-assignments/${encodeURIComponent(integrationFirewallAssignmentId)}`;
 
     let request = {
       path,

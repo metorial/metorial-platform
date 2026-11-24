@@ -4,6 +4,7 @@ import { env } from '../../env';
 import { isMirrorMode } from '../../mode';
 import { slatePackService } from '../../services/slatePack';
 import { slatePackBatchService } from '../../services/slatePackBatch';
+import { slatePackUploadService } from '../../services/slatePackUpload';
 
 export let processSlatePackQueue = createQueue<{ packImportId: string }>({
   name: 'sreg/mirror/pack/process',
@@ -24,6 +25,7 @@ export let cleanupSlatePackBatchesCron = createCron(
   async () => {
     if (!isMirrorMode()) return;
 
+    await slatePackUploadService.cleanupExpiredUploads();
     await slatePackBatchService.cleanupAbandonedBatches();
   }
 );

@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { slateOAuthCredentialsPresenter } from '../../presenters';
@@ -16,6 +17,17 @@ export let slateOAuthCredentialsApp = tenantApp.use(async ctx => {
 
   return { slateOAuthCredentials };
 });
+
+let assertNotTemplateCopy = (slateOAuthCredentials: { templateOid: bigint | null }) => {
+  if (slateOAuthCredentials.templateOid == null) return;
+
+  throw new ServiceError(
+    badRequestError({
+      code: 'oauth_credentials_managed',
+      message: 'These OAuth credentials are managed centrally and cannot be changed here.'
+    })
+  );
+};
 
 export let slateOAuthCredentialsController = app.controller({
   list: tenantApp
@@ -95,6 +107,8 @@ export let slateOAuthCredentialsController = app.controller({
       })
     )
     .do(async ctx => {
+      assertNotTemplateCopy(ctx.slateOAuthCredentials);
+
       let res = await slateOAuthCredentialsService.updateSlateOAuthCredentials({
         tenant: ctx.tenant,
         slateOAuthCredentials: ctx.slateOAuthCredentials,
@@ -118,6 +132,8 @@ export let slateOAuthCredentialsController = app.controller({
       })
     )
     .do(async ctx => {
+      assertNotTemplateCopy(ctx.slateOAuthCredentials);
+
       await slateOAuthCredentialsService.deleteSlateOAuthCredentials({
         tenant: ctx.tenant,
         slateOAuthCredentials: ctx.slateOAuthCredentials

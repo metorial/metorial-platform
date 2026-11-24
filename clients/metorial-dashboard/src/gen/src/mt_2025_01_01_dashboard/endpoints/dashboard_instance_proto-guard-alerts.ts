@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceProtoGuardAlertsEndpoint {
     query?: DashboardInstanceProtoGuardAlertsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardAlertsListOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-alerts`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-alerts`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceProtoGuardAlertsEndpoint {
     protoGuardAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardAlertsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/protoguard-alerts/${protoGuardAlertId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/protoguard-alerts/${encodeURIComponent(protoGuardAlertId)}`;
 
     let request = {
       path,

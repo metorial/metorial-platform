@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapConsumerDevicesTelemetryTokenIssueOutput,
@@ -57,8 +54,6 @@ export class MetorialConsumerDevicesTelemetryTokenEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._post(request).transform(
-      mapConsumerDevicesTelemetryTokenIssueOutput
-    );
+    return this._post(request).transform(mapConsumerDevicesTelemetryTokenIssueOutput);
   }
 }

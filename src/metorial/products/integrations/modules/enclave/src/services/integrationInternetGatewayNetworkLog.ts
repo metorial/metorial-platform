@@ -107,10 +107,10 @@ class IntegrationInternetGatewayNetworkLogServiceImpl {
       intervalMinutes?: number;
     };
   }): Promise<IntegrationInternetGatewayNetworkLogsResponse> {
+    // Remote MCP and hub traffic is logged under enclaves that host no Function Bay functions,
+    // so every enclave is queried, not only those with Function Bay backing.
     let enclaves = await this.resolveEnclaves(d);
-
-    let backedEnclaves = enclaves.filter(e => e.hasFunctionBayBacking);
-    if (backedEnclaves.length === 0) {
+    if (enclaves.length === 0) {
       return {
         object: 'enclave.network_logs',
         direction: 'egress',
@@ -123,7 +123,7 @@ class IntegrationInternetGatewayNetworkLogServiceImpl {
 
     let logs = await functionBay.networkLog.list({
       tenantId: fbTenant.id,
-      enclaveIds: backedEnclaves.map(e => e.id),
+      enclaveIds: enclaves.map(e => e.id),
       hostnames: d.filters.hostnames,
       ips: d.filters.ips,
       from: d.filters.from,
@@ -134,7 +134,7 @@ class IntegrationInternetGatewayNetworkLogServiceImpl {
     return {
       object: 'enclave.network_logs',
       direction: 'egress',
-      enclaveIds: backedEnclaves.map(e => e.id),
+      enclaveIds: enclaves.map(e => e.id),
       records: logs.map(r =>
         presentNetworkLogRecord({
           direction: 'egress',

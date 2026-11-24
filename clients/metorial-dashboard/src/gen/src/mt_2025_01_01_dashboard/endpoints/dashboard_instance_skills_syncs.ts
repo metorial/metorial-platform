@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
     query?: DashboardInstanceSkillsSyncsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSyncsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-syncs`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-syncs`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
     skillSyncId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSyncsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-syncs/${skillSyncId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-syncs/${encodeURIComponent(skillSyncId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
     skillSyncId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSyncsRepositoryChecksOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-syncs/${skillSyncId}/repository-checks`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-syncs/${encodeURIComponent(skillSyncId)}/repository-checks`;
 
     let request = {
       path,
@@ -153,7 +153,7 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
     body: DashboardInstanceSkillsSyncsForceBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsSyncsForceOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-syncs/${skillSyncId}/force`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-syncs/${encodeURIComponent(skillSyncId)}/force`;
 
     let request = {
       path,

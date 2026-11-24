@@ -57,7 +57,7 @@ export class MetorialConsumerConsumerInternalOauthAuthorizationsEndpoint {
     portalAuthAttemptId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerConsumerInternalOauthAuthorizationsGetOutput> {
-    let path = `consumer/portal-oauth-attempts/${portalAuthAttemptId}`;
+    let path = `consumer/portal-oauth-attempts/${encodeURIComponent(portalAuthAttemptId)}`;
 
     let request = {
       path,
@@ -84,7 +84,7 @@ export class MetorialConsumerConsumerInternalOauthAuthorizationsEndpoint {
     portalAuthAttemptId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerConsumerInternalOauthAuthorizationsAcceptOutput> {
-    let path = `consumer/portal-oauth-attempts/${portalAuthAttemptId}/accept`;
+    let path = `consumer/portal-oauth-attempts/${encodeURIComponent(portalAuthAttemptId)}/accept`;
 
     let request = {
       path,
@@ -113,7 +113,7 @@ export class MetorialConsumerConsumerInternalOauthAuthorizationsEndpoint {
     body: ConsumerConsumerInternalOauthAuthorizationsConnectMagicMcpEndpointBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerConsumerInternalOauthAuthorizationsConnectMagicMcpEndpointOutput> {
-    let path = `consumer/portal-oauth-attempts/${portalAuthAttemptId}/connect-magic-mcp-endpoint`;
+    let path = `consumer/portal-oauth-attempts/${encodeURIComponent(portalAuthAttemptId)}/connect-magic-mcp-endpoint`;
 
     let request = {
       path,
@@ -143,7 +143,7 @@ export class MetorialConsumerConsumerInternalOauthAuthorizationsEndpoint {
     portalAuthAttemptId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerConsumerInternalOauthAuthorizationsRejectOutput> {
-    let path = `consumer/portal-oauth-attempts/${portalAuthAttemptId}/reject`;
+    let path = `consumer/portal-oauth-attempts/${encodeURIComponent(portalAuthAttemptId)}/reject`;
 
     let request = {
       path,

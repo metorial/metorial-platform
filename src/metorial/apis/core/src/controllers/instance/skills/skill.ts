@@ -617,7 +617,7 @@ export let skillController = Controller.create(
           }),
           permission: v.enumOf(['none', 'read', 'write', 'owner'], {
             description:
-              'Access to grant. Owners can always edit the skill and can add other owners; only admins can remove or downgrade an owner. Owners must be consumers.'
+              'For consumers with inherited edit and share access, `write` and `owner` add portal visibility. Consumers must own the skill to grant ownership. Only admins can remove or downgrade an owner.'
           })
         })
       )

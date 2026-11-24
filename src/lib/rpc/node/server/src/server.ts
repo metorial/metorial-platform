@@ -6,13 +6,20 @@ import {
   SpanStatusCode,
   trace
 } from '@lowerdeck/telemetry';
-import { Handler } from './controller';
+import { Group, Handler } from './controller';
 import type { Controller, ServiceRequest } from './controller';
 
 let Sentry = getSentry();
 let tracer = trace.getTracer('lowerdeck.rpc-server.calls');
 
 let verbose = process.env.NODE_ENV !== 'production';
+
+export let rpcPingMethod = 'rpc:ping';
+
+// Every server answers rpc:ping after the mux authenticated the request, so a caller can check
+// reachability, routing and credentials without calling a real method. Controller middleware
+// does not run for it.
+let pingHandler = new Group().handler().do(async () => ({ ok: true as const }));
 
 let normalizeHandlerName = (name: string) => name.replace(/\./g, ':');
 
@@ -34,7 +41,7 @@ export let createServer =
     }) => void;
   }) =>
   (controller: Controller<any>) => {
-    let findHandler = (name: string): Handler<any, any, any> | null => {
+    let findControllerHandler = (name: string): Handler<any, any, any> | null => {
       let parts = normalizeHandlerName(name).split(':');
       let current = controller;
 
@@ -48,6 +55,10 @@ export let createServer =
       return null;
     };
 
+    let findHandler = (name: string) =>
+      findControllerHandler(name) ??
+      (normalizeHandlerName(name) == rpcPingMethod ? pingHandler : null);
+
     let getSupportedHandlerNames = (controller: Controller<any>): string[] =>
       Object.entries(controller).flatMap(([key, value]) => {
         if (value instanceof Handler) return [key];
@@ -56,7 +67,10 @@ export let createServer =
         return [];
       });
 
-    let handlerNames = getSupportedHandlerNames(controller);
+    let controllerHandlerNames = getSupportedHandlerNames(controller);
+    let handlerNames = controllerHandlerNames.includes(rpcPingMethod)
+      ? controllerHandlerNames
+      : [...controllerHandlerNames, rpcPingMethod];
 
     let run = async (
       req: ServiceRequest,

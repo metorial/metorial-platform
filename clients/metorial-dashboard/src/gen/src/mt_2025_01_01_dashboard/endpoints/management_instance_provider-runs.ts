@@ -57,7 +57,7 @@ export class MetorialManagementInstanceProviderRunsEndpoint {
     query?: DashboardInstanceProviderRunsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderRunsListOutput> {
-    let path = `instances/${instanceId}/provider-runs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-runs`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialManagementInstanceProviderRunsEndpoint {
     providerRunId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderRunsGetOutput> {
-    let path = `instances/${instanceId}/provider-runs/${providerRunId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-runs/${encodeURIComponent(providerRunId)}`;
 
     let request = {
       path,
@@ -118,7 +118,7 @@ export class MetorialManagementInstanceProviderRunsEndpoint {
     providerRunId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderRunsGetLogsOutput> {
-    let path = `instances/${instanceId}/provider-runs/${providerRunId}/logs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/provider-runs/${encodeURIComponent(providerRunId)}/logs`;
 
     let request = {
       path,

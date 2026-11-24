@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	ldrpc "github.com/metorial/metorial-platform/src/lib/rpc/go"
 )
 
 type Caller string
@@ -58,9 +60,9 @@ func MethodAllowed(caller Caller, method string) bool {
 	case CallerInsecure:
 		return true
 	case CallerFunctions:
-		return strings.HasPrefix(method, "bundle:") || strings.HasPrefix(method, "function:")
+		return method == ldrpc.PingMethod || strings.HasPrefix(method, "bundle:") || strings.HasPrefix(method, "function:")
 	case CallerBuild:
-		return strings.HasPrefix(method, "build:")
+		return method == ldrpc.PingMethod || strings.HasPrefix(method, "build:")
 	default:
 		return false
 	}

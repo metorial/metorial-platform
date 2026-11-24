@@ -4,6 +4,7 @@ import { ID } from '@metorial/db';
 import { createResourceAuthorization } from '@metorial/module-access';
 import { consumerGroupService, consumerSurfaceService } from '@metorial/module-consumer-core';
 import { skillService } from '@metorial/module-skill';
+import { skillTemplateService } from '@metorial/module-skill-templates';
 import { describe, expect, it } from 'vitest';
 import { consumerAccessListingService, consumerAccessService } from '../src';
 
@@ -180,6 +181,43 @@ describe('module-consumer-access', () => {
         consumerGroup: second.consumerGroup,
         auditScope: fixture.auditScope,
         access: { type: 'skill', skill: first.skill }
+      })
+    );
+    expect(error.data.code).toBe('not_found');
+  });
+
+  it('grants access to a system skill template and rejects a foreign one', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { consumerSurface, consumerGroup } = await setup(fixture);
+    let skillTemplate = await skillTemplateService.getDefaultSkillTemplate({
+      project: fixture.project,
+      instance: fixture.instance
+    });
+    expect(skillTemplate.instanceOid).toBeNull();
+
+    let access = await consumerAccessService.createConsumerAccess({
+      organization: fixture.organization,
+      consumerSurface,
+      consumerGroup,
+      auditScope: fixture.auditScope,
+      access: { type: 'skill_template', skillTemplate }
+    });
+    expect(access.type).toBe('skill_template');
+    expect(access.skillTemplate?.id).toBe(skillTemplate.id);
+
+    let persisted = await db.consumerAccess.findUnique({ where: { id: access.id } });
+    expect(persisted?.skillTemplateOid).toBe(skillTemplate.oid);
+
+    let error = await rejectionOf(
+      consumerAccessService.createConsumerAccess({
+        organization: fixture.organization,
+        consumerSurface,
+        consumerGroup,
+        auditScope: fixture.auditScope,
+        access: {
+          type: 'skill_template',
+          skillTemplate: { ...skillTemplate, instanceOid: consumerSurface.instanceOid + 1n }
+        }
       })
     );
     expect(error.data.code).toBe('not_found');

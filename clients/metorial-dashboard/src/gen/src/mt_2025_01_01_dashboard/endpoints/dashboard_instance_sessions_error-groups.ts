@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceSessionsErrorGroupsEndpoint {
     query?: DashboardInstanceSessionsErrorGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsListOutput> {
-    let path = `dashboard/instances/${instanceId}/session-error-groups`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-error-groups`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceSessionsErrorGroupsEndpoint {
     sessionErrorGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/session-error-groups/${sessionErrorGroupId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/session-error-groups/${encodeURIComponent(sessionErrorGroupId)}`;
 
     let request = {
       path,

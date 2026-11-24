@@ -36,6 +36,21 @@ export let slateController = app.controller({
     )
     .do(async ctx => slatePresenter(ctx.slate)),
 
+  getByRegistryId: app
+    .handler()
+    .input(
+      v.object({
+        registrySlateId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let slate = await slateService.getSlateByRegistryId({
+        registrySlateId: ctx.input.registrySlateId
+      });
+
+      return slatePresenter(slate);
+    }),
+
   getRegistryRecord: slateApp
     .handler()
     .input(

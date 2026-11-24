@@ -8,7 +8,8 @@ import { createCredentialsUpdateEventsQueue } from '../queues/instance/credentia
 import { secretService } from './secret';
 
 let include = {
-  slate: true
+  slate: true,
+  template: true
 };
 
 class slateOAuthCredentialsServiceImpl {

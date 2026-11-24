@@ -81,6 +81,23 @@ func TestRenderJobGolden(t *testing.T) {
 	golden(t, "job-gvisor.yaml", RenderJob(testOptions(), testRequest(), "gvisor"))
 }
 
+func TestRenderJobSeparatesSchedulingAndExecutionDeadlines(t *testing.T) {
+	req := testRequest()
+	req.SchedulingTimeoutSeconds = 900
+	job := RenderJob(testOptions(), req, "gvisor")
+	if got := *job.Spec.ActiveDeadlineSeconds; got != 2100 {
+		t.Fatalf("Job deadline = %d, want 2100", got)
+	}
+	if got := *job.Spec.BackoffLimit; got != 0 {
+		t.Fatalf("Job backoff limit = %d, want 0", got)
+	}
+
+	command := job.Spec.Template.Spec.Containers[0].Command
+	if command[0] != "/usr/bin/timeout" || command[2] != "1200s" || command[3] != "/bin/bash" {
+		t.Fatalf("unexpected build command: %v", command[:4])
+	}
+}
+
 func TestRenderJobWithoutProxyOrUserNamespaces(t *testing.T) {
 	opts := testOptions()
 	opts.EgressProxyAddr = ""

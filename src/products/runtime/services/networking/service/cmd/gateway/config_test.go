@@ -73,6 +73,7 @@ func TestLoadConfigRejectsInvalidSettings(t *testing.T) {
 		"secret and token file":   {"NETWORK_LOGS_RPC_SECRET": "s", "NETWORK_LOGS_TOKEN_FILE": "/t"},
 		"both front ends off":     {"EGRESS_GATEWAY_TUNNEL_ADDR": "off", "EGRESS_GATEWAY_PROXY_ADDR": "off"},
 		"discovery port too high": {"NETWORK_LOGS_DISCOVERY_PORT": "70000"},
+		"bad platform route":      {"EGRESS_PLATFORM_ROUTES": "slates-live=integration-controller"},
 	}
 
 	for name, overrides := range cases {

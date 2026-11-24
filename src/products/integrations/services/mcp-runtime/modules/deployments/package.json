@@ -16,6 +16,7 @@
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial/error-reporting": "workspace:*",
     "@lowerdeck/service": "workspace:2.0.0",
     "@mtsrc/mcp-runtime-data-utils": "workspace:*",
     "@mtsrc/mcp-runtime-db": "workspace:*",
@@ -26,6 +27,7 @@
     "@mtsrc/mcp-runtime-module-functions": "workspace:*",
     "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
     "@mtsrc/mcp-runtime-module-secrets": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
     "@mtsrc/mcp-runtime-oauth-utils": "workspace:*",
     "@mtsrc/mcp-runtime-remote-protocol": "workspace:*",
     "@toon-format/toon": "^4.4.0"

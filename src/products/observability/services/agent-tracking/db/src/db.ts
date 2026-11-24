@@ -1,56 +1,32 @@
 import type * as Spec from '@mtsrc/agent-tracking-spec';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { readReplicas } from '@prisma/extension-read-replicas';
-import { AsyncLocalStorage } from 'async_hooks';
+import { createDatabase } from '@lowerdeck/prisma-pg';
 import { PrismaClient } from '../prisma/generated/client';
 import type * as Knowledge from './json/knowledge';
 import type { RebuildFilter as LayersRebuildFilter } from '@mtsrc/agent-tracking-layers';
 import type { AttributionRuleMatch as RuleMatch } from '@mtsrc/agent-tracking-rule-match';
 
-let mainAdapter = new PrismaPg({
-  connectionString: process.env.AGENT_TRACKING_DATABASE_URL ?? process.env.DATABASE_URL
-});
-
-let replicaAdapter = process.env.DATABASE_URL_READER
-  ? new PrismaPg({
-      connectionString: process.env.DATABASE_URL_READER
+let database = createDatabase({
+  name: 'agent-tracking',
+  url: ['AGENT_TRACKING_DATABASE_URL', 'DATABASE_URL'],
+  createClient: adapter =>
+    new PrismaClient({
+      adapter,
+      transactionOptions: {
+        maxWait: 10000,
+        timeout: 12000
+      }
     })
-  : undefined;
-
-let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;
-
-let baseClient = new PrismaClient({
-  adapter: mainAdapter,
-  transactionOptions: {
-    maxWait: 10000,
-    timeout: 12000
-  }
 });
 
-if (replicaClient) {
-  baseClient = baseClient.$extends(
-    readReplicas({ replicas: [replicaClient] })
-  ) as any as PrismaClient;
-}
-
-export let db = baseClient;
+export let db = database.db;
 
 export type TransactionDB = Parameters<Parameters<typeof db.$transaction>[0]>[0];
 
-let transactionStorage = new AsyncLocalStorage<TransactionDB>();
-
-export let withTransaction = async <T>(
+export let withTransaction = <T>(
   cb: (tdb: TransactionDB) => Promise<T>,
   opts?: { ifExists?: boolean; timeoutMs?: number }
-): Promise<T> => {
-  let active = transactionStorage.getStore();
-  if (active || opts?.ifExists) return await cb(active ?? db);
-
-  return await db.$transaction(
-    async tdb => await transactionStorage.run(tdb, async () => await cb(tdb)),
-    opts?.timeoutMs ? { timeout: opts.timeoutMs } : undefined
-  );
-};
+): Promise<T> =>
+  database.withTransaction(cb, { ifExists: opts?.ifExists, timeout: opts?.timeoutMs });
 
 declare global {
   namespace PrismaJson {

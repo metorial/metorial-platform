@@ -57,7 +57,7 @@ export class MetorialManagementInstanceChatWorkspacesEndpoint {
     query?: DashboardInstanceChatWorkspacesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatWorkspacesListOutput> {
-    let path = `instances/${instanceId}/chat/workspaces`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/workspaces`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceChatWorkspacesEndpoint {
     query?: DashboardInstanceChatWorkspacesGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatWorkspacesGetOutput> {
-    let path = `instances/${instanceId}/chat/workspaces/${chatWorkspaceId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/workspaces/${encodeURIComponent(chatWorkspaceId)}`;
 
     let request = {
       path,

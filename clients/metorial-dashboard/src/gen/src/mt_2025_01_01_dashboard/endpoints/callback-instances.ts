@@ -83,7 +83,7 @@ export class MetorialCallbackInstancesEndpoint {
     callbackInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbackInstancesGetOutput> {
-    let path = `callback-instances/${callbackInstanceId}`;
+    let path = `callback-instances/${encodeURIComponent(callbackInstanceId)}`;
 
     let request = {
       path,

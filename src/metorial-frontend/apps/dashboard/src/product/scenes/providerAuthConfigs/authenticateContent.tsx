@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import {
   Button,
+  Callout,
   CenteredSpinner,
   Checkbox,
   Copy,
@@ -18,16 +19,21 @@ import {
   Spacer,
   Text
 } from '@metorial/ui';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getAuthMethodOAuthDoc, ProviderDocsLink } from '../../lib/providerDocs';
 import { getProviderOAuthAutoRegistrationEnabled } from '../../lib/providerOAuthAutoRegistration';
-import { useProviderSetupSessionRunner } from '../providerDeployments/setupSessionRunner';
+import {
+  type SetupSessionCredentialError,
+  useProviderSetupSessionRunner
+} from '../providerDeployments/setupSessionRunner';
 import {
   CREDENTIALS_SEARCH_THRESHOLD,
   getPreferredProviderAuthCredential,
   getProviderAuthCredentialsQuery,
   getRememberedProviderAuthCredentialId,
   NEW_CREDENTIALS_ID,
+  type ProviderAuthCredential,
   ProviderAuthCredentialPicker,
   rememberProviderAuthCredentialChoice
 } from './credentialPicker';
@@ -105,6 +111,8 @@ export let ProviderOAuthAuthenticateContent = (p: {
   providerDeploymentId?: string;
   method: AuthMethod;
   fixedAuthCredentialsId?: string;
+  fixedAuthCredentialsSettingsHref?: string;
+  credentialError?: SetupSessionCredentialError;
   defaultAuthConfigName?: string;
   source?: 'explorer';
   embedded?: boolean;
@@ -128,30 +136,57 @@ export let ProviderOAuthAuthenticateContent = (p: {
         })
       : null
   );
-  let initialCredentials = credentials.data?.items ?? [];
-  let hasCredentials = initialCredentials.length > 0;
+  let [rejectedCredentialIds, setRejectedCredentialIds] = useState<string[]>(() =>
+    p.credentialError?.credentialId ? [p.credentialError.credentialId] : []
+  );
+  let [hasCredentialError, setHasCredentialError] = useState(!!p.credentialError);
+  let [projectCredentialsBlocked, setProjectCredentialsBlocked] = useState(false);
+  let [createdCredential, setCreatedCredential] = useState<ProviderAuthCredential | null>(
+    null
+  );
+  let listedCredentials = credentials.data?.items ?? [];
+  let initialCredentials = (
+    createdCredential &&
+    !listedCredentials.some(credential => credential.id === createdCredential.id)
+      ? [createdCredential, ...listedCredentials]
+      : listedCredentials
+  ).filter(credential => !rejectedCredentialIds.includes(credential.id));
   let searchable =
     initialCredentials.length > CREDENTIALS_SEARCH_THRESHOLD ||
-    !!credentials.data?.pagination.hasMoreAfter;
+    !!credentials.data?.pagination.hasMoreAfter ||
+    !!credentials.data?.pagination.hasMoreBefore;
+  let hasMoreCredentials =
+    !!credentials.data?.pagination.hasMoreAfter ||
+    !!credentials.data?.pagination.hasMoreBefore;
+  let hasCredentials = initialCredentials.length > 0 || hasMoreCredentials;
+  let rememberedCredentialId = getRememberedProviderAuthCredentialId(initialCredentials);
 
-  let [authConfigName] = useState(() =>
-    getGeneratedAuthConfigName(p.defaultAuthConfigName, providerName)
+  let authConfigName = useMemo(
+    () => getGeneratedAuthConfigName(p.defaultAuthConfigName, providerName),
+    [p.defaultAuthConfigName, providerName]
   );
-  let [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
-  let [rememberChoice, setRememberChoice] = useState(false);
-  let hasInitializedSelectionRef = useRef(false);
+  let [credentialChoice, setCredentialChoice] = useState<string | null>(null);
+  let [rememberChoice, setRememberChoice] = useState<boolean | null>(null);
+  let selectedCredentialId =
+    credentialChoice ??
+    rememberedCredentialId ??
+    getPreferredProviderAuthCredential(initialCredentials)?.id ??
+    null;
 
   useEffect(() => {
-    if (hasInitializedSelectionRef.current || !credentials.data) return;
-    hasInitializedSelectionRef.current = true;
-    let remembered = getRememberedProviderAuthCredentialId(credentials.data.items);
-    setRememberChoice(!!remembered);
-    setSelectedCredentialId(
-      remembered ?? getPreferredProviderAuthCredential(credentials.data.items)?.id ?? null
-    );
-  }, [credentials.data]);
+    if (p.credentialError && needsCredentials) void credentials.refetch();
+  }, [p.credentialError, needsCredentials]);
 
-  let isCreatingCredentials = !hasCredentials || selectedCredentialId == NEW_CREDENTIALS_ID;
+  let showCredentialPicker =
+    hasMoreCredentials ||
+    initialCredentials.length > 1 ||
+    credentialChoice === NEW_CREDENTIALS_ID;
+  let isCreatingCredentials =
+    !projectCredentialsBlocked &&
+    (!hasCredentials || selectedCredentialId === NEW_CREDENTIALS_ID);
+  let requiresAdmin =
+    (hasCredentialError && !needsCredentials) ||
+    (projectCredentialsBlocked && !hasCredentials);
   let newCredentialsForm = useNewCredentialsForm(`${providerName} OAuth App`);
   let createCredentials = useCreateProviderAuthCredentials();
 
@@ -160,6 +195,20 @@ export let ProviderOAuthAuthenticateContent = (p: {
     providerId: p.providerId,
     providerDeploymentId: p.providerDeploymentId,
     source: p.source,
+    onCredentialError: ({ credentialId }) => {
+      setHasCredentialError(true);
+      if (!needsCredentials) return;
+
+      if (credentialId) {
+        setRejectedCredentialIds(ids => [...ids, credentialId]);
+        setCredentialChoice(null);
+        if (credentials.data) {
+          rememberProviderAuthCredentialChoice(credentials.data.items, null);
+        }
+      }
+      setRememberChoice(false);
+      void credentials.refetch();
+    },
     onComplete: setupSession => {
       if (!setupSession.authConfig) return;
       void instanceProviderAuthConfigsLoader.refetchAll();
@@ -175,7 +224,7 @@ export let ProviderOAuthAuthenticateContent = (p: {
   let isBusy = runner.isStarting || createCredentials.isLoading;
 
   let createNewCredentials = async () => {
-    let [result] = await createCredentials.mutate({
+    let [result, error] = await createCredentials.mutate({
       instanceId: p.instanceId,
       providerId: p.providerId,
       name: newCredentialsForm.values.name.trim() || `${providerName} OAuth App`,
@@ -187,14 +236,22 @@ export let ProviderOAuthAuthenticateContent = (p: {
       }
     });
 
-    if (!result) return null;
+    if (!result) {
+      if (error?.data.code === 'project_auth_credentials_not_allowed') {
+        setProjectCredentialsBlocked(true);
+        setCredentialChoice(null);
+        void credentials.refetch();
+      }
+      return null;
+    }
 
     newCredentialsForm.resetForm();
-    setSelectedCredentialId(result.id);
+    setCreatedCredential(result);
+    setCredentialChoice(result.id);
     return result.id;
   };
 
-  let handleContinue = (e?: FormEvent<HTMLFormElement>) => {
+  let handleContinue = async (e: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (
       typeof document != 'undefined' &&
@@ -203,7 +260,7 @@ export let ProviderOAuthAuthenticateContent = (p: {
     ) {
       return;
     }
-    if (isBusy) return;
+    if (isBusy || requiresAdmin || (needsCredentials && !credentials.data)) return;
 
     if (needsCredentials && isCreatingCredentials) {
       let { clientId, clientSecret } = newCredentialsForm.values;
@@ -212,7 +269,7 @@ export let ProviderOAuthAuthenticateContent = (p: {
         return;
       }
 
-      void runner.start({
+      await runner.start({
         providerAuthMethodId: p.method.id,
         name: authConfigName,
         resolveProviderAuthCredentialsId: createNewCredentials
@@ -224,18 +281,18 @@ export let ProviderOAuthAuthenticateContent = (p: {
       p.fixedAuthCredentialsId ?? selectedCredentialId ?? undefined;
     if (needsCredentials && !providerAuthCredentialsId) return;
 
-    if (needsCredentials) {
-      rememberProviderAuthCredentialChoice(
-        initialCredentials,
-        rememberChoice ? providerAuthCredentialsId! : null
-      );
-    }
-
-    void runner.start({
+    let result = await runner.start({
       providerAuthMethodId: p.method.id,
       providerAuthCredentialsId,
       name: authConfigName
     });
+
+    if (result && needsCredentials) {
+      rememberProviderAuthCredentialChoice(
+        initialCredentials,
+        (rememberChoice ?? !!rememberedCredentialId) ? providerAuthCredentialsId! : null
+      );
+    }
   };
 
   let title = p.embedded ? null : (
@@ -244,9 +301,11 @@ export let ProviderOAuthAuthenticateContent = (p: {
       <Dialog.Description>
         {isWindowOpen
           ? 'Finish signing in from the authentication window.'
-          : needsCredentials && !hasCredentials
-            ? `Connect your ${providerName} OAuth app to continue.`
-            : `A new window will open so you can sign in to ${providerName}.`}
+          : requiresAdmin
+            ? 'Update the OAuth app settings to continue.'
+            : isCreatingCredentials && needsCredentials
+              ? `Add an OAuth app for ${p.method.name} to sign in.`
+              : 'A new window will open for you to sign in.'}
       </Dialog.Description>
       <Spacer size={16} />
     </>
@@ -266,6 +325,24 @@ export let ProviderOAuthAuthenticateContent = (p: {
       {runner.error}
     </Text>
   ) : null;
+
+  if (needsCredentials && !credentials.data && credentials.error) {
+    return (
+      <>
+        {title}
+        <Callout color="orange">
+          Could not load OAuth apps for this authentication method.
+        </Callout>
+        <Spacer size={16} />
+        <Dialog.Actions>
+          <Button variant="outline" onClick={p.onCancel}>
+            {p.cancelLabel ?? 'Cancel'}
+          </Button>
+          <Button onClick={() => credentials.refetch()}>Try Again</Button>
+        </Dialog.Actions>
+      </>
+    );
+  }
 
   if (isWindowOpen) {
     return (
@@ -323,22 +400,50 @@ export let ProviderOAuthAuthenticateContent = (p: {
     <form onSubmit={handleContinue}>
       {title}
 
+      {requiresAdmin ? (
+        <Callout color="orange">
+          {p.fixedAuthCredentialsId
+            ? `This integration’s OAuth app is unavailable for ${p.method.name}. Update the app in the integration’s provider settings to continue.`
+            : projectCredentialsBlocked
+              ? `Ask your installation administrator to configure an OAuth app for ${p.method.name}.`
+              : `Automatic sign-in is unavailable for ${p.method.name}. Ask your administrator to check this provider’s OAuth settings.`}
+        </Callout>
+      ) : hasCredentialError || projectCredentialsBlocked ? (
+        <Callout color="orange">
+          {projectCredentialsBlocked
+            ? 'Your installation administrator manages OAuth apps. Use an available app to continue.'
+            : hasCredentials
+              ? 'The previous OAuth app is unavailable. Continue with an available app.'
+              : 'No OAuth app is available for this method. Add your own app to continue.'}
+        </Callout>
+      ) : null}
+
       {needsCredentials &&
-        (hasCredentials ? (
+        !requiresAdmin &&
+        (showCredentialPicker ? (
           <ProviderAuthCredentialPicker
             instanceId={p.instanceId}
             providerId={p.providerId}
             providerAuthMethodId={p.method.id}
             searchable={searchable}
             value={selectedCredentialId}
-            onChange={setSelectedCredentialId}
+            onChange={value => {
+              setCredentialChoice(value);
+              runner.setError(null);
+            }}
             disabled={isBusy}
+            allowNewCredentials={!projectCredentialsBlocked}
+            rejectedCredentialIds={rejectedCredentialIds}
           >
             {newCredentialsFields}
           </ProviderAuthCredentialPicker>
-        ) : (
+        ) : isCreatingCredentials ? (
           newCredentialsFields
-        ))}
+        ) : initialCredentials[0] ? (
+          <Text size="2" color="gray600">
+            OAuth app <strong>{initialCredentials[0].name ?? initialCredentials[0].id}</strong>
+          </Text>
+        ) : null)}
 
       {needsCredentials &&
         initialCredentials.length > 1 &&
@@ -347,14 +452,14 @@ export let ProviderOAuthAuthenticateContent = (p: {
           <div style={{ marginTop: 16 }}>
             <Checkbox
               label="Remember My Choice"
-              checked={rememberChoice}
+              checked={rememberChoice ?? !!rememberedCredentialId}
               onCheckedChange={setRememberChoice}
               disabled={isBusy}
             />
           </div>
         )}
 
-      <createCredentials.RenderError />
+      {!projectCredentialsBlocked && <createCredentials.RenderError />}
       {errorMessage}
 
       <Spacer size={20} />
@@ -363,13 +468,23 @@ export let ProviderOAuthAuthenticateContent = (p: {
         <Button type="button" variant="outline" disabled={isBusy} onClick={p.onCancel}>
           {p.cancelLabel ?? 'Cancel'}
         </Button>
-        <Button
-          type="submit"
-          loading={isBusy}
-          disabled={needsCredentials && !isCreatingCredentials && !selectedCredentialId}
-        >
-          Continue
-        </Button>
+        {requiresAdmin ? (
+          p.fixedAuthCredentialsSettingsHref && (
+            <Link to={p.fixedAuthCredentialsSettingsHref} onClick={p.onCancel}>
+              Open Integration
+            </Link>
+          )
+        ) : (
+          <Button
+            type="submit"
+            loading={isBusy}
+            disabled={needsCredentials && !isCreatingCredentials && !selectedCredentialId}
+          >
+            {needsCredentials && isCreatingCredentials
+              ? 'Add App and Authenticate'
+              : 'Authenticate'}
+          </Button>
+        )}
       </Dialog.Actions>
     </form>
   );

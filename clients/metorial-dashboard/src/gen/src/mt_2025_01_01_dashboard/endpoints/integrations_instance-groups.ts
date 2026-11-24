@@ -103,7 +103,7 @@ export class MetorialIntegrationsInstanceGroupsEndpoint {
     integrationInstanceGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsGetOutput> {
-    let path = `integration-instance-groups/${integrationInstanceGroupId}`;
+    let path = `integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}`;
 
     let request = {
       path,
@@ -132,7 +132,7 @@ export class MetorialIntegrationsInstanceGroupsEndpoint {
     body: DashboardInstanceIntegrationsInstanceGroupsCreateSessionTemplateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsCreateSessionTemplateOutput> {
-    let path = `integration-instance-groups/${integrationInstanceGroupId}/session-template`;
+    let path = `integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}/session-template`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialIntegrationsInstanceGroupsEndpoint {
     body: DashboardInstanceIntegrationsInstanceGroupsCreateSessionBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsCreateSessionOutput> {
-    let path = `integration-instance-groups/${integrationInstanceGroupId}/session`;
+    let path = `integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}/session`;
 
     let request = {
       path,
@@ -226,7 +226,7 @@ export class MetorialIntegrationsInstanceGroupsEndpoint {
     body: DashboardInstanceIntegrationsInstanceGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsUpdateOutput> {
-    let path = `integration-instance-groups/${integrationInstanceGroupId}`;
+    let path = `integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}`;
 
     let request = {
       path,
@@ -256,7 +256,7 @@ export class MetorialIntegrationsInstanceGroupsEndpoint {
     integrationInstanceGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstanceGroupsDeleteOutput> {
-    let path = `integration-instance-groups/${integrationInstanceGroupId}`;
+    let path = `integration-instance-groups/${encodeURIComponent(integrationInstanceGroupId)}`;
 
     let request = {
       path,

@@ -7,6 +7,8 @@ export let packageName = '@mtsrc/agent-tracking-service';
 
 export let acceptedStatus = 200;
 
+export let usagePollOptions = { timeoutMs: 120_000, intervalMs: 1_000 };
+
 export let apiUrl = () => e2eEndpoint(packageName, 'api');
 export let ingestUrl = () => e2eEndpoint(packageName, 'ingest');
 

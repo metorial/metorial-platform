@@ -50,6 +50,9 @@ export let beginRequest = (ctx: RequestContext) => {
 };
 
 // In exclusive mode a callback that lost its async context still belongs to the one request
-// in flight; in shared mode it has no request and fails closed.
+// in flight, even if a previous request scheduled it (PROTOCOL.md, "Request context"); in
+// shared mode it has no request and fails closed.
 export let currentContext = (): RequestContext | undefined =>
   storage.getStore() ?? (concurrency == 'exclusive' ? inflight : undefined);
+
+export let scopedContext = (): RequestContext | undefined => storage.getStore();

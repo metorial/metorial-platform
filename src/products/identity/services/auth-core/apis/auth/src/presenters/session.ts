@@ -1,5 +1,5 @@
 import { base62 } from '@lowerdeck/base62';
-import type { IPInfo } from '@lowerdeck/ip-info';
+import type { IPInfo } from '@metorial/ip-info';
 import { UAParser } from 'ua-parser-js';
 import type { AuthDevice, AuthDeviceUserSession } from '@mtsrc/auth-core-db';
 

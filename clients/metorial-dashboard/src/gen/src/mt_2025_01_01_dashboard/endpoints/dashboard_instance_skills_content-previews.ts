@@ -53,7 +53,7 @@ export class MetorialDashboardInstanceSkillsContentPreviewsEndpoint {
     query?: DashboardInstanceSkillsContentPreviewsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsContentPreviewsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-content-previews`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-content-previews`;
 
     let request = {
       path,

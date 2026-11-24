@@ -53,7 +53,7 @@ export class MetorialDashboardInstanceCallbackTriggerSelectionOptionsEndpoint {
     query?: DashboardInstanceCallbackTriggerSelectionOptionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbackTriggerSelectionOptionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/callback-trigger-selection-options`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callback-trigger-selection-options`;
 
     let request = {
       path,

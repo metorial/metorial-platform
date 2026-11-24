@@ -83,7 +83,7 @@ export class MetorialSessionsErrorGroupsEndpoint {
     sessionErrorGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsErrorGroupsGetOutput> {
-    let path = `session-error-groups/${sessionErrorGroupId}`;
+    let path = `session-error-groups/${encodeURIComponent(sessionErrorGroupId)}`;
 
     let request = {
       path,

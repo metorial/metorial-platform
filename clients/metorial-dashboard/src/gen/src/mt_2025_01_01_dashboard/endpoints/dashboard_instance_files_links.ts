@@ -61,7 +61,7 @@ export class MetorialDashboardInstanceFilesLinksEndpoint {
     query?: DashboardInstanceFilesLinksListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesLinksListOutput> {
-    let path = `dashboard/instances/${instanceId}/file-links`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/file-links`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceFilesLinksEndpoint {
     linkId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesLinksGetOutput> {
-    let path = `dashboard/instances/${instanceId}/file-links/${linkId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/file-links/${encodeURIComponent(linkId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceFilesLinksEndpoint {
     body: DashboardInstanceFilesLinksCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesLinksCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/file-links`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/file-links`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialDashboardInstanceFilesLinksEndpoint {
     linkId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceFilesLinksDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/file-links/${linkId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/file-links/${encodeURIComponent(linkId)}`;
 
     let request = {
       path,

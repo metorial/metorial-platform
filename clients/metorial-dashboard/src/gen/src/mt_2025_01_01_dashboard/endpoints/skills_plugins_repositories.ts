@@ -61,7 +61,7 @@ export class MetorialSkillsPluginsRepositoriesEndpoint {
     query?: DashboardInstanceSkillsPluginsRepositoriesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesListOutput> {
-    let path = `skill-plugins/${skillPluginId}/repositories`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/repositories`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialSkillsPluginsRepositoriesEndpoint {
     skillPluginRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesGetOutput> {
-    let path = `skill-plugins/${skillPluginId}/repositories/${skillPluginRepositoryId}`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/repositories/${encodeURIComponent(skillPluginRepositoryId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialSkillsPluginsRepositoriesEndpoint {
     body: DashboardInstanceSkillsPluginsRepositoriesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesCreateOutput> {
-    let path = `skill-plugins/${skillPluginId}/repositories`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/repositories`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialSkillsPluginsRepositoriesEndpoint {
     skillPluginRepositoryId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsPluginsRepositoriesDeleteOutput> {
-    let path = `skill-plugins/${skillPluginId}/repositories/${skillPluginRepositoryId}`;
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/repositories/${encodeURIComponent(skillPluginRepositoryId)}`;
 
     let request = {
       path,

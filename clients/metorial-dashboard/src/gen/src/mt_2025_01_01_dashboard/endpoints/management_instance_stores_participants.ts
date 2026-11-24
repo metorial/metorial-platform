@@ -57,7 +57,7 @@ export class MetorialManagementInstanceStoresParticipantsEndpoint {
     query?: DashboardInstanceStoresParticipantsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresParticipantsListOutput> {
-    let path = `instances/${instanceId}/stores/${storeId}/participants`;
+    let path = `instances/${encodeURIComponent(instanceId)}/stores/${encodeURIComponent(storeId)}/participants`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceStoresParticipantsEndpoint {
     storeParticipantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresParticipantsGetOutput> {
-    let path = `instances/${instanceId}/stores/${storeId}/participants/${storeParticipantId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/stores/${encodeURIComponent(storeId)}/participants/${encodeURIComponent(storeParticipantId)}`;
 
     let request = {
       path,

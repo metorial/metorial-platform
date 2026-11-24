@@ -55,7 +55,7 @@ export class MetorialSandboxImagesVersionsEndpoint {
     query?: DashboardInstanceSandboxImagesVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesVersionsListOutput> {
-    let path = `sandbox/images/${imageId}/versions`;
+    let path = `sandbox/images/${encodeURIComponent(imageId)}/versions`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialSandboxImagesVersionsEndpoint {
     versionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesVersionsGetOutput> {
-    let path = `sandbox/images/${imageId}/versions/${versionId}`;
+    let path = `sandbox/images/${encodeURIComponent(imageId)}/versions/${encodeURIComponent(versionId)}`;
 
     let request = {
       path,

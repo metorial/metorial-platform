@@ -11,6 +11,8 @@ import {
 
 let importModule = () => import('./fetchSsrf');
 
+let egress = { tenantId: 'tenant' };
+
 let setNodeDnsMock = (addresses: Record<string, string[]> | string[]) => {
   vi.doMock('node:dns/promises', () => ({
     lookup: vi.fn().mockImplementation((hostname: string) => {
@@ -45,7 +47,7 @@ describe('safeFetch', () => {
 
     it('bypasses all checks and calls fetch directly', async () => {
       let { safeFetch } = await importModule();
-      await safeFetch('http://10.0.0.1/api');
+      await safeFetch('http://10.0.0.1/api', { egress });
 
       expect(f.mock).toHaveBeenCalledOnce();
       expect(f.mock).toHaveBeenCalledWith('http://10.0.0.1/api', {});
@@ -54,7 +56,7 @@ describe('safeFetch', () => {
     it('passes options through unchanged', async () => {
       let { safeFetch } = await importModule();
       let headers = { Authorization: 'Bearer token' };
-      await safeFetch('http://192.168.1.1/api', { method: 'POST', headers });
+      await safeFetch('http://192.168.1.1/api', { method: 'POST', headers, egress });
 
       expect(f.mock).toHaveBeenCalledWith('http://192.168.1.1/api', {
         method: 'POST',
@@ -64,7 +66,7 @@ describe('safeFetch', () => {
 
     it('does not set redirect to manual', async () => {
       let { safeFetch } = await importModule();
-      await safeFetch('http://example.com');
+      await safeFetch('http://example.com', { egress });
 
       expect(f.mock.mock.calls[0]?.[1]).not.toHaveProperty('redirect');
     });
@@ -78,14 +80,14 @@ describe('safeFetch', () => {
 
     it('allows requests to private IPs', async () => {
       let { safeFetch } = await importModule();
-      await safeFetch('http://example.com');
+      await safeFetch('http://example.com', { egress });
 
       expect(f.mock).toHaveBeenCalledOnce();
     });
 
     it('still uses redirect: manual and connects to the resolved address', async () => {
       let { safeFetch } = await importModule();
-      await safeFetch('http://example.com');
+      await safeFetch('http://example.com', { egress });
 
       expect(f.mock).toHaveBeenCalledWith(
         'http://10.0.0.1/',
@@ -105,7 +107,7 @@ describe('safeFetch', () => {
 
       it('sets redirect to manual and connects to the validated address', async () => {
         let { safeFetch } = await importModule();
-        await safeFetch('http://example.com');
+        await safeFetch('http://example.com', { egress });
 
         expect(f.mock).toHaveBeenCalledWith(
           'http://93.184.216.34/',
@@ -124,7 +126,7 @@ describe('safeFetch', () => {
 
         it('allows requests when the resolved address and port match the policy', async () => {
           let { safeFetch } = await importModule();
-          await safeFetch('http://example.com', { egressPolicy });
+          await safeFetch('http://example.com', { egress: { ...egress, egressPolicy } });
 
           expect(f.mock).toHaveBeenCalledWith(
             'http://93.184.216.34/',
@@ -134,9 +136,12 @@ describe('safeFetch', () => {
 
         it('does not pass internal options through to fetch', async () => {
           let { safeFetch } = await importModule();
-          await safeFetch('http://example.com', { egressPolicy, maxRedirects: 3 });
+          await safeFetch('http://example.com', {
+            egress: { ...egress, egressPolicy },
+            maxRedirects: 3
+          });
 
-          expect(f.mock.mock.calls[0]?.[1]).not.toHaveProperty('egressPolicy');
+          expect(f.mock.mock.calls[0]?.[1]).not.toHaveProperty('egress');
           expect(f.mock.mock.calls[0]?.[1]).not.toHaveProperty('maxRedirects');
         });
       });
@@ -147,7 +152,7 @@ describe('safeFetch', () => {
 
       it('blocks requests that resolve to private IPs', async () => {
         let { safeFetch } = await importModule();
-        await expect(safeFetch('http://example.com')).rejects.toThrow(
+        await expect(safeFetch('http://example.com', { egress })).rejects.toThrow(
           'Private or internal IP blocked'
         );
         expect(f.mock).not.toHaveBeenCalled();
@@ -163,9 +168,12 @@ describe('safeFetch', () => {
         let { safeFetch } = await importModule();
         await expect(
           safeFetch('http://example.com', {
-            egressPolicy: {
-              direction: 'egress',
-              entries: [{ cidr: '192.0.2.0/24' }]
+            egress: {
+              ...egress,
+              egressPolicy: {
+                direction: 'egress',
+                entries: [{ cidr: '192.0.2.0/24' }]
+              }
             }
           })
         ).rejects.toMatchObject({
@@ -197,9 +205,12 @@ describe('safeFetch', () => {
         let { safeFetch } = await importModule();
         await expect(
           safeFetch('http://example.com', {
-            egressPolicy: {
-              direction: 'egress',
-              entries: [{ cidr: '93.184.216.0/24', portRange: { from: 80, to: 80 } }]
+            egress: {
+              ...egress,
+              egressPolicy: {
+                direction: 'egress',
+                entries: [{ cidr: '93.184.216.0/24', portRange: { from: 80, to: 80 } }]
+              }
             }
           })
         ).rejects.toMatchObject({
@@ -216,12 +227,14 @@ describe('safeFetch', () => {
 
     it('rejects non-http protocols', async () => {
       let { safeFetch } = await importModule();
-      await expect(safeFetch('ftp://example.com')).rejects.toThrow('Unsupported protocol');
+      await expect(safeFetch('ftp://example.com', { egress })).rejects.toThrow(
+        'Unsupported protocol'
+      );
     });
 
     it('rejects URLs with credentials', async () => {
       let { safeFetch } = await importModule();
-      await expect(safeFetch('http://user:pass@example.com')).rejects.toThrow(
+      await expect(safeFetch('http://user:pass@example.com', { egress })).rejects.toThrow(
         'Credentials in URL are not allowed'
       );
     });

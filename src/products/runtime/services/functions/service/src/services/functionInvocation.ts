@@ -5,6 +5,7 @@ import type { FunctionVersion, Runtime } from '../../prisma/generated/client';
 import { db } from '../db';
 import { ID } from '../id';
 import { ensureRehomed } from '../lib/ensureRehomed';
+import { grantablePlatformRoutes } from '../lib/platformRoutes';
 import {
   presentInvokeResponse,
   type FunctionInvokeResponse
@@ -35,6 +36,19 @@ let getFunctionData = createLocallyCachedFunction({
           : undefined
       }
     }),
+  shouldCache: (func, i) => !!func && (!i.versionId || !!func.functionVersions?.length),
+  // Deploys and enclave overrides move the current version from any pod, and this cache is
+  // per process, so every hit re-reads the pointer instead of waiting out the TTL.
+  revalidate: async func => {
+    if (!func) return false;
+
+    let current = await db.function.findUnique({
+      where: { oid: func.oid },
+      select: { currentVersionOid: true }
+    });
+
+    return !!current && current.currentVersionOid === func.currentVersionOid;
+  },
   ttlSeconds: 60
 });
 
@@ -46,6 +60,7 @@ class functionInvocationServiceImpl {
     versionId?: string;
     payload: Record<string, any>;
     egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+    platformRoutes?: string[];
     enclave?: {
       identifier: string;
     };
@@ -105,7 +120,8 @@ class functionInvocationServiceImpl {
         : undefined,
       providerData: targetVersion.providerData,
       payload: d.payload,
-      egressPolicy: d.egressPolicy
+      egressPolicy: d.egressPolicy,
+      platformRoutes: grantablePlatformRoutes(d.platformRoutes)
     });
 
     return presentInvokeResponse({

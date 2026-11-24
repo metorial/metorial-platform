@@ -95,7 +95,7 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
     providerAuthCredentialsId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsGetOutput> {
-    let path = `provider-auth-credentials/${providerAuthCredentialsId}`;
+    let path = `provider-auth-credentials/${encodeURIComponent(providerAuthCredentialsId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
     body: DashboardInstanceProviderDeploymentsAuthCredentialsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsUpdateOutput> {
-    let path = `provider-auth-credentials/${providerAuthCredentialsId}`;
+    let path = `provider-auth-credentials/${encodeURIComponent(providerAuthCredentialsId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialProviderDeploymentsAuthCredentialsEndpoint {
     providerAuthCredentialsId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthCredentialsDeleteOutput> {
-    let path = `provider-auth-credentials/${providerAuthCredentialsId}`;
+    let path = `provider-auth-credentials/${encodeURIComponent(providerAuthCredentialsId)}`;
 
     let request = {
       path,

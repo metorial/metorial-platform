@@ -55,7 +55,7 @@ export class MetorialConsumerDevicesClientsEndpoint {
     body: ConsumerDevicesClientsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerDevicesClientsUpdateOutput> {
-    let path = `consumer/devices/${consumerDeviceId}/clients/${clientKey}`;
+    let path = `consumer/devices/${encodeURIComponent(consumerDeviceId)}/clients/${encodeURIComponent(clientKey)}`;
 
     let request = {
       path,

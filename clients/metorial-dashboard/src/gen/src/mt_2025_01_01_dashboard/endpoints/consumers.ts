@@ -99,7 +99,7 @@ export class MetorialConsumersEndpoint {
     consumerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersGetOutput> {
-    let path = `consumers/${consumerId}`;
+    let path = `consumers/${encodeURIComponent(consumerId)}`;
 
     let request = {
       path,
@@ -214,7 +214,7 @@ export class MetorialConsumersEndpoint {
     body: DashboardInstanceConsumersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConsumersUpdateOutput> {
-    let path = `consumers/${consumerId}`;
+    let path = `consumers/${encodeURIComponent(consumerId)}`;
 
     let request = {
       path,

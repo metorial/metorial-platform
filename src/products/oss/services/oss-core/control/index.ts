@@ -87,6 +87,7 @@ export default project({
       '@mtsrc/search-service',
       '@mtsrc/email-service',
       '@mtsrc/agent-tracking-service',
+      '@mtsrc/ai-gateway-service',
       '@metorial-subspace/app-worker'
     ],
     healthTimeout: 300,

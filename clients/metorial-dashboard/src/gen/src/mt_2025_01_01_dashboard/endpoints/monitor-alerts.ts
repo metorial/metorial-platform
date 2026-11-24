@@ -89,7 +89,7 @@ export class MetorialMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsGetOutput> {
-    let path = `monitor-alerts/${monitorAlertId}`;
+    let path = `monitor-alerts/${encodeURIComponent(monitorAlertId)}`;
 
     let request = {
       path,
@@ -116,7 +116,7 @@ export class MetorialMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsViewedOutput> {
-    let path = `monitor-alerts/${monitorAlertId}/viewed`;
+    let path = `monitor-alerts/${encodeURIComponent(monitorAlertId)}/viewed`;
 
     let request = {
       path,
@@ -143,7 +143,7 @@ export class MetorialMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsResolveOutput> {
-    let path = `monitor-alerts/${monitorAlertId}/resolve`;
+    let path = `monitor-alerts/${encodeURIComponent(monitorAlertId)}/resolve`;
 
     let request = {
       path,
@@ -170,7 +170,7 @@ export class MetorialMonitorAlertsEndpoint {
     monitorAlertId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMonitorAlertsUnresolveOutput> {
-    let path = `monitor-alerts/${monitorAlertId}/unresolve`;
+    let path = `monitor-alerts/${encodeURIComponent(monitorAlertId)}/unresolve`;
 
     let request = {
       path,

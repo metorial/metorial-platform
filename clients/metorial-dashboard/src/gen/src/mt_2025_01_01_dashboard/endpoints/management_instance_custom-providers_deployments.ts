@@ -57,7 +57,7 @@ export class MetorialManagementInstanceCustomProvidersDeploymentsEndpoint {
     query?: DashboardInstanceCustomProvidersDeploymentsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsListOutput> {
-    let path = `instances/${instanceId}/custom-provider-deployments`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-deployments`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceCustomProvidersDeploymentsEndpoint {
     customProviderDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsGetOutput> {
-    let path = `instances/${instanceId}/custom-provider-deployments/${customProviderDeploymentId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-deployments/${encodeURIComponent(customProviderDeploymentId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialManagementInstanceCustomProvidersDeploymentsEndpoint {
     customProviderDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsGetLogsOutput> {
-    let path = `instances/${instanceId}/custom-provider-deployments/${customProviderDeploymentId}/logs`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-deployments/${encodeURIComponent(customProviderDeploymentId)}/logs`;
 
     let request = {
       path,

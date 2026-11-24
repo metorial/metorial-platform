@@ -116,7 +116,7 @@ export class MetorialProtoGuardConfigEndpoint {
     body: DashboardInstanceProtoGuardConfigUpdateFilterBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProtoGuardConfigUpdateFilterOutput> {
-    let path = `protoguard-config/filters/${filterId}`;
+    let path = `protoguard-config/filters/${encodeURIComponent(filterId)}`;
 
     let request = {
       path,

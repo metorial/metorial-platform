@@ -14,6 +14,8 @@ export let sdkBuilder = MetorialSDKBuilder.create<
     apiKey?: `${MetorialKeyPrefix}${string}` | string;
     headers?: Record<string, string>;
     apiHost?: string;
+    supportsPresignedFileUploads?: boolean;
+    supportsMultipartFileUploads?: boolean;
   }
 >('metorial-management-api', '2025-01-01-dashboard')
   .setGetApiHost(resolveApiHost)

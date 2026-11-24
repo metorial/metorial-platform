@@ -51,7 +51,7 @@ export class MetorialManagementInstanceProvidersSecurityReviewUsageEndpoint {
     providerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersSecurityReviewUsageReassessOutput> {
-    let path = `instances/${instanceId}/providers/${providerId}/security-review/usage/reassess`;
+    let path = `instances/${encodeURIComponent(instanceId)}/providers/${encodeURIComponent(providerId)}/security-review/usage/reassess`;
 
     let request = {
       path,

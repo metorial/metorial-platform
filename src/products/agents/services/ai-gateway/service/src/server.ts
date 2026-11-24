@@ -4,7 +4,9 @@ import { createRequire } from 'module';
 
 async function main() {
   await import('./init');
+  await import('./upstream');
   await import('./instrument');
+  await import('./listeners');
   await import('./endpoints');
   await import('./worker');
 }

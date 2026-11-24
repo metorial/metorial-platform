@@ -129,7 +129,7 @@ class scmRepoServiceImpl {
 
       // Only show group namespaces where the token can normally create projects.
       let groups = await withScmProviderError('gitlab', 'list groups', () =>
-        gitlab.Groups.all({ minAccessLevel: 30, perPage: 100 })
+        gitlab.Groups.all<false, 'offset'>({ minAccessLevel: 30, perPage: 100 })
       );
       let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
         gitlab.Users.showCurrentUser()
@@ -269,7 +269,11 @@ class scmRepoServiceImpl {
         i.externalAccountId == i.installation.externalAccountId
       ) {
         projects = await withScmProviderError('gitlab', 'list user projects', () =>
-          gitlab.Users.allProjects(user.id, { perPage: limit, idAfter, maxPages: 1 })
+          gitlab.Users.allProjects<false, 'offset'>(user.id, {
+            perPage: limit,
+            maxPages: 1,
+            ...(idAfter !== undefined && { idAfter })
+          })
         );
         nextProviderCursor =
           projects.length === limit ? String(projects.at(-1)?.id) : undefined;

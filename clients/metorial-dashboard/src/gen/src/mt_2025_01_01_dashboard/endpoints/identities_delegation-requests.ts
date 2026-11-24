@@ -101,7 +101,7 @@ export class MetorialIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsGetOutput> {
-    let path = `identity-delegation-requests/${identityDelegationRequestId}`;
+    let path = `identity-delegation-requests/${encodeURIComponent(identityDelegationRequestId)}`;
 
     let request = {
       path,
@@ -165,7 +165,7 @@ export class MetorialIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsApproveQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsApproveOutput> {
-    let path = `identity-delegation-requests/${identityDelegationRequestId}/approve`;
+    let path = `identity-delegation-requests/${encodeURIComponent(identityDelegationRequestId)}/approve`;
 
     let request = {
       path,
@@ -199,7 +199,7 @@ export class MetorialIdentitiesDelegationRequestsEndpoint {
     query?: DashboardInstanceIdentitiesDelegationRequestsDenyQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDelegationRequestsDenyOutput> {
-    let path = `identity-delegation-requests/${identityDelegationRequestId}/deny`;
+    let path = `identity-delegation-requests/${encodeURIComponent(identityDelegationRequestId)}/deny`;
 
     let request = {
       path,

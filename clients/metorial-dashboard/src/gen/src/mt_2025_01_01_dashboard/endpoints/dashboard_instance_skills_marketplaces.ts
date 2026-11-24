@@ -69,7 +69,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesEndpoint {
     query?: DashboardInstanceSkillsMarketplacesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces`;
 
     let request = {
       path,
@@ -101,7 +101,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesEndpoint {
     skillMarketplaceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}`;
 
     let request = {
       path,
@@ -130,7 +130,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesEndpoint {
     body: DashboardInstanceSkillsMarketplacesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces`;
 
     let request = {
       path,
@@ -162,7 +162,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesEndpoint {
     body: DashboardInstanceSkillsMarketplacesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}`;
 
     let request = {
       path,
@@ -192,7 +192,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesEndpoint {
     skillMarketplaceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesArchiveOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}`;
 
     let request = {
       path,
@@ -223,7 +223,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesEndpoint {
     body: DashboardInstanceSkillsMarketplacesSyncBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesSyncOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/sync`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/sync`;
 
     let request = {
       path,

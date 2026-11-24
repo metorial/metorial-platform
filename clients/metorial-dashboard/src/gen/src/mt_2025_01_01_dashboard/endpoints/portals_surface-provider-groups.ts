@@ -71,7 +71,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     query?: DashboardInstancePortalsSurfaceProviderGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsListOutput> {
-    let path = `portals/${portalId}/surface-provider-groups`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups`;
 
     let request = {
       path,
@@ -105,7 +105,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     consumerSurfaceProviderGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsGetOutput> {
-    let path = `portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}`;
 
     let request = {
       path,
@@ -134,7 +134,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     body: DashboardInstancePortalsSurfaceProviderGroupsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsCreateOutput> {
-    let path = `portals/${portalId}/surface-provider-groups`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups`;
 
     let request = {
       path,
@@ -168,7 +168,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     body: DashboardInstancePortalsSurfaceProviderGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsUpdateOutput> {
-    let path = `portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}`;
 
     let request = {
       path,
@@ -200,7 +200,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     consumerSurfaceProviderGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsDeleteOutput> {
-    let path = `portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}`;
 
     let request = {
       path,
@@ -231,7 +231,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     body: DashboardInstancePortalsSurfaceProviderGroupsAddListingBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsAddListingOutput> {
-    let path = `portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}/listings`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}/listings`;
 
     let request = {
       path,
@@ -265,7 +265,7 @@ export class MetorialPortalsSurfaceProviderGroupsEndpoint {
     consumerAccessListingId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancePortalsSurfaceProviderGroupsRemoveListingOutput> {
-    let path = `portals/${portalId}/surface-provider-groups/${consumerSurfaceProviderGroupId}/listings/${consumerAccessListingId}`;
+    let path = `portals/${encodeURIComponent(portalId)}/surface-provider-groups/${encodeURIComponent(consumerSurfaceProviderGroupId)}/listings/${encodeURIComponent(consumerAccessListingId)}`;
 
     let request = {
       path,

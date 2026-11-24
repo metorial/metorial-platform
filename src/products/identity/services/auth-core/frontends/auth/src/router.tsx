@@ -6,7 +6,6 @@ import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { RouterErrorPage } from './pages/_error/routerError';
 import { AuthIntent } from './pages/authIntent';
 import { EmailVerified } from './pages/emailVerified';
-import { Internal } from './pages/internal';
 import { Login } from './pages/login';
 import { Logout } from './pages/logout';
 import { Signup } from './pages/signup';
@@ -64,10 +63,6 @@ let router = createBrowserRouter([
       {
         path: 'logout',
         element: <Logout />
-      },
-      {
-        path: 'internal',
-        element: <Internal />
       }
     ]
   }

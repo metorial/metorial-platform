@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   providerAuthCredentialsCreate: vi.fn(),
   providerAuthCredentialsFindMany: vi.fn(),
+  providerAuthMethodFindMany: vi.fn(),
   providerAuthCredentialsUpdate: vi.fn(),
   providerAuthCredentialsUpdateMany: vi.fn(),
   addAfterTransactionHook: vi.fn(),
@@ -46,7 +47,8 @@ vi.mock('@metorial-subspace/db', () => {
     },
     managedProviderAuthCredentials: { findFirstOrThrow: vi.fn(), findFirst: vi.fn() },
     managedProviderAuthCredentialsBacking: { findFirstOrThrow: vi.fn(), findFirst: vi.fn() },
-    integrationProvider: { findFirst: vi.fn() }
+    integrationProvider: { findFirst: vi.fn() },
+    providerAuthMethod: { findMany: mocks.providerAuthMethodFindMany }
   };
 
   return {
@@ -238,6 +240,9 @@ describe('listProviderAuthCredentialsInternal auth method filtering', () => {
       oidIn: { oid: { in: [70n] } }
     });
     mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+    mocks.providerAuthMethodFindMany.mockResolvedValue([
+      { providerOid: 50n, key: 'github_enterprise' }
+    ]);
   });
 
   it('matches managed credentials through their global family, including legacy rows', async () => {
@@ -270,45 +275,158 @@ describe('listProviderAuthCredentialsInternal auth method filtering', () => {
   });
 });
 
-describe('listProviderAuthCredentialsInternal auth method filtering', () => {
+describe('installation OAuth apps', () => {
+  let tenant = { oid: 10n, id: 'ten_1' } as any;
+  let environment = { oid: 30n } as any;
+  let provider = { oid: 50n } as any;
+  let authMethod = { providerOid: 50n, key: 'github', globalOid: 71n };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.resolveProviders.mockResolvedValue(undefined);
+    mocks.resolveProviders.mockResolvedValue({ in: { in: [50n] } });
     mocks.resolveAuthMethodsGlobal.mockResolvedValue({
-      oids: [70n],
-      in: { in: [70n] },
-      oidIn: { oid: { in: [70n] } }
+      oids: [71n],
+      in: { in: [71n] },
+      oidIn: { oid: { in: [71n] } }
     });
+    mocks.providerAuthMethodFindMany.mockResolvedValue([authMethod]);
     mocks.providerAuthCredentialsFindMany.mockResolvedValue([]);
+    vi.mocked(db.providerAuthCredentials.findFirst).mockResolvedValue(null);
   });
 
-  it('matches managed credentials through their global family, including legacy rows', async () => {
+  it('applies installation method compatibility to the database page query', async () => {
     let paginator = await providerAuthCredentialsService.listProviderAuthCredentialsInternal({
-      tenant: { oid: 10n, id: 'ten_1' } as any,
-      environment: { oid: 30n } as any,
-      providerAuthMethodIds: ['pam_1']
+      tenant,
+      environment,
+      providerIds: ['pro_1'],
+      providerAuthMethodIds: ['pam_github'],
+      origin: ['installation_template']
+    });
+
+    await paginator.run({ limit: 1 });
+
+    expect(mocks.providerAuthMethodFindMany).toHaveBeenCalledWith({
+      where: {
+        globalOid: { in: [71n] },
+        type: 'oauth',
+        OR: [{ id: { in: ['pam_github'] } }, { global: { id: { in: ['pam_github'] } } }]
+      }
+    });
+    let [query] = mocks.providerAuthCredentialsFindMany.mock.lastCall!;
+    expect(query.where.AND.at(-1).OR).toEqual([
+      {
+        tenantOid: 10n,
+        solutionOid: 7,
+        origin: 'installation_template',
+        OR: [
+          { fixedAuthMethodKey: null, providerOid: { in: [50n] } },
+          { providerOid: 50n, fixedAuthMethodKey: 'github' }
+        ]
+      }
+    ]);
+  });
+
+  it('matches no installation apps when the requested method cannot be resolved', async () => {
+    mocks.resolveAuthMethodsGlobal.mockResolvedValue({
+      oids: [],
+      in: { in: [] },
+      oidIn: { oid: { in: [] } }
+    });
+    mocks.providerAuthMethodFindMany.mockResolvedValue([]);
+    let paginator = await providerAuthCredentialsService.listProviderAuthCredentialsInternal({
+      tenant,
+      environment,
+      providerAuthMethodIds: ['pam_missing'],
+      origin: ['installation_template']
     });
 
     await paginator.run({});
 
-    let where = mocks.providerAuthCredentialsFindMany.mock.calls[0]![0].where;
-    let managedBackingFilter = where.AND.at(-1).OR[1];
-
-    expect(managedBackingFilter.managedCredentialsBacking.is.managedCredentials.OR).toEqual([
-      {
-        providerAuthMethodGlobalOid: {
-          in: [70n]
-        }
-      },
-      {
-        providerAuthMethodGlobalOid: null,
-        initialProviderAuthMethod: {
-          globalOid: {
-            in: [70n]
-          }
-        }
-      }
+    let [query] = mocks.providerAuthCredentialsFindMany.mock.lastCall!;
+    expect(query.where.AND.at(-1).OR[0].OR).toEqual([
+      { fixedAuthMethodKey: null, providerOid: { in: [] } }
     ]);
+  });
+
+  it('filters before picking the oldest compatible default', async () => {
+    let credentials = { id: 'matching_template' } as any;
+    vi.mocked(db.providerAuthCredentials.findFirst)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(credentials);
+
+    await expect(
+      providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal({
+        tenant,
+        environment,
+        provider,
+        authMethod
+      })
+    ).resolves.toBe(credentials);
+
+    expect(db.providerAuthCredentials.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
+        where: expect.objectContaining({
+          origin: 'installation_template',
+          status: 'active',
+          OR: [
+            { fixedAuthMethodKey: null, providerOid: { in: [50n] } },
+            { providerOid: 50n, fixedAuthMethodKey: 'github' }
+          ]
+        })
+      })
+    );
+  });
+
+  it('uses a sole compatible app when neither project nor installation has a default', async () => {
+    let soleApp = { id: 'the_only_app' } as any;
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([soleApp]);
+
+    await expect(
+      providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal({
+        tenant,
+        environment,
+        provider,
+        authMethod
+      })
+    ).resolves.toBe(soleApp);
+
+    expect(mocks.providerAuthCredentialsFindMany).toHaveBeenCalledWith({
+      take: 2,
+      where: expect.objectContaining({
+        providerOid: 50n,
+        status: 'active',
+        OR: expect.arrayContaining([
+          expect.objectContaining({
+            origin: 'managed_backing',
+            managedCredentialsBacking: {
+              is: {
+                managedCredentials: expect.objectContaining({
+                  OR: expect.arrayContaining([{ providerAuthMethodGlobalOid: { in: [71n] } }])
+                })
+              }
+            }
+          })
+        ])
+      })
+    });
+  });
+
+  it('requires an app choice when multiple eligible apps have no default', async () => {
+    mocks.providerAuthCredentialsFindMany.mockResolvedValue([
+      { id: 'app_a' },
+      { id: 'app_b' }
+    ]);
+
+    await expect(
+      providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal({
+        tenant,
+        environment,
+        provider,
+        authMethod
+      })
+    ).resolves.toBeNull();
   });
 });
 

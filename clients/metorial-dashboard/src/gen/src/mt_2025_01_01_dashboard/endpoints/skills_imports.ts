@@ -87,7 +87,7 @@ export class MetorialSkillsImportsEndpoint {
     skillImportId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsImportsGetOutput> {
-    let path = `skill-imports/${skillImportId}`;
+    let path = `skill-imports/${encodeURIComponent(skillImportId)}`;
 
     let request = {
       path,

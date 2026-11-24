@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceCallbacksEndpoint {
     query?: DashboardInstanceCallbacksListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksListOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callbacks`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardInstanceCallbacksEndpoint {
     body: DashboardInstanceCallbacksCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callbacks`;
 
     let request = {
       path,
@@ -127,7 +127,7 @@ export class MetorialDashboardInstanceCallbacksEndpoint {
     callbackId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksGetOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardInstanceCallbacksEndpoint {
     body: DashboardInstanceCallbacksUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,
@@ -186,7 +186,7 @@ export class MetorialDashboardInstanceCallbacksEndpoint {
     callbackId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCallbacksDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/callbacks/${encodeURIComponent(callbackId)}`;
 
     let request = {
       path,

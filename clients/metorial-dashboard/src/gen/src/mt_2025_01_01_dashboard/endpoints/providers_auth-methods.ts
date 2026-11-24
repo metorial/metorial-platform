@@ -83,7 +83,7 @@ export class MetorialProvidersAuthMethodsEndpoint {
     providerAuthMethodId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProvidersAuthMethodsGetOutput> {
-    let path = `provider-auth-methods/${providerAuthMethodId}`;
+    let path = `provider-auth-methods/${encodeURIComponent(providerAuthMethodId)}`;
 
     let request = {
       path,

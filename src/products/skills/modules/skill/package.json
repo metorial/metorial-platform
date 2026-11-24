@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "NODE_OPTIONS=--max_old_space_size=8192 tsc --noEmit",
     "_test": "vitest run --passWithNoTests",
     "test:e2e": "metorial-e2e"
   },

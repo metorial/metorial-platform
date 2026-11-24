@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceIntegrationEnclavesEndpoint {
     query?: DashboardInstanceIntegrationEnclavesGetLastUsedQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationEnclavesGetLastUsedOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-enclaves/last-used`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-enclaves/last-used`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceIntegrationEnclavesEndpoint {
     query?: DashboardInstanceIntegrationEnclavesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationEnclavesListOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-enclaves`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-enclaves`;
 
     let request = {
       path,
@@ -125,7 +125,7 @@ export class MetorialDashboardInstanceIntegrationEnclavesEndpoint {
     integrationEnclaveId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationEnclavesGetOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-enclaves/${integrationEnclaveId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-enclaves/${encodeURIComponent(integrationEnclaveId)}`;
 
     let request = {
       path,

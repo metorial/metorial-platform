@@ -55,7 +55,7 @@ export class MetorialDashboardOrganizationsProjectsBrandingEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsBrandingGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/branding`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/branding`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardOrganizationsProjectsBrandingEndpoint {
     body: DashboardOrganizationsProjectsBrandingUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsBrandingUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/branding`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/branding`;
 
     let request = {
       path,

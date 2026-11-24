@@ -64,6 +64,7 @@ export let ID = createIdGenerator({
   slateInvocation: idType.sorted('shiv'),
 
   slateOAuthCredentials: idType.sorted('shoc'),
+  slateOAuthCredentialsTemplate: idType.sorted('shoct'),
   slateToolCall: idType.sorted('shtc'),
   slatePublicToolCall: idType.sorted('shptc'),
   slateSession: idType.sorted('shses'),
@@ -78,7 +79,9 @@ export let ID = createIdGenerator({
   slateAttachmentUpload: idType.sorted('shau'),
   slateAttachmentBlob: idType.sorted('shab'),
 
-  slateError: idType.sorted('sher')
+  slateError: idType.sorted('sher'),
+
+  egressGrant: idType.sorted('sheg')
 });
 
 let workerIdBits = 12;

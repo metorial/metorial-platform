@@ -345,7 +345,7 @@ class StoreParticipantServiceImpl {
         d.createdAt && d.createdAt < current ? d.createdAt : undefined;
       let consumerOid = await this.resolveConsumerOid(actor);
 
-      await this.lockStoreParticipants(d.store.oid);
+      await this.lockStoreParticipants({ store: d.store });
 
       let participant = await this.ensureParticipant({
         storeOid: d.store.oid,
@@ -624,7 +624,7 @@ class StoreParticipantServiceImpl {
     role: StoreAccessRole | null;
   }) {
     return await withTransaction(async db => {
-      await this.lockStoreParticipants(d.store.oid);
+      await this.lockStoreParticipants({ store: d.store });
 
       let row = await db.storeParticipantActor.findUnique({
         where: {
@@ -680,12 +680,11 @@ class StoreParticipantServiceImpl {
     });
   }
 
-  // Creating and merging participants and their roles are read-modify-write sequences, and a
-  // unique violation would abort the whole transaction, so concurrent writers of one store queue up.
-  private async lockStoreParticipants(storeOid: bigint) {
+  // Acquire inside the transaction that reads and changes roles so writers of one store queue up.
+  async lockStoreParticipants(d: { store: { oid: bigint } }) {
     await withTransaction(async db => {
       await db.$executeRaw`
-        SELECT pg_advisory_xact_lock(hashtext(${`store-participants:${storeOid}`}))
+        SELECT pg_advisory_xact_lock(hashtext(${`store-participants:${d.store.oid}`}))
       `;
     });
   }

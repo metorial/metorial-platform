@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceProviderCollectionsEndpoint {
     query?: DashboardInstanceProviderCollectionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderCollectionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-collections`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-collections`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceProviderCollectionsEndpoint {
     providerCollectionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderCollectionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/provider-collections/${providerCollectionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/provider-collections/${encodeURIComponent(providerCollectionId)}`;
 
     let request = {
       path,
