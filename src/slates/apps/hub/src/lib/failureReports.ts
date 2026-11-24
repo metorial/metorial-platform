@@ -44,7 +44,11 @@ let deploymentBuildLog = async (deployment: SlateDeployment) => {
   let tenantId = (await functionBayTenant).id;
   let [functionDeployment, steps] = await Promise.all([
     functionBay.functionDeployment
-      .get({ tenantId, functionId: info.functionId, functionDeploymentId: info.functionDeploymentId })
+      .get({
+        tenantId,
+        functionId: info.functionId,
+        functionDeploymentId: info.functionDeploymentId
+      })
       .catch(() => null),
     functionBay.functionDeployment
       .getOutput({

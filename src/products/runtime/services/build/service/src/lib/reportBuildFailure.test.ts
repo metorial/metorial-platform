@@ -30,12 +30,30 @@ let run = {
   endedAt: at(34),
   kubernetesQueuedAt: at(1),
   kubernetesAdmittedAt: at(3),
-  workflow: { identifier: 'fncbay_builder_nodejs', name: 'Node.js builder', tenant: { identifier: 'function-bay' } },
+  workflow: {
+    identifier: 'fncbay_builder_nodejs',
+    name: 'Node.js builder',
+    tenant: { identifier: 'function-bay' }
+  },
   version: { identifier: 'v3' },
   provider: { identifier: 'kubernetes' },
   steps: [
-    { oid: 10n, name: 'Prepare', type: 'setup', status: 'succeeded', index: 0, startedAt: at(4) },
-    { oid: 11n, name: 'Install', type: 'script', status: 'failed', index: 1, startedAt: at(6) },
+    {
+      oid: 10n,
+      name: 'Prepare',
+      type: 'setup',
+      status: 'succeeded',
+      index: 0,
+      startedAt: at(4)
+    },
+    {
+      oid: 11n,
+      name: 'Install',
+      type: 'script',
+      status: 'failed',
+      index: 1,
+      startedAt: at(6)
+    },
     { oid: 12n, name: 'Upload', type: 'script', status: 'canceled', index: 2, startedAt: null }
   ]
 };
@@ -45,7 +63,9 @@ describe('reportBuildFailure', () => {
     vi.clearAllMocks();
     mocks.findRun.mockResolvedValue(run);
     mocks.findOutput.mockResolvedValue([
-      { output: `${JSON.stringify([1, 'npm install'])}\n${JSON.stringify([2, 'ENOSPC: no space left on device'])}\n` }
+      {
+        output: `${JSON.stringify([1, 'npm install'])}\n${JSON.stringify([2, 'ENOSPC: no space left on device'])}\n`
+      }
     ]);
   });
 
@@ -63,7 +83,11 @@ describe('reportBuildFailure', () => {
       level: 'error',
       fingerprint: ['build-failed', 'build_infrastructure_error', 'kubernetes'],
       message: 'Build failed: Pod was evicted (run frun_1)',
-      tags: { error_code: 'build_infrastructure_error', provider: 'kubernetes', step: 'Install' },
+      tags: {
+        error_code: 'build_infrastructure_error',
+        provider: 'kubernetes',
+        step: 'Install'
+      },
       details: expect.objectContaining({
         build_run_id: 'frun_1',
         workflow: 'fncbay_builder_nodejs',

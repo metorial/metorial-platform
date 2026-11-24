@@ -7,9 +7,7 @@ let Sentry = getSentry();
 let MAX_LOGS = 50;
 
 export type SlateInvocationServerErrorReason =
-  | 'function_bay_error'
-  | 'jsonrpc_server_error'
-  | 'invocation_exception';
+  'function_bay_error' | 'jsonrpc_server_error' | 'invocation_exception';
 
 let numericJsonRpcServerErrorCodes = new Set([-32700, -32600, -32603]);
 let stringJsonRpcServerErrorCodes = new Set(['internal_error', 'internal_server_error']);
