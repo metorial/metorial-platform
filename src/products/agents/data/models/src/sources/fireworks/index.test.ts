@@ -26,8 +26,16 @@ describe('fireworks pricing', () => {
       ['standard', 0.3],
       ['priority', 0.375]
     ]);
+    // The Spot row reuses the base model id but is a distinct best-effort
+    // serving mode, so it must not collide with the standard-rate price.
+    expect(
+      result.data.filter(price => price.model === 'accounts/fireworks/models/glm-5p3')
+    ).toHaveLength(2);
     expect(result.issues).toContain(
-      'fireworks DeepSeek V4.1 Flash 1017 Flex: separate regional/speed/flex variant'
+      'fireworks DeepSeek V4.1 Flash 1017 Flex: separate regional/speed/flex/spot variant'
+    );
+    expect(result.issues).toContain(
+      'fireworks GLM 5.3 Spot: separate regional/speed/flex/spot variant'
     );
   });
 
@@ -37,23 +45,26 @@ describe('fireworks pricing', () => {
 
   it('skips same-id mode variants instead of emitting conflicting duplicates', async () => {
     let result = parseFireworks(await fixture());
-    // Fast, Ultra-fast, Flex, and (US) reuse the base model id; only the base
-    // row's Standard and Priority rates may become prices for that id.
+    // Fast, Ultra-fast, Flex, Spot, and (US) reuse the base model id; only
+    // the base row's Standard and Priority rates may become prices for it.
     expect(result.data.map(price => [price.model, price.serving ?? 'standard'])).toEqual([
       ['accounts/fireworks/models/test-chat', 'standard'],
       ['accounts/fireworks/models/test-chat', 'priority']
     ]);
     expect(result.issues).toContain(
-      'fireworks Test Chat Flex: separate regional/speed/flex variant'
+      'fireworks Test Chat Flex: separate regional/speed/flex/spot variant'
     );
     expect(result.issues).toContain(
-      'fireworks Test Chat Fast: separate regional/speed/flex variant'
+      'fireworks Test Chat Fast: separate regional/speed/flex/spot variant'
     );
     expect(result.issues).toContain(
-      'fireworks Test Chat Ultra-fast (Preview): separate regional/speed/flex variant'
+      'fireworks Test Chat Ultra-fast (Preview): separate regional/speed/flex/spot variant'
     );
     expect(result.issues).toContain(
-      'fireworks Test Chat (US): separate regional/speed/flex variant'
+      'fireworks Test Chat (US): separate regional/speed/flex/spot variant'
+    );
+    expect(result.issues).toContain(
+      'fireworks Test Chat Spot: separate regional/speed/flex/spot variant'
     );
   });
 });
