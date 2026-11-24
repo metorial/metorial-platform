@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bun run server:start",
     "check-types": "tsc --noEmit -p tsconfig.server.json",
-    "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --transpile-only",
+    "server:build": "bun run check-types && metorial-editions build ./src/server.ts --edition cloud --outfile ./dist/index.js && metorial-editions build ../packages/data-utils/src/jsonata/_worker.ts --edition cloud --outfile ./dist/_worker.ts",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-shuttle ./dist && sentry-cli sourcemaps upload --org metorial --project mte-shuttle ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
@@ -27,7 +27,6 @@
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.45.0",
     "vitest": "5.0.4"
   },
   "peerDependencies": {
@@ -35,11 +34,15 @@
   },
   "dependencies": {
     "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/doctor": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/rpc-server": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/telemetry": "workspace:2.0.0",
+    "@metorial-platform-systems/runtime-trust-publisher": "workspace:*",
+    "@metorial/doctor": "workspace:*",
     "@metorial/editions": "workspace:*",
+    "@metorial/service-init": "workspace:*",
     "@mtsrc/mcp-runtime-api-connection": "workspace:*",
     "@mtsrc/mcp-runtime-api-internal": "workspace:*",
     "@mtsrc/mcp-runtime-api-public": "workspace:*",
@@ -52,7 +55,10 @@
     "@mtsrc/mcp-runtime-module-oauth": "workspace:*",
     "@mtsrc/mcp-runtime-module-retention": "workspace:*",
     "@mtsrc/mcp-runtime-module-servers": "workspace:*",
-    "@sentry/bun": "^11.11.0",
+    "@mtsrc/mcp-runtime-module-tenants": "workspace:*",
+    "@mtsrc/mcp-runtime-network": "workspace:*",
+    "@mtsrc/mcp-runtime-storage": "workspace:*",
+    "@sentry/bun": "^11.12.0",
     "@sentry/cli": "^3.8.2"
   }
 }

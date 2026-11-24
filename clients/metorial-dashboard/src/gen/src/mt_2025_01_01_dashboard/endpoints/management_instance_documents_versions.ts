@@ -57,7 +57,7 @@ export class MetorialManagementInstanceDocumentsVersionsEndpoint {
     query?: DashboardInstanceDocumentsVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsVersionsListOutput> {
-    let path = `instances/${instanceId}/documents/${documentId}/versions`;
+    let path = `instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}/versions`;
 
     let request = {
       path,
@@ -91,7 +91,7 @@ export class MetorialManagementInstanceDocumentsVersionsEndpoint {
     documentVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceDocumentsVersionsGetOutput> {
-    let path = `instances/${instanceId}/documents/${documentId}/versions/${documentVersionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(documentVersionId)}`;
 
     let request = {
       path,

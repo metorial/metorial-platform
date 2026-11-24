@@ -24,6 +24,17 @@ export let publicUrls = {
     })
   }),
 
+  connectUrl: setting(v.optional(v.string()), {
+    env: 'CONNECT_URL',
+    audience: 'derived',
+    description:
+      'Public URL of the unversioned surface (/connect, /oauth, /.well-known), defaults to the installation URL on-prem and to the API URL elsewhere',
+    default: perEdition<LazyDefault>({
+      cloud: undefined,
+      'on-prem': () => installationSettings().publicUrl
+    })
+  }),
+
   filesUrl: setting(v.string(), {
     env: 'FILES_URL',
     audience: 'derived',

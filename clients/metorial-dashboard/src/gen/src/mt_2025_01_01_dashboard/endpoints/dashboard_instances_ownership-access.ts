@@ -49,7 +49,7 @@ export class MetorialDashboardInstancesOwnershipAccessEndpoint {
     instanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancesOwnershipAccessGetOutput> {
-    let path = `dashboard/instances/${instanceId}/ownership-access`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/ownership-access`;
 
     let request = {
       path,

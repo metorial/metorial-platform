@@ -57,7 +57,7 @@ export class MetorialManagementInstanceChatInstancesProviderEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesProviderGetOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}/provider`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}/provider`;
 
     let request = {
       path,
@@ -88,7 +88,7 @@ export class MetorialManagementInstanceChatInstancesProviderEndpoint {
     body: DashboardInstanceChatInstancesProviderSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesProviderSetOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}/provider`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}/provider`;
 
     let request = {
       path,
@@ -118,7 +118,7 @@ export class MetorialManagementInstanceChatInstancesProviderEndpoint {
     chatInstanceId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatInstancesProviderAuthenticatedUserOutput> {
-    let path = `instances/${instanceId}/chat/instances/${chatInstanceId}/provider/authenticated-user`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chat/instances/${encodeURIComponent(chatInstanceId)}/provider/authenticated-user`;
 
     let request = {
       path,

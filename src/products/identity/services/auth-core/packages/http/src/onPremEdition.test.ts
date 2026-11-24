@@ -69,7 +69,17 @@ describe('ares editions', () => {
     );
     let csp = response.headers.get('content-security-policy')!;
 
-    expect(csp).toContain("img-src 'self' data: https://provider-logos.metorial-cdn.com https://metorial.example.com");
-    expect(csp).toContain('https://avatars.example.net');
+    let imageSources = csp.split('; ').find(directive => directive.startsWith('img-src '));
+
+    expect(imageSources?.split(' ')).toEqual(
+      expect.arrayContaining([
+        "'self'",
+        'data:',
+        'https://provider-logos.metorial-cdn.com',
+        'https://favicons.metorial-cdn.com',
+        'https://metorial.example.com',
+        'https://avatars.example.net'
+      ])
+    );
   });
 });

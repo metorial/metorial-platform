@@ -59,7 +59,7 @@ export class MetorialDashboardInstanceIntegrationsInstancesProvidersEndpoint {
     query?: DashboardInstanceIntegrationsInstancesProvidersListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesProvidersListOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-instance-providers`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-instance-providers`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceIntegrationsInstancesProvidersEndpoint {
     integrationInstanceProviderId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesProvidersGetOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-instance-providers/${integrationInstanceProviderId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-instance-providers/${encodeURIComponent(integrationInstanceProviderId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardInstanceIntegrationsInstancesProvidersEndpoint {
     body: DashboardInstanceIntegrationsInstancesProvidersSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIntegrationsInstancesProvidersSetOutput> {
-    let path = `dashboard/instances/${instanceId}/integration-instances/${integrationInstanceId}/providers/${providerId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/integration-instances/${encodeURIComponent(integrationInstanceId)}/providers/${encodeURIComponent(providerId)}`;
 
     let request = {
       path,

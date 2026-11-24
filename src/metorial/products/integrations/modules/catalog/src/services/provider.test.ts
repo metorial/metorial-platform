@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let mocks = vi.hoisted(() => ({ findFirst: vi.fn(), findMany: vi.fn() }));
+let mocks = vi.hoisted(() => ({
+  findFirst: vi.fn(),
+  findMany: vi.fn(),
+  findProviderEnvironment: vi.fn(),
+  resolveMetorialFacing: vi.fn()
+}));
 
 vi.mock('@lowerdeck/service', () => ({
   Service: { create: (_name: string, factory: any) => ({ build: factory }) }
@@ -13,7 +18,10 @@ vi.mock('@lowerdeck/pagination', () => ({
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
-  db: { provider: { findFirst: mocks.findFirst, findMany: mocks.findMany } },
+  db: {
+    provider: { findFirst: mocks.findFirst, findMany: mocks.findMany },
+    providerEnvironment: { findUnique: mocks.findProviderEnvironment }
+  },
   ProviderAuthMethodType: { token: 'token', custom: 'custom' }
 }));
 
@@ -33,7 +41,7 @@ vi.mock('@metorial-subspace/module-search', () => ({
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   getMetorialSolution: async () => ({ oid: 1 }),
-  resolveMetorialFacing: vi.fn()
+  resolveMetorialFacing: mocks.resolveMetorialFacing
 }));
 
 vi.mock('./providerVariantInclude', () => ({ providerVariantInclude: {} }));
@@ -54,6 +62,49 @@ let exclusion = {
     defaultVariant: { is: { backend: { is: { type: 'shuttle' } } } }
   }
 };
+
+describe('provider version for an instance', () => {
+  let provider = {
+    oid: 40n,
+    id: 'provider',
+    hasEnvironments: true,
+    defaultVariant: { currentVersion: { id: 'catalog_version' } }
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.resolveMetorialFacing.mockResolvedValue({ tenant, environment: { oid: 30n } });
+    mocks.findFirst.mockResolvedValue(provider);
+    mocks.findProviderEnvironment.mockResolvedValue({
+      currentVersion: { id: 'environment_version' }
+    });
+  });
+
+  it('returns the version used by auth setup for the instance environment', async () => {
+    let result = await providerService.getProviderById({
+      instance: {} as any,
+      providerId: provider.id
+    });
+
+    expect(result.defaultVariant?.currentVersion?.id).toBe('environment_version');
+    expect(mocks.findProviderEnvironment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { environmentOid_providerOid: { environmentOid: 30n, providerOid: 40n } }
+      })
+    );
+  });
+
+  it('uses the catalog version for catalog-only requests', async () => {
+    let result = await providerService.getProviderById({
+      instance: {} as any,
+      providerId: provider.id,
+      publicCatalogOnly: true
+    });
+
+    expect(result.defaultVariant?.currentVersion?.id).toBe('catalog_version');
+    expect(mocks.findProviderEnvironment).not.toHaveBeenCalled();
+  });
+});
 
 describe('Public remote provider visibility', () => {
   beforeEach(() => {

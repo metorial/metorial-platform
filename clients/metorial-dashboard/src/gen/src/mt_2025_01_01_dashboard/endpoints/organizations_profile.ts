@@ -53,7 +53,7 @@ export class MetorialOrganizationsProfileEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<OrganizationsProfileGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/profile`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/profile`;
 
     let request = {
       path,
@@ -80,7 +80,7 @@ export class MetorialOrganizationsProfileEndpoint {
     body: OrganizationsProfileUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<OrganizationsProfileUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/profile`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/profile`;
 
     let request = {
       path,

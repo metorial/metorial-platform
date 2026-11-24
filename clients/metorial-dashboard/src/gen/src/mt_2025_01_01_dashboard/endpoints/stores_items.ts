@@ -59,7 +59,7 @@ export class MetorialStoresItemsEndpoint {
     body: DashboardInstanceStoresItemsModifyBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresItemsModifyOutput> {
-    let path = `stores/${storeId}/items`;
+    let path = `stores/${encodeURIComponent(storeId)}/items`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialStoresItemsEndpoint {
     query?: DashboardInstanceStoresItemsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresItemsListOutput> {
-    let path = `stores/${storeId}/items`;
+    let path = `stores/${encodeURIComponent(storeId)}/items`;
 
     let request = {
       path,
@@ -121,7 +121,7 @@ export class MetorialStoresItemsEndpoint {
     itemId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceStoresItemsGetOutput> {
-    let path = `stores/${storeId}/items/${itemId}`;
+    let path = `stores/${encodeURIComponent(storeId)}/items/${encodeURIComponent(itemId)}`;
 
     let request = {
       path,

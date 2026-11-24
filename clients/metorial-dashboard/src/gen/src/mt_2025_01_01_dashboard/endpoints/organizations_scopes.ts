@@ -49,7 +49,7 @@ export class MetorialOrganizationsScopesEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<OrganizationsScopesGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/scopes`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/scopes`;
 
     let request = {
       path,

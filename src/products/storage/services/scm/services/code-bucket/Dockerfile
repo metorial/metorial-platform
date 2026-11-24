@@ -32,23 +32,26 @@ RUN cd extensions/memfs && \
 RUN bun x tsc && bun x vite build
 
 # Stage 2: Build Go service
-FROM golang:1.25-alpine AS go-builder
+FROM golang:1.26-alpine AS go-builder
 
-WORKDIR /app
+WORKDIR /src
 
 RUN apk add --no-cache git ca-certificates
 
-COPY src/products/storage/services/scm/services/code-bucket/go.mod src/products/storage/services/scm/services/code-bucket/go.sum ./
+COPY src/lib/doctor/go/ src/lib/doctor/go/
+COPY src/products/storage/services/scm/services/code-bucket/go.mod src/products/storage/services/scm/services/code-bucket/go.sum src/products/storage/services/scm/services/code-bucket/
+
+WORKDIR /src/src/products/storage/services/scm/services/code-bucket
 RUN go mod download
 
 COPY src/products/storage/services/scm/services/code-bucket/ ./
 
 COPY --from=workspace-builder /workspace/dist ./pkg/workspace/dist
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o code-bucket ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/code-bucket ./cmd/server
 
 # Stage 3: Final minimal image
-FROM alpine:3.22
+FROM alpine:3.24
 
 RUN apk --no-cache add ca-certificates tzdata \
  && addgroup -S -g 10001 metorial \

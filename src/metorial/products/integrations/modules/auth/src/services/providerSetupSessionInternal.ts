@@ -27,10 +27,7 @@ import {
   assertAuthMethodAllowedForTenant,
   checkProviderMatch
 } from '@metorial-subspace/module-provider-internal';
-import {
-  getMetorialSolution,
-  getSubspaceSystemProviderEventBase
-} from '@metorial-subspace/module-tenant';
+import { getSubspaceSystemProviderEventBase } from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { Fabric } from '@metorial/fabric';
 import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
@@ -38,6 +35,7 @@ import { sessionTypeSkipsConfig } from '../lib/setupSessionType';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
+import { providerAuthCredentialsService } from './providerAuthCredentials';
 import { providerOAuthSetupService } from './providerOAuthSetup';
 
 class providerSetupSessionInternalServiceImpl {
@@ -75,7 +73,6 @@ class providerSetupSessionInternalServiceImpl {
       ua: string | undefined;
     };
   }) {
-    let solution = await getMetorialSolution();
     return withTransaction(
       async db => {
         if (!d.provider.defaultVariant) {
@@ -157,16 +154,15 @@ class providerSetupSessionInternalServiceImpl {
             d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !==
               'supported'
           ) {
-            let defaultCredentials = await db.providerAuthCredentials.findFirst({
-              where: {
-                providerOid: d.provider.oid,
-                tenantOid: d.tenant.oid,
-                solutionOid: solution.oid,
-                environmentOid: d.environment.oid,
-                isDefault: true,
-                status: 'active'
-              }
-            });
+            let defaultCredentials =
+              await providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal(
+                {
+                  tenant: d.tenant,
+                  environment: d.environment,
+                  provider: d.provider,
+                  authMethod
+                }
+              );
 
             if (!defaultCredentials) {
               if (d.input.type === 'auto' && concreteType === 'auth_and_config') {
@@ -311,18 +307,6 @@ class providerSetupSessionInternalServiceImpl {
     checkProviderMatch(d.provider, d.authMethod);
 
     if (d.authMethod.type === 'oauth') {
-      if (
-        !d.credentials &&
-        d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !== 'supported'
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'No provider auth credentials provided for oauth method',
-            code: 'missing_auth_credentials'
-          })
-        );
-      }
-
       let setup = await providerOAuthSetupService.createProviderOAuthSetupInternal({
         tenant: d.tenant,
         environment: d.environment,

@@ -165,15 +165,16 @@ const (
 )
 
 type BuildStartInput struct {
-	RunID          string                         `json:"runId"`
-	Image          BuildStartInputImage           `json:"image"`
-	Script         string                         `json:"script"`
-	Env            map[string]string              `json:"env" ldrpc:"nonnil"`
-	Downloads      []BuildStartInputDownloadsItem `json:"downloads" ldrpc:"nonnil"`
-	Uploads        []BuildStartInputUploadsItem   `json:"uploads" ldrpc:"nonnil"`
-	TimeoutSeconds int64                          `json:"timeoutSeconds"`
-	Sandbox        *Sandbox                       `json:"sandbox,omitempty"`
-	EgressGrant    string                         `json:"egressGrant"`
+	RunID                    string                         `json:"runId"`
+	Image                    BuildStartInputImage           `json:"image"`
+	Script                   string                         `json:"script"`
+	Env                      map[string]string              `json:"env" ldrpc:"nonnil"`
+	Downloads                []BuildStartInputDownloadsItem `json:"downloads" ldrpc:"nonnil"`
+	Uploads                  []BuildStartInputUploadsItem   `json:"uploads" ldrpc:"nonnil"`
+	TimeoutSeconds           int64                          `json:"timeoutSeconds"`
+	SchedulingTimeoutSeconds *int64                         `json:"schedulingTimeoutSeconds,omitempty"`
+	Sandbox                  *Sandbox                       `json:"sandbox,omitempty"`
+	EgressGrant              string                         `json:"egressGrant"`
 }
 
 type BuildStartInputImage string
@@ -200,6 +201,9 @@ type Build struct {
 	Status        BuildStatus `json:"status"`
 	ExitCode      *int64      `json:"exitCode"`
 	FailureReason *string     `json:"failureReason"`
+	PendingReason *string     `json:"pendingReason"`
+	PendingCode   *string     `json:"pendingCode,omitempty"`
+	FailureCode   *string     `json:"failureCode,omitempty"`
 	UploadedSteps []string    `json:"uploadedSteps" ldrpc:"nonnil"`
 	StartedAt     *time.Time  `json:"startedAt"`
 	FinishedAt    *time.Time  `json:"finishedAt"`
@@ -246,6 +250,8 @@ const (
 	CodeFunctionNotMaterialized = "function_not_materialized"
 	CodeFunctionUnavailable     = "function_unavailable"
 	CodeInvocationUnauthorized  = "invocation_unauthorized"
+	CodeBuildQuotaExceeded      = "build_quota_exceeded"
+	CodeBuildAdmissionRejected  = "build_admission_rejected"
 	CodeBuildNotFound           = "build_not_found"
 )
 
@@ -288,6 +294,16 @@ func ErrInvocationUnauthorized(reason string) *ldrpc.Error {
 	return ldrpc.NewError(401, CodeInvocationUnauthorized, "The invocation token or egress grant was rejected.").WithReason(reason)
 }
 
+// Build namespace quota is exhausted.
+func ErrBuildQuotaExceeded(reason string) *ldrpc.Error {
+	return ldrpc.NewError(503, CodeBuildQuotaExceeded, "Build namespace quota is exhausted.").WithReason(reason)
+}
+
+// Kubernetes rejected the build.
+func ErrBuildAdmissionRejected(reason string) *ldrpc.Error {
+	return ldrpc.NewError(422, CodeBuildAdmissionRejected, "Kubernetes rejected the build.").WithReason(reason)
+}
+
 // No build exists for this run.
 func ErrBuildNotFound() *ldrpc.Error {
 	return ldrpc.NewError(404, CodeBuildNotFound, "No build exists for this run.")
@@ -307,7 +323,7 @@ var schemas = ldrpc.MustParseSchemas(`{
   "FunctionDeleteInput": {"kind":"object","fields":[{"name":"versionId","type":{"kind":"string","minLength":1}}]},
   "FunctionListInput": {"kind":"object","fields":[{"name":"functionId","type":{"kind":"string","minLength":1}}]},
   "InvokeInput": {"kind":"object","fields":[{"name":"versionId","type":{"kind":"string","minLength":1}},{"name":"payloadJson","type":{"kind":"string","maxLength":6291456}},{"name":"invocationToken","type":{"kind":"string","minLength":1}},{"name":"egressGrant","type":{"kind":"string","minLength":1}},{"name":"deadlineMs","type":{"kind":"int","min":1,"max":960000}}]},
-  "BuildStartInput": {"kind":"object","fields":[{"name":"runId","type":{"kind":"string","minLength":1}},{"name":"image","type":{"kind":"ref","name":"BuildStartInputImage"}},{"name":"script","type":{"kind":"string","minLength":1}},{"name":"env","type":{"kind":"record","values":{"kind":"string"}}},{"name":"downloads","type":{"kind":"array","items":{"kind":"ref","name":"BuildStartInputDownloadsItem"}}},{"name":"uploads","type":{"kind":"array","items":{"kind":"ref","name":"BuildStartInputUploadsItem"}}},{"name":"timeoutSeconds","type":{"kind":"int","min":60,"max":7200}},{"name":"sandbox","type":{"kind":"ref","name":"Sandbox"},"optional":true},{"name":"egressGrant","type":{"kind":"string","minLength":1}}]},
+  "BuildStartInput": {"kind":"object","fields":[{"name":"runId","type":{"kind":"string","minLength":1}},{"name":"image","type":{"kind":"ref","name":"BuildStartInputImage"}},{"name":"script","type":{"kind":"string","minLength":1}},{"name":"env","type":{"kind":"record","values":{"kind":"string"}}},{"name":"downloads","type":{"kind":"array","items":{"kind":"ref","name":"BuildStartInputDownloadsItem"}}},{"name":"uploads","type":{"kind":"array","items":{"kind":"ref","name":"BuildStartInputUploadsItem"}}},{"name":"timeoutSeconds","type":{"kind":"int","min":60,"max":7200}},{"name":"schedulingTimeoutSeconds","type":{"kind":"int","min":0,"max":3600},"optional":true},{"name":"sandbox","type":{"kind":"ref","name":"Sandbox"},"optional":true},{"name":"egressGrant","type":{"kind":"string","minLength":1}}]},
   "BuildStartInputImage": {"kind":"enum","values":["build-ubuntu"]},
   "BuildStartInputDownloadsItem": {"kind":"object","fields":[{"name":"artifactId","type":{"kind":"string","minLength":1}},{"name":"bucket","type":{"kind":"string"}},{"name":"key","type":{"kind":"string"}}]},
   "BuildStartInputUploadsItem": {"kind":"object","fields":[{"name":"stepId","type":{"kind":"string","minLength":1}},{"name":"bucket","type":{"kind":"string"}},{"name":"key","type":{"kind":"string"}}]},

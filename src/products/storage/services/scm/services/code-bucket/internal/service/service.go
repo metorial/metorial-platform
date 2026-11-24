@@ -37,6 +37,10 @@ func NewService(jwtSecret string, editorApiUrl string, opts ...fs.FileSystemMana
 	}
 }
 
+func (s *Service) FileSystem() *fs.FileSystemManager {
+	return s.fsm
+}
+
 // WithManifestSourceBuckets sets the object-storage buckets manifests and their content
 // may be read from (ORIGIN_MANIFEST_SOURCE_BUCKETS). With none, manifest exports fail.
 func (s *Service) WithManifestSourceBuckets(buckets []string) *Service {

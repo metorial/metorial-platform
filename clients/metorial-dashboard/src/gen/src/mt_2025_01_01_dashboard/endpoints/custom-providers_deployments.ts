@@ -87,7 +87,7 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
     customProviderDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsGetOutput> {
-    let path = `custom-provider-deployments/${customProviderDeploymentId}`;
+    let path = `custom-provider-deployments/${encodeURIComponent(customProviderDeploymentId)}`;
 
     let request = {
       path,
@@ -114,7 +114,7 @@ export class MetorialCustomProvidersDeploymentsEndpoint {
     customProviderDeploymentId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersDeploymentsGetLogsOutput> {
-    let path = `custom-provider-deployments/${customProviderDeploymentId}/logs`;
+    let path = `custom-provider-deployments/${encodeURIComponent(customProviderDeploymentId)}/logs`;
 
     let request = {
       path,

@@ -101,6 +101,7 @@ model Instance {
   synthesisEnvironmentId String?
   lastSubspaceSyncAt     DateTime?
 
+  aiGatewayInstanceId   String?
   agentTrackingLinkedAt DateTime?
 
   createdAt DateTime  @default(now())

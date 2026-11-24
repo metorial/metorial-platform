@@ -11,7 +11,8 @@ vi.mock('@metorial/config', () => ({
     env: state.env,
     urls: {
       portalsUrl: 'http://gateway.localhost:8080',
-      apiUrl: 'http://gateway.localhost:8080'
+      apiUrl: 'http://gateway.localhost:8080/v1',
+      connectUrl: 'http://gateway.localhost:8080'
     }
   })
 }));

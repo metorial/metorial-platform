@@ -111,7 +111,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesGetOutput> {
-    let path = `sandbox/machines/${machineId}`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}`;
 
     let request = {
       path,
@@ -168,7 +168,7 @@ export class MetorialSandboxMachinesEndpoint {
     body: DashboardInstanceSandboxMachinesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesUpdateOutput> {
-    let path = `sandbox/machines/${machineId}`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}`;
 
     let request = {
       path,
@@ -196,7 +196,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesDeleteOutput> {
-    let path = `sandbox/machines/${machineId}`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}`;
 
     let request = {
       path,
@@ -223,7 +223,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesStartOutput> {
-    let path = `sandbox/machines/${machineId}/start`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/start`;
 
     let request = {
       path,
@@ -250,7 +250,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesPauseOutput> {
-    let path = `sandbox/machines/${machineId}/pause`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/pause`;
 
     let request = {
       path,
@@ -277,7 +277,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesHibernateOutput> {
-    let path = `sandbox/machines/${machineId}/hibernate`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/hibernate`;
 
     let request = {
       path,
@@ -304,7 +304,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesRestartOutput> {
-    let path = `sandbox/machines/${machineId}/restart`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/restart`;
 
     let request = {
       path,
@@ -331,7 +331,7 @@ export class MetorialSandboxMachinesEndpoint {
     machineId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesTouchOutput> {
-    let path = `sandbox/machines/${machineId}/touch`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/touch`;
 
     let request = {
       path,
@@ -360,7 +360,7 @@ export class MetorialSandboxMachinesEndpoint {
     query?: DashboardInstanceSandboxMachinesUsageQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesUsageOutput> {
-    let path = `sandbox/machines/${machineId}/usage`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/usage`;
 
     let request = {
       path,
@@ -392,7 +392,7 @@ export class MetorialSandboxMachinesEndpoint {
     body: DashboardInstanceSandboxMachinesExecBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesExecOutput> {
-    let path = `sandbox/machines/${machineId}/exec`;
+    let path = `sandbox/machines/${encodeURIComponent(machineId)}/exec`;
 
     let request = {
       path,

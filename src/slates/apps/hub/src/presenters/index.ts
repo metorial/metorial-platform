@@ -20,6 +20,7 @@ export * from './slateInstance';
 export * from './slateInstanceConfiguration';
 export * from './slateInvocation';
 export * from './slateOAuthCredentials';
+export * from './slateOAuthCredentialsTemplate';
 export * from './slateOAuthSetup';
 export * from './slateOAuthSetupEvent';
 export * from './slateOAuthSetupLogs';

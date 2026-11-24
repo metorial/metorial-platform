@@ -65,7 +65,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
     query?: DashboardInstanceIdentitiesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesListOutput> {
-    let path = `instances/${instanceId}/identities`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identities`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
     identityId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesGetOutput> {
-    let path = `instances/${instanceId}/identities/${identityId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
     body: DashboardInstanceIdentitiesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCreateOutput> {
-    let path = `instances/${instanceId}/identities`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identities`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
     body: DashboardInstanceIdentitiesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesUpdateOutput> {
-    let path = `instances/${instanceId}/identities/${identityId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceIdentitiesEndpoint {
     identityId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesDeleteOutput> {
-    let path = `instances/${instanceId}/identities/${identityId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/identities/${encodeURIComponent(identityId)}`;
 
     let request = {
       path,

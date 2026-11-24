@@ -1,7 +1,7 @@
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useSession } from '@metorial/state';
-import { Button, CenteredSpinner, Error, Menu, theme } from '@metorial/ui';
-import { RiArrowDownSLine, RiFileList3Line } from '@remixicon/react';
+import { Button, CenteredSpinner, Error, theme } from '@metorial/ui';
+import { RiFileList3Line } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -195,23 +195,6 @@ export let InspectorFrame = (p: {
         </ConnectionNavSection>
 
         <ConnectionNavSection>
-          <Menu
-            items={[
-              { id: 'v2', label: 'Metorial Explorer' },
-              { id: 'v1', label: 'MCP Inspector' }
-            ]}
-            onItemClick={v => setExplorerVersion(v as 'v1' | 'v2')}
-          >
-            <Button size="2" variant="outline" iconRight={<RiArrowDownSLine />}>
-              {
-                {
-                  v1: 'MCP Inspector',
-                  v2: 'Metorial Explorer'
-                }[explorerVersion]
-              }
-            </Button>
-          </Menu>
-
           {p.magicMcpServerId ? (
             <Link
               to={Paths.instance.magicMcp.server(

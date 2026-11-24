@@ -15,7 +15,7 @@ class ConsumerOAuthRoutingService {
   }) {
     let origin =
       d.originOverride ??
-      (d.namespaceHost ? `https://${d.namespaceHost}` : getConfig().urls.apiUrl);
+      (d.namespaceHost ? `https://${d.namespaceHost}` : getConfig().urls.connectUrl);
 
     return `${origin}/connect/portal/${d.portalId}${
       d.magicMcpTargetId ? `/${d.magicMcpTargetId}` : ''
@@ -211,7 +211,7 @@ class ConsumerOAuthRoutingService {
       instance: skillPlugin.instance,
       projectOid: skillPlugin.instance.projectOid,
       instanceOid: skillPlugin.instance.oid,
-      base: `${d.originOverride ?? getConfig().urls.apiUrl}/connect/plugin/${d.skillPluginId}`
+      base: `${d.originOverride ?? getConfig().urls.connectUrl}/connect/plugin/${d.skillPluginId}`
     };
   }
 }

@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { Readable } from 'stream';
+import { assertGatewayAcceptedHeaders } from '../egress/gateway';
 
 export async function axiosWithoutSse<T = any>(
   url: string,
@@ -18,6 +19,13 @@ export async function axiosWithoutSse<T = any>(
   };
 
   let response = await axios.request<Readable>(requestConfig);
+
+  try {
+    assertGatewayAcceptedHeaders(response.headers);
+  } catch (error) {
+    response.data.destroy();
+    throw error;
+  }
 
   let rawContentType = response.headers['content-type'];
   let contentType = Array.isArray(rawContentType)

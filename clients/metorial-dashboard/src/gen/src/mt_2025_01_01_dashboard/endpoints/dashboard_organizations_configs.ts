@@ -59,7 +59,7 @@ export class MetorialDashboardOrganizationsConfigsEndpoint {
     organizationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsConfigsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/configs`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/configs`;
 
     let request = {
       path,
@@ -88,7 +88,7 @@ export class MetorialDashboardOrganizationsConfigsEndpoint {
     selector: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsConfigsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/configs/${selector}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/configs/${encodeURIComponent(selector)}`;
 
     let request = {
       path,
@@ -119,7 +119,7 @@ export class MetorialDashboardOrganizationsConfigsEndpoint {
     body: DashboardOrganizationsConfigsSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsConfigsSetOutput> {
-    let path = `dashboard/organizations/${organizationId}/configs/${selector}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/configs/${encodeURIComponent(selector)}`;
 
     let request = {
       path,
@@ -151,7 +151,7 @@ export class MetorialDashboardOrganizationsConfigsEndpoint {
     body: DashboardOrganizationsConfigsPatchBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsConfigsPatchOutput> {
-    let path = `dashboard/organizations/${organizationId}/configs/${selector}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/configs/${encodeURIComponent(selector)}`;
 
     let request = {
       path,

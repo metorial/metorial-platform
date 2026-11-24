@@ -5,7 +5,6 @@ import {
   addAfterTransactionHook,
   db,
   type Environment,
-  findWithPrimaryFallback,
   type Prisma,
   type Session,
   type SessionStatus,
@@ -432,21 +431,19 @@ class sessionServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
-    let session = await findWithPrimaryFallback(client =>
-      client.session.findFirst({
-        where: {
-          id: d.sessionId,
-          tenantOid: d.tenant.oid,
-          solutionOid: solution.oid,
-          environmentOid: d.environment.oid,
+    let session = await db.session.findFirst({
+      where: {
+        id: d.sessionId,
+        tenantOid: d.tenant.oid,
+        solutionOid: solution.oid,
+        environmentOid: d.environment.oid,
 
-          ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
-          ...normalizeStatusForGet(d).noParent,
-          ...getSessionRetentionFilter(d.tenant)
-        },
-        include
-      })
-    );
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
+        ...normalizeStatusForGet(d).noParent,
+        ...getSessionRetentionFilter(d.tenant)
+      },
+      include
+    });
     if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
 
     return session;

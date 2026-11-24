@@ -5,7 +5,7 @@ export type ClientHandoffToolMetadata = {
   description?: string;
 };
 
-export let handoffToolMetadataKey = Symbol.for('metorial.synthesis.handoffTool');
+export let handoffToolMetadataKey = Symbol.for('metorial.ai-gateway.handoffTool');
 
 export type ClientHandoffTool = {
   [handoffToolMetadataKey]?: ClientHandoffToolMetadata;

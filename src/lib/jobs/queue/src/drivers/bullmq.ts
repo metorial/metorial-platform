@@ -320,18 +320,22 @@ export let createBullMqQueue = <JobData>(
 
             let startedAt = performance.now();
             let observe = (outcome: 'completed' | 'failed') => {
-              try {
-                queueObserver.onJob?.({
-                  queue: opts.name,
-                  outcome,
-                  durationSeconds: (performance.now() - startedAt) / 1000,
-                  waitSeconds:
-                    job.processedOn && job.timestamp
-                      ? Math.max(0, (job.processedOn - job.timestamp) / 1000)
-                      : undefined,
-                  attempt: job.attemptsMade + 1
-                });
-              } catch {}
+              let event = {
+                queue: opts.name,
+                outcome,
+                durationSeconds: (performance.now() - startedAt) / 1000,
+                waitSeconds:
+                  job.processedOn && job.timestamp
+                    ? Math.max(0, (job.processedOn - job.timestamp) / 1000)
+                    : undefined,
+                attempt: job.attemptsMade + 1
+              };
+
+              for (let listener of [queueObserver.onJob, ...queueObserver.listeners]) {
+                try {
+                  listener?.(event);
+                } catch {}
+              }
             };
 
             return await provideExecutionContext(jobExecutionContext, async () => {

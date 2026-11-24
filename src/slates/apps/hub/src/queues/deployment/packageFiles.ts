@@ -227,7 +227,6 @@ export let buildSlateDeploymentFiles = (
     {
       filename: 'slates_entry_point.js',
       content: `
-          import { createRequire } from 'node:module';
           import { provider } from './${providerImportPath}';
           ${getRuntimeImports(runtime)}
 
@@ -235,38 +234,7 @@ export let buildSlateDeploymentFiles = (
             e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))
           ]);
 
-          let initialGlobals = {}
-          for (let key of Object.getOwnPropertyNames(globalThis)) {
-            initialGlobals[key] = globalThis[key]
-          }
-
-          let moduleRequire = typeof require == 'function' ? require : createRequire(import.meta.url)
-
-          let reset = () => {
-            for (let key of Object.getOwnPropertyNames(globalThis)) {
-              if (!(key in initialGlobals)) {
-                try {
-                  delete globalThis[key];
-                } catch {}
-              }
-            }
-
-            for (let key in initialGlobals) {
-              try {
-                globalThis[key] = initialGlobals[key];
-              } catch {}
-            }
-
-            for (let key in moduleRequire.cache) {
-              try {
-                delete moduleRequire.cache[key];
-              } catch {}
-            }
-          }
-
           export default async (input) => {
-            reset();
-
             if (input._encoded) {
               input = serialize.decode(input._encoded);
             }

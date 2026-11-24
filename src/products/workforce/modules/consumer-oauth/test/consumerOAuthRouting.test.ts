@@ -11,7 +11,8 @@ vi.mock('@lowerdeck/service', () => ({
 vi.mock('@metorial/config', () => ({
   getConfig: () => ({
     urls: {
-      apiUrl: 'https://api.metorial.test'
+      apiUrl: 'https://api.metorial.test/v1',
+      connectUrl: 'https://api.metorial.test'
     }
   })
 }));

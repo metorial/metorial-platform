@@ -20,7 +20,8 @@ let getConsumerByIdCached = createLocallyCachedFunction({
     return db.consumer.findFirst({
       where: { OR: [{ id: d.id }, { identifier }] }
     });
-  }
+  },
+  shouldCache: consumer => consumer !== null
 });
 
 let getConsumerInstanceForAuthCached = createLocallyCachedFunction({

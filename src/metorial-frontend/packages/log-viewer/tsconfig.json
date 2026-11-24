@@ -10,10 +10,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "outDir": "dist",
-    "lib": [
-      "es2021",
-      "DOM"
-    ],
-    "target": "ES2019"
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "target": "ESNext"
   }
 }

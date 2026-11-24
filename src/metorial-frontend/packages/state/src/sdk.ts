@@ -67,6 +67,8 @@ export let ensureDashboardSDKForApi = async (
   sdk = createMetorialDashboardSDK({
     apiHost: sdkUrl,
     enableDebugLogging: true,
+    supportsPresignedFileUploads: checkEdition('on-prem') || undefined,
+    supportsMultipartFileUploads: checkEdition('on-prem') || undefined,
     metorialInstance: url.searchParams.get('_metorial_instance') || 'external',
     consumer: consumer.current ?? undefined
   });

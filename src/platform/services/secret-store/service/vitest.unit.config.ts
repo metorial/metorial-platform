@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
       include: [
         'src/presenters/**/*.test.ts',
         'src/adapters/**/*.test.ts',
+        'src/lib/consumerCache.test.ts',
         'src/services/consumer.test.ts',
         'src/services/keyProvider.test.ts'
       ],

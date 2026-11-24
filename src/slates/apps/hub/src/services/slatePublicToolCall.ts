@@ -5,6 +5,7 @@ import type { SlatesParticipant } from '@slates/proto';
 import type { Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { attachmentEgressFor } from '../lib/invocation/attachmentEgress';
 import { ensureSlateInvocationAttachment } from '../lib/invocation/attachments';
 import { slateInvocationService } from './slateInvocation';
 
@@ -149,7 +150,10 @@ class slatePublicToolCallServiceImpl {
                 content: attachment.content,
                 mimeType: attachment.mimeType,
                 invocation: callRes.invocation,
-                tenantOid: tenant.oid
+                tenantOid: tenant.oid,
+                egress: attachmentEgressFor({
+                  inline: { enclaveId: d.input.enclaveId, egressPolicy: d.input.egressPolicy }
+                })
               })
             )
           )

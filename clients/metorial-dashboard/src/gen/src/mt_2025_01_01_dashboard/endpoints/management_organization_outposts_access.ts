@@ -57,7 +57,7 @@ export class MetorialManagementOrganizationOutpostsAccessEndpoint {
     body: DashboardOrganizationsOutpostsAccessSetBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsAccessSetOutput> {
-    let path = `organization/outposts/${outpostId}/access`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/access`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialManagementOrganizationOutpostsAccessEndpoint {
     query?: DashboardOrganizationsOutpostsAccessListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsOutpostsAccessListOutput> {
-    let path = `organization/outposts/${outpostId}/access`;
+    let path = `organization/outposts/${encodeURIComponent(outpostId)}/access`;
 
     let request = {
       path,

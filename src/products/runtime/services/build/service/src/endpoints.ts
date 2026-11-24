@@ -1,6 +1,8 @@
+import { startHealthServer } from '@metorial/doctor';
 import { RedisClient } from 'bun';
 import { forgeApi } from './controllers';
 import { db } from './db';
+import { buildDoctorChecks } from './doctor';
 import { env } from './env';
 
 let server = Bun.serve({
@@ -14,19 +16,18 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
   tls: process.env.REDIS_URL?.startsWith('rediss://')
 });
 
-if (process.env.NODE_ENV === 'production') {
-  Bun.serve({
-    fetch: async _ => {
-      try {
-        await db.tenant.count();
+startHealthServer({
+  component: 'build',
+  checks: buildDoctorChecks(redis),
+  liveness: async () => {
+    try {
+      await db.tenant.count();
 
-        await redis.ping();
+      await redis.ping();
 
-        return new Response('OK');
-      } catch (e) {
-        return new Response('Service Unavailable', { status: 503 });
-      }
-    },
-    port: 12121
-  });
-}
+      return new Response('OK');
+    } catch (e) {
+      return new Response('Service Unavailable', { status: 503 });
+    }
+  }
+});

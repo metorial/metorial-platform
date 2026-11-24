@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Error Reports · Metorial</title>
+    <link rel="icon" href="/system/errors/assets/logo.svg" />
+    <link rel="stylesheet" href="/system/errors/assets/app.css" />
+    <script src="/system/errors/assets/app.js" defer></script>
+  </head>
+  <body>
+    <header class="top gutter">
+      <div class="wrap">
+        <div class="brand">
+          <div class="logo" role="img" aria-label="Metorial"></div>
+          <div class="brand-text">
+            <h1>Error Reports</h1>
+            <div class="subtitle" id="subtitle"></div>
+          </div>
+        </div>
+        <button class="btn primary" id="open-download" type="button" disabled>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" />
+          </svg>
+          Download Report
+        </button>
+      </div>
+    </header>
+
+    <main class="gutter">
+      <div class="wrap">
+        <div class="privacy">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="7" width="10" height="7" rx="1.5" />
+            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+          </svg>
+          <div>
+            <p>
+              <strong>These errors never leave this installation.</strong> Metorial only sees
+              them if you download a report and send it to support.
+            </p>
+            <details>
+              <summary>What is removed before an error is stored</summary>
+              <ul>
+                <li>Request bodies, headers and cookies</li>
+                <li>User details and session data</li>
+                <li>Local variables and source code</li>
+                <li>Extra data and breadcrumbs</li>
+                <li>Tokens, keys and credentials in messages</li>
+                <li>Email addresses and public IP addresses</li>
+                <li>Query strings in URLs</li>
+                <li>Server host names</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="seg" id="window" role="group" aria-label="Period">
+            <button type="button" data-days="1" aria-pressed="false">24 Hours</button>
+            <button type="button" data-days="7" aria-pressed="false">7 Days</button>
+            <button type="button" data-days="30" aria-pressed="true">30 Days</button>
+            <button type="button" data-days="90" aria-pressed="false">90 Days</button>
+            <button type="button" data-days="180" aria-pressed="false">180 Days</button>
+          </div>
+          <select class="select" id="component" aria-label="Component">
+            <option value="">All components</option>
+          </select>
+          <label class="field grow">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="m10.5 10.5 3 3" />
+            </svg>
+            <input
+              class="input"
+              id="search"
+              type="search"
+              placeholder="Search errors, functions or files"
+              aria-label="Search errors"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+
+        <div id="content">
+          <div class="panel loading">Loading error reports…</div>
+        </div>
+
+        <noscript>
+          <div class="panel noscript">
+            This page needs JavaScript. You can still
+            <a href="/system/errors/report.zip">download the report for the last 30 days</a>.
+          </div>
+        </noscript>
+      </div>
+    </main>
+
+    <footer class="foot gutter">
+      <div class="wrap">
+        <span id="foot-meta"></span>
+        <span class="links"
+          ><a href="/system/doctor">System Doctor</a
+          ><a href="/license">License Portal</a></span
+        >
+      </div>
+    </footer>
+
+    <div class="overlay" id="overlay" hidden></div>
+    <aside class="sheet" id="sheet" aria-label="Error group details" hidden></aside>
+    <div class="modal-wrap" id="modal" hidden></div>
+    <div class="toast" id="toast" role="status"></div>
+  </body>
+</html>

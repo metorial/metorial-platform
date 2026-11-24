@@ -91,7 +91,7 @@ export class MetorialManagementOrganizationTeamsEndpoint {
     teamId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsGetOutput> {
-    let path = `organization/teams/${teamId}`;
+    let path = `organization/teams/${encodeURIComponent(teamId)}`;
 
     let request = {
       path,
@@ -120,7 +120,7 @@ export class MetorialManagementOrganizationTeamsEndpoint {
     body: DashboardOrganizationsTeamsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsTeamsUpdateOutput> {
-    let path = `organization/teams/${teamId}`;
+    let path = `organization/teams/${encodeURIComponent(teamId)}`;
 
     let request = {
       path,

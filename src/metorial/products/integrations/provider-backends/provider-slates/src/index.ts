@@ -13,3 +13,5 @@ export * from './impl';
 export * from './services/adminSync';
 
 export let slatesClient = slates;
+
+export { getTenantForSlates } from './client';

@@ -169,6 +169,8 @@ let rootFor = (
 ): Environment => {
   let root = environment.rootEnvironment(project);
   delete root[environment.isolated];
+  delete root[environment.postgresReplicaKey];
+  delete root[environment.postgresReplicaDelayKey];
   if (mode === 'production') delete root[environment.devLoginSecretKey];
 
   for (let [name, port] of Object.entries(environment.defaultPorts))

@@ -779,6 +779,7 @@ export type ProviderSetupSectionsProps = {
   fixedAuthMethodId?: string;
   providerAuthMethodId?: string | null;
   fixedAuthCredentialsId?: string;
+  fixedAuthCredentialsSettingsHref?: string;
   authMethodAdapter?: string;
   selectedConfiguration: ConfigurationSelection;
   onSelectedConfigurationChange: (value: ConfigurationSelection) => void;
@@ -1199,6 +1200,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
               providerId={p.providerId}
               fixedAuthMethodId={p.fixedAuthMethodId}
               fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+              fixedAuthCredentialsSettingsHref={p.fixedAuthCredentialsSettingsHref}
               authMethodAdapter={p.authMethodAdapter}
               defaultAuthConfigName={p.defaultAuthConfigName}
               source={p.source}
@@ -1368,6 +1370,7 @@ let ProviderAuthConfigCreateAction = (p: {
   providerId?: string;
   fixedAuthMethodId?: string;
   fixedAuthCredentialsId?: string;
+  fixedAuthCredentialsSettingsHref?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
   source?: 'explorer';
@@ -1386,6 +1389,7 @@ let ProviderAuthConfigCreateAction = (p: {
     providerId: p.providerId,
     fixedAuthMethodId: p.fixedAuthMethodId,
     fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+    fixedAuthCredentialsSettingsHref: p.fixedAuthCredentialsSettingsHref,
     authMethodAdapter: p.authMethodAdapter,
     defaultAuthConfigName: p.defaultAuthConfigName,
     source: p.source,

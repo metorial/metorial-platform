@@ -65,7 +65,7 @@ export class MetorialDashboardInstanceSessionsEndpoint {
     query?: DashboardInstanceSessionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sessions`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardInstanceSessionsEndpoint {
     sessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sessions/${encodeURIComponent(sessionId)}`;
 
     let request = {
       path,
@@ -122,7 +122,7 @@ export class MetorialDashboardInstanceSessionsEndpoint {
     body: DashboardInstanceSessionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sessions`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialDashboardInstanceSessionsEndpoint {
     body: DashboardInstanceSessionsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sessions/${encodeURIComponent(sessionId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialDashboardInstanceSessionsEndpoint {
     sessionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSessionsDeleteOutput> {
-    let path = `dashboard/instances/${instanceId}/sessions/${sessionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sessions/${encodeURIComponent(sessionId)}`;
 
     let request = {
       path,

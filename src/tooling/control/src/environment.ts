@@ -14,8 +14,15 @@ export let prismaDevelopmentEnvironment = {
   PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true'
 };
 
+export let postgresReplicaKey = 'CONTROL_POSTGRES_REPLICA';
+
+export let postgresReplicaDelayKey = 'CONTROL_POSTGRES_REPLICA_DELAY';
+
+export let defaultPostgresReplicaDelay = '1s';
+
 export let defaultPorts = {
   postgres: 35432,
+  postgres_replica: 35433,
   mongo: 32707,
   redis: 36379,
   nats: 34222,
@@ -27,6 +34,30 @@ export let defaultPorts = {
 };
 
 export let portKey = (name: string) => `CONTROL_PORT_${name.toUpperCase()}`;
+
+export let postgresReplicaEnvironment = (
+  enabled: string | undefined,
+  delay: string | undefined
+): Environment => {
+  let flag = (enabled ?? '').trim().toLowerCase();
+  if (['', '0', 'false', 'off', 'no'].includes(flag)) return {};
+
+  if (!['1', 'true', 'on', 'yes'].includes(flag))
+    throw new Error(`${postgresReplicaKey} must be on or off, got ${JSON.stringify(enabled)}`);
+
+  let value = delay?.trim() || defaultPostgresReplicaDelay;
+  if (!/^\d+(us|ms|s|min|h|d)?$/.test(value))
+    throw new Error(
+      `${postgresReplicaDelayKey} must be a Postgres duration such as 500ms or 2s, got ${JSON.stringify(delay)}`
+    );
+
+  return { [postgresReplicaKey]: '1', [postgresReplicaDelayKey]: value };
+};
+
+export let postgresReplica = (root: Environment) =>
+  root[postgresReplicaKey] === '1'
+    ? { delay: root[postgresReplicaDelayKey] ?? defaultPostgresReplicaDelay }
+    : undefined;
 
 export let flattenJson = (
   object: unknown,
@@ -75,9 +106,19 @@ export let rootEnvironment = (project: ProjectRoot): Environment => {
         throw new Error('host workspace metadata is missing service_ports');
 
       for (let [key, value] of Object.entries(data.service_ports))
-        output[portKey(key)] = String(value);
+        if (value !== undefined) output[portKey(key)] = String(value);
     }
   }
+
+  let replica = postgresReplicaEnvironment(
+    output[postgresReplicaKey] ?? process.env[postgresReplicaKey],
+    output[postgresReplicaDelayKey] ?? process.env[postgresReplicaDelayKey]
+  );
+  delete output[postgresReplicaKey];
+  delete output[postgresReplicaDelayKey];
+
+  // Docker-runtime workspaces reach Postgres through their own port forwards, which have no replica.
+  if (data?.runtime !== 'docker') Object.assign(output, replica);
 
   return output;
 };
@@ -163,7 +204,16 @@ export let allForManifest = (loaded: LoadedManifest, root: Environment): Environ
     if (root[key] !== undefined) output[key] = root[key];
   }
 
-  for (let [key, db] of sortedEntries(manifest.postgres)) output[key] = postgresUrl(db);
+  let replica = postgresReplica(root);
+  let primaryPort = root[portKey('postgres')] ?? String(defaultPorts.postgres);
+  let replicaPort = Number(root[portKey('postgres_replica')] ?? defaultPorts.postgres_replica);
+
+  for (let [key, db] of sortedEntries(manifest.postgres)) {
+    output[key] = postgresUrl(db);
+
+    if (replica && String(db.port) === primaryPort)
+      output[`${key}_READER`] = postgresUrl({ ...db, port: replicaPort });
+  }
 
   for (let [key, db] of sortedEntries(manifest.mongo)) output[key] = mongoUrl(db);
 

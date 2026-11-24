@@ -4,7 +4,12 @@ import { Service } from '@lowerdeck/service';
 import type { MirrorResultStatus, MirrorUpstreamStatus } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
-import { normalizeUpstreamUrl, parseStaticUpstreams } from '../lib/mirror/upstreams';
+import {
+  enabledUpstreamSourceFilter,
+  normalizeUpstreamUrl,
+  parseStaticUpstreams,
+  registerLicenseUpstream
+} from '../lib/mirror/upstreams';
 import {
   getSigningKeyId,
   parseSigningPublicKey,
@@ -160,7 +165,7 @@ class mirrorServiceImpl {
       });
     }
 
-    if (d.upstream) {
+    if (registerLicenseUpstream && d.upstream) {
       let url = parseUrlInput(d.upstream.url);
       assertSubRegistryId(d.upstream.subRegistryId);
 
@@ -237,7 +242,9 @@ class mirrorServiceImpl {
         async opts =>
           await db.mirrorUpstream.findMany({
             ...opts,
-            where: d.includeArchived ? {} : { status: { not: 'archived' } }
+            where: d.includeArchived
+              ? {}
+              : { ...enabledUpstreamSourceFilter, status: { not: 'archived' } }
           })
       )
     );

@@ -8,6 +8,7 @@ import { encryption } from '../encryption';
 import { env } from '../env';
 import { ensureForgeWorkflow, forge } from '../forge';
 import { ID, snowflake } from '../id';
+import { getBuildFailureReason } from '../lib/buildFailureReason';
 import { fetchBuildManifest } from '../lib/fetchBuildManifest';
 import { type BuildArtifactRef, readBuildArtifact } from '../lib/buildArtifact';
 import { defaultProvider } from '../providers';
@@ -86,6 +87,7 @@ let startBuildQueueProcessor = startBuildQueue.process(async data => {
 
 let monitorBuildQueue = createQueue<{
   hasStarted: boolean;
+  pendingReason?: string | null;
   deploymentId: string;
   runId: string;
   workflowId: string;
@@ -106,9 +108,18 @@ let monitorBuildQueueProcessor = monitorBuildQueue.process(async data => {
   if (!data.hasStarted && run.status != 'pending') {
     await db.functionDeployment.update({
       where: { id: data.deploymentId },
-      data: { status: 'running' }
+      data: { status: 'running', pendingReason: null }
     });
     data.hasStarted = true;
+  }
+
+  let pendingReason = run.status == 'pending' ? (run.pendingReason ?? null) : null;
+  if (!data.hasStarted && pendingReason != (data.pendingReason ?? null)) {
+    await db.functionDeployment.update({
+      where: { id: data.deploymentId },
+      data: { pendingReason }
+    });
+    data.pendingReason = pendingReason;
   }
 
   if (run.status == 'failed' || run.status == 'succeeded') {
@@ -152,9 +163,7 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
       return;
     }
 
-    let manifestResult = await fetchBuildManifest(() =>
-      readBuildArtifact(manifestArtifact)
-    );
+    let manifestResult = await fetchBuildManifest(() => readBuildArtifact(manifestArtifact));
     if (!manifestResult.success) {
       let attempt = (data.manifestFetchAttempt ?? 0) + 1;
 
@@ -203,11 +212,23 @@ let workflowFinishedBuildQueueProcessor = workflowFinishedBuildQueue.process(asy
         delay: 5000
       }
     );
+  } else if (run.failure) {
+    await errorQueue.add({
+      deploymentId: data.deploymentId,
+      code: `function_bay.${run.failure.code}`,
+      message: run.failure.message
+    });
   } else {
+    let output = await forge.workflowRun.getOutput({
+      tenantId: data.tenantId,
+      workflowId: data.workflowId,
+      workflowRunId: data.runId
+    });
+
     await errorQueue.add({
       deploymentId: data.deploymentId,
       code: 'function_bay.build_failed',
-      message: 'The build workflow run failed.'
+      message: getBuildFailureReason(output)
     });
   }
 });
@@ -239,7 +260,7 @@ let deployToRuntimeQueueProcessor = deployToRuntimeQueue.process(async data => {
     let output = JSON.stringify([Date.now(), 'Deploying function to runtime...']);
     await db.functionDeploymentStep.updateMany({
       where: { functionDeploymentOid: deployment.oid, type: 'deploy' },
-      data: { status: 'running', output }
+      data: { status: 'running', output, startedAt: new Date() }
     });
 
     let versionId = await ID.generateId('functionVersion');
@@ -264,7 +285,7 @@ let deployToRuntimeQueueProcessor = deployToRuntimeQueue.process(async data => {
     output += `\n${JSON.stringify([Date.now(), 'Function deployed successfully.'])}`;
     await db.functionDeploymentStep.updateMany({
       where: { functionDeploymentOid: deployment.oid, type: 'deploy' },
-      data: { status: 'succeeded', output }
+      data: { status: 'succeeded', output, endedAt: new Date() }
     });
 
     await deployToFunctionBayQueue.add({
@@ -278,7 +299,7 @@ let deployToRuntimeQueueProcessor = deployToRuntimeQueue.process(async data => {
     let output = JSON.stringify([Date.now(), `Error deploying function: ${err.message}`]);
     await db.functionDeploymentStep.updateMany({
       where: { functionDeploymentOid: deployment.oid, type: 'deploy' },
-      data: { status: 'failed', output }
+      data: { status: 'failed', output, endedAt: new Date() }
     });
 
     await errorQueue.add({
@@ -425,7 +446,8 @@ let errorQueueProcessor = errorQueue.process(async data => {
       },
       data: {
         status: 'failed',
-        output: `${deploymentStep.output}\n${JSON.stringify([Date.now(), `[Error ${data.code}]: ${data.message}`])}`
+        output: `${deploymentStep.output ?? ''}\n${JSON.stringify([Date.now(), `[Error ${data.code}]: ${data.message}`])}`,
+        endedAt: new Date()
       }
     });
   }

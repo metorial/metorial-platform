@@ -33,7 +33,9 @@ export let MaterializedFunction = t
   })
   .named('MaterializedFunction');
 
-export let BuildStatus = t.enum(['pending', 'running', 'succeeded', 'failed']).named('BuildStatus');
+export let BuildStatus = t
+  .enum(['pending', 'running', 'succeeded', 'failed'])
+  .named('BuildStatus');
 
 export let Build = t
   .object({
@@ -42,6 +44,9 @@ export let Build = t
     status: BuildStatus,
     exitCode: t.int().nullable(),
     failureReason: t.string().nullable(),
+    pendingReason: t.string().nullable(),
+    pendingCode: t.string().optional(),
+    failureCode: t.string().optional(),
     uploadedSteps: t.array(t.string()),
     startedAt: t.datetime().nullable(),
     finishedAt: t.datetime().nullable()
@@ -86,6 +91,20 @@ let clusterCapacity = error({
   status: 503,
   code: 'cluster_capacity',
   message: 'The materialization cap is reached and nothing can be evicted.'
+});
+
+let buildQuotaExceeded = error({
+  status: 503,
+  code: 'build_quota_exceeded',
+  message: 'Build namespace quota is exhausted.',
+  data: { reason: t.string() }
+});
+
+let buildAdmissionRejected = error({
+  status: 422,
+  code: 'build_admission_rejected',
+  message: 'Kubernetes rejected the build.',
+  data: { reason: t.string() }
 });
 
 let buildNotFound = error({
@@ -166,15 +185,26 @@ export default service({
           script: t.string({ minLength: 1 }),
           env: t.record(t.string()),
           downloads: t.array(
-            t.object({ artifactId: t.string({ minLength: 1 }), bucket: t.string(), key: t.string() })
+            t.object({
+              artifactId: t.string({ minLength: 1 }),
+              bucket: t.string(),
+              key: t.string()
+            })
           ),
-          uploads: t.array(t.object({ stepId: t.string({ minLength: 1 }), bucket: t.string(), key: t.string() })),
+          uploads: t.array(
+            t.object({
+              stepId: t.string({ minLength: 1 }),
+              bucket: t.string(),
+              key: t.string()
+            })
+          ),
           timeoutSeconds: t.int({ min: 60, max: 7200 }),
+          schedulingTimeoutSeconds: t.int({ min: 0, max: 3600 }).optional(),
           sandbox: Sandbox.optional(),
           egressGrant: t.string({ minLength: 1 })
         }),
         output: Build,
-        errors: [objectNotAllowed]
+        errors: [objectNotAllowed, buildQuotaExceeded, buildAdmissionRejected]
       }).description('Idempotent by run ID.'),
 
       get: method({

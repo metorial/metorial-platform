@@ -134,32 +134,31 @@ describe('module-session session templates with providers', () => {
       return hash;
     });
 
-    let blockedHashWrites = async () => {
-      let [row] = await subspaceDb.$queryRaw<{ count: number }[]>`
-        SELECT count(*)::int AS "count"
-        FROM pg_stat_activity
-        WHERE wait_event_type = 'Lock'
-          AND query ILIKE 'UPDATE%"SessionTemplate"%'
-      `;
-      return row?.count ?? 0;
-    };
-
     await withTransaction(
-      async tdb => {
-        await tdb.sessionTemplateProvider.updateMany({
+      async () => {
+        await subspaceDb.sessionTemplateProvider.updateMany({
           where: { sessionTemplateOid: template.oid },
           data: { toolFilter: onlyEchoFilter }
         });
-        await tdb.sessionTemplate.update({
+        await subspaceDb.sessionTemplate.update({
           where: { oid: template.oid },
           data: { hash: initialHash }
         });
 
         await enqueueSessionTemplateSyncHash(template.id);
-        await eventually(async () => expect(await blockedHashWrites()).toBeGreaterThan(0), {
-          timeoutMs: 15_000,
-          intervalMs: 100
-        });
+        await eventually(
+          async () => {
+            let [row] = await subspaceDb.$queryRaw<{ blocked: boolean }[]>`
+              SELECT EXISTS (
+                SELECT 1
+                FROM pg_locks
+                WHERE NOT granted AND pg_backend_pid() = ANY(pg_blocking_pids(pid))
+              ) AS blocked
+            `;
+            expect(row?.blocked).toBe(true);
+          },
+          { timeoutMs: 15_000, intervalMs: 100 }
+        );
 
         await enqueueSessionTemplateSyncHash(template.id);
       },

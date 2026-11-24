@@ -65,7 +65,7 @@ export class MetorialManagementInstanceSkillsGroupsEndpoint {
     query?: DashboardInstanceSkillsGroupsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsListOutput> {
-    let path = `instances/${instanceId}/skill-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-groups`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialManagementInstanceSkillsGroupsEndpoint {
     skillGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsGetOutput> {
-    let path = `instances/${instanceId}/skill-groups/${skillGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialManagementInstanceSkillsGroupsEndpoint {
     body: DashboardInstanceSkillsGroupsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsCreateOutput> {
-    let path = `instances/${instanceId}/skill-groups`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-groups`;
 
     let request = {
       path,
@@ -158,7 +158,7 @@ export class MetorialManagementInstanceSkillsGroupsEndpoint {
     body: DashboardInstanceSkillsGroupsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsUpdateOutput> {
-    let path = `instances/${instanceId}/skill-groups/${skillGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}`;
 
     let request = {
       path,
@@ -188,7 +188,7 @@ export class MetorialManagementInstanceSkillsGroupsEndpoint {
     skillGroupId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsGroupsDeleteOutput> {
-    let path = `instances/${instanceId}/skill-groups/${skillGroupId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/skill-groups/${encodeURIComponent(skillGroupId)}`;
 
     let request = {
       path,

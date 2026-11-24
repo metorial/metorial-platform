@@ -95,7 +95,7 @@ export class MetorialManagementOrganizationEventDestinationListenersEndpoint {
     eventDestinationListenerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersGetOutput> {
-    let path = `organization/event-destination-listeners/${eventDestinationListenerId}`;
+    let path = `organization/event-destination-listeners/${encodeURIComponent(eventDestinationListenerId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialManagementOrganizationEventDestinationListenersEndpoint {
     body: DashboardOrganizationsEventDestinationListenersUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersUpdateOutput> {
-    let path = `organization/event-destination-listeners/${eventDestinationListenerId}`;
+    let path = `organization/event-destination-listeners/${encodeURIComponent(eventDestinationListenerId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialManagementOrganizationEventDestinationListenersEndpoint {
     eventDestinationListenerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsEventDestinationListenersDeleteOutput> {
-    let path = `organization/event-destination-listeners/${eventDestinationListenerId}`;
+    let path = `organization/event-destination-listeners/${encodeURIComponent(eventDestinationListenerId)}`;
 
     let request = {
       path,

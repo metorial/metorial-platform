@@ -93,7 +93,7 @@ export class MetorialManagementOrganizationServiceAccountsEndpoint {
     serviceAccountId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsGetOutput> {
-    let path = `organization/service-accounts/${serviceAccountId}`;
+    let path = `organization/service-accounts/${encodeURIComponent(serviceAccountId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialManagementOrganizationServiceAccountsEndpoint {
     body: DashboardOrganizationsServiceAccountsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsUpdateOutput> {
-    let path = `organization/service-accounts/${serviceAccountId}`;
+    let path = `organization/service-accounts/${encodeURIComponent(serviceAccountId)}`;
 
     let request = {
       path,
@@ -182,7 +182,7 @@ export class MetorialManagementOrganizationServiceAccountsEndpoint {
     serviceAccountId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsServiceAccountsDeleteOutput> {
-    let path = `organization/service-accounts/${serviceAccountId}`;
+    let path = `organization/service-accounts/${encodeURIComponent(serviceAccountId)}`;
 
     let request = {
       path,

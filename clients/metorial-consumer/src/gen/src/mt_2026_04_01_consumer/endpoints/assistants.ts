@@ -83,7 +83,7 @@ export class MetorialAssistantsEndpoint {
     assistantId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceAssistantsGetOutput> {
-    let path = `assistants/${assistantId}`;
+    let path = `assistants/${encodeURIComponent(assistantId)}`;
 
     let request = {
       path,

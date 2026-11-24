@@ -37,7 +37,11 @@ let ChatConnectionsList = createDataList<{ instanceId: string }>('chat-connectio
       [items, listings.lookup]
     );
 
-    return { items: enriched, isLoading: listings.isLoading, error: listings.error };
+    return {
+      items: enriched,
+      isLoading: providerIds.length > 0 && listings.isLoading,
+      error: providerIds.length > 0 ? listings.error : null
+    };
   })
   .columns([
     col.name(),

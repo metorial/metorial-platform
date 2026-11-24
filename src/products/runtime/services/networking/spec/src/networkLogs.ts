@@ -2,7 +2,7 @@ import { method, service, t } from '@lowerdeck/rpc-spec';
 
 export let Decision = t.enum(['allowed', 'denied']).named('Decision');
 
-export let Source = t.enum(['lambda', 'knative', 'build']).named('Source');
+export let Source = t.enum(['lambda', 'knative', 'build', 'mcp']).named('Source');
 
 export let Observation = t
   .object({

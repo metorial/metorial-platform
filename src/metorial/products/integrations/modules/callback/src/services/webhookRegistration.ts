@@ -316,7 +316,10 @@ class webhookRegistrationServiceImpl {
       );
     }
 
-    if (authCredentials.origin !== 'tenant_created') {
+    if (
+      authCredentials.origin === 'managed_backing' ||
+      authCredentials.origin === 'managed_public'
+    ) {
       throw new ServiceError(
         badRequestError({
           code: 'auth_credentials_managed',

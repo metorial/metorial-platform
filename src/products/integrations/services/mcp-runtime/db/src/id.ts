@@ -52,7 +52,9 @@ export let ID = createIdGenerator({
   delegatedOAuthConnectionAuthTokenError: idType.sorted('cdoate_'),
 
   serverDeployment: idType.sorted('csde_'),
-  serverDeploymentStep: idType.sorted('csds_')
+  serverDeploymentStep: idType.sorted('csds_'),
+
+  egressGrant: idType.sorted('ceg_')
 });
 
 let workerIdBits = 16;

@@ -19,6 +19,11 @@ import type {
   SsoUserProfileRole,
   SsoUserRole
 } from '@mtsrc/auth-core-db';
+import {
+  redactScimQuery,
+  redactSsoPayload,
+  scimErrorBody
+} from '@mtsrc/auth-core-http/src/ssoDiagnostics';
 import { env } from '../env';
 import { jackson } from '@mtsrc/auth-core-module-sso';
 
@@ -119,15 +124,21 @@ export let ssoScimOperationPresenter = (operation: SsoScimOperation) => ({
   success: operation.success,
   durationMs: operation.durationMs,
   eventNames: operation.eventNames,
-  errorMessage: operation.errorMessage,
+  errorMessage: operation.errorMessage ? scimErrorBody(operation.statusCode).detail : null,
   createdAt: operation.createdAt
 });
 
 export let ssoScimLogPresenter = (operation: SsoScimOperation) => ({
   ...ssoScimOperationPresenter(operation),
-  query: operation.query,
-  requestBody: operation.requestBody,
-  responseBody: operation.responseBody
+  query: operation.query ? redactScimQuery(operation.query) : null,
+  requestBody:
+    operation.statusCode === 401 || operation.statusCode === 403
+      ? null
+      : (redactSsoPayload(operation.requestBody) as typeof operation.requestBody),
+  responseBody:
+    operation.statusCode >= 400
+      ? scimErrorBody(operation.statusCode)
+      : (redactSsoPayload(operation.responseBody) as typeof operation.responseBody)
 });
 
 export let ssoTenantPresenter = (
@@ -435,7 +446,7 @@ export let ssoUserProfilePresenter = (
   roles: profile.roles,
   groups: profile.groups,
   metadata: profile.metadata,
-  raw: profile.raw,
+  raw: redactSsoPayload(profile.raw) as typeof profile.raw,
   user: profile.user ? ssoUserRefPresenter(profile.user) : null,
   connection: profile.connection ? ssoConnectionRefPresenter(profile.connection) : null,
   ownerDirectory: profile.ownerDirectory
@@ -527,7 +538,7 @@ export let ssoTestPresenter = (
           sub: test.sub,
           groups: test.groups,
           roles: test.roles,
-          raw: test.raw
+          raw: redactSsoPayload(test.raw) as typeof test.raw
         }
       : null,
   createdAt: test.createdAt,

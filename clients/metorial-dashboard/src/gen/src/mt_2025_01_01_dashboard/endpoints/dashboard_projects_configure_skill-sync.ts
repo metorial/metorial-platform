@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureSkillSyncEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureSkillSyncGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/skill-sync`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/skill-sync`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureSkillSyncEndpoint {
     body: DashboardProjectsConfigureSkillSyncUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureSkillSyncUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/skill-sync`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/skill-sync`;
 
     let request = {
       path,

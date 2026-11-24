@@ -57,7 +57,7 @@ export class MetorialDashboardInstancesUsageEndpoint {
     query?: DashboardInstancesUsageTimelineQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancesUsageTimelineOutput> {
-    let path = `dashboard/instances/${instanceId}/usage/timeline`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/usage/timeline`;
 
     let request = {
       path,
@@ -89,7 +89,7 @@ export class MetorialDashboardInstancesUsageEndpoint {
     query?: DashboardInstancesUsageSummaryQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstancesUsageSummaryOutput> {
-    let path = `dashboard/instances/${instanceId}/usage/summary`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/usage/summary`;
 
     let request = {
       path,

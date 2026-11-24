@@ -16,6 +16,7 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
     web_url: (scmProvider.webUrl ?? null) as string | null,
 
     is_default: scmProvider.isDefault,
+    is_managed: scmProvider.isManaged ?? false,
     ...(checkEdition('on-prem') ? { app_webhook_url: scmProvider.appWebhookUrl ?? null } : {}),
 
     created_at: scmProvider.createdAt,
@@ -57,6 +58,10 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
 
       is_default: v.boolean({
         description: 'Used when no other provider is specified.'
+      }),
+      is_managed: v.boolean({
+        description:
+          'Whether an enterprise administrator manages this provider centrally. Managed providers cannot be changed per project.'
       }),
       ...(checkEdition('on-prem')
         ? {

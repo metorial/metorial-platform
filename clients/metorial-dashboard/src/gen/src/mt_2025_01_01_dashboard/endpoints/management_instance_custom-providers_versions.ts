@@ -61,7 +61,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
     query?: DashboardInstanceCustomProvidersVersionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsListOutput> {
-    let path = `instances/${instanceId}/custom-provider-versions`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-versions`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
     customProviderVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsGetOutput> {
-    let path = `instances/${instanceId}/custom-provider-versions/${customProviderVersionId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-versions/${encodeURIComponent(customProviderVersionId)}`;
 
     let request = {
       path,
@@ -124,7 +124,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
     customProviderVersionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsGetEnvOutput> {
-    let path = `instances/${instanceId}/custom-provider-versions/${customProviderVersionId}/env`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-versions/${encodeURIComponent(customProviderVersionId)}/env`;
 
     let request = {
       path,
@@ -153,7 +153,7 @@ export class MetorialManagementInstanceCustomProvidersVersionsEndpoint {
     body: DashboardInstanceCustomProvidersVersionsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceCustomProvidersVersionsCreateOutput> {
-    let path = `instances/${instanceId}/custom-provider-versions`;
+    let path = `instances/${encodeURIComponent(instanceId)}/custom-provider-versions`;
 
     let request = {
       path,

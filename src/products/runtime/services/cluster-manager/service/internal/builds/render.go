@@ -99,15 +99,16 @@ func (s *BuildSpec) Upload(stepID string) (Upload, bool) {
 }
 
 type StartRequest struct {
-	RunID          string
-	Image          string
-	Script         string
-	Env            map[string]string
-	Downloads      []Download
-	Uploads        []Upload
-	TimeoutSeconds int
-	Sandbox        string
-	EgressGrant    string
+	RunID                    string
+	Image                    string
+	Script                   string
+	Env                      map[string]string
+	Downloads                []Download
+	Uploads                  []Upload
+	TimeoutSeconds           int
+	SchedulingTimeoutSeconds int
+	Sandbox                  string
+	EgressGrant              string
 }
 
 type RenderOptions struct {
@@ -297,6 +298,11 @@ func RenderJob(opts *RenderOptions, req *StartRequest, runtimeClass string) *bat
 		env = append(env, corev1.EnvVar{Name: "NO_PROXY", Value: noProxyValue}, corev1.EnvVar{Name: "no_proxy", Value: noProxyValue})
 	}
 
+	command := []string{"/bin/bash", "-c", launch}
+	if req.SchedulingTimeoutSeconds > 0 {
+		command = append([]string{"/usr/bin/timeout", "--kill-after=10s", fmt.Sprintf("%ds", req.TimeoutSeconds)}, command...)
+	}
+
 	podSpec := corev1.PodSpec{
 		RestartPolicy:                 corev1.RestartPolicyNever,
 		ServiceAccountName:            opts.ServiceAccount,
@@ -306,7 +312,7 @@ func RenderJob(opts *RenderOptions, req *StartRequest, runtimeClass string) *bat
 		Containers: []corev1.Container{{
 			Name:       containerName,
 			Image:      opts.Image,
-			Command:    []string{"/bin/bash", "-c", launch},
+			Command:    command,
 			WorkingDir: WorkspacePath,
 			Env:        env,
 			Resources: corev1.ResourceRequirements{
@@ -374,7 +380,7 @@ func RenderJob(opts *RenderOptions, req *StartRequest, runtimeClass string) *bat
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            ptr.To(int32(0)),
-			ActiveDeadlineSeconds:   ptr.To(int64(req.TimeoutSeconds)),
+			ActiveDeadlineSeconds:   ptr.To(int64(req.TimeoutSeconds + req.SchedulingTimeoutSeconds)),
 			TTLSecondsAfterFinished: ptr.To(opts.TTLAfterFinished),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},

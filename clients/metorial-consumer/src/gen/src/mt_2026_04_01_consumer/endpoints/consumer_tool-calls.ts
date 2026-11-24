@@ -81,7 +81,7 @@ export class MetorialConsumerToolCallsEndpoint {
     toolCallId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<ConsumerToolCallsGetOutput> {
-    let path = `consumer/tool-calls/${toolCallId}`;
+    let path = `consumer/tool-calls/${encodeURIComponent(toolCallId)}`;
 
     let request = {
       path,

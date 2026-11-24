@@ -161,6 +161,13 @@ class workflowRunServiceImpl {
     });
     run.artifacts.push(input);
 
+    if (env.provider.DEFAULT_PROVIDER === 'kubernetes') {
+      await db.workflowRun.update({
+        where: { oid: run.oid },
+        data: { kubernetesQueuedAt: new Date() }
+      });
+    }
+
     await startBuildQueue.add({
       runId: run.id
     });

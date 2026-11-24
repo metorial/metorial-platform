@@ -17,6 +17,7 @@ forward_port() {
 case "${1:-}" in
   gateway)
     forward_port 35432 postgres-db2:5432
+    forward_port 35433 postgres-replica:5432
     forward_port 32707 mongodb:27017
     forward_port 36379 redis-db:6379
     forward_port 34222 nats-1:4222

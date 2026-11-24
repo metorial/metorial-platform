@@ -77,6 +77,7 @@ describe('project service', () => {
   it('writes retention to existing and new instances', async () => {
     let { organization, project, instance } = await createTestScope();
 
+    expect(project.id).toBe(project.ref);
     expect(instance.recordRetentionDays).toBe(90);
 
     let updated = await projectService.upsertProject({
@@ -183,6 +184,7 @@ describe('instance service', () => {
       instance: { skewBoundSeconds: 600, backfillMaxAgeDays: 30 }
     });
 
+    expect(instance.id).toBe(instance.ref);
     expect(instance.skewBoundSeconds).toBe(600);
 
     let withSettings = await instanceService.upsertInstance({

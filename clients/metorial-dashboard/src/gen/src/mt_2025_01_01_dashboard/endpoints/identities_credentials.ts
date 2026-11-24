@@ -93,7 +93,7 @@ export class MetorialIdentitiesCredentialsEndpoint {
     identityCredentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsGetOutput> {
-    let path = `identity-credentials/${identityCredentialId}`;
+    let path = `identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,
@@ -152,7 +152,7 @@ export class MetorialIdentitiesCredentialsEndpoint {
     body: DashboardInstanceIdentitiesCredentialsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsUpdateOutput> {
-    let path = `identity-credentials/${identityCredentialId}`;
+    let path = `identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,
@@ -182,7 +182,7 @@ export class MetorialIdentitiesCredentialsEndpoint {
     identityCredentialId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceIdentitiesCredentialsDeleteOutput> {
-    let path = `identity-credentials/${identityCredentialId}`;
+    let path = `identity-credentials/${encodeURIComponent(identityCredentialId)}`;
 
     let request = {
       path,

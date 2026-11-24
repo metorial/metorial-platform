@@ -55,7 +55,7 @@ export class MetorialDashboardProjectsConfigureAiAnalysisEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureAiAnalysisGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/ai-analysis`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/ai-analysis`;
 
     let request = {
       path,
@@ -86,7 +86,7 @@ export class MetorialDashboardProjectsConfigureAiAnalysisEndpoint {
     body: DashboardProjectsConfigureAiAnalysisUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardProjectsConfigureAiAnalysisUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}/configure/ai-analysis`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}/configure/ai-analysis`;
 
     let request = {
       path,

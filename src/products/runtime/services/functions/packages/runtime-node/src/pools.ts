@@ -4,9 +4,15 @@ import net from 'node:net';
 import tls from 'node:tls';
 import { currentContext, type RequestContext } from './context';
 import { codedError } from './control';
+import { writeInstanceLog } from './logs';
 
 let UNDICI_GLOBAL_DISPATCHER = Symbol.for('undici.globalDispatcher.1');
 let CONNECT_TIMEOUT_MS = 10_000;
+
+let kPoolRequest = Symbol('metorial.poolRequest');
+
+let router: unknown;
+let warnedUnrestorable = false;
 
 interface RequestPools {
   undici?: any;
@@ -135,7 +141,29 @@ let installUndici = async () => {
     }
   }
 
-  (globalThis as any)[UNDICI_GLOBAL_DISPATCHER] = new RequestRoutingDispatcher();
+  router = new RequestRoutingDispatcher();
+  (globalThis as any)[UNDICI_GLOBAL_DISPATCHER] = router;
+};
+
+// A function that calls undici's setGlobalDispatcher would send every request's fetch through
+// one pool. Node defines the slot as writable but not configurable, so it can be put back.
+export let restoreRequestRouting = () => {
+  if (!router || (globalThis as any)[UNDICI_GLOBAL_DISPATCHER] === router) return;
+
+  try {
+    (globalThis as any)[UNDICI_GLOBAL_DISPATCHER] = router;
+  } catch {}
+
+  if ((globalThis as any)[UNDICI_GLOBAL_DISPATCHER] === router) {
+    writeInstanceLog(
+      'the function replaced the global fetch dispatcher; per-request routing was restored'
+    );
+  } else if (!warnedUnrestorable) {
+    warnedUnrestorable = true;
+    writeInstanceLog(
+      'the function replaced the global fetch dispatcher and it could not be restored; fetch connections may be shared between invocations'
+    );
+  }
 };
 
 let installNodeAgents = () => {
@@ -174,7 +202,37 @@ let installNodeAgents = () => {
   https.globalAgent = new RoutingHttpsAgent({ keepAlive: true });
 };
 
+// Agents the function creates itself keep their own pools. Adding the request to the pool key
+// stops one request from picking up a socket another request opened. addRequest copies the
+// options it receives, and the same copy reaches getName again when the socket is freed or
+// removed, so the key is stable even when those callbacks run outside the request.
+let installAgentPoolKeys = () => {
+  let proto = http.Agent.prototype as any;
+  let addRequest: Function = proto.addRequest;
+  let getName = http.Agent.prototype.getName;
+
+  proto.addRequest = function (
+    this: http.Agent,
+    req: http.ClientRequest,
+    options: any,
+    ...rest: any[]
+  ) {
+    let ctx = currentContext();
+    if (ctx && options !== null && typeof options == 'object') {
+      options = { ...options, [kPoolRequest]: ctx.requestId };
+    }
+    return addRequest.call(this, req, options, ...rest);
+  };
+
+  http.Agent.prototype.getName = function (this: http.Agent, options?: any) {
+    let name = getName.call(this, options);
+    let requestId = options?.[kPoolRequest];
+    return requestId ? `${name}:${requestId}` : name;
+  };
+};
+
 export let installPools = async () => {
   await installUndici();
   installNodeAgents();
+  installAgentPoolKeys();
 };

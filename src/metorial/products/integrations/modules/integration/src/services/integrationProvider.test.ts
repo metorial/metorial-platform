@@ -1,3 +1,4 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
@@ -7,6 +8,7 @@ let {
   providerServiceMock,
   providerAuthMethodServiceMock,
   providerAuthCredentialsServiceMock,
+  getVersionAndAuthMethodMock,
   createIntegrationProviderVersionMock,
   createIntegrationVersionMock,
   integrationProviderUpdatedQueueAddMock,
@@ -44,6 +46,7 @@ let {
       listProviderAuthCredentialsInternal: vi.fn(),
       resolveReplacementProviderAuthCredentialsInternal: vi.fn()
     },
+    getVersionAndAuthMethodMock: vi.fn(),
     createIntegrationProviderVersionMock: vi.fn(),
     createIntegrationVersionMock: vi.fn(),
     integrationProviderUpdatedQueueAddMock: vi.fn(),
@@ -78,7 +81,8 @@ vi.mock('@metorial-subspace/module-deployment', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-auth', () => ({
-  providerAuthCredentialsService: providerAuthCredentialsServiceMock
+  providerAuthCredentialsService: providerAuthCredentialsServiceMock,
+  providerAuthConfigInternalService: { getVersionAndAuthMethod: getVersionAndAuthMethodMock }
 }));
 
 vi.mock('@metorial-subspace/module-callback', () => ({
@@ -319,6 +323,42 @@ describe('integrationProviderService.createIntegrationProvider', () => {
       requiresAuth: false
     });
   });
+
+  it('rejects an incompatible managed app before persisting an integration provider', async () => {
+    providerAuthMethodServiceMock.getProviderAuthMethodByIdInternal.mockResolvedValue({
+      oid: 80n,
+      id: 'pam_1',
+      providerOid: deployment.provider.oid,
+      type: 'oauth'
+    });
+    providerAuthCredentialsServiceMock.getProviderAuthCredentialsByIdInternal.mockResolvedValue(
+      {
+        oid: 70n,
+        id: 'pac_template',
+        providerOid: deployment.provider.oid,
+        status: 'active',
+        origin: 'installation_template'
+      }
+    );
+    getVersionAndAuthMethodMock.mockRejectedValue(
+      new ServiceError(badRequestError({ code: 'managed_credentials_auth_method_mismatch' }))
+    );
+
+    await expect(
+      integrationProviderService.createIntegrationProviderInternal({
+        ...input,
+        input: {
+          providerId: deployment.provider.id,
+          providerDeploymentId: deployment.id,
+          providerAuthMethodId: 'pam_1',
+          providerAuthCredentialsId: 'pac_template'
+        }
+      })
+    ).rejects.toMatchObject({ data: { code: 'managed_credentials_auth_method_mismatch' } });
+
+    expect(tx.integrationProvider.create).not.toHaveBeenCalled();
+    expect(createIntegrationProviderVersionMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('integrationProviderService.resolveUsableIntegrationProviderMaterialInternal', () => {
@@ -330,7 +370,12 @@ describe('integrationProviderService.resolveUsableIntegrationProviderMaterialInt
     type: 'oauth'
   };
 
-  let buildProvider = (authCredentials: { oid: bigint; id: string; status: string }) => ({
+  let buildProvider = (authCredentials: {
+    oid: bigint;
+    id: string;
+    status: string;
+    origin?: string;
+  }) => ({
     ...existingProvider,
     integration: { oid: 10n, id: 'int_1', name: 'Slack' },
     provider: {
@@ -391,6 +436,40 @@ describe('integrationProviderService.resolveUsableIntegrationProviderMaterialInt
       })
     ).resolves.toEqual({ isHealed: false });
 
+    expect(
+      providerAuthCredentialsServiceMock.resolveReplacementProviderAuthCredentialsInternal
+    ).not.toHaveBeenCalled();
+    expect(createIntegrationProviderVersionMock).not.toHaveBeenCalled();
+  });
+
+  it('asks for reconfiguration when the saved managed app is active but incompatible', async () => {
+    let provider = buildProvider({
+      oid: 70n,
+      id: 'pac_managed',
+      status: 'active',
+      origin: 'managed_backing'
+    });
+    db.integrationProvider.findUniqueOrThrow.mockResolvedValue(provider);
+    getVersionAndAuthMethodMock.mockRejectedValue(
+      new ServiceError(badRequestError({ code: 'managed_credentials_auth_method_mismatch' }))
+    );
+
+    await expect(
+      integrationProviderService.resolveUsableIntegrationProviderMaterialInternal({
+        tenant: input.tenant,
+        environment: input.environment,
+        integrationProvider: existingProvider as any
+      })
+    ).rejects.toMatchObject({
+      data: { code: 'integration_provider_oauth_app_incompatible' }
+    });
+    expect(getVersionAndAuthMethodMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentials: provider.currentVersion.authCredentials,
+        providerDeployment: deployment,
+        authMethodId: oauthMethod.id
+      })
+    );
     expect(
       providerAuthCredentialsServiceMock.resolveReplacementProviderAuthCredentialsInternal
     ).not.toHaveBeenCalled();

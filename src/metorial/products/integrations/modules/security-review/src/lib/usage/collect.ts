@@ -1,7 +1,8 @@
 import {
   db,
   type SecurityReviewRevision,
-  type SecurityUsageSnapshot
+  type SecurityUsageSnapshot,
+  withReplicaReads
 } from '@metorial-subspace/db';
 import {
   buildIntegrationProviderToolFilterChain,
@@ -110,23 +111,29 @@ export let collectUsageEvidence = async (d: {
       : [],
     loadSpecification(d.baseRevision.specificationOid),
     loadFilterCombinations({ instanceOid, providerOid }),
-    db.providerToolUsageHourly.groupBy({
-      by: ['toolKey'],
-      where: rollupWhere,
-      _sum: { calls: true, errors: true }
-    }),
-    db.providerProtoGuardHourly.groupBy({
-      by: ['filterKey', 'issueType', 'severity'],
-      where: rollupWhere,
-      _sum: { matches: true, alerts: true }
-    }),
-    db.providerProtoGuardHourly.groupBy({
-      by: ['toolKey', 'filterKey'],
-      where: rollupWhere,
-      _sum: { matches: true },
-      orderBy: { _sum: { matches: 'desc' } },
-      take: MAX_TOOL_FILTER_PAIRS
-    }),
+    withReplicaReads(() =>
+      db.providerToolUsageHourly.groupBy({
+        by: ['toolKey'],
+        where: rollupWhere,
+        _sum: { calls: true, errors: true }
+      })
+    ),
+    withReplicaReads(() =>
+      db.providerProtoGuardHourly.groupBy({
+        by: ['filterKey', 'issueType', 'severity'],
+        where: rollupWhere,
+        _sum: { matches: true, alerts: true }
+      })
+    ),
+    withReplicaReads(() =>
+      db.providerProtoGuardHourly.groupBy({
+        by: ['toolKey', 'filterKey'],
+        where: rollupWhere,
+        _sum: { matches: true },
+        orderBy: { _sum: { matches: 'desc' } },
+        take: MAX_TOOL_FILTER_PAIRS
+      })
+    ),
     loadScopeCounts({ instanceOid, providerOid }),
     loadDailyCalls({ instanceOid, providerOid, since }),
     db.providerAuthConfig.count({ where: { instanceOid, providerOid, status: 'active' } }),

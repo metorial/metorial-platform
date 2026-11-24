@@ -3,6 +3,7 @@ import { useForm } from '@metorial/data-hooks';
 import { IntegrationProvider, useCreateProviderSetupSession } from '@metorial/state';
 import {
   Button,
+  Callout,
   Copy,
   Dialog,
   Input,
@@ -12,6 +13,8 @@ import {
   showModal
 } from '@metorial/ui';
 import { useState } from 'react';
+import { closeAndThen } from '../providerAuthConfigs/modalHelpers';
+import { isProviderSetupCredentialError } from '../providerDeployments/setupSessionRunner';
 import { AdminSetupLinkEmailSection } from './adminSetupLinkEmailSection';
 
 export type AdminSetupIntegrationProvider = Pick<
@@ -30,6 +33,7 @@ export let showAdminSetupLinkModal = (p: {
   instanceId: string;
   integrationProvider: AdminSetupIntegrationProvider;
   providerName: string;
+  onConfigure?: () => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     let createSetupSession = useCreateProviderSetupSession(
@@ -39,6 +43,10 @@ export let showAdminSetupLinkModal = (p: {
     );
     let [created, setCreated] =
       useState<DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput | null>(null);
+    let needsOAuthApp = isProviderSetupCredentialError(
+      createSetupSession.error ?? undefined,
+      p.integrationProvider.authCredentialsId ?? undefined
+    );
 
     let form = useForm({
       initialValues: {
@@ -105,6 +113,15 @@ export let showAdminSetupLinkModal = (p: {
           </>
         ) : (
           <form onSubmit={form.handleSubmit}>
+            {needsOAuthApp && (
+              <>
+                <Callout color="orange">
+                  This integration’s OAuth app is unavailable. Update the app in the provider
+                  settings before creating an admin setup link.
+                </Callout>
+                <Spacer size={16} />
+              </>
+            )}
             <Input label="Name" required {...form.getFieldProps('name')} />
             <form.RenderError field="name" />
 
@@ -123,16 +140,24 @@ export let showAdminSetupLinkModal = (p: {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                loading={createSetupSession.isLoading}
-                success={createSetupSession.isSuccess}
-              >
-                Create Admin Setup Link
-              </Button>
+              {needsOAuthApp ? (
+                p.onConfigure && (
+                  <Button type="button" onClick={() => closeAndThen(close, p.onConfigure)}>
+                    Configure Provider
+                  </Button>
+                )
+              ) : (
+                <Button
+                  type="submit"
+                  loading={createSetupSession.isLoading}
+                  success={createSetupSession.isSuccess}
+                >
+                  Create Admin Setup Link
+                </Button>
+              )}
             </Dialog.Actions>
 
-            <createSetupSession.RenderError />
+            {!needsOAuthApp && <createSetupSession.RenderError />}
           </form>
         )}
       </Dialog.Wrapper>

@@ -22,6 +22,43 @@ afterEach(async () => {
   container.remove();
 });
 
+describe('Badge label wrapping', () => {
+  it.each<BadgeProps>([
+    { variant: 'default', color: 'orange', children: 'Action required' },
+    { variant: 'icon', color: 'blue', icon: <svg />, children: 'Action required' },
+    { variant: 'connection', tone: 'review', children: 'Action required' }
+  ])('allows wrapping only above 40 characters for $variant badges', async props => {
+    await act(async () => root.render(<Badge {...props} />));
+
+    let badge = container.firstElementChild!;
+    expect(getComputedStyle(badge).whiteSpace).toBe('nowrap');
+
+    let label = 'Action required. '.padEnd(40, 'x');
+    await act(async () =>
+      root.render(
+        <Badge {...props}>
+          <>{label.slice(0, 15)}</>
+          {label.slice(15)}
+        </Badge>
+      )
+    );
+
+    expect(getComputedStyle(badge).whiteSpace).toBe('nowrap');
+
+    await act(async () =>
+      root.render(
+        <Badge {...props}>
+          <>{label.slice(0, 15)}</>
+          {label.slice(15)}x
+        </Badge>
+      )
+    );
+
+    expect(getComputedStyle(badge).whiteSpace).toBe('normal');
+    expect(getComputedStyle(badge).overflowWrap).toBe('anywhere');
+  });
+});
+
 describe('Badge loading state', () => {
   it.each(['1', '2', '3'] as const)(
     'keeps the same indicator slot when a size %s machine badge changes status',

@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { env } from '../env';
 import { settleSessionless } from '../lib/sessionless';
 
-let settleDelayMs = 30_000;
+let settleDelayMs = env.sessions.settleDelayMs;
 
 export type SessionlessBucket = { organizationId: string; instanceId: string; bucket: string };
 

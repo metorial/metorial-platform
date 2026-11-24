@@ -3,10 +3,13 @@ import {
   useProviderAuthCredentialsForMethods,
   useProviderListing
 } from '@metorial/state';
-import { Button, Dialog, Spacer, Text, showModal, toast } from '@metorial/ui';
-import { useEffect, useRef } from 'react';
+import { Button, Callout, Dialog, Spacer, Text, showModal, toast } from '@metorial/ui';
+import { useEffect, useRef, useState } from 'react';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
-import { useProviderSetupSessionRunner } from '../providerDeployments/setupSessionRunner';
+import {
+  type SetupSessionCredentialError,
+  useProviderSetupSessionRunner
+} from '../providerDeployments/setupSessionRunner';
 import {
   getProviderAuthCredentialsQuery,
   getRememberedProviderAuthCredentialId
@@ -20,33 +23,48 @@ import {
 
 let AuthenticationWindowDialog = (p: {
   providerName: string;
-  onReopen: () => void;
+  windowBlocked: boolean;
+  onReopen: () => boolean;
   onCancel: () => void;
-}) => (
-  <>
-    <Dialog.Title>Authenticate with {p.providerName}</Dialog.Title>
-    <Dialog.Description>Finish signing in from the authentication window.</Dialog.Description>
-    <Spacer size={16} />
+}) => {
+  let [windowBlocked, setWindowBlocked] = useState(p.windowBlocked);
+  return (
+    <>
+      <Dialog.Title>Authenticate with {p.providerName}</Dialog.Title>
+      <Dialog.Description>
+        Finish signing in from the authentication window.
+      </Dialog.Description>
+      <Spacer size={16} />
 
-    <Text size="2" weight="strong">
-      Continue in the authentication window
-    </Text>
-    <Text size="2" color="gray600">
-      This will update automatically once you have signed in.
-    </Text>
+      <Text size="2" weight="strong">
+        Continue in the authentication window
+      </Text>
+      <Text size="2" color="gray600">
+        This will update automatically once you have signed in.
+      </Text>
 
-    <Spacer size={16} />
+      {windowBlocked && (
+        <>
+          <Spacer size={12} />
+          <Callout color="orange">
+            Your browser blocked the sign-in window. Open it here to continue.
+          </Callout>
+        </>
+      )}
 
-    <Dialog.Actions>
-      <Button type="button" variant="outline" onClick={p.onCancel}>
-        Cancel
-      </Button>
-      <Button type="button" onClick={p.onReopen}>
-        Reopen Window
-      </Button>
-    </Dialog.Actions>
-  </>
-);
+      <Spacer size={16} />
+
+      <Dialog.Actions>
+        <Button type="button" variant="outline" onClick={p.onCancel}>
+          Cancel
+        </Button>
+        <Button type="button" onClick={() => setWindowBlocked(!p.onReopen())}>
+          {windowBlocked ? 'Open Window' : 'Reopen Window'}
+        </Button>
+      </Dialog.Actions>
+    </>
+  );
+};
 
 export let useProviderAuthConfigAuthenticateAction = (p: {
   instanceId: string;
@@ -54,6 +72,7 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
   providerId?: string;
   fixedAuthMethodId?: string;
   fixedAuthCredentialsId?: string;
+  fixedAuthCredentialsSettingsHref?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
   source?: 'explorer';
@@ -98,11 +117,30 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     !credentials.data &&
     !credentials.error;
 
+  let attemptedMethodId = useRef<string | null>(null);
+  let rejectedCredentials = useRef(new Map<string, SetupSessionCredentialError>());
+  let getMethodKey = (methodId: string) =>
+    JSON.stringify([
+      p.instanceId,
+      providerId,
+      p.providerDeploymentId,
+      methodId,
+      p.fixedAuthCredentialsId
+    ]);
+
   let runner = useProviderSetupSessionRunner({
     instanceId: p.instanceId,
     providerId: providerId ?? '',
     providerDeploymentId: p.providerDeploymentId,
     source: p.source,
+    onCredentialError: failure => {
+      let authMethodId = attemptedMethodId.current;
+      if (!authMethodId) return;
+
+      rejectedCredentials.current.set(getMethodKey(authMethodId), failure);
+      void credentials.refetch();
+      openModal(authMethodId, failure);
+    },
     onComplete: setupSession => {
       runner.reset();
       if (!setupSession.authConfig) return;
@@ -128,6 +166,7 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
         <Dialog.Wrapper {...dialogProps} width={450}>
           <AuthenticationWindowDialog
             providerName={providerName}
+            windowBlocked={runner.windowBlocked}
             onReopen={() => runnerRef.current.openWindow()}
             onCancel={close}
           />
@@ -144,14 +183,6 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     toast.error(runner.error);
     runner.setError(null);
   }, [runner.error]);
-
-  useEffect(() => {
-    if (!runner.windowBlocked) return;
-    toast.error(
-      'Your browser blocked the authentication window. Allow pop-ups for this site and try again.'
-    );
-    runner.reset();
-  }, [runner.windowBlocked]);
 
   let getDirectCredentials = (method: AuthMethod) => {
     if (!needsCredentials) return { providerAuthCredentialsId: p.fixedAuthCredentialsId };
@@ -175,21 +206,32 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     return { providerAuthCredentialsId: items[0]!.id };
   };
 
-  let openModal = (authMethodId: string) =>
+  let openModal = (authMethodId: string, credentialError?: SetupSessionCredentialError) =>
     showProviderAuthConfigCreateModal({
       instanceId: p.instanceId,
       providerDeploymentId: p.providerDeploymentId,
       providerId: p.providerId,
       initialAuthMethodId: authMethodId,
       fixedAuthCredentialsId: p.fixedAuthCredentialsId,
+      fixedAuthCredentialsSettingsHref: p.fixedAuthCredentialsSettingsHref,
       authMethodAdapter: p.authMethodAdapter,
       defaultAuthConfigName: p.defaultAuthConfigName,
       source: p.source,
-      onCreate: p.onCreate,
+      credentialError,
+      onCreate: authConfig => {
+        rejectedCredentials.current.delete(getMethodKey(authMethodId));
+        p.onCreate?.(authConfig);
+      },
       onBack: p.onBack
     });
 
   let start = (authMethodId: string) => {
+    let failure = rejectedCredentials.current.get(getMethodKey(authMethodId));
+    if (failure) {
+      openModal(authMethodId, failure);
+      return;
+    }
+
     let method = authCreation.authMethodItems.find(method => method.id === authMethodId);
     let direct =
       method && providerId && isSetupFlowAuthMethod(method) && getDirectCredentials(method);
@@ -200,6 +242,7 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     }
 
     startedDirectlyRef.current = true;
+    attemptedMethodId.current = method.id;
     void runner.start({
       providerAuthMethodId: method.id,
       providerAuthCredentialsId: direct.providerAuthCredentialsId,

@@ -1,10 +1,10 @@
 import type { SsoConnection, SsoTenant } from '@mtsrc/auth-core-db';
+import { htmlEncode } from '@mtsrc/auth-core-http/src/htmlEncode';
 
 export let authSelectConnectionHtml = (d: {
-  tenant: SsoTenant;
-  connections: SsoConnection[];
+  tenant: Pick<SsoTenant, 'name'>;
+  connections: Pick<SsoConnection, 'id' | 'name' | 'providerType' | 'providerName'>[];
   clientSecret: string;
-  currentUrl: string;
 }) => `<!DOCTYPE html>
 <html lang="en">
 
@@ -147,7 +147,7 @@ export let authSelectConnectionHtml = (d: {
   <nav class="navbar">
     <div class="navbar-inner">
       <div class="navbar-left">
-        <span class="tenant-name">${d.tenant.name}</span>
+        <span class="tenant-name">${htmlEncode(d.tenant.name)}</span>
       </div>
       <div class="navbar-right">
         Secured by Metorial
@@ -160,35 +160,22 @@ export let authSelectConnectionHtml = (d: {
       <h1>Select Connection</h1>
       <p>Please select how you would like to authenticate:</p>
 
-      <div class="connections-list">
+      <form class="connections-list" method="get">
+        <input type="hidden" name="client_secret" value="${htmlEncode(d.clientSecret)}" />
         ${d.connections
           .map(
-            connection => `
-          <button class="connection-button" onclick="selectConnection('${connection.id}')">
-            <span class="connection-name">${connection.name}</span>
-            <span class="connection-type">${connection.providerType}${connection.providerName ? ` - ${connection.providerName}` : ''}</span>
+            (connection, index) => `
+          <button class="connection-button" type="submit" name="connection_id" value="${htmlEncode(connection.id)}"${index === 0 ? ' autofocus' : ''}>
+            <span class="connection-name">${htmlEncode(connection.name)}</span>
+            <span class="connection-type">${htmlEncode(connection.providerType)}${connection.providerName ? ` - ${htmlEncode(connection.providerName)}` : ''}</span>
           </button>
         `
           )
           .join('')}
-      </div>
+      </form>
     </div>
   </div>
 
-  <script>
-    function selectConnection(connectionId) {
-      const url = new URL('${d.currentUrl}');
-      url.searchParams.set('connection_id', connectionId);
-      window.location.href = url.toString();
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const firstButton = document.querySelector('.connection-button');
-      if (firstButton) {
-        firstButton.focus();
-      }
-    });
-  </script>
 </body>
 
 </html>`;

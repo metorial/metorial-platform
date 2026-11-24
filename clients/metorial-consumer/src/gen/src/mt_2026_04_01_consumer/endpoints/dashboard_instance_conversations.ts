@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceConversationsEndpoint {
     query?: DashboardInstanceConversationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/conversations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/conversations`;
 
     let request = {
       path,
@@ -95,7 +95,7 @@ export class MetorialDashboardInstanceConversationsEndpoint {
     body: DashboardInstanceConversationsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsCreateOutput> {
-    let path = `dashboard/instances/${instanceId}/conversations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/conversations`;
 
     let request = {
       path,
@@ -125,7 +125,7 @@ export class MetorialDashboardInstanceConversationsEndpoint {
     assistantConversationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/conversations/${assistantConversationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/conversations/${encodeURIComponent(assistantConversationId)}`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardInstanceConversationsEndpoint {
     body: DashboardInstanceConversationsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceConversationsUpdateOutput> {
-    let path = `dashboard/instances/${instanceId}/conversations/${assistantConversationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/conversations/${encodeURIComponent(assistantConversationId)}`;
 
     let request = {
       path,

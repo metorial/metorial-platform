@@ -49,22 +49,13 @@ export type SkillSharePanelContext = {
   skills: SkillSharePanelSkill[];
 };
 
-type ShareCandidate =
-  | {
-      type: 'consumer';
-      id: string;
-      name: string;
-      description: string;
-      imageUrl?: string | null;
-      isOrganizationMember: boolean;
-    }
-  | {
-      type: 'group';
-      id: string;
-      name: string;
-      description: string;
-      imageUrl?: string | null;
-    };
+type ShareCandidate = {
+  type: 'consumer' | 'group';
+  id: string;
+  name: string;
+  description: string;
+  imageUrl?: string | null;
+};
 
 let PanelStack = styled.div`
   display: flex;
@@ -351,7 +342,9 @@ export let SkillSharePanelContent = (p: {
   let [selectedPortalId, setSelectedPortalId] = useState(p.context?.portalId ?? '');
   let [search, setSearch] = useState('');
   let [isSearching, setIsSearching] = useState(false);
-  let [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  let [selectedCandidates, setSelectedCandidates] = useState<Map<string, ShareCandidate>>(
+    new Map()
+  );
   let [permission, setPermission] = useState<InvitePermission>('read');
   let [pendingPermissions, setPendingPermissions] = useState<
     Record<string, AccountPermission | GroupPermission>
@@ -439,7 +432,7 @@ export let SkillSharePanelContent = (p: {
   }, [mode, portals.data?.items, selectedPortalId]);
 
   useEffect(() => {
-    setSelectedKeys(new Set());
+    setSelectedCandidates(new Map());
     setSearch('');
     setIsSearching(false);
     setPendingPermissions({});
@@ -546,8 +539,7 @@ export let SkillSharePanelContent = (p: {
         id: profile.id,
         name: profile.name || profile.email,
         description: profile.email,
-        imageUrl: profile.imageUrl,
-        isOrganizationMember: !!profile.organizationMember
+        imageUrl: profile.imageUrl
       });
     }
 
@@ -579,11 +571,9 @@ export let SkillSharePanelContent = (p: {
     search
   ]);
 
-  let selectedCandidates = candidates.filter(candidate =>
-    selectedKeys.has(`${candidate.type}:${candidate.id}`)
-  );
-  let selectedHasConsumer = selectedCandidates.some(candidate => candidate.type == 'consumer');
-  let selectedHasGroup = selectedCandidates.some(candidate => candidate.type == 'group');
+  let selectedTargets = Array.from(selectedCandidates.values());
+  let selectedHasConsumer = selectedTargets.some(candidate => candidate.type == 'consumer');
+  let selectedHasGroup = selectedTargets.some(candidate => candidate.type == 'group');
   let invitePermissionItems = [
     ...inviteAccessItems,
     ...(canManagePortalGroups && !selectedHasConsumer ? [manageAccessItem] : []),
@@ -592,10 +582,10 @@ export let SkillSharePanelContent = (p: {
 
   let toggleCandidate = (candidate: ShareCandidate) => {
     let key = `${candidate.type}:${candidate.id}`;
-    setSelectedKeys(current => {
-      let next = new Set(current);
+    setSelectedCandidates(current => {
+      let next = new Map(current);
       if (next.has(key)) next.delete(key);
-      else next.add(key);
+      else next.set(key, candidate);
       return next;
     });
   };
@@ -603,7 +593,7 @@ export let SkillSharePanelContent = (p: {
   let stopInviteSearch = () => {
     setSearch('');
     setIsSearching(false);
-    setSelectedKeys(new Set());
+    setSelectedCandidates(new Map());
   };
 
   useEffect(() => {
@@ -697,43 +687,28 @@ export let SkillSharePanelContent = (p: {
   };
 
   let shareWithSelected = async () => {
-    if (!p.instanceId || !selectedSkillId || selectedKeys.size == 0) return;
+    if (!p.instanceId || !selectedSkillId || selectedTargets.length == 0) return;
 
     let consumerProfileIds: string[] = [];
-    let organizationMemberProfileIds: string[] = [];
     let consumerGroupIds: string[] = [];
 
-    for (let candidate of candidates) {
-      if (!selectedKeys.has(`${candidate.type}:${candidate.id}`)) continue;
-
+    for (let candidate of selectedTargets) {
       if (candidate.type == 'group') {
         if (canManagePortalGroups) consumerGroupIds.push(candidate.id);
-      } else if (candidate.isOrganizationMember) {
-        organizationMemberProfileIds.push(candidate.id);
       } else {
         consumerProfileIds.push(candidate.id);
       }
     }
 
-    if (
-      permission == 'manage' &&
-      (consumerProfileIds.length || organizationMemberProfileIds.length)
-    ) {
-      return;
-    }
-
-    for (let [profileIds, profilePermission] of [
-      [consumerProfileIds, permission == 'manage' ? null : permission],
-      [organizationMemberProfileIds, 'read']
-    ] as const) {
-      if (!profileIds.length || !profilePermission) continue;
+    if (consumerProfileIds.length) {
+      if (permission == 'manage') return;
 
       let [shared] = await shareSkill.mutate({
         instanceId: p.instanceId,
         skillId: selectedSkillId,
-        consumerProfileIds: [...profileIds],
+        consumerProfileIds,
         organizationMemberIds: [],
-        permission: profilePermission
+        permission
       });
 
       if (!shared) return;
@@ -817,10 +792,7 @@ export let SkillSharePanelContent = (p: {
     );
   }
 
-  let selectedCount = selectedKeys.size;
-  let selectedHasViewOnly = selectedCandidates.some(
-    candidate => candidate.type == 'consumer' && candidate.isOrganizationMember
-  );
+  let selectedCount = selectedCandidates.size;
   let isSharing = shareSkill.isLoading || createPortalAccess.isLoading;
 
   return (
@@ -894,7 +866,7 @@ export let SkillSharePanelContent = (p: {
                 <RowList>
                   {candidates.map(candidate => {
                     let key = `${candidate.type}:${candidate.id}`;
-                    let selected = selectedKeys.has(key);
+                    let selected = selectedCandidates.has(key);
                     return (
                       <CandidateRow
                         key={key}
@@ -936,9 +908,6 @@ export let SkillSharePanelContent = (p: {
                     {selectedCount
                       ? `${selectedCount} selected`
                       : 'Pick people or access groups'}
-                    {selectedHasViewOnly && permission != 'read'
-                      ? ' · organization members already can edit and share'
-                      : ''}
                     {selectedHasGroup && permission == 'owner'
                       ? ' · groups can edit and share but not own'
                       : ''}

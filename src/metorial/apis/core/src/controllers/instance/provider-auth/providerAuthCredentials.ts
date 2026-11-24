@@ -11,7 +11,11 @@ import { integrationsGroup, instancePath } from '../../../middleware/instanceGro
 import { providerAuthCredentialsPresenter } from '@metorial/presenters';
 
 let normalizePublicOriginParam = (origin: ('custom' | 'managed')[] | undefined) =>
-  origin?.map(value => (value === 'custom' ? 'tenant_created' : 'managed_backing'));
+  origin?.flatMap(value =>
+    value === 'custom'
+      ? (['tenant_created'] as const)
+      : (['managed_backing', 'installation_template'] as const)
+  );
 
 let providerAuthCredentialsGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthCredentialsId) {

@@ -2,7 +2,6 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
-  dbPrimary,
   getId,
   type ProviderAuthConfig,
   type ProviderAuthConfigVersion,
@@ -240,7 +239,7 @@ class providerDeploymentConfigPairInternalServiceImpl {
         oid: pairVersionOid,
         timeoutMs: discoveryTimeoutMs,
         isFinished: async () => {
-          let current = await dbPrimary.providerDeploymentConfigPairProviderVersion.findFirst({
+          let current = await db.providerDeploymentConfigPairProviderVersion.findFirst({
             where: { oid: pairVersionOid },
             select: { specificationDiscoveryStatus: true }
           });
@@ -248,11 +247,10 @@ class providerDeploymentConfigPairInternalServiceImpl {
         }
       });
 
-      res.version =
-        await dbPrimary.providerDeploymentConfigPairProviderVersion.findFirstOrThrow({
-          where: { oid: pairVersionOid },
-          include: { latestDiscoveryRecord: true }
-        });
+      res.version = await db.providerDeploymentConfigPairProviderVersion.findFirstOrThrow({
+        where: { oid: pairVersionOid },
+        include: { latestDiscoveryRecord: true }
+      });
     }
 
     if (res.pair.lastUsedPairVersionOid !== res.version.oid) {

@@ -35,7 +35,8 @@ vi.mock('@metorial-subspace/db', () => ({
         return (target as any)[key];
       }
     }
-  )
+  ),
+  withReplicaReads: (cb: () => unknown) => cb()
 }));
 
 vi.mock('@metorial-subspace/module-provider-internal', () => ({

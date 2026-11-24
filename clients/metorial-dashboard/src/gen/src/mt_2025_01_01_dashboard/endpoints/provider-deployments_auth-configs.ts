@@ -95,7 +95,7 @@ export class MetorialProviderDeploymentsAuthConfigsEndpoint {
     providerAuthConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsGetOutput> {
-    let path = `provider-auth-configs/${providerAuthConfigId}`;
+    let path = `provider-auth-configs/${encodeURIComponent(providerAuthConfigId)}`;
 
     let request = {
       path,
@@ -154,7 +154,7 @@ export class MetorialProviderDeploymentsAuthConfigsEndpoint {
     body: DashboardInstanceProviderDeploymentsAuthConfigsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsUpdateOutput> {
-    let path = `provider-auth-configs/${providerAuthConfigId}`;
+    let path = `provider-auth-configs/${encodeURIComponent(providerAuthConfigId)}`;
 
     let request = {
       path,
@@ -184,7 +184,7 @@ export class MetorialProviderDeploymentsAuthConfigsEndpoint {
     providerAuthConfigId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceProviderDeploymentsAuthConfigsDeleteOutput> {
-    let path = `provider-auth-configs/${providerAuthConfigId}`;
+    let path = `provider-auth-configs/${encodeURIComponent(providerAuthConfigId)}`;
 
     let request = {
       path,

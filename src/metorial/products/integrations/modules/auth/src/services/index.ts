@@ -3,6 +3,7 @@ export * from './authConfigErrorGlobal';
 export * from './authConfigEvent';
 export * from './managedProviderAuthCredentials';
 export * from './providerAuthConfig';
+export * from './providerAuthConfigInternal';
 export * from './providerAuthCredentials';
 export * from './providerAuthExport';
 export * from './providerAuthImport';

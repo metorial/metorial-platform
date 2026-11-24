@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -49,6 +50,9 @@ type Build struct {
 	Status        Status
 	ExitCode      *int
 	FailureReason *string
+	FailureCode   string
+	PendingReason *string
+	PendingCode   string
 	UploadedSteps []string
 	StartedAt     *time.Time
 	FinishedAt    *time.Time
@@ -137,7 +141,7 @@ func (m *Manager) Start(ctx context.Context, req *StartRequest) (*Build, error) 
 			return nil, err
 		}
 	} else if err != nil {
-		return nil, fmt.Errorf("create build secret: %w", err)
+		return nil, admissionError("create build secret", err)
 	}
 
 	created, err := m.cluster.Kube.BatchV1().Jobs(m.namespace()).Create(ctx, job, metav1.CreateOptions{FieldManager: kube.ManagedBy})
@@ -148,7 +152,7 @@ func (m *Manager) Start(ctx context.Context, req *StartRequest) (*Build, error) 
 			return nil, err
 		}
 	case err != nil:
-		return nil, fmt.Errorf("create build job: %w", err)
+		return nil, admissionError("create build job", err)
 	default:
 		m.metrics.BuildsStarted.Inc()
 		m.log.Info("started build", "runId", req.RunID, "job", created.Name)
@@ -179,7 +183,17 @@ func (m *Manager) Get(ctx context.Context, runID string) (*Build, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.view(job), nil
+	pod := m.latestPod(job)
+	build := buildView(job, pod)
+	if build.Status == StatusPending && build.PendingReason == nil {
+		if pod == nil {
+			m.describeFailedCreate(ctx, job, build)
+		} else if event := m.latestWarningEvent(ctx, pod.UID, ""); event != nil && event.Reason != "FailedScheduling" {
+			build.PendingReason = ptr.To(describeReason(event.Reason, event.Message))
+			build.PendingCode = "startup"
+		}
+	}
+	return build, nil
 }
 
 func (m *Manager) latestPod(job *batchv1.Job) *corev1.Pod {
@@ -194,31 +208,54 @@ func (m *Manager) latestPod(job *batchv1.Job) *corev1.Pod {
 }
 
 func (m *Manager) view(job *batchv1.Job) *Build {
+	return buildView(job, m.latestPod(job))
+}
+
+func buildView(job *batchv1.Job, pod *corev1.Pod) *Build {
 	b := &Build{
 		RunID:         job.Labels[kube.LabelBuildID],
 		Name:          job.Name,
 		Status:        StatusPending,
 		UploadedSteps: uploadedSteps(job),
 	}
-	if job.Status.StartTime != nil {
-		b.StartedAt = ptr.To(job.Status.StartTime.Time)
-	}
-
-	pod := m.latestPod(job)
 	if pod != nil {
 		for _, cs := range pod.Status.ContainerStatuses {
 			if cs.Name != containerName {
 				continue
 			}
+			if r := cs.State.Running; r != nil && !r.StartedAt.IsZero() {
+				b.StartedAt = ptr.To(r.StartedAt.Time)
+			}
 			if t := cs.State.Terminated; t != nil {
+				if !t.StartedAt.IsZero() {
+					b.StartedAt = ptr.To(t.StartedAt.Time)
+				}
+				if !t.FinishedAt.IsZero() {
+					b.FinishedAt = ptr.To(t.FinishedAt.Time)
+				}
 				b.ExitCode = ptr.To(int(t.ExitCode))
 				if t.Reason != "" && t.Reason != "Completed" && t.Reason != "Error" {
 					b.FailureReason = ptr.To(t.Reason)
+				}
+				if t.Reason == "OOMKilled" {
+					b.FailureCode = "build_out_of_memory"
 				}
 			}
 		}
 		if pod.Status.Phase == corev1.PodRunning {
 			b.Status = StatusRunning
+		}
+		if pod.Status.Phase == corev1.PodPending {
+			b.PendingReason = podPendingReason(pod)
+			if b.PendingReason != nil {
+				b.PendingCode = classifyPendingReason(*b.PendingReason)
+			}
+		}
+		if pod.Status.Phase == corev1.PodFailed && pod.Status.Reason != "" && b.FailureReason == nil {
+			b.FailureReason = ptr.To(describeReason(pod.Status.Reason, pod.Status.Message))
+			if pod.Status.Reason == "Evicted" {
+				b.FailureCode = "build_pod_evicted"
+			}
 		}
 	}
 
@@ -232,18 +269,135 @@ func (m *Manager) view(job *batchv1.Job) *Build {
 			if c.Status != corev1.ConditionTrue {
 				continue
 			}
-			if c.Type == batchv1.JobFailed && b.FailureReason == nil {
-				b.FailureReason = ptr.To(strings.TrimSpace(c.Reason + ": " + c.Message))
+			if c.Type == batchv1.JobFailed {
+				if b.FailureReason == nil {
+					b.FailureReason = ptr.To(describeReason(c.Reason, c.Message))
+				}
+				if b.FailureCode == "" && c.Reason == batchv1.JobReasonDeadlineExceeded {
+					b.FailureCode = "build_deadline_exceeded"
+				}
 			}
-			if c.Type == batchv1.JobComplete || c.Type == batchv1.JobFailed {
+			if b.FinishedAt == nil && (c.Type == batchv1.JobComplete || c.Type == batchv1.JobFailed) {
 				b.FinishedAt = ptr.To(c.LastTransitionTime.Time)
 			}
 		}
-		if job.Status.CompletionTime != nil {
+		if b.FinishedAt == nil && job.Status.CompletionTime != nil {
 			b.FinishedAt = ptr.To(job.Status.CompletionTime.Time)
 		}
 	}
 	return b
+}
+
+// podPendingReason explains why a build pod has not started: the scheduler could not place it
+// (e.g. insufficient memory) or its container is stuck waiting (e.g. an image pull failure).
+func podPendingReason(pod *corev1.Pod) *string {
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && c.Reason != "" {
+			return ptr.To(describeReason(c.Reason, c.Message))
+		}
+	}
+	for _, cs := range pod.Status.ContainerStatuses {
+		if w := cs.State.Waiting; w != nil && w.Reason != "" && w.Reason != "ContainerCreating" && w.Reason != "PodInitializing" {
+			return ptr.To(describeReason(w.Reason, w.Message))
+		}
+	}
+	return nil
+}
+
+type AdmissionError struct {
+	Quota  bool
+	Reason string
+}
+
+func (e *AdmissionError) Error() string { return e.Reason }
+
+func admissionError(action string, err error) error {
+	if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) ||
+		apierrors.IsInvalid(err) || apierrors.IsBadRequest(err) {
+		return &AdmissionError{
+			Quota:  isQuotaMessage(err.Error()),
+			Reason: describeReason(action, err.Error()),
+		}
+	}
+	return fmt.Errorf("%s: %w", action, err)
+}
+
+func isQuotaMessage(message string) bool {
+	return strings.Contains(strings.ToLower(message), "exceeded quota:")
+}
+
+func describeReason(reason, message string) string {
+	if message == "" {
+		return reason
+	}
+	return reason + ": " + message
+}
+
+func classifyPendingReason(reason string) string {
+	if strings.HasPrefix(reason, "Unschedulable:") {
+		message := strings.ToLower(reason)
+		if strings.Contains(message, "insufficient ") || strings.Contains(message, "too many pods") {
+			return "capacity"
+		}
+		return "scheduling"
+	}
+	return "startup"
+}
+
+func (m *Manager) describeFailedCreate(ctx context.Context, job *batchv1.Job, build *Build) {
+	if job.Status.Active != 0 {
+		return
+	}
+
+	latest := m.latestWarningEvent(ctx, job.UID, "FailedCreate")
+	if latest == nil {
+		return
+	}
+
+	reason := describeReason(latest.Reason, latest.Message)
+	build.PendingReason = ptr.To(reason)
+	switch message := strings.ToLower(latest.Message); {
+	case isQuotaMessage(message):
+		build.PendingCode = "quota"
+	case strings.Contains(message, "forbidden") || strings.Contains(message, "denied the request") ||
+		strings.Contains(message, " is invalid"):
+		build.Status = StatusFailed
+		build.FailureCode = "build_admission_rejected"
+		build.FailureReason = ptr.To(reason)
+	default:
+		build.PendingCode = "startup"
+	}
+}
+
+func (m *Manager) latestWarningEvent(ctx context.Context, uid types.UID, reason string) *corev1.Event {
+	selector := fields.Set{"involvedObject.uid": string(uid), "type": corev1.EventTypeWarning}
+	if reason != "" {
+		selector["reason"] = reason
+	}
+
+	events, err := m.cluster.Kube.CoreV1().Events(m.namespace()).List(ctx, metav1.ListOptions{
+		FieldSelector: selector.AsSelector().String(),
+	})
+	if err != nil {
+		m.log.Debug("could not read build events", "uid", uid, "error", err)
+		return nil
+	}
+
+	var latest *corev1.Event
+	var latestAt time.Time
+	for i := range events.Items {
+		event := &events.Items[i]
+		at := event.LastTimestamp.Time
+		if event.Series != nil {
+			at = event.Series.LastObservedTime.Time
+		} else if at.IsZero() {
+			at = event.EventTime.Time
+		}
+		if latest == nil || at.After(latestAt) {
+			latest, latestAt = event, at
+		}
+	}
+	return latest
 }
 
 type uploadRecord struct {

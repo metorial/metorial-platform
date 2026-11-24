@@ -123,7 +123,7 @@ describe('module-custom-provider failing deployments', () => {
     expect(deployment.shuttleCustomServerDeploymentOid).toBeNull();
   }, 180_000);
 
-  it('keeps a custom provider whose first deployment failed before a version was created visible', async () => {
+  it('keeps a failed container provider visible when a retry is rejected', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
 
     let created = await customProviderService.createCustomProvider({
@@ -151,17 +151,37 @@ describe('module-custom-provider failing deployments', () => {
     );
     expect(listed.map(item => item.id)).toEqual([created.id]);
 
-    let retry = await customProviderVersionService.createCustomProviderVersion({
-      instance: fixture.instance,
-      organizationActor: fixture.actor,
-      auditScope: fixture.auditScope,
-      customProvider,
-      input: {
-        message: 'Retry',
-        from: { type: 'container', repository: { imageRef: 'ghcr.io/metorial/e2e:latest' } }
-      }
+    let error = await expectServiceError(
+      customProviderVersionService.createCustomProviderVersion({
+        instance: fixture.instance,
+        organizationActor: fixture.actor,
+        auditScope: fixture.auditScope,
+        customProvider,
+        input: {
+          message: 'Retry',
+          from: {
+            type: 'container',
+            repository: { imageRef: 'ghcr.io/metorial/e2e:latest' }
+          }
+        }
+      }),
+      'forbidden'
+    );
+    expect(error.message).toBe('Docker MCP servers are currently disabled.');
+
+    let stored = await subspaceDb.customProvider.findUniqueOrThrow({
+      where: { oid: created.oid }
     });
-    expect(retry.versionIndex).toBe(2);
+    expect(stored.maxVersionIndex).toBe(1);
+    expect(stored.payload.from).toEqual({
+      type: 'container',
+      repository: { imageRef: '' }
+    });
+    expect(
+      await subspaceDb.customProviderVersion.count({
+        where: { customProviderOid: created.oid }
+      })
+    ).toBe(1);
   }, 180_000);
 
   it('rejects invalid custom provider input', async () => {

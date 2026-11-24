@@ -8,12 +8,6 @@ let mocks = vi.hoisted(() => {
     pairFindUnique,
     pairUpsert,
     waitForDiscovery: vi.fn(),
-    dbPrimary: {
-      providerDeploymentConfigPairProviderVersion: {
-        findFirst: vi.fn(),
-        findFirstOrThrow: vi.fn()
-      }
-    },
     db: {
       providerDeploymentConfigPair: {
         findUnique: pairFindUnique,
@@ -43,7 +37,6 @@ vi.mock('../lib/discoverySignal', () => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
-  dbPrimary: mocks.dbPrimary,
   getId: (model: string) => ({ oid: 100n, id: `${model}_id` }),
   withTransaction: async (fn: (tx: typeof mocks.db) => Promise<unknown>) => await fn(mocks.db),
   addAfterTransactionHook: async (fn: () => Promise<unknown>) => await fn()
@@ -108,13 +101,13 @@ describe('providerDeploymentConfigPairInternalService', () => {
     expect(create.instanceOid).toBeNull();
   });
 
-  it('waits for the discovery signal and re-reads the pair version once from the primary', async () => {
+  it('waits for the discovery signal and re-reads the pair version once', async () => {
     let pair = { oid: 20n, id: 'pair_1', lastUsedPairVersionOid: null };
     let discovering = { oid: 30n, specificationDiscoveryStatus: 'discovering' };
     let discovered = { ...discovering, specificationDiscoveryStatus: 'discovered' };
 
     mocks.pairFindUnique.mockResolvedValue({ ...pair, versions: [discovering] });
-    mocks.dbPrimary.providerDeploymentConfigPairProviderVersion.findFirstOrThrow.mockResolvedValue(
+    mocks.db.providerDeploymentConfigPairProviderVersion.findFirstOrThrow.mockResolvedValue(
       discovered
     );
 
@@ -127,11 +120,8 @@ describe('providerDeploymentConfigPairInternalService', () => {
       expect.objectContaining({ kind: 'pairVersion', oid: discovering.oid })
     );
     expect(
-      mocks.dbPrimary.providerDeploymentConfigPairProviderVersion.findFirstOrThrow
-    ).toHaveBeenCalledTimes(1);
-    expect(
       mocks.db.providerDeploymentConfigPairProviderVersion.findFirstOrThrow
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalledTimes(1);
     expect(res.version).toBe(discovered);
   });
 

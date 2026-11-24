@@ -183,6 +183,16 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     description:
       'These endpoints manage networks, enclaves, firewalls, firewall bindings, and network policies.'
   },
+  'instance.ai_gateway': {
+    name: 'AI Gateway',
+    description:
+      'These endpoints manage the AI gateway of an instance: its settings, gateway tokens, provider connections, virtual models, the model catalog, and usage.'
+  },
+  'instance.ai_gateway.inference_log': {
+    name: 'AI Gateway Inference Logs',
+    description:
+      'These endpoints read the requests sent through the AI gateway, including stored prompts and responses.'
+  },
   'instance.server.config_vault': {
     name: 'Server Config Vaults',
     description: 'These endpoints manage secure server configuration vault values.'

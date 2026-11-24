@@ -11,6 +11,12 @@ type DatabaseParts = {
   name?: string;
 };
 
+type DatabaseUrlOptions = {
+  prefix: string;
+  urlKey: string;
+  required?: boolean;
+};
+
 let encode = (value?: string) => encodeURIComponent(value ?? '');
 
 export let buildPostgresUrl = (database: DatabaseParts) =>
@@ -38,31 +44,28 @@ export let buildMongoUrl = (d: {
   return `mongodb://${encode(d.username)}:${encode(d.password)}@${d.host}:${d.port}/${encode(d.database)}?${options}`;
 };
 
-export let getReaderHost = (host?: string) => host?.replace('.cluster-', '.cluster-ro-');
-
 let getDatabaseParts = (env: ServiceEnvironment, prefix: string): DatabaseParts => ({
-  username: env[`${prefix}_DB_USERNAME`],
-  password: env[`${prefix}_DB_PASSWORD`],
-  host: env[`${prefix}_DB_HOST`],
-  port: env[`${prefix}_DB_PORT`],
-  name: env[`${prefix}_DB_NAME`]
+  username: env[`${prefix}_USERNAME`],
+  password: env[`${prefix}_PASSWORD`],
+  host: env[`${prefix}_HOST`],
+  port: env[`${prefix}_PORT`],
+  name: env[`${prefix}_NAME`]
 });
 
-let setDatabaseUrl = (
-  env: ServiceEnvironment,
-  prefix: string,
-  urlKey: string,
-  readerUrlKey: string
-) => {
-  let database = getDatabaseParts(env, prefix);
+export let initializeDatabaseUrl = (env: ServiceEnvironment, opts: DatabaseUrlOptions) => {
+  let database = getDatabaseParts(env, opts.prefix);
+  if (opts.required && Object.values(database).some(part => !part)) {
+    throw new Error(
+      `${opts.urlKey} is not set and ${opts.prefix}_* component env vars are missing`
+    );
+  }
   if (!database.host) return;
 
-  env[urlKey] = buildPostgresUrl(database);
-  if (env.DATABASE_READER === 'true') {
-    env[readerUrlKey] = buildPostgresUrl({
-      ...database,
-      host: getReaderHost(database.host)
-    });
+  env[opts.urlKey] = buildPostgresUrl(database);
+
+  let readerHost = env[`${opts.prefix}_READER_HOST`];
+  if (env.DATABASE_READER === 'true' && readerHost) {
+    env[`${opts.urlKey}_READER`] = buildPostgresUrl({ ...database, host: readerHost });
   }
 };
 
@@ -131,36 +134,21 @@ export let initializeRedisUrl = (env: ServiceEnvironment) => {
 export let initializeMetorialServiceEnvironment = async (
   env: ServiceEnvironment = process.env
 ) => {
-  if (!env.DATABASE_URL && env.DATABASE_HOST) {
-    let legacyDatabase = {
-      username: env.DATABASE_USERNAME,
-      password: env.DATABASE_PASSWORD,
-      host: env.DATABASE_HOST,
-      port: env.DATABASE_PORT,
-      name: env.DATABASE_NAME
-    };
-    env.DATABASE_URL = buildPostgresUrl(legacyDatabase);
-    if (env.DATABASE_READER === 'true') {
-      env.DATABASE_URL_READER = buildPostgresUrl({
-        ...legacyDatabase,
-        host: getReaderHost(legacyDatabase.host)
-      });
-    }
+  if (!env.DATABASE_URL) {
+    initializeDatabaseUrl(env, { prefix: 'DATABASE', urlKey: 'DATABASE_URL' });
   }
 
   if (env.AWS_MODE) {
-    setDatabaseUrl(
-      env,
-      'FEDERATION',
-      'FEDERATION_CORE_DATABASE_URL',
-      'FEDERATION_CORE_DATABASE_URL_READER'
-    );
-    setDatabaseUrl(env, 'PAYMENT', 'PAYMENT_DATABASE_URL', 'PAYMENT_DATABASE_URL_READER');
-    setDatabaseUrl(env, 'CORE', 'DATABASE_URL', 'DATABASE_URL_READER');
-    setDatabaseUrl(env, 'SUBSPACE', 'SUBSPACE_DATABASE_URL', 'SUBSPACE_DATABASE_URL_READER');
+    initializeDatabaseUrl(env, {
+      prefix: 'FEDERATION_DB',
+      urlKey: 'FEDERATION_CORE_DATABASE_URL'
+    });
+    initializeDatabaseUrl(env, { prefix: 'PAYMENT_DB', urlKey: 'PAYMENT_DATABASE_URL' });
+    initializeDatabaseUrl(env, { prefix: 'CORE_DB', urlKey: 'DATABASE_URL' });
+    initializeDatabaseUrl(env, { prefix: 'SUBSPACE_DB', urlKey: 'SUBSPACE_DATABASE_URL' });
 
-    if (!env.GLOBAL_DATABASE_URL) {
-      setDatabaseUrl(env, 'GLOBAL', 'GLOBAL_DATABASE_URL', 'GLOBAL_DATABASE_URL_READER');
+    if (!env.GLOBAL_DATABASE_URL && env.GLOBAL_DB_HOST) {
+      env.GLOBAL_DATABASE_URL = buildPostgresUrl(getDatabaseParts(env, 'GLOBAL_DB'));
     }
     await signGlobalDatabaseUrlWithIam(env);
 

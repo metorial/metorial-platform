@@ -19,7 +19,8 @@ vi.mock('@metorial/config', () => ({
   getConfig: vi.fn(() => ({
     urls: {
       appUrl: 'https://app.test',
-      apiUrl: 'https://api.test'
+      apiUrl: 'https://api.test/v1',
+      connectUrl: 'https://api.test'
     }
   }))
 }));

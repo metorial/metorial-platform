@@ -75,7 +75,7 @@ export class MetorialManagementInstanceChatsMessagesEndpoint {
     query?: DashboardInstanceChatsMessagesListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesListOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/messages`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/messages`;
 
     let request = {
       path,
@@ -111,7 +111,7 @@ export class MetorialManagementInstanceChatsMessagesEndpoint {
     query?: DashboardInstanceChatsMessagesGetQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesGetOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/messages/${messageId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
 
     let request = {
       path,
@@ -145,7 +145,7 @@ export class MetorialManagementInstanceChatsMessagesEndpoint {
     body: DashboardInstanceChatsMessagesCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesCreateOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/messages`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/messages`;
 
     let request = {
       path,
@@ -179,7 +179,7 @@ export class MetorialManagementInstanceChatsMessagesEndpoint {
     body: DashboardInstanceChatsMessagesUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesUpdateOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/messages/${messageId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
 
     let request = {
       path,
@@ -213,7 +213,7 @@ export class MetorialManagementInstanceChatsMessagesEndpoint {
     query?: DashboardInstanceChatsMessagesDeleteQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesDeleteOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/messages/${messageId}`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
 
     let request = {
       path,
@@ -249,7 +249,7 @@ export class MetorialManagementInstanceChatsMessagesEndpoint {
     body: DashboardInstanceChatsMessagesReadBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceChatsMessagesReadOutput> {
-    let path = `instances/${instanceId}/chats/${chatId}/messages/${messageId}/read`;
+    let path = `instances/${encodeURIComponent(instanceId)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}/read`;
 
     let request = {
       path,

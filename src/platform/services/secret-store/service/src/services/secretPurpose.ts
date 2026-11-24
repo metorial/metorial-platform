@@ -1,6 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { SecretPurpose } from '../../prisma/generated/client';
+import { Prisma, type SecretPurpose } from '../../prisma/generated/client';
 import { db } from '../db';
 import { get4ByteIntId } from '../id';
 import { secretPurposeCache } from '../lib/secretPurposeCache';
@@ -25,14 +25,25 @@ class SecretPurposeServiceImpl {
     let cached = await secretPurposeCache.getByIdentifierOrLoad(identifier);
     if (cached) return cached;
 
-    let purpose = await db.secretPurpose.upsert({
-      where: { identifier },
-      update: {},
-      create: {
-        oid: get4ByteIntId(),
-        identifier
+    let purpose;
+    try {
+      // A nonempty update lets Prisma use PostgreSQL's atomic upsert.
+      purpose = await db.secretPurpose.upsert({
+        where: { identifier },
+        update: { identifier },
+        create: {
+          oid: get4ByteIntId(),
+          identifier
+        }
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        throw error;
       }
-    });
+
+      purpose = await db.secretPurpose.findUnique({ where: { identifier } });
+      if (!purpose) throw error;
+    }
 
     secretPurposeCache.set(purpose);
     return purpose;

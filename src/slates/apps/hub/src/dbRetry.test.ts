@@ -1,11 +1,13 @@
-import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
-import { readReplicas } from '@prisma/extension-read-replicas';
+import { createDatabase, createPrismaPgAdapter, withReplicaReads } from '@lowerdeck/prisma-pg';
 import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakePg, dnsError } from '../../../../lib/storage/prisma-pg/test/fakeClient';
 import { PrismaClient } from '../prisma/generated/client';
 
 let clients: PrismaClient[] = [];
+
+let sentQueries = (state: { queries: string[] }) =>
+  state.queries.filter(query => !query.includes('pg_is_in_recovery'));
 
 let createClient = (role: 'primary' | 'replica' = 'primary') => {
   let driver = createFakePg();
@@ -56,7 +58,7 @@ describe('Prisma connection retries', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ id: 'synthetic-test' });
     expect(state.connectCount).toBe(2);
-    expect(state.queries).toHaveLength(1);
+    expect(sentQueries(state)).toHaveLength(1);
   });
 
   it('executes a write once after two acquisition failures', async () => {
@@ -68,19 +70,20 @@ describe('Prisma connection retries', () => {
     ).resolves.toBe(1);
 
     expect(state.connectCount).toBe(3);
-    expect(state.queries).toEqual(['UPDATE counter SET value = value + 1']);
+    expect(sentQueries(state)).toEqual(['UPDATE counter SET value = value + 1']);
   });
 
   it('does not replay a write after SQL has been dispatched', async () => {
     let { client, state } = createClient();
     state.queryError = dnsError();
+    state.failQuery = 'UPDATE';
 
     await expect(
       client.$executeRawUnsafe('UPDATE counter SET value = value + 1')
     ).rejects.toBeDefined();
 
     expect(state.connectCount).toBe(1);
-    expect(state.queries).toHaveLength(1);
+    expect(sentQueries(state)).toHaveLength(1);
   });
 
   // These tests exercise Prisma's transaction boundary; application code uses withTransaction.
@@ -95,7 +98,11 @@ describe('Prisma connection retries', () => {
 
     expect(state.connectCount).toBe(2);
     expect(callback).toHaveBeenCalledOnce();
-    expect(state.queries).toEqual(['BEGIN', 'UPDATE counter SET value = value + 1', 'COMMIT']);
+    expect(sentQueries(state)).toEqual([
+      'BEGIN',
+      'UPDATE counter SET value = value + 1',
+      'COMMIT'
+    ]);
   });
 
   it.each(['UPDATE', 'COMMIT'])(
@@ -112,21 +119,38 @@ describe('Prisma connection retries', () => {
 
       expect(callback).toHaveBeenCalledOnce();
       expect(state.connectCount).toBe(1);
-      expect(state.queries.filter(query => query === 'BEGIN')).toHaveLength(1);
-      expect(state.queries.filter(query => query.startsWith('UPDATE'))).toHaveLength(1);
+      expect(sentQueries(state).filter(query => query === 'BEGIN')).toHaveLength(1);
+      expect(sentQueries(state).filter(query => query.startsWith('UPDATE'))).toHaveLength(1);
     }
   );
 
   it('retries the reader pool without changing replica routing', async () => {
-    let primary = createClient();
-    let replica = createClient('replica');
+    let primary = createFakePg();
+    let replica = createFakePg();
     replica.state.connectErrors = [dnsError()];
-    let routed = primary.client.$extends(readReplicas({ replicas: [replica.client] }));
-
-    let result = await routed.slateWebhookEvent.findUnique({
-      where: { id: 'synthetic-test' },
-      select: { id: true }
+    let { db } = createDatabase({
+      name: 'test',
+      url: 'DATABASE_URL',
+      environment: 'development',
+      env: {
+        DATABASE_URL: 'postgresql://test@primary.test/test',
+        DATABASE_URL_READER: 'postgresql://test@reader.test/test'
+      },
+      pool: {
+        Client: primary.Client,
+        idleTimeoutMillis: 0,
+        replica: { Client: replica.Client }
+      },
+      createClient: adapter => new PrismaClient({ adapter })
     });
+    clients.push(db);
+
+    let result = await withReplicaReads(() =>
+      db.slateWebhookEvent.findUnique({
+        where: { id: 'synthetic-test' },
+        select: { id: true }
+      })
+    );
 
     expect(result).toEqual({ id: 'synthetic-test' });
     expect(primary.state.connectCount).toBe(0);

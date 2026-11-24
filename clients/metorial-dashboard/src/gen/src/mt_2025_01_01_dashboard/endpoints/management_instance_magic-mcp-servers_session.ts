@@ -51,7 +51,7 @@ export class MetorialManagementInstanceMagicMcpServersSessionEndpoint {
     magicMcpServerId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceMagicMcpServersSessionCreateOutput> {
-    let path = `instances/${instanceId}/magic-mcp-servers/${magicMcpServerId}/session`;
+    let path = `instances/${encodeURIComponent(instanceId)}/magic-mcp-servers/${encodeURIComponent(magicMcpServerId)}/session`;
 
     let request = {
       path,

@@ -59,7 +59,7 @@ export class MetorialManagementInstanceSandboxImagesBuildsEndpoint {
     query?: DashboardInstanceSandboxImagesBuildsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesBuildsListOutput> {
-    let path = `instances/${instanceId}/sandbox/images/${imageId}/builds`;
+    let path = `instances/${encodeURIComponent(instanceId)}/sandbox/images/${encodeURIComponent(imageId)}/builds`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialManagementInstanceSandboxImagesBuildsEndpoint {
     body: DashboardInstanceSandboxImagesBuildsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImagesBuildsCreateOutput> {
-    let path = `instances/${instanceId}/sandbox/images/${imageId}/builds`;
+    let path = `instances/${encodeURIComponent(instanceId)}/sandbox/images/${encodeURIComponent(imageId)}/builds`;
 
     let request = {
       path,

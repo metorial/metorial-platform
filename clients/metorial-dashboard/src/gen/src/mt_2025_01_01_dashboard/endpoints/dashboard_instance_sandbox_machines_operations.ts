@@ -57,7 +57,7 @@ export class MetorialDashboardInstanceSandboxMachinesOperationsEndpoint {
     query?: DashboardInstanceSandboxMachinesOperationsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesOperationsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/operations`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/operations`;
 
     let request = {
       path,
@@ -93,7 +93,7 @@ export class MetorialDashboardInstanceSandboxMachinesOperationsEndpoint {
     operationId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxMachinesOperationsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/operations/${operationId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/machines/${encodeURIComponent(machineId)}/operations/${encodeURIComponent(operationId)}`;
 
     let request = {
       path,

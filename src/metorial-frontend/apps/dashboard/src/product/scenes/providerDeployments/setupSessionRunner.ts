@@ -27,20 +27,20 @@ export type SetupSessionStartInput = {
   openWindow?: boolean;
 };
 
-let getErrorMessage = (err: unknown) => {
-  if (err && typeof err === 'object') {
-    if ('response' in err) {
-      let message = (err as { response?: { message?: string } }).response?.message;
-      if (message) return message;
-    }
-    if ('message' in err) {
-      let message = String((err as { message?: string }).message ?? '');
-      if (message) return message;
-    }
-  }
-
-  return 'Failed to create setup session.';
+export type SetupSessionCredentialError = {
+  credentialId?: string;
 };
+
+export let isProviderSetupCredentialError = (
+  error: { code?: string; entityId?: string | null; id?: string | null } | undefined,
+  credentialId?: string
+) =>
+  error?.code === 'managed_credentials_auth_method_mismatch' ||
+  error?.code === 'managed_credentials_auth_method_unavailable' ||
+  error?.code === 'missing_auth_credentials' ||
+  (!!credentialId &&
+    (error?.entityId ?? error?.id) === credentialId &&
+    (error?.code === 'not_found' || error?.code === 'use_after_delete'));
 
 let isPastExpiry = (setupSession: SetupSessionState) => {
   let expiresAt = new Date(setupSession.expiresAt).getTime();
@@ -62,6 +62,7 @@ export let useProviderSetupSessionRunner = (p: {
   providerId: string;
   providerDeploymentId?: string;
   source?: 'explorer';
+  onCredentialError?: (error: SetupSessionCredentialError) => void;
   onComplete: (
     setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
   ) => void;
@@ -79,6 +80,8 @@ export let useProviderSetupSessionRunner = (p: {
   let [windowBlocked, setWindowBlocked] = useState(false);
 
   let windowRef = useRef<Window | null>(null);
+  let attemptRef = useRef(0);
+  let startingRef = useRef(false);
   let completedRef = useRef(false);
   let onCompleteRef = useRef(p.onComplete);
   let getSetupSessionRef = useRef(getSetupSession);
@@ -88,6 +91,7 @@ export let useProviderSetupSessionRunner = (p: {
 
   useEffect(
     () => () => {
+      attemptRef.current++;
       if (!completedRef.current) closeWindow(windowRef.current);
     },
     []
@@ -120,6 +124,8 @@ export let useProviderSetupSessionRunner = (p: {
   };
 
   let reset = () => {
+    attemptRef.current++;
+    startingRef.current = false;
     clearSession();
     completedRef.current = false;
     setIsStarting(false);
@@ -127,7 +133,11 @@ export let useProviderSetupSessionRunner = (p: {
   };
 
   let start = async (input: SetupSessionStartInput) => {
+    if (startingRef.current) return null;
+
     reset();
+    let attempt = attemptRef.current;
+    startingRef.current = true;
     setIsStarting(true);
 
     let shouldOpenWindow = input.openWindow ?? true;
@@ -138,6 +148,7 @@ export let useProviderSetupSessionRunner = (p: {
     let fail = (message: string | null) => {
       closeWindow(windowRef.current);
       windowRef.current = null;
+      startingRef.current = false;
       setIsStarting(false);
       if (message) setError(message);
       return null;
@@ -146,6 +157,7 @@ export let useProviderSetupSessionRunner = (p: {
     let providerAuthCredentialsId = input.providerAuthCredentialsId;
     if (input.resolveProviderAuthCredentialsId) {
       let resolved = await input.resolveProviderAuthCredentialsId();
+      if (attemptRef.current !== attempt) return null;
       if (!resolved) return fail(null);
       providerAuthCredentialsId = resolved;
     }
@@ -157,12 +169,22 @@ export let useProviderSetupSessionRunner = (p: {
       providerAuthCredentialsId,
       ...(p.source ? { source: p.source } : {})
     });
+    if (attemptRef.current !== attempt) return null;
 
     if (err || !session) {
-      console.error('Failed to create setup session:', err);
-      return fail(getErrorMessage(err));
+      if (
+        p.onCredentialError &&
+        isProviderSetupCredentialError(err?.data, providerAuthCredentialsId)
+      ) {
+        fail(null);
+        p.onCredentialError({ credentialId: providerAuthCredentialsId });
+        return null;
+      }
+
+      return fail(err?.data?.message ?? 'Could not start authentication. Try again.');
     }
 
+    startingRef.current = false;
     setIsStarting(false);
     setSetupSession(session);
 

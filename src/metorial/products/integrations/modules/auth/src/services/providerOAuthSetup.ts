@@ -187,25 +187,16 @@ class providerOAuthSetupServiceImpl {
     checkTenant(d, d.credentials);
 
     checkDeletedRelation(d.providerDeployment, { allowEphemeral: d.input.isEphemeral });
+    checkDeletedRelation(d.credentials, { allowEphemeral: d.input.isEphemeral });
 
     checkProviderMatch(d.provider, d.credentials);
     checkProviderMatch(d.provider, d.providerDeployment);
 
-    if (
-      !d.credentials &&
-      d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status !== 'supported'
-    ) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'No provider auth credentials provided for oauth method',
-          code: 'missing_auth_credentials'
-        })
-      );
-    }
-
     let credentials = d.credentials;
-
-    if (!credentials) {
+    if (
+      !credentials &&
+      d.provider.type.attributes.auth.oauth?.oauthAutoRegistration?.status === 'supported'
+    ) {
       credentials =
         await providerAuthCredentialsService.ensureDefaultProviderAuthCredentialsInternal({
           tenant: d.tenant,
@@ -225,7 +216,7 @@ class providerOAuthSetupServiceImpl {
           environment: d.environment,
           provider: d.provider,
           providerDeployment: d.providerDeployment,
-          authMethodId: d.input.authMethodId,
+          authMethodId: d.input.authMethodId ?? (d.credentials ? undefined : 'oauth'),
           credentials
         });
 
@@ -240,27 +231,66 @@ class providerOAuthSetupServiceImpl {
         );
       }
 
+      let authScope = {
+        tenant: d.tenant,
+        environment: d.environment,
+        provider: d.provider
+      };
+      let selectedCredentials =
+        credentials ??
+        (await providerAuthCredentialsService.getDefaultOAuthCredentialsForMethodInternal({
+          ...authScope,
+          authMethod
+        }));
+      if (!selectedCredentials && !d.input.authMethodId && version.specificationOid != null) {
+        let oauthMethods = await db.providerAuthMethod.findMany({
+          where: {
+            providerOid: d.provider.oid,
+            specificationOid: version.specificationOid,
+            type: 'oauth'
+          },
+          include: { specification: true }
+        });
+        selectedCredentials =
+          await providerAuthCredentialsService.getInstallationTemplateDefaultInternal({
+            tenant: d.tenant,
+            provider: d.provider,
+            authMethods: oauthMethods
+          });
+        authMethod =
+          oauthMethods.find(
+            method => method.key === selectedCredentials?.fixedAuthMethodKey
+          ) ?? authMethod;
+      }
+      if (!selectedCredentials) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'No OAuth app credentials are available for this authentication method.',
+            code: 'missing_auth_credentials'
+          })
+        );
+      }
+
       let backend = await getBackend({
         entity: d.provider.defaultVariant!
       });
-
-      if (!credentials) {
-        throw new Error('Provider auth credentials are required');
-      }
 
       credentials =
         await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUseInternal({
           tenant: d.tenant,
           provider: d.provider,
-          providerAuthCredentials: credentials,
+          providerAuthCredentials: selectedCredentials,
           providerAuthMethod: authMethod
         });
+      checkDeletedRelation(credentials, { allowEphemeral: d.input.isEphemeral });
 
       let newId = getId('providerOAuthSetup');
       let clientSecret = await ID.generateId('providerOAuthSetup_clientSecret');
 
       let isManagedCredentials =
-        credentials.origin === 'managed_backing' || credentials.origin === 'managed_public';
+        credentials.origin === 'managed_backing' ||
+        credentials.origin === 'managed_public' ||
+        credentials.origin === 'installation_template';
 
       let callbackUrlOverride = isManagedCredentials
         ? null

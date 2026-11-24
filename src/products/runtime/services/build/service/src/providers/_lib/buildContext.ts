@@ -95,7 +95,19 @@ export class BuildContext {
       where: { oid: this.run.oid, status: 'pending' },
       data: {
         status: 'running',
-        startedAt: d.startedAt ?? new Date()
+        startedAt: d.startedAt ?? new Date(),
+        pendingReason: null,
+        pendingReasonUpdatedAt: new Date()
+      }
+    });
+  }
+
+  async setPendingReason(d: { pendingReason: string | null }) {
+    await db.workflowRun.updateMany({
+      where: { oid: this.run.oid, status: 'pending' },
+      data: {
+        pendingReason: d.pendingReason,
+        pendingReasonUpdatedAt: new Date()
       }
     });
   }
@@ -145,13 +157,18 @@ export class BuildContext {
   async completeBuild(d: {
     status: 'succeeded' | 'failed';
     endedAt?: Date;
+    failure?: { code: string; message: string };
     stepArtifacts?: { stepId: string; bucket: string; storageKey: string }[];
   }) {
-    await buildEndedQueue.add({
-      runId: this.run.id,
-      status: d.status,
-      endedAt: d.endedAt ?? new Date(),
-      stepArtifacts: d.stepArtifacts ?? []
-    });
+    await buildEndedQueue.add(
+      {
+        runId: this.run.id,
+        status: d.status,
+        endedAt: d.endedAt ?? new Date(),
+        failure: d.failure,
+        stepArtifacts: d.stepArtifacts ?? []
+      },
+      { id: this.run.id }
+    );
   }
 }

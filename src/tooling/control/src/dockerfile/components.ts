@@ -3,6 +3,7 @@ import type { BuildMigration, BuildSpec, RenderContext } from './types';
 export let bunVersion = '1.4.2';
 export let prismaVersion = '7.10.1';
 export let nodeImage = 'node:22.22.0-bookworm-slim';
+export let npmInventoryLabel = 'com.metorial.npm-inventory';
 export let user = { name: 'metorial', id: 10001 };
 
 let turboSecrets =
@@ -86,6 +87,23 @@ let stripModules = (names: string[]) =>
       ]
     : [];
 
+let assetSource = (context: RenderContext, from: string) =>
+  from.startsWith('/') ? from.slice(1) : `${context.packageDirectory}/${from}`;
+
+// Runs before `strip`: the manifests of bundled packages are kept even if their install is stripped.
+let runtimeModules = (context: RenderContext) => {
+  let script = `${context.tooling}/docker-build/runtime-modules.ts`;
+  let manifests = [
+    `${context.packageDirectory}/dist`,
+    ...context.build.assets.map(asset => assetSource(context, asset.from))
+  ];
+
+  return [
+    `COPY ${script} ./${script}`,
+    `RUN bun ./${script} --node-modules /app/node_modules --out /out/node_modules ${manifests.map(path => `--manifests /app/${path}`).join(' ')}`
+  ];
+};
+
 export let builder = (context: RenderContext): string[] => {
   let { build, packageDirectory } = context;
   let concurrency = build.concurrency ? ` --concurrency=${build.concurrency}` : '';
@@ -110,6 +128,7 @@ export let builder = (context: RenderContext): string[] => {
       run =>
         `RUN ${turboSecrets} sh ./${context.tooling}/warp-cache/run-turbo.sh ${run}${concurrency}`
     ),
+    ...(build.modules === 'external' ? runtimeModules(context) : []),
     ...stripModules(build.strip),
     ...(build.sentry
       ? [
@@ -156,13 +175,20 @@ let runtimeConfig = (context: RenderContext) => {
 };
 
 export let runnerBase = (context: RenderContext): string[] => {
+  let { build } = context;
   let runtimePackages = [
-    ...new Set(['ca-certificates', 'curl', 'tini', ...context.build.packages.runtime])
+    ...new Set([
+      'ca-certificates',
+      ...(build.curl ? ['curl'] : []),
+      'tini',
+      ...build.packages.runtime
+    ])
   ];
+  let upgrade = build.upgradePackages ? ' && apt-get upgrade -y --no-install-recommends' : '';
 
   return [
     `FROM oven/bun:${bunVersion}-slim AS runner-base`,
-    `RUN apt-get update && apt-get install -y --no-install-recommends ${runtimePackages.join(' ')} && rm -rf /var/lib/apt/lists/* \\`,
+    `RUN apt-get update${upgrade} && apt-get install -y --no-install-recommends ${runtimePackages.join(' ')} && rm -rf /var/lib/apt/lists/* \\`,
     ` && groupadd --system --gid ${user.id} ${user.name} \\`,
     ` && useradd --system --uid ${user.id} --gid ${user.name} --create-home --shell /usr/sbin/nologin ${user.name}`,
     'WORKDIR /app'
@@ -206,6 +232,14 @@ let sourceRunner = (context: RenderContext): string[] => {
   ];
 };
 
+let healthCommand = (build: BuildSpec) => {
+  let urls = build.health.map(check => `http://127.0.0.1:${check.port}${check.path}`);
+  if (build.curl) return `${urls.map(url => `curl -fsS ${url}`).join(' && ')} || exit 1`;
+
+  let script = `for (let url of ${JSON.stringify(urls)}) if (!(await fetch(url)).ok) process.exit(1);`;
+  return JSON.stringify(['bun', '-e', script]);
+};
+
 let migrationCommand = (names: string[], start: string) =>
   `stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate ${names.join(' ')} && [ -z "$stop" ] && exec ${start}`;
 
@@ -229,11 +263,19 @@ export let runner = (context: RenderContext): string[] => {
       `COPY --from=production-dependencies --link ${owner} /app/node_modules ./node_modules`
     );
 
+  // The label tells the on-prem release scan (ee/on-prem/scripts/scan.ts) to fail if it finds no npm
+  // packages, so a broken inventory cannot ship an image that scanners see as empty.
+  if (build.modules === 'external')
+    lines.push(
+      `LABEL ${npmInventoryLabel}=node_modules`,
+      `COPY --from=builder --link ${owner} /out/node_modules ./node_modules`
+    );
+
   lines.push(
     `COPY --from=builder --link ${owner} /app/${packageDirectory}/dist ./dist`,
     ...build.assets.map(
       asset =>
-        `COPY --from=builder --link ${owner} /app/${asset.from.startsWith('/') ? asset.from.slice(1) : `${packageDirectory}/${asset.from}`} ./${asset.to}`
+        `COPY --from=builder --link ${owner} /app/${assetSource(context, asset.from)} ./${asset.to}`
     )
   );
 
@@ -258,6 +300,11 @@ export let runner = (context: RenderContext): string[] => {
       'EOF',
       'ENV PRISMA_BIN=/opt/prisma/node_modules/.bin/prisma'
     );
+  } else if (build.prisma) {
+    lines.push(
+      `COPY --from=prisma-cli --link ${owner} /opt/prisma /opt/prisma`,
+      'ENV PRISMA_BIN=/opt/prisma/node_modules/.bin/prisma'
+    );
   }
 
   lines.push(`USER ${user.id}:${user.id}`);
@@ -267,7 +314,7 @@ export let runner = (context: RenderContext): string[] => {
   if (build.health.length)
     lines.push(
       'HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \\',
-      `  CMD ${build.health.map(check => `curl -fsS http://127.0.0.1:${check.port}${check.path}`).join(' && ')} || exit 1`
+      `  CMD ${healthCommand(build)}`
     );
 
   let start = `bun ./${build.start}`;

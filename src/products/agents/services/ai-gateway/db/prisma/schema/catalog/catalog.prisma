@@ -1,0 +1,182 @@
+model CatalogSync {
+  oid BigInt @id
+  id  String @unique
+
+  url String @unique
+
+  etag        String?
+  fingerprint String?
+  lastError   String?
+
+  /// [CatalogSyncCounts]
+  counts Json?
+
+  generatedAt   DateTime?
+  lastCheckedAt DateTime?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum CatalogEntryStatus {
+  active
+  retired
+}
+
+model Lab {
+  oid BigInt @id
+  id  String @unique
+
+  slug String @unique
+
+  name        String
+  description String?
+  website     String?
+  logo        String?
+
+  status CatalogEntryStatus
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  models Model[]
+}
+
+enum ProviderKind {
+  metorial
+  first_party
+  cloud
+  inference
+  aggregator
+  subscription
+  decision
+}
+
+model Provider {
+  oid BigInt @id
+  id  String @unique
+
+  slug String @unique
+
+  name    String
+  kind    ProviderKind
+  website String?
+  docs    String?
+  logo    String?
+
+  status CatalogEntryStatus
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  offerings   ModelOffering[]
+  connections ProviderConnection[]
+}
+
+enum ModelStatus {
+  preview
+  active
+  deprecated
+  retired
+}
+
+model Model {
+  oid BigInt @id
+  id  String @unique
+
+  slug       String  @unique
+  familySlug String?
+
+  name        String
+  description String?
+  kind        String
+
+  status      ModelStatus
+  releaseDate DateTime?   @db.Date
+  openWeights Boolean
+
+  contextTokens    Int?
+  outputTokens     Int?
+  inputModalities  String[]
+  outputModalities String[]
+
+  /// [ModelCapabilities]
+  capabilities Json
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  labOid BigInt
+  lab    Lab    @relation(fields: [labOid], references: [oid])
+
+  offerings ModelOffering[]
+  aliases   ModelAlias[]
+
+  @@index([labOid])
+  @@index([status])
+}
+
+model ModelOffering {
+  oid BigInt @id
+  id  String @unique
+
+  catalogId     String @unique
+  vendorModelId String
+
+  name   String
+  status ModelStatus
+  apis   String[]
+
+  /// [Pricing]
+  pricing     Json?
+  pricingHash String?
+
+  contextTokens    Int?
+  outputTokens     Int?
+  inputModalities  String[]
+  outputModalities String[]
+
+  /// [ModelCapabilities]
+  capabilities Json
+
+  /// [OfferingVariant]
+  variant Json
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  modelOid BigInt?
+  model    Model?  @relation(fields: [modelOid], references: [oid])
+
+  @@index([providerOid, vendorModelId])
+  @@index([modelOid])
+}
+
+model ModelAlias {
+  oid BigInt @id
+  id  String @unique
+
+  catalogId String @unique
+
+  namespace String
+  raw       String
+  key       String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  modelOid BigInt
+  model    Model  @relation(fields: [modelOid], references: [oid])
+
+  @@index([raw])
+  @@index([key])
+  @@index([modelOid])
+}

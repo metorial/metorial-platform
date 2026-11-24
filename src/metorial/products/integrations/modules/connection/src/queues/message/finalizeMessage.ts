@@ -1,5 +1,5 @@
 import { createQueue } from '@lowerdeck/queue';
-import { db, dbPrimary } from '@metorial-subspace/db';
+import { db } from '@metorial-subspace/db';
 import { Fabric } from '@metorial/fabric';
 import { recordSessionMessageUsage } from '@metorial/module-usage';
 import { env } from '../../env';
@@ -13,7 +13,7 @@ export let finalizeMessageQueue = createQueue<{ messageId: string }>({
 });
 
 let finalizeMessage = async (messageId: string, progress: { activityRecorded: boolean }) => {
-  let message = await dbPrimary.sessionMessage.findUnique({
+  let message = await db.sessionMessage.findUnique({
     where: { id: messageId },
     include: {
       session: true,

@@ -55,7 +55,7 @@ export class MetorialDashboardInstanceSandboxRegionsEndpoint {
     query?: DashboardInstanceSandboxRegionsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxRegionsListOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/regions`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/regions`;
 
     let request = {
       path,
@@ -87,7 +87,7 @@ export class MetorialDashboardInstanceSandboxRegionsEndpoint {
     regionId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxRegionsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/sandbox/regions/${regionId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/sandbox/regions/${encodeURIComponent(regionId)}`;
 
     let request = {
       path,

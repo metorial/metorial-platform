@@ -317,8 +317,8 @@ func generateVectors(t *testing.T) vectorFile {
 			"Times are Unix seconds; verify every token at `now`. Verifiers allow clockSkewSeconds on exp, nbf and iat.",
 			"Keys: seed is the base64url (no padding) 32-byte Ed25519 seed, publicKey the raw public key. keySet is the trust set in the egress-trust/runtime-trust format; untrusted keys are not in it.",
 			"Tokens: compact JWS, header {\"alg\":\"EdDSA\",\"typ\":\"JWT\",\"kid\":...}. For mintable vectors, signing base64url(headerJson) + '.' + base64url(claimsJson) with the signer's key must reproduce `token` byte for byte (Ed25519 is deterministic). `claims` equals claimsJson parsed; JSON.stringify(claims) === claimsJson.",
-			"Canonical claim order: grants iss, aud, jti, tenantId, functionId, effectiveFunctionId, functionVersionId, enclaveId, enclaveIdentifier, buildRunId, source, policy, allowAll, iat, nbf, exp; invocation tokens iss, aud, jti, functionVersionId, payloadSha256, iat, exp. Absent optional claims are omitted, never null.",
-			"Verification order (determines the error code): malformed (segments, base64url, JSON), unsupported_alg (alg != EdDSA), unknown_kid, bad_signature, malformed (claims not a JSON object), wrong_audience, missing_claims (iat or exp absent), expired (now > exp + skew), not_yet_valid (now + skew < nbf), issued_in_future (now + skew < iat), then per-token claims: missing_claims, invalid_policy.",
+			"Canonical claim order: grants iss, aud, jti, tenantId, functionId, effectiveFunctionId, functionVersionId, enclaveId, enclaveIdentifier, buildRunId, source, policy, allowAll, platformRoutes, iat, nbf, exp; invocation tokens iss, aud, jti, functionVersionId, payloadSha256, iat, exp. Absent optional claims are omitted, never null.",
+			"Verification order (determines the error code): malformed (segments, base64url, JSON), unsupported_alg (alg != EdDSA), unknown_kid, bad_signature, malformed (claims not a JSON object), wrong_audience, missing_claims (iat or exp absent), expired (now > exp + skew), not_yet_valid (now + skew < nbf), issued_in_future (now + skew < iat), then per-token claims: missing_claims, invalid_policy, invalid_platform_routes (only function grants, at most 8 unique names matching ^[a-z][a-z0-9-]{0,62}$).",
 			"Invocation vectors may carry payloadJson (check sha256 of its UTF-8 bytes against payloadSha256, expectPayload) and bindGrant (jti and functionVersionId must equal that grant's, expectBinding). \"ok\" means the check passes.",
 			"Policy cases: evaluate the destination (host is the hostname the address was resolved for, empty for IP literals) under configs[config] and grants[grant]. Reasons: allowed public|internal, denied policy|hard_deny|internal_disabled. Embedded IPv4 forms (::ffff:0:0/96, ::/96, 64:ff9b::/96, 2002::/16) are evaluated as both the IPv6 and the embedded IPv4 address, with the IPv6 form classified internal exactly when the embedded address is; the stricter verdict wins (hard_deny > internal_disabled > policy).",
 		},
@@ -329,6 +329,7 @@ func generateVectors(t *testing.T) vectorFile {
 	b.addKey("function-bay", "", true)
 	b.addKey("function-bay-explicit-kid", "function-bay-2026-11", true)
 	b.addKey("forge", "", true)
+	b.addKey("mcp-runtime", "", true)
 	b.addKey("untrusted", "", false)
 
 	trustSet := map[string]ed25519.PublicKey{}
@@ -481,6 +482,31 @@ func (b *vectorBuilder) grantVectors() {
 	}
 	b.addGrant("build-grant", b.mintable("forge", "Build grant signed by forge's key.", withAud(build)), valid)
 
+	mcp := Grant{
+		Issuer:            "mcp-runtime",
+		ID:                "mcpe_01JD8X6666GGGG",
+		TenantID:          "sten_01JD8X7777HHHH",
+		EnclaveID:         "enc_01JD8X4444EEEE",
+		EnclaveIdentifier: "enc_01JD8X4444EEEE",
+		Source:            SourceMCP,
+		Policy:            &policy.Policy{Entries: []policy.Entry{{CIDR: "10.20.0.0/16", PortRange: &policy.PortRange{From: 443, To: 443}}, {CIDR: "0.0.0.0/0"}}},
+		IssuedAt:          now - 5,
+		NotBefore:         now - 5,
+		ExpiresAt:         now + 360,
+	}
+	b.addGrant("mcp-grant", b.mintable("mcp-runtime", "Remote MCP connection grant signed by the MCP runtime's key, with the enclave's compiled firewall policy.", withAud(mcp)), valid)
+
+	mcpPublic := Grant{
+		Issuer:    "mcp-runtime",
+		ID:        "mcpe_public",
+		TenantID:  "sten_1",
+		Source:    SourceMCP,
+		IssuedAt:  now,
+		NotBefore: now,
+		ExpiresAt: now + 60,
+	}
+	b.addGrant("mcp-grant-public-only", b.mintable("mcp-runtime", "MCP grant for a connection without an enclave: no policy, public internet only.", withAud(mcpPublic)), valid)
+
 	explicitKid := minimal
 	explicitKid.ID = "inv_explicit_kid"
 	b.addGrant("explicit-kid", b.mintable("function-bay-explicit-kid", "Signed with a key whose kid is configured explicitly instead of derived.", withAud(explicitKid)), valid)
@@ -570,6 +596,15 @@ func (b *vectorBuilder) grantVectors() {
 	noRun.BuildRunID = ""
 	b.addGrant("build-grant-missing-run", b.mintable("forge", "Build grant without buildRunId.", withAud(noRun)), invalid(ErrMissingClaims))
 
+	mcpNoTenant := Grant{
+		Issuer:    "mcp-runtime",
+		ID:        "mcpe_no_tenant",
+		Source:    SourceMCP,
+		IssuedAt:  now,
+		ExpiresAt: now + 60,
+	}
+	b.addGrant("mcp-grant-missing-tenant", b.mintable("mcp-runtime", "MCP grant without tenantId.", withAud(mcpNoTenant)), invalid(ErrMissingClaims))
+
 	badCIDR := minimal
 	badCIDR.ID = "inv_bad_cidr"
 	badCIDR.Policy = &policy.Policy{Entries: []policy.Entry{{CIDR: "10.0.0.0/33"}}}
@@ -584,6 +619,26 @@ func (b *vectorBuilder) grantVectors() {
 	badHost.ID = "inv_bad_host"
 	badHost.Policy = &policy.Policy{Entries: []policy.Entry{}, Hosts: []policy.HostRule{{Pattern: "*.*.example.com"}}}
 	b.addGrant("invalid-policy-host", b.mintable("function-bay", "Host pattern with two wildcards.", withAud(badHost)), invalid(ErrInvalidPolicy))
+
+	routed := functionGrant(now)
+	routed.ID = "inv_routes"
+	routed.PlatformRoutes = []string{"slates-live", "object-upload"}
+	b.addGrant("function-grant-platform-routes", b.mintable("function-bay", "Function grant naming two platform routes.", withAud(routed)), valid)
+
+	badRoute := routed
+	badRoute.ID = "inv_bad_route"
+	badRoute.PlatformRoutes = []string{"Slates.Live"}
+	b.addGrant("invalid-platform-route-name", b.mintable("function-bay", "Platform route name outside the allowed pattern.", withAud(badRoute)), invalid(ErrInvalidRoutes))
+
+	duplicateRoute := routed
+	duplicateRoute.ID = "inv_duplicate_route"
+	duplicateRoute.PlatformRoutes = []string{"slates-live", "slates-live"}
+	b.addGrant("duplicate-platform-route", b.mintable("function-bay", "The same platform route twice.", withAud(duplicateRoute)), invalid(ErrInvalidRoutes))
+
+	buildRoutes := build
+	buildRoutes.BuildRunID = "brun_routes"
+	buildRoutes.PlatformRoutes = []string{"slates-live"}
+	b.addGrant("build-grant-platform-routes", b.mintable("forge", "Build grants may not name platform routes.", withAud(buildRoutes)), invalid(ErrInvalidRoutes))
 }
 
 func withAud(g Grant) Grant {

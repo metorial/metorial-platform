@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint {
     query?: DashboardInstanceSkillsMarketplacesPluginsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsListOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/plugins`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins`;
 
     let request = {
       path,
@@ -99,7 +99,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint {
     body: DashboardInstanceSkillsMarketplacesPluginsAddBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsAddOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/plugins`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins`;
 
     let request = {
       path,
@@ -133,7 +133,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint {
     skillMarketplacePluginId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsGetOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/plugins/${skillMarketplacePluginId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins/${encodeURIComponent(skillMarketplacePluginId)}`;
 
     let request = {
       path,
@@ -164,7 +164,7 @@ export class MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint {
     skillMarketplacePluginId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSkillsMarketplacesPluginsRemoveOutput> {
-    let path = `dashboard/instances/${instanceId}/skill-marketplaces/${skillMarketplaceId}/plugins/${skillMarketplacePluginId}`;
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/skill-marketplaces/${encodeURIComponent(skillMarketplaceId)}/plugins/${encodeURIComponent(skillMarketplacePluginId)}`;
 
     let request = {
       path,

@@ -23,6 +23,7 @@ export let applyBuildLog = async (d: {
   ctx: BuildLogContext;
   state: BuildLogState;
   artifactData: Record<string, ArtifactTarget>;
+  startupStepOid?: bigint;
   lines: BuildLogLine[];
 }) => {
   let { ctx, state } = d;
@@ -57,13 +58,15 @@ export let applyBuildLog = async (d: {
           await ctx.completeArtifactUpload({ step, artifactData });
         }
       }
-    } else if (state.buildStarted && !state.buildEnded && state.currentStepOid) {
-      if (!message) continue;
-
-      let output = collectedMessages.get(state.currentStepOid) || '';
-      output += JSON.stringify([line.timestamp || 0, message]) + '\n';
-      collectedMessages.set(state.currentStepOid, output);
+      continue;
     }
+
+    let stepOid = !state.buildStarted ? d.startupStepOid : state.currentStepOid;
+    if (!message || !stepOid || state.buildEnded) continue;
+
+    let output = collectedMessages.get(stepOid) || '';
+    output += JSON.stringify([line.timestamp || 0, message]) + '\n';
+    collectedMessages.set(stepOid, output);
   }
 
   for (let [stepOid, message] of collectedMessages.entries()) {

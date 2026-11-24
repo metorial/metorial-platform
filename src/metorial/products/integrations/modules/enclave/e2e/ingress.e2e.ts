@@ -252,12 +252,12 @@ describe('module-enclave ingress policy evaluation', () => {
       instance,
       direction: 'egress',
       enclaveIds: [enclaveId],
-      filters: {}
+      filters: { hostnames: [hostname] }
     });
     expect(egress).toEqual({
       object: 'enclave.network_logs',
       direction: 'egress',
-      enclaveIds: [],
+      enclaveIds: [enclaveId],
       records: []
     });
 

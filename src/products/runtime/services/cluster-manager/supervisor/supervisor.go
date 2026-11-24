@@ -282,7 +282,7 @@ func (s *Supervisor) onWorkerExit(w *worker) {
 	s.mu.Unlock()
 
 	for _, req := range inflight {
-		req.deliver(outcome{crashed: reason})
+		req.deliver(outcome{crashed: s.crashReasonFor(req, crash, reason)})
 	}
 
 	if restart {
@@ -292,6 +292,18 @@ func (s *Supervisor) onWorkerExit(w *worker) {
 			}
 		})
 	}
+}
+
+const bystanderCrashReason = "the process crashed while handling another invocation"
+
+// crashReasonFor keeps a crash message, which can carry one invocation's data, away from the
+// other invocations sharing the worker. Exits without a crash frame (OOM, process.exit) carry
+// no function data and reach every request.
+func (s *Supervisor) crashReasonFor(req *request, crash *protocol.Frame, reason string) string {
+	if crash == nil || crash.Message == "" || s.cfg.Mode == ModeExclusive || crash.RequestID == req.id {
+		return reason
+	}
+	return bystanderCrashReason
 }
 
 func (s *Supervisor) recordCrash() {

@@ -89,7 +89,7 @@ export class MetorialSandboxImageBuildsEndpoint {
     buildId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsGetOutput> {
-    let path = `sandbox/image-builds/${buildId}`;
+    let path = `sandbox/image-builds/${encodeURIComponent(buildId)}`;
 
     let request = {
       path,
@@ -116,7 +116,7 @@ export class MetorialSandboxImageBuildsEndpoint {
     buildId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsCancelOutput> {
-    let path = `sandbox/image-builds/${buildId}/cancel`;
+    let path = `sandbox/image-builds/${encodeURIComponent(buildId)}/cancel`;
 
     let request = {
       path,
@@ -145,7 +145,7 @@ export class MetorialSandboxImageBuildsEndpoint {
     query?: DashboardInstanceSandboxImageBuildsLogsQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardInstanceSandboxImageBuildsLogsOutput> {
-    let path = `sandbox/image-builds/${buildId}/logs`;
+    let path = `sandbox/image-builds/${encodeURIComponent(buildId)}/logs`;
 
     let request = {
       path,

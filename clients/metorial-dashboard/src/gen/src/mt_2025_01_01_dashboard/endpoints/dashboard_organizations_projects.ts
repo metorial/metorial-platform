@@ -65,7 +65,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
     query?: DashboardOrganizationsProjectsListQuery,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsListOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects`;
 
     let request = {
       path,
@@ -97,7 +97,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsGetOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}`;
 
     let request = {
       path,
@@ -126,7 +126,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
     body: DashboardOrganizationsProjectsCreateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsCreateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects`;
 
     let request = {
       path,
@@ -156,7 +156,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
     projectId: string,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsDeleteOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}`;
 
     let request = {
       path,
@@ -187,7 +187,7 @@ export class MetorialDashboardOrganizationsProjectsEndpoint {
     body: DashboardOrganizationsProjectsUpdateBody,
     opts?: { headers?: Record<string, string> }
   ): Promise<DashboardOrganizationsProjectsUpdateOutput> {
-    let path = `dashboard/organizations/${organizationId}/projects/${projectId}`;
+    let path = `dashboard/organizations/${encodeURIComponent(organizationId)}/projects/${encodeURIComponent(projectId)}`;
 
     let request = {
       path,

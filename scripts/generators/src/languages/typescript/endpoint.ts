@@ -103,7 +103,7 @@ let createEndpoint = (i: {
       ): Promise<${outputType.typeName}> {
         ${
           pathParams.length > 0
-            ? `let path = \`${pathParts.map(p => (p.startsWith(':') ? `\${${p.slice(1)}}` : p)).join('/')}\`;`
+            ? `let path = \`${pathParts.map(p => (p.startsWith(':') ? `\${encodeURIComponent(${p.slice(1)})}` : p)).join('/')}\`;`
             : `let path = '${pathParts.join('/')}';`
         }
 

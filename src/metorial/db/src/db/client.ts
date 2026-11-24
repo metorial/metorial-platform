@@ -7,8 +7,9 @@ import type {
   ServerCapabilities,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
-import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
-import { readReplicas } from '@prisma/extension-read-replicas';
+import { createDatabase } from '@lowerdeck/prisma-pg';
+
+export { withPrimaryReads, withReplicaReads } from '@lowerdeck/prisma-pg';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated/client.js';
 import type * as ProductAssistant from '../types/product-assistant.js';
@@ -65,50 +66,8 @@ let withRelationLoadStrategy = (operation: string, args: any) => {
   };
 };
 
-let createClient = () => {
-  let mainAdapter = createPrismaPgAdapter(
-    {
-      connectionString: process.env.DATABASE_URL
-    },
-    {
-      environment: process.env.METORIAL_ENV,
-      databaseName: 'core',
-      role: 'primary'
-    }
-  );
-
-  let replicaAdapter = process.env.DATABASE_URL_READER
-    ? createPrismaPgAdapter(
-        {
-          connectionString: process.env.DATABASE_URL_READER
-        },
-        {
-          environment: process.env.METORIAL_ENV,
-          databaseName: 'core',
-          role: 'replica'
-        }
-      )
-    : undefined;
-
-  let replicaClient = replicaAdapter
-    ? new PrismaClient({ adapter: replicaAdapter })
-    : undefined;
-
-  let baseClient = new PrismaClient({
-    adapter: mainAdapter,
-    transactionOptions: {
-      maxWait: 10000,
-      timeout: 12000
-    }
-  });
-
-  if (replicaClient) {
-    baseClient = baseClient.$extends(
-      readReplicas({ replicas: [replicaClient] })
-    ) as any as PrismaClient;
-  }
-
-  baseClient = baseClient.$extends({
+let withRelationLoadStrategies = (client: PrismaClient) =>
+  client.$extends({
     query: {
       $allModels: {
         $allOperations: async ({ operation, args, query }) =>
@@ -117,7 +76,8 @@ let createClient = () => {
     }
   }) as any as PrismaClient;
 
-  return baseClient.$extends({
+let withIdGeneration = (baseClient: PrismaClient) =>
+  baseClient.$extends({
     query: {
       $allModels: {
         create: async args => {
@@ -322,11 +282,32 @@ let createClient = () => {
       }
     }
   }) as any as PrismaClient;
-};
 
-let db: PrismaClient = createClient();
+let database = createDatabase({
+  name: 'core',
+  url: 'DATABASE_URL',
+  createClient: adapter =>
+    new PrismaClient({
+      adapter,
+      transactionOptions: {
+        maxWait: 10000,
+        timeout: 12000
+      }
+    }),
+  extend: client => withIdGeneration(withRelationLoadStrategies(client)),
+  afterHookDelayMs: 500
+});
+
+let db: PrismaClient = database.db;
 
 export { db };
+
+export let {
+  withTransaction,
+  addAfterTransactionHook,
+  addAwaitedAfterTransactionHook,
+  isInTransaction
+} = database;
 
 export type DB = typeof db;
 

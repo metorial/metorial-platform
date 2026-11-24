@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { ID, snowflake } from '@mtsrc/mcp-runtime-db';
+import { linkFunctionBayTenant } from '../internal/functionBayTenant';
 
 let include = {};
 
@@ -15,7 +16,7 @@ class tenantServiceImpl {
       collectErrors?: boolean;
     };
   }) {
-    return await db.tenant.upsert({
+    let tenant = await db.tenant.upsert({
       where: { identifier: d.input.identifier },
       update: {
         name: d.input.name,
@@ -33,6 +34,8 @@ class tenantServiceImpl {
         collectErrors: d.input.collectErrors ?? true
       }
     });
+
+    return await linkFunctionBayTenant(tenant);
   }
 
   async getTenantById(d: { id: string }) {

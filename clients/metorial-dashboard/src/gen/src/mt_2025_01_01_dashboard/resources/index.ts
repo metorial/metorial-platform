@@ -1,5 +1,6 @@
 export * from './agent-tracking';
 export * from './agents';
+export * from './ai-gateway';
 export * from './assistants';
 export * from './callback-events';
 export * from './callback-instances';

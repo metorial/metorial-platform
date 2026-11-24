@@ -28,14 +28,6 @@ vi.mock('@lowerdeck/canonicalize', () => ({ canonicalize: vi.fn() }));
 vi.mock('@lowerdeck/memo', () => ({ memo: vi.fn() }));
 vi.mock('@lowerdeck/sentry', () => ({ getSentry: () => ({}) }));
 vi.mock('@metorial/util-endpoint', () => ({ isMetorialSDKError: () => false }));
-vi.mock('../components/layout', () => ({
-  AuthLayout: (p: any) => (
-    <div>
-      {p.main?.title}
-      {p.children}
-    </div>
-  )
-}));
 vi.mock('../components/codeInput', () => ({
   CodeInput: (p: any) => (
     <input
@@ -60,8 +52,22 @@ vi.mock('@metorial-io/ui', () => ({
   ),
   Error: ({ children }: any) => <div role="alert">{children}</div>,
   CenteredSpinner: () => null,
+  Logo: () => null,
   Spacer: () => null,
-  Switch: () => null
+  Switch: ({ checked, onCheckedChange, label }: any) => (
+    <label>
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={event => onCheckedChange(event.currentTarget.checked)}
+      />
+      {label}
+    </label>
+  ),
+  Text: ({ children }: any) => <p>{children}</p>,
+  Title: ({ children }: any) => <h1>{children}</h1>,
+  theme: { colors: { gray300: '#ddd', gray600: '#555', gray900: '#111' } }
 }));
 
 import { AuthIntentScene } from './authIntent';
@@ -111,6 +117,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
@@ -200,17 +207,60 @@ describe('on-prem password-only login', () => {
     expect(labels).not.toContain('Send Me a Code Instead');
   });
 
-  it('asks for a password when finishing signup', async () => {
+  it('sets the terms flag when finishing signup without a terms prompt', async () => {
+    vi.stubEnv('METORIAL_EDITION', 'on-prem');
     loader.data = {
       ...loader.data,
       type: 'password',
       status: 'needs_user',
       emailCodesAllowed: false,
       identifier: { type: 'email', value: 'new@example.com' },
-      userCreationPrefill: {},
+      userCreationPrefill: { firstName: 'New', lastName: 'User' },
       steps: []
     };
     await render();
-    expect(container.querySelector('input[type="password"]')).not.toBeNull();
+
+    expect(container.querySelector('[role="switch"]')).toBeNull();
+    expect(container.querySelector('a[href*="/legal/"]')).toBeNull();
+    expect(container.querySelector('footer')?.textContent).toBe(
+      'This Metorial instance run by your organization.'
+    );
+
+    let password = container.querySelector<HTMLInputElement>('input[type="password"]')!;
+    let finish = container.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(finish.disabled).toBe(false);
+
+    await act(async () => {
+      password.value = 'test-password';
+      password.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => finish.click());
+
+    expect(mutators.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({ termsAccepted: true, password: 'test-password' })
+    );
+  });
+});
+
+describe('cloud signup', () => {
+  it('requires the terms switch and shows the legal links', async () => {
+    vi.stubEnv('METORIAL_EDITION', 'cloud');
+    loader.data = {
+      ...loader.data,
+      type: 'email_code',
+      status: 'needs_user',
+      steps: []
+    };
+    await render();
+
+    let terms = container.querySelector<HTMLInputElement>('[role="switch"]')!;
+    let finish = container.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(terms.checked).toBe(false);
+    expect(finish.disabled).toBe(true);
+    expect(container.querySelector('footer a[href$="/terms-of-service"]')).not.toBeNull();
+    expect(container.querySelector('footer a[href$="/privacy-policy"]')).not.toBeNull();
+
+    await act(async () => terms.click());
+    expect(finish.disabled).toBe(false);
   });
 });

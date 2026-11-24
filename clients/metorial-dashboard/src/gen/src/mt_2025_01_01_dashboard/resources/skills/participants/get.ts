@@ -81,7 +81,9 @@ export type SkillsParticipantsGetOutput = {
   surfaces:
     | {
         id: string;
-        roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
+        roles: (
+          'creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker'
+        )[];
         actor: {
           type: 'organization_actor' | 'consumer' | 'resource_actor';
           name: string;
@@ -193,14 +195,21 @@ export let mapSkillsParticipantsGetOutput =
                           [
                             'teams',
                             0,
-                            [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                            [
+                              2,
+                              [1, ['assignment_id', 'created_at', 'updated_at']]
+                            ]
                           ],
                           'created_at',
                           'updated_at'
                         ]
                       ]
                     ],
-                    ['consumer', 0, [1, ['image_url', 'user_id', 'created_at', 'updated_at']]],
+                    [
+                      'consumer',
+                      0,
+                      [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                    ],
                     [
                       'consumer_profile',
                       1,
@@ -228,7 +237,14 @@ export let mapSkillsParticipantsGetOutput =
                                         [
                                           'group',
                                           0,
-                                          [1, ['is_default', 'created_at', 'updated_at']]
+                                          [
+                                            1,
+                                            [
+                                              'is_default',
+                                              'created_at',
+                                              'updated_at'
+                                            ]
+                                          ]
                                         ],
                                         'assigned_via',
                                         'sso_group_ids'
@@ -271,7 +287,17 @@ export let mapSkillsParticipantsGetOutput =
                                   [
                                     'teams',
                                     0,
-                                    [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
+                                    [
+                                      2,
+                                      [
+                                        1,
+                                        [
+                                          'assignment_id',
+                                          'created_at',
+                                          'updated_at'
+                                        ]
+                                      ]
+                                    ]
                                   ],
                                   'created_at',
                                   'updated_at'
@@ -281,7 +307,15 @@ export let mapSkillsParticipantsGetOutput =
                             [
                               'consumer',
                               0,
-                              [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
+                              [
+                                1,
+                                [
+                                  'image_url',
+                                  'user_id',
+                                  'created_at',
+                                  'updated_at'
+                                ]
+                              ]
                             ],
                             [
                               'consumer_profile',
@@ -312,7 +346,11 @@ export let mapSkillsParticipantsGetOutput =
                                                   0,
                                                   [
                                                     1,
-                                                    ['is_default', 'created_at', 'updated_at']
+                                                    [
+                                                      'is_default',
+                                                      'created_at',
+                                                      'updated_at'
+                                                    ]
                                                   ]
                                                 ],
                                                 'assigned_via',

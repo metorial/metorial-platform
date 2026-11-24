@@ -1,7 +1,9 @@
 import { useProviderDeployment } from '@metorial/state';
 import { Button, CenteredSpinner, Dialog, Spacer, Text, showModal } from '@metorial/ui';
 import type { ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 import { useProviderAuthCreationCapabilities } from '../../lib/providerCreationCapabilities';
+import type { SetupSessionCredentialError } from '../providerDeployments/setupSessionRunner';
 import { ProviderOAuthAuthenticateContent } from './authenticateContent';
 import { ProviderAuthConfigManualCreateContent } from './createManualModal';
 import { closeAndThen, isSetupFlowAuthMethod } from './modalHelpers';
@@ -12,6 +14,8 @@ export type ProviderAuthConfigCreateModalProps = {
   providerId?: string;
   initialAuthMethodId: string;
   fixedAuthCredentialsId?: string;
+  fixedAuthCredentialsSettingsHref?: string;
+  credentialError?: SetupSessionCredentialError;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
   source?: 'explorer';
@@ -76,11 +80,11 @@ export let ProviderAuthConfigCreateFlowContent = (
   let providerName = authCreation.provider.data?.name ?? deployment.data?.name ?? 'Provider';
   let providerId =
     p.providerId ?? deployment.data?.providerId ?? authCreation.provider.data?.id;
-  let selectedMethod =
-    authCreation.authMethodItems.find(method => method.id === p.initialAuthMethodId) ??
-    (authCreation.authMethodItems.length === 1 ? authCreation.authMethodItems[0] : undefined);
+  let selectedMethod = authCreation.authMethodItems.find(
+    method => method.id === p.initialAuthMethodId
+  );
 
-  let renderError = (message: string) => (
+  let renderError = (message: string, settingsHref?: string) => (
     <>
       {!p.embedded && <Dialog.Title>Authenticate with {providerName}</Dialog.Title>}
       {p.embedded ? (
@@ -95,6 +99,11 @@ export let ProviderAuthConfigCreateFlowContent = (
         <Button variant="outline" onClick={p.onBack}>
           {p.embedded ? 'Back' : 'Close'}
         </Button>
+        {settingsHref && (
+          <Link to={settingsHref} onClick={p.onBack}>
+            Open Integration
+          </Link>
+        )}
       </Dialog.Actions>
     </>
   );
@@ -112,16 +121,22 @@ export let ProviderAuthConfigCreateFlowContent = (
     );
   } else if (!selectedMethod) {
     content = renderError(
-      'The selected authentication method is no longer available. Go back and choose another method.'
+      p.fixedAuthCredentialsSettingsHref
+        ? 'The configured authentication method is unavailable. Update the provider’s authentication settings to continue.'
+        : 'The selected authentication method is no longer available. Go back and choose another method.',
+      p.fixedAuthCredentialsSettingsHref
     );
   } else if (isSetupFlowAuthMethod(selectedMethod)) {
     content = providerId ? (
       <ProviderOAuthAuthenticateContent
+        key={selectedMethod.id}
         instanceId={p.instanceId}
         providerId={providerId}
         providerDeploymentId={p.providerDeploymentId}
         method={selectedMethod}
         fixedAuthCredentialsId={p.fixedAuthCredentialsId}
+        fixedAuthCredentialsSettingsHref={p.fixedAuthCredentialsSettingsHref}
+        credentialError={p.credentialError}
         defaultAuthConfigName={p.defaultAuthConfigName}
         source={p.source}
         embedded={p.embedded}

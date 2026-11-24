@@ -10,6 +10,7 @@ let state = vi.hoisted(() => ({
   hasOrganizationMemberAccess: true,
   grantLevel: undefined as 'read' | 'write' | undefined,
   hasProfile: true,
+  hasSecondProfile: false,
   hasParticipant: true,
   hasGroup: false,
   groupLevel: null as 'read' | 'write' | 'manage' | null,
@@ -54,7 +55,22 @@ vi.mock('@metorial/state', () => {
           : []
       }),
     useUser: () => loader({ id: 'current-user' }),
-    usePortalConsumerProfiles: () => loader({ items: state.hasProfile ? [profile] : [] }),
+    usePortalConsumerProfiles: () =>
+      loader({
+        items: state.hasSecondProfile
+          ? [
+              { ...profile, organizationMember: { id: 'member' } },
+              {
+                id: 'external-profile',
+                consumerId: 'external-consumer',
+                name: 'External User',
+                email: 'external@example.com'
+              }
+            ]
+          : state.hasProfile
+            ? [profile]
+            : []
+      }),
     usePortalConsumerGroups: () => loader({ items: state.hasGroup ? [group()] : [] }),
     usePortalConsumerAccess: () => ({
       ...loader({
@@ -136,6 +152,7 @@ beforeEach(() => {
   state.hasOrganizationMemberAccess = true;
   state.grantLevel = undefined;
   state.hasProfile = true;
+  state.hasSecondProfile = false;
   state.hasParticipant = true;
 
   state.hasGroup = false;
@@ -182,6 +199,46 @@ let choose = async (select: HTMLButtonElement, label: string) => {
 };
 
 describe('skill participant access', () => {
+  it('submits the chosen access once for all selected people across searches', async () => {
+    state.hasParticipant = false;
+    state.hasSecondProfile = true;
+    await renderPanel();
+
+    let input = host.querySelector('input')!;
+    await act(async () => input.focus());
+    let member = [...host.querySelectorAll('button')].find(button =>
+      button.textContent?.startsWith('Member')
+    )!;
+    await act(async () => member.click());
+
+    await act(async () => {
+      input.value = 'external';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(host.textContent).not.toContain('member@example.com');
+    let external = [...host.querySelectorAll('button')].find(button =>
+      button.textContent?.startsWith('External User')
+    )!;
+    await act(async () => external.click());
+
+    let select = host.querySelector<HTMLButtonElement>(
+      '[aria-label="Access for new people"]'
+    )!;
+    await choose(select, 'Owner');
+    let add = [...host.querySelectorAll('button')].find(
+      button => button.textContent == 'Add'
+    )!;
+    await act(async () => add.click());
+
+    expect(state.share).toHaveBeenCalledExactlyOnceWith({
+      instanceId: 'instance',
+      skillId: 'skill',
+      consumerProfileIds: ['profile', 'external-profile'],
+      organizationMemberIds: [],
+      permission: 'owner'
+    });
+  });
+
   it('prompts users to create a portal when none exists', async () => {
     state.hasPortal = false;
     await renderPanel('dashboard', '');

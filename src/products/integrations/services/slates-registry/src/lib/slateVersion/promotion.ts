@@ -2,6 +2,8 @@ import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import semver from 'semver';
 import type { SlateVersionBackend } from '../../../prisma/generated/client';
 
+export let outdatedUnbuiltVersionCode = 'outdated_unbuilt_version';
+
 export let getSlateVersionPromotion = (d: {
   backend: SlateVersionBackend;
   version: string;
@@ -12,6 +14,7 @@ export let getSlateVersionPromotion = (d: {
     if (d.unbuiltCurrentVersion && !semver.gt(d.version, d.unbuiltCurrentVersion)) {
       throw new ServiceError(
         preconditionFailedError({
+          code: outdatedUnbuiltVersionCode,
           message: `New local_unbuilt version ${d.version} must be greater than existing unbuilt current version ${d.unbuiltCurrentVersion}.`
         })
       );

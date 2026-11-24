@@ -202,8 +202,8 @@ let CredentialsSelector = (p: {
         <>
           <Spacer size={5} />
           <Text size="1" color="gray600">
-            Metorial Managed credentials are available for quick testing, or choose Add
-            credentials to use your own OAuth app.
+            Managed OAuth apps are available, or choose Add credentials to use your own OAuth
+            app.
           </Text>
         </>
       )}

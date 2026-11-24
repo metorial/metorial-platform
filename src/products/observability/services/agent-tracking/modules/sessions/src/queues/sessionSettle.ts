@@ -2,7 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { env } from '../env';
 import { settleSession } from '../lib/settle';
 
-let settleDelayMs = 30_000;
+let settleDelayMs = env.sessions.settleDelayMs;
 
 export let sessionSettleQueue = createQueue<{ sessionKey: string }>({
   name: 'at/session/settle',

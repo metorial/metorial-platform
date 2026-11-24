@@ -1,4 +1,5 @@
 import { Logo, Spacer, Text, theme, Title } from '@metorial-io/ui';
+import { checkEdition } from '@metorial/editions';
 import React from 'react';
 import { styled } from 'styled-components';
 
@@ -147,12 +148,17 @@ export let AuthLayout = ({
           </Inner>
 
           <Footer>
-            <p>
-              By signing up for, logging in to and/or using a{' '}
-              <a href="https://metorial.com">Metorial</a> service, you agree to Metorial&apos;s{' '}
-              <a href="https://metorial.com/legal/terms-of-service">terms of service</a> and{' '}
-              <a href="https://metorial.com/legal/privacy-policy">privacy policy</a>.
-            </p>
+            {checkEdition('on-prem') ? (
+              <p>This Metorial instance run by your organization.</p>
+            ) : (
+              <p>
+                By signing up for, logging in to and/or using a{' '}
+                <a href="https://metorial.com">Metorial</a> service, you agree to
+                Metorial&apos;s{' '}
+                <a href="https://metorial.com/legal/terms-of-service">terms of service</a> and{' '}
+                <a href="https://metorial.com/legal/privacy-policy">privacy policy</a>.
+              </p>
+            )}
           </Footer>
         </Content>
       </Box>

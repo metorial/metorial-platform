@@ -1,0 +1,82 @@
+model Organization {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  nebulaTenantId String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  projects            Project[]
+  instances           Instance[]
+  gatewayTokens       GatewayToken[]
+  providerConnections ProviderConnection[]
+  virtualModels       VirtualModel[]
+}
+
+model Project {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  /// [PlatformLimits]
+  platformLimits         Json      @default("[]")
+  platformLimitsSyncedAt DateTime?
+
+  disabledAt     DateTime?
+  disabledReason String?
+
+  billingRestrictedAt      DateTime?
+  billingRestrictionReason String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instances      Instance[]
+  billingWindows BillingWindow[]
+
+  @@index([organizationOid])
+}
+
+model Instance {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  logRetentionDays Int @default(90)
+
+  /// [GatewayInstanceSettings]
+  settings Json @default("{}")
+
+  /// [GatewayLimits]
+  limits Json @default("[]")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  gatewayTokens       GatewayToken[]
+  providerConnections ProviderConnection[]
+  virtualModels       VirtualModel[]
+
+  @@index([organizationOid])
+  @@index([projectOid])
+}

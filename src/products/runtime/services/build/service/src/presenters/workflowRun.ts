@@ -9,6 +9,19 @@ import type {
 import { workflowArtifactPresenter } from './workflowArtifact';
 import { workflowVersionStepPresenter } from './workflowVersion';
 
+let pendingReason = (run: WorkflowRun) => {
+  if (run.status !== 'pending' || !run.pendingReason || !run.kubernetesQueuedAt) {
+    return run.pendingReason;
+  }
+
+  let minutes = Math.max(
+    0,
+    Math.floor((Date.now() - run.kubernetesQueuedAt.getTime()) / 60_000)
+  );
+  if (minutes === 0) return run.pendingReason;
+  return `${run.pendingReason} (${minutes}m elapsed)`;
+};
+
 export let workflowRunPresenter = async (
   run: WorkflowRun & {
     workflow: Workflow;
@@ -27,6 +40,11 @@ export let workflowRunPresenter = async (
 
   id: run.id,
   status: run.status,
+  pendingReason: pendingReason(run),
+  failure:
+    run.failureCode && run.failureReason
+      ? { code: run.failureCode, message: run.failureReason }
+      : null,
 
   workflowId: run.workflow.id,
   version: run.version.id,
