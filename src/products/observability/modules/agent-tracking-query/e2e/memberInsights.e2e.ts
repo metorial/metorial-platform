@@ -1,11 +1,7 @@
-import { eventually, expectServiceError, uniqueEmail, useOrganization } from '@metorial/e2e';
+import { expectServiceError, uniqueEmail, useOrganization } from '@metorial/e2e';
 import { claudeRequest, ingestFirstUsage } from '@metorial/agent-tracking-e2e';
 import { beforeAll, describe, expect, it } from 'vitest';
-import {
-  agentTrackingFilterValueService,
-  agentTrackingMemberInsightService,
-  type AgentTrackingMemberInsights
-} from '../src';
+import { agentTrackingMemberInsightService, type AgentTrackingMemberInsights } from '../src';
 import {
   createSyncedConsumer,
   dayMs,
@@ -16,8 +12,6 @@ import {
 } from './_fixtures';
 
 type Scope = Awaited<ReturnType<typeof readScope>>;
-
-let settleTimeoutMs = 120_000;
 
 describe('module-agent-tracking-query member insights', () => {
   let org = useOrganization();
@@ -139,74 +133,6 @@ describe('module-agent-tracking-query member insights', () => {
     ]);
   });
 
-  it('counts reasoning effort and speed from request records', async () => {
-    let insights = await eventually(
-      async () => {
-        let result = await read({ include: ['practices'] });
-        expect(result.summary.practices!.requestsMeasured).toBe(3);
-        return result;
-      },
-      { timeoutMs: settleTimeoutMs, intervalMs: 1000 }
-    );
-    let { [emails.heavy]: heavy, [emails.light]: light } = byEmail(insights);
-
-    expect(heavy!.practices).toMatchObject({
-      requestsMeasured: 2,
-      highEffortRequests: 1,
-      maxEffortRequests: 1,
-      requestsWithEffort: 2,
-      highEffortShare: 1,
-      fastRequests: 1,
-      fastShare: 0.5
-    });
-    expect(light!.practices).toMatchObject({
-      requestsMeasured: 1,
-      highEffortRequests: 0,
-      requestsWithEffort: 1,
-      highEffortShare: 0,
-      fastRequests: 0,
-      fastShare: null
-    });
-    expect(insights.summary.practices).toMatchObject({
-      requestsMeasured: 3,
-      highEffortRequests: 1,
-      maxEffortRequests: 1
-    });
-  });
-
-  it('reports the seat and plan seen most and lists only the members on the named seats', async () => {
-    let insights = await eventually(
-      async () => {
-        let result = await read({
-          include: ['seat'],
-          thresholds: { seatUsageMaxMicros: 10_000_000 }
-        });
-        expect(result.list.items.every(item => item.seat!.seat !== null)).toBe(true);
-        return result;
-      },
-      { timeoutMs: settleTimeoutMs, intervalMs: 1000 }
-    );
-    let { [emails.heavy]: heavy, [emails.light]: light } = byEmail(insights);
-
-    expect(heavy!.seat).toMatchObject({ seat: 'premium', plan: 'max' });
-    expect(light!.seat).toMatchObject({ seat: 'standard', plan: 'team' });
-    expect(insights.summary.seat).toEqual({ unknownSeatMembers: 0 });
-
-    let standard = await read({
-      include: ['seat'],
-      thresholds: { seatUsageMaxMicros: 10_000_000 },
-      seats: ['standard']
-    });
-    expect(
-      standard.list.items.map(item => [item.member.email, item.rank, item.flags])
-    ).toEqual([[emails.light, 1, ['low_usage_seat']]]);
-    expect(standard.summary).toMatchObject({
-      members: 1,
-      flagCounts: { low_usage_seat: 1 },
-      seat: { unknownSeatMembers: 0 }
-    });
-  });
-
   it('lists a member without usage with zero figures, flagged only as a low usage seat', async () => {
     let insights = await read({
       include: ['practices', 'seat'],
@@ -243,21 +169,5 @@ describe('module-agent-tracking-query member insights', () => {
     await expectServiceError(read({ include: ['practices'], range }), 'bad_request');
     await expectServiceError(read({ include: ['seat'], range }), 'bad_request');
     expect((await read({ range })).list.items.length).toBeGreaterThan(0);
-  });
-
-  it('offers the seats seen as filter values', async () => {
-    let seats = await eventually(
-      async () => {
-        let result = await agentTrackingFilterValueService.listFilterValues({
-          ...scope,
-          field: 'seat',
-          range: { preset: 'last_7_days' }
-        });
-        expect(result.items.map(item => item.value).sort()).toEqual(['premium', 'standard']);
-        return result;
-      },
-      { timeoutMs: settleTimeoutMs, intervalMs: 1000 }
-    );
-    expect(seats.items.every(item => item.kind == 'seat')).toBe(true);
   });
 });

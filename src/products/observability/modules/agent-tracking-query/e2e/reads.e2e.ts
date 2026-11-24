@@ -212,7 +212,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     await ingestFirstUsage(org, requests);
 
     scope = await readScope(org);
-    catalog = await loadCatalog(org.ids);
+    catalog = await loadCatalog(org.ids, { unknownModels: [madeUpModel] });
   }, 240_000);
 
   it('lists the sessions most recently active first, with member, tokens and cost', async () => {
@@ -783,7 +783,7 @@ describe('module-agent-tracking-query spend over several days', () => {
     await ingestFirstUsage(org, requests);
 
     scope = await readScope(org);
-    catalog = await loadCatalog(org.ids);
+    catalog = await loadCatalog(org.ids, { unknownModels: [madeUpModel] });
   }, 240_000);
 
   it('counts a member active on two days on each of them and once in the range', async () => {

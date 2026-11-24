@@ -1,5 +1,4 @@
 import {
-  eventuallyAudited,
   expectOk,
   expectServiceError,
   firstPage,
@@ -252,34 +251,6 @@ describe('module-agent-tracking-query saved views', () => {
     expect(await listedIds({ instance: sibling })).toEqual([siblingView.id]);
     expect(await listedIds(fixture)).not.toContain(siblingView.id);
   });
-
-  it('audits creation, update and deletion', async () => {
-    let fixture = await loadOrganizationFixture(otherOrg.ids);
-
-    let view = await createView(fixture);
-    let updated = await agentTrackingViewService.updateView({
-      view,
-      auditScope: fixture.auditScope,
-      input: { name: uniqueId('Audited') }
-    });
-    await agentTrackingViewService.deleteView({
-      view: updated,
-      auditScope: fixture.auditScope
-    });
-
-    await eventuallyAudited(async () => {
-      let logs = await db.auditLog.findMany({
-        where: { organizationOid: fixture.organization.oid, resource: 'agent_tracking_view' }
-      });
-      expect([...new Set(logs.map(log => log.action))].sort()).toEqual([
-        'create',
-        'delete',
-        'update'
-      ]);
-      expect(logs.every(log => log.actorId == fixture.actor.id)).toBe(true);
-      expect(logs.filter(log => log.action == 'update')).toHaveLength(1);
-    });
-  }, 180_000);
 });
 
 describe('module-agent-tracking-query saved view limit', () => {

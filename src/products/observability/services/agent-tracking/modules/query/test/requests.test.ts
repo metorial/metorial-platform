@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { datasets } from '../src/catalog';
 import { readPath } from '../src/lib/rows';
+import { bind } from './compileHarness';
 
 let stored = {
   data: {
@@ -10,6 +11,15 @@ let stored = {
     durationMs: 4000,
     ttftMs: 800,
     billing: { mode: 'included', plan: 'max', seat: 'premium' }
+  }
+};
+
+let errorCodes = (query: Record<string, unknown>) => {
+  try {
+    bind(query, { hideIndividuals: true, minGroupUsers: 2 });
+    return [];
+  } catch (error) {
+    return (error as { errors: { code: string }[] }).errors.map(item => item.code);
   }
 };
 
@@ -31,5 +41,29 @@ describe('request fields', () => {
       expect(source.kind, name).toBe('stored');
       expect(readPath(stored, (source as { path: string }).path), name).toBe(value);
     }
+  });
+
+  it('offer the seat as a dimension and a filter, and leave the billing mode out', () => {
+    let fields = datasets.requests.fields;
+
+    expect(fields['billing.seat']).toMatchObject({
+      dimension: true,
+      filter: true,
+      measure: false,
+      sensitivity: 'normal'
+    });
+    expect(Object.keys(fields)).toEqual(
+      expect.arrayContaining(['billing.plan', 'billing.seat', 'reasoning.effort', 'speed'])
+    );
+    expect(Object.keys(fields)).not.toContain('billing.mode');
+  });
+
+  it('group by seat but not by seat and user when individuals are hidden', () => {
+    let query = { dataset: 'requests', measures: ['requests'] };
+
+    expect(errorCodes({ ...query, dimensions: ['user', 'billing.seat'] })).toContain(
+      'personal_field'
+    );
+    expect(errorCodes({ ...query, dimensions: ['billing.seat'] })).toEqual([]);
   });
 });

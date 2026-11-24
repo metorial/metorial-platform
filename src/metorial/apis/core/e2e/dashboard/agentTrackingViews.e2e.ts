@@ -1,4 +1,5 @@
 import {
+  eventuallyAudited,
   expectAuthMatrix,
   expectError,
   expectOk,
@@ -176,6 +177,31 @@ describe('api-core dashboard: agent tracking saved views', () => {
       created.id
     );
   });
+
+  it('audits creation, update and deletion', async () => {
+    let created = await createView();
+    expectOk(
+      await org.clients.rest.patch(viewsPath(`/${created.id}`), { name: uniqueId('Audited') })
+    );
+    expectOk(await org.clients.rest.delete(viewsPath(`/${created.id}`)));
+
+    let actions = await eventuallyAudited(async () => {
+      let body = expectOk(
+        await org.clients.management.get('/organization/audit-logs', { query: { limit: 100 } })
+      );
+      let found = body.items
+        .filter(
+          (item: any) =>
+            item.resource == 'agent_tracking_view' && item.payload?.id == created.id
+        )
+        .map((item: any) => item.action);
+      if (found.length < 3) throw new Error('view not audited yet');
+
+      return found;
+    });
+
+    expect([...actions].sort()).toEqual(['create', 'delete', 'update']);
+  }, 180_000);
 
   it('pages through views without duplicates and filters by page', async () => {
     let first = await createView();
