@@ -46,8 +46,10 @@ export let parseFireworks = (raw: unknown) =>
             /https:\/\/app\.fireworks\.ai\/models\/fireworks\/([^)]+)/
           );
           if (!link) throw new Error(`${label}: missing API model link`);
-          if (/\(US\)|\bFast\b|\bUltra-fast\b|\bFlex\b/.test(label)) {
-            issues.push(`fireworks ${label}: separate regional/speed/flex variant`);
+          if (/\(US\)|\bFast\b|\bUltra-fast\b|\bFlex\b|\bSpot\b/.test(label)) {
+            issues.push(
+              `fireworks ${label}: separate regional/speed/flex/spot variant`
+            );
             continue;
           }
           for (let tier of ['Standard', 'Priority']) {
