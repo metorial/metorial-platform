@@ -3,7 +3,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
-import type { SlateInstance, SlateInvocation, Tenant } from '../../prisma/generated/client';
+import type {
+  SlateInstance,
+  SlateInstanceConfig,
+  SlateInvocation,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { signedIntegrationAttachmentUrl } from '../lib/attachmentSignature';
@@ -16,7 +21,9 @@ import {
   confirmAttachmentUpload
 } from '../lib/invocation/attachmentUpload';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
+import { isTransientInvocationError } from '../lib/invocationErrors';
 import { containsSecretPlaceholder } from '../lib/secretSerializer';
+import { slateInstanceConfigChangedQueue } from '../queues/instance/configChanged';
 import { invocationsBucketRecord, storage } from '../storage';
 import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
@@ -71,6 +78,30 @@ let throwStoredConfigError = (d: { errorCode: string; errorMessage?: string | nu
   );
 };
 
+// A stored runtime failure says nothing about the config, and nothing re-validates a config
+// until it changes. Clear it, re-validate in the background and let the call go through
+// instead of blocking the instance indefinitely.
+let handleStoredConfigError = async (d: {
+  config: SlateInstanceConfig;
+  errorCode: string;
+  versionId: string;
+}) => {
+  if (!isTransientInvocationError({ code: d.errorCode, message: d.config.errorMessage })) {
+    throwStoredConfigError({ errorCode: d.errorCode, errorMessage: d.config.errorMessage });
+  }
+
+  let cleared = await db.slateInstanceConfig.updateMany({
+    where: { oid: d.config.oid, errorCode: d.errorCode },
+    data: { errorCode: null, errorMessage: null, errorInvocationId: null }
+  });
+  if (!cleared.count) return;
+
+  await slateInstanceConfigChangedQueue.add({
+    newConfigId: d.config.id,
+    versionId: d.versionId
+  });
+};
+
 class slateSessionToolCallServiceImpl {
   async createSlateToolCall(d: {
     input: {
@@ -115,9 +146,10 @@ class slateSessionToolCallServiceImpl {
       );
     }
     if (session.slateInstance.currentConfig.errorCode) {
-      throwStoredConfigError({
+      await handleStoredConfigError({
+        config: session.slateInstance.currentConfig,
         errorCode: session.slateInstance.currentConfig.errorCode,
-        errorMessage: session.slateInstance.currentConfig.errorMessage
+        versionId: session.slateVersion.id
       });
     }
 

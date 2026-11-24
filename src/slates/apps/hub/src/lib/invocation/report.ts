@@ -1,4 +1,6 @@
 import { getSentry } from '@lowerdeck/sentry';
+import { checkEdition } from '@metorial/editions';
+import type { SlateVersion } from '../../../prisma/generated/client';
 
 let Sentry = getSentry();
 
@@ -49,6 +51,7 @@ export let reportSlateInvocationServerError = (d: {
   invocationId: string;
   invocationOid?: bigint;
   slateVersionId: string;
+  slateVersion?: SlateVersion;
   tenantIdentifier?: string;
   providerInvocationId?: string;
   error?: unknown;
@@ -71,6 +74,25 @@ export let reportSlateInvocationServerError = (d: {
   console.error('[SlateInvocation] Server error during invocation', extra);
 
   if (d.suppressSentry) return;
+
+  let slateVersion = d.slateVersion;
+  if (slateVersion && checkEdition('on-prem')) {
+    import('../failureReports')
+      .then(({ reportSlateInvocationFailure }) =>
+        reportSlateInvocationFailure({
+          reason: d.reason,
+          slateVersion,
+          invocationId: d.invocationId,
+          providerInvocationId: d.providerInvocationId,
+          tenantIdentifier: d.tenantIdentifier,
+          methods: d.methods,
+          error: d.error,
+          logs: d.logs
+        })
+      )
+      .catch(error => console.error('Could not report slate invocation failure', error));
+    return;
+  }
 
   if (d.error instanceof Error) {
     Sentry.captureException(d.error, {

@@ -1,6 +1,7 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
+import { isTransientInvocationError } from '../../lib/invocationErrors';
 import { slateErrorService, slateInvocationService } from '../../services';
 
 export let slateInstanceConfigChangedQueue = createQueue<{
@@ -14,7 +15,7 @@ export let slateInstanceConfigChangedQueue = createQueue<{
 });
 
 export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChangedQueue.process(
-  async data => {
+  async (data, job) => {
     let previousConfig = data.previousConfigId
       ? await db.slateInstanceConfig.findUnique({
           where: { id: data.previousConfigId },
@@ -41,20 +42,13 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
       previousConfig: previousConfig ? previousConfig.value : null,
       newConfig: newConfig.value
     });
-    if (res.status === 'error') {
-      await db.slateInstanceConfig.updateMany({
-        where: { oid: newConfig.oid },
-        data: {
-          errorCode: res.error.code,
-          errorMessage: res.error.message,
-          errorInvocationId: res.invocation.id
-        }
-      });
+
+    let recordValidationError = (d: { errorCode: string; errorMessage: string }) =>
       slateErrorService
         .recordSlateError({
           type: 'config_validation_failed',
-          errorCode: res.error.code,
-          errorMessage: res.error.message,
+          errorCode: d.errorCode,
+          errorMessage: d.errorMessage,
           tenantOid: newConfig.tenantOid,
           slateOid: newConfig.instance.slateOid,
           slateVersionOid: version.oid,
@@ -63,11 +57,37 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
           instanceConfigOid: newConfig.oid
         })
         .catch(() => {});
+
+    if (res.status === 'error') {
+      // A stored config error blocks every tool call on the instance, so a runtime outage
+      // must not be persisted; retry until the slate can actually judge the config.
+      if (isTransientInvocationError(res.error)) {
+        if (job.attemptsMade === 0) {
+          recordValidationError({
+            errorCode: res.error.code,
+            errorMessage: res.error.message
+          });
+        }
+
+        throw new QueueRetryError();
+      }
+
+      await db.slateInstanceConfig.updateMany({
+        where: { oid: newConfig.oid },
+        data: {
+          errorCode: res.error.code,
+          errorMessage: res.error.message,
+          errorInvocationId: res.invocation.id
+        }
+      });
+      recordValidationError({ errorCode: res.error.code, errorMessage: res.error.message });
       return;
     }
+
     if (!res.data.success) {
       let errorMessage =
         `The provided configuration is invalid ${res.data.errors ? `- ${(res.data.errors ?? []).map(e => e.message).join(', ')}` : ''}`.trim();
+
       await db.slateInstanceConfig.updateMany({
         where: { oid: newConfig.oid },
         data: {
@@ -76,19 +96,7 @@ export let slateInstanceConfigChangedQueueProcessor = slateInstanceConfigChanged
           errorInvocationId: res.invocation.id
         }
       });
-      slateErrorService
-        .recordSlateError({
-          type: 'config_validation_failed',
-          errorCode: 'invalid_config',
-          errorMessage,
-          tenantOid: newConfig.tenantOid,
-          slateOid: newConfig.instance.slateOid,
-          slateVersionOid: version.oid,
-          slateInstanceOid: newConfig.instance.oid,
-          invocationOid: res.invocation.oid,
-          instanceConfigOid: newConfig.oid
-        })
-        .catch(() => {});
+      recordValidationError({ errorCode: 'invalid_config', errorMessage });
       return;
     }
 
