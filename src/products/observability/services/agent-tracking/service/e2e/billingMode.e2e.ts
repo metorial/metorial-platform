@@ -8,11 +8,11 @@ import {
   createToken,
   isoRange,
   rowsByKey,
-  runQuery
+  runQuery,
+  usagePollOptions
 } from './support';
 
 let hourMs = 60 * 60 * 1000;
-let settleTimeoutMs = 120_000;
 let sonnetModel = 'claude-sonnet-4-5-20250929';
 
 let hoursAgo = (hours: number) => new Date(Date.now() - hours * hourMs);
@@ -85,17 +85,14 @@ describe('billing mode', { timeout: 300_000 }, () => {
       );
     };
 
-    await eventually(
-      async () => {
-        expect(await byKey(['billing.mode', 'billing.source', 'billing.plan'])).toEqual({
-          'included|reported|max': { requests: 1, cost: expect.any(Number) },
-          'overage|inferred|max': { requests: 1, cost: expect.any(Number) },
-          'api|reported|null': { requests: 1, cost: 3 },
-          'unknown|null|null': { requests: 1, cost: 3 }
-        });
-      },
-      { timeoutMs: settleTimeoutMs }
-    );
+    await eventually(async () => {
+      expect(await byKey(['billing.mode', 'billing.source', 'billing.plan'])).toEqual({
+        'included|reported|max': { requests: 1, cost: expect.any(Number) },
+        'overage|inferred|max': { requests: 1, cost: expect.any(Number) },
+        'api|reported|null': { requests: 1, cost: 3 },
+        'unknown|null|null': { requests: 1, cost: 3 }
+      });
+    }, usagePollOptions);
 
     expect(
       await byKey(['billing.mode'], {
@@ -143,15 +140,12 @@ describe('billing mode', { timeout: 300_000 }, () => {
       validFrom: hoursAgo(24)
     });
 
-    await eventually(
-      async () => {
-        expect(await byKey(['billing.mode', 'billing.source'])).toMatchObject({
-          'included|declared': { requests: 1, cost: 3 },
-          'api|reported': { requests: 1, cost: 3 }
-        });
-      },
-      { timeoutMs: settleTimeoutMs }
-    );
+    await eventually(async () => {
+      expect(await byKey(['billing.mode', 'billing.source'])).toMatchObject({
+        'included|declared': { requests: 1, cost: 3 },
+        'api|reported': { requests: 1, cost: 3 }
+      });
+    }, usagePollOptions);
 
     await agentTracking().pricing.overrides.create({
       organizationId,
@@ -163,16 +157,13 @@ describe('billing mode', { timeout: 300_000 }, () => {
       validFrom: hoursAgo(24)
     });
 
-    await eventually(
-      async () => {
-        let rows = await byKey(['billing.mode', 'billing.source']);
+    await eventually(async () => {
+      let rows = await byKey(['billing.mode', 'billing.source']);
 
-        expect(rows['included|declared']).toEqual({ requests: 1, cost: 0 });
-        expect(rows['included|reported']?.cost).toBe(0);
-        expect(rows['api|reported']).toEqual({ requests: 1, cost: 3 });
-        expect(rows['overage|inferred']?.cost).toBeGreaterThan(0);
-      },
-      { timeoutMs: settleTimeoutMs }
-    );
+      expect(rows['included|declared']).toEqual({ requests: 1, cost: 0 });
+      expect(rows['included|reported']?.cost).toBe(0);
+      expect(rows['api|reported']).toEqual({ requests: 1, cost: 3 });
+      expect(rows['overage|inferred']?.cost).toBeGreaterThan(0);
+    }, usagePollOptions);
   });
 });

@@ -52,7 +52,8 @@ export default project({
     env: {
       AGENT_TRACKING_HASH_SECRET: 'e2e-agent-tracking-hash-secret',
       AGENT_TRACKING_SINK: 'memory',
-      AGENT_TRACKING_MODEL_KNOWLEDGE_POLL_MINUTES: '0'
+      AGENT_TRACKING_MODEL_KNOWLEDGE_POLL_MINUTES: '0',
+      AGENT_TRACKING_SETTLE_DELAY_MS: '1000'
     }
   }),
   ci: {

@@ -12,12 +12,11 @@ import {
   isoRange,
   rowsByKey,
   rpcErrorCode,
-  runQuery
+  runQuery,
+  usagePollOptions
 } from './support';
 
 let sonnetRaw = 'claude-sonnet-4-5-20250929';
-
-let settleTimeoutMs = 120_000;
 
 let rangeAroundNow = () =>
   isoRange(new Date(Date.now() - 24 * 60 * 60 * 1000), new Date(Date.now() + 60 * 60 * 1000));
@@ -67,13 +66,10 @@ let seedUsage = async () => {
     }));
   };
 
-  await eventually(
-    async () => {
-      let total = await usage({ dimensions: [] });
-      expect(total.rows[0]).toMatchObject({ requests: 4, 'users.active': 2 });
-    },
-    { timeoutMs: settleTimeoutMs }
-  );
+  await eventually(async () => {
+    let total = await usage({ dimensions: [] });
+    expect(total.rows[0]).toMatchObject({ requests: 4, 'users.active': 2 });
+  }, usagePollOptions);
 
   return { ...scope, ada, grace, usage, byKey };
 };
@@ -88,7 +84,7 @@ describe('usage dimensions', () => {
 
   beforeAll(async () => {
     seeded = await seedUsage();
-  }, settleTimeoutMs + 30_000);
+  }, usagePollOptions.timeoutMs + 30_000);
 
   it('groups by model family and lab, and filters by family', async () => {
     let { byKey } = await withKnowledge();
