@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { invalidInputError } from './errors';
 import type { RemotePage, RemotePageInput } from './remotePaginator';
 
 export let pageByAnchor = <T extends { id: string }>(
@@ -8,8 +8,7 @@ export let pageByAnchor = <T extends { id: string }>(
   let ordered = page.order == 'asc' ? [...items].reverse() : items;
   let indexOf = (id: string) => {
     let index = ordered.findIndex(item => item.id == id);
-    if (index < 0)
-      throw new ServiceError(badRequestError({ message: 'Unknown list anchor.' }));
+    if (index < 0) throw invalidInputError('Unknown list anchor.');
 
     return index;
   };

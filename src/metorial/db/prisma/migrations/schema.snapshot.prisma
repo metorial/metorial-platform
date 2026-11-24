@@ -749,6 +749,41 @@ model AgentTrackingInstanceSettings {
   updatedAt DateTime @default(now()) @updatedAt
 }
 
+enum AgentTrackingViewStatus {
+  active
+  deleted
+}
+
+model AgentTrackingView {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status AgentTrackingViewStatus @default(active)
+
+  page String
+  kind String
+
+  name    String
+  nameKey String?
+
+  /// [AgentTrackingViewParams]
+  params Json
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  creatorActorOid BigInt?
+  creatorActor    OrganizationActor? @relation(fields: [creatorActorOid], references: [oid], onDelete: SetNull)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@unique([instanceOid, page, nameKey])
+  @@index([instanceOid, page, status])
+  @@index([creatorActorOid])
+}
+
 model AuditLog {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -4726,6 +4761,7 @@ model OrganizationActor {
   consumerOrganizationActors ConsumerOrganizationActor[]
   auditLogs                  AuditLog[]
   events                     AuditLogEvent[]
+  createdAgentTrackingViews  AgentTrackingView[]
 
   @@unique([isSystem, organizationOid])
 }
@@ -5006,6 +5042,7 @@ model Instance {
   agentTrackingIngestTokens  AgentTrackingIngestToken[]
   agentTrackingIngestSources AgentTrackingIngestSource[]
   agentTrackingSettings      AgentTrackingInstanceSettings?
+  agentTrackingViews         AgentTrackingView[]
 
   @@index([previousSlugs])
   @@index([oldSlug])

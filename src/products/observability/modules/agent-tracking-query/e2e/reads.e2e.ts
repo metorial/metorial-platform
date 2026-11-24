@@ -212,7 +212,7 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     await ingestFirstUsage(org, requests);
 
     scope = await readScope(org);
-    catalog = await loadCatalog(org.ids);
+    catalog = await loadCatalog(org.ids, { unknownModels: [madeUpModel] });
   }, 240_000);
 
   it('lists the sessions most recently active first, with member, tokens and cost', async () => {
@@ -525,6 +525,26 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
     for (let item of breakdown.items) expect(item.unknownModelNames).toEqual([]);
   });
 
+  it('breaks the spend of one member down by model', async () => {
+    let members = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'member',
+      range: lastWeek
+    });
+    let unmatched = members.items.find(item => item.member?.email == unmatchedEmail)!;
+
+    let breakdown = await agentTrackingSpendService.getBreakdown({
+      ...scope,
+      groupBy: 'model',
+      range: lastWeek,
+      filters: { memberIds: [unmatched.key] }
+    });
+
+    expect(breakdown.total).toMatchObject({ requests: 1, cost: { totalMicros: 2000 } });
+    expect(breakdown.items).toHaveLength(1);
+    if (catalog.present) expect(breakdown.items[0]!.model!.id).toBe(catalog.haiku.id);
+  });
+
   it('breaks spend down by model and names the models behind Unknown Model', async () => {
     let breakdown = await agentTrackingSpendService.getBreakdown({
       ...scope,
@@ -763,7 +783,7 @@ describe('module-agent-tracking-query spend over several days', () => {
     await ingestFirstUsage(org, requests);
 
     scope = await readScope(org);
-    catalog = await loadCatalog(org.ids);
+    catalog = await loadCatalog(org.ids, { unknownModels: [madeUpModel] });
   }, 240_000);
 
   it('counts a member active on two days on each of them and once in the range', async () => {

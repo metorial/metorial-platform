@@ -2,11 +2,16 @@ import {
   DashboardInstanceAgentTrackingFilterValuesListQuery,
   DashboardInstanceAgentTrackingIngestSourcesCreateBody,
   DashboardInstanceAgentTrackingIngestSourcesListQuery,
+  DashboardInstanceAgentTrackingMembersInsightsQuery,
   DashboardInstanceAgentTrackingMembersListQuery,
   DashboardInstanceAgentTrackingSessionsListQuery,
   DashboardInstanceAgentTrackingSettingsUpdateBody,
   DashboardInstanceAgentTrackingSpendBreakdownQuery,
+  DashboardInstanceAgentTrackingSpendReportQuery,
   DashboardInstanceAgentTrackingSpendTimelineQuery,
+  DashboardInstanceAgentTrackingViewsCreateBody,
+  DashboardInstanceAgentTrackingViewsListQuery,
+  DashboardInstanceAgentTrackingViewsUpdateBody,
   DashboardOrganizationsConfigureAgentTrackingUpdateBody,
   DashboardProjectsConfigureAgentTrackingUpdateBody
 } from '@metorial/dashboard-sdk';
@@ -91,6 +96,19 @@ export let useAgentTrackingSpendBreakdown = (
 ) =>
   agentTrackingSpendBreakdownLoader.use(instanceId && query ? { instanceId, ...query } : null);
 
+export let agentTrackingSpendReportLoader = createLoader({
+  name: 'agentTrackingSpendReport',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingSpendReportQuery) =>
+    withAuth(sdk => sdk.agentTracking.spend.report(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingSpendReport = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingSpendReportQuery | null
+) => agentTrackingSpendReportLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
 export let agentTrackingSessionsLoader = createLoader({
   name: 'agentTrackingSessions',
   parents: [],
@@ -159,6 +177,78 @@ export let useAgentTrackingMembers = (
     JSON.stringify([instanceId, query ?? {}])
   );
 
+export let agentTrackingMemberInsightsLoader = createLoader({
+  name: 'agentTrackingMemberInsights',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingMembersInsightsQuery) =>
+    withAuth(async sdk => {
+      let insights = await sdk.agentTracking.members.insights(i.instanceId, i);
+      return {
+        ...insights,
+        items: insights.items.map(item => ({ ...item, id: item.member.id }))
+      };
+    }),
+  mutators: {}
+});
+
+export let useAgentTrackingMemberInsights = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingMembersInsightsQuery | null
+) =>
+  usePaginator(
+    pagination =>
+      agentTrackingMemberInsightsLoader.use(
+        instanceId && query ? { instanceId, ...pagination, ...query } : null
+      ),
+    JSON.stringify([instanceId, query])
+  );
+
+export let agentTrackingViewsLoader = createLoader({
+  name: 'agentTrackingViews',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingViewsListQuery) =>
+    withAuth(sdk => sdk.agentTracking.views.list(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingViews = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingViewsListQuery | null
+) => agentTrackingViewsLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
+export let useCreateAgentTrackingView = agentTrackingViewsLoader.createExternalMutator(
+  (i: DashboardInstanceAgentTrackingViewsCreateBody & { instanceId: string }) =>
+    withAuth(sdk =>
+      sdk.agentTracking.views.create(i.instanceId, {
+        page: i.page,
+        name: i.name,
+        kind: i.kind,
+        params: i.params
+      })
+    ),
+  { disableToast: true }
+);
+
+export let useUpdateAgentTrackingView = agentTrackingViewsLoader.createExternalMutator(
+  (
+    i: DashboardInstanceAgentTrackingViewsUpdateBody & { instanceId: string; viewId: string }
+  ) =>
+    withAuth(sdk =>
+      sdk.agentTracking.views.update(i.instanceId, i.viewId, {
+        name: i.name,
+        kind: i.kind,
+        params: i.params
+      })
+    ),
+  { disableToast: true }
+);
+
+export let useDeleteAgentTrackingView = agentTrackingViewsLoader.createExternalMutator(
+  (i: { instanceId: string; viewId: string }) =>
+    withAuth(sdk => sdk.agentTracking.views.delete(i.instanceId, i.viewId)),
+  { disableToast: true }
+);
+
 export let agentTrackingInstanceSettingsLoader = createLoader({
   name: 'agentTrackingInstanceSettings',
   parents: [],
@@ -184,10 +274,12 @@ export let agentTrackingOrganizationSettingsLoader = createLoader({
     agentTrackingInstanceSettingsLoader,
     agentTrackingSpendTimelineLoader,
     agentTrackingSpendBreakdownLoader,
+    agentTrackingSpendReportLoader,
     agentTrackingSessionsLoader,
     agentTrackingSessionLoader,
     agentTrackingFilterValuesLoader,
-    agentTrackingMembersLoader
+    agentTrackingMembersLoader,
+    agentTrackingMemberInsightsLoader
   ],
   fetch: (i: { organizationId: string }) =>
     withAuth(sdk => sdk.organizations.configureAgentTracking.get(i.organizationId)),

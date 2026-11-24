@@ -39,6 +39,7 @@ import {
   AgentTrackingContentMode,
   AgentTrackingIngestSource,
   AgentTrackingIngestToken,
+  AgentTrackingView,
   ApiKey,
   AuditLogStream,
   Consumer,
@@ -941,6 +942,17 @@ export type AuditAgentTrackingIngestSource = AgentTrackingIngestSource & {
   instance: Pick<Instance, 'id'>;
 };
 
+export type AuditAgentTrackingView = AgentTrackingView & {
+  instance: Pick<Instance, 'id'>;
+  creatorActor: Pick<OrganizationActor, 'id'> | null;
+};
+
+export type AgentTrackingViewInput = {
+  name?: string;
+  kind?: string;
+  params?: PrismaJson.AgentTrackingViewParams;
+};
+
 export type AgentTrackingOrganizationSettingsValues = {
   organizationId: string;
   privacy: { hideIndividuals: boolean; minGroupUsers: number };
@@ -1481,6 +1493,13 @@ export interface FabricEvents {
   'agent_tracking.ingest_source.created:before': { organization: Organization; instance: Instance; input: { name: string; clientFamily: string }; auditScope: AuditScope };
   'agent_tracking.ingest_source.created:after': { ingestSource: AuditAgentTrackingIngestSource; auditScope: AuditScope };
   'agent_tracking.ingest_source.revoked:after': { ingestSource: AuditAgentTrackingIngestSource; previousIngestSource: AuditAgentTrackingIngestSource; auditScope: AuditScope };
+
+  'agent_tracking.view.created:before': { organization: Organization; instance: Instance; input: AgentTrackingViewInput & { page: string }; auditScope: AuditScope };
+  'agent_tracking.view.created:after': { view: AuditAgentTrackingView; auditScope: AuditScope };
+  'agent_tracking.view.updated:before': { view: AuditAgentTrackingView; input: AgentTrackingViewInput; auditScope: AuditScope };
+  'agent_tracking.view.updated:after': { view: AuditAgentTrackingView; previousView: AuditAgentTrackingView; auditScope: AuditScope };
+  'agent_tracking.view.deleted:before': { view: AuditAgentTrackingView; auditScope: AuditScope };
+  'agent_tracking.view.deleted:after': { view: AuditAgentTrackingView; previousView: AuditAgentTrackingView; auditScope: AuditScope };
 
   'agent_tracking.settings.updated:before': { organization: Organization; project?: Project; instance?: Instance; input: AgentTrackingSettingsInput; auditScope: AuditScope };
   'agent_tracking.settings.updated:after': { settings: AgentTrackingSettingsValues; previousSettings: AgentTrackingSettingsValues; auditScope: AuditScope };

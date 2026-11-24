@@ -6,13 +6,48 @@ export type RangePreset =
 
 export type BreakdownGroup = 'member' | 'model';
 
+export type SpendReportGroup = BreakdownGroup | 'client';
+
 export type SessionListOrderBy = 'last_activity' | 'cost';
 
-export type FilterField = 'member' | 'model' | 'client';
+export type FilterField = 'member' | 'model' | 'client' | 'seat';
 
 export type AgentTrackingSpendFilters = {
   clientFamilies?: string[];
   modelIds?: string[];
+  memberIds?: string[];
+};
+
+export type MemberInsightsGroup = 'models' | 'practices' | 'seat';
+
+export type MemberInsightsSort =
+  | 'cost'
+  | 'sessions'
+  | 'requests'
+  | 'last_activity'
+  | 'model_share'
+  | 'model_cost'
+  | 'high_effort_share'
+  | 'fast_share'
+  | 'outdated_share'
+  | 'cache_hit_rate'
+  | 'seat_usage';
+
+export type MemberInsightsFlag =
+  | 'model_share'
+  | 'high_effort'
+  | 'fast_mode'
+  | 'outdated_models'
+  | 'low_cache_hit_rate'
+  | 'low_usage_seat';
+
+export type MemberInsightsThresholds = {
+  modelShareMin?: number;
+  highEffortShareMin?: number;
+  fastShareMin?: number;
+  outdatedShareMin?: number;
+  cacheHitRateMax?: number;
+  seatUsageMaxMicros?: number;
 };
 
 export type SetupOptionKey =
@@ -113,10 +148,11 @@ export type AgentTrackingSpendTimeline = {
 };
 
 export type AgentTrackingSpendBreakdownItem = AgentTrackingSpendFigures & {
-  kind: 'member' | 'model' | 'unknown' | 'other';
+  kind: 'member' | 'model' | 'client' | 'unknown' | 'other';
   key: string;
   member: AgentTrackingMember | null;
   model: AgentTrackingModel | null;
+  client: Pick<AgentTrackingClient, 'family' | 'name'> | null;
   unknownModelNames: string[];
   share: number | null;
 };
@@ -126,6 +162,67 @@ export type AgentTrackingSpendBreakdown = {
   groupBy: BreakdownGroup;
   total: AgentTrackingSpendFigures;
   items: AgentTrackingSpendBreakdownItem[];
+};
+
+export type AgentTrackingSpendReportMonth = AgentTrackingSpendFigures & {
+  month: string;
+  startsAt: Date;
+  hiddenDays: number;
+  counts: AgentTrackingDayCounts | null;
+};
+
+export type AgentTrackingSpendCoverage = {
+  firstDay: string | null;
+  daysWithData: number;
+  hiddenDays: number;
+  startsBeforeYear: boolean;
+  lastFullDay: string | null;
+};
+
+export type ProjectionStatus = 'projected' | 'insufficient_data' | 'not_applicable';
+
+export type GrowthRateSource = 'input' | 'observed' | 'default';
+
+export type AgentTrackingProjectedMonth = {
+  month: string;
+  actualMicros: number;
+  projectedMicros: number;
+  totalMicros: number;
+};
+
+export type AgentTrackingProjectionScenario = {
+  growthRate: number;
+  months: AgentTrackingProjectedMonth[];
+  yearEndTotalMicros: number;
+  nextYearTotalMicros: number;
+};
+
+export type AgentTrackingSpendProjection = {
+  status: ProjectionStatus;
+  baseline: {
+    from: string;
+    to: string;
+    days: number;
+    dailyRateMicros: number | null;
+  } | null;
+  growth: { rate: number; source: GrowthRateSource } | null;
+  scenarios: {
+    flat: AgentTrackingProjectionScenario;
+    growth: AgentTrackingProjectionScenario;
+  } | null;
+};
+
+export type AgentTrackingSpendReport = {
+  year: number;
+  range: AgentTrackingRange;
+  total: AgentTrackingSpendFigures;
+  counts: AgentTrackingSpendCounts | null;
+  startsBeforeRetention: boolean;
+  privacy: AgentTrackingReadPrivacy;
+  months: AgentTrackingSpendReportMonth[];
+  coverage: AgentTrackingSpendCoverage;
+  breakdowns: Record<SpendReportGroup, AgentTrackingSpendBreakdownItem[] | null>;
+  projection: AgentTrackingSpendProjection;
 };
 
 export type AgentTrackingClient = {
@@ -166,7 +263,7 @@ export type AgentTrackingSessionDetail = AgentTrackingSessionView & {
 
 export type AgentTrackingFilterValue = {
   value: string;
-  kind: 'member' | 'model' | 'client' | 'unknown';
+  kind: FilterField | 'unknown';
   member: AgentTrackingMember | null;
   model: AgentTrackingModel | null;
   client: Pick<AgentTrackingClient, 'family' | 'name'> | null;
@@ -197,6 +294,92 @@ export type AgentTrackingMemberList = {
     };
   };
   truncated: boolean;
+};
+
+export type AgentTrackingModelUsageFigures = {
+  costMicros: number | null;
+  requests: number;
+  costShare: number | null;
+  requestShare: number | null;
+};
+
+export type AgentTrackingPracticeFigures = {
+  requestsMeasured: number;
+  requestsWithEffort: number;
+  highEffortRequests: number;
+  maxEffortRequests: number;
+  highEffortShare: number | null;
+  fastRequests: number;
+  fastShare: number | null;
+  outdatedCostMicros: number | null;
+  outdatedShare: number | null;
+  cacheHitRate: number | null;
+};
+
+export type AgentTrackingOutdatedModel = {
+  model: AgentTrackingModel;
+  status: string | null;
+  isLatest: boolean | null;
+  costMicros: number | null;
+};
+
+export type AgentTrackingMemberPractices = AgentTrackingPracticeFigures & {
+  outdatedModels: AgentTrackingOutdatedModel[];
+};
+
+export type AgentTrackingMemberSeat = {
+  seat: string | null;
+  plan: string | null;
+  listPriceMicros: number | null;
+};
+
+export type AgentTrackingMemberInsightFigures = {
+  id: string;
+  rank: number;
+  cost: AgentTrackingSpendCost;
+  share: number | null;
+  sessions: number;
+  requests: number;
+  lastActivityAt: Date | null;
+  models: AgentTrackingModelUsageFigures | null;
+  practices: AgentTrackingMemberPractices | null;
+  seat: AgentTrackingMemberSeat | null;
+  flags: MemberInsightsFlag[];
+};
+
+export type AgentTrackingMemberInsight = AgentTrackingMemberInsightFigures & {
+  member: AgentTrackingMember;
+};
+
+export type AgentTrackingMemberInsightsSummary = {
+  cost: AgentTrackingSpendCost;
+  requests: number;
+  sessions: number;
+  activeMembers: number;
+  countsCapped: boolean;
+  unattributedCostMicros: number | null;
+  members: number;
+  flagCounts: Record<MemberInsightsFlag, number | null>;
+  models: AgentTrackingModelUsageFigures | null;
+  practices: AgentTrackingPracticeFigures | null;
+  seat: { unknownSeatMembers: number } | null;
+  requestRecordsClipped: boolean;
+};
+
+export type AgentTrackingMemberInsights = {
+  range: AgentTrackingRange;
+  include: MemberInsightsGroup[];
+  list: {
+    items: AgentTrackingMemberInsight[];
+    pagination: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      after?: string;
+      before?: string;
+    };
+  };
+  truncated: boolean;
+  summary: AgentTrackingMemberInsightsSummary;
 };
 
 export type AgentTrackingSetupStatus = {

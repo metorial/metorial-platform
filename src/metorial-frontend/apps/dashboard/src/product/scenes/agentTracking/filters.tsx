@@ -8,7 +8,7 @@ import {
   getBrowserTimeZone,
   type AgentTrackingRangePreset
 } from './range';
-import { modelLabel } from './sessionParts';
+import { modelLabel } from './spendSummary';
 
 type FilterValue = DashboardInstanceAgentTrackingFilterValuesListOutput['items'][number];
 
@@ -40,10 +40,10 @@ let filterValueOption =
 
 let filterValuesFilter =
   (
-    field: 'member' | 'model' | 'client',
+    field: 'member' | 'model' | 'client' | 'seat',
     d: Pick<EntityDefinition, 'id' | 'label' | 'noun' | 'mode'>
   ) =>
-  (instanceId: string | undefined, rangeText: string) =>
+  (instanceId: string | undefined, rangeText = 'this range') =>
     defineEntityFilter({
       ...d,
       emptyMessage: search =>
@@ -80,6 +80,12 @@ export let agentTrackingFilters = {
     id: 'clientFamily',
     label: 'Client',
     noun: 'clients',
+    mode: 'recent'
+  }),
+  seat: filterValuesFilter('seat', {
+    id: 'seat',
+    label: 'Seat',
+    noun: 'seats',
     mode: 'recent'
   })
 };

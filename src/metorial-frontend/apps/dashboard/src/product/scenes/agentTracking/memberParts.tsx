@@ -1,11 +1,14 @@
 import { getAvatarUrl, Paths } from '@metorial/frontend-config';
 import { Avatar, Badge, Datalist, Flex, Text } from '@metorial/ui';
-import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { InstanceContext } from '../../lib/dataList';
+import { WithInfo } from './info';
 import { withQuery, type AgentTrackingRangePreset } from './range';
+import { memberName } from './spendSummary';
 
 let unknownMemberDescription = 'API key or Bedrock usage, no email';
+
+let wrapAnywhere = { overflowWrap: 'anywhere' } as const;
 
 type Member = {
   id: string;
@@ -16,12 +19,9 @@ type Member = {
 
 type MemberWithDetails = Member & { emails: string[]; needsReview: boolean };
 
-export let memberName = (member: { name: string | null; email: string | null } | null) =>
-  member ? (member.name ?? member.email ?? 'Unknown Member') : 'Unknown Member';
-
 export let memberListLimit = 1000;
 
-let memberWindowDays = 400;
+export let memberWindowDays = 400;
 
 let rangePhrases: Record<AgentTrackingRangePreset, string> = {
   today: 'today',
@@ -46,35 +46,43 @@ export let memberPath = (
 
 export let MemberIdentity = ({
   member,
-  showEmail = true
+  showEmail = true,
+  wrap = false
 }: {
   member: Member | null;
   showEmail?: boolean;
+  wrap?: boolean;
 }) => {
   let name = memberName(member);
   let secondary = member ? (member.name ? member.email : null) : unknownMemberDescription;
+  let textStyle = wrap ? wrapAnywhere : undefined;
 
   return (
-    <Flex align="center" gap={10} style={{ minWidth: 0 }}>
+    <Flex align={wrap ? 'start' : 'center'} gap={10} style={{ minWidth: 0 }}>
       <Avatar
         entity={{ name, imageUrl: member ? getAvatarUrl(member.id) : undefined }}
         size={26}
         noTooltip
       />
 
-      <Flex direction="column" gap={2} style={{ minWidth: 0, maxWidth: 240 }}>
+      <Flex
+        direction="column"
+        gap={2}
+        style={{ minWidth: 0, maxWidth: wrap ? undefined : 240 }}
+      >
         <Text
           as="span"
           size="2"
           weight="medium"
           color={member ? undefined : 'gray600'}
-          truncate
+          truncate={!wrap}
+          style={textStyle}
         >
           {name}
         </Text>
 
         {showEmail && secondary ? (
-          <Text as="span" size="1" color="gray600" truncate>
+          <Text as="span" size="1" color="gray600" truncate={!wrap} style={textStyle}>
             {secondary}
           </Text>
         ) : null}
@@ -83,14 +91,28 @@ export let MemberIdentity = ({
   );
 };
 
-let Explained = ({ label, text }: { label: ReactNode; text: string }) => (
-  <Flex direction="column" align="start" gap={4}>
-    {label}
+export let memberEmails = (member: MemberWithDetails) =>
+  [...new Set([member.email, ...member.emails])].filter((email): email is string => !!email);
 
-    <Text as="span" size="1" color="gray600">
-      {text}
-    </Text>
-  </Flex>
+export let MemberLinkBadge = ({ matched }: { matched: boolean }) =>
+  matched ? (
+    <Badge size="1" color="green">
+      Linked
+    </Badge>
+  ) : (
+    <WithInfo info="The email of this Claude account matches no member of this organization.">
+      <Badge size="1" color="orange">
+        Not Linked
+      </Badge>
+    </WithInfo>
+  );
+
+export let MemberReviewBadge = () => (
+  <WithInfo info="Created after the daily limit of new members for an ingestion key. Check that this is a real person.">
+    <Badge size="1" color="yellow">
+      Needs Review
+    </Badge>
+  </WithInfo>
 );
 
 export let MemberDetails = ({
@@ -107,10 +129,9 @@ export let MemberDetails = ({
           {
             label: 'Member',
             value: (
-              <Explained
-                label="Unknown"
-                text="Usage through an API key or Bedrock carries no email, so it cannot be tied to a person."
-              />
+              <WithInfo info="Usage through an API key or Bedrock carries no email, so it cannot be tied to a person.">
+                Unknown
+              </WithInfo>
             )
           }
         ]}
@@ -118,8 +139,8 @@ export let MemberDetails = ({
     );
   }
 
-  let identity = <MemberIdentity member={member} showEmail={false} />;
-  let emails = [...new Set([member.email, ...member.emails].filter(Boolean))];
+  let identity = <MemberIdentity member={member} showEmail={false} wrap />;
+  let emails = memberEmails(member);
   let namedByEmail = !member.name && emails.length == 1;
 
   return (
@@ -131,40 +152,18 @@ export let MemberDetails = ({
           : [
               {
                 label: emails.length > 1 ? 'Emails' : 'Email',
-                value: emails.join(', ') || '—'
+                value: <span style={wrapAnywhere}>{emails.join(', ') || '—'}</span>
               }
             ]),
         {
           label: 'Metorial',
-          value: member.matched ? (
-            <Badge size="1" color="green">
-              Linked
-            </Badge>
-          ) : (
-            <Explained
-              label={
-                <Badge size="1" color="orange">
-                  Not Linked
-                </Badge>
-              }
-              text="The email of this Claude account matches no member of this organization."
-            />
-          )
+          value: <MemberLinkBadge matched={member.matched} />
         },
         ...(member.needsReview
           ? [
               {
                 label: 'Review',
-                value: (
-                  <Explained
-                    label={
-                      <Badge size="1" color="yellow">
-                        Needs Review
-                      </Badge>
-                    }
-                    text="Created after the daily limit of new members for an ingestion key. Check that this is a real person."
-                  />
-                )
+                value: <MemberReviewBadge />
               }
             ]
           : [])

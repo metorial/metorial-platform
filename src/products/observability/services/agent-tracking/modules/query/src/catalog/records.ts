@@ -7,6 +7,7 @@ import {
   errorClasses,
   measureField,
   outcomes,
+  reportedBillingFields,
   stored,
   storedMeasure,
   timeFields,
@@ -97,28 +98,47 @@ export let requestsDataset: DatasetDef = {
       errorClasses,
       'The error class of a failed request.'
     ),
-    'reasoning.effort': stored('data.reasoningEffort', 'string', 'The reasoning effort.', {
-      cardinality: 'low'
-    }),
-    speed: enumField('data.speed', ['standard', 'fast'], 'The speed tier.'),
-    finish_reason: stored('data.finishReason', 'string', 'Why the model stopped.', {
-      cardinality: 'low'
-    }),
+    'reasoning.effort': stored(
+      'data.effort',
+      'string',
+      'The reasoning effort. Claude Code and Codex report it.',
+      { cardinality: 'low' }
+    ),
+    speed: enumField(
+      'data.speed',
+      ['standard', 'fast'],
+      'The speed tier. Only Claude Code reports it.'
+    ),
+    finish_reason: stored(
+      'data.stopReason',
+      'string',
+      'Why the model stopped. No client reports it on requests yet, so it is empty today.',
+      { cardinality: 'low' }
+    ),
+    ...reportedBillingFields('data.billing'),
     transport: enumField('data.transport', ['http', 'websocket', 'sse'], 'The transport.'),
     stream: boolField('data.stream', 'Whether the response was streamed.'),
     attempt: stored('data.attempt', 'number', 'The attempt number (1 for the first try).', {
       cardinality: 'low'
     }),
-    latency: storedMeasure('data.latency.totalMs', 'duration', 'Total latency.'),
-    ttft: storedMeasure('data.latency.ttftMs', 'duration', 'Time to first token.'),
+    latency: storedMeasure(
+      'data.durationMs',
+      'duration',
+      'Total latency. Claude Code and clients that send OpenTelemetry GenAI spans report it; Codex does not.'
+    ),
+    ttft: storedMeasure(
+      'data.ttftMs',
+      'duration',
+      'Time to first token. Only Codex reports it.'
+    ),
     ...tokenFields('data.usage')
   },
   metrics: {
     requests: count('Model requests.'),
     'requests.failed': count('Failed model requests.', failed),
     'requests.error_rate': errorRate,
-    latency: avg('latency', 'duration', 'Average latency.'),
-    ttft: avg('ttft', 'duration', 'Average time to first token.'),
+    latency: avg('latency', 'duration', 'Average latency. Codex does not report it.'),
+    ttft: avg('ttft', 'duration', 'Average time to first token. Only Codex reports it.'),
     ...tokenMetrics(),
     'cost.reported': {
       kind: 'reported',

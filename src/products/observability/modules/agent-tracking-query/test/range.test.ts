@@ -87,7 +87,7 @@ describe('explicit ranges', () => {
 
 describe('range cache keys', () => {
   it('keys a preset by name and the zone date, so the moving end does not defeat the cache', () => {
-    let range = normalizeRange({ preset: 'today', timeZone: 'Europe/Berlin' });
+    let range = normalizeRange({ preset: 'today', timeZone: 'europe/BERLIN' });
 
     expect(rangeCacheKey(range, new Date('2026-11-18T10:00:00Z'))).toEqual({
       preset: 'today',

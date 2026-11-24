@@ -4,10 +4,22 @@ import {
   toServiceFamily
 } from '@metorial/module-agent-tracking-sync';
 import { unknownMemberKey } from './members';
-import { queryRange, type ResolvedRange } from './range';
-import type { AgentTrackingSpendFilters, BreakdownGroup, FilterField } from './types';
+import { invalidInputError } from './errors';
+import { dayMs, queryRange, type ResolvedRange } from './range';
+import type {
+  AgentTrackingSpendFilters,
+  BreakdownGroup,
+  FilterField,
+  SpendReportGroup
+} from './types';
 
 let breakdownLimit = 10;
+
+export let reportBreakdownLimits = {
+  model: 50,
+  client: 50,
+  member: 1000
+} satisfies Record<SpendReportGroup, number>;
 
 let unknownModelNamesLimit = 10;
 
@@ -18,6 +30,14 @@ export let evidenceWindowDays = 30;
 export let memberWindowDays = 400;
 
 export let maxMembers = 1000;
+
+export let maxInsightMembers = 2000;
+
+export let requestRecordDays = 90;
+
+let engineMaxLimit = 10_000;
+
+export let maxDistinctCount = 10_000;
 
 let sessionModelsLimit = 50;
 
@@ -41,8 +61,14 @@ export let breakdownGroups = { member: 'user', model: 'model' } as const satisfi
 export let filterFields = {
   member: 'user',
   model: 'model',
-  client: 'client.family'
+  client: 'client.family',
+  seat: 'billing.seat'
 } as const satisfies Record<FilterField, string>;
+
+export let reportBreakdownGroups = {
+  ...breakdownGroups,
+  client: filterFields.client
+} as const satisfies Record<SpendReportGroup, string>;
 
 export let breakdownGroupKeys = Object.keys(breakdownGroups) as BreakdownGroup[];
 
@@ -92,6 +118,15 @@ type Filter = Record<string, unknown>;
 
 let allOf = (clauses: Filter[]) => (clauses.length > 1 ? { and: clauses } : clauses[0]);
 
+// The engine rejects a request-record range longer than its limit, measured exactly.
+export let assertRequestRange = (range: { from: Date; to: Date }, subject: string) => {
+  if (range.to.getTime() - range.from.getTime() > requestRecordDays * dayMs) {
+    throw invalidInputError(
+      `${subject} come from request records, which cover at most ${requestRecordDays} days. Choose a range of at most ${requestRecordDays} days.`
+    );
+  }
+};
+
 let sortedUnique = (values: string[] | undefined) =>
   values?.length ? [...new Set(values)].sort() : undefined;
 
@@ -99,15 +134,16 @@ export let normalizeSpendFilters = (
   filters: AgentTrackingSpendFilters | undefined
 ): AgentTrackingSpendFilters => ({
   clientFamilies: sortedUnique(filters?.clientFamilies?.map(fromServiceFamily)),
-  modelIds: sortedUnique(filters?.modelIds)
+  modelIds: sortedUnique(filters?.modelIds),
+  memberIds: sortedUnique(filters?.memberIds)
 });
 
-let modelWhere = (modelIds: string[]): Filter => {
-  let known = modelIds.filter(id => id != unknownMemberKey);
-  let knownWhere = { field: 'model', op: 'in', value: known };
-  if (!modelIds.includes(unknownMemberKey)) return knownWhere;
+let idWhere = (field: string, ids: string[]): Filter => {
+  let known = ids.filter(id => id != unknownMemberKey);
+  let knownWhere = { field, op: 'in', value: known };
+  if (!ids.includes(unknownMemberKey)) return knownWhere;
 
-  let unknownWhere = { field: 'model', op: 'isNull' };
+  let unknownWhere = { field, op: 'isNull' };
   return known.length ? { or: [knownWhere, unknownWhere] } : unknownWhere;
 };
 
@@ -117,7 +153,8 @@ let spendWhere = (filters: AgentTrackingSpendFilters): Filter | undefined => {
     let families = [...new Set(filters.clientFamilies.map(toServiceFamily))];
     clauses.push({ field: 'client.family', op: 'in', value: families });
   }
-  if (filters.modelIds) clauses.push(modelWhere(filters.modelIds));
+  if (filters.modelIds) clauses.push(idWhere('model', filters.modelIds));
+  if (filters.memberIds) clauses.push(idWhere('user', filters.memberIds));
 
   return allOf(clauses);
 };
@@ -135,10 +172,11 @@ let usageQuery = (
 
 export let timelineQuery = (
   range: ResolvedRange,
-  filters: AgentTrackingSpendFilters = {}
+  filters: AgentTrackingSpendFilters = {},
+  interval: 'day' | 'month' = 'day'
 ) => ({
   ...usageQuery(range, spendWhere(filters)),
-  dimensions: ['time.day'],
+  dimensions: [`time.${interval}`],
   measures: [...spendMeasures, ...activityMeasures],
   fill: { time: 'zero' },
   totals: true,
@@ -174,15 +212,16 @@ export let sessionModelsQuery = (d: {
 
 export let breakdownQuery = (d: {
   range: ResolvedRange;
-  groupBy: BreakdownGroup;
+  groupBy: SpendReportGroup;
   filters?: AgentTrackingSpendFilters;
+  limit?: number;
 }) => ({
   ...usageQuery(d.range, spendWhere(d.filters ?? {})),
-  dimensions: [breakdownGroups[d.groupBy]],
+  dimensions: [reportBreakdownGroups[d.groupBy]],
   measures: spendMeasures,
   derived: [{ as: 'share', expr: { shareOfTotal: 'cost.usd' }, format: 'percent' }],
   orderBy: [{ by: 'cost.usd', direction: 'desc' }],
-  limit: breakdownLimit,
+  limit: d.limit ?? breakdownLimit,
   other: true,
   totals: true,
   labels: true
@@ -193,10 +232,13 @@ export let unknownModelsQuery = (
   filters: AgentTrackingSpendFilters = {}
 ) => {
   let unknownModel = { field: 'model', op: 'isNull' };
-  let clientWhere = spendWhere({ clientFamilies: filters.clientFamilies });
+  let otherFilters = spendWhere({
+    clientFamilies: filters.clientFamilies,
+    memberIds: filters.memberIds
+  });
 
   return {
-    ...usageQuery(range, clientWhere ? { and: [unknownModel, clientWhere] } : unknownModel),
+    ...usageQuery(range, otherFilters ? { and: [unknownModel, otherFilters] } : unknownModel),
     dimensions: [{ field: 'model.raw', missing: 'exclude' }],
     measures: ['requests'],
     orderBy: [{ by: 'requests', direction: 'desc' }],
@@ -290,3 +332,142 @@ export let membersQuery = (d: {
     labels: false
   };
 };
+
+export let insightColumns = {
+  unattributedCost: 'cost_unattributed',
+  modelsCost: 'models_cost',
+  modelsRequests: 'models_requests',
+  outdatedCost: 'cost_outdated',
+  cacheHitRate: 'cache.hit_rate',
+  highEffort: 'requests_high_effort',
+  maxEffort: 'requests_max_effort',
+  withEffort: 'requests_with_effort',
+  fast: 'requests_fast',
+  withSpeed: 'requests_with_speed'
+} as const;
+
+export let outdatedModelStatuses = ['deprecated', 'retired'];
+
+// A model without a family maps to isLatest false, so only a model in a family can be behind.
+let outdatedModelWhere = {
+  or: [
+    { field: 'model.status', op: 'in', value: outdatedModelStatuses },
+    {
+      and: [
+        { field: 'model.isLatest', op: 'eq', value: false },
+        { field: 'model.family', op: 'notNull' }
+      ]
+    }
+  ]
+};
+
+let costWhere = (where: Filter, as: string) => ({
+  fn: 'sum',
+  field: 'cost.usd',
+  where,
+  as
+});
+
+let countWhere = (where: Filter, as: string) => ({ fn: 'count', where, as });
+
+export let memberInsightsUsageQuery = (d: {
+  range: ResolvedRange;
+  modelIds?: string[];
+  practices: boolean;
+}) => ({
+  ...usageQuery(d.range, undefined),
+  dimensions: ['user'],
+  measures: [
+    ...spendMeasures.filter(measure => measure != 'tokens'),
+    ...activityMeasures,
+    costWhere({ field: 'user', op: 'isNull' }, insightColumns.unattributedCost),
+    ...(d.modelIds
+      ? [
+          costWhere(idWhere('model', d.modelIds), insightColumns.modelsCost),
+          {
+            fn: 'sum',
+            field: 'requests',
+            where: idWhere('model', d.modelIds),
+            as: insightColumns.modelsRequests
+          }
+        ]
+      : []),
+    ...(d.practices
+      ? [
+          costWhere(outdatedModelWhere, insightColumns.outdatedCost),
+          insightColumns.cacheHitRate
+        ]
+      : [])
+  ],
+  orderBy: [
+    ...(d.modelIds
+      ? [
+          { by: insightColumns.modelsCost, direction: 'desc' },
+          { by: insightColumns.modelsRequests, direction: 'desc' }
+        ]
+      : []),
+    { by: 'cost.usd', direction: 'desc' }
+  ],
+  limit: maxInsightMembers,
+  totals: true,
+  labels: false
+});
+
+export let memberInsightsRequestsQuery = (d: {
+  range: ResolvedRange;
+  practices: boolean;
+  seat: boolean;
+}) => ({
+  atq: '0',
+  dataset: 'requests',
+  range: queryRange(d.range),
+  timeZone: d.range.timeZone,
+  dimensions: ['user', ...(d.seat ? [filterFields.seat, 'billing.plan'] : [])],
+  measures: [
+    'requests',
+    ...(d.practices
+      ? [
+          countWhere(
+            { field: 'reasoning.effort', op: 'eq', value: 'high' },
+            insightColumns.highEffort
+          ),
+          countWhere(
+            { field: 'reasoning.effort', op: 'eq', value: 'max' },
+            insightColumns.maxEffort
+          ),
+          countWhere({ field: 'reasoning.effort', op: 'notNull' }, insightColumns.withEffort),
+          countWhere({ field: 'speed', op: 'eq', value: 'fast' }, insightColumns.fast),
+          countWhere({ field: 'speed', op: 'notNull' }, insightColumns.withSpeed)
+        ]
+      : [])
+  ],
+  orderBy: [{ by: 'requests', direction: 'desc' }],
+  limit: engineMaxLimit,
+  totals: true,
+  labels: false
+});
+
+export let outdatedModelsQuery = (range: ResolvedRange) => ({
+  ...usageQuery(range, outdatedModelWhere),
+  dimensions: [
+    { field: 'user', missing: 'exclude' },
+    'model',
+    'model.status',
+    'model.isLatest'
+  ],
+  measures: ['cost.usd'],
+  orderBy: [{ by: 'cost.usd', direction: 'desc' }],
+  limit: engineMaxLimit,
+  labels: false
+});
+
+export let lastActivityQuery = (now: Date) => ({
+  atq: '0',
+  dataset: 'sessions',
+  range: queryRange({ from: new Date(now.getTime() - memberWindowDays * dayMs), to: now }),
+  dimensions: [{ field: 'user', missing: 'exclude' }],
+  measures: ['last_activity'],
+  orderBy: [{ by: 'last_activity', direction: 'desc' }],
+  limit: engineMaxLimit,
+  labels: false
+});

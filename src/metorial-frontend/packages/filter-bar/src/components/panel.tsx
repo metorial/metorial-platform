@@ -7,7 +7,8 @@ import {
   isListFilter,
   removeFilterState,
   sortFiltersForDisplay,
-  upsertFilterState
+  upsertFilterState,
+  type FilterPanelLayout
 } from '../model/state';
 import { getFilterPayload, type TableFilter } from '../model/tableFilter';
 import { FilterEditor } from './editors';
@@ -148,18 +149,20 @@ export let FilterPanel = ({
   filterState: [filterState, setFilterState],
   activeFilterId,
   onActiveFilterChange,
-  onApplied
+  onApplied,
+  layout = 'auto'
 }: {
   filters: TableFilter<any>[];
   filterState: FilterStateTuple;
   activeFilterId: string;
   onActiveFilterChange: (id: string) => void;
   onApplied?: () => void;
+  layout?: FilterPanelLayout;
 }) => {
   let ordered = useMemo(() => sortFiltersForDisplay(filters), [filters]);
   let active = ordered.find(f => f.id == activeFilterId) ?? ordered[0];
   let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
-  let compact = ordered.length == 1;
+  let compact = layout == 'auto' && ordered.length == 1;
 
   if (!active) return null;
 
@@ -185,7 +188,9 @@ export let FilterPanel = ({
                   onClick={() => onActiveFilterChange(filter.id)}
                 >
                   <span>{filter.label}</span>
-                  {count > 0 && <AppliedBadge>{isListFilter(filter) ? count : '•'}</AppliedBadge>}
+                  {count > 0 && (
+                    <AppliedBadge>{isListFilter(filter) ? count : '•'}</AppliedBadge>
+                  )}
                 </NavItem>
               );
             })}

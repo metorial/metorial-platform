@@ -6,7 +6,8 @@ import {
   isExclusiveHighlight,
   isListFilter,
   type ListFilter,
-  type SearchStateTuple
+  type SearchStateTuple,
+  type FilterPanelLayout
 } from '../model/state';
 import { usePillSelections } from '../model/pillSelections';
 import type { TableFilter, TableFilterState } from '../model/tableFilter';
@@ -55,7 +56,8 @@ export let FilterToolbar = ({
   barEnd,
   size = '3',
   shortcut,
-  style
+  style,
+  panelLayout
 }: {
   filters: TableFilter<any>[];
   filterState: FilterStateTuple;
@@ -67,6 +69,7 @@ export let FilterToolbar = ({
   size?: ControlSize;
   shortcut?: boolean;
   style?: React.CSSProperties;
+  panelLayout?: FilterPanelLayout;
 }) => {
   let pillSelections = usePillSelections(filterState[0]);
   let highlighted = useMemo(
@@ -108,6 +111,7 @@ export let FilterToolbar = ({
               shortcut={shortcut}
               pillSelections={pillSelections}
               barEnd={barEnd}
+              panelLayout={panelLayout}
             />
           ) : (
             <Spacer />

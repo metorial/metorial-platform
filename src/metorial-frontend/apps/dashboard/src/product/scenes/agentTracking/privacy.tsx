@@ -9,8 +9,6 @@ export let useAgentTrackingPrivacy = () => {
   return useAgentTrackingInstanceSettings(instance.data?.id);
 };
 
-export let hiddenGroupText = (minGroupUsers: number) => `fewer than ${minGroupUsers} people`;
-
 let IndividualsHiddenNotice = ({ subject }: { subject: string }) => (
   <Callout color="gray" action={<PrivacySettingsButton />}>
     {subject} would show individual people, which this organization hides in Agent Usage; Spend

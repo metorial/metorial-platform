@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { invalidInputError } from './errors';
 import type { AgentTrackingRange, RangePreset } from './types';
 
 export let maxRangeDays = 400;
@@ -13,7 +13,7 @@ export let rangePresets = [
   'last_month'
 ] as const satisfies readonly RangePreset[];
 
-let dayMs = 24 * 60 * 60 * 1000;
+export let dayMs = 24 * 60 * 60 * 1000;
 
 export type RangeInput = {
   preset?: RangePreset;
@@ -24,9 +24,7 @@ export type RangeInput = {
 
 export type ResolvedRange = AgentTrackingRange;
 
-type CalendarDate = { year: number; month: number; day: number };
-
-let invalid = (message: string) => new ServiceError(badRequestError({ message }));
+export type CalendarDate = { year: number; month: number; day: number };
 
 let formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -49,12 +47,11 @@ let formatterOf = (timeZone: string) => {
   return formatter;
 };
 
-let isValidTimeZone = (timeZone: string) => {
+export let canonicalTimeZone = (timeZone: string) => {
   try {
-    formatterOf(timeZone);
-    return true;
+    return new Intl.DateTimeFormat('en-US', { timeZone }).resolvedOptions().timeZone;
   } catch {
-    return false;
+    throw invalidInputError(`Unknown time zone "${timeZone}".`);
   }
 };
 
@@ -95,7 +92,7 @@ export let calendarDateIn = (at: Date, timeZone: string): CalendarDate => {
   return { year: wall.year, month: wall.month, day: wall.day };
 };
 
-let shiftDays = (date: CalendarDate, days: number): CalendarDate => {
+export let shiftDays = (date: CalendarDate, days: number): CalendarDate => {
   let shifted = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
 
   return {
@@ -129,7 +126,7 @@ let presetRange = (preset: RangePreset, now: Date, timeZone: string) => {
   }
 };
 
-let daysInMonth = (date: CalendarDate) =>
+export let daysInMonth = (date: CalendarDate) =>
   new Date(Date.UTC(date.year, date.month, 0)).getUTCDate();
 
 let earlier = (a: Date, b: Date) => (a < b ? a : b);
@@ -175,17 +172,18 @@ export let hasRange = (range: RangeInput | undefined): range is RangeInput =>
   (range.preset !== undefined || range.from !== undefined || range.to !== undefined);
 
 export let normalizeRange = (input: RangeInput) => {
-  let timeZone = input.timeZone ?? 'UTC';
-  if (!isValidTimeZone(timeZone)) throw invalid(`Unknown time zone "${timeZone}".`);
+  let timeZone = canonicalTimeZone(input.timeZone ?? 'UTC');
 
   let explicit = input.from !== undefined || input.to !== undefined;
-  if (explicit && input.preset) throw invalid('Pass either range or from and to, not both.');
-  if (explicit && (!input.from || !input.to)) throw invalid('Pass both from and to.');
+  if (explicit && input.preset)
+    throw invalidInputError('Pass either range or from and to, not both.');
+  if (explicit && (!input.from || !input.to))
+    throw invalidInputError('Pass both from and to.');
 
   if (input.from && input.to) {
-    if (input.to <= input.from) throw invalid('to must be after from.');
+    if (input.to <= input.from) throw invalidInputError('to must be after from.');
     if (input.to.getTime() - input.from.getTime() > maxRangeDays * dayMs) {
-      throw invalid(`Ranges are limited to ${maxRangeDays} days.`);
+      throw invalidInputError(`Ranges are limited to ${maxRangeDays} days.`);
     }
 
     return { preset: null, from: input.from, to: input.to, timeZone };
@@ -229,5 +227,7 @@ let pad = (value: number, length = 2) => String(value).padStart(length, '0');
 
 export let calendarDateKey = (date: CalendarDate) =>
   `${pad(date.year, 4)}-${pad(date.month)}-${pad(date.day)}`;
+
+export let monthKeyOf = (date: CalendarDate) => calendarDateKey(date).slice(0, 7);
 
 export let calendarDateOfKey = (key: string) => key.slice(0, 10);

@@ -1,7 +1,8 @@
 import { v } from '@lowerdeck/validation';
 import {
   agentTrackingFilterValueService,
-  filterFieldKeys
+  filterFieldKeys,
+  requestRecordDays
 } from '@metorial/module-agent-tracking-query';
 import { agentTrackingFilterValuesPresenter } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
@@ -12,7 +13,7 @@ import { agentTrackingBasePath, agentTrackingReadGroup, rangeQueryFields } from 
 export let dashboardAgentTrackingFilterValueController = Controller.create(
   {
     name: 'Agent Tracking Filter Values',
-    description: 'The members, models and clients a filter can choose from.',
+    description: 'The members, models, clients and seats a filter can choose from.',
     hideInDocs: true
   },
   {
@@ -24,8 +25,7 @@ export let dashboardAgentTrackingFilterValueController = Controller.create(
         ),
         {
           name: 'List filter values',
-          description:
-            'Returns the members, models or clients that sent usage in a range, including members seen only in telemetry. With value, describes those values instead, without reading usage. Results can be up to a minute old.',
+          description: `Returns the members, models, clients or seats that sent usage in a range, including members seen only in telemetry. Seats come from request records and need a range of at most ${requestRecordDays} days. With \`value\`, describes those values instead, without reading usage. Results can be up to a minute old.`,
           hideInDocs: true
         }
       )

@@ -39,11 +39,6 @@ let Marker = styled.span<{ $state: ChecklistStepState }>`
   border: 1px solid ${({ $state }) => markerColors[$state].border};
   background: ${({ $state }) => markerColors[$state].background};
   color: ${({ $state }) => markerColors[$state].color};
-
-  svg {
-    width: 14px;
-    height: 14px;
-  }
 `;
 
 let StepRow = styled.div`
@@ -95,7 +90,7 @@ export let ChecklistStep = ({
 }) => (
   <StepRow aria-current={state == 'current' ? 'step' : undefined}>
     <Marker $state={state} aria-hidden>
-      {state == 'done' ? <RiCheckLine /> : number}
+      {state == 'done' ? <RiCheckLine size={14} /> : number}
     </Marker>
 
     <StepText>

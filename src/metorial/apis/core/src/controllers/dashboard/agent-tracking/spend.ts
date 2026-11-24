@@ -1,14 +1,16 @@
 import { v } from '@lowerdeck/validation';
 import {
   agentTrackingSpendService,
-  breakdownGroupKeys
+  breakdownGroupKeys,
+  growthRateBounds
 } from '@metorial/module-agent-tracking-query';
 import {
   agentTrackingSpendBreakdownPresenter,
+  agentTrackingSpendReportPresenter,
   agentTrackingSpendTimelinePresenter
 } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
-import { idFilter, rangeOf } from '../../../lib/agentTrackingParams';
+import { idFilter, rangeOf, timeZoneField } from '../../../lib/agentTrackingParams';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { agentTrackingBasePath, agentTrackingReadGroup, rangeQueryFields } from './readGroup';
 
@@ -88,7 +90,12 @@ export let dashboardAgentTrackingSpendController = Controller.create(
             description: 'Group the cost by member or by model.'
           }),
           ...rangeQueryFields,
-          ...spendFilterFields
+          ...spendFilterFields,
+          member_id: idFilter(
+            'member_id',
+            'Only count usage of these members, such as one member broken down by model. `unknown` selects usage without a member (Unknown Member). Refused when the organization hides individual data.',
+            ['aten_0mhNnEqM7XQb3vXq8gD2']
+          )
         })
       )
       .output(agentTrackingSpendBreakdownPresenter)
@@ -99,10 +106,68 @@ export let dashboardAgentTrackingSpendController = Controller.create(
           instance: ctx.instance,
           groupBy: ctx.query.group_by,
           range: rangeOf(ctx.query),
-          filters: spendFiltersOf(ctx.query)
+          filters: {
+            ...spendFiltersOf(ctx.query),
+            memberIds: normalizeArrayParam(ctx.query.member_id)
+          }
         });
 
         return agentTrackingSpendBreakdownPresenter.present({ breakdown });
+      }),
+
+    report: agentTrackingReadGroup
+      .get(
+        Path(
+          `${agentTrackingBasePath}/spend/report`,
+          'dashboard.instance.agentTracking.spend.report'
+        ),
+        {
+          name: 'Get spend report',
+          description:
+            'Returns the cost of the instance over one calendar year: per month, by model, AI coding agent and member, how far the data reaches, and for the current year a projection to its end and through the next year. Results can be up to a minute old.',
+          hideInDocs: true
+        }
+      )
+      .query(
+        'default',
+        v.object({
+          year: v.optional(
+            v.number({
+              name: 'year',
+              description:
+                'The calendar year in `time_zone`: the current year or the one before. Defaults to the current year.',
+              examples: [2026],
+              modifiers: [v.integer()]
+            })
+          ),
+          growth_rate: v.optional(
+            v.number({
+              name: 'growth_rate',
+              description: `The monthly growth of the projection's growth scenario, as a fraction from ${growthRateBounds.input.min} to ${growthRateBounds.input.max}. Defaults to the observed growth, else \`0\`.`,
+              examples: [0.05],
+              modifiers: [
+                v.minValue(growthRateBounds.input.min),
+                v.maxValue(growthRateBounds.input.max)
+              ]
+            })
+          ),
+          time_zone: timeZoneField(
+            'The IANA time zone months and days are counted in. Defaults to UTC. Ignored when the organization hides individual data: days are then UTC days.'
+          )
+        })
+      )
+      .output(agentTrackingSpendReportPresenter)
+      .do(async ctx => {
+        let report = await agentTrackingSpendService.getReport({
+          organization: ctx.organization,
+          project: ctx.project,
+          instance: ctx.instance,
+          year: ctx.query.year,
+          growthRate: ctx.query.growth_rate,
+          timeZone: ctx.query.time_zone
+        });
+
+        return agentTrackingSpendReportPresenter.present({ report });
       })
   }
 );

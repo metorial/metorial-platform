@@ -15,18 +15,18 @@ import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
 import { formatSpan, formatTimeSpan, sessionLength, sessionTitle } from './activity';
 import { CostValue } from './cost';
 import { agentTrackingErrorStatus, AgentTrackingErrorState } from './errorState';
+import { WithInfo } from './info';
 import { MemberDetails, memberPath } from './memberParts';
 import { describeSessionCost, sessionCostKind } from './sessionCost';
 import {
-  clientLabel,
   clientVersion,
   costIsSettling,
   DetailColumns,
-  formatRequests,
   ModelNameCell,
   SessionActivityLabel,
   settlingLabel
 } from './sessionParts';
+import { clientLabel, formatRequests } from './spendSummary';
 
 type Session = DashboardInstanceAgentTrackingSessionsGetOutput;
 
@@ -80,7 +80,18 @@ let SessionFigures = ({ session }: { session: Session }) => {
       items={[
         {
           id: 'cost',
-          label: 'Cost',
+          label: (
+            <WithInfo
+              info={describeSessionCost({
+                cost: session.cost,
+                billingModes: session.billingModes,
+                requests: session.requests,
+                memberName: session.member?.name ?? null
+              })}
+            >
+              Cost
+            </WithInfo>
+          ),
           value: costIsSettling(session) ? settlingLabel : <CostValue cost={session.cost} />,
           sub: session.summaryPending
             ? 'Still Settling'
@@ -102,35 +113,21 @@ let SessionFigures = ({ session }: { session: Session }) => {
         },
         {
           id: 'length',
-          label: 'Length',
-          value: formatSpan(sessionLength(session)),
-          sub: 'First to last activity'
+          label: <WithInfo info="From first to last activity.">Length</WithInfo>,
+          value: formatSpan(sessionLength(session))
         }
       ]}
     />
   );
 };
 
-let CostExplanation = ({ session }: { session: Session }) => {
-  if (costIsSettling(session)) {
-    return (
-      <Callout color="gray">
-        This session's cost is still settling. Cost, tokens and models arrive 30 to 90 seconds
-        after activity.
-      </Callout>
-    );
-  }
-
-  let text = describeSessionCost({
-    cost: session.cost,
-    billingModes: session.billingModes,
-    requests: session.requests,
-    memberName: session.member?.name ?? null
-  });
-  if (!text) return null;
-
-  return <Callout color={session.cost.isEstimate ? 'blue' : 'gray'}>{text}</Callout>;
-};
+let CostExplanation = ({ session }: { session: Session }) =>
+  costIsSettling(session) ? (
+    <Callout color="gray">
+      This session's cost is still settling. Cost, tokens and models arrive 30 to 90 seconds
+      after activity.
+    </Callout>
+  ) : null;
 
 let TokensBox = ({ session }: { session: Session }) => (
   <Box title="Tokens">

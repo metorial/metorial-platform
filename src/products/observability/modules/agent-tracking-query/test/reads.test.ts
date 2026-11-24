@@ -654,6 +654,84 @@ describe('agentTrackingFilterValueService for clients and held values', () => {
   });
 });
 
+describe('seat and plan filter values', () => {
+  beforeEach(() => {
+    resetMocks();
+    rpc.handlers['query:values'] = () => ({
+      values: [
+        { value: 'premium', count: 7 },
+        { value: 'standard', count: 2 }
+      ],
+      truncated: false
+    });
+  });
+
+  it('lists seats from request records without an unknown option', async () => {
+    let result = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'seat',
+      range: { preset: 'last_7_days' }
+    });
+
+    expect(callsTo('query:values').at(-1)!.input).toMatchObject({
+      dataset: 'requests',
+      field: 'billing.seat'
+    });
+    expect(result.items).toEqual([
+      {
+        value: 'premium',
+        kind: 'seat',
+        member: null,
+        model: null,
+        client: null,
+        requests: 7
+      },
+      {
+        value: 'standard',
+        kind: 'seat',
+        member: null,
+        model: null,
+        client: null,
+        requests: 2
+      }
+    ]);
+  });
+
+  it('refuses seats over more than 90 days', async () => {
+    let from = new Date('2026-01-01T00:00:00Z');
+
+    await expect(
+      agentTrackingFilterValueService.listFilterValues({
+        ...scope,
+        field: 'seat',
+        range: { from, to: new Date(from.getTime() + 120 * 24 * 60 * 60 * 1000) }
+      })
+    ).rejects.toMatchObject({ data: { status: 400 } });
+    expect(callsTo('query:values')).toHaveLength(0);
+  });
+
+  it('describes held seat values without reading usage', async () => {
+    let result = await agentTrackingFilterValueService.listFilterValues({
+      ...scope,
+      field: 'seat',
+      values: ['premium'],
+      range: { preset: 'last_7_days' }
+    });
+
+    expect(result.items).toEqual([
+      {
+        value: 'premium',
+        kind: 'seat',
+        member: null,
+        model: null,
+        client: null,
+        requests: null
+      }
+    ]);
+    expect(callsTo('query:values')).toHaveLength(0);
+  });
+});
+
 describe('agentTrackingMemberService', () => {
   let seenRows = ['aten_ada', 'aten_bob', 'aten_cy'].map((user, index) => ({
     user,

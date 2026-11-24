@@ -55,10 +55,13 @@ export let createSyncedConsumer = async (org: BootstrappedOrganization, email: s
   return consumer;
 };
 
-export let loadCatalog = async (ids: { organizationId: string; instanceId: string }) => {
+export let loadCatalog = async (
+  ids: { organizationId: string; instanceId: string },
+  d: { unknownModels?: string[] } = {}
+) => {
   let catalog = await serviceCatalogModels(ids);
-  for (let raw of [sonnet, haiku, madeUpModel]) expect(catalog.has(raw), raw).toBe(true);
-  expect(catalog.get(madeUpModel)).toBeNull();
+  for (let raw of [sonnet, haiku]) expect(catalog.has(raw), raw).toBe(true);
+  for (let raw of d.unknownModels ?? []) expect(catalog.get(raw), raw).toBeNull();
 
   let known = { sonnet: catalog.get(sonnet) ?? null, haiku: catalog.get(haiku) ?? null };
   expect(known.haiku === null).toBe(known.sonnet === null);
