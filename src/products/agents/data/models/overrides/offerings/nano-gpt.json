@@ -1001,6 +1001,13 @@
     "by": "agent",
     "at": "2026-11-17"
   },
+  "kitani/evolve-beta": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "No catalog model matches evolve-beta; Kitani is an inference provider of open models and community fine-tunes, and search results identify no maker or lineage for the name, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "lightonai/LightOnOCR-2-1B": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1630,6 +1637,20 @@
     "reason": "Unsloth's gemma-3-4b-it repo is a faithful mirror of Google's Gemma 3 4B IT checkpoint (same 2025-03-12 release date, image-text-to-text pipeline, gemma license per its Hugging Face metadata), not a fine-tune, so the current link is right; NanoGPT's flat 0.2006 input/output rate is its own aggregator markup over the model's 0.04 median, not a different model.",
     "by": "agent",
     "at": "2026-11-20"
+  },
+  "upstage/solar-mini-4-5": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Solar Mini 4.5 Preview is a new Upstage checkpoint (released 2026-11-23, 35B total/3B active MoE, 512K context), distinct from upstage/solar-mini4 (2026-09-22); the index has no Solar Mini 4.5 entry yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "upstage/solar-mini-4-5:thinking": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Thinking-mode serving of Solar Mini 4.5 Preview, the new Upstage checkpoint released 2026-11-23; the index has only upstage/solar-mini4 (Solar Mini 4), a different generation, so defer rather than link the wrong model.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "venice-uncensored": {
     "decision": "link",
