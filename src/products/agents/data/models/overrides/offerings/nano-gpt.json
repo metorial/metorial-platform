@@ -1400,6 +1400,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-14b": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Hugging Face metadata (Qwen/Qwen3-14B, text-generation, April 2025) identifies NanoGPT's offering as Alibaba's dense 14.8B Qwen3 model, but alibaba/qwen3-14b is retired and no longer in the active index; no active model to link, so defer.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "qwen/qwen3.5-omni-flash": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1637,6 +1644,13 @@
     "reason": "An abliterated derivative of Xiaomi's MiMo-V2.6-Flash with the refusal direction removed via the Heretic method (per Heabsy and vendor listings); a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself and the index has no entry.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-mopd": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Same offering as on Kilo: a separate MOPD (distillation) checkpoint of MiMo-V2.6-Flash released 2026-09-27; the index has xiaomi/mimo-v2.6-flash only, not the MOPD revision.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "xiaomi/mimo-v2.6-flash-uncensored": {
     "decision": "exclude",

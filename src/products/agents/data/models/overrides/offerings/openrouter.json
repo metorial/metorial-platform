@@ -535,6 +535,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-14b": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "OpenRouter lists huggingFaceId Qwen/Qwen3-14B with canonical slug qwen/qwen3-14b-04-28, i.e. Alibaba's dense 14.8B Qwen3 checkpoint, but the catalog's alibaba/qwen3-14b entry is retired and gone from the active index; no active model to link, so defer.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "qwen/qwen3-tts-1.7b": {
     "decision": "defer",
     "until": "2026-12-21",
@@ -681,6 +688,27 @@
     "reason": "OpenRouter's listing for Pareto 26.9 carries canonical slug unbiased/pareto-26.9-20260917, matching the index's unbiased/pareto released 2026-09-17 with 262,144-token context; the 262K window and $2.50/$7.50 list price match the September release, so link.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "upstage/solar-mini-4-5": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Solar Mini 4.5 Preview is a new 35B/3B-active MoE model, distinct from Solar Mini 4; Upstage's console says the official release is Dec 1, 2026. No entry in the model index yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "upstage/solar-pro-4-contributor": {
+    "decision": "link",
+    "model": "upstage/solar-pro4",
+    "reason": "Listing says it is the same Solar Pro 4 model offered at a lower rate in exchange for allowing Upstage to use interaction data; a pricing-tier serving of the same model, matching index entry upstage/solar-pro4 (same 524K context).",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "xiaomi/mimo-v2.6-flash-mopd": {
+    "decision": "defer",
+    "until": "2026-12-22",
+    "reason": "MiMo-V2.6-Flash-MOPD is a multi-teacher on-policy distillation upgrade of the MiMo-V2.6-Flash-RL checkpoint, published 2026-09-27 (Hugging Face: XiaomiMiMo/MiMo-V2.6-Flash-MOPD). It is a separate dated revision, not the 2026-09-22 xiaomi/mimo-v2.6-flash index entry; the index has no MOPD checkpoint, so defer until one exists.",
+    "by": "agent",
+    "at": "2026-11-24"
   },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",

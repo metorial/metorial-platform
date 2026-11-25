@@ -1,4 +1,11 @@
 {
+  "alibaba/qwen-3-14b": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Vercel's Qwen3-14B page describes Alibaba's 14B dense Qwen3 model, but the catalog's alibaba/qwen3-14b entry is retired and absent from the active index; there is no active model id to link, so defer until the index regains a Qwen3-14B entry.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "alibaba/qwen3-max-thinking": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -264,6 +271,13 @@
     "reason": "Same new Google model (Gemini 4 Neon) as the OpenRouter issue; no matching entry in the model index yet, so defer until models.dev adds it.",
     "by": "agent",
     "at": "2026-11-18"
+  },
+  "google/gemini-4-neon-fast": {
+    "decision": "link",
+    "model": "google/gemini-4-neon",
+    "reason": "Vercel's 'Gemini 4 Neon (Fast)' is a -fast serving of Gemini 4 Neon (released 2026-11-18, 1M context, matching the offering); the index has google/gemini-4-neon and a -fast serving is still that model. The higher price is Vercel's aggregator markup.",
+    "by": "agent",
+    "at": "2026-11-24"
   },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",

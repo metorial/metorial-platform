@@ -4,11 +4,11 @@
 
 # Serverless pricing
 
-> Per-token serverless pricing for text, vision, and embedding models on Fireworks, including Standard, Priority, Fast, Ultra-fast (Preview), and Flex serverless mode rates.
+> Per-token serverless pricing for text, vision, and embedding models on Fireworks, including Standard, Priority, Fast, Ultra-fast (Preview), Flex, and Spot serverless mode rates.
 
 ## Overview
 
-Serverless inference is priced per token. For how Standard, Priority, Fast, Ultra-fast (Preview), and Flex modes work and how to select one, see [Serverless Modes](https://docs.fireworks.ai/serverless/serverless-modes.md).
+Serverless inference is priced per token. For how Standard, Priority, Fast, Ultra-fast (Preview), Flex, and Spot modes work and how to select one, see [Serverless Modes](https://docs.fireworks.ai/serverless/serverless-modes.md).
 
 Every text or vision request is billed across three dimensions:
 
@@ -24,13 +24,15 @@ Embeddings are billed only on input tokens.
 
 ## Text and vision models
 
-Per-model pricing for headline models. Fast, Ultra-fast (Preview), and Flex variants appear as adjacent rows. In each **Standard** or **Priority** cell, prices are **input / cached input / output** (USD per 1M tokens), in that order.
+Per-model pricing for headline models. Fast, Ultra-fast (Preview), Flex, and Spot variants appear as adjacent rows. In each **Standard** or **Priority** cell, prices are **input / cached input / output** (USD per 1M tokens), in that order.
 
 | Model | Standard | Priority |
 | - | - | - |
 | [Ember-1](https://app.fireworks.ai/models/fireworks/ember-1) | \$3.00 / \$0.30 / \$15.00 | \$3.75 / \$0.375 / \$18.75 |
 | [Muse Spark Open](https://app.fireworks.ai/models/fireworks/muse-spark-open) | \$1.25 / \$0.15 / \$4.25 | \$1.875 / \$0.225 / \$6.375 |
+| [Inkling 2 Small](https://app.fireworks.ai/models/fireworks/inkling-2-small) | \$0.30 / \$0.03 / \$1.00 | \$0.375 / \$0.0375 / \$1.25 |
 | [Kimi K3.1 Pro](https://app.fireworks.ai/models/fireworks/kimi-k3p1-pro) | \$2.00 / \$0.20 / \$10.00 | \$3.00 / \$0.30 / \$15.00 |
+| [Kimi K3.1 Pro (US)](https://app.fireworks.ai/models/fireworks/kimi-k3p1-pro) | \$2.50 / \$0.25 / \$12.50 | \$3.75 / \$0.375 / \$18.75 |
 | [Kimi K3](https://app.fireworks.ai/models/fireworks/kimi-k3) | \$3.00 / \$0.30 / \$15.00 | \$3.75 / \$0.375 / \$18.75 |
 | [Kimi K3 Fast](https://app.fireworks.ai/models/fireworks/kimi-k3) | \$4.50 / \$0.45 / \$22.50 | — |
 | [Kimi K3 (US)](https://app.fireworks.ai/models/fireworks/kimi-k3) | \$4.50 / \$0.45 / \$22.50 | \$5.625 / \$0.5625 / \$28.125 |
@@ -38,7 +40,7 @@ Per-model pricing for headline models. Fast, Ultra-fast (Preview), and Flex vari
 | [DeepSeek V4.1 Flash (US)](https://app.fireworks.ai/models/fireworks/deepseek-v4p1-flash) | \$0.45 / \$0.009 / \$1.80 | \$0.5625 / \$0.01125 / \$2.25 |
 | [DeepSeek V4.1 Flash 1017](https://app.fireworks.ai/models/fireworks/deepseek-v4p1-flash-1017) | \$0.30 / \$0.006 / \$1.20 | \$0.375 / \$0.0075 / \$1.50 |
 | [DeepSeek V4.1 Flash 1017 Flex](https://app.fireworks.ai/models/fireworks/deepseek-v4p1-flash-1017) | \$0.15 / \$0.003 / \$0.60 | — |
-| [DeepSeek V4.1 Flash 1017 Ultra-fast (Preview)](https://app.fireworks.ai/models/fireworks/deepseek-v4p1-flash-1017) | \$2.40 / \$0.048 / \$9.60 | — |
+| [DeepSeek V4.1 Flash 1017 Ultra-fast (Preview)](https://app.fireworks.ai/models/fireworks/deepseek-v4p1-flash-1017) | \$1.20 / \$0.024 / \$4.80 | — |
 | [DeepSeek V4.1 Flash 1017 (US)](https://app.fireworks.ai/models/fireworks/deepseek-v4p1-flash-1017) | \$0.45 / \$0.009 / \$1.80 | \$0.5625 / \$0.01125 / \$2.25 |
 | [GLM 5.3 Flash](https://app.fireworks.ai/models/fireworks/glm-5p3-flash) | \$0.15 / \$0.03 / \$0.50 | \$0.1875 / \$0.0375 / \$0.625 |
 | [GLM 5.3 Flash (US)](https://app.fireworks.ai/models/fireworks/glm-5p3-flash) | \$0.225 / \$0.045 / \$0.75 | \$0.28125 / \$0.05625 / \$0.9375 |
@@ -46,13 +48,17 @@ Per-model pricing for headline models. Fast, Ultra-fast (Preview), and Flex vari
 | [GLM 5.3](https://app.fireworks.ai/models/fireworks/glm-5p3) | \$1.40 / \$0.26 / \$4.40 | \$1.75 / \$0.325 / \$5.50 |
 | [GLM 5.3 (US)](https://app.fireworks.ai/models/fireworks/glm-5p3) | \$2.10 / \$0.39 / \$6.60 | \$2.625 / \$0.4875 / \$8.25 |
 | [GLM 5.3 Fast](https://app.fireworks.ai/models/fireworks/glm-5p3) | \$2.10 / \$0.39 / \$6.60 | — |
+| [GLM 5.3 Spot](https://app.fireworks.ai/models/fireworks/glm-5p3) | \$0.70 / \$0.13 / \$2.20 | — |
+| [HY4 Flash](https://app.fireworks.ai/models/fireworks/hy4-flash) | \$0.07 / \$0.003 / \$0.281 | \$0.0875 / \$0.00375 / \$0.35125 |
+| [Qwen 4 Max](https://app.fireworks.ai/models/fireworks/qwen4-max) | \$1.50 / \$0.075 / \$4.50 | \$1.875 / \$0.09375 / \$5.625 |
 | [Qwen 3.8 Max](https://app.fireworks.ai/models/fireworks/qwen3p8-max) | \$2.00 / \$0.25 / \$6.00 | \$3.00 / \$0.375 / \$9.00 |
 | [MiniMax M3](https://app.fireworks.ai/models/fireworks/minimax-m3) | \$0.30 / \$0.06 / \$1.20 | \$0.45 / \$0.09 / \$1.80 |
-| [OpenAI GPT OSS 120B](https://app.fireworks.ai/models/fireworks/gpt-oss-120b) | \$0.15 / \$0.015 / \$0.60 | \$0.18 / \$0.018 / \$0.72 |
 | [NVIDIA Nemotron 3.5 Lightning 30B A3B](https://app.fireworks.ai/models/fireworks/nemotron-lightning-3p5-30b-a3b) | \$0.05 / \$0.01 / \$0.20 | \$0.0625 / \$0.0125 / \$0.25 |
 | [NVIDIA Nemotron 3 Ultra (Preview)](https://app.fireworks.ai/models/fireworks/nemotron-3-ultra-nvfp4) | \$0.60 / \$0.12 / \$2.40 | \$0.75 / \$0.15 / \$3.00 |
 
 **—** in the Priority column means Priority is not available for that model. This pricing table is the source of truth for Priority availability.
+
+Spot is 50% of the Standard price. It's available for GLM 5.3, with more serverless models to follow. Spot is best-effort, with no availability guarantee. See [Spot Serverless](https://docs.fireworks.ai/guides/spot-serverless.md).
 
 Muse Spark Open runs on US-only capacity. The 50% US-only premium is waived, so the rates in that row are what you pay.
 
