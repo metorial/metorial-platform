@@ -342,6 +342,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "TEE/glm-5.3-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "GLM 5.3 Uncensored is an experimental uncensored derivative of Z.ai's GLM-5.3 with its refusal mechanism modified, produced by a third party. It is not the canonical GLM-5.3 and the index has no separate entry for it.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "TheDrummer/Anubis-70B-v1": {
     "decision": "exclude",
     "category": "fine-tune",
