@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	doctor "github.com/metorial/metorial-platform/src/lib/doctor/go"
+	"github.com/metorial/metorial-platform/src/products/runtime/packages/egress"
 )
 
 func TestHostPort(t *testing.T) {
@@ -88,5 +90,34 @@ func TestGrantKeysWaitsForPublishedFileAtStartup(t *testing.T) {
 func TestGrantKeysFromEnvFailsImmediately(t *testing.T) {
 	if status := runGrantKeysCheck(t, &config{}, 0).Status; status != doctor.StatusFail {
 		t.Fatalf("no keys from the environment: status %s, want fail", status)
+	}
+}
+
+func TestGrantKeysReady(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "keys.json")
+	cfg := &config{publicKeysFile: file}
+
+	if err := grantKeysReady(cfg); err == nil {
+		t.Fatal("expected not ready without the key file")
+	}
+
+	if err := os.WriteFile(file, []byte("not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := grantKeysReady(cfg); err == nil {
+		t.Fatal("expected not ready with an unparsable key file")
+	}
+
+	public, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := `{"keys":{"functions-1":"` + egress.EncodePublicKey(public) + `"}}`
+	if err := os.WriteFile(file, []byte(keys), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := grantKeysReady(cfg); err != nil {
+		t.Fatalf("expected ready once the keys are published: %v", err)
 	}
 }

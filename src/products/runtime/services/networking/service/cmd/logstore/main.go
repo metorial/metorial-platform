@@ -65,13 +65,14 @@ type config struct {
 func loadConfig(getenv func(string) string) (*config, error) {
 	cfg := &config{
 		database: logstore.Config{
-			ServerURL: getenv("DATABASE_SERVER_URL"),
-			Host:      getenv("DATABASE_HOST"),
-			Port:      getenv("DATABASE_PORT"),
-			Name:      getenv("DATABASE_NAME"),
-			Username:  getenv("DATABASE_USERNAME"),
-			Password:  getenv("DATABASE_PASSWORD"),
-			SSLMode:   envOr(getenv, "DATABASE_SSLMODE", defaultDatabaseSSLMode),
+			ServerURL:   getenv("DATABASE_SERVER_URL"),
+			Host:        getenv("DATABASE_HOST"),
+			Port:        getenv("DATABASE_PORT"),
+			Name:        getenv("DATABASE_NAME"),
+			Username:    getenv("DATABASE_USERNAME"),
+			Password:    getenv("DATABASE_PASSWORD"),
+			SSLMode:     envOr(getenv, "DATABASE_SSLMODE", defaultDatabaseSSLMode),
+			SSLRootCert: getenv("DATABASE_SSLROOTCERT"),
 		},
 		rpcAddr:          envOr(getenv, "NETWORK_LOGS_RPC_ADDR", defaultRPCAddr),
 		legacyIngestAddr: envOr(getenv, "OBSERVER_INGEST_ADDR", defaultLegacyIngestAddr),
