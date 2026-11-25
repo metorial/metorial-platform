@@ -277,6 +277,7 @@ describe('skill group plugins', () => {
       skillPluginSkillService.removeSkillPluginSkill({
         project: fixture.project,
         instance: fixture.instance,
+        auditScope: fixture.auditScope,
         skillPluginSkill: pluginSkill
       }),
       'skill_plugin_managed_by_skill_group'
@@ -383,6 +384,149 @@ describe('skill group plugins', () => {
         skillPlugin: await getPlugin(fixture, plugin.id)
       }),
       'skill_plugin_not_managed_by_skill_group'
+    );
+  });
+
+  it('gives a same-named replacement skill the slug of the skill it replaces', async () => {
+    let name = `Dispatch ${uniqueId('skill')}`;
+    let original = await createSkill(fixture, { name });
+    let replacement = await createSkill(fixture, { name });
+    let group = await createGroup(fixture, [original]);
+    let plugin = await createGroupPlugin(fixture, group);
+    let originalLink = plugin.skillPluginSkills[0]!;
+
+    await setGroupItemStatus(group, original, 'archived');
+    await addGroupItem(group, replacement);
+    await syncPlugin(plugin.id);
+
+    expect((await getPlugin(fixture, plugin.id)).skillPluginSkills).toMatchObject([
+      { skill: { id: replacement.id }, pluginSkillSlug: originalLink.pluginSkillSlug }
+    ]);
+    let releasedLink = await db.skillPluginSkill.findUniqueOrThrow({
+      where: { oid: originalLink.oid }
+    });
+    expect(releasedLink.status).toBe('archived');
+    expect(releasedLink.pluginSkillSlug).not.toBe(originalLink.pluginSkillSlug);
+  });
+
+  it('compares a manual plugin with the groups that share its skills', async () => {
+    let [shared, extra, missing, unrelated] = await Promise.all([
+      createSkill(fixture),
+      createSkill(fixture),
+      createSkill(fixture),
+      createSkill(fixture)
+    ]);
+    let plugin = await createPlugin(fixture);
+    for (let skill of [shared, extra]) {
+      await addSkillToPlugin(fixture, { skillPluginId: plugin.id, skillId: skill.id });
+    }
+    let closeGroup = await createGroup(fixture, [shared, extra, missing]);
+    let looseGroup = await createGroup(fixture, [shared, missing, unrelated]);
+    let disjointGroup = await createGroup(fixture, [unrelated]);
+
+    let matches = await skillGroupPluginService.listSkillGroupMatches({
+      project: fixture.project,
+      instance: fixture.instance,
+      skillPlugin: await getPlugin(fixture, plugin.id)
+    });
+    let summary = matches.map(match => ({
+      skillGroupId: match.skillGroup.id,
+      sharedSkillCount: match.sharedSkillCount,
+      skillIdsToAdd: match.skillsToAdd.map(skill => skill.id).sort(),
+      skillIdsToRemove: match.skillsToRemove.map(skill => skill.id).sort()
+    }));
+    expect(summary).toEqual([
+      {
+        skillGroupId: closeGroup.id,
+        sharedSkillCount: 2,
+        skillIdsToAdd: [missing.id],
+        skillIdsToRemove: []
+      },
+      {
+        skillGroupId: looseGroup.id,
+        sharedSkillCount: 1,
+        skillIdsToAdd: [missing.id, unrelated.id].sort(),
+        skillIdsToRemove: [extra.id]
+      }
+    ]);
+
+    let filtered = await skillGroupPluginService.listSkillGroupMatches({
+      project: fixture.project,
+      instance: fixture.instance,
+      skillPlugin: await getPlugin(fixture, plugin.id),
+      skillGroupIds: [disjointGroup.id]
+    });
+    expect(filtered).toMatchObject([
+      { skillGroup: { id: disjointGroup.id }, sharedSkillCount: 0 }
+    ]);
+  });
+
+  it('attaches a manual plugin to a group, replacing its skills with the group skills', async () => {
+    let name = `Dispatch ${uniqueId('skill')}`;
+    let [original, shared, extra] = await Promise.all([
+      createSkill(fixture, { name }),
+      createSkill(fixture),
+      createSkill(fixture)
+    ]);
+    let replacement = await createSkill(fixture, { name });
+    let plugin = await createPlugin(fixture);
+    for (let skill of [original, shared, extra]) {
+      await addSkillToPlugin(fixture, { skillPluginId: plugin.id, skillId: skill.id });
+    }
+    let originalSlug = (await getPlugin(fixture, plugin.id)).skillPluginSkills.find(
+      link => link.skill.id === original.id
+    )!.pluginSkillSlug;
+    let group = await createGroup(fixture, [replacement, shared]);
+    let audit = captureFabric('skill.plugin.audit.updated:after');
+
+    try {
+      let attached = await skillGroupPluginService.attachSkillGroupPlugin({
+        project: fixture.project,
+        instance: fixture.instance,
+        auditScope: fixture.auditScope,
+        skillPlugin: await getPlugin(fixture, plugin.id),
+        skillGroupId: group.id
+      });
+      expect(attached.skillGroupPlugin?.skillGroup.id).toBe(group.id);
+      expect(attached.skillPluginSkills.map(link => link.skill.id).sort()).toEqual(
+        [replacement.id, shared.id].sort()
+      );
+      expect(
+        attached.skillPluginSkills.find(link => link.skill.id === replacement.id)
+          ?.pluginSkillSlug
+      ).toBe(originalSlug);
+
+      let event = audit.events.find(event => event.skillPlugin.id === plugin.id);
+      expect(event).toMatchObject({ skillGroupId: group.id, previousSkillGroupId: null });
+    } finally {
+      audit.stop();
+    }
+
+    await expectServiceError(
+      skillGroupPluginService.attachSkillGroupPlugin({
+        project: fixture.project,
+        instance: fixture.instance,
+        auditScope: fixture.auditScope,
+        skillPlugin: await getPlugin(fixture, plugin.id),
+        skillGroupId: group.id
+      }),
+      'skill_plugin_managed_by_skill_group'
+    );
+  });
+
+  it('refuses to attach groups from other tenants', async () => {
+    let plugin = await createPlugin(fixture);
+    let foreignGroup = await createGroup(otherFixture, [await createBareSkill(otherFixture)]);
+
+    await expectServiceError(
+      skillGroupPluginService.attachSkillGroupPlugin({
+        project: fixture.project,
+        instance: fixture.instance,
+        auditScope: fixture.auditScope,
+        skillPlugin: plugin,
+        skillGroupId: foreignGroup.id
+      }),
+      'not_found'
     );
   });
 

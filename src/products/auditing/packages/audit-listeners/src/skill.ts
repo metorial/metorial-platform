@@ -113,7 +113,10 @@ export let recordSkillPluginCreated = async (
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'create', {
-      payload: { ...skillPluginPayload(event.skillPlugin), skillGroupId: event.skillGroupId ?? null },
+      payload: {
+        ...skillPluginPayload(event.skillPlugin),
+        skillGroupId: event.skillGroupId ?? null
+      },
       recordedAt
     });
   });
@@ -146,6 +149,36 @@ export let recordSkillPluginArchived = async (
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'archive', {
       payload: { ...skillPluginPayload(event.skillPlugin), status: 'archived' },
+      recordedAt
+    });
+  });
+};
+
+export let recordSkillPluginSkillAdded = async (
+  event: FabricEvents['skill.plugin.audit.skill_added:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'add_skill', {
+      payload: {
+        ...skillPluginPayload(event.skillPlugin),
+        skillId: event.skillId,
+        pluginSkillSlug: event.pluginSkillSlug
+      },
+      recordedAt
+    });
+  });
+};
+
+export let recordSkillPluginSkillRemoved = async (
+  event: FabricEvents['skill.plugin.audit.skill_removed:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'remove_skill', {
+      payload: {
+        ...skillPluginPayload(event.skillPlugin),
+        skillId: event.skillId,
+        pluginSkillSlug: event.pluginSkillSlug
+      },
       recordedAt
     });
   });
@@ -193,6 +226,8 @@ Fabric.listen('skill.audit.shared:after', recordSkillShared);
 Fabric.listen('skill.plugin.audit.created:after', recordSkillPluginCreated);
 Fabric.listen('skill.plugin.audit.updated:after', recordSkillPluginUpdated);
 Fabric.listen('skill.plugin.audit.archived:after', recordSkillPluginArchived);
+Fabric.listen('skill.plugin.audit.skill_added:after', recordSkillPluginSkillAdded);
+Fabric.listen('skill.plugin.audit.skill_removed:after', recordSkillPluginSkillRemoved);
 
 Fabric.listen('skill.marketplace.audit.created:after', recordSkillMarketplaceCreated);
 Fabric.listen('skill.marketplace.audit.updated:after', recordSkillMarketplaceUpdated);

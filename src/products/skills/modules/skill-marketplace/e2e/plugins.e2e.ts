@@ -434,6 +434,7 @@ describe('skill plugins', () => {
       let removed = await skillPluginSkillService.removeSkillPluginSkill({
         project: fixture.project,
         instance: fixture.instance,
+        auditScope: fixture.auditScope,
         skillPluginSkill: updated
       });
       expect(removed).toMatchObject({
@@ -455,6 +456,63 @@ describe('skill plugins', () => {
         pluginSkillSlug: link.pluginSkillSlug,
         clientName: null
       });
+    });
+
+    it('gives a same-named replacement skill the slug of the skill it replaces', async () => {
+      let plugin = await createPlugin(fixture);
+      let name = `Dispatch ${uniqueId('skill')}`;
+      let original = await createSkill(fixture, { name });
+      let replacement = await createSkill(fixture, { name });
+      let audit = {
+        added: captureFabric('skill.plugin.audit.skill_added:after'),
+        removed: captureFabric('skill.plugin.audit.skill_removed:after')
+      };
+
+      try {
+        let originalLink = await addSkillToPlugin(fixture, {
+          skillPluginId: plugin.id,
+          skillId: original.id
+        });
+        await skillPluginSkillService.removeSkillPluginSkill({
+          project: fixture.project,
+          instance: fixture.instance,
+          auditScope: fixture.auditScope,
+          skillPluginSkill: await getPluginSkill(fixture, originalLink.id)
+        });
+
+        let replacementLink = await addSkillToPlugin(fixture, {
+          skillPluginId: plugin.id,
+          skillId: replacement.id
+        });
+        expect(replacementLink.pluginSkillSlug).toBe(originalLink.pluginSkillSlug);
+
+        let releasedLink = await db.skillPluginSkill.findUniqueOrThrow({
+          where: { id: originalLink.id }
+        });
+        expect(releasedLink.status).toBe('archived');
+        expect(releasedLink.pluginSkillSlug).not.toBe(originalLink.pluginSkillSlug);
+
+        let readded = await addSkillToPlugin(fixture, {
+          skillPluginId: plugin.id,
+          skillId: original.id
+        });
+        expect(readded.id).toBe(originalLink.id);
+        expect(readded.pluginSkillSlug).not.toBe(replacementLink.pluginSkillSlug);
+
+        let pluginEvents = <T extends { skillPlugin: { id: string } }>(events: T[]) =>
+          events.filter(event => event.skillPlugin.id === plugin.id);
+        expect(pluginEvents(audit.added.events).map(event => event.skillId)).toEqual([
+          original.id,
+          replacement.id,
+          original.id
+        ]);
+        expect(pluginEvents(audit.removed.events)).toMatchObject([
+          { skillId: original.id, pluginSkillSlug: originalLink.pluginSkillSlug }
+        ]);
+      } finally {
+        audit.added.stop();
+        audit.removed.stop();
+      }
     });
 
     it('refuses archived plugins, archived skills and foreign skills', async () => {

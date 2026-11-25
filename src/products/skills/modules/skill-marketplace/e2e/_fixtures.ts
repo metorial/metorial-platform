@@ -615,6 +615,7 @@ export let addSkillToPlugin = async (
   return await skillPluginSkillService.addSkillPluginSkill({
     project: fixture.project,
     instance: fixture.instance,
+    auditScope: fixture.auditScope,
     skillPlugin: await getPlugin(fixture, skillPluginId),
     accessTags,
     input

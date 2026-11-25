@@ -214,6 +214,7 @@ describe('managed skill plugins and exports', () => {
         skillPluginSkillService.removeSkillPluginSkill({
           project: fixture.project,
           instance: fixture.instance,
+          auditScope: fixture.auditScope,
           skillPluginSkill: link
         }),
         'bad_request'

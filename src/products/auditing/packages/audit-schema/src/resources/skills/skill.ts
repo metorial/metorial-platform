@@ -39,12 +39,16 @@ export let skillPluginAuditResource = resource({
     category: string | null;
     status: string;
     skillGroupId?: string | null;
+    skillId?: string;
+    pluginSkillSlug?: string;
   }>('skill_plugin'),
   presenter: undefined,
   actions: {
     create: true,
     update: true,
-    archive: true
+    archive: true,
+    add_skill: true,
+    remove_skill: true
   }
 });
 
