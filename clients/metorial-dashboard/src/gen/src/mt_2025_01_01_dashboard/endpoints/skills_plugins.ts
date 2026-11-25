@@ -5,6 +5,8 @@ import {
 
 import {
   mapDashboardInstanceSkillsPluginsArchiveOutput,
+  mapDashboardInstanceSkillsPluginsAttachSkillGroupBody,
+  mapDashboardInstanceSkillsPluginsAttachSkillGroupOutput,
   mapDashboardInstanceSkillsPluginsCreateBody,
   mapDashboardInstanceSkillsPluginsCreateOutput,
   mapDashboardInstanceSkillsPluginsDetachSkillGroupBody,
@@ -17,6 +19,8 @@ import {
   mapDashboardInstanceSkillsPluginsUpdateBody,
   mapDashboardInstanceSkillsPluginsUpdateOutput,
   type DashboardInstanceSkillsPluginsArchiveOutput,
+  type DashboardInstanceSkillsPluginsAttachSkillGroupBody,
+  type DashboardInstanceSkillsPluginsAttachSkillGroupOutput,
   type DashboardInstanceSkillsPluginsCreateBody,
   type DashboardInstanceSkillsPluginsCreateOutput,
   type DashboardInstanceSkillsPluginsDetachSkillGroupBody,
@@ -32,7 +36,7 @@ import {
 
 /**
  * @name Skill Plugins controller
- * @description Manage skill plugins for an instance.
+ * @description A skill plugin is a set of skills distributed through a skill marketplace.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -144,7 +148,7 @@ export class MetorialSkillsPluginsEndpoint {
 
   /**
    * @name Update skill plugin
-   * @description Updates a skill plugin.
+   * @description Updates a skill plugin. Omitted fields keep their current value.
    *
    * @param `skillPluginId` - string
    * @param `body` - DashboardInstanceSkillsPluginsUpdateBody
@@ -200,6 +204,38 @@ export class MetorialSkillsPluginsEndpoint {
   }
 
   /**
+   * @name Attach skill plugin to skill group
+   * @description Starts syncing a plugin from a skill group. The plugin's skills are replaced with the group's skills right away and follow the group from then on.
+   *
+   * @param `skillPluginId` - string
+   * @param `body` - DashboardInstanceSkillsPluginsAttachSkillGroupBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsPluginsAttachSkillGroupOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  attachSkillGroup(
+    skillPluginId: string,
+    body: DashboardInstanceSkillsPluginsAttachSkillGroupBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsPluginsAttachSkillGroupOutput> {
+    let path = `skill-plugins/${encodeURIComponent(skillPluginId)}/attach-skill-group`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsPluginsAttachSkillGroupBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsPluginsAttachSkillGroupOutput
+    );
+  }
+
+  /**
    * @name Detach skill plugin from skill group
    * @description Stops syncing a plugin from its skill group. The plugin keeps its current skills, which can then be edited directly.
    *
@@ -233,7 +269,7 @@ export class MetorialSkillsPluginsEndpoint {
 
   /**
    * @name Sync skill plugin
-   * @description Forces a skill plugin sync.
+   * @description Starts a sync of the skill plugin to its linked repositories, even if nothing changed.
    *
    * @param `skillPluginId` - string
    * @param `body` - DashboardInstanceSkillsPluginsSyncBody

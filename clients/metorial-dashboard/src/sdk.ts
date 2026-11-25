@@ -183,6 +183,7 @@ import {
   MetorialDashboardInstanceSkillsParticipantsEndpoint,
   MetorialDashboardInstanceSkillsPluginsEndpoint,
   MetorialDashboardInstanceSkillsPluginsRepositoriesEndpoint,
+  MetorialDashboardInstanceSkillsPluginsSkillGroupMatchesEndpoint,
   MetorialDashboardInstanceSkillsPluginsSkillsEndpoint,
   MetorialDashboardInstanceSkillsSecurityReviewEndpoint,
   MetorialDashboardInstanceSkillsSecurityReviewRevisionsEndpoint,
@@ -1164,7 +1165,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
   skillPlugins: Object.assign(new MetorialDashboardInstanceSkillsPluginsEndpoint(manager), {
     skills: new MetorialDashboardInstanceSkillsPluginsSkillsEndpoint(manager),
-    repositories: new MetorialDashboardInstanceSkillsPluginsRepositoriesEndpoint(manager)
+    repositories: new MetorialDashboardInstanceSkillsPluginsRepositoriesEndpoint(manager),
+    skillGroupMatches: new MetorialDashboardInstanceSkillsPluginsSkillGroupMatchesEndpoint(
+      manager
+    )
   }),
 
   skillExports: new MetorialDashboardInstanceSkillsExportsEndpoint(manager),
