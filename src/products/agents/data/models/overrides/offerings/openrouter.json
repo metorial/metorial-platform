@@ -689,6 +689,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "upstage/solar-mini-4-5": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Solar Mini 4.5 Preview is a new 35B/3B-active MoE model, distinct from Solar Mini 4; Upstage's console says the official release is Dec 1, 2026. No entry in the model index yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "upstage/solar-pro-4-contributor": {
+    "decision": "link",
+    "model": "upstage/solar-pro4",
+    "reason": "Listing says it is the same Solar Pro 4 model offered at a lower rate in exchange for allowing Upstage to use interaction data; a pricing-tier serving of the same model, matching index entry upstage/solar-pro4 (same 524K context).",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "xiaomi/mimo-v2.6-flash-mopd": {
     "decision": "defer",
     "until": "2026-12-22",
