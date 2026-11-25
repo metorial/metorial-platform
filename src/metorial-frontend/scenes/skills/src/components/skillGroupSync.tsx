@@ -9,8 +9,6 @@ import { Button, Callout, Combobox, Dialog, showModal } from '@metorial/ui';
 import { useState } from 'react';
 import styled from 'styled-components';
 
-let suggestionMinSharedSkills = 2;
-
 let Stack = styled.div`
   display: flex;
   flex-direction: column;
@@ -19,14 +17,6 @@ let Stack = styled.div`
 
 let countOf = (count: number, one: string, many: string) =>
   count == 1 ? `1 ${one}` : `${count} ${many}`;
-
-export let isSuggestedSkillGroupMatch = (
-  match: SkillPluginSkillGroupMatch | undefined,
-  pluginSkillCount: number
-): match is SkillPluginSkillGroupMatch =>
-  !!match &&
-  match.sharedSkillCount >= suggestionMinSharedSkills &&
-  match.sharedSkillCount * 2 >= pluginSkillCount;
 
 export let SkillGroupCombobox = (p: {
   instanceId: string;
@@ -165,24 +155,3 @@ export let showSyncWithSkillGroupDialog = (
       <SyncWithSkillGroupDialog {...p} close={close} />
     </Dialog.Wrapper>
   ));
-
-export let SkillGroupSuggestion = (p: {
-  match: SkillPluginSkillGroupMatch;
-  pluginSkillCount: number;
-  onSync: () => void;
-}) => (
-  <Callout
-    color="blue"
-    size="1"
-    action={
-      <Button size="1" variant="outline" onClick={p.onSync}>
-        Sync With Skill Group
-      </Button>
-    }
-  >
-    {p.match.sharedSkillCount == p.pluginSkillCount
-      ? `All of these skills are in the ${p.match.skillGroup.name} skill group.`
-      : `${p.match.sharedSkillCount} of these ${p.pluginSkillCount} skills are in the ${p.match.skillGroup.name} skill group.`}{' '}
-    Sync to follow its changes.
-  </Callout>
-);
