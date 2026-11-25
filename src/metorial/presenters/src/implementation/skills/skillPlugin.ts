@@ -7,7 +7,7 @@ import {
   hasSkillPluginWriteAccess
 } from '@metorial/module-skill-marketplace';
 import { Presenter } from '@metorial/presenter';
-import { skillPluginType } from '../../types';
+import { skillPluginSkillGroupMatchType, skillPluginType } from '../../types';
 import { skillDestinationSyncStatusPresenter } from './skillDestination';
 import { v1SkillPluginSkillPresenter } from './skillPluginSkill';
 
@@ -217,5 +217,53 @@ export let dashboardSkillPluginPresenter = Presenter.create(skillPluginType)
         })
       })
     ])
+  )
+  .build();
+
+export let v1SkillPluginSkillGroupMatchPresenter = Presenter.create(
+  skillPluginSkillGroupMatchType
+)
+  .presenter(async ({ skillGroupMatch }) => ({
+    object: 'skill.plugin.skill_group_match' as const,
+    skill_plugin_id: skillGroupMatch.skillPlugin.id,
+    skill_group: {
+      id: skillGroupMatch.skillGroup.id,
+      name: skillGroupMatch.skillGroup.name
+    },
+    shared_skill_count: skillGroupMatch.sharedSkillCount,
+    skill_ids_to_add: skillGroupMatch.skillsToAdd.map(skill => skill.id),
+    skill_ids_to_remove: skillGroupMatch.skillsToRemove.map(skill => skill.id)
+  }))
+  .schema(
+    v.object({
+      object: v.literal('skill.plugin.skill_group_match', {
+        description: 'String representing the object’s type.'
+      }),
+      skill_plugin_id: v.string({
+        description: 'Skill plugin the skill group is compared with.',
+        examples: ['skpl_0mbgjh8iMEI3ZMm2r2iP0P']
+      }),
+      skill_group: v.object(
+        {
+          id: v.string({
+            description: 'Unique ID.',
+            examples: ['skg_0mbgjh8iMEI3ZMm2r2iP0P']
+          }),
+          name: v.string({ description: 'Display name.' })
+        },
+        { description: 'Skill group compared with the plugin.' }
+      ),
+      shared_skill_count: v.number({
+        description: 'Number of skills that are in both the plugin and the skill group.'
+      }),
+      skill_ids_to_add: v.array(v.string(), {
+        description:
+          'Skills in the group that the plugin lacks. Attaching the group adds them to the plugin.'
+      }),
+      skill_ids_to_remove: v.array(v.string(), {
+        description:
+          'Skills in the plugin that the group lacks. Attaching the group removes them from the plugin.'
+      })
+    })
   )
   .build();

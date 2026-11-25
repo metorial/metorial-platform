@@ -17,7 +17,10 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillPluginPresenter } from '@metorial/presenters';
+import {
+  skillPluginPresenter,
+  skillPluginSkillGroupMatchPresenter
+} from '@metorial/presenters';
 import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
@@ -327,6 +330,43 @@ export let skillPluginController = Controller.create(
         });
       }),
 
+    attachSkillGroup: skillPluginGroup
+      .post(
+        instancePath(
+          'skill-plugins/:skillPluginId/attach-skill-group',
+          'skills.plugins.attachSkillGroup'
+        ),
+        {
+          name: 'Attach skill plugin to skill group',
+          description:
+            "Starts syncing a plugin from a skill group. The plugin's skills are replaced with the group's skills right away and follow the group from then on."
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body(
+        'default',
+        v.object({
+          skill_group_id: v.string({
+            description: 'Skill group to sync the plugin from.',
+            examples: ['skg_0mbgjh8iMEI3ZMm2r2iP0P']
+          })
+        })
+      )
+      .output(skillPluginPresenter)
+      .do(async ctx => {
+        let skillPlugin = await skillGroupPluginService.attachSkillGroupPlugin({
+          ...(await getSkillPluginAccess(ctx)),
+          skillPlugin: ctx.skillPlugin,
+          skillGroupId: ctx.body.skill_group_id
+        });
+
+        return skillPluginPresenter.present({
+          skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
+      }),
+
     detachSkillGroup: skillPluginGroup
       .post(
         instancePath(
@@ -353,6 +393,47 @@ export let skillPluginController = Controller.create(
           skillPlugin,
           ...getSkillMarketplaceAccessInput(ctx)
         });
+      }),
+
+    listSkillGroupMatches: skillPluginGroup
+      .get(
+        instancePath(
+          'skill-plugins/:skillPluginId/skill-group-matches',
+          'skills.plugins.skillGroupMatches.list'
+        ),
+        {
+          name: 'List skill group matches',
+          description:
+            'Compares a skill plugin with skill groups and returns the skills attaching each group would add or remove. Without a filter, returns up to 5 groups that share the most skills with the plugin.'
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: ['instance.skill:read'] }))
+      .query(
+        'default',
+        v.object({
+          skill_group_id: v.optional(
+            v.union([v.string(), v.array(v.string())], {
+              description: 'Only compare with these skill groups, up to 5.'
+            })
+          )
+        })
+      )
+      .outputList(skillPluginSkillGroupMatchPresenter)
+      .do(async ctx => {
+        let matches = await skillGroupPluginService.listSkillGroupMatches({
+          ...(await getSkillPluginAccess(ctx)),
+          skillPlugin: ctx.skillPlugin,
+          skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id)
+        });
+
+        return Paginator.present(
+          { items: matches, pagination: { hasNextPage: false, hasPreviousPage: false } },
+          match =>
+            skillPluginSkillGroupMatchPresenter.present({
+              skillGroupMatch: { ...match, skillPlugin: ctx.skillPlugin }
+            })
+        );
       }),
 
     sync: skillPluginGroup

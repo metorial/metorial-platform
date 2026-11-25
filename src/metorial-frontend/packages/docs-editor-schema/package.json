@@ -41,7 +41,7 @@
     "@tiptap/extension-underline": "3.32.0",
     "@tiptap/pm": "3.32.0",
     "@tiptap/starter-kit": "3.32.0",
-    "@tiptap/y-tiptap": "3.0.10",
+    "@tiptap/y-tiptap": "3.3.0",
     "lowlight": "^3.3.0",
     "markdown-it": "15.0.3",
     "markdown-it-task-lists": "2.1.1",

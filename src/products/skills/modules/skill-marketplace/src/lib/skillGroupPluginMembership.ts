@@ -1,10 +1,10 @@
 import { createLock } from '@lowerdeck/lock';
-import { createSlugGenerator } from '@lowerdeck/slugify';
 import { getConfig } from '@metorial/config';
 import type { Skill } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle/skillPluginSkill';
 import { assertSkillPluginCanAddSkills, CargoSkillLimitError } from './limits';
+import { claimPluginSkillSlug, getPluginSkillSlugInput } from './skillPluginSkillSlug';
 
 let skillGroupPluginLock = createLock({
   name: 'cargo/skill/group-plugin/membership',
@@ -19,13 +19,6 @@ let clearedSkillOverrides = {
   compatibility: null,
   skillConfigurationOid: null
 };
-
-let getAvailablePluginSkillSlug = createSlugGenerator(
-  async (slug, d: { takenSlugs: Set<string> }) => !d.takenSlugs.has(slug)
-);
-
-let getPluginSkillSlugInput = (skill: Pick<Skill, 'id' | 'name' | 'clientName'>) =>
-  (skill.clientName ?? skill.name ?? skill.id).replaceAll('_', '-');
 
 export let getSkillGroupPluginTargetSkills = async (d: { skillGroupOid: bigint }) => {
   let items = await db.skillGroupItem.findMany({
@@ -99,7 +92,9 @@ export let reconcileSkillGroupPluginMembership = async (d: { skillGroupPluginOid
     let activeLinks = link.skillPlugin.skillPluginSkills.filter(
       pluginSkill => pluginSkill.status === 'active'
     );
-    let staleLinks = activeLinks.filter(pluginSkill => !targetSkillOids.has(pluginSkill.skillOid));
+    let staleLinks = activeLinks.filter(
+      pluginSkill => !targetSkillOids.has(pluginSkill.skillOid)
+    );
 
     if (staleLinks.length) {
       await withTransaction(async db => {
@@ -126,20 +121,25 @@ export let reconcileSkillGroupPluginMembership = async (d: { skillGroupPluginOid
     let skippedSkills = missingSkills.slice(fitting.length);
 
     await withTransaction(async db => {
-      let takenSlugs = new Set(
-        link.skillPlugin.skillPluginSkills.map(pluginSkill => pluginSkill.pluginSkillSlug)
-      );
       let existingLinks = new Map(
-        link.skillPlugin.skillPluginSkills.map(pluginSkill => [pluginSkill.skillOid, pluginSkill])
+        link.skillPlugin.skillPluginSkills.map(pluginSkill => [
+          pluginSkill.skillOid,
+          pluginSkill
+        ])
       );
 
       for (let skill of fitting) {
         let existing = existingLinks.get(skill.oid);
+        let pluginSkillSlug = await claimPluginSkillSlug({
+          skillPluginOid: link.skillPluginOid,
+          input: getPluginSkillSlugInput(skill),
+          skillPluginSkill: existing
+        });
 
         if (existing) {
           await db.skillPluginSkill.update({
             where: { oid: existing.oid },
-            data: { status: 'active', ...clearedSkillOverrides }
+            data: { status: 'active', pluginSkillSlug, ...clearedSkillOverrides }
           });
           await enqueueSkillPluginSkillLifecycle({
             skillPluginSkillId: existing.id,
@@ -147,12 +147,6 @@ export let reconcileSkillGroupPluginMembership = async (d: { skillGroupPluginOid
           });
           continue;
         }
-
-        let pluginSkillSlug = await getAvailablePluginSkillSlug(
-          { input: getPluginSkillSlugInput(skill) },
-          { takenSlugs }
-        );
-        takenSlugs.add(pluginSkillSlug);
 
         let pluginSkill = await db.skillPluginSkill.create({
           data: {

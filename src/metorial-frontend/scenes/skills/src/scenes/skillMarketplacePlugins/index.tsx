@@ -35,6 +35,7 @@ import PQueue from 'p-queue';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { showSyncWithSkillGroupDialog } from '../../components/skillGroupSync';
 import {
   BulkBar,
   DragPreview,
@@ -756,6 +757,7 @@ export let SkillMarketplacePluginsScene = (p: {
     showPluginForm({
       instanceId: p.instanceId,
       skillMarketplaceId: p.skillMarketplaceId,
+      allowSkillGroup: p.showPublishSkillGroup !== false,
       onChanged: async () => {
         await refresh();
         p.onChange?.();
@@ -825,6 +827,19 @@ export let SkillMarketplacePluginsScene = (p: {
         await refresh();
         p.onChange?.();
         return true;
+      }
+    });
+  };
+
+  let openSyncWithSkillGroup = (plugin: SkillPlugin) => {
+    if (!p.instanceId) return;
+
+    showSyncWithSkillGroupDialog({
+      instanceId: p.instanceId,
+      skillPlugin: plugin,
+      onSynced: async () => {
+        await refresh();
+        p.onChange?.();
       }
     });
   };
@@ -922,6 +937,15 @@ export let SkillMarketplacePluginsScene = (p: {
               id: 'edit',
               label: 'Edit Plugin',
               onClick: () => openEditPlugin(plugin as SkillPlugin)
+            }
+          ]
+        : []),
+      ...(pluginCanEditSkills(plugin) && !isSkillGroupPlugin(plugin)
+        ? [
+            {
+              id: 'sync-skill-group',
+              label: 'Sync With Skill Group',
+              onClick: () => openSyncWithSkillGroup(plugin as SkillPlugin)
             }
           ]
         : []),

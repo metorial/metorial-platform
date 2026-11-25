@@ -15,15 +15,27 @@ import {
   skillPluginsLoader,
   skillsLoader,
   useCreateSkillPlugin,
+  useSkillGroups,
   useUpdateSkillPlugin
 } from '@metorial/state';
-import { Button, Dialog, Input, Select, showModal } from '@metorial/ui';
-import { useMemo, useState } from 'react';
+import {
+  Button,
+  Callout,
+  Dialog,
+  Input,
+  OptionToggle,
+  Select,
+  Text,
+  showModal
+} from '@metorial/ui';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useEntityPickerSource } from '../../components/entityPickerSource';
+import { SkillGroupCombobox } from '../../components/skillGroupSync';
 import type { MoveDestination } from './hierarchy';
 
 let addConcurrency = 10;
+let nameMatchDebounceMs = 400;
 
 let FormStack = styled.div`
   display: flex;
@@ -282,24 +294,62 @@ export let showPublishSkillGroupPanel = (
   p: Omit<Parameters<typeof PublishSkillGroupPanel>[0], 'close'>
 ) => showResourcePicker(close => <PublishSkillGroupPanel {...p} close={close} />);
 
+let pluginSourceItems = [
+  { id: 'manual', label: 'Pick Skills' },
+  { id: 'skill_group', label: 'From Skill Group' }
+];
+
+let normalizeName = (name: string) => name.trim().toLowerCase();
+
+let useDebouncedValue = <T,>(value: T, delay: number) => {
+  let [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    let timeout = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timeout);
+  }, [value, delay]);
+
+  return debounced;
+};
+
+let useSkillGroupNamedLike = (instanceId: string, name: string | null) => {
+  let search = useDebouncedValue(name?.trim() ?? '', nameMatchDebounceMs);
+  let skillGroups = useSkillGroups(
+    instanceId,
+    search.length >= 2 ? { status: ['active'], search, limit: 5 } : null
+  );
+
+  return (skillGroups.data?.items ?? []).find(
+    skillGroup => normalizeName(skillGroup.name) === normalizeName(search)
+  );
+};
+
 let PluginForm = (p: {
   instanceId: string;
   skillMarketplaceId: string;
   plugin?: SkillPlugin;
+  allowSkillGroup?: boolean;
   close: () => void;
   onChanged: (plugin: SkillPlugin) => Promise<void>;
 }) => {
   let createPlugin = useCreateSkillPlugin();
   let updatePlugin = useUpdateSkillPlugin();
   let mutator = p.plugin ? updatePlugin : createPlugin;
+  let canChooseSource = !p.plugin && p.allowSkillGroup === true;
+  let [source, setSource] = useState('manual');
+  let [skillGroup, setSkillGroup] = useState<{ id: string; name: string } | null>(null);
+  let fromSkillGroup = canChooseSource && source === 'skill_group';
 
   let form = useForm({
     initialValues: { name: p.plugin?.name ?? '', description: p.plugin?.description ?? '' },
+    schemaDependencies: [fromSkillGroup],
     onSubmit: async values => {
       let input = {
-        name: values.name.trim(),
+        name: values.name.trim() || undefined,
         description: values.description.trim() || undefined
       };
+      if (fromSkillGroup && !skillGroup) return;
+
       let [plugin] = p.plugin
         ? await updatePlugin.mutate({
             instanceId: p.instanceId,
@@ -309,6 +359,7 @@ let PluginForm = (p: {
         : await createPlugin.mutate({
             instanceId: p.instanceId,
             skillMarketplaceId: p.skillMarketplaceId,
+            skillGroupId: fromSkillGroup ? skillGroup?.id : undefined,
             ...input
           });
       if (!plugin) return;
@@ -318,16 +369,71 @@ let PluginForm = (p: {
     },
     schema: yup =>
       yup.object({
-        name: yup.string().trim().required('Name is required'),
+        name: fromSkillGroup ? yup.string() : yup.string().trim().required('Name is required'),
         description: yup.string()
       })
   });
 
+  let namedSkillGroup = useSkillGroupNamedLike(
+    p.instanceId,
+    canChooseSource && !fromSkillGroup ? form.values.name : null
+  );
+
+  let applyNamedSkillGroup = () => {
+    if (!namedSkillGroup) return;
+
+    setSource('skill_group');
+    setSkillGroup({ id: namedSkillGroup.id, name: namedSkillGroup.name });
+  };
+
   return (
     <form onSubmit={form.handleSubmit}>
       <FormStack>
-        <Input label="Name" required autoFocus {...form.getFieldProps('name')} />
+        {canChooseSource && (
+          <OptionToggle
+            label="Skills"
+            hideLabel
+            fullWidth
+            items={pluginSourceItems}
+            value={source}
+            onChange={setSource}
+          />
+        )}
+
+        {fromSkillGroup && (
+          <SkillGroupCombobox
+            instanceId={p.instanceId}
+            value={skillGroup}
+            onChange={setSkillGroup}
+            autoFocus
+          />
+        )}
+
+        <Input
+          label="Name"
+          required={!fromSkillGroup}
+          autoFocus={!fromSkillGroup}
+          placeholder={
+            fromSkillGroup ? (skillGroup?.name ?? 'Same as the skill group') : undefined
+          }
+          {...form.getFieldProps('name')}
+        />
         <form.RenderError field="name" />
+
+        {namedSkillGroup && (
+          <Callout
+            color="blue"
+            size="1"
+            action={
+              <Button type="button" size="1" variant="outline" onClick={applyNamedSkillGroup}>
+                Use Skill Group
+              </Button>
+            }
+          >
+            A skill group named {namedSkillGroup.name} exists. Use it to keep this plugin in
+            sync.
+          </Callout>
+        )}
 
         <Input
           label="Description"
@@ -337,11 +443,22 @@ let PluginForm = (p: {
         />
         <form.RenderError field="description" />
 
+        {fromSkillGroup && (
+          <Text size="2" color="gray600">
+            The plugin follows the group's skills. Change them in the group.
+          </Text>
+        )}
+
         <Dialog.Actions>
           <Button type="button" variant="soft" disabled={mutator.isLoading} onClick={p.close}>
             Cancel
           </Button>
-          <Button type="submit" loading={mutator.isLoading} success={mutator.isSuccess}>
+          <Button
+            type="submit"
+            disabled={fromSkillGroup && !skillGroup}
+            loading={mutator.isLoading}
+            success={mutator.isSuccess}
+          >
             {p.plugin ? 'Save Changes' : 'Create Plugin'}
           </Button>
         </Dialog.Actions>
