@@ -1645,6 +1645,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "xiaomi/mimo-v2.6-flash-mopd": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Same offering as on Kilo: a separate MOPD (distillation) checkpoint of MiMo-V2.6-Flash released 2026-09-27; the index has xiaomi/mimo-v2.6-flash only, not the MOPD revision.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "xiaomi/mimo-v2.6-flash-uncensored": {
     "decision": "exclude",
     "category": "fine-tune",
