@@ -16,7 +16,8 @@ import type {
   ConduitDiagnosticsResult,
   ConduitInput,
   ConduitListToolsResult,
-  ConduitResult
+  ConduitResult,
+  ConduitTransferResult
 } from '@metorial-subspace/connection-utils';
 import {
   type AgentInstance,
@@ -67,6 +68,7 @@ import {
   sessionProviderNameTemplateService
 } from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
+import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { addDays, addHours, addMinutes, differenceInMinutes, subHours } from 'date-fns';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { isEqual } from 'lodash';
@@ -125,6 +127,12 @@ import {
   getToolCallArguments,
   withToolCallArguments
 } from '../shared/toolCallOperation';
+import {
+  isLargeToolCallPayload,
+  readToolCallTransferResult,
+  toolCallPayloadTooLargeError,
+  toolCallResultForTransfer
+} from '../shared/toolCallTransfer';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import {
   type ConnectionScopedSpecification,
@@ -1664,7 +1672,10 @@ export class SenderManager {
     });
   }
 
-  private async publishTargetedResult(connection: SessionConnection, result: ConduitResult) {
+  private async publishTargetedResult(
+    connection: SessionConnection,
+    result: ConduitTransferResult
+  ) {
     try {
       await broadcastNats.publish(
         topics.sessionConnection.encode({ session: this.session, connection }),
@@ -2020,6 +2031,11 @@ export class SenderManager {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
     }
 
+    let useStoredInput = isLargeToolCallPayload(extractedToolCall.input);
+    if (useStoredInput && !getRetentionPolicy(this.session).storeContent) {
+      throw new ServiceError(toolCallPayloadTooLargeError('request'));
+    }
+
     let isToolCall =
       d.input.type === 'tool.call' ||
       (d.input.type === 'mcp' &&
@@ -2050,6 +2066,7 @@ export class SenderManager {
     });
 
     let processingPromise = (async () => {
+      let receivedResult = false;
       try {
         let res = await sender.send(topics.instance.encode({ instance, connection }), {
           type: 'tool_call',
@@ -2060,7 +2077,7 @@ export class SenderManager {
           toolId: tool.id,
           toolKey: tool.key,
 
-          input: extractedToolCall.input
+          input: useStoredInput ? null : extractedToolCall.input
         } satisfies ConduitInput);
 
         if (!res.success) {
@@ -2096,14 +2113,22 @@ export class SenderManager {
             }
           );
 
-          await this.publishTargetedResult(connection, {
-            message,
-            output: message.output,
-            status: message.status,
-            completedAt: message.completedAt
-          });
+          await this.publishTargetedResult(
+            connection,
+            toolCallResultForTransfer({
+              message,
+              output: message.output,
+              status: message.status,
+              completedAt: message.completedAt
+            })
+          );
         } else {
-          let data = res.result as ConduitResult;
+          receivedResult = true;
+          let data = await readToolCallTransferResult({
+            result: res.result as ConduitTransferResult,
+            sessionOid: this.session.oid,
+            connectionOid: connection.oid
+          });
           message = Object.assign(message, {
             ...data.message,
             output: data.output ?? data.message?.output
@@ -2111,6 +2136,11 @@ export class SenderManager {
         }
       } catch (err) {
         Sentry.captureException(err);
+
+        if (receivedResult) {
+          if (d.waitForResponse) throw err;
+          return;
+        }
 
         console.error('Error sending tool call message:', err);
 
@@ -2147,12 +2177,15 @@ export class SenderManager {
           }
         );
 
-        await this.publishTargetedResult(connection, {
-          message,
-          output: message.output,
-          status: message.status,
-          completedAt: message.completedAt
-        });
+        await this.publishTargetedResult(
+          connection,
+          toolCallResultForTransfer({
+            message,
+            output: message.output,
+            status: message.status,
+            completedAt: message.completedAt
+          })
+        );
       }
     })();
 

@@ -10,7 +10,7 @@ import type {
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
-export let { db } = createDatabase({
+export let { db, withTransaction } = createDatabase({
   name: 'slates-hub',
   url: ['SLATES_HUB_DATABASE_URL', 'DATABASE_URL'],
   createClient: adapter =>

@@ -7,8 +7,22 @@ vi.mock('@metorial/module-usage', () => ({
   recordSessionMessageUsage: vi.fn(async () => {})
 }));
 
-vi.mock('@lowerdeck/error', () => ({
-  ServiceError: class ServiceError extends Error {},
+vi.mock('@lowerdeck/error', async importOriginal => ({
+  createError: (await importOriginal<typeof import('@lowerdeck/error')>()).createError,
+  ServiceError: class ServiceError extends Error {
+    data?: { message: string };
+
+    constructor(error: string | Error | { data: { message: string } }) {
+      super(
+        typeof error === 'string'
+          ? error
+          : 'data' in error
+            ? error.data.message
+            : error.message
+      );
+      if (typeof error !== 'string' && 'data' in error) this.data = error.data;
+    }
+  },
   badRequestError: ({ message }: { message: string }) => new Error(message),
   goneError: ({ message }: { message: string }) => new Error(message),
   internalServerError: ({ message }: { message: string }) => new Error(message),
@@ -1015,6 +1029,36 @@ describe('SenderManager tool call rate limits', () => {
     manager.sender.send.mockClear();
 
     await expect(manager.callTool(callProps('mcp'))).rejects.toBe(error);
+
+    expect(manager.createMessage).not.toHaveBeenCalled();
+    expect(manager.sender.send).not.toHaveBeenCalled();
+  });
+
+  it('sends a reference to a large stored tool input', async () => {
+    let manager = createToolCallManager();
+    let props = callProps('tool_call');
+    props.input = { type: 'tool.call', data: { text: 'a'.repeat(3 * 1024 * 1024) } };
+
+    await manager.callTool(props);
+
+    expect(manager.createMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ input: props.input })
+    );
+    expect(manager.sender.send).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ type: 'tool_call', input: null })
+    );
+  });
+
+  it('rejects a large tool input when the session cannot store content', async () => {
+    let manager = createToolCallManager();
+    manager.session.dataRetentionLevel = 'none';
+    let props = callProps('tool_call');
+    props.input = { type: 'tool.call', data: { text: 'a'.repeat(3 * 1024 * 1024) } };
+
+    await expect(manager.callTool(props)).rejects.toMatchObject({
+      data: { status: 413, code: 'payload_too_large_for_retention' }
+    });
 
     expect(manager.createMessage).not.toHaveBeenCalled();
     expect(manager.sender.send).not.toHaveBeenCalled();

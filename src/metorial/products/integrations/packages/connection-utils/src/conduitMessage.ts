@@ -11,7 +11,7 @@ export type ConduitInput =
       toolKey: string;
       toolCallableId: string;
 
-      input: PrismaJson.SessionMessageInput;
+      input: PrismaJson.SessionMessageInput | null;
     }
   | {
       type: 'mcp.message_from_client';
@@ -82,9 +82,12 @@ export type ConduitResult = {
   output: PrismaJson.SessionMessageOutput | null;
 };
 
+export type ConduitTransferResult =
+  ConduitResult | { type: 'stored_tool_call_result'; messageId: string };
+
 export type BroadcastMessage = {
   type: 'message_processed';
   sessionId: string;
-  result: ConduitResult;
+  result: ConduitTransferResult;
   channel: 'targeted_response' | 'broadcast_response_or_notification';
 };

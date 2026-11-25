@@ -17,6 +17,7 @@ let mocks = vi.hoisted(() => ({
     add: vi.fn()
   },
   createError: vi.fn(),
+  offloadSessionMessage: vi.fn(),
   messageFailureReasonToErrorType: vi.fn(() => 'message_processing_timeout'),
   getId: vi.fn(() => ({ id: 'sessionEvent_test', oid: 100n })),
   getRawToolCallAttachmentsFromOutput: vi.fn(() => []),
@@ -29,6 +30,7 @@ vi.mock('@metorial-subspace/module-protoguard', () => ({
   protoGuardService: mocks.protoGuardService
 }));
 vi.mock('@metorial-subspace/db', () => ({
+  Prisma: { DbNull: 'DbNull' },
   db: mocks.db,
   withTransaction: (cb: (tx: any) => Promise<any>) => mocks.db.$transaction(cb),
   getId: mocks.getId,
@@ -39,6 +41,7 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/connection-utils', () => ({
+  offload: { offloadSessionMessage: mocks.offloadSessionMessage },
   getJsonSizeBytes: (value: unknown) =>
     value == null ? 0 : Buffer.byteLength(JSON.stringify(value))
 }));
@@ -66,6 +69,67 @@ describe('completeMessage', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
+
+  it.each(['full', 'intent_only', 'none'] as const)(
+    'completes an oversized tool result with %s retention',
+    async retentionLevel => {
+      let input = { type: 'tool.call', data: {} } as const;
+      let output = {
+        type: 'tool.result',
+        data: { text: 'a'.repeat(8 * 1024 * 1024) }
+      } as const;
+      let row = { id: 'msg_large', oid: 5n, input, output: null, toolCall: null };
+      let tx = {
+        sessionMessage: {
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+          findUniqueOrThrow: vi.fn().mockResolvedValue(row),
+          update: vi
+            .fn()
+            .mockResolvedValue({ ...row, input: null, isOffloadedToStorage: true })
+        }
+      };
+      mocks.db.sessionMessage.findUniqueOrThrow.mockResolvedValue({
+        ...row,
+        session: { dataRetentionLevel: retentionLevel }
+      });
+      mocks.db.$transaction.mockImplementation(async cb => await cb(tx));
+      mocks.offloadSessionMessage.mockResolvedValue(undefined);
+
+      let message = await completeMessage(
+        { messageId: row.id },
+        {
+          status: 'succeeded',
+          output,
+          responderParticipant: { oid: 99n } as any,
+          transferToolCallResult: true
+        }
+      );
+
+      if (retentionLevel === 'full') {
+        expect(mocks.offloadSessionMessage).toHaveBeenCalledExactlyOnceWith(
+          { id: row.id, input, output },
+          { live: true }
+        );
+        expect(tx.sessionMessage.updateMany.mock.calls[0]![0].data.output).not.toBe(output);
+        expect(tx.sessionMessage.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ isOffloadedToStorage: true })
+          })
+        );
+        expect(message.output).toBe(output);
+      } else {
+        expect(mocks.offloadSessionMessage).not.toHaveBeenCalled();
+        expect(tx.sessionMessage.updateMany.mock.calls[0]![0].data).toMatchObject({
+          status: 'failed',
+          outputSize: 0
+        });
+        expect(message.output).toMatchObject({
+          type: 'error',
+          data: { code: 'payload_too_large_for_retention', status: 413 }
+        });
+      }
+    }
+  );
 
   it('returns the existing message when another worker already completed it', async () => {
     let currentMessage = {
