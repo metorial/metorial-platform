@@ -63,7 +63,7 @@
     "@tiptap/react": "3.32.0",
     "@tiptap/starter-kit": "3.32.0",
     "@tiptap/suggestion": "3.32.0",
-    "@tiptap/y-tiptap": "3.0.10",
+    "@tiptap/y-tiptap": "3.3.0",
     "clsx": "^2.1.1",
     "diff": "^9.0.0",
     "dompurify": "^3.4.17",

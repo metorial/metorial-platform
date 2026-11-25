@@ -14,6 +14,7 @@ import {
   useDeleteSkillPluginSkill,
   skillsLoader,
   useSkillPlugin,
+  useSkillPluginSkillGroupMatches,
   useSkills,
   useUpdateSkillPluginSkill
 } from '@metorial/state';
@@ -36,6 +37,11 @@ import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useMemo } from 'react';
 import styled from 'styled-components';
 import { useEntityPickerSource } from '../components/entityPickerSource';
+import {
+  SkillGroupSuggestion,
+  isSuggestedSkillGroupMatch,
+  showSyncWithSkillGroupDialog
+} from '../components/skillGroupSync';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -324,8 +330,16 @@ export let SkillPluginSkillsScene = (p: {
         }
       : null
   );
+  let skillGroupMatches = useSkillPluginSkillGroupMatches(
+    p.instanceId,
+    plugin.data?.canEditSkills ? p.skillPluginId : null
+  );
   let createPluginSkill = useCreateSkillPluginSkill();
   let deletePluginSkill = useDeleteSkillPluginSkill();
+
+  let refreshSkills = async () => {
+    await Promise.all([pluginSkills.refetch(), plugin.refetch(), skillGroupMatches.refetch()]);
+  };
 
   let openPicker = () => {
     if (!p.instanceId || !p.skillPluginId) return;
@@ -345,10 +359,7 @@ export let SkillPluginSkillsScene = (p: {
         });
         return !!created;
       },
-      onDone: async () => {
-        await pluginSkills.refetch();
-        await plugin.refetch();
-      }
+      onDone: refreshSkills
     });
   };
 
@@ -360,10 +371,7 @@ export let SkillPluginSkillsScene = (p: {
       skillPluginId: p.skillPluginId,
       skillPluginSkillId: pluginSkill.id
     });
-    if (deleted) {
-      await pluginSkills.refetch();
-      await plugin.refetch();
-    }
+    if (deleted) await refreshSkills();
   };
 
   let openEdit = (pluginSkill: SkillPluginSkill) => {
@@ -377,9 +385,21 @@ export let SkillPluginSkillsScene = (p: {
     });
   };
 
+  let openSyncWithSkillGroup = (skillGroup?: { id: string; name: string }) => {
+    if (!p.instanceId || !plugin.data) return;
+
+    showSyncWithSkillGroupDialog({
+      instanceId: p.instanceId,
+      skillPlugin: plugin.data,
+      initialSkillGroup: skillGroup,
+      onSynced: refreshSkills
+    });
+  };
+
   return renderWithLoader({ pluginSkills })(({ pluginSkills }) => {
     let skillLookup = new Map((skills.data?.items ?? []).map(skill => [skill.id, skill]));
     let canEditSkills = plugin.data?.canEditSkills ?? false;
+    let suggestedMatch = skillGroupMatches.data?.items[0];
     let skillGroupSource =
       plugin.data?.source.type === 'skill_group' ? plugin.data.source : null;
 
@@ -399,6 +419,9 @@ export let SkillPluginSkillsScene = (p: {
               disabled={!p.instanceId || !p.skillPluginId}
               onClick={openPicker}
               variant="outline"
+              menu={[
+                { label: 'Sync With Skill Group', onClick: () => openSyncWithSkillGroup() }
+              ]}
             >
               Add Skill
             </Button>
@@ -415,6 +438,18 @@ export let SkillPluginSkillsScene = (p: {
             <Spacer size={12} />
           </>
         )}
+
+        {canEditSkills &&
+          isSuggestedSkillGroupMatch(suggestedMatch, pluginSkills.data.length) && (
+            <>
+              <SkillGroupSuggestion
+                match={suggestedMatch}
+                pluginSkillCount={pluginSkills.data.length}
+                onSync={() => openSyncWithSkillGroup(suggestedMatch.skillGroup)}
+              />
+              <Spacer size={12} />
+            </>
+          )}
 
         {pluginSkills.data.length === 0 ? (
           <EmptyState>
