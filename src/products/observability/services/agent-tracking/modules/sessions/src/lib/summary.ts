@@ -28,6 +28,7 @@ import type { RecordDocument } from '@mtsrc/agent-tracking-store';
 import { documentCorrelations, type Correlation } from './keys';
 import { sourceKindOf, usageRank } from '@mtsrc/agent-tracking-module-usage';
 import { bucketStart } from '@mtsrc/agent-tracking-layers';
+import { isClaudeCodeMainQuerySource } from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
 import {
   addTokens,
@@ -139,6 +140,21 @@ let text = (value: unknown) => (typeof value == 'string' && value ? value : unde
 
 let count = (value: unknown) =>
   typeof value == 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+
+// Claude Code requests stored before the dialect knew `sdk` and the other main-thread query
+// sources are marked as a subagent named after the source.
+let purposeOf = (family: string, data: Record<string, unknown>) => {
+  let purpose = text(data.purpose);
+  let agentName = text(data.agent_name);
+
+  let legacyMain =
+    family == 'claude-code' &&
+    purpose == 'subagent' &&
+    agentName !== undefined &&
+    isClaudeCodeMainQuerySource(agentName);
+
+  return legacyMain ? 'main' : purpose;
+};
 
 export let readTokens = (value: unknown): RequestTokens | undefined => {
   let usage = record(value);
@@ -511,7 +527,7 @@ export let aggregateSession = async (d: {
       modelRaw: text(model?.id),
       provider: text(model?.provider),
       baseUrl: text(model?.baseUrl),
-      purpose: text(data.purpose),
+      purpose: purposeOf(d.family, data),
       userId: document.attribution?.userId,
       billing: reportedBilling({ billing: data.billing, authMode: document.client.authMode }),
       tokens,

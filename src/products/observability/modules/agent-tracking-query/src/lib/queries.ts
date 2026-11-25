@@ -122,11 +122,11 @@ type Filter = Record<string, unknown>;
 
 let allOf = (clauses: Filter[]) => (clauses.length > 1 ? { and: clauses } : clauses[0]);
 
-// The engine rejects a request-record range longer than its limit, measured exactly.
-export let assertRequestRange = (range: { from: Date; to: Date }, subject: string) => {
+// The engine rejects a raw-record range longer than its limit, measured exactly.
+export let assertRecordRange = (range: { from: Date; to: Date }, subject: string) => {
   if (range.to.getTime() - range.from.getTime() > requestRecordDays * dayMs) {
     throw invalidInputError(
-      `${subject} come from request records, which cover at most ${requestRecordDays} days. Choose a range of at most ${requestRecordDays} days.`
+      `${subject} come from individual records, which are kept for ${requestRecordDays} days. Choose a range of at most ${requestRecordDays} days.`
     );
   }
 };

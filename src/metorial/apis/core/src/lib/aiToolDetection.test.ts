@@ -1,37 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let mocks = vi.hoisted(() => ({
-  isFlagEnabledForScope: vi.fn(),
-  getSettings: vi.fn()
-}));
+let mocks = vi.hoisted(() => ({ isFlagEnabledForScope: vi.fn() }));
 
-vi.mock('@metorial/module-consumer-core', async () => {
-  let isAiToolDetectionFlagged = async (d: any) =>
-    await mocks.isFlagEnabledForScope({
-      organization: d.organization,
-      project: d.project,
-      flag: 'ai-tool-detection-enabled'
-    });
-
-  return {
-    ...(await import('@metorial/module-consumer-core/src/lib/aiToolDetection')),
-    consumerDeviceSettingsService: {
-      isAiToolDetectionFlagged,
-      isAiToolDetectionActive: async (d: any) =>
-        !!(await mocks.getSettings())?.aiToolDetectionEnabled &&
-        (await isAiToolDetectionFlagged(d))
-    }
-  };
-});
-
-vi.mock('../middleware/checkAccess', () => ({ hasAccess: vi.fn() }));
-
-vi.mock('@metorial/module-agent-tracking-query', () => ({
-  agentTrackingAgentActivityService: {}
+vi.mock('@metorial/module-consumer-core', async () => ({
+  ...(await import('@metorial/module-consumer-core/src/lib/aiToolDetection')),
+  consumerDeviceSettingsService: {
+    isAiToolDetectionFlagged: async (d: any) =>
+      await mocks.isFlagEnabledForScope({
+        organization: d.organization,
+        project: d.project,
+        flag: 'ai-tool-detection-enabled'
+      })
+  }
 }));
 
 import {
-  assertCanTurnOnDetection,
+  assertCanTurnOnDeviceSettings,
+  assertDetectionSettingsAvailable,
   getDeviceMonitor,
   requireDetectionCatalog,
   requireDetectionReporting,
@@ -45,10 +30,7 @@ let ctx = {
 } as any;
 
 describe('AI tool detection gates', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.getSettings.mockResolvedValue({ aiToolDetectionEnabled: true });
-  });
+  beforeEach(() => vi.clearAllMocks());
 
   it('refuses reports and hides the catalog while the flag is off', async () => {
     mocks.isFlagEnabledForScope.mockResolvedValue(false);
@@ -81,11 +63,47 @@ describe('AI tool detection gates', () => {
     'monitors AI tools only with the flag (%s) and the setting (%s) on',
     async (flagged, enabled, expected) => {
       mocks.isFlagEnabledForScope.mockResolvedValue(flagged);
-      mocks.getSettings.mockResolvedValue({ aiToolDetectionEnabled: enabled });
 
-      expect((await getDeviceMonitor(ctx)).aiToolDetection).toBe(expected);
+      expect(
+        (await getDeviceMonitor(ctx, { aiToolDetectionEnabled: enabled })).aiToolDetection
+      ).toBe(expected);
     }
   );
+
+  it('monitors nothing before the instance has settings', async () => {
+    mocks.isFlagEnabledForScope.mockResolvedValue(true);
+
+    expect((await getDeviceMonitor(ctx, null)).aiToolDetection).toBe(false);
+  });
+
+  it.each([
+    { aiToolDetectionEnabled: true },
+    { aiToolDetectionEnabled: false },
+    { privacyNoticeAccepted: true }
+  ])('refuses %o while the organization has no AI tool detection', async input => {
+    mocks.isFlagEnabledForScope.mockResolvedValue(false);
+
+    await expect(assertDetectionSettingsAvailable(ctx, input)).rejects.toMatchObject({
+      data: { status: 403 }
+    });
+  });
+
+  it('lets the connection mode through without AI tool detection', async () => {
+    mocks.isFlagEnabledForScope.mockResolvedValue(false);
+
+    await expect(
+      assertDetectionSettingsAvailable(ctx, { connectionMode: 'direct' })
+    ).resolves.toBeUndefined();
+    expect(mocks.isFlagEnabledForScope).not.toHaveBeenCalled();
+  });
+
+  it('lets detection settings through where detection is available', async () => {
+    mocks.isFlagEnabledForScope.mockResolvedValue(true);
+
+    await expect(
+      assertDetectionSettingsAvailable(ctx, { privacyNoticeAccepted: true })
+    ).resolves.toBeUndefined();
+  });
 
   it('hides detections on devices unless detection is visible', () => {
     let device = { id: 'codv_1', detections: [{ toolKey: 'cursor' }] };
@@ -95,31 +113,32 @@ describe('AI tool detection gates', () => {
   });
 });
 
-describe('turning on AI tool detection', () => {
+describe('device settings that need a person in the dashboard', () => {
   let dashboardUser = { auth: { type: 'user' } } as any;
+  let apiKey = { auth: { type: 'machine' } } as any;
 
-  it.each([{ aiToolDetectionEnabled: true }, { privacyNoticeAccepted: true }])(
-    'requires a person signed in to the dashboard for %o',
-    input => {
-      expect(() => assertCanTurnOnDetection(dashboardUser, input)).not.toThrow();
+  it.each([
+    { aiToolDetectionEnabled: true },
+    { privacyNoticeAccepted: true },
+    { connectionMode: 'direct' as const }
+  ])('requires a person signed in to the dashboard for %o', input => {
+    expect(() => assertCanTurnOnDeviceSettings(dashboardUser, input)).not.toThrow();
 
-      for (let auth of [{ type: 'machine' }, { type: 'user', machineAccess: {} }]) {
-        expect(() => assertCanTurnOnDetection({ auth } as any, input)).toThrow(
-          expect.objectContaining({ data: expect.objectContaining({ status: 403 }) })
-        );
-      }
+    for (let auth of [{ type: 'machine' }, { type: 'user', machineAccess: {} }]) {
+      expect(() => assertCanTurnOnDeviceSettings({ auth } as any, input)).toThrow(
+        expect.objectContaining({ data: expect.objectContaining({ status: 403 }) })
+      );
     }
-  );
+  });
 
-  it('lets any caller turn detection off or withdraw the notice', () => {
-    let apiKey = { auth: { type: 'machine' } } as any;
-
+  it('lets any caller turn detection off, withdraw the notice or go back to the local proxy', () => {
     expect(() =>
-      assertCanTurnOnDetection(apiKey, {
+      assertCanTurnOnDeviceSettings(apiKey, {
         aiToolDetectionEnabled: false,
-        privacyNoticeAccepted: false
+        privacyNoticeAccepted: false,
+        connectionMode: 'local_proxy'
       })
     ).not.toThrow();
-    expect(() => assertCanTurnOnDetection(apiKey, {})).not.toThrow();
+    expect(() => assertCanTurnOnDeviceSettings(apiKey, {})).not.toThrow();
   });
 });

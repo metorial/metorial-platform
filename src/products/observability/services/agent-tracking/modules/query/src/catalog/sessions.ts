@@ -20,6 +20,7 @@ import {
   derived,
   errorRate,
   lineMetrics,
+  max,
   sum,
   tokenMetrics
 } from './metrics';
@@ -233,13 +234,11 @@ export let sessionsDataset: DatasetDef = {
       'number',
       'Tokens per request.'
     ),
-    last_activity: {
-      kind: 'aggregate',
-      fn: 'max',
-      field: 'lastActivityAt',
-      type: 'date',
-      description: 'When any session in the group was last active.'
-    }
+    last_activity: max(
+      'lastActivityAt',
+      'date',
+      'When any session in the group was last active.'
+    )
   },
   indexes: [
     { name: 'organizationId_startedAt', keys: ['organizationId', 'startedAt'] },

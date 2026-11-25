@@ -105,6 +105,7 @@ import {
   AiToolPolicyStatus,
   ConsumerDevice,
   ConsumerDeviceClient,
+  ConsumerDeviceConnectionMode,
   ConsumerDeviceDetection,
   ConsumerDeviceSettings,
   ConsumerGroup,
@@ -206,11 +207,13 @@ import type {
 import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type {
   AgentTrackingFilterValues,
+  AgentTrackingMcpServerUsage,
   AgentTrackingMemberInsights,
   AgentTrackingSeenMember,
   AgentTrackingSessionDetail,
   AgentTrackingSessionView,
   AgentTrackingSetupStatus,
+  AgentTrackingSkillUsage,
   AgentTrackingSpendBreakdown,
   AgentTrackingSpendReport,
   AgentTrackingSpendTimeline,
@@ -2724,8 +2727,9 @@ export let consumerDeviceType = PresentableType.create<{
     consumerProfile: ConsumerProfile;
     detections: ConsumerDeviceDetection[];
   };
-  telemetry?: { enabled: boolean; tokenId: string | null };
+  telemetry?: { enabled: boolean; tokenId: string | null; toolDetails: boolean };
   monitor?: DeviceMonitor;
+  install?: { connectionMode: ConsumerDeviceConnectionMode };
 }>()('consumer.device');
 
 export let consumerDeviceDetectionReportType = PresentableType.create<{
@@ -2813,6 +2817,14 @@ export let agentTrackingMemberType = PresentableType.create<{
 export let agentTrackingMemberInsightsType = PresentableType.create<{
   insights: AgentTrackingMemberInsights;
 }>()('agent_tracking.member_insights');
+
+export let agentTrackingSkillUsageType = PresentableType.create<{
+  usage: AgentTrackingSkillUsage;
+}>()('agent_tracking.skill_usage');
+
+export let agentTrackingMcpServerUsageType = PresentableType.create<{
+  usage: AgentTrackingMcpServerUsage;
+}>()('agent_tracking.mcp_server_usage');
 
 export let agentTrackingSetupStatusType = PresentableType.create<{
   setupStatus: AgentTrackingSetupStatus;

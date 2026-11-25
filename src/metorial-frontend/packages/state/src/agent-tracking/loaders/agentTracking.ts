@@ -9,6 +9,8 @@ import {
   DashboardInstanceAgentTrackingSpendBreakdownQuery,
   DashboardInstanceAgentTrackingSpendReportQuery,
   DashboardInstanceAgentTrackingSpendTimelineQuery,
+  DashboardInstanceAgentTrackingToolsMcpServersQuery,
+  DashboardInstanceAgentTrackingToolsSkillsQuery,
   DashboardInstanceAgentTrackingViewsCreateBody,
   DashboardInstanceAgentTrackingViewsListQuery,
   DashboardInstanceAgentTrackingViewsUpdateBody,
@@ -108,6 +110,33 @@ export let useAgentTrackingSpendReport = (
   instanceId: string | null | undefined,
   query: DashboardInstanceAgentTrackingSpendReportQuery | null
 ) => agentTrackingSpendReportLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
+export let agentTrackingSkillUsageLoader = createLoader({
+  name: 'agentTrackingSkillUsage',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingToolsSkillsQuery) =>
+    withAuth(sdk => sdk.agentTracking.tools.skills(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingSkillUsage = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingToolsSkillsQuery | null
+) => agentTrackingSkillUsageLoader.use(instanceId && query ? { instanceId, ...query } : null);
+
+export let agentTrackingMcpServerUsageLoader = createLoader({
+  name: 'agentTrackingMcpServerUsage',
+  parents: [],
+  fetch: (i: { instanceId: string } & DashboardInstanceAgentTrackingToolsMcpServersQuery) =>
+    withAuth(sdk => sdk.agentTracking.tools.mcpServers(i.instanceId, i)),
+  mutators: {}
+});
+
+export let useAgentTrackingMcpServerUsage = (
+  instanceId: string | null | undefined,
+  query: DashboardInstanceAgentTrackingToolsMcpServersQuery | null
+) =>
+  agentTrackingMcpServerUsageLoader.use(instanceId && query ? { instanceId, ...query } : null);
 
 export let agentTrackingSessionsLoader = createLoader({
   name: 'agentTrackingSessions',

@@ -27,6 +27,7 @@ let consumerDeviceSettingsPayload = (
 ) => ({
   id: settings.id,
   aiToolDetectionEnabled: settings.aiToolDetectionEnabled,
+  connectionMode: settings.connectionMode,
   privacyNoticeAcceptedAt: settings.privacyNoticeAcceptedAt
 });
 

@@ -25,12 +25,27 @@ export let count = (description: string, where?: Filter): MetricDef => ({
   ...(where ? { where } : {})
 });
 
-export let distinct = (field: string, description: string): MetricDef => ({
+export let max = (
+  field: string,
+  type: FieldType,
+  description: string,
+  where?: Filter
+): MetricDef => ({
+  kind: 'aggregate',
+  fn: 'max',
+  field,
+  type,
+  description,
+  ...(where ? { where } : {})
+});
+
+export let distinct = (field: string, description: string, where?: Filter): MetricDef => ({
   kind: 'aggregate',
   fn: 'countDistinct',
   field,
   type: 'number',
-  description
+  description,
+  ...(where ? { where } : {})
 });
 
 export let derived = (

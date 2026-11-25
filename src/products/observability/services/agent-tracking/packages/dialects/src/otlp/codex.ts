@@ -35,6 +35,7 @@ export let codexOtlpId = 'codex.otlp.v1';
 let adapter = 'codex';
 let eventPrefix = 'codex.';
 let scopePrefix = 'codex_otel';
+let maxPrewarmInputTokens = 16;
 
 let serviceNames = new Set([
   'codex_cli_rs',
@@ -116,6 +117,12 @@ let tokenTypes: Record<string, { type: string; warning?: string } | null> = {
 
 let sessionIdOf = (fields: FieldReader) => fields.str(...sessionKeys);
 
+let rawText = (fields: FieldReader, key: string) => {
+  let value = fields.raw(key);
+
+  return typeof value == 'string' || typeof value == 'number' ? String(value) : '';
+};
+
 let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['client'] => {
   let surface =
     surfaceFromLabel(fields.str('originator')) ?? own(surfaceByService, context.serviceName);
@@ -184,6 +191,20 @@ let toolOf = (fields: FieldReader) => {
   return classifyTool(name, server ? { mcpServer: server } : {});
 };
 
+// In code mode the model calls one `exec` tool that runs a script, and every tool the script
+// calls is logged as its own tool_result, so the wrapper is not a tool call of its own. A failed
+// script still counts, so script errors show in tool error rates.
+let isCodeModeWrapper = (fields: FieldReader) =>
+  fields.str('tool_name') == 'exec' &&
+  (fields.str('tool_namespace') ?? 'functions') == 'functions';
+
+// The websocket prewarm completes a response that generates nothing from a couple of input
+// tokens, before the first prompt and without a reasoning effort.
+let isPrewarm = (fields: FieldReader) =>
+  fields.count('output_token_count') === 0 &&
+  !fields.has('model_reasoning_effort') &&
+  (fields.count('input_token_count') ?? Infinity) <= maxPrewarmInputTokens;
+
 let usageFromSse = (fields: FieldReader) =>
   buildUsage({
     inputIncludingCache: fields.count('input_token_count'),
@@ -224,9 +245,11 @@ let logDraft = (
       sessionIdOf(fields) ?? '',
       name,
       String(log.timeNs),
+      fields.str('event.timestamp') ?? '',
       fields.str('turn.id', 'turn_id') ?? '',
       fields.str('call_id') ?? '',
-      fields.str('event.kind') ?? ''
+      fields.str('event.kind') ?? '',
+      rawText(fields, 'tool_result_seq')
     ].join('|'),
     signalName: safeNativeName(name),
     occurredAt: firstDate(
@@ -306,7 +329,11 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     case 'sse_event': {
       if (fields.str('event.kind') != 'response.completed') return [];
 
+      // Over HTTP each completed response is logged twice; only one of the two carries usage.
       let usage = usageFromSse(state.fields);
+      if (!usage.usage) return [];
+
+      let prewarm = isPrewarm(fields);
       let ttft = fields.count('ttft_ms');
       let tier = nativeLabel(fields.str('service_tier'));
       let effort = normalizeEffort(fields.str('model_reasoning_effort'));
@@ -316,6 +343,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
         withData(
           {
             ...logDraft(state, 'model.request'),
+            ...(prewarm ? { role: 'supplemental' as const } : {}),
             derived: usage.derived,
             warnings: usage.warnings
           },
@@ -323,10 +351,11 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             outcome: 'ok',
             ...modelRef(model),
             ...billingOf(fields),
-            ...(usage.usage ? { usage: usage.usage } : {}),
+            usage: usage.usage,
             ...ok(ttft, 'ttft_ms'),
             ...ok(tier, 'service_tier'),
-            ...ok(effort, 'effort')
+            ...ok(effort, 'effort'),
+            ...(prewarm ? { purpose: 'auxiliary', warmup: true } : {})
           }
         )
       ];
@@ -397,12 +426,15 @@ let mapEvent = (state: LogState): RecordDraft[] => {
       let success = fields.bool('success');
       let duration = fields.count('duration_ms');
       let truncated = fields.bool('output_truncated');
+      let wrapper = isCodeModeWrapper(fields);
+      let counted = !wrapper || success === false;
       let hints = { tool: tool?.name };
 
       return [
         withData(
           {
             ...logDraft(state, 'tool.call'),
+            ...(counted ? {} : { role: 'supplemental' as const }),
             factKey: toolFact(fields),
             durationMs: duration,
             content: [
@@ -415,7 +447,8 @@ let mapEvent = (state: LogState): RecordDraft[] => {
             ...(success !== undefined ? { outcome: success ? 'ok' : 'error' } : {}),
             ...(success === false ? { error: { class: 'tool' } } : {}),
             ...ok(duration, 'duration_ms'),
-            ...ok(truncated, 'output_truncated')
+            ...ok(truncated, 'output_truncated'),
+            ...(wrapper ? { code_mode: 'wrapper' } : {})
           }
         )
       ];

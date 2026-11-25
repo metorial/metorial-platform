@@ -123,7 +123,8 @@ describe('module-agent-tracking-access device tokens', () => {
     });
     expect(telemetry.get(device.oid)).toEqual({
       enabled: true,
-      tokenId: current.ingestToken.serviceIngestTokenId
+      tokenId: current.ingestToken.serviceIngestTokenId,
+      toolDetails: false
     });
 
     await waitForRevoked(replaced.ingestToken.serviceIngestTokenId);
@@ -173,6 +174,10 @@ describe('module-agent-tracking-access device tokens', () => {
       project: fixture.project,
       consumerDevices: [{ oid: device.oid, status: 'revoked' }]
     });
-    expect(telemetry.get(device.oid)).toEqual({ enabled: true, tokenId: null });
+    expect(telemetry.get(device.oid)).toEqual({
+      enabled: true,
+      tokenId: null,
+      toolDetails: false
+    });
   }, 90_000);
 });

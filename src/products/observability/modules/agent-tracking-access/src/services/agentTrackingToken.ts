@@ -15,6 +15,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
+  agentTrackingSettingsService,
   agentTrackingSyncService,
   canIssueAgentTrackingKeys,
   requireAgentTracking
@@ -34,6 +35,9 @@ class AgentTrackingTokenServiceImpl {
       organization: d.organization,
       project: d.project
     });
+    let toolDetails =
+      enabled &&
+      (await agentTrackingSettingsService.getOrganizationValues(d)).desktop.toolDetails;
 
     let signedInOids = enabled
       ? d.consumerDevices.filter(device => device.status == 'active').map(device => device.oid)
@@ -57,7 +61,7 @@ class AgentTrackingTokenServiceImpl {
     return new Map(
       d.consumerDevices.map(device => [
         device.oid,
-        { enabled, tokenId: activeTokenIds.get(device.oid) ?? null }
+        { enabled, tokenId: activeTokenIds.get(device.oid) ?? null, toolDetails }
       ])
     );
   }

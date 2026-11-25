@@ -247,9 +247,54 @@ describe('claudeCodeOtlp api events', () => {
     });
     expect(one('api_request', { query_source: 'agent:builtin:explore' }).data).toMatchObject({
       purpose: 'subagent',
-      agent_name: 'agent:builtin:explore'
+      agent_name: 'explore'
     });
+    expect(
+      one('api_request', { query_source: 'code-reviewer', agent_id: 'agent-1' }).data
+    ).toMatchObject({ purpose: 'subagent', agent_name: 'code-reviewer' });
+    expect(one('api_request', { query_source: 'subagent' }).data).toEqual(
+      expect.objectContaining({ purpose: 'subagent' })
+    );
     expect(one('api_request', {}).data).not.toHaveProperty('purpose');
+  });
+
+  it('counts helper requests without agent attributes as auxiliary', () => {
+    for (let querySource of ['web_fetch_apply', 'title_generation', 'prompt_suggestion']) {
+      let { data } = one('api_request', { query_source: querySource });
+
+      expect(data).toMatchObject({ purpose: 'auxiliary' });
+      expect(data).not.toHaveProperty('agent_name');
+    }
+  });
+
+  it('counts print-mode and Agent SDK main-thread requests as the main session', () => {
+    for (let querySource of ['sdk', 'repl_main_thread', 'repl_main_thread:outputStyle:x']) {
+      let { data } = one('api_request', { query_source: querySource });
+
+      expect(data).toMatchObject({ purpose: 'main' });
+      expect(data).not.toHaveProperty('agent_name');
+    }
+  });
+
+  it('names a 2.1.332 subagent request after its agent', () => {
+    let { data } = one('api_request', {
+      query_source: 'agent:builtin:general-purpose',
+      'agent.name': 'general-purpose',
+      agent_id: 'agent-1'
+    });
+
+    expect(data).toMatchObject({ purpose: 'subagent', agent_name: 'general-purpose' });
+    expect(one('api_request', { query_source: 'agent:custom' }).data).toMatchObject({
+      purpose: 'subagent',
+      agent_name: 'custom'
+    });
+  });
+
+  it('reads the time to first token', () => {
+    expect(one('api_request', { ttft_ms: 888, duration_ms: 960 }).data).toMatchObject({
+      ttft_ms: 888,
+      duration_ms: 960
+    });
   });
 
   it('has a null fact key without a request id', () => {
@@ -537,6 +582,29 @@ describe('claudeCodeOtlp tool events', () => {
     });
   });
 
+  it('counts a redacted MCP tool as MCP without a server', () => {
+    let redacted = one('tool_result', { tool_name: 'mcp_tool', success: true });
+    let decided = one('tool_decision', {
+      tool_name: 'lookup',
+      tool_source: 'mcp',
+      decision: 'accept',
+      source: 'config'
+    });
+
+    expect(redacted.data?.['tool']).toEqual({ name: 'mcp_tool', kind: 'mcp', class: 'mcp' });
+    expect(decided.data?.['tool']).toEqual({ name: 'lookup', kind: 'mcp', class: 'mcp' });
+  });
+
+  it('does not take the redacted custom placeholder for a server name', () => {
+    let draft = one('tool_result', {
+      tool_name: 'mcp_tool',
+      tool_source: 'mcp',
+      mcp_server_name: 'custom'
+    });
+
+    expect(draft.data?.['tool']).toEqual({ name: 'mcp_tool', kind: 'mcp', class: 'mcp' });
+  });
+
   it('maps a successful tool result', () => {
     let draft = one('tool_result', {
       tool_use_id: 'tu-2',
@@ -798,6 +866,11 @@ describe('claudeCodeOtlp session and extension events', () => {
     });
 
     expect(
+      one('skill_activated', { 'skill.name': 'custom_skill', invocation_trigger: 'model' })
+        .data
+    ).toEqual({ kind: 'skill', action: 'activated', trigger: 'model' });
+
+    expect(
       one('hook_execution_complete', {
         hook_event: 'PreToolUse',
         hook_name: 'lint',
@@ -982,6 +1055,47 @@ describe('claudeCodeOtlp spans', () => {
     expect(mapSpan('llm_request', {}, { statusCode: 2 }).data).toMatchObject({
       outcome: 'error',
       error: { class: 'unknown' }
+    });
+  });
+
+  it('falls back to the GenAI usage and model on llm requests', () => {
+    let draft = mapSpan('claude_code.llm_request', {
+      'gen_ai.response.model': 'claude-haiku-5-5',
+      'gen_ai.usage.input_tokens': 20274,
+      'gen_ai.usage.output_tokens': 52,
+      'gen_ai.usage.cache_read.input_tokens': 20272,
+      'gen_ai.usage.cache_write.input_tokens': 0,
+      query_source_safe: 'agent.builtin.general-purpose'
+    });
+
+    expect(draft).toMatchObject({
+      derived: ['usage.input_uncached'],
+      data: {
+        model: { id: 'claude-haiku-5-5' },
+        usage: { input_uncached: 2, cache_read: 20272, cache_write: 0, output: 52 },
+        purpose: 'subagent',
+        agent_name: 'general-purpose'
+      }
+    });
+  });
+
+  it('prefers the Claude Code token counts over the GenAI totals', () => {
+    let draft = mapSpan('llm_request', {
+      input_tokens: 2,
+      output_tokens: 52,
+      cache_read_tokens: 20272,
+      cache_creation_tokens: 10,
+      'gen_ai.usage.input_tokens': 20284,
+      'gen_ai.usage.output_tokens': 52,
+      'gen_ai.usage.cache_read.input_tokens': 20272,
+      'gen_ai.usage.cache_write.input_tokens': 10,
+      query_source_safe: 'sdk'
+    });
+
+    expect(draft.derived).toEqual([]);
+    expect(draft.data).toMatchObject({
+      usage: { provenance: 'exact', input_uncached: 2, cache_read: 20272, cache_write: 10 },
+      purpose: 'main'
     });
   });
 

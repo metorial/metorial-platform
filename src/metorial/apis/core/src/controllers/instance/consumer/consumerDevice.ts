@@ -7,7 +7,7 @@ import {
 } from '@metorial/module-consumer-core';
 import { consumerDevicePresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
-import { withVisibleDetections } from '../../../lib/aiToolDetection';
+import { deviceFlags, withVisibleDetections } from '../../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -37,7 +37,7 @@ export let consumerDeviceManagementController = Controller.create(
         description: 'Returns a paginated list of consumer devices.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
+      .use(hasFlags(deviceFlags))
       .query(
         'default',
         Paginator.validate(
@@ -92,7 +92,7 @@ export let consumerDeviceManagementController = Controller.create(
         description: 'Retrieves a consumer device.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
+      .use(hasFlags(deviceFlags))
       .output(consumerDevicePresenter)
       .do(async ctx =>
         consumerDevicePresenter.present({
@@ -113,7 +113,7 @@ export let consumerDeviceManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
-      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
+      .use(hasFlags(deviceFlags))
       .output(consumerDevicePresenter)
       .do(async ctx => {
         let consumerDevice = await consumerDeviceService.revokeDevice({

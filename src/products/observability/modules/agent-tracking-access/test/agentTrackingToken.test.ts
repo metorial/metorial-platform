@@ -89,9 +89,13 @@ describe('agentTrackingTokenService', () => {
         orderBy: { oid: 'asc' },
         select: { consumerDeviceOid: true, serviceIngestTokenId: true }
       });
-      expect(telemetry.get(1n)).toEqual({ enabled: true, tokenId: null });
-      expect(telemetry.get(2n)).toEqual({ enabled: true, tokenId: 'git_new' });
-      expect(telemetry.get(3n)).toEqual({ enabled: true, tokenId: null });
+      expect(telemetry.get(1n)).toEqual({ enabled: true, tokenId: null, toolDetails: false });
+      expect(telemetry.get(2n)).toEqual({
+        enabled: true,
+        tokenId: 'git_new',
+        toolDetails: false
+      });
+      expect(telemetry.get(3n)).toEqual({ enabled: true, tokenId: null, toolDetails: false });
       expect(mocks.agentTracking.ingestToken.create).not.toHaveBeenCalled();
     });
 
@@ -103,8 +107,26 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null });
+      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null, toolDetails: false });
       expect(db.agentTrackingIngestToken.findMany).not.toHaveBeenCalled();
+    });
+
+    it('carries the instance setting for detailed tool reporting only while telemetry is on', async () => {
+      mocks.toolDetails.value = true;
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+
+      let on = await agentTrackingTokenService.listDeviceTelemetry({
+        ...scope,
+        consumerDevices: [active]
+      });
+      mocks.flagged.value = false;
+      let off = await agentTrackingTokenService.listDeviceTelemetry({
+        ...scope,
+        consumerDevices: [active]
+      });
+
+      expect(on.get(1n)).toEqual({ enabled: true, tokenId: null, toolDetails: true });
+      expect(off.get(1n)).toEqual({ enabled: false, tokenId: null, toolDetails: false });
     });
 
     it('reports telemetry off while the public ingest URL is not set', async () => {
@@ -115,7 +137,7 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null });
+      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null, toolDetails: false });
     });
   });
 

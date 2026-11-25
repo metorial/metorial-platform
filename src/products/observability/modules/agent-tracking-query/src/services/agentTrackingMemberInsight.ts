@@ -13,7 +13,7 @@ import { instanceConsumerMemberIds, lookupMembers, unique } from '../lib/members
 import { pageByAnchor } from '../lib/pageByAnchor';
 import { loadVisiblePrivacy } from '../lib/privacy';
 import {
-  assertRequestRange,
+  assertRecordRange,
   lastActivityQuery,
   memberInsightsRequestsQuery,
   memberInsightsUsageQuery,
@@ -64,7 +64,7 @@ class AgentTrackingMemberInsightServiceImpl {
     let range = normalizeRange(d.range ?? {});
     let now = new Date();
     if (include.includes('practices') || include.includes('seat')) {
-      assertRequestRange(resolveRange(range, now), 'Practices and seat');
+      assertRecordRange(resolveRange(range, now), 'Practices and seat');
     }
 
     let data = await cachedRead({

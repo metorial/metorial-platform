@@ -52,6 +52,7 @@ import {
   v1AgentPresenter,
   v1AgentTrackingFilterValuesPresenter,
   v1AgentTrackingIngestSourcePresenter,
+  v1AgentTrackingMcpServerUsagePresenter,
   v1AgentTrackingMemberInsightsPresenter,
   v1AgentTrackingMemberPresenter,
   v1AgentTrackingSessionDetailPresenter,
@@ -60,6 +61,7 @@ import {
   v1AgentTrackingOrganizationSettingsPresenter,
   v1AgentTrackingProjectSettingsPresenter,
   v1AgentTrackingSetupStatusPresenter,
+  v1AgentTrackingSkillUsagePresenter,
   v1AgentTrackingSpendBreakdownPresenter,
   v1AgentTrackingSpendReportPresenter,
   v1AgentTrackingSpendTimelinePresenter,
@@ -398,6 +400,7 @@ import {
   agentInstanceType,
   agentTrackingFilterValuesType,
   agentTrackingIngestSourceType,
+  agentTrackingMcpServerUsageType,
   agentTrackingMemberInsightsType,
   agentTrackingMemberType,
   agentTrackingSessionDetailType,
@@ -406,6 +409,7 @@ import {
   agentTrackingOrganizationSettingsType,
   agentTrackingProjectSettingsType,
   agentTrackingSetupStatusType,
+  agentTrackingSkillUsageType,
   agentTrackingSpendBreakdownType,
   agentTrackingSpendReportType,
   agentTrackingSpendTimelineType,
@@ -1642,6 +1646,19 @@ export let agentTrackingMemberInsightsPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1AgentTrackingMemberInsightsPresenter,
     mt_2026_01_01_magnetar: v1AgentTrackingMemberInsightsPresenter
+  }
+);
+
+export let agentTrackingSkillUsagePresenter = declarePresenter(agentTrackingSkillUsageType, {
+  mt_2025_01_01_dashboard: v1AgentTrackingSkillUsagePresenter,
+  mt_2026_01_01_magnetar: v1AgentTrackingSkillUsagePresenter
+});
+
+export let agentTrackingMcpServerUsagePresenter = declarePresenter(
+  agentTrackingMcpServerUsageType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingMcpServerUsagePresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingMcpServerUsagePresenter
   }
 );
 

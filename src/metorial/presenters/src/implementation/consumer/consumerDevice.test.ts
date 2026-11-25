@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getDetectionCatalog } from '@metorial/model-catalog/detection';
 
-vi.mock('@metorial/module-consumer-core', async () =>
-  await import('@metorial/module-consumer-core/src/lib/aiToolDetection')
+vi.mock(
+  '@metorial/module-consumer-core',
+  async () => await import('@metorial/module-consumer-core/src/lib/aiToolDetection')
 );
 
 vi.mock('@metorial/module-agent-tracking-query', () => ({ agentActiveWindowDays: 30 }));
@@ -29,6 +30,8 @@ let deviceMonitor = (d: { aiToolDetection: boolean }) => ({
 
 let monitor = deviceMonitor({ aiToolDetection: false });
 
+let install = { connectionMode: 'local_proxy' as const };
+
 let consumerDevice = {
   id: 'codv_1',
   status: 'active',
@@ -49,7 +52,12 @@ describe('consumer device telemetry', () => {
   it('shows the telemetry state to the consumer', async () => {
     let device = await consumerConsumerDevicePresenter
       .present(
-        { consumerDevice, telemetry: { enabled: true, tokenId: 'git_1' }, monitor },
+        {
+          consumerDevice,
+          telemetry: { enabled: true, tokenId: 'git_1', toolDetails: true },
+          monitor,
+          install
+        },
         context
       )
       .run();
@@ -57,20 +65,25 @@ describe('consumer device telemetry', () => {
     expect(device).toMatchObject({
       object: 'consumer.device',
       id: 'codv_1',
-      telemetry: { enabled: true, token_id: 'git_1' }
+      telemetry: { enabled: true, token_id: 'git_1', tool_details: true }
     });
   });
 
   it('keeps the telemetry state out of the public and dashboard device', async () => {
     let device = await v1ConsumerDevicePresenter
       .present(
-        { consumerDevice, telemetry: { enabled: true, tokenId: 'git_1' }, monitor },
+        {
+          consumerDevice,
+          telemetry: { enabled: true, tokenId: 'git_1', toolDetails: true },
+          monitor
+        },
         { ...context, apiVersion: 'mt_2026_01_01_magnetar' }
       )
       .run();
 
     expect(device).not.toHaveProperty('telemetry');
     expect(device).not.toHaveProperty('monitor');
+    expect(device).not.toHaveProperty('install');
   });
 
   it('refuses to present a consumer device without its telemetry state', async () => {
@@ -86,8 +99,9 @@ describe('consumer device monitor', () => {
       .present(
         {
           consumerDevice,
-          telemetry: { enabled: false, tokenId: null },
-          monitor: deviceMonitor({ aiToolDetection: true })
+          telemetry: { enabled: false, tokenId: null, toolDetails: false },
+          monitor: deviceMonitor({ aiToolDetection: true }),
+          install
         },
         context
       )
@@ -110,9 +124,47 @@ describe('consumer device monitor', () => {
   it('refuses to present a consumer device without its monitor settings', async () => {
     await expect(
       consumerConsumerDevicePresenter
-        .present({ consumerDevice, telemetry: { enabled: false, tokenId: null } }, context)
+        .present(
+          { consumerDevice, telemetry: { enabled: false, tokenId: null, toolDetails: false } },
+          context
+        )
         .run()
     ).rejects.toThrow('monitor settings');
+  });
+});
+
+describe('consumer device install settings', () => {
+  it('tells the device how to connect AI tools to integrations', async () => {
+    for (let connectionMode of ['local_proxy', 'direct'] as const) {
+      let device = await consumerConsumerDevicePresenter
+        .present(
+          {
+            consumerDevice,
+            telemetry: { enabled: false, tokenId: null, toolDetails: false },
+            monitor,
+            install: { connectionMode }
+          },
+          context
+        )
+        .run();
+
+      expect(device.install).toEqual({ connection_mode: connectionMode });
+    }
+  });
+
+  it('refuses to present a consumer device without its install settings', async () => {
+    await expect(
+      consumerConsumerDevicePresenter
+        .present(
+          {
+            consumerDevice,
+            telemetry: { enabled: false, tokenId: null, toolDetails: false },
+            monitor
+          },
+          context
+        )
+        .run()
+    ).rejects.toThrow('install settings');
   });
 });
 

@@ -386,3 +386,49 @@ export type AgentTrackingSetupStatus = {
   lastReceivedAt: Date | null;
   options: Record<SetupOptionKey, SetupOptionStatus>;
 };
+
+export type AgentTrackingToolCallFigures = {
+  calls: number;
+  failed: number;
+  errorRate: number | null;
+  members: number;
+  lastUsedAt: Date | null;
+};
+
+export type AgentTrackingMcpToolUsage = AgentTrackingToolCallFigures & { name: string };
+
+export type AgentTrackingMcpServerUsageItem = AgentTrackingToolCallFigures & {
+  name: string;
+  tools: AgentTrackingMcpToolUsage[];
+};
+
+export type AgentTrackingMcpServerUsage = {
+  range: AgentTrackingRange;
+  toolDetails: boolean;
+  summary: AgentTrackingToolCallFigures & {
+    namedCalls: number;
+    countsCapped: boolean;
+  };
+  items: AgentTrackingMcpServerUsageItem[];
+  truncated: boolean;
+};
+
+export type AgentTrackingSkillUsageItem = {
+  name: string;
+  activations: number;
+  members: number;
+  lastUsedAt: Date | null;
+};
+
+export type AgentTrackingSkillUsage = {
+  range: AgentTrackingRange;
+  toolDetails: boolean;
+  summary: {
+    activations: number;
+    namedActivations: number;
+    members: number;
+    countsCapped: boolean;
+  };
+  items: AgentTrackingSkillUsageItem[];
+  truncated: boolean;
+};

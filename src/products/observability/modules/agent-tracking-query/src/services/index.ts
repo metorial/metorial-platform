@@ -5,6 +5,7 @@ export * from './agentTrackingMemberInsight';
 export * from './agentTrackingSession';
 export * from './agentTrackingSetupStatus';
 export * from './agentTrackingSpend';
+export * from './agentTrackingTool';
 export * from './agentTrackingView';
 export { filterValueList, filterValueValidator } from '../lib/filterValues';
 export { memberInsightsFlags, memberInsightsGroups } from '../lib/memberInsights';
@@ -24,6 +25,7 @@ export {
 } from '../lib/queries';
 export { maxRangeDays, rangePresets } from '../lib/range';
 export { sessionListOrderBys } from '../lib/sessions';
+export { maxMcpServers, maxMcpTools, maxSkills } from '../lib/tools';
 export {
   agentTrackingViewEntity,
   agentTrackingViewPages,

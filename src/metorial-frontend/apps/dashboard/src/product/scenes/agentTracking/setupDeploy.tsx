@@ -86,10 +86,11 @@ let optionDescriptors: OptionDescriptor[] = [
   {
     id: 'toolDetails',
     setting: 'toolDetails',
-    label: 'Tool Details',
+    label: 'Detailed Tool Reporting',
     sends:
       'Skill, MCP, agent and plugin names, the branch of commits and the error text of failed tools. With them, Claude Code also sends tool inputs, file paths and commands off the device.',
-    unlocks: 'Skill and MCP usage and spend by branch, in later releases.',
+    unlocks:
+      'Skill and MCP server usage on the Tools tab, and spend by branch in a later release.',
     note: 'Off by default because it sends tool inputs, file paths and commands. Agent Usage keeps only the length and a keyed hash of each tool input and error text, never the text itself.',
     availability: 'choice'
   },

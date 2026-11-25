@@ -11,7 +11,7 @@ export let individualsHiddenError = createError({
 });
 
 export let loadPrivacy = async (scope: Pick<ReadScope, 'organization'>) =>
-  await agentTrackingSettingsService.getPrivacy({ organization: scope.organization });
+  (await agentTrackingSettingsService.getOrganizationValues(scope)).privacy;
 
 export let loadVisiblePrivacy = async (scope: Pick<ReadScope, 'organization'>) => {
   let privacy = await loadPrivacy(scope);

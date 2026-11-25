@@ -515,6 +515,9 @@ let AgentTrackingSessionPage = dynamicPage(() =>
 let AgentTrackingTeamPage = dynamicPage(() =>
   import('./pages/(agent-tracking)/(list)/team').then(c => c.AgentTrackingTeamPage)
 );
+let AgentTrackingToolsPage = dynamicPage(() =>
+  import('./pages/(agent-tracking)/(list)/tools').then(c => c.AgentTrackingToolsPage)
+);
 let AgentTrackingReportPage = dynamicPage(() =>
   import('./pages/(agent-tracking)/(list)/report').then(c => c.AgentTrackingReportPage)
 );
@@ -653,6 +656,7 @@ export let productAgentTrackingSlice = createSlice([
                   { path: 'sessions', element: <AgentTrackingSessionsPage /> },
                   { path: 'spend', element: <AgentTrackingSpendPage /> },
                   { path: 'team', element: <AgentTrackingTeamPage /> },
+                  { path: 'tools', element: <AgentTrackingToolsPage /> },
                   { path: 'report', element: <AgentTrackingReportPage /> },
                   { path: 'setup', element: <AgentTrackingSetupPage /> }
                 ]

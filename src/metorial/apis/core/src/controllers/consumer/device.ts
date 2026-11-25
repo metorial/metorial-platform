@@ -14,6 +14,7 @@ import { getDetectionCatalog } from '@metorial/model-catalog/detection';
 import {
   consumerDeviceDetectionService,
   consumerDeviceService,
+  consumerDeviceSettingsService,
   consumerDeviceStatuses,
   maxDetectionFindings
 } from '@metorial/module-consumer-core';
@@ -84,20 +85,24 @@ type PresentableDevice = Parameters<
 type DeviceContext = { organization: Organization; project: Project; instance: Instance };
 
 let presentDevices = async (ctx: DeviceContext, consumerDevices: PresentableDevice[]) => {
-  let [telemetry, monitor] = await Promise.all([
+  let [telemetry, settings] = await Promise.all([
     agentTrackingTokenService.listDeviceTelemetry({
       organization: ctx.organization,
       project: ctx.project,
       consumerDevices
     }),
-    getDeviceMonitor(ctx)
+    consumerDeviceSettingsService.getSettings({ instance: ctx.instance })
   ]);
+
+  let monitor = await getDeviceMonitor(ctx, settings);
+  let install = { connectionMode: settings?.connectionMode ?? 'local_proxy' } as const;
 
   return consumerDevices.map(consumerDevice =>
     consumerDevicePresenter.present({
       consumerDevice: withVisibleDetections(consumerDevice, monitor.aiToolDetection),
       telemetry: telemetry.get(consumerDevice.oid),
-      monitor
+      monitor,
+      install
     })
   );
 };

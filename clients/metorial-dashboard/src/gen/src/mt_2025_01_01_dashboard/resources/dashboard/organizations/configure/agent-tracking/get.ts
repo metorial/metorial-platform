@@ -5,11 +5,13 @@ export type DashboardOrganizationsConfigureAgentTrackingGetOutput = {
   organizationId: string;
   serviceStatus: 'applied' | 'pending' | 'unknown';
   privacy: { hideIndividuals: boolean; minGroupUsers: number };
+  desktop: { toolDetails: boolean };
 };
 
 export let mapDashboardOrganizationsConfigureAgentTrackingGetOutput =
   /* @__PURE__ */ mapObject<DashboardOrganizationsConfigureAgentTrackingGetOutput>([
     'organization_id',
     'service_status',
-    ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]]
+    ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]],
+    ['desktop', 0, [1, ['tool_details']]]
   ]);

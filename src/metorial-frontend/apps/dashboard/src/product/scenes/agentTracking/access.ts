@@ -23,7 +23,7 @@ export let useAgentTrackingSettingsAccess = () => {
   let id = organization.data?.id;
 
   return {
-    privacy: useHasScope(id, 'organization:write').hasScope,
+    organization: useHasScope(id, 'organization:write').hasScope,
     retention: useHasScope(id, 'organization.project:manage').hasScope,
     instance: useHasScope(id, agentTrackingWriteScope).hasScope
   };

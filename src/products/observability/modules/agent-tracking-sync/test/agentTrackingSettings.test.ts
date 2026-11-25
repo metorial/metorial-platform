@@ -113,7 +113,8 @@ describe('agentTrackingSettingsService', () => {
     expect(result).toEqual({
       settings: {
         organizationId: 'org_1',
-        privacy: { hideIndividuals: true, minGroupUsers: 5 }
+        privacy: { hideIndividuals: true, minGroupUsers: 5 },
+        desktop: { toolDetails: false }
       },
       serviceStatus: 'applied'
     });
@@ -124,9 +125,10 @@ describe('agentTrackingSettingsService', () => {
         id: 'agentTrackingOrganizationSettings_1',
         organizationOid: 1n,
         hideIndividuals: true,
-        minGroupUsers: 5
+        minGroupUsers: 5,
+        toolDetails: false
       },
-      update: { hideIndividuals: true, minGroupUsers: 5 }
+      update: { hideIndividuals: true, minGroupUsers: 5, toolDetails: false }
     });
     expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledWith(
       {
@@ -145,10 +147,41 @@ describe('agentTrackingSettingsService', () => {
       settings: result.settings,
       previousSettings: {
         organizationId: 'org_1',
-        privacy: { hideIndividuals: false, minGroupUsers: 5 }
+        privacy: { hideIndividuals: false, minGroupUsers: 5 },
+        desktop: { toolDetails: false }
       },
       auditScope
     });
+  });
+
+  it('stores detailed tool reporting without changing what the service is told', async () => {
+    let result = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization,
+      auditScope,
+      input: { desktop: { toolDetails: true } }
+    });
+
+    expect(result.settings).toEqual({
+      organizationId: 'org_1',
+      privacy: { hideIndividuals: false, minGroupUsers: 5 },
+      desktop: { toolDetails: true }
+    });
+    expect(mocks.db.agentTrackingOrganizationSettings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: { hideIndividuals: false, minGroupUsers: 5, toolDetails: true }
+      })
+    );
+    expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledWith(
+      {
+        ref: 'org_1',
+        name: 'Acme',
+        settings: { privacy: { hideIndividuals: false, minGroupUsers: 5 } }
+      },
+      { timeoutMs: 3_000, retry: false }
+    );
+    expect(
+      (await agentTrackingSettingsService.getOrganizationValues({ organization })).desktop
+    ).toEqual({ toolDetails: true });
   });
 
   it('keeps a wider change and queues the push when the service does not answer', async () => {
@@ -393,9 +426,8 @@ describe('agentTrackingSettingsService', () => {
   it('never applies a stored minimum below three', async () => {
     storedSettings.organization = { hideIndividuals: true, minGroupUsers: 2 };
 
-    expect(await agentTrackingSettingsService.getPrivacy({ organization })).toEqual({
-      hideIndividuals: true,
-      minGroupUsers: 3
-    });
+    expect(
+      (await agentTrackingSettingsService.getOrganizationValues({ organization })).privacy
+    ).toEqual({ hideIndividuals: true, minGroupUsers: 3 });
   });
 });

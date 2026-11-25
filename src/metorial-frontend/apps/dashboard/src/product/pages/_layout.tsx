@@ -31,6 +31,7 @@ import {
   RiMoneyDollarCircleLine,
   RiPlug2Line,
   RiTerminalBoxLine,
+  RiToolsLine,
   RiUploadCloud2Line,
   RiUser3Line,
   RiWebhookLine
@@ -330,6 +331,14 @@ export let ProjectPageLayout = () => {
                       isActive: checkPath(i)
                     }),
                     children: teamViewChildren
+                  },
+                  {
+                    icon: <RiToolsLine />,
+                    label: 'Tools',
+                    to: Paths.instance.agentTracking.tools(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
                   },
                   {
                     icon: <RiFileChartLine />,

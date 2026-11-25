@@ -734,6 +734,31 @@ describe('aggregateSession billing', () => {
     ]);
   });
 
+  it('treats older Claude Code sdk requests stored as a subagent as the main thread', async () => {
+    let plan = { mode: 'included', plan: 'max' };
+    let legacy = { billing: plan, purpose: 'subagent', agent_name: 'sdk' };
+
+    let { summary } = await aggregateSession({
+      records: [
+        request('2026-03-04T10:00:00Z', {
+          ...legacy,
+          usage: { inputUncached: 1000, cacheWrite1h: 1000 }
+        }),
+        request('2026-03-04T10:20:00Z', {
+          ...legacy,
+          usage: { inputUncached: 1000, cacheWrite5m: 1000 }
+        })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.models.map(billingOf)).toEqual([
+      ['included', 'reported', 'max', 1],
+      ['overage', 'inferred', 'max', 1]
+    ]);
+  });
+
   it('bills a Codex session on a third-party provider per token and resolves its vendor', async () => {
     let { summary, slices } = await aggregateSession({
       records: [

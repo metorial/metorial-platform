@@ -3,6 +3,7 @@ import type { AuthInfo } from '@metorial/module-access';
 import { agentTrackingAgentActivityService } from '@metorial/module-agent-tracking-query';
 import { consumerDeviceSettingsService } from '@metorial/module-consumer-core';
 import { hasAccess } from '../middleware/checkAccess';
+import { isHumanDashboardUser } from './dashboardUser';
 
 let agentTrackingReadScope = 'instance.agent_tracking:read' as const;
 
@@ -12,9 +13,6 @@ type ActivityContext = {
   project: Project;
   instance: Instance;
 };
-
-export let isHumanDashboardUser = (auth: AuthInfo) =>
-  auth.type == 'user' && !auth.machineAccess;
 
 // Mirrors the access rules of the agent usage endpoints, so usage never shows up here for
 // callers who could not read it there.

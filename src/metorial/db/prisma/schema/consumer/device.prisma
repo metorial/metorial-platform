@@ -160,11 +160,18 @@ model ConsumerDeviceDetection {
   @@index([instanceOid, toolKey, goneAt])
 }
 
+enum ConsumerDeviceConnectionMode {
+  local_proxy
+  direct
+}
+
 model ConsumerDeviceSettings {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   aiToolDetectionEnabled Boolean @default(false)
+
+  connectionMode ConsumerDeviceConnectionMode @default(local_proxy)
 
   privacyNoticeAcceptedAt DateTime?
   createdAt               DateTime  @default(now())

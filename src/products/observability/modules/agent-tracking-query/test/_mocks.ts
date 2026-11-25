@@ -58,6 +58,8 @@ export let withInstanceScope = vi.fn(
 
 export let privacy = { hideIndividuals: false, minGroupUsers: 5 };
 
+export let desktop = { toolDetails: false };
+
 export let agentTrackingEnabled = vi.fn(async (_d: any) => true);
 
 export let syncModule = {
@@ -74,7 +76,9 @@ export let syncModule = {
   requireAgentTracking: () => client,
   withInstanceScope,
   isAgentTrackingEnabledForOrganization: agentTrackingEnabled,
-  agentTrackingSettingsService: { getPrivacy: async () => ({ ...privacy }) }
+  agentTrackingSettingsService: {
+    getOrganizationValues: async () => ({ privacy: { ...privacy }, desktop: { ...desktop } })
+  }
 };
 
 export let consumers = { findMany: vi.fn(async (_query: any): Promise<any[]> => []) };
@@ -127,6 +131,7 @@ export let resetMocks = () => {
   agentTrackingEnabled.mockImplementation(async () => true);
   privacy.hideIndividuals = false;
   privacy.minGroupUsers = 5;
+  desktop.toolDetails = false;
 };
 
 export let callsTo = (path: string) => rpc.calls.filter(call => call.path == path);

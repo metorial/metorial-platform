@@ -11,7 +11,7 @@ import {
 
 /**
  * @name Consumer Device Settings controller
- * @description Consumer device settings decide what Metorial Desktop monitors on enrolled devices in an instance. AI tool detection stays off until an admin accepts its privacy notice, which governs the per-person data detections hold.
+ * @description Consumer device settings decide what Metorial Desktop monitors on enrolled devices in an instance and how it connects their AI tools. AI tool detection stays off until an admin accepts its privacy notice.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -63,7 +63,7 @@ export class MetorialDashboardInstanceConsumerDeviceSettingsEndpoint {
 
   /**
    * @name Update consumer device settings
-   * @description Updates the consumer device settings of the instance. Omitted fields keep their current value. Devices pick up the change at their next check-in.
+   * @description Updates the consumer device settings of the instance. Omitted fields keep their current value. Devices pick up the change at their next check-in. Setting `connection_mode` to `direct` requires a user signed in to the dashboard; API keys get 403.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceConsumerDeviceSettingsUpdateBody

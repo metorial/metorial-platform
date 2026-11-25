@@ -8,7 +8,6 @@ import {
 import { Callout, Flex, Text, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { useNow } from '@metorial/use-now';
-import { RiArrowDownLine, RiArrowUpDownLine, RiArrowUpLine } from '@remixicon/react';
 import React, { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { styled } from 'styled-components';
@@ -21,6 +20,7 @@ import { WithInfo } from '../info';
 import { MemberIdentity, memberPath } from '../memberParts';
 import { getBrowserTimeZone } from '../range';
 import { Muted } from '../sessionParts';
+import { SortHeader as SortHeaderButton } from '../sortHeader';
 import { BreakdownCost, BreakdownTable, Share } from '../spendParts';
 import { isZero, modelLabel } from '../spendSummary';
 import {
@@ -65,25 +65,6 @@ let Flagged = styled.span`
   border-radius: 6px;
   background: ${theme.colors.orange300};
   font-weight: 600;
-`;
-
-let SortButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    color: ${theme.colors.foreground};
-  }
 `;
 
 let Dash = ({ label }: { label: string }) => (
@@ -242,25 +223,16 @@ let SortHeader = ({
     );
   }
 
-  let name = column.title ?? column.header;
-  let hint = columnHints[column.id];
-  let active = view.params.sort == sort.id;
-  let ascending = view.params.order == 'asc';
-  let Icon = !active ? RiArrowUpDownLine : ascending ? RiArrowUpLine : RiArrowDownLine;
-
-  let button = (
-    <SortButton
-      type="button"
-      title={`Sort by ${name}`}
-      aria-label={active ? `${name}, sorted ${ascending ? 'ascending' : 'descending'}` : name}
-      onClick={() => onPatch(sortPatch(view, sort.id))}
-    >
-      {column.header}
-      <Icon size={12} color={active ? undefined : theme.colors.gray650} aria-hidden />
-    </SortButton>
+  return (
+    <SortHeaderButton
+      label={column.header}
+      name={column.title ?? column.header}
+      info={columnHints[column.id]}
+      active={view.params.sort == sort.id}
+      ascending={view.params.order == 'asc'}
+      onToggle={() => onPatch(sortPatch(view, sort.id))}
+    />
   );
-
-  return <WithInfo info={hint}>{button}</WithInfo>;
 };
 
 let Summary = ({ view, insights }: { view: TeamViewState; insights: MemberInsights }) => (

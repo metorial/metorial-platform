@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { ConsumerDeviceConnectionMode } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { consumerDeviceSettingsType } from '../../types';
 
@@ -7,6 +8,7 @@ export let v1ConsumerDeviceSettingsPresenter = Presenter.create(consumerDeviceSe
     object: 'consumer.device_settings' as const,
     instance_id: instance.id,
     ai_tool_detection_enabled: settings?.aiToolDetectionEnabled ?? false,
+    connection_mode: settings?.connectionMode ?? ConsumerDeviceConnectionMode.local_proxy,
     privacy_notice_accepted_at: settings?.privacyNoticeAcceptedAt ?? null,
     updated_at: settings?.updatedAt ?? null
   }))
@@ -23,6 +25,11 @@ export let v1ConsumerDeviceSettingsPresenter = Presenter.create(consumerDeviceSe
         name: 'ai_tool_detection_enabled',
         description:
           'When `true`, Metorial Desktop looks for AI tools on enrolled devices and reports what it finds. Off by default.'
+      }),
+      connection_mode: v.enumOf(Object.values(ConsumerDeviceConnectionMode), {
+        name: 'connection_mode',
+        description:
+          'How AI tools connect to integrations Metorial Desktop installs. `local_proxy` (default) keeps secrets out of their config files; `direct` writes them there. Applies to new installs only.'
       }),
       privacy_notice_accepted_at: v.nullable(
         v.date({

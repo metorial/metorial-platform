@@ -9,6 +9,7 @@ export let mocks = {
   },
   enabled: { value: true },
   flagged: { value: true },
+  toolDetails: { value: false },
   flagChecks: [] as unknown[],
   settings: {
     ingestPublicUrl: 'https://ingest.example.com' as string | undefined
@@ -35,6 +36,9 @@ export let syncModule = {
   agentTrackingSyncService: {
     backfillRoster: mocks.backfillRoster,
     syncEntities: mocks.syncEntities
+  },
+  agentTrackingSettingsService: {
+    getOrganizationValues: async () => ({ desktop: { toolDetails: mocks.toolDetails.value } })
   },
   isAgentTrackingEnabled: () => mocks.enabled.value,
   assertAgentTrackingEnabled: async (d: {
@@ -88,6 +92,7 @@ export let resetMocks = () => {
   vi.clearAllMocks();
   mocks.enabled.value = true;
   mocks.flagged.value = true;
+  mocks.toolDetails.value = false;
   mocks.flagChecks.length = 0;
   mocks.settings.ingestPublicUrl = 'https://ingest.example.com';
   mocks.afterCommit = [];

@@ -1,4 +1,8 @@
 import type { ContentInput } from '@mtsrc/agent-tracking-content';
+import {
+  claudeCodePlaceholderNames,
+  isClaudeCodeMainQuerySource
+} from '@mtsrc/agent-tracking-spec';
 import type { OtlpLogRecord, OtlpSpan } from '@mtsrc/agent-tracking-otlp';
 import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { claudeCodeBilling, claudeCodeProvider } from '../billing';
@@ -101,15 +105,36 @@ let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['cl
   };
 };
 
-let purposeOf = (querySource: string | undefined) => {
+let agentQuerySource = /^agent[:.](?:builtin[:.])?/;
+
+// 2.1.33x sends agent:builtin:<type> on events and agent.builtin.<type> on spans. Older versions
+// sent the bare subagent name, which only the agent attributes tell apart from helper requests
+// such as title generation.
+let purposeOf = (fields: FieldReader) => {
+  let querySource = fields.str('query_source', 'query_source_safe');
   if (!querySource) return {};
 
-  if (querySource == 'repl_main_thread') return { purpose: 'main' };
+  if (isClaudeCodeMainQuerySource(querySource)) return { purpose: 'main' };
   if (querySource == 'compact') return { purpose: 'compaction' };
+  if (querySource == 'auxiliary') return { purpose: 'auxiliary' };
 
-  let name = nativeLabel(querySource);
+  let agentName = nativeLabel(fields.str('agent.name'));
 
-  return name ? { purpose: 'subagent', agent_name: name } : {};
+  if (agentQuerySource.test(querySource)) {
+    let type = nativeLabel(querySource.replace(agentQuerySource, ''));
+
+    return { purpose: 'subagent', ...ok(agentName ?? type, 'agent_name') };
+  }
+
+  if (querySource == 'subagent') {
+    return { purpose: 'subagent', ...ok(agentName, 'agent_name') };
+  }
+
+  if (agentName || fields.str('agent_id')) {
+    return { purpose: 'subagent', ...ok(agentName ?? nativeLabel(querySource), 'agent_name') };
+  }
+
+  return { purpose: 'auxiliary' };
 };
 
 // What Claude Code sends in place of a prompt or response while content logging is off (seen
@@ -143,15 +168,25 @@ let contentFrom = (
   ];
 };
 
-let usageFrom = (fields: FieldReader) =>
-  buildUsage({
+// gen_ai.usage.input_tokens on llm_request spans counts cache reads and writes too.
+let usageFrom = (fields: FieldReader) => {
+  let cacheRead = fields.count('cache_read_tokens', 'gen_ai.usage.cache_read.input_tokens');
+  let cacheWrite = fields.count(
+    'cache_creation_tokens',
+    'gen_ai.usage.cache_write.input_tokens'
+  );
+  let genAiInput = fields.count('gen_ai.usage.input_tokens');
+
+  return buildUsage({
     inputUncached: fields.count('input_tokens'),
-    cacheRead: fields.count('cache_read_tokens'),
-    cacheWrite: fields.count('cache_creation_tokens'),
+    inputIncludingCache: genAiInput === undefined ? undefined : genAiInput - (cacheWrite ?? 0),
+    cacheRead,
+    cacheWrite,
     cacheWrite5m: fields.count('cache_creation_5m_tokens'),
     cacheWrite1h: fields.count('cache_creation_1h_tokens'),
-    output: fields.count('output_tokens')
+    output: fields.count('output_tokens', 'gen_ai.usage.output_tokens')
   });
+};
 
 let decisionFrom = (
   decision: string | undefined,
@@ -255,13 +290,27 @@ let toolFact = (fields: FieldReader) => {
   return id ? `tool:{session_key}:${id}` : null;
 };
 
+let placeholderMcpToolNames = new Set<string>(claudeCodePlaceholderNames.mcpTools);
+
+let placeholderMcpServerNames = new Set<string>(claudeCodePlaceholderNames.mcpServers);
+
+let placeholderSkillNames = new Set<string>(claudeCodePlaceholderNames.skills);
+
 let toolOf = (fields: FieldReader) => {
   let name = fields.str('tool_name', 'tool_name_safe');
   if (!name) return undefined;
 
   let server = fields.str('mcp_server_name', 'anthropic.mcp.server.name');
+  if (server && !placeholderMcpServerNames.has(server)) {
+    return classifyTool(name, { mcpServer: server });
+  }
 
-  return classifyTool(name, server ? { mcpServer: server } : {});
+  let mcp =
+    server !== undefined ||
+    placeholderMcpToolNames.has(name) ||
+    fields.str('tool_source') == 'mcp';
+
+  return classifyTool(name, mcp ? { explicitKind: 'mcp' } : {});
 };
 
 let ok = <T>(value: T | undefined, key: string) =>
@@ -278,6 +327,7 @@ let mapApiRequest = (state: LogState): RecordDraft => {
   );
 
   let duration = fields.count('duration_ms');
+  let ttft = fields.count('ttft_ms');
   let speed = normalizeSpeed(fields.str('speed'));
   let effort = normalizeEffort(fields.str('effort'));
   let model = nativeLabel(fields.str('model'));
@@ -297,9 +347,10 @@ let mapApiRequest = (state: LogState): RecordDraft => {
       ...(usage.usage ? { usage: usage.usage } : {}),
       ...(cost ? { cost } : {}),
       ...ok(duration, 'duration_ms'),
+      ...ok(ttft, 'ttft_ms'),
       ...ok(speed, 'speed'),
       ...ok(effort, 'effort'),
-      ...purposeOf(fields.str('query_source'))
+      ...purposeOf(fields)
     }
   );
 };
@@ -593,7 +644,8 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     }
 
     case 'skill_activated': {
-      let skill = nativeLabel(fields.str('skill.name'));
+      let name = nativeLabel(fields.str('skill.name'));
+      let skill = name && !placeholderSkillNames.has(name) ? name : undefined;
       let trigger = nativeLabel(fields.str('invocation_trigger'));
       let source = nativeLabel(fields.str('skill.source'));
 
@@ -825,7 +877,9 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
     case 'llm_request': {
       let account = accountOf(fields, context.resourceFields);
       let usage = usageFrom(fields);
-      let model = nativeLabel(fields.str('model'));
+      let model = nativeLabel(
+        fields.str('model', 'gen_ai.response.model', 'gen_ai.request.model')
+      );
       let ttft = fields.count('ttft_ms');
       let status = fields.int('status_code');
       let success = fields.bool('success');
@@ -862,7 +916,8 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
             ...ok(stop, 'stop_reason'),
             ...ok(attempt, 'attempt'),
             ...ok(speed, 'speed'),
-            ...ok(effort, 'effort')
+            ...ok(effort, 'effort'),
+            ...purposeOf(fields)
           }
         )
       );

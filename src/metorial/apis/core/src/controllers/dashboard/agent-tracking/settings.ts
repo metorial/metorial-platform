@@ -93,7 +93,7 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
         {
           name: 'Update agent tracking organization settings',
           description:
-            'Changes the privacy settings of the organization; leaving a field out keeps its value. Applies to the next request. service_status says whether agent tracking has taken the change yet.',
+            'Changes the privacy and Metorial Desktop settings of the organization; leaving a field out keeps its value. Applies to the next request. service_status says whether agent tracking has taken the change yet.',
           hideInDocs: true
         }
       )
@@ -101,29 +101,49 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
       .body(
         'default',
         v.object({
-          privacy: v.object(
-            {
-              hide_individuals: v.optional(
-                v.boolean({
-                  name: 'hide_individuals',
-                  description:
-                    'Show agent usage only in aggregate, never per member or per session.'
-                })
-              ),
-              min_group_users: v.optional(
-                v.number({
-                  name: 'min_group_users',
-                  description: `With hide_individuals, the fewest people a group must have to be shown. From ${minGroupUsersLimits.min} to ${minGroupUsersLimits.max}.`,
-                  examples: [5],
-                  modifiers: [
-                    v.integer(),
-                    v.minValue(minGroupUsersLimits.min),
-                    v.maxValue(minGroupUsersLimits.max)
-                  ]
-                })
-              )
-            },
-            { name: 'privacy', description: 'Organization-wide privacy settings.' }
+          privacy: v.optional(
+            v.object(
+              {
+                hide_individuals: v.optional(
+                  v.boolean({
+                    name: 'hide_individuals',
+                    description:
+                      'Show agent usage only in aggregate, never per member or per session.'
+                  })
+                ),
+                min_group_users: v.optional(
+                  v.number({
+                    name: 'min_group_users',
+                    description: `With hide_individuals, the fewest people a group must have to be shown. From ${minGroupUsersLimits.min} to ${minGroupUsersLimits.max}.`,
+                    examples: [5],
+                    modifiers: [
+                      v.integer(),
+                      v.minValue(minGroupUsersLimits.min),
+                      v.maxValue(minGroupUsersLimits.max)
+                    ]
+                  })
+                )
+              },
+              { name: 'privacy', description: 'Organization-wide privacy settings.' }
+            )
+          ),
+          desktop: v.optional(
+            v.object(
+              {
+                tool_details: v.optional(
+                  v.boolean({
+                    name: 'tool_details',
+                    description:
+                      'Has Metorial Desktop turn on detailed tool reporting in the AI tools it sets up: tool inputs, file paths and commands, which carry the names of skills and MCP servers, are sent.'
+                  })
+                )
+              },
+              {
+                name: 'desktop',
+                description:
+                  "What the AI tools Metorial Desktop sets up on members' computers report."
+              }
+            )
           )
         })
       )
@@ -134,10 +154,11 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
             organization: ctx.organization,
             auditScope: ctx.auditScope,
             input: {
-              privacy: {
+              privacy: ctx.body.privacy && {
                 hideIndividuals: ctx.body.privacy.hide_individuals,
                 minGroupUsers: ctx.body.privacy.min_group_users
-              }
+              },
+              desktop: ctx.body.desktop && { toolDetails: ctx.body.desktop.tool_details }
             }
           })
         )

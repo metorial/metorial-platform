@@ -71,23 +71,44 @@ let int = (key: string, value: number) => ({ key, value: { intValue: String(valu
 
 let double = (key: string, value: number) => ({ key, value: { doubleValue: value } });
 
-let apiRequestRecord = (request: ClaudeCodeRequest) => ({
-  timeUnixNano: String(BigInt(request.at.getTime()) * 1_000_000n),
-  body: { stringValue: 'claude_code.api_request' },
+export let claudeCodeEventRecord = (d: {
+  event: string;
+  sessionId: string;
+  email?: string;
+  at: Date;
+  attributes?: Record<string, string>;
+}) => ({
+  timeUnixNano: String(BigInt(d.at.getTime()) * 1_000_000n),
+  body: { stringValue: `claude_code.${d.event}` },
   attributes: [
-    text('event.name', 'api_request'),
-    text('session.id', request.sessionId),
-    text('request_id', uniqueId('req')),
-    text('model', request.model),
-    ...(request.email ? [text('user.email', request.email)] : []),
-    int('input_tokens', request.inputTokens),
-    int('output_tokens', request.outputTokens),
-    int('cache_read_tokens', request.cacheReadTokens),
-    int('cache_creation_tokens', request.cacheCreationTokens),
-    double('cost_usd', request.costUsd),
-    ...Object.entries(request.attributes ?? {}).map(([key, value]) => text(key, value))
+    text('event.name', d.event),
+    text('session.id', d.sessionId),
+    ...(d.email ? [text('user.email', d.email)] : []),
+    ...Object.entries(d.attributes ?? {}).map(([key, value]) => text(key, value))
   ]
 });
+
+let apiRequestRecord = (request: ClaudeCodeRequest) => {
+  let record = claudeCodeEventRecord({
+    event: 'api_request',
+    sessionId: request.sessionId,
+    email: request.email,
+    at: request.at,
+    attributes: { request_id: uniqueId('req'), model: request.model, ...request.attributes }
+  });
+
+  return {
+    ...record,
+    attributes: [
+      ...record.attributes,
+      int('input_tokens', request.inputTokens),
+      int('output_tokens', request.outputTokens),
+      int('cache_read_tokens', request.cacheReadTokens),
+      int('cache_creation_tokens', request.cacheCreationTokens),
+      double('cost_usd', request.costUsd)
+    ]
+  };
+};
 
 export let sendClaudeCodeLogs = (target: IngestTarget, records: unknown[]) =>
   fetch(`${target.ingestUrl.replace(/\/+$/, '')}/v1/logs`, {

@@ -31,6 +31,7 @@ let settings = {
   oid: 6n,
   id: 'cods_1',
   aiToolDetectionEnabled: true,
+  connectionMode: 'local_proxy' as const,
   privacyNoticeAcceptedAt: decidedAt,
   privacyNoticeAcceptedByActorOid: 4n,
   instanceOid: 3n,
@@ -47,7 +48,11 @@ describe('consumer device audit listeners', () => {
   it('records device settings without actor internals', async () => {
     await recordConsumerDeviceSettingsUpdated({
       consumerDeviceSettings: settings,
-      previousConsumerDeviceSettings: { ...settings, aiToolDetectionEnabled: false },
+      previousConsumerDeviceSettings: {
+        ...settings,
+        aiToolDetectionEnabled: false,
+        connectionMode: 'direct' as const
+      },
       auditScope
     } as any);
 
@@ -56,8 +61,12 @@ describe('consumer device audit listeners', () => {
     expect(data.payload).toEqual({
       id: 'cods_1',
       aiToolDetectionEnabled: true,
+      connectionMode: 'local_proxy',
       privacyNoticeAcceptedAt: decidedAt
     });
-    expect(data.previousPayload.aiToolDetectionEnabled).toBe(false);
+    expect(data.previousPayload).toMatchObject({
+      aiToolDetectionEnabled: false,
+      connectionMode: 'direct'
+    });
   });
 });

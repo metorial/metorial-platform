@@ -16,6 +16,7 @@ type Fixture = Awaited<ReturnType<typeof loadOrganizationFixture>>;
 
 let defaults = {
   privacy: { hideIndividuals: false, minGroupUsers: 5 },
+  desktop: { toolDetails: false },
   retention: { recordDays: null, contentDays: null, usageDays: null },
   content: { mode: 'basic' },
   classification: { deterministicEnabled: true, aiEnabled: false }
@@ -83,7 +84,11 @@ describe('module-agent-tracking-sync settings without changes', () => {
         organization: fixture.organization
       })
     ).toEqual({
-      settings: { organizationId: org.ids.organizationId, privacy: defaults.privacy },
+      settings: {
+        organizationId: org.ids.organizationId,
+        privacy: defaults.privacy,
+        desktop: defaults.desktop
+      },
       serviceStatus: 'applied'
     });
     expect(
@@ -231,9 +236,14 @@ describe('module-agent-tracking-sync settings lifecycle', () => {
       {
         settings: {
           organizationId: org.ids.organizationId,
-          privacy: { hideIndividuals: true, minGroupUsers: 7 }
+          privacy: { hideIndividuals: true, minGroupUsers: 7 },
+          desktop: defaults.desktop
         },
-        previousSettings: { organizationId: org.ids.organizationId, privacy: defaults.privacy }
+        previousSettings: {
+          organizationId: org.ids.organizationId,
+          privacy: defaults.privacy,
+          desktop: defaults.desktop
+        }
       },
       {
         settings: {

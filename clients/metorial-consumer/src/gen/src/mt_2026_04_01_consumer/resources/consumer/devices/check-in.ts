@@ -37,7 +37,7 @@ export type ConsumerDevicesCheckInOutput = {
   revokedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  telemetry: { enabled: boolean; tokenId: string | null };
+  telemetry: { enabled: boolean; tokenId: string | null; toolDetails: boolean };
   monitor: {
     aiToolDetection: boolean;
     catalogVersion: string;
@@ -50,6 +50,7 @@ export type ConsumerDevicesCheckInOutput = {
       report: number;
     };
   };
+  install: { connectionMode: 'local_proxy' | 'direct' };
 };
 
 export let mapConsumerDevicesCheckInOutput =
@@ -71,7 +72,7 @@ export let mapConsumerDevicesCheckInOutput =
       'revoked_at',
       'created_at',
       'updated_at',
-      ['telemetry', 0, [1, ['token_id']]],
+      ['telemetry', 0, [1, ['token_id', 'tool_details']]],
       [
         'monitor',
         0,
@@ -83,7 +84,8 @@ export let mapConsumerDevicesCheckInOutput =
             ['intervals', 0, [1, ['config_dirs', 'ide_extensions']]]
           ]
         ]
-      ]
+      ],
+      ['install', 0, [1, ['connection_mode']]]
     ],
     1
   );

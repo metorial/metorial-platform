@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { ConsumerDeviceStatus } from '@metorial/db';
+import { ConsumerDeviceConnectionMode, ConsumerDeviceStatus } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { consumerDeviceType } from '../../types';
 import { deviceDetectionSchema, presentDeviceDetection } from './consumerDeviceDetection';
@@ -148,7 +148,7 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   .build();
 
 export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType)
-  .presenter(async ({ consumerDevice, telemetry, monitor }, opts) => {
+  .presenter(async ({ consumerDevice, telemetry, monitor, install }, opts) => {
     if (!telemetry) {
       throw new Error(
         'The consumer device presenter needs the telemetry state of the device.'
@@ -159,6 +159,11 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
         'The consumer device presenter needs the monitor settings of the device.'
       );
     }
+    if (!install) {
+      throw new Error(
+        'The consumer device presenter needs the install settings of the device.'
+      );
+    }
 
     let inner = await v1ConsumerDevicePresenter.present({ consumerDevice }, opts).run();
 
@@ -166,12 +171,16 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       ...inner,
       telemetry: {
         enabled: telemetry.enabled,
-        token_id: telemetry.tokenId
+        token_id: telemetry.tokenId,
+        tool_details: telemetry.toolDetails
       },
       monitor: {
         ai_tool_detection: monitor.aiToolDetection,
         catalog_version: monitor.catalogVersion,
         intervals: monitor.intervals
+      },
+      install: {
+        connection_mode: install.connectionMode
       }
     };
   })
@@ -191,7 +200,12 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
               description:
                 'The ID of the active telemetry token of the device, the `token_id` the telemetry token endpoint returned. Null when the device has no active token or telemetry is not collected. When it differs from the token the device holds, that token no longer works.'
             })
-          )
+          ),
+          tool_details: v.boolean({
+            name: 'tool_details',
+            description:
+              'The organization turned on detailed tool reporting: Metorial Desktop has AI tools send tool inputs, file paths and commands. `false` while telemetry is not collected.'
+          })
         },
         {
           name: 'telemetry',
@@ -248,6 +262,20 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
         {
           name: 'monitor',
           description: 'What the device monitors, as set by the organization.'
+        }
+      ),
+      install: v.object(
+        {
+          connection_mode: v.enumOf(Object.values(ConsumerDeviceConnectionMode), {
+            name: 'connection_mode',
+            description:
+              'How AI tools connect to integrations the device installs from now on. `local_proxy` relays through Metorial Desktop; `direct` writes the integration URL and its secret into the AI tool’s config file.'
+          })
+        },
+        {
+          name: 'install',
+          description:
+            'How the device installs integrations into AI tools, as set by the organization.'
         }
       )
     }) as any

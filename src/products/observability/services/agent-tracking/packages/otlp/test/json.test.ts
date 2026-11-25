@@ -193,6 +193,22 @@ describe('decodeLogsJson', () => {
     expect(second?.timeNs).toBe(0n);
   });
 
+  it('falls back to the observed time when the event time is zero or missing', () => {
+    let decoded = decodeLogsJson(
+      logRequest([
+        { timeUnixNano: '0', observedTimeUnixNano: '1795608241821275000' },
+        { observedTimeUnixNano: '1795608241821309000' },
+        { timeUnixNano: '1795608241000000000', observedTimeUnixNano: '1795608241821309000' }
+      ])
+    );
+
+    expect(decoded.groups[0]!.items.map(item => [item.timeNs, item.observedTimeNs])).toEqual([
+      [1_795_608_241_821_275_000n, 1_795_608_241_821_275_000n],
+      [1_795_608_241_821_309_000n, 1_795_608_241_821_309_000n],
+      [1_795_608_241_000_000_000n, 1_795_608_241_821_309_000n]
+    ]);
+  });
+
   it('accepts attributes as a plain object', () => {
     let decoded = decodeLogsJson(logRequest([{ attributes: { a: 'x', b: 2 } }]));
 

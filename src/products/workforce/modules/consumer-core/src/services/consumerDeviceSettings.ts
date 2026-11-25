@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
+  type ConsumerDeviceConnectionMode,
   db,
   ID,
   Instance,
@@ -47,7 +48,11 @@ class ConsumerDeviceSettingsServiceImpl {
   async updateSettings(d: {
     instance: Pick<Instance, 'oid'>;
     auditScope: AuditScope;
-    input: { aiToolDetectionEnabled?: boolean; privacyNoticeAccepted?: boolean };
+    input: {
+      aiToolDetectionEnabled?: boolean;
+      privacyNoticeAccepted?: boolean;
+      connectionMode?: ConsumerDeviceConnectionMode;
+    };
   }) {
     return await withTransaction(async db => {
       // Taken before the device rows, in the same order as detection reports.
@@ -86,8 +91,11 @@ class ConsumerDeviceSettingsServiceImpl {
         );
       }
 
+      let connectionMode = d.input.connectionMode ?? previous?.connectionMode ?? 'local_proxy';
+
       let unchanged =
         (previous?.aiToolDetectionEnabled ?? false) == aiToolDetectionEnabled &&
+        (previous?.connectionMode ?? 'local_proxy') == connectionMode &&
         previous?.privacyNoticeAcceptedAt?.getTime() ==
           notice.privacyNoticeAcceptedAt?.getTime();
       if (unchanged) return previous;
@@ -108,9 +116,10 @@ class ConsumerDeviceSettingsServiceImpl {
           id: await ID.generateId('consumerDeviceSettings'),
           instanceOid: d.instance.oid,
           aiToolDetectionEnabled,
+          connectionMode,
           ...notice
         },
-        update: { aiToolDetectionEnabled, ...notice }
+        update: { aiToolDetectionEnabled, connectionMode, ...notice }
       });
 
       addAfterTransactionHook(() =>

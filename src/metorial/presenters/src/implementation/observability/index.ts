@@ -6,4 +6,5 @@ export * from './agentTrackingSession';
 export * from './agentTrackingSettings';
 export * from './agentTrackingSetupStatus';
 export * from './agentTrackingSpend';
+export * from './agentTrackingTools';
 export * from './agentTrackingView';

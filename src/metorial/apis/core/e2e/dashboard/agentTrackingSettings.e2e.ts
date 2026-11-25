@@ -25,7 +25,8 @@ let defaults = {
   organization: {
     object: 'agent_tracking.organization_settings',
     service_status: 'applied',
-    privacy: { hide_individuals: false, min_group_users: 5 }
+    privacy: { hide_individuals: false, min_group_users: 5 },
+    desktop: { tool_details: false }
   },
   project: {
     object: 'agent_tracking.project_settings',
@@ -243,7 +244,8 @@ describe('api-core dashboard: agent tracking settings', () => {
 
   it('presents each change and audits who changed what, with the values before', async () => {
     let privacy = await update('organization', {
-      privacy: { hide_individuals: true, min_group_users: 7 }
+      privacy: { hide_individuals: true, min_group_users: 7 },
+      desktop: { tool_details: true }
     });
     let retention = await update('project', {
       retention: { record_days: 30, usage_days: 200 }
@@ -255,7 +257,8 @@ describe('api-core dashboard: agent tracking settings', () => {
 
     expect(privacy).toMatchObject({
       service_status: 'applied',
-      privacy: { hide_individuals: true, min_group_users: 7 }
+      privacy: { hide_individuals: true, min_group_users: 7 },
+      desktop: { tool_details: true }
     });
     expect(retention).toMatchObject({
       service_status: 'applied',
@@ -275,7 +278,8 @@ describe('api-core dashboard: agent tracking settings', () => {
 
     expect(
       await update('organization', {
-        privacy: { hide_individuals: false, min_group_users: 5 }
+        privacy: { hide_individuals: false, min_group_users: 5 },
+        desktop: { tool_details: false }
       })
     ).toMatchObject(defaults.organization);
     expect(

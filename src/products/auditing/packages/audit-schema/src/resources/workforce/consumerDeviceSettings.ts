@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import type { ConsumerDeviceConnectionMode } from '@metorial/db';
 import { resource } from '../../_lib/resource';
 
 export let consumerDeviceSettingsAuditResource = resource({
@@ -6,6 +7,7 @@ export let consumerDeviceSettingsAuditResource = resource({
   payload: v.typedAny<{
     id: string;
     aiToolDetectionEnabled: boolean;
+    connectionMode: ConsumerDeviceConnectionMode;
     privacyNoticeAcceptedAt: Date | null;
   }>('consumer_device_settings'),
   presenter: undefined,

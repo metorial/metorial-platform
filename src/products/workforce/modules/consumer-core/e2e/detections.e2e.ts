@@ -75,6 +75,7 @@ describe('module-consumer-core AI tool detections', () => {
   let org = useOrganization();
   let disabledOrg = useOrganization();
   let settingsOrg = useOrganization();
+  let connectionOrg = useOrganization();
   let purgeOrg = useOrganization();
 
   let fixture: OrganizationFixture;
@@ -454,6 +455,53 @@ describe('module-consumer-core AI tool detections', () => {
       [null, false],
       [false, true],
       [true, false]
+    ]);
+  });
+
+  it('keeps the connection mode apart from detection and hands it to devices', async () => {
+    let connectionFixture = await loadOrganizationFixture(connectionOrg.ids);
+    let instance = connectionFixture.instance;
+    let update = (
+      input: Parameters<typeof consumerDeviceSettingsService.updateSettings>[0]['input']
+    ) =>
+      consumerDeviceSettingsService.updateSettings({
+        instance,
+        auditScope: connectionFixture.auditScope,
+        input
+      });
+    let updated = captureFabric('consumer.device_settings.updated:after');
+
+    expect(await consumerDeviceSettingsService.getSettings({ instance })).toBeNull();
+    expect(await update({ connectionMode: 'local_proxy' })).toBeNull();
+
+    let direct = await update({ connectionMode: 'direct' });
+    expect(direct).toMatchObject({
+      connectionMode: 'direct',
+      aiToolDetectionEnabled: false,
+      privacyNoticeAcceptedAt: null
+    });
+    expect(await consumerDeviceSettingsService.getSettings({ instance })).toMatchObject({
+      connectionMode: 'direct'
+    });
+
+    let accepted = await update({ privacyNoticeAccepted: true });
+    expect(accepted).toMatchObject({ connectionMode: 'direct' });
+    expect(await update({ connectionMode: 'direct' })).toEqual(accepted);
+
+    let proxied = await update({ connectionMode: 'local_proxy' });
+    updated.stop();
+
+    expect(proxied).toMatchObject({ connectionMode: 'local_proxy' });
+    expect(proxied!.privacyNoticeAcceptedAt).toEqual(accepted!.privacyNoticeAcceptedAt);
+    expect(
+      updated.events.map(event => [
+        event.previousConsumerDeviceSettings?.connectionMode ?? null,
+        event.consumerDeviceSettings.connectionMode
+      ])
+    ).toEqual([
+      [null, 'direct'],
+      ['direct', 'direct'],
+      ['direct', 'local_proxy']
     ]);
   });
 

@@ -293,6 +293,47 @@ let ClassificationSection = ({
   );
 };
 
+let DesktopSection = ({
+  settings,
+  canWrite
+}: {
+  settings: OrganizationSettings;
+  canWrite: boolean;
+}) => {
+  let update = useAgentTrackingOrganizationSettings(
+    settings.organizationId
+  ).useUpdateMutator();
+  let form = useForm({
+    initialValues: { toolDetails: settings.desktop.toolDetails },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      await update.mutate({ desktop: { toolDetails: values.toolDetails } });
+    }
+  });
+
+  return (
+    <SettingsSection
+      title="Metorial Desktop"
+      description="Applies to every project and environment of this organization: what the AI tools Metorial Desktop sets up on members' computers report."
+      form={form}
+      update={update}
+      canWrite={canWrite}
+      readOnlyText="Only organization admins can change these settings."
+    >
+      <Switch
+        label={
+          <WithInfo info="Sends tool inputs, file paths and commands. Needed to see skill and MCP server names.">
+            Detailed Tool Reporting
+          </WithInfo>
+        }
+        checked={form.values.toolDetails}
+        disabled={!canWrite}
+        onCheckedChange={checked => form.setFieldValue('toolDetails', checked)}
+      />
+    </SettingsSection>
+  );
+};
+
 let serviceStatusText = {
   pending:
     'Agent Usage has not received these settings yet and applies the previous ones until it does.',
@@ -358,7 +399,10 @@ export let AgentTrackingSettings = ({
         { organization },
         errorState(organization)
       )(({ organization }) => (
-        <PrivacySection settings={organization.data} canWrite={access.privacy} />
+        <Flex direction="column" gap={20}>
+          <PrivacySection settings={organization.data} canWrite={access.organization} />
+          <DesktopSection settings={organization.data} canWrite={access.organization} />
+        </Flex>
       ))}
       {renderWithLoader(
         { project },

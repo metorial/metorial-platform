@@ -37,7 +37,8 @@ export let v1AgentTrackingOrganizationSettingsPresenter = Presenter.create(
     privacy: {
       hide_individuals: settings.privacy.hideIndividuals,
       min_group_users: settings.privacy.minGroupUsers
-    }
+    },
+    desktop: { tool_details: settings.desktop.toolDetails }
   }))
   .schema(
     v.object({
@@ -68,6 +69,20 @@ export let v1AgentTrackingOrganizationSettingsPresenter = Presenter.create(
         {
           name: 'privacy',
           description: 'Organization-wide privacy settings for agent usage.'
+        }
+      ),
+      desktop: v.object(
+        {
+          tool_details: v.boolean({
+            name: 'tool_details',
+            description:
+              'Metorial Desktop turns on detailed tool reporting in the AI tools it sets up, so tool inputs, file paths and commands, which carry the names of skills and MCP servers, are sent. Off by default.'
+          })
+        },
+        {
+          name: 'desktop',
+          description:
+            "What the AI tools Metorial Desktop sets up on members' computers report."
         }
       )
     })

@@ -67,7 +67,8 @@ export let organizationSettingsOf = (
       row?.minGroupUsers ?? defaultMinGroupUsers,
       minGroupUsersLimits.min
     )
-  }
+  },
+  desktop: { toolDetails: row?.toolDetails ?? false }
 });
 
 export let projectSettingsOf = (

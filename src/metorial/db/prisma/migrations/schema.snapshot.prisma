@@ -711,6 +711,8 @@ model AgentTrackingOrganizationSettings {
   hideIndividuals Boolean @default(false)
   minGroupUsers   Int     @default(5)
 
+  toolDetails Boolean @default(false)
+
   organizationOid BigInt       @unique
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -1298,23 +1300,6 @@ model AiToolPolicy {
   decidedByActor    OrganizationActor? @relation(fields: [decidedByActorOid], references: [oid], onDelete: SetNull)
 
   @@unique([instanceOid, toolKey])
-}
-
-model ConsumerDeviceSettings {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  aiToolDetectionEnabled Boolean @default(false)
-
-  privacyNoticeAcceptedAt DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @default(now()) @updatedAt
-
-  instanceOid BigInt   @unique
-  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
-
-  privacyNoticeAcceptedByActorOid BigInt?
-  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
 }
 
 enum ConsumerProviderSetupSessionType {
@@ -2032,6 +2017,30 @@ model ConsumerDeviceDetection {
 
   @@unique([consumerDeviceOid, toolKey])
   @@index([instanceOid, toolKey, goneAt])
+}
+
+enum ConsumerDeviceConnectionMode {
+  local_proxy
+  direct
+}
+
+model ConsumerDeviceSettings {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  aiToolDetectionEnabled Boolean @default(false)
+
+  connectionMode ConsumerDeviceConnectionMode @default(local_proxy)
+
+  privacyNoticeAcceptedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now()) @updatedAt
+
+  instanceOid BigInt   @unique
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  privacyNoticeAcceptedByActorOid BigInt?
+  privacyNoticeAcceptedByActor    OrganizationActor? @relation(fields: [privacyNoticeAcceptedByActorOid], references: [oid], onDelete: SetNull)
 }
 
 enum ConsumerGroupStatus {
@@ -8344,7 +8353,7 @@ model Skill {
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]                  @ignore
+  skillParticipants               SkillParticipant[]               @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]

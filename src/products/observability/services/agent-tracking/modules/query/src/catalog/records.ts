@@ -1,4 +1,9 @@
-import { contentRoles, ingestChannels } from '@mtsrc/agent-tracking-spec';
+import type { Filter } from '@mtsrc/agent-tracking-query-spec';
+import {
+  claudeCodePlaceholderNames,
+  contentRoles,
+  ingestChannels
+} from '@mtsrc/agent-tracking-spec';
 import {
   arrayField,
   boolField,
@@ -20,9 +25,11 @@ import {
   avg,
   count,
   derived,
+  distinct,
   errorRate,
   failed,
   lineMetrics,
+  max,
   tokenMetrics
 } from './metrics';
 import type { DatasetDef, IndexDef } from './types';
@@ -73,6 +80,45 @@ let occurredAt = stored('occurredAt', 'date', 'When it happened.', {
   dimension: false,
   cardinality: 'high'
 });
+
+let claudeCode: Filter = { field: 'client.family', op: 'eq', value: 'claude-code' };
+
+// Older Claude Code records stored a redacted MCP call as an unknown tool named by placeholder.
+let mcpCall: Filter = {
+  or: [
+    { field: 'tool.kind', op: 'eq', value: 'mcp' },
+    {
+      and: [
+        claudeCode,
+        { field: 'tool.name', op: 'in', value: [...claudeCodePlaceholderNames.mcpTools] }
+      ]
+    }
+  ]
+};
+
+let namedMcpServer: Filter = {
+  and: [
+    { field: 'mcp.server', op: 'notNull' },
+    {
+      or: [
+        { not: claudeCode },
+        { field: 'mcp.server', op: 'notIn', value: [...claudeCodePlaceholderNames.mcpServers] }
+      ]
+    }
+  ]
+};
+
+let namedSkill: Filter = {
+  and: [
+    { field: 'skill.name', op: 'notNull' },
+    {
+      or: [
+        { not: claudeCode },
+        { field: 'skill.name', op: 'notIn', value: [...claudeCodePlaceholderNames.skills] }
+      ]
+    }
+  ]
+};
 
 export let requestsDataset: DatasetDef = {
   ...recordBase,
@@ -232,7 +278,76 @@ export let toolCallsDataset: DatasetDef = {
     duration: avg('duration', 'duration', 'Average duration.'),
     'result.chars': avg('result.chars', 'number', 'Average result size in characters.'),
     ...lineMetrics(),
-    ...activeMetrics()
+    ...activeMetrics(),
+    last_used: max('occurredAt', 'date', 'When any call in the group happened last.'),
+    mcp_calls: count(
+      'MCP tool calls, including redacted ones Claude Code stored as unknown tools.',
+      mcpCall
+    ),
+    'mcp_calls.failed': count('Failed MCP tool calls.', { and: [mcpCall, failed] }),
+    'mcp_calls.named': count('MCP tool calls with a server name.', namedMcpServer),
+    'mcp_calls.error_rate': derived(
+      { div: ['mcp_calls.failed', 'mcp_calls'] },
+      'percent',
+      'Share of MCP tool calls that failed.'
+    ),
+    'mcp_calls.users': distinct('user', 'Distinct users with MCP tool calls.', mcpCall),
+    'mcp_calls.last_used': max(
+      'occurredAt',
+      'date',
+      'When the last MCP tool call happened.',
+      mcpCall
+    )
   },
   indexes: recordIndexes('tool.call')
+};
+
+export let skillActivationsDataset: DatasetDef = {
+  ...recordBase,
+  name: 'skill_activations',
+  description: 'One document per skill activation.',
+  baseMatch: {
+    type: 'extension.event',
+    'data.kind': 'skill',
+    'data.action': 'activated',
+    'source.role': 'primary'
+  },
+  fields: {
+    ...commonFields(recordPaths),
+    ...timeFields(),
+    occurredAt,
+    'skill.name': stored(
+      'data.name',
+      'string',
+      'The skill name. Claude Code sends it only with tool details turned on.',
+      { searchable: true, distinct: true }
+    ),
+    'skill.source': stored(
+      'data.source',
+      'string',
+      'Where the skill comes from, as the client reported it (Codex reports its scope).',
+      { cardinality: 'low' }
+    ),
+    'skill.trigger': stored(
+      'data.trigger',
+      'string',
+      'What activated the skill, as the client reported it.',
+      { cardinality: 'low' }
+    ),
+    'source.channel': enumField(
+      'source.channel',
+      ingestChannels,
+      'How the activation arrived, such as otlp.logs (OpenTelemetry logs).'
+    )
+  },
+  metrics: {
+    skill_activations: count('Skill activations.'),
+    'skill_activations.named': count(
+      'Skill activations with a real skill name, not a placeholder Claude Code sends without tool details.',
+      namedSkill
+    ),
+    ...activeMetrics(),
+    last_used: max('occurredAt', 'date', 'When any skill in the group was activated last.')
+  },
+  indexes: recordIndexes('extension.event')
 };

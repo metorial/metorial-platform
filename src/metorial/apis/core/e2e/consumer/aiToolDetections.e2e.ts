@@ -62,6 +62,7 @@ describe('api-core consumer: AI tool detection', () => {
   let otherOrg = useOrganization();
   let settingsOrg = useOrganization();
   let toggleOrg = useOrganization();
+  let connectionOrg = useOrganization();
 
   it('lets admins turn detection on only after accepting the privacy notice', async () => {
     let tenants = crossTenantClients(settingsOrg, otherOrg);
@@ -88,6 +89,7 @@ describe('api-core consumer: AI tool detection', () => {
     expect(initial).toMatchObject({
       instance_id: settingsOrg.ids.instanceId,
       ai_tool_detection_enabled: false,
+      connection_mode: 'local_proxy',
       privacy_notice_accepted_at: null,
       updated_at: null
     });
@@ -144,6 +146,51 @@ describe('api-core consumer: AI tool detection', () => {
       );
       if (!found.length) throw new Error('settings not audited yet');
     });
+  });
+
+  it('lets admins choose how devices connect AI tools and tells devices at check-in', async () => {
+    let initial = await enrollDesktop(connectionOrg);
+    expect(initial.device.install).toEqual({ connection_mode: 'local_proxy' });
+
+    expectError(
+      await connectionOrg.clients.instance.patch('/consumer-device-settings', {
+        connection_mode: 'sometimes'
+      }),
+      400,
+      'invalid_data'
+    );
+    expectError(
+      await connectionOrg.clients.instance.patch('/consumer-device-settings', {
+        connection_mode: 'direct'
+      }),
+      403
+    );
+
+    let direct = expectOk(
+      await connectionOrg.clients.rest.patch(settingsPath(connectionOrg), {
+        connection_mode: 'direct'
+      })
+    );
+    expect(direct).toMatchObject({
+      connection_mode: 'direct',
+      ai_tool_detection_enabled: false,
+      privacy_notice_accepted_at: null
+    });
+
+    let checkedIn = expectOk(
+      await initial.client.post(
+        '/consumer/devices/check-in',
+        checkInBody({ installation_id: initial.installationId })
+      )
+    );
+    expect(checkedIn.install).toEqual({ connection_mode: 'direct' });
+
+    let proxied = expectOk(
+      await connectionOrg.clients.instance.patch('/consumer-device-settings', {
+        connection_mode: 'local_proxy'
+      })
+    );
+    expect(proxied.connection_mode).toBe('local_proxy');
   });
 
   it('tells the device at check-in whether to monitor AI tools', async () => {

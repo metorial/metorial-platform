@@ -13,7 +13,7 @@ import {
 import { lookupMembers, unique, unknownMemberKey } from '../lib/members';
 import { individualsHiddenError, loadPrivacy } from '../lib/privacy';
 import { filtersHiddenError, seatValuesHiddenError } from '../lib/privateSpend';
-import { assertRequestRange, filterFields, filterValuesLimit } from '../lib/queries';
+import { assertRecordRange, filterFields, filterValuesLimit } from '../lib/queries';
 import {
   normalizeRange,
   queryRange,
@@ -60,7 +60,7 @@ class AgentTrackingFilterValueServiceImpl {
     }
 
     let fromRequests = d.field == 'seat';
-    if (fromRequests && !d.values) assertRequestRange(resolveRange(range, now), 'Seat values');
+    if (fromRequests && !d.values) assertRecordRange(resolveRange(range, now), 'Seat values');
 
     if (d.values) {
       let values = unique(d.values);

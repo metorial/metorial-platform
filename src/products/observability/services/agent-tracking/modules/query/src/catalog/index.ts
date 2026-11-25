@@ -1,5 +1,5 @@
 import type { DatasetName } from '@mtsrc/agent-tracking-query-spec';
-import { requestsDataset, toolCallsDataset } from './records';
+import { requestsDataset, skillActivationsDataset, toolCallsDataset } from './records';
 import { sessionsDataset } from './sessions';
 import { sourcesDataset } from './sources';
 import type { DatasetDef, FieldDef, ResolvedField } from './types';
@@ -20,6 +20,7 @@ export let datasets: Record<DatasetName, DatasetDef> = {
   sessions: sessionsDataset,
   requests: requestsDataset,
   tool_calls: toolCallsDataset,
+  skill_activations: skillActivationsDataset,
   sources: sourcesDataset
 };
 

@@ -1,7 +1,8 @@
 import { getDetectionCatalog } from '@metorial/model-catalog/detection';
 import { describe, expect, it, vi } from 'vitest';
-vi.mock('@metorial/module-consumer-core', async () =>
-  await import('@metorial/module-consumer-core/src/lib/aiToolDetection')
+vi.mock(
+  '@metorial/module-consumer-core',
+  async () => await import('@metorial/module-consumer-core/src/lib/aiToolDetection')
 );
 
 vi.mock('@metorial/module-agent-tracking-query', () => ({ agentActiveWindowDays: 30 }));
@@ -257,8 +258,35 @@ describe('consumer device settings presenter', () => {
       object: 'consumer.device_settings',
       instance_id: 'inst_1',
       ai_tool_detection_enabled: false,
+      connection_mode: 'local_proxy',
       privacy_notice_accepted_at: null,
       updated_at: null
     });
+  });
+
+  it('presents the connection mode an admin chose', async () => {
+    let updatedAt = new Date();
+    let presented = await v1ConsumerDeviceSettingsPresenter
+      .present(
+        {
+          instance: { id: 'inst_1' },
+          settings: {
+            oid: 1n,
+            id: 'cods_1',
+            aiToolDetectionEnabled: false,
+            connectionMode: 'direct',
+            privacyNoticeAcceptedAt: null,
+            privacyNoticeAcceptedByActorOid: null,
+            instanceOid: 3n,
+            createdAt: updatedAt,
+            updatedAt
+          }
+        },
+        context
+      )
+      .run();
+
+    expect(presented.connection_mode).toBe('direct');
+    expect(presented.updated_at).toEqual(updatedAt);
   });
 });

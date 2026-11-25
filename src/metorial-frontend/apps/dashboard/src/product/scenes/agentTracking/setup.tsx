@@ -2,6 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   useAgentTrackingIngestSources,
+  useAgentTrackingOrganizationSettings,
   useAgentTrackingSessions,
   useAgentTrackingSetupStatus
 } from '@metorial/state';
@@ -44,7 +45,8 @@ import {
   buildClaudeCodeManagedSettings,
   claudeCodeLogsEndpoint,
   defaultClaudeCodeSettingsOptions,
-  managedSettingsFileName
+  managedSettingsFileName,
+  type ClaudeCodeSettingsOptions
 } from './settingsFile';
 import { DeployInstructions } from './setupDeploy';
 import { clientLabel, memberName, modelLabel } from './spendSummary';
@@ -251,7 +253,17 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
   );
 
   let [created, setCreated] = useState<CreatedIngestSource | null>(null);
-  let [options, setOptions] = useState(defaultClaudeCodeSettingsOptions);
+  let organizationSettings = useAgentTrackingOrganizationSettings(ctx.organization?.id);
+  let [chosenOptions, setOptions] = useState<ClaudeCodeSettingsOptions | null>(null);
+  let organizationToolDetails = organizationSettings.data?.desktop.toolDetails;
+  let options = useMemo(
+    () =>
+      chosenOptions ?? {
+        ...defaultClaudeCodeSettingsOptions,
+        toolDetails: organizationToolDetails ?? false
+      },
+    [chosenOptions, organizationToolDetails]
+  );
   let [showKeys, toggleKeys] = useToggle(false);
   let [showDeploy, setShowDeploy] = useState<boolean | null>(null);
   let settings = useAgentTrackingPrivacy();
