@@ -668,6 +668,13 @@
     "by": "agent",
     "at": "2026-11-21"
   },
+  "tngtech/deepseek-r1t2-chimera": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "HF metadata lists merge relations to DeepSeek R1, R1-0528, and V3-0324: TNG's Assembly-of-Experts tri-parent merge is not any single parent checkpoint, and the index has no tngtech entry, so the catalog does not model it.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "unbiased/pareto-26.10": {
     "decision": "defer",
     "until": "2026-12-12",
