@@ -405,6 +405,13 @@
     "by": "agent",
     "at": "2026-11-17"
   },
+  "qwen/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Kilo lists Qwen's Qwen3.8-27B (Aug 2026 dense multimodal, 262K context); Hugging Face repo Qwen/Qwen3.8-27B matches. Kilo's gateway discounts input below the median while output stays high; the model identity is correct.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "radixark/daisyrose-27b": {
     "decision": "defer",
     "until": "2026-12-17",
@@ -467,6 +474,13 @@
     "reason": "Inkling 2 Mini (26.4B looped transformer, released 2026-11-20) is a new checkpoint distinct from the index's inkling-2-small (2026-11-05); no matching entry exists yet, so defer rather than guess.",
     "by": "agent",
     "at": "2026-11-21"
+  },
+  "tngtech/deepseek-r1t2-chimera": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "TNG's DeepSeek-R1T2-Chimera is an Assembly-of-Experts merge of DeepSeek R1-0528, R1 and V3-0324 checkpoints. A merge is not any single catalog model, and the index has no TNG entry, so there is nothing to link to.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "unbiased/pareto-26.10": {
     "decision": "defer",
