@@ -489,12 +489,26 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "upstage/solar-mini-4-5": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Solar Mini 4.5 Preview is a preview checkpoint; the official Solar Mini 4.5 is scheduled for 2026-12-01. The index has upstage/solar-mini4 but no Solar Mini 4.5 entry yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "x-ai/grok-4.20-reasoning-beta": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Grok 4.20 Beta Reasoning (released 2026-03-11) is the beta-tagged reasoning variant of SpaceXAI's Grok 4.20; the index has only the Non-Reasoning (0309) and Multi-Agent (0309) variants and no reasoning entry, so defer rather than link a different variant.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-mopd": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "MiMo-V2.6-Flash-MOPD is a separate checkpoint: a multi-teacher on-policy distillation pass over MiMo-V2.6-Flash published 2026-09-27. The index only has the original xiaomi/mimo-v2.6-flash (2026-09-22), no MOPD entry.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",
