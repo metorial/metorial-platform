@@ -13,6 +13,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "reason": "The HF card nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16 is the Nemotron 3 Super 120B A12B checkpoint, matching the index entry released 2026-03-11. BF16 is only the precision variant; the higher price reflects serving the unquantized BF16 weights, so the link is correct.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16:peft:262144": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "reason": "A PEFT-tunable serving of the same Nemotron 3 Super 120B A12B checkpoint at the model's full 262144 context. The premium input price reflects the fine-tunable serving tier, not a different model.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "zai-org/GLM-5.3-Flash:peft:262144": {
     "decision": "link",
     "model": "zhipu/glm-5.3-flash",
