@@ -518,6 +518,7 @@ class magicMcpServerBackingServiceImpl {
     let solution = await getMetorialSolution();
 
     let backings = await db.magicMcpServerBacking.findMany({
+      relationLoadStrategy: 'join',
       where: {
         id: { in: d.magicMcpServerBackingIds },
         integrationInstance: {

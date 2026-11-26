@@ -33,6 +33,7 @@ import { completeMessage } from '../shared/completeMessage';
 import { setConnectionProviderSpecification } from '../shared/connectionSpecification';
 import { createMessage } from '../shared/createMessage';
 import { upsertParticipant } from '../shared/upsertParticipant';
+import { toolCallResultForTransfer } from '../shared/toolCallTransfer';
 import { ConnectionState } from './state';
 import { getConnectionBackendConnection } from './state/backend';
 
@@ -120,8 +121,8 @@ let startPendingRequestActivity = (opts: {
 };
 
 let connectionReceiver:
-  | (ReturnType<typeof conduit.createConduitReceiver> & { started: Promise<void> })
-  | null = null;
+  (ReturnType<typeof conduit.createConduitReceiver> & { started: Promise<void> }) | null =
+  null;
 let connectionReceiverHealthInterval: Timer | null = null;
 let lastConnectionReceiverHealthState: { ready: boolean; healthy: boolean } | null = null;
 
@@ -347,6 +348,9 @@ export let startReceiver = () => {
         data: ConduitInput & { type: 'tool_call' },
         message: SessionMessage
       ) => {
+        let input = data.input ?? message.input;
+        if (!input) throw new Error(`Stored tool call input ${message.id} is unavailable`);
+
         let [backend, tool] = await Promise.all([
           connectBackend(),
           getProviderToolById({ toolId: data.toolId, session: state.session })
@@ -356,7 +360,7 @@ export let startReceiver = () => {
         return await backend.sendToolInvocation({
           tool,
           message,
-          input: data.input,
+          input,
           sender: state.participant,
           sessionProvider: state.sessionProvider
         });
@@ -397,7 +401,11 @@ export let startReceiver = () => {
 
       let sendToProvider = async (data: ProviderBoundInput) => {
         let message = await db.sessionMessage.findUniqueOrThrow({
-          where: { id: data.sessionMessageId }
+          where: {
+            id: data.sessionMessageId,
+            sessionOid: state.session.oid,
+            connectionOid: state.connection.oid
+          }
         });
         state.markMessageReceived();
 
@@ -568,32 +576,31 @@ export let startReceiver = () => {
             completedAt: res.completedAt,
             slateToolCall: res.slateToolCall,
             responderParticipant: providerParticipant,
+            transferToolCallResult: true,
             failureReason:
               res.failureReason ?? (res.isSystemError ? 'system_error' : undefined)
           }
         );
 
-        let result = {
+        let result = toolCallResultForTransfer({
           message,
-          output: message.output ?? res.output ?? NO_OUTPUT_ERROR,
-          status: res.status,
-          completedAt: res.completedAt
-        } satisfies ConduitResult;
+          output: message.output ?? NO_OUTPUT_ERROR,
+          status: message.status,
+          completedAt: message.completedAt
+        });
 
-        if (result.output) {
-          await broadcastNats.publish(
-            topics.sessionConnection.encode({
-              session: state.session,
-              connection: state.connection
-            }),
-            serialize.encode({
-              type: 'message_processed',
-              sessionId: state.session.id,
-              channel: 'targeted_response',
-              result
-            } satisfies BroadcastMessage)
-          );
-        }
+        await broadcastNats.publish(
+          topics.sessionConnection.encode({
+            session: state.session,
+            connection: state.connection
+          }),
+          serialize.encode({
+            type: 'message_processed',
+            sessionId: state.session.id,
+            channel: 'targeted_response',
+            result
+          } satisfies BroadcastMessage)
+        );
 
         if (res.closeContext) closeTimedOutContext();
 

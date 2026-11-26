@@ -1,4 +1,5 @@
-import { getJsonSizeBytes } from '@metorial-subspace/connection-utils';
+import { getSentry } from '@lowerdeck/sentry';
+import { getJsonSizeBytes, offload } from '@metorial-subspace/connection-utils';
 import {
   db,
   getId,
@@ -17,6 +18,13 @@ import { protoGuardService } from '@metorial-subspace/module-protoguard';
 import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { finalizeMessageQueue } from '../queues/message/finalizeMessage';
 import { createError, messageFailureReasonToErrorType } from './createError';
+import {
+  isLargeToolCallPayload,
+  TOOL_CALL_OBJECT_STORAGE_MIN_BYTES,
+  toolCallPayloadTooLargeError
+} from './toolCallTransfer';
+
+let Sentry = getSentry();
 
 export interface UpdateMessageData {
   status: 'failed' | 'succeeded';
@@ -27,6 +35,7 @@ export interface UpdateMessageData {
 
   providerRun?: ProviderRun;
   slateToolCall?: { oid: bigint };
+  transferToolCallResult?: boolean;
 }
 
 export let completeMessage = async (
@@ -54,6 +63,7 @@ export let completeMessage = async (
     where: 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid },
     select: {
       oid: true,
+      inputSize: true,
       providerRunOid: true,
       connection: true,
       session: true,
@@ -62,6 +72,19 @@ export let completeMessage = async (
   });
 
   let retention = getRetentionPolicy(currentMessage.session);
+
+  if (
+    data.transferToolCallResult &&
+    !retention.storeContent &&
+    isLargeToolCallPayload(data.output)
+  ) {
+    data.output = {
+      type: 'error',
+      data: toolCallPayloadTooLargeError('response').toResponse()
+    };
+    data.status = 'failed';
+    data.failureReason = 'provider_error';
+  }
 
   let currentToolCall = currentMessage.toolCall;
 
@@ -100,6 +123,12 @@ export let completeMessage = async (
     }
   };
 
+  let outputSize = retention.storeContent ? getJsonSizeBytes(data.output) : 0;
+  let shouldOffload =
+    data.transferToolCallResult &&
+    retention.offloadToStorage &&
+    (currentMessage.inputSize ?? 0) + outputSize >= TOOL_CALL_OBJECT_STORAGE_MIN_BYTES;
+
   let { message, didTransition } = await withTransaction(async tx => {
     let updated = await tx.sessionMessage.updateMany({
       where: {
@@ -107,8 +136,8 @@ export let completeMessage = async (
         status: 'waiting_for_response'
       },
       data: {
-        output: retention.storeContent ? data.output : Prisma.DbNull,
-        outputSize: retention.storeContent ? getJsonSizeBytes(data.output) : 0,
+        output: retention.storeContent && !shouldOffload ? data.output : Prisma.DbNull,
+        outputSize,
         hasOutput: !!data.output,
         status: data.status,
         completedAt: data.completedAt ?? new Date(),
@@ -138,13 +167,36 @@ export let completeMessage = async (
       }
     }
 
-    return {
-      didTransition,
-      message: await tx.sessionMessage.findUniqueOrThrow({
-        where: { oid: currentMessage.oid },
+    let message = await tx.sessionMessage.findUniqueOrThrow({
+      where: { oid: currentMessage.oid },
+      include: messageInclude
+    });
+
+    if (didTransition && shouldOffload) {
+      // Only the transaction that completed the message can write its storage object.
+      let stored = await offload
+        .offloadSessionMessage(
+          { id: message.id, input: message.input, output: data.output },
+          { live: true }
+        )
+        .then(
+          () => true,
+          error => {
+            Sentry.captureException(error);
+            return false;
+          }
+        );
+
+      message = await tx.sessionMessage.update({
+        where: { oid: message.oid },
+        data: stored
+          ? { input: Prisma.DbNull, isOffloadedToStorage: true }
+          : { output: data.output },
         include: messageInclude
-      })
-    };
+      });
+    }
+
+    return { didTransition, message };
   });
 
   if (!didTransition) return message;
@@ -203,7 +255,7 @@ export let completeMessage = async (
     await finalizeMessageQueue.add({ messageId: message.id }, { id: message.id });
   })().catch(() => {});
 
-  if (!retention.storeContent) {
+  if (!retention.storeContent || message.isOffloadedToStorage) {
     return {
       ...message,
       output: data.output ?? null

@@ -272,7 +272,7 @@ class ProviderListingService {
             })
           : null;
 
-        let listings = await db.providerListing.findMany({
+        let pageQuery = {
           ...opts,
 
           orderBy: [
@@ -354,6 +354,17 @@ class ProviderListingService {
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
+          }
+        } satisfies Prisma.ProviderListingFindManyArgs;
+
+        // Select the page before joining relations so sorting and cursor handling only load IDs.
+        let page = await db.providerListing.findMany({ ...pageQuery, select: { oid: true } });
+        if (!page.length) return [];
+
+        let listings = await db.providerListing.findMany({
+          relationLoadStrategy: 'join',
+          where: {
+            AND: [pageQuery.where, { oid: { in: page.map(row => row.oid) } }]
           },
           include: getInclude(d.tenant, solution),
           omit: {
@@ -361,8 +372,11 @@ class ProviderListingService {
           }
         });
 
+        let listingsByOid = new Map(listings.map(listing => [listing.oid, listing]));
+        let orderedListings = page.flatMap(({ oid }) => listingsByOid.get(oid) ?? []);
+
         if (useOrderMap) {
-          listings.sort((a, b) => {
+          orderedListings.sort((a, b) => {
             let aHasUse = useOrderMap.has(a.providerOid);
             let bHasUse = useOrderMap.has(b.providerOid);
 
@@ -378,7 +392,7 @@ class ProviderListingService {
           });
         }
 
-        return listings;
+        return orderedListings;
       })
     );
   }

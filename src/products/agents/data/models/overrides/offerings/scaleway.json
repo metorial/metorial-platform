@@ -1,4 +1,11 @@
 {
+  "qwen3-235b-a22b-instruct-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "Scaleway serves Alibaba's Qwen3-235B-A22B-Instruct-2507 exactly (same checkpoint, 260K context). Scaleway's dedicated self-hosted GPU cloud pricing runs above the cross-provider median; the model identity is not in question.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "qwen3-embedding-8b": {
     "decision": "link",
     "model": "alibaba/qwen3-embedding-8b",

@@ -3,7 +3,14 @@ import { db } from '@metorial-subspace/db';
 import { ObjectStorageClient } from 'object-storage-client';
 import { env } from './env';
 
+let LIVE_MESSAGE_STORAGE_TIMEOUT_MS = 5_000;
+
 export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL, 1000 * 60 * 10);
+
+export let liveMessageStorage = new ObjectStorageClient(
+  env.storage.OBJECT_STORAGE_URL,
+  LIVE_MESSAGE_STORAGE_TIMEOUT_MS
+);
 
 export let getProviderTelemetryErrorGroupsStorageTarget = (
   bucketNameOverride?: string | null

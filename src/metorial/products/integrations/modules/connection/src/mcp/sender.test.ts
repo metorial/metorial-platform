@@ -1,3 +1,4 @@
+import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
@@ -44,6 +45,7 @@ vi.mock('../shared/toolCallOperation', () => ({
 }));
 vi.mock('./control', () => ({ getMcpProgressToken: () => null }));
 
+import { toolCallPayloadTooLargeError } from '../shared/toolCallTransfer';
 import { McpSender } from './sender';
 
 let parentMessage = { id: 'msg_parent', oid: 1n };
@@ -75,7 +77,8 @@ let createManager = () => ({
     }
   })),
   sendMcpMessageToProvider: vi.fn(async () => undefined),
-  getRequestSkills: vi.fn(async () => null)
+  getRequestSkills: vi.fn(async () => null),
+  shouldRedactStoredToolInput: vi.fn(async () => false)
 });
 
 let createSender = (manager: ReturnType<typeof createManager>) => {
@@ -90,6 +93,40 @@ let resourcesListRequest = (params: Record<string, any> = {}) => ({
   id: 1,
   method: 'resources/list',
   params
+});
+
+it('publishes a compact MCP error for a tool input blocked by retention', async () => {
+  let manager = createManager();
+  let { sender, control } = createSender(manager);
+  manager.callTool.mockRejectedValueOnce(
+    new ServiceError(toolCallPayloadTooLargeError('request'))
+  );
+  manager.createMessage.mockImplementationOnce(async (data?: any) => ({
+    ...parentMessage,
+    ...data
+  }));
+
+  let result = await sender.handleMessage(
+    {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: 'search', arguments: { text: 'a'.repeat(3 * 1024 * 1024) } }
+    },
+    { waitForResponse: false }
+  );
+
+  expect(result?.mcp).toMatchObject({
+    error: { message: expect.stringContaining('data retention policy') }
+  });
+  expect(control.sendControlMessage).toHaveBeenCalledWith(
+    expect.objectContaining({
+      conduit: expect.objectContaining({
+        message: expect.objectContaining({ input: null }),
+        output: { type: 'error', data: expect.objectContaining({ status: 413 }) }
+      })
+    })
+  );
 });
 
 describe('McpSender resources/list', () => {

@@ -57,6 +57,7 @@ import { isSkillResourceUri, SKILLS_EXTENSION_ID } from '../lib/requestSkills';
 import { providerToolPresenter } from '../presenter';
 import { completeMessage } from '../shared/completeMessage';
 import { injectToolCallOperationIntoInputSchema } from '../shared/toolCallOperation';
+import { TOOL_CALL_PAYLOAD_TOO_LARGE_CODE } from '../shared/toolCallTransfer';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import {
   getMcpProgressToken,
@@ -300,7 +301,10 @@ export class McpSender {
       await this.control.sendControlMessage({
         type: 'mcp_control_message',
         conduit: {
-          message,
+          message:
+            error.data.code === TOOL_CALL_PAYLOAD_TOO_LARGE_CODE
+              ? { ...message, input: null }
+              : message,
           status: message.status,
           output: message.output,
           completedAt: message.completedAt

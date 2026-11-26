@@ -6,6 +6,7 @@ import { env } from '../../env';
 import { broadcastNats } from '../../lib/nats';
 import { topics } from '../../lib/topic';
 import { completeMessage } from '../../shared/completeMessage';
+import { toolCallResultForTransfer } from '../../shared/toolCallTransfer';
 import { upsertParticipant } from '../../shared/upsertParticipant';
 
 let MESSAGE_TIMEOUT_FALLBACK_MS = 20 * 60 * 1000;
@@ -68,6 +69,8 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
     } satisfies ConduitResult;
 
     if (message.connection) {
+      let transfer = toolCallResultForTransfer(result);
+
       await broadcastNats.publish(
         topics.sessionConnection.encode({
           session: message.session,
@@ -77,7 +80,7 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
           type: 'message_processed',
           sessionId: message.session.id,
           channel: 'targeted_response',
-          result
+          result: transfer
         })
       );
 
@@ -90,7 +93,10 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
           serialize.encode({
             type: 'mcp_control_message',
             channel: 'broadcast_response_or_notification',
-            conduit: result
+            conduit:
+              'type' in transfer
+                ? { ...result, message: { ...result.message, input: null } }
+                : transfer
           })
         );
       }
