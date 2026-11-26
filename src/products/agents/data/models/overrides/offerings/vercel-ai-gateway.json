@@ -517,6 +517,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nace-ai/drex-max-v1.2": {
+    "decision": "defer",
+    "until": "2026-12-26",
+    "reason": "Drex Max v1.2 is a distinct 27B multimodal decision model from Nace.AI (per nace.ai docs and research page), the successor to Drex 2.0. Its 262k context and $0.03 input price match neither nace-ai/drex-v1.5 nor nace-ai/drex-v2.0, and the index has no drex-max entry.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "openai/gpt-5.1-thinking": {
     "decision": "link",
     "model": "openai/gpt-5.1",
