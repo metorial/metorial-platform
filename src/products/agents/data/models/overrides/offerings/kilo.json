@@ -398,6 +398,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3.6-35b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "Same offering served via Kilo Gateway; Qwen's blog and HF repo Qwen/Qwen3.6-35B-A3B confirm it is exactly Qwen3.6-35B-A3B. The budget input price reflects a cheap third-party serving of the open-weights model, so the existing link is correct.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "qwen/qwen3.7-flash": {
     "decision": "link",
     "model": "alibaba/qwen3.7-flash",
