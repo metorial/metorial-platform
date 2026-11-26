@@ -167,10 +167,8 @@ export let ssoCertificateCheck = (
   });
 
 let readSamlConnections = async (): Promise<SamlConnection[]> => {
-  let { SQL } = await import('bun');
-  let sql = new SQL(env.service.SSO_DATABASE_URL, {
-    tls: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
-  });
+  let { createSsoSql } = await import('@mtsrc/auth-core-module-sso/src/lib/ssoSql');
+  let sql = createSsoSql(env.service.SSO_DATABASE_URL, env.service.SSO_DATABASE_SSL);
 
   try {
     let rows: { value: unknown }[];
