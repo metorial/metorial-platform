@@ -1715,6 +1715,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "yetalabs/kimi-k3.1-pro-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "YetaLabs Kimi-K3.1-Pro-abliterated is an abliterated checkpoint of moonshotai/Kimi-K3.1-Pro per its Hugging Face card (finetune:moonshotai/Kimi-K3.1-Pro); a weights fine-tune is not the Kimi K3.1 Pro base model",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "z-ai/GLM-4.6-turbo": {
     "decision": "link",
     "model": "zhipu/glm-4.6",
