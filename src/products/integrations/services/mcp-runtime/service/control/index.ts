@@ -48,7 +48,11 @@ export default project({
     run: ['dev:start'],
     env: mergeEnv(
       baseDevEnv('oss'),
-      pickEnv('FUNCTION_BAY_DEFAULT_MEMORY_MB', 'FUNCTION_BAY_TENANT_IDENTIFIER'),
+      pickEnv(
+        'FUNCTION_BAY_DEFAULT_MEMORY_MB',
+        'FUNCTION_BAY_TENANT_IDENTIFIER',
+        'INTEGRATIONS_API_URL'
+      ),
       {
         ENCRYPTION_KEY: 'local-dev-encryption-key',
         HOLOPOD_HTTP_ENDPOINT: 'http://holopod:3000',
@@ -93,9 +97,7 @@ export default project({
             { port: 52080, path: '/ping' },
             { port: 12121, path: '/' }
           ],
-          migrations: [
-            ownMigration('shuttle', '@mtsrc/mcp-runtime-db', { prefix: 'SHUTTLE' })
-          ]
+          migrations: [ownMigration('shuttle', '@mtsrc/mcp-runtime-db', { prefix: 'SHUTTLE' })]
         })
       })
     ],

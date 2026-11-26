@@ -16,6 +16,10 @@ let { dbMock, oauthUtilsMock } = vi.hoisted(() => ({
   }
 }));
 
+vi.mock('@mtsrc/mcp-runtime-env', () => ({
+  integrationsOAuthCallbackUrl: 'https://integrations.example.com/oauth-callback/mcp'
+}));
+
 vi.mock('@mtsrc/mcp-runtime-db', () => ({
   db: dbMock,
   getId: () => ({ oid: 1n, id: 'test_id' })
@@ -36,7 +40,7 @@ let connection = (partial: Record<string, any> = {}) => ({
   registrationOid: null,
   secretOid: null,
   registrationAttemptCount: 0,
-  tenant: { oid: 2n, id: 'ten_test', name: 'Test' },
+  tenant: { oid: 2n, id: 'ten_test', name: 'Test', dynamicOAuthCallbackUrlOverride: null },
   config: {
     oid: 3n,
     config: { registration_endpoint: 'https://provider.example.com/register' }
@@ -79,6 +83,11 @@ describe('runAutoRegistration', () => {
     });
 
     expect(res.ok).toBe(true);
+    expect(oauthUtilsMock.registerClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callback: { callbackUrlOverride: null, usesIntegrationsCallback: true }
+      })
+    );
     expect(dbMock.remoteOAuthConnection.update).toHaveBeenLastCalledWith({
       where: { oid: 10n },
       data: expect.objectContaining({
@@ -90,6 +99,25 @@ describe('runAutoRegistration', () => {
         registrationAttemptCount: 0
       })
     });
+  });
+
+  it('takes the override from the owning tenant at registration time', async () => {
+    let callbackUrlOverride = 'https://customer.example.com/callback';
+    dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(
+      connection({ tenant: { dynamicOAuthCallbackUrlOverride: callbackUrlOverride } })
+    );
+    oauthUtilsMock.registerClient.mockResolvedValue({
+      ok: true,
+      registration: { oid: 20n, clientId: 'client' }
+    });
+
+    await remoteOAuthRegistrationService.runAutoRegistration({ connectionId: 'cso_test' });
+
+    expect(oauthUtilsMock.registerClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callback: { callbackUrlOverride, usesIntegrationsCallback: true }
+      })
+    );
   });
 
   it('counts an attempt for provider validation errors', async () => {

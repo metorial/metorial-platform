@@ -4,6 +4,7 @@ export * from './oauthDebug';
 export * from './oauthErrors';
 export * from './oauthRequestError';
 export * from './oauthUtils';
+export * from './registrationCallback';
 export * from './registrationRetry';
 export * from './tokenEndpointAuth';
 export * from './types';

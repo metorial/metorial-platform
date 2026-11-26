@@ -7,6 +7,7 @@ export let env = defineSettings({
     REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
     PROVIDER_OAUTH_URL: v.string(),
+    INTEGRATIONS_API_URL: v.optional(v.string({ modifiers: [v.url()] })),
 
     SHUTTLE_API_PORT: v.optional(v.number()),
     SHUTTLE_PUBLIC_PORT: v.optional(v.number())

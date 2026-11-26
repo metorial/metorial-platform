@@ -5,7 +5,6 @@ import { Hash } from '@lowerdeck/hash';
 import axios from 'axios';
 import { customAlphabet } from 'nanoid';
 import type { RemoteOAuthConfig, RemoteOAuthConnection, Tenant } from '@mtsrc/mcp-runtime-db';
-import { oauthCallbackUrl } from '@mtsrc/mcp-runtime-env';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { getId } from '@mtsrc/mcp-runtime-db';
 import {
@@ -19,6 +18,10 @@ import {
   buildClientBrandingMetadata,
   buildClientRegistrationMetadata
 } from './clientRegistrationMetadata';
+import {
+  getAutoRegistrationCallbackUrl,
+  type AutoRegistrationCallback
+} from './registrationCallback';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 import { getOAuthRegistrationErrorDetails } from './oauthRegistrationError';
 import {
@@ -376,10 +379,12 @@ export class OAuthUtils {
   static async registerClient({
     tenant,
     config,
+    callback,
     owner
   }: {
     tenant: Tenant;
     config: OAuthConfiguration;
+    callback: AutoRegistrationCallback;
     owner?: {
       connection?: RemoteOAuthConnection;
       config?: RemoteOAuthConfig;
@@ -391,13 +396,14 @@ export class OAuthUtils {
       let clientName = `${tenant.name} (via Metorial)`;
 
       let registrationEndpoint = config.registration_endpoint;
+      let redirectUri = getAutoRegistrationCallbackUrl(callback);
 
       let postRegistration = (withBranding: boolean) =>
         axios.post<RegistrationResponse>(
           registrationEndpoint,
           {
             client_name: clientName,
-            redirect_uris: [oauthCallbackUrl],
+            redirect_uris: [redirectUri],
             ...buildClientRegistrationMetadata(config),
             ...(withBranding ? buildClientBrandingMetadata() : {})
           },
@@ -461,7 +467,9 @@ export class OAuthUtils {
           registrationClientUri: regData.registration_client_uri,
           registrationAccessToken: regData.registration_access_token,
           clientSecretExpiresAt: regData.client_secret_expires_at,
-          autoRegistrationName: clientName
+          autoRegistrationName: clientName,
+          callbackUrlOverride: callback.callbackUrlOverride,
+          usesIntegrationsCallback: callback.usesIntegrationsCallback
         }
       });
 
