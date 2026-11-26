@@ -277,6 +277,7 @@ services:
       ENCRYPTION_KEY: key
       PROVIDER_OAUTH_TICKET_SECRET: dev-secret
       PROVIDER_OAUTH_URL: http://localhost:52081
+      INTEGRATIONS_API_URL: http://localhost:4316
       HOLOPOD_HTTP_ENDPOINT: http://100.70.207.65:3000
       OBJECT_STORAGE_URL: http://object-storage:52010
       LOGS_BUCKET_NAME: shuttle-logs

@@ -12,6 +12,8 @@ model Tenant {
   storeContent       Boolean @default(true)
   collectErrors      Boolean @default(true)
 
+  dynamicOAuthCallbackUrlOverride String?
+
   createdAt DateTime @default(now())
 
   secrets                            Secret[]

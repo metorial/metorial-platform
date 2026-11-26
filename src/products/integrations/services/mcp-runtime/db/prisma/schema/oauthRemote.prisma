@@ -27,7 +27,11 @@ model RemoteOAuthAutoRegistration {
   clientId     String
   clientSecret String?
 
-  autoRegistrationName String?
+  autoRegistrationName     String?
+  callbackUrlOverride      String?
+  usesIntegrationsCallback Boolean @default(false)
+
+  authorizationAttempts RemoteOAuthConnectionSetup[]
 
   registrationClientUri   String?
   registrationAccessToken String?
@@ -241,6 +245,10 @@ model RemoteOAuthConnectionSetup {
   errorMessage String?
 
   codeVerifier String?
+  redirectUri  String?
+
+  registrationOid BigInt?
+  registration    RemoteOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
 
   connectionOid BigInt
   connection    RemoteOAuthConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)

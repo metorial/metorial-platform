@@ -14,7 +14,11 @@ import type {
 import { oauthCallbackUrl } from '@mtsrc/mcp-runtime-env';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { getId } from '@mtsrc/mcp-runtime-db';
-import { oauthErrorDescriptions } from '@mtsrc/mcp-runtime-oauth-utils';
+import {
+  getAutoRegistrationCallbackUrl,
+  oauthErrorDescriptions,
+  type AutoRegistrationCallback
+} from '@mtsrc/mcp-runtime-oauth-utils';
 import { oauthDebug } from '@mtsrc/mcp-runtime-oauth-utils';
 import { OAuthUtils } from '@mtsrc/mcp-runtime-oauth-utils';
 import type {
@@ -29,10 +33,11 @@ import { createEgressContext } from '@mtsrc/mcp-runtime-network';
 
 export let getRemoteOAuthRedirectUri = (d: {
   connection: Pick<RemoteOAuthConnection, 'registrationOid'>;
+  registration?: AutoRegistrationCallback | null;
   serverOAuthSetup?: { callbackUrlOverride?: string | null } | null;
 }) => {
-  // Auto registrations are created against Shuttle's default callback URL.
-  if (d.serverOAuthSetup?.callbackUrlOverride && !d.connection.registrationOid) {
+  if (d.registration) return getAutoRegistrationCallbackUrl(d.registration);
+  if (d.connection.registrationOid == null && d.serverOAuthSetup?.callbackUrlOverride) {
     return d.serverOAuthSetup.callbackUrlOverride;
   }
 
@@ -44,10 +49,9 @@ class remoteOauthAuthorizationServiceImpl {
     connection: RemoteOAuthConnection & {
       config: RemoteOAuthConfig;
     };
-    setup: Pick<RemoteOAuthConnectionSetup, 'stateIdentifier' | 'codeVerifier'> & {
-      tenant: Tenant;
-    };
-    serverOAuthSetup?: { callbackUrlOverride?: string | null } | null;
+    setup: Pick<RemoteOAuthConnectionSetup, 'stateIdentifier' | 'codeVerifier'>;
+    clientId: string;
+    redirectUri: string;
   }) {
     if (!d.setup.stateIdentifier) {
       throw new ServiceError(
@@ -60,19 +64,9 @@ class remoteOauthAuthorizationServiceImpl {
       ? await OAuthUtils.generateCodeChallenge(d.setup.codeVerifier)
       : undefined;
 
-    let DANGEROUS_unencryptedCredentials =
-      await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
-        tenant: d.setup.tenant,
-        connection: d.connection
-      });
-    let redirectUri = getRemoteOAuthRedirectUri({
-      connection: d.connection,
-      serverOAuthSetup: d.serverOAuthSetup
-    });
-
     return OAuthUtils.buildAuthorizationUrl({
-      clientId: DANGEROUS_unencryptedCredentials.clientId,
-      redirectUri,
+      clientId: d.clientId,
+      redirectUri: d.redirectUri,
       scopes: d.connection.config.scopes,
       state: d.setup.stateIdentifier,
       codeChallenge,
@@ -81,6 +75,7 @@ class remoteOauthAuthorizationServiceImpl {
   }
 
   async startAuthorization(d: {
+    tenant: Tenant;
     connection: RemoteOAuthConnection & {
       config: RemoteOAuthConfig;
     };
@@ -124,6 +119,17 @@ class remoteOauthAuthorizationServiceImpl {
     let config = d.connection.config.config as OAuthConfiguration;
     let supportsPKCE = !!config.code_challenge_methods_supported?.includes('S256');
 
+    let { clientId, registration } =
+      await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
+        tenant: d.tenant,
+        connection: d.connection
+      });
+    let redirectUri = getRemoteOAuthRedirectUri({
+      connection: d.connection,
+      registration,
+      serverOAuthSetup: d.serverOAuthSetup
+    });
+
     let setup = await db.remoteOAuthConnectionSetup.create({
       data: {
         ...getId('remoteOAuthConnectionSetup'),
@@ -134,20 +140,17 @@ class remoteOauthAuthorizationServiceImpl {
         connectionOid: d.connection.oid,
         tenantOid: d.connection.tenantOid,
 
-        codeVerifier: supportsPKCE ? OAuthUtils.generateCodeVerifier() : undefined
-      },
-      include: {
-        tenant: true,
-        serverOAuthSetup: {
-          include: { serverInstanceConfiguration: true }
-        }
+        codeVerifier: supportsPKCE ? OAuthUtils.generateCodeVerifier() : undefined,
+        registrationOid: registration?.oid,
+        redirectUri
       }
     });
 
     let redirectUrl = await this.buildAuthorizationRedirect({
       connection: d.connection,
       setup,
-      serverOAuthSetup: d.serverOAuthSetup ?? setup.serverOAuthSetup
+      clientId,
+      redirectUri
     });
 
     return {
@@ -172,10 +175,20 @@ class remoteOauthAuthorizationServiceImpl {
       );
     }
 
+    let { clientId } = await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
+      tenant: d.setup.tenant,
+      connection: d.connection,
+      registrationOid: d.setup.registrationOid ?? d.connection.registrationOid ?? undefined
+    });
+
     return {
       type: 'redirect' as const,
       setup: d.setup,
-      redirectUrl: await this.buildAuthorizationRedirect(d)
+      redirectUrl: await this.buildAuthorizationRedirect({
+        ...d,
+        clientId,
+        redirectUri: d.setup.redirectUri ?? getRemoteOAuthRedirectUri(d)
+      })
     };
   }
 
@@ -297,10 +310,10 @@ class remoteOauthAuthorizationServiceImpl {
       tenant: attempt.tenant,
       serverInstanceConfiguration: attempt.serverOAuthSetup.serverInstanceConfiguration
     });
-    let redirectUri = getRemoteOAuthRedirectUri({
-      connection,
-      serverOAuthSetup: attempt.serverOAuthSetup
-    });
+    let redirectUri =
+      attempt.redirectUri ??
+      getRemoteOAuthRedirectUri({ connection, serverOAuthSetup: attempt.serverOAuthSetup });
+    let registrationOid = attempt.registrationOid ?? connection.registrationOid ?? undefined;
 
     let tokenResponse: TokenResponse;
     let profile: RemoteOAuthConnectionProfile | null = null;
@@ -308,13 +321,14 @@ class remoteOauthAuthorizationServiceImpl {
     let DANGEROUS_unencryptedCredentials =
       await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
         tenant: attempt.tenant,
-        connection: attempt.connection
+        connection,
+        registrationOid
       });
 
     oauthDebug('remote callback: exchanging code', {
       connectionId: connection.id,
       setupId: attempt.id,
-      usesAutoRegistration: !!connection.registrationOid,
+      usesAutoRegistration: registrationOid != null,
       registeredAuthMethod: DANGEROUS_unencryptedCredentials.tokenEndpointAuthMethod ?? null,
       hasClientSecret: !!DANGEROUS_unencryptedCredentials.clientSecret,
       redirectUri

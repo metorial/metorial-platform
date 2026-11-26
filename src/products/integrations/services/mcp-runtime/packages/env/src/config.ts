@@ -3,6 +3,10 @@ import { env } from './env';
 
 export let oauthCallbackUrl = `${env.service.PROVIDER_OAUTH_URL}/shuttle-oauth/callback`;
 
+export let integrationsOAuthCallbackUrl = env.service.INTEGRATIONS_API_URL
+  ? `${env.service.INTEGRATIONS_API_URL.replace(/\/$/, '')}/oauth-callback/mcp`
+  : null;
+
 export let clientBranding = perEdition<Record<string, string>>({
   cloud: {
     logo_uri:

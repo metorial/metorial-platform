@@ -8,6 +8,7 @@ export let shuttleProviderFederationQueues = combineQueueProcessors([syncFederat
 
 export let shuttleProviderQueues = combineQueueProcessors([syncQueues]);
 
+export { getTenantForShuttle } from './client';
 export * from './impl';
 export * from './presenters';
 export * from './services';
