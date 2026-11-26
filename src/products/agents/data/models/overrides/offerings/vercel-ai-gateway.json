@@ -629,6 +629,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "recraft/recraft-v4.1-flash-v2": {
+    "decision": "defer",
+    "until": "2026-12-26",
+    "reason": "Recraft V4.1 Flash V2 is a new standalone text-to-image model that replaces Recraft V4.1 Flash (per Recraft's announcement it is an independent model, not a speed toggle or serving variant of it); the model index has no entry for the V2 checkpoint yet.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "scaledown/extract-1": {
     "decision": "defer",
     "until": "2026-12-18",
