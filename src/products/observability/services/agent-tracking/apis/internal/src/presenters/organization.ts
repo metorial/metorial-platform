@@ -1,4 +1,5 @@
 import type { Organization } from '@mtsrc/agent-tracking-db';
+import { desktopSettingsOf } from '@mtsrc/agent-tracking-spec';
 
 export let organizationPresenter = (organization: Organization) => ({
   object: 'agent_tracking#organization',
@@ -16,7 +17,8 @@ export let organizationPresenter = (organization: Organization) => ({
     privacy: {
       hideIndividuals: organization.settings.privacy?.hideIndividuals ?? false,
       minGroupUsers: organization.settings.privacy?.minGroupUsers ?? 5
-    }
+    },
+    desktop: desktopSettingsOf(organization.settings)
   },
 
   archivedAt: organization.archivedAt,

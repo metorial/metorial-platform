@@ -11,7 +11,7 @@ import {
 } from '../lib/memberInsights';
 import { instanceConsumerMemberIds, lookupMembers, unique } from '../lib/members';
 import { pageByAnchor } from '../lib/pageByAnchor';
-import { loadVisiblePrivacy } from '../lib/privacy';
+import { loadVisibleSettings } from '../lib/privacy';
 import {
   assertRecordRange,
   lastActivityQuery,
@@ -51,7 +51,7 @@ class AgentTrackingMemberInsightServiceImpl {
       flaggedOnly?: boolean;
     }
   ): Promise<AgentTrackingMemberInsights> {
-    await loadVisiblePrivacy(d);
+    await loadVisibleSettings(d);
 
     let include = normalizeInclude(d.include);
     let sort = d.sort ?? 'cost';

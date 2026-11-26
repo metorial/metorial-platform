@@ -1,10 +1,12 @@
 import {
+  desktopContextId,
   versionKey,
   type NormalizedRecord,
-  type SessionContextData
+  type SessionContextData,
+  type VcsCommitData
 } from '@mtsrc/agent-tracking-spec';
 import type mongoose from 'mongoose';
-import type { IngestPrincipal } from '@mtsrc/agent-tracking-records-model';
+import { isIssueRef, type IngestPrincipal } from '@mtsrc/agent-tracking-records-model';
 import type { StoreCollections } from '@mtsrc/agent-tracking-store';
 import type {
   SessionDocument,
@@ -27,11 +29,30 @@ let cacheTtlSeconds = 24 * 60 * 60;
 
 let maxUnmappedNamesPerWrite = 50;
 
+let maxSessionTicketRefs = 64;
+
+let maxSessionRepos = 16;
+
+let latestContextFields = [
+  ['default_branch', 'context.defaultBranch'],
+  ['worktree', 'context.worktree'],
+  ['sub_path', 'context.subPath'],
+  ['permission_mode', 'context.permissionMode'],
+  ['title', 'context.title']
+] as const;
+
+let snapshotFields = new Set(['default_branch', 'worktree', 'sub_path', 'permission_mode']);
+
 type AnyBulkWrite<T extends mongoose.mongo.Document> = mongoose.mongo.AnyBulkWriteOperation<T>;
 
 type Update = Record<string, Record<string, unknown>>;
 
-type SessionGroup = { sessionKey: string; records: NormalizedRecord[] };
+type SessionGroup = {
+  sessionKey: string;
+  records: NormalizedRecord[];
+  ticketRefs: string[];
+  repoIds: string[];
+};
 
 let occurredAt = (record: NormalizedRecord) => new Date(record.occurred_at);
 
@@ -47,6 +68,16 @@ let addToSet = (values: unknown[]) => ({ $each: values });
 let contextOf = (record: NormalizedRecord) =>
   record.type == 'session.context' ? (record.data as SessionContextData) : undefined;
 
+let commitOf = (record: NormalizedRecord) =>
+  record.type == 'vcs.commit' ? (record.data as VcsCommitData) : undefined;
+
+let ticketRefsOf = (records: NormalizedRecord[]) =>
+  unique(
+    records.flatMap(
+      record => contextOf(record)?.ticket_refs ?? commitOf(record)?.ticket_refs ?? []
+    )
+  ).filter(ref => !isIssueRef(ref));
+
 let groupBySession = (records: NormalizedRecord[]) => {
   let groups = new Map<string, SessionGroup>();
 
@@ -54,12 +85,24 @@ let groupBySession = (records: NormalizedRecord[]) => {
     let sessionKey = record.ctx.session_key;
     if (!sessionKey) continue;
 
-    let group = groups.get(sessionKey) ?? { sessionKey, records: [] };
+    let group = groups.get(sessionKey) ?? {
+      sessionKey,
+      records: [],
+      ticketRefs: [],
+      repoIds: []
+    };
     group.records.push(record);
     groups.set(sessionKey, group);
   }
 
-  return [...groups.values()];
+  return [...groups.values()].map(group => ({
+    ...group,
+    ticketRefs: ticketRefsOf(group.records).slice(0, maxSessionTicketRefs),
+    repoIds: unique(group.records.map(record => record.attribution?.repo_id)).slice(
+      0,
+      maxSessionRepos
+    )
+  }));
 };
 
 let loadRoots = async (groups: SessionGroup[], collections: StoreCollections) => {
@@ -189,6 +232,20 @@ let sessionUpsert = (d: {
     if (branch.head) set['context.head'] = branch.head;
   }
 
+  // Desktop sends the whole context each time, so a field its newest record leaves out is gone.
+  let snapshot = contexts.find(entry => entry.record.source.dialect == desktopContextId)?.data;
+  let unset: Record<string, ''> = {};
+
+  for (let [field, path] of latestContextFields) {
+    let fromSnapshot = snapshot && snapshotFields.has(field);
+    let value = fromSnapshot
+      ? snapshot![field]
+      : contexts.find(entry => entry.data[field] !== undefined)?.data[field];
+
+    if (value !== undefined) set[path] = value;
+    else if (fromSnapshot) unset[path] = '';
+  }
+
   let pathStored = contexts.some(entry =>
     entry.record.content.some(content => content.role == 'path' && content.text !== undefined)
   );
@@ -206,6 +263,7 @@ let sessionUpsert = (d: {
       filter: { _id: d.group.sessionKey },
       update: {
         $set: set,
+        ...(Object.keys(unset).length ? { $unset: unset } : {}),
         $setOnInsert: setOnInsert,
         $min: {
           startedAt,
@@ -220,17 +278,35 @@ let sessionUpsert = (d: {
             unique(attribution.map(a => a.client_installation_id))
           ),
           'context.workspaceIds': addToSet(unique(attribution.map(a => a.workspace_id))),
-          'context.repoIds': addToSet(unique(attribution.map(a => a.repo_id))),
+          'context.repoIds': addToSet(d.group.repoIds),
           'context.tags': addToSet(tags),
-          'context.ticketRefs': addToSet(
-            unique(contexts.flatMap(entry => entry.data.ticket_refs ?? []))
-          )
+          'context.ticketRefs': addToSet(d.group.ticketRefs)
         }
       } satisfies Update as never,
       upsert: true
     }
   };
 };
+
+let trimOp = (
+  sessionKey: string,
+  path: string,
+  max: number
+): AnyBulkWrite<SessionDocument> => ({
+  updateOne: {
+    filter: { _id: sessionKey, [`${path}.${max}`]: { $exists: true } },
+    update: { $push: { [path]: { $each: [], $slice: max } } } as never
+  }
+});
+
+let trimOps = (group: SessionGroup): AnyBulkWrite<SessionDocument>[] => [
+  ...(group.ticketRefs.length
+    ? [trimOp(group.sessionKey, 'context.ticketRefs', maxSessionTicketRefs)]
+    : []),
+  ...(group.repoIds.length
+    ? [trimOp(group.sessionKey, 'context.repoIds', maxSessionRepos)]
+    : [])
+];
 
 let linkOps = (d: { instanceId: string; records: NormalizedRecord[]; observedAt: Date }) => {
   let expiresAt = new Date(d.observedAt.getTime() + linkTtlMs);
@@ -413,6 +489,7 @@ export let writeSessions = async (d: {
       inferKey: d.assignment.inferKeys.get(group.sessionKey),
       roots
     }),
+    ...trimOps(group),
     ...stateOps(group)
   ]);
 

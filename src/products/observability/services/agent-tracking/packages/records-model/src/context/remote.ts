@@ -105,3 +105,13 @@ export let repoFromParts = (d: {
 
   return buildRepo(host, cleanSegments(`${d.owner}/${d.name}`, host));
 };
+
+export let repoFromSlug = (provider: string | undefined, slug: string) => {
+  let separator = slug.lastIndexOf('/');
+
+  return repoFromParts({
+    provider,
+    owner: slug.slice(0, Math.max(separator, 0)),
+    name: slug.slice(separator + 1)
+  });
+};

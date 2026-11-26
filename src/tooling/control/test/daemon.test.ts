@@ -1,4 +1,15 @@
 import { describe, expect, spyOn, test } from 'bun:test';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  truncateSync,
+  writeFileSync
+} from 'node:fs';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
 import * as docker from '../src/docker';
@@ -6,6 +17,7 @@ import * as dev from '../src/dev';
 import { discover } from '../src/manifest';
 import * as commands from '../src/process';
 import * as ports from '../src/ports';
+import { logMaxBytes } from '../src/daemon/home';
 import { LogStore, replayLines } from '../src/daemon/logs';
 import { linksFor, WorkspaceRuntime } from '../src/daemon/runtime';
 import { delay } from '../src/process';
@@ -14,6 +26,7 @@ import {
   checkout,
   listenerFixture,
   packageFixture,
+  temporary,
   workspaceData,
   writeManifest
 } from './helpers';
@@ -74,6 +87,133 @@ describe('LogStore replay', () => {
     expect(replay.map(line => line.seq)).toEqual(
       [...replay.map(line => line.seq)].sort((a, b) => a - b)
     );
+  });
+});
+
+describe('LogStore files', () => {
+  let size = (file: string) => (existsSync(file) ? statSync(file).size : 0);
+  let texts = (file: string) =>
+    readFileSync(file, 'utf8')
+      .trim()
+      .split('\n')
+      .map(line => line.split(' ').slice(2).join(' '));
+
+  test('rotates at the cap while writing and keeps one older generation', () => {
+    let directory = temporary();
+    let file = join(directory, 'api.log');
+    let store = new LogStore(directory, 1000);
+    let largest = 0;
+
+    for (let index = 0; index < 200; index++) {
+      store.append(
+        'api',
+        `line ${String(index).padStart(3, '0')}\n`,
+        index % 2 ? 'err' : 'out'
+      );
+      largest = Math.max(largest, size(file) + size(`${file}.1`));
+      expect(size(file)).toBeLessThanOrEqual(1000);
+      expect(size(`${file}.1`)).toBeLessThanOrEqual(1000);
+    }
+
+    let older = texts(`${file}.1`);
+    let newer = texts(file);
+    let kept = [...older, ...newer];
+
+    expect(largest).toBeLessThanOrEqual(2000);
+    expect(older.length).toBeGreaterThan(0);
+    expect(older.includes('line 000')).toBe(false);
+    expect(newer.at(-1)).toBe('line 199');
+    expect(kept).toEqual(
+      kept.map((_, index) => `line ${String(200 - kept.length + index).padStart(3, '0')}`)
+    );
+    expect(store.query({ units: ['api'] })).toHaveLength(200);
+  });
+
+  test('moves an oversized file left from an earlier run aside on the first write', () => {
+    let directory = temporary();
+    let file = join(directory, 'api.log');
+    writeFileSync(file, 'x'.repeat(5000));
+    let store = new LogStore(directory, 1000);
+
+    store.append('api', 'fresh\n');
+
+    expect(size(`${file}.1`)).toBe(5000);
+    expect(texts(file)).toEqual(['fresh']);
+  });
+
+  test('never writes through or truncates a symlinked log file', () => {
+    let directory = temporary();
+    let outside = temporary();
+    let target = join(outside, 'target');
+    let older = join(outside, 'older');
+    writeFileSync(target, 't'.repeat(5000));
+    writeFileSync(older, 'o'.repeat(5000));
+    symlinkSync(target, join(directory, 'api.log'));
+    writeFileSync(join(directory, 'web.log'), 'w'.repeat(5000));
+    symlinkSync(older, join(directory, 'web.log.1'));
+    let store = new LogStore(directory, 1000);
+
+    for (let index = 0; index < 5; index++) {
+      store.append('api', 'line\n');
+      store.append('web', 'line\n');
+    }
+
+    expect(readFileSync(target, 'utf8')).toBe('t'.repeat(5000));
+    expect(readFileSync(older, 'utf8')).toBe('o'.repeat(5000));
+    expect(lstatSync(join(directory, 'web.log.1')).isSymbolicLink()).toBe(false);
+    expect(texts(join(directory, 'web.log'))).toHaveLength(5);
+    expect(store.query({ units: ['api'] })).toHaveLength(5);
+  });
+
+  test('does not rotate early after the file was truncated outside the daemon', () => {
+    let directory = temporary();
+    let file = join(directory, 'api.log');
+    let store = new LogStore(directory, 1000);
+
+    for (let index = 0; index < 12; index++) store.append('api', `${'a'.repeat(30)}\n`);
+    truncateSync(file);
+    for (let index = 0; index < 10; index++) store.append('api', `${'b'.repeat(30)}\n`);
+
+    expect(existsSync(`${file}.1`)).toBe(false);
+    expect(texts(file)).toHaveLength(10);
+  });
+
+  test('never throws and still bounds the file when rotation fails', () => {
+    let directory = temporary();
+    let file = join(directory, 'api.log');
+    mkdirSync(join(`${file}.1`, 'blocked'), { recursive: true });
+    let store = new LogStore(directory, 1000);
+
+    for (let index = 0; index < 100; index++) {
+      store.append('api', `${'c'.repeat(30)}\n`);
+      expect(size(file)).toBeLessThanOrEqual(1000);
+    }
+
+    rmSync(directory, { recursive: true, force: true });
+    expect(() => store.append('api', 'gone\n')).not.toThrow();
+    expect(store.query({ units: ['api'] }).at(-1)!.text).toBe('gone');
+  });
+
+  test('reads the cap from CONTROL_LOG_MAX_BYTES with a default and a minimum', () => {
+    let previous = process.env.CONTROL_LOG_MAX_BYTES;
+    let read = (value?: string) => {
+      if (value === undefined) delete process.env.CONTROL_LOG_MAX_BYTES;
+      else process.env.CONTROL_LOG_MAX_BYTES = value;
+
+      return logMaxBytes();
+    };
+
+    try {
+      expect(read()).toBe(50 * 1024 * 1024);
+      expect(read('0')).toBe(50 * 1024 * 1024);
+      expect(read('-5')).toBe(50 * 1024 * 1024);
+      expect(read('lots')).toBe(50 * 1024 * 1024);
+      expect(read('100')).toBe(1024 * 1024);
+      expect(read(' 104857600 ')).toBe(104857600);
+    } finally {
+      if (previous === undefined) delete process.env.CONTROL_LOG_MAX_BYTES;
+      else process.env.CONTROL_LOG_MAX_BYTES = previous;
+    }
   });
 });
 

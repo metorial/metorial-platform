@@ -172,7 +172,11 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       telemetry: {
         enabled: telemetry.enabled,
         token_id: telemetry.tokenId,
-        tool_details: telemetry.toolDetails
+        direct_export: telemetry.directExport,
+        tool_details: telemetry.toolDetails,
+        session_context: telemetry.sessionContext,
+        session_titles: telemetry.sessionTitles,
+        history_import: telemetry.historyImport
       },
       monitor: {
         ai_tool_detection: monitor.aiToolDetection,
@@ -201,10 +205,30 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
                 'The ID of the active telemetry token of the device, the `token_id` the telemetry token endpoint returned. Null when the device has no active token or telemetry is not collected. When it differs from the token the device holds, that token no longer works.'
             })
           ),
+          direct_export: v.boolean({
+            name: 'direct_export',
+            description:
+              "`true` when AI tools can send telemetry straight to Metorial with the device's telemetry token. Metorial removes tool details while detailed tool reporting is off, and Git and repository data while session context is off. `false` while telemetry is not collected."
+          }),
           tool_details: v.boolean({
             name: 'tool_details',
             description:
               'The organization turned on detailed tool reporting: Metorial Desktop has AI tools send tool inputs, file paths and commands. `false` while telemetry is not collected.'
+          }),
+          session_context: v.boolean({
+            name: 'session_context',
+            description:
+              'The organization turned on session context: Metorial Desktop reports the repository, branch, commits, pull requests and ticket keys of sessions. `false` while telemetry is not collected.'
+          }),
+          session_titles: v.boolean({
+            name: 'session_titles',
+            description:
+              'The organization turned on session titles: Metorial Desktop reports the titles the AI tools give sessions. `false` while telemetry is not collected.'
+          }),
+          history_import: v.boolean({
+            name: 'history_import',
+            description:
+              'The organization turned on history import: Metorial Desktop imports agent sessions from the session files the AI tools kept before it was installed. `false` while telemetry is not collected.'
           })
         },
         {

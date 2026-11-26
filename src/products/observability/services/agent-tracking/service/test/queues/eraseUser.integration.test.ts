@@ -96,6 +96,7 @@ let usageSlice = (scope: Scope, userId: string, teamId: string): UsageSliceDocum
   userId,
   workspaceIds: [],
   repoIds: [],
+  ticketRefs: [],
   dims: [
     { kind: 'user', id: userId, w: 1 },
     { kind: 'team', id: teamId, w: 1 }

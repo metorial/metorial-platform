@@ -11,10 +11,19 @@ import { agentTrackingFilters } from './filters';
 import { WithInfo } from './info';
 import { MemberIdentity, memberPath } from './memberParts';
 import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
-import { SessionCost, SessionModels, SessionSummaryCell, settlingLabel } from './sessionParts';
+import { repositoryLabel } from './sessionContext';
+import {
+  FirstAndRest,
+  SessionCost,
+  SessionModels,
+  SessionSummaryCell,
+  settlingLabel
+} from './sessionParts';
 import { clientLabel } from './spendSummary';
 
 let filterRangeText = 'the last 30 days';
+
+let listCellWidths = { repository: 190, branch: 150, tickets: 100 };
 
 type Session = DashboardInstanceAgentTrackingSessionsListOutput['items'][number];
 
@@ -64,6 +73,11 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
       let common = {
         modelId: f.entity(agentTrackingFilters.model(props.instanceId, filterRangeText)),
         clientFamily: f.entity(agentTrackingFilters.client(props.instanceId, filterRangeText)),
+        repositoryId: f.entity(
+          agentTrackingFilters.repository(props.instanceId, filterRangeText)
+        ),
+        branch: f.entity(agentTrackingFilters.branch(props.instanceId, filterRangeText)),
+        ticket: f.entity(agentTrackingFilters.ticket(props.instanceId, filterRangeText)),
         range: lastActiveRangeFilter
       };
 
@@ -86,6 +100,9 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
             memberId,
             modelId: filters.modelId,
             clientFamily: filters.clientFamily,
+            repositoryId: filters.repositoryId,
+            branch: filters.branch,
+            ticket: filters.ticket,
             ...lastActiveRangeQuery(filters.range?.[0])
           }
         )
@@ -97,6 +114,37 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
         id: 'models',
         header: 'Models',
         render: row => <SessionModels session={row} />
+      }),
+      col.custom<Session>({
+        id: 'repository',
+        header: 'Repository',
+        render: row => (
+          <FirstAndRest
+            names={row.context.repositories.map(repositoryLabel)}
+            maxWidth={listCellWidths.repository}
+          />
+        )
+      }),
+      col.custom<Session>({
+        id: 'branch',
+        header: 'Branch',
+        isDefault: false,
+        render: row => (
+          <FirstAndRest
+            names={row.context.branch ? [row.context.branch] : []}
+            maxWidth={listCellWidths.branch}
+          />
+        )
+      }),
+      col.custom<Session>({
+        id: 'tickets',
+        header: 'Tickets',
+        render: row => (
+          <FirstAndRest
+            names={row.context.tickets.map(ticket => ticket.key)}
+            maxWidth={listCellWidths.tickets}
+          />
+        )
       }),
       col.twoLine<Session>({
         id: 'client',

@@ -751,4 +751,242 @@ describe('otlp handler', () => {
       expect(await response.text()).not.toContain(sentinel);
     });
   });
+
+  describe('Desktop reporting settings', () => {
+    let sha = '06de4d4304e317c123c4bbb07394249ed0cde401';
+
+    let desktop = (settings: { toolDetails: boolean; sessionContext: boolean }) => ({
+      contentPolicy: { defaultMode: 'full' as const },
+      organization: {
+        settings: { desktop: { ...settings, sessionTitles: false, historyImport: false } }
+      }
+    });
+
+    let toolDetailsOff = desktop({ toolDetails: false, sessionContext: true });
+
+    let claudeToolResult = (extra: Record<string, unknown> = {}) => ({
+      timeUnixNano: nowNs,
+      body: { stringValue: 'claude_code.tool_result' },
+      attributes: attributes({
+        'event.name': 'tool_result',
+        'session.id': 'session-1',
+        tool_use_id: 'tool-1',
+        tool_name: 'mcp__github__create_pr',
+        success: 'true',
+        tool_parameters: JSON.stringify({ mcp_server_name: 'github', command: sentinel }),
+        tool_input: JSON.stringify({ title: sentinel }),
+        ...extra
+      })
+    });
+
+    let claudeCommit = () =>
+      claudeToolResult({
+        tool_use_id: 'tool-2',
+        tool_name: 'Bash',
+        tool_parameters: JSON.stringify({
+          full_command: `git commit -m "${sentinel}"`,
+          git_commit_id: sha,
+          git_branch: 'feature/MT-7-notes'
+        }),
+        tool_input: JSON.stringify({ command: `git commit -m "${sentinel}"` }),
+        'vcs.ref.head.name': 'feature/MT-7-notes',
+        'vcs.ref.head.revision': sha,
+        'vcs.ref.head.type': 'branch',
+        'vcs.repository.url.full': 'https://github.com/example-org/probe-repo'
+      });
+
+    let codexToolResult = {
+      timeUnixNano: nowNs,
+      attributes: attributes({
+        'event.name': 'codex.tool_result',
+        'conversation.id': 'conv-1',
+        call_id: 'call-1',
+        tool_name: 'create_issue',
+        tool_namespace: 'mcp__linear',
+        mcp_server: 'linear',
+        arguments: JSON.stringify({ text: sentinel }),
+        output: sentinel,
+        success: 'true'
+      })
+    };
+
+    let sendTools = async (pipeline: ReturnType<typeof createPipeline>, path = '/v1/logs') => {
+      await post(pipeline, path, logsBody([claudeToolResult(), claudeCommit()]));
+      await post(
+        pipeline,
+        path,
+        logsBody([codexToolResult], resource('codex_cli_rs'), { name: 'codex_otel.log_only' })
+      );
+    };
+
+    let toolCalls = (pipeline: ReturnType<typeof createPipeline>) =>
+      pipeline.records().filter(record => record.type == 'tool.call');
+
+    it('stores no tool details from a device token while detailed tool reporting is off', async () => {
+      let pipeline = createPipeline(toolDetailsOff);
+
+      await sendTools(pipeline);
+
+      let stored = JSON.stringify(pipeline.records());
+
+      expect(stored).not.toContain(sentinel);
+      expect(stored).not.toMatch(/github__|linear|create_issue|create_pr/);
+      expect(toolCalls(pipeline)).toHaveLength(3);
+      for (let record of toolCalls(pipeline)) {
+        expect(record.content).toEqual([]);
+      }
+      expect(toolCalls(pipeline).map(record => record.data.tool)).toEqual(
+        expect.arrayContaining([
+          { name: 'mcp_tool', kind: 'mcp', class: 'mcp' },
+          { name: 'mcp_tool', kind: 'mcp', class: 'mcp' }
+        ])
+      );
+    });
+
+    it('filters the /v1/otlp route the same way', async () => {
+      let pipeline = createPipeline(toolDetailsOff);
+
+      await sendTools(pipeline, '/v1/otlp');
+
+      expect(toolCalls(pipeline)).toHaveLength(3);
+      expect(JSON.stringify(pipeline.records())).not.toContain(sentinel);
+    });
+
+    it('filters spans the same way', async () => {
+      let pipeline = createPipeline(toolDetailsOff);
+
+      await post(
+        pipeline,
+        '/v1/traces',
+        tracesBody([
+          interactionSpan({
+            name: 'claude_code.tool',
+            attributes: attributes({
+              'session.id': 'session-1',
+              tool_name: 'mcp__probe__echo_word',
+              'anthropic.mcp.server.name': 'probe',
+              'gen_ai.tool.name': 'echo_word',
+              full_command: sentinel
+            })
+          })
+        ])
+      );
+
+      let [record] = pipeline.records();
+
+      expect(record!.data.tool).toEqual({ name: 'mcp_tool', kind: 'mcp', class: 'mcp' });
+      expect(JSON.stringify(record)).not.toMatch(/probe|echo_word|SENTINEL/);
+    });
+
+    it('keeps the commit and branch with detailed tool reporting off', async () => {
+      let pipeline = createPipeline(toolDetailsOff);
+
+      await post(pipeline, '/v1/logs', logsBody([claudeCommit()]));
+
+      let commit = pipeline.records().find(record => record.type == 'vcs.commit');
+      let context = pipeline.records().find(record => record.type == 'session.context');
+
+      expect(commit!.data).toEqual({ sha, branch: 'feature/MT-7-notes', source: 'otel' });
+      expect(commit!.source.fact_key).toBe(`commit:${commit!.ctx.session_key}:${sha}`);
+      expect(context!.data).toMatchObject({ branch: 'feature/MT-7-notes', head: sha });
+    });
+
+    it('filters a device token without Desktop settings by their defaults', async () => {
+      let pipeline = createPipeline({ contentPolicy: { defaultMode: 'full' } });
+
+      await sendTools(pipeline);
+
+      expect(toolCalls(pipeline)).toHaveLength(3);
+      expect(JSON.stringify(pipeline.records())).not.toContain(sentinel);
+    });
+
+    it('stores every MCP tool metric point once its tool names are taken out', async () => {
+      let pipeline = createPipeline(toolDetailsOff);
+      let point = (tool: string, amount: number) => ({
+        asInt: String(amount),
+        startTimeUnixNano: nsAgo(10_000),
+        timeUnixNano: nowNs,
+        attributes: attributes({ tool, success: 'true', 'conversation.id': 'conv-1' })
+      });
+
+      await post(pipeline, '/v1/metrics', {
+        resourceMetrics: [
+          {
+            resource: resource('codex_cli_rs'),
+            scopeMetrics: [
+              {
+                scope: { name: 'codex_otel' },
+                metrics: [
+                  {
+                    name: 'codex.tool.call',
+                    sum: {
+                      aggregationTemporality: 1,
+                      isMonotonic: true,
+                      dataPoints: [
+                        point('mcp__linear__create_issue', 1),
+                        point('mcp__github__create_pr', 3)
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      });
+
+      let stored = pipeline.records();
+
+      expect(stored.map(record => record.data.value).sort()).toEqual([1, 3]);
+      expect(JSON.stringify(stored)).not.toMatch(/linear|github/);
+    });
+
+    it('keeps tool details while detailed tool reporting is on', async () => {
+      let pipeline = createPipeline(desktop({ toolDetails: true, sessionContext: true }));
+
+      await sendTools(pipeline);
+
+      for (let record of toolCalls(pipeline)) {
+        expect(record.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
+      }
+    });
+
+    it('keeps tool details for credentials that are not bound to a device', async () => {
+      let unbound = [
+        {
+          ...toolDetailsOff,
+          binding: { deviceId: undefined, deviceMode: 'ephemeral' as const }
+        },
+        {
+          ...toolDetailsOff,
+          credential: { kind: 'source' as const },
+          binding: { userId: undefined, deviceId: undefined, deviceMode: 'vendor' as const }
+        }
+      ];
+
+      for (let overrides of unbound) {
+        let pipeline = createPipeline(overrides);
+
+        await sendTools(pipeline);
+
+        expect(toolCalls(pipeline)).toHaveLength(3);
+        for (let record of toolCalls(pipeline)) {
+          expect(record.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
+        }
+      }
+    });
+
+    it('stores no session context or commits while session context is off', async () => {
+      let pipeline = createPipeline(desktop({ toolDetails: true, sessionContext: false }));
+
+      await post(pipeline, '/v1/logs', logsBody([claudeCommit()]));
+
+      let types = pipeline.records().map(record => record.type);
+      let stored = JSON.stringify(pipeline.records());
+
+      expect(types).toEqual(['tool.call']);
+      expect(stored).not.toContain(sha);
+      expect(stored).not.toMatch(/MT-7|probe-repo/);
+    });
+  });
 });

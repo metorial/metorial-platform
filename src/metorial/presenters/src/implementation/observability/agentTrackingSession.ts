@@ -1,18 +1,184 @@
 import { v } from '@lowerdeck/validation';
+import type { AgentTrackingSessionContext } from '@metorial/module-agent-tracking-query';
 import { Presenter } from '@metorial/presenter';
 import { agentTrackingSessionDetailType, agentTrackingSessionType } from '../../types';
 import {
   agentTrackingCostSchema,
   agentTrackingMemberSchema,
   agentTrackingModelSchema,
+  agentTrackingRepositorySchema,
   agentTrackingSpendFiguresProperties,
+  agentTrackingTicketSchema,
   agentTrackingTokensSchema,
   agentTrackingUnknownModelNamesSchema,
   presentAgentTrackingCost,
   presentAgentTrackingMember,
+  presentAgentTrackingRepository,
   presentAgentTrackingSpendCost,
+  presentAgentTrackingTicket,
   presentAgentTrackingTokens
 } from './agentTrackingCommon';
+
+let presentContext = (context: AgentTrackingSessionContext) => ({
+  repositories: context.repositories.map(presentAgentTrackingRepository),
+  branch: context.branch,
+  default_branch: context.defaultBranch,
+  head: context.head,
+  worktree: context.worktree,
+  sub_path: context.subPath,
+  permission_mode: context.permissionMode,
+  title: context.title,
+  tickets: context.tickets.map(presentAgentTrackingTicket),
+  pull_requests: context.pullRequests.map(pullRequest => ({
+    key: pullRequest.key,
+    provider: pullRequest.provider,
+    host: pullRequest.host,
+    repository: pullRequest.repository,
+    number: pullRequest.number,
+    kind: pullRequest.kind,
+    url: pullRequest.url
+  })),
+  commit_count: context.commitCount,
+  pull_request_count: context.pullRequestCount,
+  lines: { added: context.lines.added, removed: context.lines.removed }
+});
+
+let contextSchema = v.object(
+  {
+    repositories: v.array(agentTrackingRepositorySchema, {
+      name: 'repositories',
+      description: 'The Git repositories the session ran in. Empty when none was reported.'
+    }),
+    branch: v.nullable(
+      v.string({
+        name: 'branch',
+        description: 'The Git branch the session was on. `null` when none was reported.',
+        examples: ['ada/eng-123-login']
+      })
+    ),
+    default_branch: v.nullable(
+      v.string({
+        name: 'default_branch',
+        description:
+          'The default branch of the repository, as the device saw it. `null` when not reported.',
+        examples: ['main']
+      })
+    ),
+    head: v.nullable(
+      v.string({
+        name: 'head',
+        description: 'The commit checked out, as last reported. `null` when not reported.',
+        examples: ['3f9c2a71d04b5e8a96c1f0d2b7e4a51300c1d2e3']
+      })
+    ),
+    worktree: v.nullable(
+      v.boolean({
+        name: 'worktree',
+        description:
+          'Whether the session ran in a linked Git worktree rather than the main checkout. `null` when not reported.'
+      })
+    ),
+    sub_path: v.nullable(
+      v.string({
+        name: 'sub_path',
+        description:
+          'The folder inside the repository the session ran in, relative to its root. `null` at the root or when not reported.',
+        examples: ['services/api']
+      })
+    ),
+    permission_mode: v.nullable(
+      v.string({
+        name: 'permission_mode',
+        description:
+          'The permission mode the agent ran in, as the agent names it. `null` when not reported.',
+        examples: ['acceptEdits']
+      })
+    ),
+    title: v.nullable(
+      v.string({
+        name: 'title',
+        description:
+          'The title of the session as the agent named it. `null` unless the organization has Session Titles turned on.'
+      })
+    ),
+    tickets: v.array(agentTrackingTicketSchema, {
+      name: 'tickets',
+      description: 'Ticket keys found in the branch name and commit messages, at most 64.'
+    }),
+    pull_requests: v.array(
+      v.object({
+        key: v.string({
+          name: 'key',
+          description: 'Identifies the pull request. Use it as `pull_request` in filters.',
+          examples: ['github.com/acme/api#7']
+        }),
+        provider: v.string({
+          name: 'provider',
+          description: 'The Git provider or host of the repository, as recorded.',
+          examples: ['github.com']
+        }),
+        host: v.nullable(
+          v.string({
+            name: 'host',
+            description:
+              'The host name of the repository. Show it with the pull request unless it is `github.com`, `gitlab.com` or `bitbucket.org`. `null` when it is not a valid host name.',
+            examples: ['github.com']
+          })
+        ),
+        repository: v.string({
+          name: 'repository',
+          description: 'The owner and name of the repository.',
+          examples: ['acme/api']
+        }),
+        number: v.number({
+          name: 'number',
+          description: 'Number of the pull request in its repository, as in its URL.'
+        }),
+        kind: v.enumOf(['opened', 'linked'], {
+          name: 'kind',
+          description:
+            '`opened` when the session opened the pull request, `linked` when it only referred to an existing one.'
+        }),
+        url: v.nullable(
+          v.string({
+            name: 'url',
+            description:
+              'A link to the pull request on public GitHub, GitLab or Bitbucket, or on a self-hosted GitHub or GitLab host that one of the session repositories uses. `null` otherwise.',
+            examples: ['https://github.com/acme/api/pull/7']
+          })
+        )
+      }),
+      {
+        name: 'pull_requests',
+        description: 'Pull requests the session opened or linked, newest first, at most 20.'
+      }
+    ),
+    commit_count: v.number({
+      name: 'commit_count',
+      description: 'Commits made during the session.'
+    }),
+    pull_request_count: v.number({
+      name: 'pull_request_count',
+      description:
+        'Pull requests the session opened or linked, including any past the 20 listed.'
+    }),
+    lines: v.object(
+      {
+        added: v.number({ name: 'added', description: 'Lines added.' }),
+        removed: v.number({ name: 'removed', description: 'Lines removed.' })
+      },
+      {
+        name: 'lines',
+        description: 'Lines of code the session changed, as the agent reported them.'
+      }
+    )
+  },
+  {
+    name: 'context',
+    description:
+      'Where the session worked: repository, branch, tickets and pull requests, as reported by Metorial Desktop or the agent. Links are built by Metorial, never taken from the device.'
+  }
+);
 
 export let v1AgentTrackingSessionPresenter = Presenter.create(agentTrackingSessionType)
   .presenter(async ({ session }) => ({
@@ -35,6 +201,8 @@ export let v1AgentTrackingSessionPresenter = Presenter.create(agentTrackingSessi
     tokens: presentAgentTrackingTokens(session.tokens),
     requests: session.requests,
     summary_pending: session.summaryPending,
+
+    context: presentContext(session.context),
 
     started_at: session.startedAt,
     last_activity_at: session.lastActivityAt,
@@ -111,6 +279,8 @@ export let v1AgentTrackingSessionPresenter = Presenter.create(agentTrackingSessi
           'Whether newer usage has arrived than models, cost and tokens include yet. They catch up within about 30 seconds.'
       }),
 
+      context: contextSchema,
+
       started_at: v.date({ name: 'started_at', description: 'When the session started.' }),
       last_activity_at: v.date({
         name: 'last_activity_at',
@@ -145,6 +315,14 @@ export let v1AgentTrackingSessionDetailPresenter = Presenter.create(
         cost: presentAgentTrackingSpendCost(item.cost),
         requests: item.requests,
         tokens: presentAgentTrackingTokens(item.tokens)
+      })),
+
+      commits: session.commits.map(commit => ({
+        sha: commit.sha,
+        committed_at: commit.committedAt,
+        branch: commit.branch,
+        tickets: commit.tickets.map(presentAgentTrackingTicket),
+        ai_authored: commit.aiAuthored
       }))
     };
   })
@@ -184,6 +362,41 @@ export let v1AgentTrackingSessionDetailPresenter = Presenter.create(
           name: 'usage_by_model',
           description:
             'Requests, tokens and cost of the session per model, most expensive first. Read from the same usage as the spend endpoints, so it fills in when the session settles, about 30 seconds after its requests arrive. Models without requests, tokens or cost are left out.'
+        }
+      ),
+
+      commits: v.array(
+        v.object({
+          sha: v.string({
+            name: 'sha',
+            description: 'The full commit hash.',
+            examples: ['3f9c2a71d04b5e8a96c1f0d2b7e4a51300c1d2e3']
+          }),
+          committed_at: v.date({
+            name: 'committed_at',
+            description: 'When the commit was made.'
+          }),
+          branch: v.nullable(
+            v.string({
+              name: 'branch',
+              description: 'The branch the commit was made on. `null` when not reported.'
+            })
+          ),
+          tickets: v.array(agentTrackingTicketSchema, {
+            name: 'tickets',
+            description: 'Tickets and issue numbers named in the commit message.'
+          }),
+          ai_authored: v.nullable(
+            v.boolean({
+              name: 'ai_authored',
+              description:
+                'Whether the commit is marked as written with an AI coding agent, such as by a co-author trailer. `null` when not reported.'
+            })
+          )
+        }),
+        {
+          name: 'commits',
+          description: 'Commits made during the session, newest first, at most 50.'
         }
       )
     }) as any

@@ -159,7 +159,48 @@ describe('bind', () => {
     );
   });
 
+  it.each(['usage', 'sessions'])(
+    'treats the branch of %s as personal while an organization hides individuals',
+    dataset => {
+      let hidden = { hideIndividuals: true, minGroupUsers: 5 };
+      let filtered = {
+        dataset,
+        measures: [dataset == 'usage' ? 'cost.usd' : 'sessions'],
+        where: { field: 'branch', op: 'in', value: ['ivan/mt-365'] }
+      };
+
+      expect(bindErrors(filtered, hidden).map(error => error.code)).toContain(
+        'personal_field'
+      );
+      expect(bindErrors(filtered)).toEqual([]);
+    }
+  );
+
   it('rejects rows mode on aggregate-only datasets', () => {
     expect(bindErrors({ dataset: 'usage', mode: 'rows' }).length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['usage', 'branch', 'branch'],
+    ['usage', 'ticket', 'ticketRefs'],
+    ['sessions', 'branch', 'context.branch'],
+    ['sessions', 'ticket', 'context.ticketRefs'],
+    ['sessions', 'pull_request', 'summary.pullRequestRefs.key']
+  ])('groups %s by %s', (dataset, dimension, path) => {
+    let pipeline = aggregatePipeline(
+      bind({ dataset, dimensions: [dimension], measures: ['cost.usd'] })
+    );
+
+    expect(JSON.stringify(pipeline)).toContain(`"$${path}"`);
+  });
+
+  it('counts branch and ticket as high-cardinality dimensions', () => {
+    expect(
+      bindErrors({
+        dataset: 'usage',
+        dimensions: ['branch', 'ticket', 'repo', 'user'],
+        measures: ['cost.usd']
+      }).map(error => error.code)
+    ).toContain('too_many_high_cardinality');
   });
 });

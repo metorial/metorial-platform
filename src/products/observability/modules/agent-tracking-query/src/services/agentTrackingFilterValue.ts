@@ -7,6 +7,7 @@ import { invalidInputError } from '../lib/errors';
 import {
   filterValueItem,
   isFilterValueOf,
+  normalizeTicketKey,
   unknownNames,
   unknownOption
 } from '../lib/filterValues';
@@ -22,12 +23,14 @@ import {
   type NormalizedRange,
   type RangeInput
 } from '../lib/range';
+import { lookupRepositories } from '../lib/repositories';
 import { cachedRead, type ReadScope } from '../lib/scope';
 import { fromService, queryCallOptions } from '../lib/service';
 import type {
   AgentTrackingFilterValue,
   AgentTrackingFilterValues,
   AgentTrackingMember,
+  AgentTrackingRepository,
   FilterField
 } from '../lib/types';
 
@@ -63,7 +66,7 @@ class AgentTrackingFilterValueServiceImpl {
     if (fromRequests && !d.values) assertRecordRange(resolveRange(range, now), 'Seat values');
 
     if (d.values) {
-      let values = unique(d.values);
+      let values = unique(d.field == 'ticket' ? d.values.map(normalizeTicketKey) : d.values);
       return await fromService(() => this.describeValues({ ...d, values, range, now }));
     }
 
@@ -92,14 +95,18 @@ class AgentTrackingFilterValueServiceImpl {
           (item): item is typeof item & { value: string } => typeof item.value == 'string'
         );
 
-        let members =
+        let [members, repositories] = await Promise.all([
           d.field == 'member'
-            ? await lookupMembers({
+            ? lookupMembers({
                 scope: d,
                 ids: values.map(item => item.value),
                 names: new Map(values.map(item => [item.value, item.label?.name ?? null]))
               })
-            : new Map<string, AgentTrackingMember>();
+            : new Map<string, AgentTrackingMember>(),
+          d.field == 'repository'
+            ? lookupRepositories({ scope: d, ids: values.map(item => item.value) })
+            : new Map<string, AgentTrackingRepository>()
+        ]);
 
         let items = values.map(item =>
           filterValueItem(
@@ -107,6 +114,7 @@ class AgentTrackingFilterValueServiceImpl {
             d.field == 'client' ? fromServiceFamily(item.value) : item.value,
             {
               member: members.get(item.value),
+              repository: repositories.get(item.value),
               name: item.label?.name,
               requests: item.count
             }
@@ -168,14 +176,16 @@ class AgentTrackingFilterValueServiceImpl {
   ): Promise<AgentTrackingFilterValue[]> {
     if (!d.values.length) return [];
 
-    let [members, names] = await Promise.all([
+    let [members, names, repositories] = await Promise.all([
       d.field == 'member' ? lookupMembers({ scope: d, ids: d.values }) : undefined,
-      d.field == 'model' ? lookupModelNames(d.values) : undefined
+      d.field == 'model' ? lookupModelNames(d.values) : undefined,
+      d.field == 'repository' ? lookupRepositories({ scope: d, ids: d.values }) : undefined
     ]);
 
     return d.values.map(value =>
       filterValueItem(d.field, value, {
         member: members?.get(value),
+        repository: repositories?.get(value),
         name: names?.get(value)
       })
     );

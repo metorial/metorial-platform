@@ -243,6 +243,82 @@ export let ingestFirstUsage = async (
   return source;
 };
 
+export type DesktopContext = {
+  remoteUrl: string;
+  branch: string;
+  ticketRefs: string[];
+  pullRequest: { provider: string; repository: string; number: number };
+};
+
+// Desktop context is accepted only from a device-bound token.
+export let sendDesktopContext = async (
+  target: { ids: TrackedIds; ingestUrl: string },
+  sessionId: string,
+  context: DesktopContext
+) => {
+  let token = await agentTracking().ingestToken.create({
+    organizationId: target.ids.organizationId,
+    instanceId: (await trackedInstance(target.ids)).id,
+    name: uniqueId('desktop'),
+    userRef: uniqueId('user'),
+    deviceRef: uniqueId('device')
+  });
+
+  let payloads: Record<string, unknown>[] = [
+    {
+      kind: 'session_context',
+      remote_url: context.remoteUrl,
+      branch: context.branch,
+      default_branch: 'main',
+      worktree: false,
+      sub_path: 'services/api'
+    },
+    {
+      kind: 'commit',
+      sha: 'c'.repeat(40),
+      ticket_refs: context.ticketRefs,
+      ai_authored: true
+    },
+    {
+      kind: 'pull_request',
+      relation: 'opened',
+      provider: context.pullRequest.provider,
+      repository: context.pullRequest.repository,
+      number: context.pullRequest.number
+    },
+    { kind: 'session_stats', lines_added: 12, lines_removed: 3 }
+  ];
+
+  let lines = [
+    {
+      batch_id: uniqueId('batch'),
+      mode: 'live',
+      sent_at: new Date().toISOString(),
+      agent: { name: 'metorial-desktop', version: '1.0.0', install_id: uniqueId('install') }
+    },
+    ...payloads.map((payload, index) => ({
+      client: 'claude-code',
+      channel: 'envelope',
+      dialect: 'metorial.desktop.context.v1',
+      source: { kind: 'desktop', ref: `session:${sessionId}`, seq: index + 1 },
+      observed_at: new Date().toISOString(),
+      payload: { session_id: sessionId, ...payload }
+    }))
+  ];
+
+  let response = await fetch(`${target.ingestUrl.replace(/\/+$/, '')}/v1/bulk`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-ndjson',
+      authorization: `Bearer ${token.secret}`
+    },
+    body: lines.map(line => JSON.stringify(line)).join('\n') + '\n'
+  });
+  await expectIngested(response);
+
+  return (await response.json()) as { accepted: number; rejected: number };
+};
+
 export let serviceCatalogModels = async (ids: TrackedIds) => {
   let models = new Map<string, CatalogModel | null>();
 

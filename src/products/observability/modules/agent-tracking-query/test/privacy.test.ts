@@ -36,10 +36,18 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('sumSpendCells', () => {
-  it('adds up amounts, counts, reported costs and tokens', () => {
-    let total = sumSpendCells([figures(1.5), figures(0.25)]);
+  it('adds up amounts, counts, reported costs, tokens and tokens without a price', () => {
+    let total = sumSpendCells([
+      figures(1.5),
+      figures(0.25, { tokens_without_cost: 3, tokens_without_list_price: 1 })
+    ]);
 
-    expect(total).toMatchObject({ 'cost.usd': 1_750_000_000n, requests: 8 });
+    expect(total).toMatchObject({
+      'cost.usd': 1_750_000_000n,
+      requests: 8,
+      tokens_without_cost: 3,
+      tokens_without_list_price: 1
+    });
     expect(total['cost.reported']).toHaveLength(2);
     expect(total.tokens).toMatchObject({ output: 2, total: 8 });
   });
@@ -257,7 +265,7 @@ describe('breakdown with individuals hidden', () => {
   it('is rejected for every grouping before asking the service', async () => {
     hideIndividuals();
 
-    for (let groupBy of ['member', 'model'] as const) {
+    for (let groupBy of ['member', 'model', 'repository', 'branch', 'ticket'] as const) {
       let error = await rejection(
         agentTrackingSpendService.getBreakdown({
           ...scope,
@@ -339,7 +347,15 @@ describe('reads about individuals with individuals hidden', () => {
   });
 
   it('rejects the filter values of every field', async () => {
-    for (let field of ['member', 'model', 'client', 'seat'] as const) {
+    for (let field of [
+      'member',
+      'model',
+      'client',
+      'seat',
+      'repository',
+      'branch',
+      'ticket'
+    ] as const) {
       let error = await rejection(
         agentTrackingFilterValueService.listFilterValues({
           ...scope,

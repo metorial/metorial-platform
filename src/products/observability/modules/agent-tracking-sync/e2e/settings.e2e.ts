@@ -16,7 +16,13 @@ type Fixture = Awaited<ReturnType<typeof loadOrganizationFixture>>;
 
 let defaults = {
   privacy: { hideIndividuals: false, minGroupUsers: 5 },
-  desktop: { toolDetails: false },
+  desktop: {
+    toolDetails: false,
+    sessionContext: true,
+    sessionTitles: false,
+    historyImport: false
+  },
+  links: { ticketUrlTemplate: null },
   retention: { recordDays: null, contentDays: null, usageDays: null },
   content: { mode: 'basic' },
   classification: { deterministicEnabled: true, aiEnabled: false }
@@ -87,7 +93,8 @@ describe('module-agent-tracking-sync settings without changes', () => {
       settings: {
         organizationId: org.ids.organizationId,
         privacy: defaults.privacy,
-        desktop: defaults.desktop
+        desktop: defaults.desktop,
+        links: defaults.links
       },
       serviceStatus: 'applied'
     });
@@ -237,12 +244,14 @@ describe('module-agent-tracking-sync settings lifecycle', () => {
         settings: {
           organizationId: org.ids.organizationId,
           privacy: { hideIndividuals: true, minGroupUsers: 7 },
-          desktop: defaults.desktop
+          desktop: defaults.desktop,
+          links: defaults.links
         },
         previousSettings: {
           organizationId: org.ids.organizationId,
           privacy: defaults.privacy,
-          desktop: defaults.desktop
+          desktop: defaults.desktop,
+          links: defaults.links
         }
       },
       {
@@ -290,6 +299,69 @@ describe('module-agent-tracking-sync settings lifecycle', () => {
         contentPolicy: { defaultMode: 'basic' },
         classification: { enabled: true, ai: { enabled: false } }
       }
+    });
+  });
+});
+
+describe('module-agent-tracking-sync Desktop settings and links', () => {
+  let org = useOrganization();
+
+  it('stores the Desktop settings and the ticket link and applies the Desktop settings in the service', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let desktop = {
+      toolDetails: true,
+      sessionContext: true,
+      sessionTitles: true,
+      historyImport: true
+    };
+
+    let wider = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: {
+        desktop,
+        links: { ticketUrlTemplate: ' https://linear.app/acme/issue/{key} ' }
+      }
+    });
+
+    expect(wider).toMatchObject({
+      settings: {
+        desktop,
+        links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
+      },
+      serviceStatus: 'applied'
+    });
+    expect((await storedRows(fixture)).organization).toMatchObject({
+      ...desktop,
+      ticketUrlTemplate: 'https://linear.app/acme/issue/{key}'
+    });
+    expect((await trackedOrganization(org.ids)).settings.desktop).toEqual(desktop);
+    expect(
+      (
+        await agentTrackingSettingsService.getOrganizationSettings({
+          organization: fixture.organization
+        })
+      ).serviceStatus
+    ).toBe('applied');
+
+    let narrower = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: {
+        desktop: { sessionContext: false, sessionTitles: false },
+        links: { ticketUrlTemplate: '' }
+      }
+    });
+
+    let narrowed = { ...desktop, sessionContext: false, sessionTitles: false };
+    expect(narrower).toMatchObject({
+      settings: { desktop: narrowed, links: { ticketUrlTemplate: null } },
+      serviceStatus: 'applied'
+    });
+    expect((await trackedOrganization(org.ids)).settings.desktop).toEqual(narrowed);
+    expect((await storedRows(fixture)).organization).toMatchObject({
+      ...narrowed,
+      ticketUrlTemplate: null
     });
   });
 });

@@ -26,7 +26,13 @@ let defaults = {
     object: 'agent_tracking.organization_settings',
     service_status: 'applied',
     privacy: { hide_individuals: false, min_group_users: 5 },
-    desktop: { tool_details: false }
+    desktop: {
+      tool_details: false,
+      session_context: true,
+      session_titles: false,
+      history_import: false
+    },
+    links: { ticket_url_template: null }
   },
   project: {
     object: 'agent_tracking.project_settings',
@@ -234,6 +240,22 @@ describe('api-core dashboard: agent tracking settings', () => {
     for (let [level, body] of [
       ['organization', { privacy: { min_group_users: 2 } }],
       ['organization', { privacy: { min_group_users: 101 } }],
+      ['organization', { links: { ticket_url_template: 'https://linear.app/acme/issue' } }],
+      ['organization', { links: { ticket_url_template: 'ftp://tickets.example.com/{key}' } }],
+      ['organization', { links: { ticket_url_template: 'linear.app/acme/issue/{key}' } }],
+      ['organization', { links: { ticket_url_template: 'https://{key}.example.com/x' } }],
+      [
+        'organization',
+        { links: { ticket_url_template: 'https://tickets.example.com/\n{key}' } }
+      ],
+      [
+        'organization',
+        {
+          links: {
+            ticket_url_template: `https://tickets.example.com/${'a'.repeat(500)}/{key}`
+          }
+        }
+      ],
       ['project', { retention: { record_days: 0 } }],
       ['project', { retention: { usage_days: 1.5 } }],
       ['instance', { content: { mode: 'everything' } }]
@@ -245,7 +267,13 @@ describe('api-core dashboard: agent tracking settings', () => {
   it('presents each change and audits who changed what, with the values before', async () => {
     let privacy = await update('organization', {
       privacy: { hide_individuals: true, min_group_users: 7 },
-      desktop: { tool_details: true }
+      desktop: {
+        tool_details: true,
+        session_context: false,
+        session_titles: true,
+        history_import: true
+      },
+      links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });
     let retention = await update('project', {
       retention: { record_days: 30, usage_days: 200 }
@@ -258,7 +286,13 @@ describe('api-core dashboard: agent tracking settings', () => {
     expect(privacy).toMatchObject({
       service_status: 'applied',
       privacy: { hide_individuals: true, min_group_users: 7 },
-      desktop: { tool_details: true }
+      desktop: {
+        tool_details: true,
+        session_context: false,
+        session_titles: true,
+        history_import: true
+      },
+      links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });
     expect(retention).toMatchObject({
       service_status: 'applied',
@@ -279,7 +313,13 @@ describe('api-core dashboard: agent tracking settings', () => {
     expect(
       await update('organization', {
         privacy: { hide_individuals: false, min_group_users: 5 },
-        desktop: { tool_details: false }
+        desktop: {
+          tool_details: false,
+          session_context: true,
+          session_titles: false,
+          history_import: false
+        },
+        links: { ticket_url_template: '' }
       })
     ).toMatchObject(defaults.organization);
     expect(
@@ -320,9 +360,25 @@ describe('api-core dashboard: agent tracking settings', () => {
       organization_actor_id: owner.actor_id,
       payload: {
         organizationId: org.ids.organizationId,
-        privacy: { hideIndividuals: true, minGroupUsers: 7 }
+        privacy: { hideIndividuals: true, minGroupUsers: 7 },
+        desktop: {
+          toolDetails: true,
+          sessionContext: false,
+          sessionTitles: true,
+          historyImport: true
+        },
+        links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
       },
-      previous_attributes: { privacy: { hideIndividuals: false, minGroupUsers: 5 } }
+      previous_attributes: {
+        privacy: { hideIndividuals: false, minGroupUsers: 5 },
+        desktop: {
+          toolDetails: false,
+          sessionContext: true,
+          sessionTitles: false,
+          historyImport: false
+        },
+        links: { ticketUrlTemplate: null }
+      }
     });
     expect(
       entries.find((item: any) => item.payload?.retention?.recordDays === 30)
@@ -349,7 +405,16 @@ describe('api-core dashboard: agent tracking settings', () => {
     );
     expect(restored).toMatchObject({
       organization_actor_id: owner.actor_id,
-      previous_attributes: { privacy: { hideIndividuals: true, minGroupUsers: 7 } }
+      previous_attributes: {
+        privacy: { hideIndividuals: true, minGroupUsers: 7 },
+        desktop: {
+          toolDetails: true,
+          sessionContext: false,
+          sessionTitles: true,
+          historyImport: true
+        },
+        links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
+      }
     });
   }, 180_000);
 });

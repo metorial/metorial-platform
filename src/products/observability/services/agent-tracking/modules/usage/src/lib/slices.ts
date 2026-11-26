@@ -134,6 +134,8 @@ export let buildSessionSlices = (d: {
     agentId: session.observed?.agentId,
     workspaceIds: session.context?.workspaceIds ?? [],
     repoIds: session.context?.repoIds ?? [],
+    ...(session.context?.branch ? { branch: session.context.branch } : {}),
+    ticketRefs: session.context?.ticketRefs ?? [],
     ...attributionFields(d.attribution),
 
     client: session.client,
@@ -169,6 +171,7 @@ export let buildSessionlessSlices = (d: {
     agentId: slice.agentId,
     workspaceIds: [],
     repoIds: [],
+    ticketRefs: [],
     ...attributionFields(attribution),
 
     client: slice.client ?? { family: 'unknown' },

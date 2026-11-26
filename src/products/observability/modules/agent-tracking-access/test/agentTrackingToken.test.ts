@@ -73,6 +73,20 @@ describe('agentTrackingTokenService', () => {
     let rotated = { oid: 2n, status: 'active' as const };
     let signedOut = { oid: 3n, status: 'signed_out' as const };
 
+    let defaultDesktop = {
+      toolDetails: false,
+      sessionContext: true,
+      sessionTitles: false,
+      historyImport: false
+    };
+
+    let desktopOff = {
+      toolDetails: false,
+      sessionContext: false,
+      sessionTitles: false,
+      historyImport: false
+    };
+
     it('returns the newest active bound token of each signed-in device', async () => {
       vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([
         { consumerDeviceOid: 2n, serviceIngestTokenId: 'git_old' },
@@ -89,13 +103,24 @@ describe('agentTrackingTokenService', () => {
         orderBy: { oid: 'asc' },
         select: { consumerDeviceOid: true, serviceIngestTokenId: true }
       });
-      expect(telemetry.get(1n)).toEqual({ enabled: true, tokenId: null, toolDetails: false });
+      expect(telemetry.get(1n)).toEqual({
+        enabled: true,
+        directExport: true,
+        tokenId: null,
+        ...defaultDesktop
+      });
       expect(telemetry.get(2n)).toEqual({
         enabled: true,
+        directExport: true,
         tokenId: 'git_new',
-        toolDetails: false
+        ...defaultDesktop
       });
-      expect(telemetry.get(3n)).toEqual({ enabled: true, tokenId: null, toolDetails: false });
+      expect(telemetry.get(3n)).toEqual({
+        enabled: true,
+        directExport: true,
+        tokenId: null,
+        ...defaultDesktop
+      });
       expect(mocks.agentTracking.ingestToken.create).not.toHaveBeenCalled();
     });
 
@@ -107,12 +132,23 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null, toolDetails: false });
+      expect(telemetry.get(1n)).toEqual({
+        enabled: false,
+        directExport: false,
+        tokenId: null,
+        ...desktopOff
+      });
       expect(db.agentTrackingIngestToken.findMany).not.toHaveBeenCalled();
     });
 
-    it('carries the instance setting for detailed tool reporting only while telemetry is on', async () => {
-      mocks.toolDetails.value = true;
+    it('carries the organization Desktop settings only while telemetry is on', async () => {
+      let desktop = {
+        toolDetails: true,
+        sessionContext: false,
+        sessionTitles: true,
+        historyImport: true
+      };
+      mocks.desktop.value = desktop;
       vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
 
       let on = await agentTrackingTokenService.listDeviceTelemetry({
@@ -125,8 +161,18 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(on.get(1n)).toEqual({ enabled: true, tokenId: null, toolDetails: true });
-      expect(off.get(1n)).toEqual({ enabled: false, tokenId: null, toolDetails: false });
+      expect(on.get(1n)).toEqual({
+        enabled: true,
+        directExport: true,
+        tokenId: null,
+        ...desktop
+      });
+      expect(off.get(1n)).toEqual({
+        enabled: false,
+        directExport: false,
+        tokenId: null,
+        ...desktopOff
+      });
     });
 
     it('reports telemetry off while the public ingest URL is not set', async () => {
@@ -137,7 +183,12 @@ describe('agentTrackingTokenService', () => {
         consumerDevices: [active]
       });
 
-      expect(telemetry.get(1n)).toEqual({ enabled: false, tokenId: null, toolDetails: false });
+      expect(telemetry.get(1n)).toEqual({
+        enabled: false,
+        directExport: false,
+        tokenId: null,
+        ...desktopOff
+      });
     });
   });
 

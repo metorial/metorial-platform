@@ -2727,7 +2727,15 @@ export let consumerDeviceType = PresentableType.create<{
     consumerProfile: ConsumerProfile;
     detections: ConsumerDeviceDetection[];
   };
-  telemetry?: { enabled: boolean; tokenId: string | null; toolDetails: boolean };
+  telemetry?: {
+    enabled: boolean;
+    tokenId: string | null;
+    directExport: boolean;
+    toolDetails: boolean;
+    sessionContext: boolean;
+    sessionTitles: boolean;
+    historyImport: boolean;
+  };
   monitor?: DeviceMonitor;
   install?: { connectionMode: ConsumerDeviceConnectionMode };
 }>()('consumer.device');

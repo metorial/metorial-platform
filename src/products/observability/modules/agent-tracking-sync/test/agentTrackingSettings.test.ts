@@ -53,6 +53,20 @@ let auditScope = { actor: 'test' } as any;
 
 let instanceScope = { organization, project, instance };
 
+let defaultDesktop = {
+  toolDetails: false,
+  sessionContext: true,
+  sessionTitles: false,
+  historyImport: false
+};
+
+let defaultStoredOrganization = {
+  hideIndividuals: false,
+  minGroupUsers: 5,
+  ...defaultDesktop,
+  ticketUrlTemplate: null
+};
+
 let record = (name: string) =>
   vi.fn(async (..._args: any[]) => {
     mocks.calls.push(name);
@@ -114,7 +128,8 @@ describe('agentTrackingSettingsService', () => {
       settings: {
         organizationId: 'org_1',
         privacy: { hideIndividuals: true, minGroupUsers: 5 },
-        desktop: { toolDetails: false }
+        desktop: defaultDesktop,
+        links: { ticketUrlTemplate: null }
       },
       serviceStatus: 'applied'
     });
@@ -124,17 +139,19 @@ describe('agentTrackingSettingsService', () => {
       create: {
         id: 'agentTrackingOrganizationSettings_1',
         organizationOid: 1n,
-        hideIndividuals: true,
-        minGroupUsers: 5,
-        toolDetails: false
+        ...defaultStoredOrganization,
+        hideIndividuals: true
       },
-      update: { hideIndividuals: true, minGroupUsers: 5, toolDetails: false }
+      update: { ...defaultStoredOrganization, hideIndividuals: true }
     });
     expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledWith(
       {
         ref: 'org_1',
         name: 'Acme',
-        settings: { privacy: { hideIndividuals: true, minGroupUsers: 5 } }
+        settings: {
+          privacy: { hideIndividuals: true, minGroupUsers: 5 },
+          desktop: defaultDesktop
+        }
       },
       { timeoutMs: 3_000, retry: false }
     );
@@ -148,40 +165,147 @@ describe('agentTrackingSettingsService', () => {
       previousSettings: {
         organizationId: 'org_1',
         privacy: { hideIndividuals: false, minGroupUsers: 5 },
-        desktop: { toolDetails: false }
+        desktop: defaultDesktop,
+        links: { ticketUrlTemplate: null }
       },
       auditScope
     });
   });
 
-  it('stores detailed tool reporting without changing what the service is told', async () => {
+  it('stores Desktop settings that report more, then tells the service', async () => {
     let result = await agentTrackingSettingsService.updateOrganizationSettings({
       organization,
       auditScope,
-      input: { desktop: { toolDetails: true } }
+      input: { desktop: { toolDetails: true, sessionTitles: true, historyImport: true } }
     });
+
+    let desktop = {
+      toolDetails: true,
+      sessionContext: true,
+      sessionTitles: true,
+      historyImport: true
+    };
 
     expect(result.settings).toEqual({
       organizationId: 'org_1',
       privacy: { hideIndividuals: false, minGroupUsers: 5 },
-      desktop: { toolDetails: true }
+      desktop,
+      links: { ticketUrlTemplate: null }
     });
+    expect(mocks.calls).toEqual(['write', 'push:organization']);
     expect(mocks.db.agentTrackingOrganizationSettings.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        update: { hideIndividuals: false, minGroupUsers: 5, toolDetails: true }
-      })
+      expect.objectContaining({ update: { ...defaultStoredOrganization, ...desktop } })
     );
     expect(mocks.agentTracking.organization.upsert).toHaveBeenCalledWith(
       {
         ref: 'org_1',
         name: 'Acme',
-        settings: { privacy: { hideIndividuals: false, minGroupUsers: 5 } }
+        settings: { privacy: { hideIndividuals: false, minGroupUsers: 5 }, desktop }
       },
       { timeoutMs: 3_000, retry: false }
     );
     expect(
       (await agentTrackingSettingsService.getOrganizationValues({ organization })).desktop
-    ).toEqual({ toolDetails: true });
+    ).toEqual(desktop);
+  });
+
+  it.each([
+    ['session context', { sessionContext: false }, {}],
+    ['detailed tool reporting', { toolDetails: false }, { toolDetails: true }],
+    ['session titles', { sessionTitles: false }, { sessionTitles: true }],
+    ['history import', { historyImport: false }, { historyImport: true }]
+  ])('tells the service before storing %s switched off', async (_name, desktop, stored) => {
+    storedSettings.organization = { ...defaultStoredOrganization, ...stored };
+
+    let result = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization,
+      auditScope,
+      input: { desktop }
+    });
+
+    expect(result.serviceStatus).toBe('applied');
+    expect(mocks.calls).toEqual(['push:organization', 'write', 'push:organization']);
+    expect(mocks.agentTracking.organization.upsert.mock.calls[0]![0].settings.desktop).toEqual(
+      { ...defaultDesktop, ...desktop }
+    );
+  });
+
+  it('changes nothing when a Desktop setting switched off does not reach the service', async () => {
+    storedSettings.organization = { ...defaultStoredOrganization, sessionTitles: true };
+    mocks.agentTracking.organization.upsert = vi.fn(async () => {
+      throw new Error('agent tracking is unavailable');
+    });
+
+    await expect(
+      agentTrackingSettingsService.updateOrganizationSettings({
+        organization,
+        auditScope,
+        input: { desktop: { sessionTitles: false } }
+      })
+    ).rejects.toMatchObject({ data: { status: 503 } });
+
+    expect(mocks.db.agentTrackingOrganizationSettings.upsert).not.toHaveBeenCalled();
+    expect(mocks.queue).toHaveBeenCalledWith(
+      { type: 'organization', id: 'org_1' },
+      { id: 'organization:org_1' }
+    );
+  });
+
+  it('stores the ticket link trimmed, clears it when empty, and keeps it out of the service', async () => {
+    let set = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization,
+      auditScope,
+      input: { links: { ticketUrlTemplate: '  https://linear.app/acme/issue/{key} ' } }
+    });
+
+    expect(set.settings.links).toEqual({
+      ticketUrlTemplate: 'https://linear.app/acme/issue/{key}'
+    });
+    expect(mocks.calls).toEqual(['write', 'push:organization']);
+    expect(
+      mocks.agentTracking.organization.upsert.mock.calls[0]![0].settings
+    ).not.toHaveProperty('links');
+
+    let cleared = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization,
+      auditScope,
+      input: { links: { ticketUrlTemplate: '' } }
+    });
+
+    expect(cleared.settings.links).toEqual({ ticketUrlTemplate: null });
+    expect(storedSettings.organization).toMatchObject({ ticketUrlTemplate: null });
+
+    let kept = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization,
+      auditScope,
+      input: { links: { ticketUrlTemplate: undefined }, desktop: { sessionTitles: true } }
+    });
+
+    expect(kept.settings.links).toEqual({ ticketUrlTemplate: null });
+  });
+
+  it('answers applied only while the service holds the stored Desktop settings', async () => {
+    storedSettings.organization = { ...defaultStoredOrganization, sessionTitles: true };
+    let remote = (desktop: Record<string, boolean>) => ({
+      settings: {
+        allowedEmailDomains: [],
+        sliceErasureMode: null,
+        privacy: { hideIndividuals: false, minGroupUsers: 5 },
+        desktop
+      }
+    });
+
+    mocks.agentTracking.organization.get.mockResolvedValueOnce(
+      remote({ ...defaultDesktop, sessionTitles: true })
+    );
+    mocks.agentTracking.organization.get.mockResolvedValueOnce(remote(defaultDesktop));
+
+    let status = async () =>
+      (await agentTrackingSettingsService.getOrganizationSettings({ organization }))
+        .serviceStatus;
+
+    expect(await status()).toBe('applied');
+    expect(await status()).toBe('pending');
   });
 
   it('keeps a wider change and queues the push when the service does not answer', async () => {

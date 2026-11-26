@@ -38,7 +38,8 @@ let spendFiltersOf = (query: {
 export let dashboardAgentTrackingSpendController = Controller.create(
   {
     name: 'Agent Tracking Spend',
-    description: 'What AI coding agents cost, over time and by member or model.',
+    description:
+      'What AI coding agents cost, over time and by member, model, repository, branch or ticket.',
     hideInDocs: true
   },
   {
@@ -78,7 +79,7 @@ export let dashboardAgentTrackingSpendController = Controller.create(
         {
           name: 'Get spend breakdown',
           description:
-            'Returns the cost of the instance over a range by member or by model: the top 10 with their share of the total, then everything else as one item. Results can be up to a minute old.',
+            'Returns the cost of the instance over a range by member, model, repository, branch or ticket: the top 10 with their share of the total, then everything else as one item. Results can be up to a minute old.',
           hideInDocs: true
         }
       )
@@ -87,7 +88,8 @@ export let dashboardAgentTrackingSpendController = Controller.create(
         v.object({
           group_by: v.enumOf(breakdownGroupKeys, {
             name: 'group_by',
-            description: 'Group the cost by member or by model.'
+            description:
+              'Group the cost by `member`, `model`, `repository`, `branch` or `ticket`. A session with several repositories or tickets counts fully in each, so those groups are not shares of one total.'
           }),
           ...rangeQueryFields,
           ...spendFilterFields,

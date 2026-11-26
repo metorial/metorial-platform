@@ -3,7 +3,7 @@ import { Service } from '@lowerdeck/service';
 import type { Organization } from '@mtsrc/agent-tracking-db';
 import { db } from '@mtsrc/agent-tracking-db';
 import { snowflake } from '@mtsrc/agent-tracking-db';
-import { mergeSettings } from '../lib/settings';
+import { mergeOrganizationSettings } from '../lib/settings';
 import { Events } from '@mtsrc/agent-tracking-events';
 import type { OrganizationSettings } from '@mtsrc/agent-tracking-spec';
 
@@ -12,7 +12,7 @@ class OrganizationServiceImpl {
     input: { ref: string; name?: string | null; settings?: OrganizationSettings };
   }) {
     let existing = await db.organization.findUnique({ where: { ref: d.input.ref } });
-    let settings = mergeSettings(existing?.settings, d.input.settings);
+    let settings = mergeOrganizationSettings(existing?.settings, d.input.settings);
 
     let organization = await db.organization.upsert({
       where: { ref: d.input.ref },

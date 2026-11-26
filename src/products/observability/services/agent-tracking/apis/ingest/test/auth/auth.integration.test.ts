@@ -382,7 +382,11 @@ describe('authenticated ingest routes', () => {
   });
 
   it('enforces allowed clients on hook routes', async () => {
-    let { secret } = await createToken({ allowedClients: ['codex'] });
+    let { secret } = await createToken({
+      allowedClients: ['codex'],
+      deviceRef: undefined,
+      deviceMode: 'ephemeral'
+    });
 
     let denied = await ingest('/v1/ingest/hooks/claude-code', secret);
     let body = (await denied.json()) as { code: string };

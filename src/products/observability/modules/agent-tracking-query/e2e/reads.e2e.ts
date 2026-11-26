@@ -1,4 +1,5 @@
 import {
+  eventually,
   expectServiceError,
   firstPage,
   uniqueEmail,
@@ -8,8 +9,12 @@ import {
 import {
   claudeRequest,
   ingestFirstUsage,
+  sendDesktopContext,
+  serviceSessions,
   type ClaudeCodeRequest
 } from '@metorial/agent-tracking-e2e';
+import { loadOrganizationFixture } from '@metorial/e2e/db';
+import { agentTrackingSettingsService } from '@metorial/module-agent-tracking-sync';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   agentTrackingFilterValueService,
@@ -912,5 +917,178 @@ describe('module-agent-tracking-query spend over several days', () => {
     });
     expect(breakdown.items).toEqual([]);
     expect(await sessions(scope, { ...filters, range })).toEqual([]);
+  });
+});
+
+describe('module-agent-tracking-query session context', () => {
+  let org = useOrganization();
+
+  let sessionIds = { reported: uniqueId('session'), plain: uniqueId('session') };
+  let now = Date.now();
+  let requests = [
+    claudeRequest({ sessionId: sessionIds.reported, at: new Date(now - 10 * minuteMs) }),
+    small({ sessionId: sessionIds.plain, at: new Date(now - 5 * minuteMs) })
+  ];
+  let lastHour = { from: new Date(now - 60 * minuteMs), to: new Date(now + 10 * minuteMs) };
+
+  let scope: Scope;
+
+  beforeAll(async () => {
+    let source = await ingestFirstUsage(org, requests);
+
+    expect(
+      await sendDesktopContext(
+        { ids: org.ids, ingestUrl: source.ingest_url },
+        sessionIds.reported,
+        {
+          remoteUrl: 'https://github.com/acme/api.git',
+          branch: 'ada/eng-12-login',
+          ticketRefs: ['ENG-9'],
+          pullRequest: { provider: 'github', repository: 'acme/api', number: 7 }
+        }
+      )
+    ).toMatchObject({ rejected: 0 });
+
+    await eventually(
+      async () => {
+        let reported = (await serviceSessions(org.ids)).find(
+          session => session.context.branch == 'ada/eng-12-login'
+        );
+        expect(reported?.summary?.pullRequestRefs).toHaveLength(1);
+        expect(reported?.context.repoIds).toHaveLength(1);
+      },
+      { timeoutMs: 120_000, intervalMs: 1_000 }
+    );
+
+    scope = await readScope(org);
+  }, 300_000);
+
+  it('presents the repository, branch, tickets and pull request of a session', async () => {
+    let [session] = await sessions(scope, { tickets: ['eng-12'] });
+
+    expect(session!.context).toMatchObject({
+      repositories: [
+        {
+          provider: 'github.com',
+          owner: 'acme',
+          name: 'api',
+          url: 'https://github.com/acme/api'
+        }
+      ],
+      branch: 'ada/eng-12-login',
+      defaultBranch: 'main',
+      worktree: false,
+      subPath: 'services/api',
+      title: null,
+      pullRequests: [
+        {
+          key: 'github.com/acme/api#7',
+          number: 7,
+          kind: 'opened',
+          url: 'https://github.com/acme/api/pull/7'
+        }
+      ],
+      commitCount: 1,
+      pullRequestCount: 1,
+      lines: { added: 12, removed: 3 }
+    });
+    expect(session!.context.tickets.map(ticket => ticket.key).sort()).toEqual([
+      'ENG-12',
+      'ENG-9'
+    ]);
+    expect(session!.context.tickets.every(ticket => ticket.url === null)).toBe(true);
+    expect(session).not.toHaveProperty('commits');
+
+    let detail = await agentTrackingSessionService.getSession({
+      ...scope,
+      sessionId: session!.id
+    });
+    expect(detail.commits).toEqual([
+      expect.objectContaining({
+        sha: 'c'.repeat(40),
+        committedAt: expect.any(Date),
+        aiAuthored: true,
+        tickets: [{ key: 'ENG-9', url: null }]
+      })
+    ]);
+  });
+
+  it('filters sessions by repository, branch, ticket and pull request', async () => {
+    let [reported] = await sessions(scope, { branches: ['ada/eng-12-login'] });
+    let repositoryId = reported!.context.repositories[0]!.id;
+
+    for (let filters of [
+      { repositoryIds: [repositoryId] },
+      { tickets: ['ENG-9'] },
+      { pullRequests: ['github.com/acme/api#7'] }
+    ]) {
+      let listed = await sessions(scope, filters);
+      expect(
+        listed.map(session => session.id),
+        JSON.stringify(filters)
+      ).toEqual([reported!.id]);
+    }
+
+    expect(await sessions(scope, { branches: ['main'] })).toEqual([]);
+    expect(await sessions(scope, { repositoryIds: ['aten_unknown'] })).toEqual([]);
+  });
+
+  it('links tickets with the template of the organization and titles only when allowed', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    await agentTrackingSettingsService.updateOrganizationSettings({
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: { links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' } }
+    });
+
+    let [session] = await sessions(scope, { tickets: ['ENG-12'] });
+    expect(session!.context.tickets).toEqual(
+      expect.arrayContaining([{ key: 'ENG-12', url: 'https://linear.app/acme/issue/ENG-12' }])
+    );
+    expect(session!.context.title).toBeNull();
+  });
+
+  it('lists repositories, branches and tickets as filter values', async () => {
+    let values = async (field: 'repository' | 'branch' | 'ticket') =>
+      (
+        await agentTrackingFilterValueService.listFilterValues({
+          ...scope,
+          field,
+          range: lastHour
+        })
+      ).items;
+
+    let [repository] = await values('repository');
+    expect(repository).toMatchObject({
+      kind: 'repository',
+      repository: { owner: 'acme', name: 'api', url: 'https://github.com/acme/api' }
+    });
+    expect((await values('branch')).map(item => item.value)).toEqual(['ada/eng-12-login']);
+    expect((await values('ticket')).map(item => item.value).sort()).toEqual([
+      'ENG-12',
+      'ENG-9'
+    ]);
+  });
+
+  it('breaks spend down by repository and ticket, a session counting fully in each ticket', async () => {
+    let breakdown = (groupBy: 'repository' | 'branch' | 'ticket') =>
+      agentTrackingSpendService.getBreakdown({ ...scope, groupBy, range: lastHour });
+
+    let byRepository = await breakdown('repository');
+    expect(byRepository.items).toHaveLength(2);
+    expect(byRepository.items.map(item => [item.kind, item.repository?.name ?? null])).toEqual(
+      expect.arrayContaining([
+        ['repository', 'api'],
+        ['unknown', null]
+      ])
+    );
+
+    let byTicket = await breakdown('ticket');
+    let reported = byTicket.items.filter(item => item.kind == 'ticket');
+    expect(reported.map(item => item.key).sort()).toEqual(['ENG-12', 'ENG-9']);
+    expect(reported[0]!.requests).toBe(reported[1]!.requests);
+
+    let byBranch = await breakdown('branch');
+    expect(byBranch.items.find(item => item.kind == 'branch')?.key).toBe('ada/eng-12-login');
   });
 });

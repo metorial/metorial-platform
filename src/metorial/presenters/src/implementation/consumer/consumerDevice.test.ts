@@ -48,13 +48,33 @@ let consumerDevice = {
   updatedAt: new Date()
 } as any;
 
+let telemetryOff = {
+  enabled: false,
+  tokenId: null,
+  directExport: false,
+  toolDetails: false,
+  sessionContext: false,
+  sessionTitles: false,
+  historyImport: false
+};
+
+let telemetryOn = {
+  enabled: true,
+  tokenId: 'git_1',
+  directExport: true,
+  toolDetails: true,
+  sessionContext: true,
+  sessionTitles: false,
+  historyImport: true
+};
+
 describe('consumer device telemetry', () => {
   it('shows the telemetry state to the consumer', async () => {
     let device = await consumerConsumerDevicePresenter
       .present(
         {
           consumerDevice,
-          telemetry: { enabled: true, tokenId: 'git_1', toolDetails: true },
+          telemetry: telemetryOn,
           monitor,
           install
         },
@@ -65,8 +85,26 @@ describe('consumer device telemetry', () => {
     expect(device).toMatchObject({
       object: 'consumer.device',
       id: 'codv_1',
-      telemetry: { enabled: true, token_id: 'git_1', tool_details: true }
+      telemetry: {
+        enabled: true,
+        token_id: 'git_1',
+        direct_export: true,
+        tool_details: true,
+        session_context: true,
+        session_titles: false,
+        history_import: true
+      }
     });
+  });
+
+  it('offers direct export only while telemetry is collected', async () => {
+    for (let telemetry of [telemetryOn, telemetryOff]) {
+      let device = await consumerConsumerDevicePresenter
+        .present({ consumerDevice, telemetry, monitor, install }, context)
+        .run();
+
+      expect(device.telemetry.direct_export).toBe(telemetry.enabled);
+    }
   });
 
   it('keeps the telemetry state out of the public and dashboard device', async () => {
@@ -74,7 +112,7 @@ describe('consumer device telemetry', () => {
       .present(
         {
           consumerDevice,
-          telemetry: { enabled: true, tokenId: 'git_1', toolDetails: true },
+          telemetry: telemetryOn,
           monitor
         },
         { ...context, apiVersion: 'mt_2026_01_01_magnetar' }
@@ -99,7 +137,7 @@ describe('consumer device monitor', () => {
       .present(
         {
           consumerDevice,
-          telemetry: { enabled: false, tokenId: null, toolDetails: false },
+          telemetry: telemetryOff,
           monitor: deviceMonitor({ aiToolDetection: true }),
           install
         },
@@ -124,10 +162,7 @@ describe('consumer device monitor', () => {
   it('refuses to present a consumer device without its monitor settings', async () => {
     await expect(
       consumerConsumerDevicePresenter
-        .present(
-          { consumerDevice, telemetry: { enabled: false, tokenId: null, toolDetails: false } },
-          context
-        )
+        .present({ consumerDevice, telemetry: telemetryOff }, context)
         .run()
     ).rejects.toThrow('monitor settings');
   });
@@ -140,7 +175,7 @@ describe('consumer device install settings', () => {
         .present(
           {
             consumerDevice,
-            telemetry: { enabled: false, tokenId: null, toolDetails: false },
+            telemetry: telemetryOff,
             monitor,
             install: { connectionMode }
           },
@@ -158,7 +193,7 @@ describe('consumer device install settings', () => {
         .present(
           {
             consumerDevice,
-            telemetry: { enabled: false, tokenId: null, toolDetails: false },
+            telemetry: telemetryOff,
             monitor
           },
           context

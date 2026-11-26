@@ -83,6 +83,10 @@ workspaces, runs database jobs and offers a terminal in the workspace environmen
 Manifests declare their links with `link = { label = "...", group = "app" | "admin" | "tool" }`
 on an endpoint. Daemon state lives in `~/.metorial-control-dev-service` (`CONTROL_HOME`);
 stopping the daemon stops the workspaces it runs. See `docs/daemon-plan.md`.
+Unit output is written to `logs/<workspace>/<unit>.log` there. A file that reaches
+`CONTROL_LOG_MAX_BYTES` (default 50 MB, minimum 1 MB, `0` or unset for the default) moves to
+`<unit>.log.1`, replacing the previous one, so a unit keeps at most two files. The setting is
+read when a workspace is registered or a stack is created.
 
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.

@@ -5,6 +5,13 @@ import { claudeCodeOtlp } from '../src/otlp/claudeCode';
 import { codexOtlp } from '../src/otlp/codex';
 import { genAiOtlp } from '../src/otlp/genai';
 import { quarantineOtlp } from '../src/otlp/quarantine';
+import { desktopContext } from '../src/envelope/desktop';
+import { claudeCodeHooks, codexHooks } from '../src/hooks';
+import { cursorHooks } from '../src/hooks/cursor';
+import { opencodePlugin } from '../src/plugin/opencode';
+import { antigravityTranscript } from '../src/transcript/antigravity';
+import { claudeCodeTranscript } from '../src/transcript/claudeCode';
+import { codexTranscript } from '../src/transcript/codex';
 import {
   dialectManifests,
   isVersionSupported,
@@ -210,11 +217,43 @@ describe('mapOtlpDecoded', () => {
 });
 
 describe('dialectManifests', () => {
-  it('declares the claude-code and codex hook dialects', () => {
-    expect(dialectManifests).toEqual([
-      { client: 'claude-code', channel: 'hook', dialect: 'claude-code.hooks.v1' },
-      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1' }
+  it('declares the hook, Desktop context, transcript and client usage dialects', () => {
+    expect(dialectManifests.map(({ handler: _handler, ...manifest }) => manifest)).toEqual([
+      {
+        client: 'claude-code',
+        channel: 'hook',
+        dialect: 'claude-code.hooks.v1',
+        notOnDevice: true
+      },
+      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1', notOnDevice: true },
+      ...['claude-code', 'codex', 'cursor', 'antigravity', 'opencode'].map(client => ({
+        client,
+        channel: 'envelope',
+        dialect: 'metorial.desktop.context.v1',
+        deviceOnly: true,
+        requires: 'sessionContext'
+      })),
+      ...[
+        { client: 'claude-code', dialect: 'claude-code.transcript.v1' },
+        { client: 'codex', dialect: 'codex.transcript.v1' }
+      ].map(transcript => ({
+        ...transcript,
+        channel: 'transcript',
+        deviceOnly: true,
+        backfillOnly: true
+      })),
+      ...[
+        { client: 'cursor', channel: 'hook', dialect: 'cursor.hooks.v1' },
+        { client: 'antigravity', channel: 'transcript', dialect: 'antigravity.transcript.v1' },
+        { client: 'opencode', channel: 'sse', dialect: 'opencode.plugin.v1' }
+      ].map(usage => ({ ...usage, deviceOnly: true }))
     ]);
+  });
+
+  it('gives every manifest the handler of its own dialect', () => {
+    for (let manifest of dialectManifests) {
+      expect(manifest.handler.id).toBe(manifest.dialect);
+    }
   });
 });
 
@@ -228,8 +267,117 @@ describe('resolveBulkDialect', () => {
     }
   });
 
+  it('resolves the hook dialects to the hook mappers', () => {
+    expect(resolveBulkDialect('claude-code', 'hook', 'claude-code.hooks.v1')).toMatchObject({
+      ok: true,
+      dialect: claudeCodeHooks
+    });
+    expect(resolveBulkDialect('codex', 'hook', 'codex.hooks.v1')).toMatchObject({
+      ok: true,
+      dialect: codexHooks
+    });
+  });
+
+  it.each(['claude-code', 'codex', 'cursor', 'antigravity', 'opencode'])(
+    'resolves the Desktop context dialect for the client %s',
+    client => {
+      expect(
+        resolveBulkDialect(client, 'envelope', 'metorial.desktop.context.v1')
+      ).toMatchObject({
+        ok: true,
+        dialect: desktopContext,
+        manifest: { client, requires: 'sessionContext', deviceOnly: true }
+      });
+    }
+  );
+
+  it('does not know Copilot as a Desktop context client', () => {
+    expect(resolveBulkDialect('copilot', 'envelope', 'metorial.desktop.context.v1')).toEqual({
+      ok: false,
+      code: 'unknown_client'
+    });
+  });
+
+  it('resolves each transcript dialect for its own client on the transcript channel', () => {
+    expect(
+      resolveBulkDialect('claude-code', 'transcript', 'claude-code.transcript.v1')
+    ).toMatchObject({ ok: true, dialect: claudeCodeTranscript });
+    expect(resolveBulkDialect('codex', 'transcript', 'codex.transcript.v1')).toMatchObject({
+      ok: true,
+      dialect: codexTranscript
+    });
+
+    for (let [client, channel, dialect] of [
+      ['codex', 'transcript', 'claude-code.transcript.v1'],
+      ['claude-code', 'transcript', 'codex.transcript.v1'],
+      ['claude-code', 'envelope', 'claude-code.transcript.v1'],
+      ['cursor', 'transcript', 'claude-code.transcript.v1']
+    ] as const) {
+      expect(resolveBulkDialect(client, channel, dialect)).toEqual({
+        ok: false,
+        code: 'unknown_dialect'
+      });
+    }
+  });
+
+  it('resolves each client usage dialect for its own client and channel only', () => {
+    expect(resolveBulkDialect('cursor', 'hook', 'cursor.hooks.v1')).toMatchObject({
+      ok: true,
+      dialect: cursorHooks,
+      manifest: { deviceOnly: true }
+    });
+    expect(
+      resolveBulkDialect('antigravity', 'transcript', 'antigravity.transcript.v1')
+    ).toMatchObject({
+      ok: true,
+      dialect: antigravityTranscript,
+      manifest: { deviceOnly: true }
+    });
+    expect(resolveBulkDialect('opencode', 'sse', 'opencode.plugin.v1')).toMatchObject({
+      ok: true,
+      dialect: opencodePlugin,
+      manifest: { deviceOnly: true }
+    });
+
+    for (let [client, channel, dialect] of [
+      ['cursor', 'envelope', 'cursor.hooks.v1'],
+      ['cursor', 'hook', 'generic.hooks.v1'],
+      ['claude-code', 'hook', 'cursor.hooks.v1'],
+      ['opencode', 'envelope', 'opencode.plugin.v1'],
+      ['antigravity', 'hook', 'antigravity.transcript.v1'],
+      ['cursor', 'transcript', 'antigravity.transcript.v1']
+    ] as const) {
+      expect(resolveBulkDialect(client, channel, dialect)).toEqual({
+        ok: false,
+        code: 'unknown_dialect'
+      });
+    }
+  });
+
+  it('resolves the Desktop context dialect only on the envelope channel', () => {
+    expect(resolveBulkDialect('codex', 'hook', 'metorial.desktop.context.v1')).toEqual({
+      ok: false,
+      code: 'unknown_dialect'
+    });
+    expect(resolveBulkDialect('codex', 'envelope', 'metorial.desktop.context.v2')).toEqual({
+      ok: false,
+      code: 'unknown_dialect'
+    });
+    expect(resolveBulkDialect('codex', 'envelope', 'codex.hooks.v1')).toEqual({
+      ok: false,
+      code: 'unknown_dialect'
+    });
+  });
+
+  it('resolves the Desktop context dialect only for the listed clients', () => {
+    expect(resolveBulkDialect('aider', 'envelope', 'metorial.desktop.context.v1')).toEqual({
+      ok: false,
+      code: 'unknown_client'
+    });
+  });
+
   it('reports an unknown client', () => {
-    expect(resolveBulkDialect('cursor', 'hook', 'claude-code.hooks.v1')).toEqual({
+    expect(resolveBulkDialect('aider', 'hook', 'claude-code.hooks.v1')).toEqual({
       ok: false,
       code: 'unknown_client'
     });

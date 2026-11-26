@@ -4,13 +4,16 @@
 export type RangePreset =
   'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month';
 
-export type BreakdownGroup = 'member' | 'model';
+export type BreakdownGroup = 'member' | 'model' | 'repository' | 'branch' | 'ticket';
 
-export type SpendReportGroup = BreakdownGroup | 'client';
+export type SpendReportGroup = 'member' | 'model' | 'client';
+
+export type SpendGroup = BreakdownGroup | SpendReportGroup;
 
 export type SessionListOrderBy = 'last_activity' | 'cost';
 
-export type FilterField = 'member' | 'model' | 'client' | 'seat';
+export type FilterField =
+  'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket';
 
 export type AgentTrackingSpendFilters = {
   clientFamilies?: string[];
@@ -97,6 +100,51 @@ export type AgentTrackingMember = {
 
 export type AgentTrackingModel = { id: string; name: string | null };
 
+export type AgentTrackingRepository = {
+  id: string;
+  provider: string | null;
+  host: string | null;
+  owner: string | null;
+  name: string | null;
+  url: string | null;
+};
+
+export type AgentTrackingTicket = { key: string; url: string | null };
+
+export type AgentTrackingPullRequest = {
+  key: string;
+  provider: string;
+  host: string | null;
+  repository: string;
+  number: number;
+  kind: 'opened' | 'linked';
+  url: string | null;
+};
+
+export type AgentTrackingCommit = {
+  sha: string;
+  committedAt: Date;
+  branch: string | null;
+  tickets: AgentTrackingTicket[];
+  aiAuthored: boolean | null;
+};
+
+export type AgentTrackingSessionContext = {
+  repositories: AgentTrackingRepository[];
+  branch: string | null;
+  defaultBranch: string | null;
+  head: string | null;
+  worktree: boolean | null;
+  subPath: string | null;
+  permissionMode: string | null;
+  title: string | null;
+  tickets: AgentTrackingTicket[];
+  pullRequests: AgentTrackingPullRequest[];
+  commitCount: number;
+  pullRequestCount: number;
+  lines: { added: number; removed: number };
+};
+
 export type AgentTrackingSpendFigures = {
   cost: AgentTrackingSpendCost;
   requests: number;
@@ -148,11 +196,13 @@ export type AgentTrackingSpendTimeline = {
 };
 
 export type AgentTrackingSpendBreakdownItem = AgentTrackingSpendFigures & {
-  kind: 'member' | 'model' | 'client' | 'unknown' | 'other';
+  kind: SpendGroup | 'unknown' | 'other';
   key: string;
   member: AgentTrackingMember | null;
   model: AgentTrackingModel | null;
   client: Pick<AgentTrackingClient, 'family' | 'name'> | null;
+  repository: AgentTrackingRepository | null;
+  ticket: AgentTrackingTicket | null;
   unknownModelNames: string[];
   share: number | null;
 };
@@ -244,6 +294,7 @@ export type AgentTrackingSessionView = {
   tokens: AgentTrackingTokens;
   requests: number;
   summaryPending: boolean;
+  context: AgentTrackingSessionContext;
   startedAt: Date;
   lastActivityAt: Date;
   endedAt: Date | null;
@@ -259,6 +310,7 @@ export type AgentTrackingSessionModelUsage = AgentTrackingSpendFigures & {
 
 export type AgentTrackingSessionDetail = AgentTrackingSessionView & {
   usageByModel: AgentTrackingSessionModelUsage[];
+  commits: AgentTrackingCommit[];
 };
 
 export type AgentTrackingFilterValue = {
@@ -267,6 +319,7 @@ export type AgentTrackingFilterValue = {
   member: AgentTrackingMember | null;
   model: AgentTrackingModel | null;
   client: Pick<AgentTrackingClient, 'family' | 'name'> | null;
+  repository: AgentTrackingRepository | null;
   requests: number | null;
 };
 

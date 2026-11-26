@@ -80,6 +80,23 @@ describe('session list filter', () => {
     });
   });
 
+  it('matches repositories, branches, tickets and pull requests', () => {
+    expect(
+      sessionListFilter(organization, {
+        repoIds: ['aten_repo_1'],
+        branches: ['ivan/mt-365-title'],
+        ticketRefs: ['MT-365', '#42'],
+        pullRequests: ['github.com/acme/api#7']
+      })
+    ).toEqual({
+      organizationId: 'ator_1',
+      'context.repoIds': { $in: ['aten_repo_1'] },
+      'context.branch': { $in: ['ivan/mt-365-title'] },
+      'context.ticketRefs': { $in: ['MT-365', '#42'] },
+      'summary.pullRequestRefs.key': { $in: ['github.com/acme/api#7'] }
+    });
+  });
+
   it('treats an empty list as matching nothing, not as no filter', () => {
     expect(sessionListFilter(organization, { userIds: [] })['observed.userId']).toEqual({
       $in: []

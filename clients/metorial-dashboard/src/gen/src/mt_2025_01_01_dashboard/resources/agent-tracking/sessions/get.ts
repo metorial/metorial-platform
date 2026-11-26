@@ -42,6 +42,36 @@ export type AgentTrackingSessionsGetOutput = {
   };
   requests: number;
   summaryPending: boolean;
+  context: {
+    repositories: {
+      id: string;
+      provider: string | null;
+      host: string | null;
+      owner: string | null;
+      name: string | null;
+      url: string | null;
+    }[];
+    branch: string | null;
+    defaultBranch: string | null;
+    head: string | null;
+    worktree: boolean | null;
+    subPath: string | null;
+    permissionMode: string | null;
+    title: string | null;
+    tickets: { key: string; url: string | null }[];
+    pullRequests: {
+      key: string;
+      provider: string;
+      host: string | null;
+      repository: string;
+      number: number;
+      kind: 'opened' | 'linked';
+      url: string | null;
+    }[];
+    commitCount: number;
+    pullRequestCount: number;
+    lines: { added: number; removed: number };
+  };
   startedAt: Date;
   lastActivityAt: Date;
   endedAt: Date | null;
@@ -70,6 +100,13 @@ export type AgentTrackingSessionsGetOutput = {
       total: number;
     };
   }[];
+  commits: {
+    sha: string;
+    committedAt: Date;
+    branch: string | null;
+    tickets: { key: string; url: string | null }[];
+    aiAuthored: boolean | null;
+  }[];
 };
 
 export let mapAgentTrackingSessionsGetOutput =
@@ -95,6 +132,21 @@ export let mapAgentTrackingSessionsGetOutput =
       ],
       ['tokens', 0, [1, ['cache_read', 'cache_write']]],
       'summary_pending',
+      [
+        'context',
+        0,
+        [
+          1,
+          [
+            'default_branch',
+            'sub_path',
+            'permission_mode',
+            'pull_requests',
+            'commit_count',
+            'pull_request_count'
+          ]
+        ]
+      ],
       'started_at',
       'last_activity_at',
       'ended_at',
@@ -136,7 +188,8 @@ export let mapAgentTrackingSessionsGetOutput =
             ]
           ]
         ]
-      ]
+      ],
+      ['commits', 0, [2, [1, ['committed_at', 'ai_authored']]]]
     ],
     1
   );

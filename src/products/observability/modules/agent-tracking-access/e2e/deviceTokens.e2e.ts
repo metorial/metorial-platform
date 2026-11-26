@@ -8,11 +8,15 @@ import {
 } from '@metorial/e2e';
 import {
   agentTracking,
+  claudeCodeEventRecord,
   claudeRequest,
   expectIngested,
-  sendClaudeCodeRequests
+  sendClaudeCodeLogs,
+  sendClaudeCodeRequests,
+  trackedInstance
 } from '@metorial/agent-tracking-e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
+import { agentTrackingSettingsService } from '@metorial/module-agent-tracking-sync';
 import {
   consumerDeviceService,
   consumerProfileService,
@@ -20,6 +24,13 @@ import {
 } from '@metorial/module-consumer-core';
 import { describe, expect, it } from 'vitest';
 import { agentTrackingTokenService } from '../src';
+
+let defaultDesktop = {
+  toolDetails: false,
+  sessionContext: true,
+  sessionTitles: false,
+  historyImport: false
+};
 
 let createDevice = async (fixture: OrganizationFixture) => {
   let surface = await consumerSurfaceService.createConsumerSurface({
@@ -123,8 +134,9 @@ describe('module-agent-tracking-access device tokens', () => {
     });
     expect(telemetry.get(device.oid)).toEqual({
       enabled: true,
+      directExport: true,
       tokenId: current.ingestToken.serviceIngestTokenId,
-      toolDetails: false
+      ...defaultDesktop
     });
 
     await waitForRevoked(replaced.ingestToken.serviceIngestTokenId);
@@ -176,8 +188,89 @@ describe('module-agent-tracking-access device tokens', () => {
     });
     expect(telemetry.get(device.oid)).toEqual({
       enabled: true,
+      directExport: true,
       tokenId: null,
-      toolDetails: false
+      ...defaultDesktop
     });
   }, 90_000);
+});
+
+describe('module-agent-tracking-access device telemetry settings', () => {
+  let org = useOrganization();
+
+  it('carries the Desktop settings of the organization to every device', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let device = await createDevice(fixture);
+    let desktop = {
+      toolDetails: true,
+      sessionContext: false,
+      sessionTitles: true,
+      historyImport: true
+    };
+
+    await agentTrackingSettingsService.updateOrganizationSettings({
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: { desktop }
+    });
+
+    let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
+      organization: fixture.organization,
+      project: fixture.project,
+      consumerDevices: [device]
+    });
+    expect(telemetry.get(device.oid)).toEqual({
+      enabled: true,
+      directExport: true,
+      tokenId: null,
+      ...desktop
+    });
+  });
+});
+
+describe('module-agent-tracking-access device telemetry filtering', () => {
+  let org = useOrganization();
+
+  it('takes tool details out of what a device sends while detailed tool reporting is off', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let device = await createDevice(fixture);
+    let issued = await issue(fixture, device);
+    let sessionId = uniqueId('session');
+    let sentinel = uniqueId('SENTINEL');
+
+    await expectIngested(
+      await sendClaudeCodeLogs({ ingestUrl: issued.ingestUrl, secret: issued.secret }, [
+        claudeCodeEventRecord({
+          event: 'tool_result',
+          sessionId,
+          at: new Date(),
+          attributes: {
+            tool_use_id: uniqueId('tool'),
+            tool_name: 'mcp__github__create_pr',
+            success: 'true',
+            tool_parameters: JSON.stringify({ mcp_server_name: 'github', title: sentinel }),
+            tool_input: JSON.stringify({ title: sentinel })
+          }
+        })
+      ])
+    );
+
+    let instance = await trackedInstance(org.ids);
+
+    await eventually(
+      async () => {
+        let { items } = await agentTracking().records.list({ instanceId: instance.id });
+        let call = items
+          .map((item: any) => item.record)
+          .find(
+            (record: any) => record.type == 'tool.call' && record.ctx.session_id == sessionId
+          );
+
+        expect(call?.data.tool).toEqual({ name: 'mcp_tool', kind: 'mcp', class: 'mcp' });
+        expect(call?.content).toEqual([]);
+        expect(JSON.stringify(call)).not.toContain(sentinel);
+      },
+      { timeoutMs: 60_000, intervalMs: 1_000 }
+    );
+  });
 });

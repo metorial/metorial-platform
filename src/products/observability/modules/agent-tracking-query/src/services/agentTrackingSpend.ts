@@ -3,9 +3,10 @@ import { Service } from '@lowerdeck/service';
 import type { AgentTrackingPrivacy } from '@metorial/module-agent-tracking-sync';
 import { clientOf } from '../lib/catalog';
 import { invalidInputError } from '../lib/errors';
+import { ticketUrl } from '../lib/urls';
 import { lookupMembers, unknownMemberKey } from '../lib/members';
 import { countOf } from '../lib/money';
-import { individualsHiddenError, loadPrivacy } from '../lib/privacy';
+import { individualsHiddenError, loadPrivacy, loadSettings } from '../lib/privacy';
 import {
   assertPrivateRead,
   breakdownHiddenError,
@@ -20,9 +21,9 @@ import {
   distinctCappedWarning,
   normalizeSpendFilters,
   periodTotalQuery,
-  reportBreakdownGroups,
   reportBreakdownLimits,
   retentionClippedWarning,
+  spendGroupColumns,
   timelineQuery,
   unknownModelsQuery
 } from '../lib/queries';
@@ -43,6 +44,7 @@ import {
   type RangeInput,
   type ResolvedRange
 } from '../lib/range';
+import { lookupRepositories } from '../lib/repositories';
 import {
   cachedRead,
   runUsageQueries,
@@ -53,14 +55,17 @@ import {
 } from '../lib/scope';
 import {
   dayCountsOf,
+  type Cells,
   dayItem,
   hasUsage,
   modelUsageItem,
+  shareOfTotalCost,
   spendFiguresOf,
   usageItem
 } from '../lib/spend';
 import type {
   AgentTrackingMember,
+  AgentTrackingRepository,
   AgentTrackingSpendBreakdown,
   AgentTrackingSpendBreakdownItem,
   AgentTrackingSpendDay,
@@ -69,6 +74,7 @@ import type {
   AgentTrackingSpendReportMonth,
   AgentTrackingSpendTimeline,
   BreakdownGroup,
+  SpendGroup,
   SpendReportGroup
 } from '../lib/types';
 
@@ -165,8 +171,8 @@ class AgentTrackingSpendServiceImpl {
     }
   ): Promise<AgentTrackingSpendBreakdown> {
     let filters = normalizeSpendFilters(d.filters);
-    let privacy = await loadPrivacy(d);
-    if (privacy.hideIndividuals) {
+    let settings = await loadSettings(d);
+    if (settings.privacy.hideIndividuals) {
       throw new ServiceError(
         d.groupBy == 'member' || filters.memberIds
           ? individualsHiddenError
@@ -176,11 +182,17 @@ class AgentTrackingSpendServiceImpl {
 
     let range = normalizeRange(d.range);
     let now = new Date();
+    let ticketUrlTemplate = d.groupBy == 'ticket' ? settings.links.ticketUrlTemplate : null;
 
     return await cachedRead({
       scope: d,
       read: 'spend.breakdown',
-      input: { range: rangeCacheKey(range, now), groupBy: d.groupBy, filters },
+      input: {
+        range: rangeCacheKey(range, now),
+        groupBy: d.groupBy,
+        filters,
+        ...(ticketUrlTemplate ? { ticketUrlTemplate } : {})
+      },
       load: async () => {
         let resolved = resolveRange(range, now);
         let result = await runUsageQuery(
@@ -197,7 +209,8 @@ class AgentTrackingSpendServiceImpl {
             range: resolved,
             groupBy: d.groupBy,
             filters,
-            result
+            result,
+            ticketUrlTemplate
           })
         };
       }
@@ -427,11 +440,12 @@ class AgentTrackingSpendServiceImpl {
   private async breakdownItems(d: {
     scope: ReadScope;
     range: ResolvedRange;
-    groupBy: SpendReportGroup;
+    groupBy: SpendGroup;
     filters: AgentTrackingSpendFilters;
     result: UsageResult;
+    ticketUrlTemplate?: string | null;
   }): Promise<AgentTrackingSpendBreakdownItem[]> {
-    let column = reportBreakdownGroups[d.groupBy];
+    let column = spendGroupColumns[d.groupBy];
     let labels = (d.result.labels?.[column] ?? {}) as Record<string, { name?: string | null }>;
     let rows = d.result.rows.filter(hasUsage);
     let hasUnknown = rows.some(row => typeof row[column] != 'string');
@@ -439,7 +453,7 @@ class AgentTrackingSpendServiceImpl {
       .map(row => row[column])
       .filter((value): value is string => typeof value == 'string' && value != otherKey);
 
-    let [members, unknownModelNames] = await Promise.all([
+    let [members, unknownModelNames, repositories] = await Promise.all([
       d.groupBy == 'member'
         ? lookupMembers({
             scope: d.scope,
@@ -449,47 +463,53 @@ class AgentTrackingSpendServiceImpl {
         : new Map<string, AgentTrackingMember>(),
       d.groupBy == 'model' && hasUnknown
         ? this.unknownModelNames({ scope: d.scope, range: d.range, filters: d.filters })
-        : []
+        : [],
+      d.groupBy == 'repository'
+        ? lookupRepositories({ scope: d.scope, ids: keys })
+        : new Map<string, AgentTrackingRepository>()
     ]);
 
-    return rows.map((row): AgentTrackingSpendBreakdownItem => {
+    let none = { member: null, client: null, repository: null, ticket: null };
+
+    return rows.map((cells): AgentTrackingSpendBreakdownItem => {
+      let row: Cells = { ...cells, share: shareOfTotalCost(cells, d.result.totals) };
       let value = row[column];
 
       if (value === otherKey) {
-        return {
-          member: null,
-          client: null,
-          ...usageItem(row, { kind: 'other', key: 'other' })
-        };
+        return { ...none, ...usageItem(row, { kind: 'other', key: 'other' }) };
       }
       if (d.groupBy == 'model') {
-        return {
-          member: null,
-          client: null,
-          ...modelUsageItem(row, labels, unknownModelNames)
-        };
+        return { ...none, ...modelUsageItem(row, labels, unknownModelNames) };
       }
       if (typeof value != 'string') {
-        return {
-          member: null,
-          client: null,
-          ...usageItem(row, { kind: 'unknown', key: unknownMemberKey })
-        };
+        return { ...none, ...usageItem(row, { kind: 'unknown', key: unknownMemberKey }) };
       }
       if (d.groupBy == 'client') {
         let client = clientOf({ family: value });
 
         return {
-          member: null,
+          ...none,
           client: { family: client.family, name: client.name },
           ...usageItem(row, { kind: 'client', key: client.family })
         };
       }
 
       return {
-        member: members.get(value) ?? null,
-        client: null,
-        ...usageItem(row, { kind: 'member', key: value })
+        ...none,
+        ...(d.groupBy == 'member' ? { member: members.get(value) ?? null } : {}),
+        ...(d.groupBy == 'repository' ? { repository: repositories.get(value) ?? null } : {}),
+        ...(d.groupBy == 'ticket'
+          ? {
+              ticket: {
+                key: value,
+                url: ticketUrl(value, {
+                  template: d.ticketUrlTemplate ?? null,
+                  repositories: []
+                })
+              }
+            }
+          : {}),
+        ...usageItem(row, { kind: d.groupBy, key: value })
       };
     });
   }

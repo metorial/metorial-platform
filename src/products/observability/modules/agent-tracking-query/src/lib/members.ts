@@ -11,13 +11,15 @@ import type { AgentTrackingMember } from './types';
 
 export let unknownMemberKey = 'unknown';
 
-let maxMemberLookup = 100;
+let maxEntityLookup = 100;
 
 let consumerLookupConcurrency = 20;
 
 export let maxConsumerLookups = 500;
 
 let lookupStatuses = ['managed', 'discovered', 'merged'] as const;
+
+type EntityListInput = Parameters<AgentTracking['entity']['list']>[0];
 
 type RemoteMember = Awaited<ReturnType<AgentTracking['entity']['list']>>['items'][number];
 
@@ -39,18 +41,23 @@ let placeholderMember = (id: string, name: string | null = null): AgentTrackingM
   needsReview: false
 });
 
-let listByIds = async (d: { organizationId: string; ids: string[] }) => {
+export let listEntitiesByIds = async (d: {
+  organizationId: string;
+  kind: NonNullable<EntityListInput['kinds']>[number];
+  statuses: NonNullable<EntityListInput['statuses']>;
+  ids: string[];
+}) => {
   let agentTracking = requireAgentTracking();
 
   let pages = await Promise.all(
-    chunks(d.ids, maxMemberLookup).map(ids =>
+    chunks(d.ids, maxEntityLookup).map(ids =>
       agentTracking.entity.list(
         {
           organizationId: d.organizationId,
-          kinds: ['user'],
-          statuses: [...lookupStatuses],
+          kinds: [d.kind],
+          statuses: d.statuses,
           ids,
-          limit: maxMemberLookup
+          limit: maxEntityLookup
         },
         readCallOptions
       )
@@ -59,6 +66,9 @@ let listByIds = async (d: { organizationId: string; ids: string[] }) => {
 
   return pages.flatMap(page => page.items);
 };
+
+let listByIds = (d: { organizationId: string; ids: string[] }) =>
+  listEntitiesByIds({ ...d, kind: 'user', statuses: [...lookupStatuses] });
 
 // A merged member keeps the id its usage is recorded under and shows the details of the member
 // it was merged into.

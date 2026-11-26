@@ -11,6 +11,7 @@ import {
 import { decodeOtlp, type OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
 import { groupContext } from '../../src/otlp/common';
 import { codexOtlp, codexOtlpId } from '../../src/otlp/codex';
+import { mapOtlpGroup } from '../../src/registry';
 
 let resource: OtlpAttributes = {
   'service.name': 'codex_cli_rs',
@@ -1010,5 +1011,74 @@ describe('codexOtlp through buildRecord', () => {
 
       expect(record.source.adapter).toBe('codex');
     }
+  });
+});
+
+describe('codexOtlp with tool details off', () => {
+  let noToolDetails = { toolDetails: false, sessionContext: true };
+
+  let mcpResult = () =>
+    logRecord({
+      'event.name': 'codex.tool_result',
+      'conversation.id': 'conv-1',
+      call_id: 'call-1',
+      tool_name: 'probe_echo',
+      tool_namespace: 'mcp__probe',
+      mcp_server: 'probe',
+      mcp_server_origin: 'stdio',
+      arguments: '{"text":"SENTINEL-args"}',
+      output: 'SENTINEL-output',
+      success: 'true',
+      duration_ms: '1'
+    });
+
+  it('stores MCP tool calls without arguments, output or names', () => {
+    let { mapped } = mapOtlpGroup('logs', groupOf([mcpResult()], resource), noToolDetails);
+    let [call] = mapped;
+
+    expect(mapped).toHaveLength(1);
+    expect(call!.draft).toMatchObject({
+      type: 'tool.call',
+      factKey: 'tool:{session_key}:call-1',
+      content: [],
+      data: { tool: { name: 'mcp_tool', kind: 'mcp', class: 'mcp' }, outcome: 'ok' }
+    });
+    expect(JSON.stringify(mapped)).not.toMatch(/SENTINEL|probe/);
+  });
+
+  it('keeps arguments, output and names with detailed tool reporting on', () => {
+    let { mapped } = mapOtlpGroup('logs', groupOf([mcpResult()], resource));
+
+    expect(mapped[0]!.draft.data?.['tool']).toMatchObject({
+      name: 'probe_echo',
+      mcp: { server: 'probe', tool: 'probe_echo' }
+    });
+    expect(mapped[0]!.draft.content).toHaveLength(2);
+  });
+
+  it('stores MCP spans without server or tool names', () => {
+    let { mapped } = mapOtlpGroup(
+      'traces',
+      groupOf(
+        [
+          spanOf('mcp.tools.call', {
+            'conversation.id': 'conv-1',
+            'mcp.server.name': 'probe',
+            'mcp.server.origin': 'stdio',
+            'tool.name': 'probe_echo',
+            'tool.call_id': 'call-1'
+          })
+        ],
+        resource
+      ),
+      noToolDetails
+    );
+
+    expect(mapped[0]!.draft.data?.['tool']).toEqual({
+      name: 'mcp_tool',
+      kind: 'mcp',
+      class: 'mcp'
+    });
+    expect(JSON.stringify(mapped)).not.toContain('probe');
   });
 });

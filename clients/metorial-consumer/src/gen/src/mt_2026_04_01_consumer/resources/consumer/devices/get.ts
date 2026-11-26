@@ -39,7 +39,15 @@ export type ConsumerDevicesGetOutput = {
   revokedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  telemetry: { enabled: boolean; tokenId: string | null; toolDetails: boolean };
+  telemetry: {
+    enabled: boolean;
+    tokenId: string | null;
+    directExport: boolean;
+    toolDetails: boolean;
+    sessionContext: boolean;
+    sessionTitles: boolean;
+    historyImport: boolean;
+  };
   monitor: {
     aiToolDetection: boolean;
     catalogVersion: string;
@@ -96,7 +104,21 @@ export let mapConsumerDevicesGetOutput =
       'revoked_at',
       'created_at',
       'updated_at',
-      ['telemetry', 0, [1, ['token_id', 'tool_details']]],
+      [
+        'telemetry',
+        0,
+        [
+          1,
+          [
+            'token_id',
+            'direct_export',
+            'tool_details',
+            'session_context',
+            'session_titles',
+            'history_import'
+          ]
+        ]
+      ],
       [
         'monitor',
         0,

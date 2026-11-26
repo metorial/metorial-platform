@@ -109,6 +109,29 @@ describe('hook context', () => {
     ]);
   });
 
+  it.each(['feature/\u202eENG-42', 'feature/ENG-42\u200b', 'feature/\u0085ENG-42'])(
+    'drops a hook branch with hidden or bidi characters (%j)',
+    branch => {
+      let mapped = codexHooks.map(hookContext, {
+        hook_event_name: 'PreToolUse',
+        session_id: 's-1',
+        metorial: { ...probeEnvelope, git: { ...probeEnvelope.git, branch } }
+      });
+
+      expect(dataOf(contextOf(mapped)[0])).not.toHaveProperty('branch');
+    }
+  );
+
+  it('still strips line breaks around a hook branch', () => {
+    let mapped = codexHooks.map(hookContext, {
+      hook_event_name: 'PreToolUse',
+      session_id: 's-1',
+      metorial: { ...probeEnvelope, git: { ...probeEnvelope.git, branch: 'main\n' } }
+    });
+
+    expect(dataOf(contextOf(mapped)[0])?.branch).toBe('main');
+  });
+
   it('carries forked and generation ids on compatible hooks', () => {
     let [start] = claudeCodeHooks.map(hookContext, {
       hook_event_name: 'SessionStart',
@@ -183,6 +206,18 @@ describe('otlp context', () => {
       head: 'abcdef1234567',
       ticket_refs: ['ENG-7']
     });
+  });
+
+  it('drops an OTel branch with bidi characters', () => {
+    let result = mapOtlpGroup(
+      'logs',
+      groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
+        ...claudeResource,
+        'vcs.ref.head.name': 'ENG-7-\u2066fix'
+      })
+    );
+
+    expect(dataOf(contextOf(result.mapped)[0])?.branch).toBeUndefined();
   });
 
   it('ignores tag refs as branches', () => {

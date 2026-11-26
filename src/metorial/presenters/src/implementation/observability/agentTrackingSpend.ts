@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import {
+  breakdownGroupKeys,
   growthRateBounds,
   maxDistinctCount,
   reportBreakdownLimits,
@@ -19,10 +20,14 @@ import {
   agentTrackingModelSchema,
   agentTrackingNullableMicrosSchema,
   agentTrackingRangeSchema,
+  agentTrackingRepositorySchema,
   agentTrackingSpendFiguresProperties,
+  agentTrackingTicketSchema,
   agentTrackingUnknownModelNamesSchema,
   presentAgentTrackingMember,
   presentAgentTrackingRange,
+  presentAgentTrackingRepository,
+  presentAgentTrackingTicket,
   presentAgentTrackingSpendCost,
   presentAgentTrackingTokens
 } from './agentTrackingCommon';
@@ -47,30 +52,38 @@ let totalSchema = v.object(agentTrackingSpendFiguresProperties, {
 
 let presentBreakdownItem = (
   item: AgentTrackingSpendBreakdownItem,
-  d: { client: boolean }
+  d: { report: boolean }
 ) => ({
   kind: item.kind,
   key: item.key,
   member: item.member ? presentAgentTrackingMember(item.member) : null,
   model: item.model ? { id: item.model.id, name: item.model.name } : null,
-  ...(d.client
+  ...(d.report
     ? {
         client: item.client ? { family: item.client.family, name: item.client.name } : null
       }
     : {}),
+  ...(d.report
+    ? {}
+    : {
+        repository: item.repository ? presentAgentTrackingRepository(item.repository) : null,
+        ticket: item.ticket ? presentAgentTrackingTicket(item.ticket) : null
+      }),
   unknown_model_names: item.unknownModelNames,
   share: item.share,
   ...presentFigures(item)
 });
 
 let breakdownItemSchema = <
-  const Kinds extends readonly ('member' | 'model' | 'client' | 'unknown' | 'other')[]
+  const Kinds extends readonly (
+    'member' | 'model' | 'client' | 'repository' | 'branch' | 'ticket' | 'unknown' | 'other'
+  )[]
 >(d: {
   kinds: Kinds;
   kind: string;
   key: string;
   examples: string[];
-  client: boolean;
+  report: boolean;
   unknownModelNames: string;
 }) =>
   v.object({
@@ -78,7 +91,18 @@ let breakdownItemSchema = <
     key: v.string({ name: 'key', description: d.key, examples: d.examples }),
     member: v.nullable(agentTrackingMemberSchema),
     model: v.nullable(agentTrackingModelSchema),
-    ...(d.client ? { client: v.nullable(agentTrackingClientSchema) } : {}),
+    ...(d.report ? { client: v.nullable(agentTrackingClientSchema) } : {}),
+    ...(d.report
+      ? {}
+      : {
+          repository: v.nullable(agentTrackingRepositorySchema, {
+            description: 'The repository of a `repository` item. `null` on every other item.'
+          }),
+          ticket: v.nullable(agentTrackingTicketSchema, {
+            description:
+              "The ticket of a `ticket` item, linked with the organization's ticket link template. `null` on every other item."
+          })
+        }),
     unknown_model_names: agentTrackingUnknownModelNamesSchema(d.unknownModelNames),
     share: v.nullable(
       v.number({
@@ -284,7 +308,7 @@ export let v1AgentTrackingSpendBreakdownPresenter = Presenter.create(
     group_by: breakdown.groupBy,
     total: presentFigures(breakdown.total),
 
-    items: breakdown.items.map(item => presentBreakdownItem(item, { client: false }))
+    items: breakdown.items.map(item => presentBreakdownItem(item, { report: false }))
   }))
   .schema(
     v.object({
@@ -293,7 +317,7 @@ export let v1AgentTrackingSpendBreakdownPresenter = Presenter.create(
       }),
 
       range: agentTrackingRangeSchema,
-      group_by: v.enumOf(['member', 'model'], {
+      group_by: v.enumOf(breakdownGroupKeys, {
         name: 'group_by',
         description: 'What the items are grouped by.'
       }),
@@ -301,18 +325,18 @@ export let v1AgentTrackingSpendBreakdownPresenter = Presenter.create(
 
       items: v.array(
         breakdownItemSchema({
-          kinds: ['member', 'model', 'unknown', 'other'],
-          kind: '`member` or `model` for a group; `unknown` for usage without a member (Unknown Member) or whose model is not matched to the model catalog (Unknown Model, see `unknown_model_names`); `other` for everything past the top 10, added up.',
-          key: 'The member or model id, `unknown`, or `other`. Unique within the breakdown.',
-          examples: ['aten_0mhNnEqM7XQb3vXq8gD2', 'unknown', 'other'],
-          client: false,
+          kinds: ['member', 'model', 'repository', 'branch', 'ticket', 'unknown', 'other'],
+          kind: 'The value of `group_by` for a group; `unknown` for usage without a member (Unknown Member), repository, branch or ticket, or whose model is not matched to the model catalog (Unknown Model, see `unknown_model_names`); `other` for everything past the top 10, added up.',
+          key: 'The member, model or repository id, the branch name or the ticket key, `unknown`, or `other`. Unique within its kind.',
+          examples: ['aten_0mhNnEqM7XQb3vXq8gD2', 'ENG-123', 'unknown', 'other'],
+          report: false,
           unknownModelNames:
             'On the `unknown` item of a breakdown by model: the models that make it up, most requests first, at most 10. Empty on every other item and in a breakdown by member.'
         }),
         {
           name: 'items',
           description:
-            'The top 10 groups by cost, most expensive first (ties ordered by key), then one other item when there are more. Groups without requests, tokens or cost are left out.'
+            'The top 10 groups by cost, most expensive first (ties ordered by key), then one other item when there are more. Groups without requests, tokens or cost are left out. By repository and by ticket, usage of a session with several counts fully in each, so items and shares can add up to more than the total.'
         }
       )
     })
@@ -320,7 +344,7 @@ export let v1AgentTrackingSpendBreakdownPresenter = Presenter.create(
   .build();
 
 let presentReportItems = (items: AgentTrackingSpendBreakdownItem[] | null) =>
-  items?.map(item => presentBreakdownItem(item, { client: true })) ?? null;
+  items?.map(item => presentBreakdownItem(item, { report: true })) ?? null;
 
 let presentScenario = (scenario: AgentTrackingProjectionScenario) => ({
   growth_rate: scenario.growthRate,
@@ -355,7 +379,7 @@ let reportItemsSchema = (group: 'model' | 'client' | 'member', description: stri
               ? 'claude-sonnet-4-5'
               : 'claude_code'
         ],
-        client: true,
+        report: true,
         unknownModelNames:
           'On the `unknown` item of the model list: the models that make it up, most requests first, at most 10. Empty on every other item.'
       }),

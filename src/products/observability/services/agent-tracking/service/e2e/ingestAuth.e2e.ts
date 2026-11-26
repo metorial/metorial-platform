@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createHookToken,
   createToken,
   errorCode,
   agentTracking,
@@ -117,7 +118,7 @@ describe('ingest authentication', () => {
   });
 
   it('applies token updates to cached tokens immediately', async () => {
-    let { organization, token, secret } = await createToken();
+    let { organization, token, secret } = await createHookToken();
 
     expect((await ingest('/v1/ingest/hooks/claude-code', { credential: secret })).status).toBe(
       acceptedStatus
@@ -136,7 +137,7 @@ describe('ingest authentication', () => {
   });
 
   it('enforces allowed clients on hook routes', async () => {
-    let { secret } = await createToken({ allowedClients: ['codex'] });
+    let { secret } = await createHookToken({ allowedClients: ['codex'] });
 
     let denied = await ingest('/v1/ingest/hooks/claude-code', { credential: secret });
     let allowed = await ingest('/v1/ingest/hooks/codex', { credential: secret });
@@ -144,6 +145,17 @@ describe('ingest authentication', () => {
     expect(denied.status).toBe(403);
     expect(await errorCode(denied)).toBe('client_not_allowed');
     expect(allowed.status).toBe(acceptedStatus);
+  });
+
+  it('refuses hook routes for tokens bound to a device', async () => {
+    let { secret } = await createToken();
+
+    for (let client of ['claude-code', 'codex', 'cursor']) {
+      let response = await ingest(`/v1/ingest/hooks/${client}`, { credential: secret });
+
+      expect(response.status, client).toBe(403);
+      expect(await errorCode(response), client).toBe('channel_not_allowed');
+    }
   });
 
   it('enforces allowed channels', async () => {

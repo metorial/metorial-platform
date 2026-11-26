@@ -6,7 +6,8 @@ import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
 import { classifyTool } from '../tools';
 import { dateFromNanos, dateFromValue, firstDate } from '../time';
-import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
+import { isMcpName, redactedMcpNamespace, redactedMcpTool, rewrite } from './policy';
+import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
   errorFromStatus,
@@ -187,8 +188,12 @@ let toolOf = (fields: FieldReader) => {
   if (!name) return undefined;
 
   let server = fields.str('mcp_server', 'mcp.server.name');
+  if (server) return classifyTool(name, { mcpServer: server });
 
-  return classifyTool(name, server ? { mcpServer: server } : {});
+  let redacted =
+    name == redactedMcpTool || fields.str('tool_namespace') == redactedMcpNamespace;
+
+  return classifyTool(name, redacted ? { explicitKind: 'mcp' } : {});
 };
 
 // In code mode the model calls one `exec` tool that runs a script, and every tool the script
@@ -222,8 +227,9 @@ type LogState = {
   fields: FieldReader;
 };
 
-let logName = (log: OtlpLogRecord, fields: FieldReader) => {
-  let raw = fields.str('event.name') ?? (log.eventName || undefined);
+let logName = (log: OtlpLogRecord) => {
+  let raw =
+    readFields(log.attributes, 'log.').str('event.name') ?? (log.eventName || undefined);
 
   return raw ? stripPrefix(raw, eventPrefix) : '';
 };
@@ -555,7 +561,7 @@ let mapEvent = (state: LogState): RecordDraft[] => {
 
 let mapLog: OtlpDialect['mapLog'] = (context, log) => {
   let fields = readFields(log.attributes, 'log.');
-  let name = logName(log, fields);
+  let name = logName(log);
 
   let source = otlpSource(adapter, codexOtlpId, 'logs');
 
@@ -845,6 +851,44 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
   }
 };
 
+let codexDetails = new Set([
+  'arguments',
+  'output',
+  'mcp_server',
+  'mcp_server_origin',
+  'mcp_servers',
+  'mcp.server.name',
+  'mcp.server.origin',
+  'mcp.connector.id',
+  'mcp.connector.name',
+  'skill.name'
+]);
+
+export let codexWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let server = item.attributes['mcp_server'];
+  let mcp =
+    isMcpName(item.attributes['tool_namespace']) ||
+    (typeof server == 'string' && server.length > 0) ||
+    typeof item.attributes['mcp.server.name'] == 'string';
+
+  return {
+    name: isMcpName(item.name) ? redactedMcpTool : item.name,
+    attributes: rewrite(item.attributes, (key, value) => {
+      if (codexDetails.has(key)) return undefined;
+      if (key == 'tool_namespace' && mcp) return redactedMcpNamespace;
+
+      if (key == 'tool_name' || key == 'tool.name') {
+        let named = typeof value == 'string' && value.includes('__');
+        return mcp || named ? redactedMcpTool : value;
+      }
+
+      if (key == 'tool' && isMcpName(value)) return redactedMcpTool;
+
+      return value;
+    })
+  };
+};
+
 export let codexOtlp: OtlpDialect = {
   id: codexOtlpId,
   adapter,
@@ -858,5 +902,8 @@ export let codexOtlp: OtlpDialect = {
 
   mapLog,
   mapMetric,
-  mapSpan
+  mapSpan,
+
+  logName,
+  withoutToolDetails: codexWithoutToolDetails
 };

@@ -23,6 +23,9 @@ export {
   minGroupUsersLimits,
   retentionDaysLimits,
   serviceRetentionDefaults,
+  ticketUrlTemplate,
+  ticketUrlTemplateKey,
+  ticketUrlTemplateMaxLength,
   type AgentTrackingPrivacy
 } from '../lib/settings';
 export * from './agentTrackingSettings';

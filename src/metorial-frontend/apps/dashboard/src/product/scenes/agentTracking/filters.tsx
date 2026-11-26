@@ -1,4 +1,7 @@
-import type { DashboardInstanceAgentTrackingFilterValuesListOutput } from '@metorial/dashboard-sdk';
+import type {
+  DashboardInstanceAgentTrackingFilterValuesListOutput,
+  DashboardInstanceAgentTrackingFilterValuesListQuery
+} from '@metorial/dashboard-sdk';
 import { useAgentTrackingFilterValues } from '@metorial/state';
 import type { TableFilterEntityOption } from '@metorial/ui-product';
 import { createContext, useContext } from 'react';
@@ -8,6 +11,7 @@ import {
   getBrowserTimeZone,
   type AgentTrackingRangePreset
 } from './range';
+import { repositoryLabel } from './sessionContext';
 import { modelLabel } from './spendSummary';
 
 type FilterValue = DashboardInstanceAgentTrackingFilterValuesListOutput['items'][number];
@@ -31,6 +35,14 @@ let filterValueOption =
 
     if (value.client) return { id: value.value, label: value.client.name ?? value.value };
 
+    if (value.repository) {
+      return {
+        id: value.value,
+        label: repositoryLabel(value.repository),
+        description: value.repository.host ?? undefined
+      };
+    }
+
     return {
       id: value.value,
       label: value.model ? modelLabel(value.model) : value.value,
@@ -40,7 +52,7 @@ let filterValueOption =
 
 let filterValuesFilter =
   (
-    field: 'member' | 'model' | 'client' | 'seat',
+    field: DashboardInstanceAgentTrackingFilterValuesListQuery['field'],
     d: Pick<EntityDefinition, 'id' | 'label' | 'noun' | 'mode'>
   ) =>
   (instanceId: string | undefined, rangeText = 'this range') =>
@@ -87,5 +99,23 @@ export let agentTrackingFilters = {
     label: 'Seat',
     noun: 'seats',
     mode: 'recent'
+  }),
+  repository: filterValuesFilter('repository', {
+    id: 'repositoryId',
+    label: 'Repository',
+    noun: 'repositories',
+    mode: 'search'
+  }),
+  branch: filterValuesFilter('branch', {
+    id: 'branch',
+    label: 'Branch',
+    noun: 'branches',
+    mode: 'search'
+  }),
+  ticket: filterValuesFilter('ticket', {
+    id: 'ticket',
+    label: 'Ticket',
+    noun: 'tickets',
+    mode: 'search'
   })
 };

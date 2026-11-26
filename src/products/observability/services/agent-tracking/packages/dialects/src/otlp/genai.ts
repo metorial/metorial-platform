@@ -2,9 +2,9 @@ import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { genAiBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool } from '../tools';
+import { classifyTool, parseMcpToolName } from '../tools';
 import { dateFromNanos } from '../time';
-import type { Mapped, OtlpDialect, OtlpGroupContext } from '../types';
+import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
   errorFromStatus,
@@ -15,6 +15,7 @@ import {
   type ErrorClass
 } from '../values';
 import { actorOf, clientVersionOf, otlpSource, safeNativeName, traceOf } from './common';
+import { redactedMcpTool } from './policy';
 
 export let genAiOtlpId = 'genai.otlp.v1';
 
@@ -24,6 +25,14 @@ let spanPattern =
   /^(chat|text_completion|generate_content|embeddings|execute_tool|invoke_agent|create_agent|invoke_workflow|retrieval)( |$)/;
 
 let modelOperations = new Set(['chat', 'text_completion', 'generate_content']);
+
+let serviceFamilies: Record<string, string> = {
+  opencode: 'opencode',
+  'github-copilot': 'copilot',
+  'copilot-chat': 'copilot'
+};
+
+let toolSpanPattern = /^execute_tool (.+)$/;
 
 let tokenTypes: Record<string, { type: string; warning?: string }> = {
   input: { type: 'input', warning: 'token_type_includes_cache' },
@@ -41,7 +50,9 @@ let withData = (draft: RecordDraft, data: Record<string, unknown>): RecordDraft 
 let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['client'] => {
   let version = clientVersionOf(context.resourceFields, fields);
 
-  return { family: 'generic', ...(version ? { version } : {}) };
+  let family = own(serviceFamilies, context.serviceName?.trim().toLowerCase()) ?? 'generic';
+
+  return { family, ...(version ? { version } : {}) };
 };
 
 let providerOf = (fields: FieldReader) =>
@@ -141,7 +152,9 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
 
   if (operation == 'execute_tool') {
     let name = fields.str('gen_ai.tool.name');
-    let tool = name ? classifyTool(name) : undefined;
+    let tool = name
+      ? classifyTool(name, name == redactedMcpTool ? { explicitKind: 'mcp' } : {})
+      : undefined;
     let callId = fields.str('gen_ai.tool.call.id');
 
     return finish(
@@ -282,6 +295,22 @@ let mapLog: OtlpDialect['mapLog'] = (context, log) => {
   ];
 };
 
+let isMcpTool = (value: unknown) => typeof value == 'string' && !!parseMcpToolName(value);
+
+export let genAiWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let tool = item.attributes['gen_ai.tool.name'];
+  let spanTool = toolSpanPattern.exec(item.name)?.[1];
+
+  if (!isMcpTool(tool) && !isMcpTool(spanTool)) return item;
+
+  return {
+    name: isMcpTool(spanTool) ? `execute_tool ${redactedMcpTool}` : item.name,
+    attributes: isMcpTool(tool)
+      ? { ...item.attributes, 'gen_ai.tool.name': redactedMcpTool }
+      : item.attributes
+  };
+};
+
 export let genAiOtlp: OtlpDialect = {
   id: genAiOtlpId,
   adapter,
@@ -298,5 +327,7 @@ export let genAiOtlp: OtlpDialect = {
 
   mapLog,
   mapMetric,
-  mapSpan
+  mapSpan,
+
+  withoutToolDetails: genAiWithoutToolDetails
 };

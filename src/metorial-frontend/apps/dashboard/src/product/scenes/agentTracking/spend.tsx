@@ -8,10 +8,11 @@ import {
   useAgentTrackingSpendBreakdown,
   useAgentTrackingSpendTimeline
 } from '@metorial/state';
-import { Button, Flex, OptionToggle, Spacer, Text } from '@metorial/ui';
+import { Button, Flex, OptionToggle, Select, Spacer, Text } from '@metorial/ui';
 import { Box, FilterToolbar, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import styled from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { CostValue } from './cost';
 import { describeCostComparison } from './costComparison';
@@ -83,7 +84,10 @@ let tokenKinds = [
 
 let breakdownGroups = [
   { id: 'member', label: 'Member' },
-  { id: 'model', label: 'Model' }
+  { id: 'model', label: 'Model' },
+  { id: 'repository', label: 'Repository' },
+  { id: 'branch', label: 'Branch' },
+  { id: 'ticket', label: 'Ticket' }
 ] as const;
 
 let measureIds = measures.map(item => item.id);
@@ -92,6 +96,8 @@ let breakdownGroupIds = breakdownGroups.map(item => item.id);
 
 type BreakdownGroup = (typeof breakdownGroups)[number]['id'];
 
+let overlappingGroups: BreakdownGroup[] = ['repository', 'ticket'];
+
 type MeasureRow = (typeof measures)[number];
 
 type CountMeasure = Extract<MeasureRow, { series: string }>;
@@ -99,6 +105,10 @@ type CountMeasure = Extract<MeasureRow, { series: string }>;
 type SpendFilters = { clientFamily?: string[]; modelId?: string[] };
 
 type Timeline = DashboardInstanceAgentTrackingSpendTimelineOutput;
+
+let GroupSelect = styled.div`
+  width: 160px;
+`;
 
 let noneIn = (what: string, filtered: unknown) =>
   `${what} in this range${filtered ? ' with these filters' : ''}.`;
@@ -416,15 +426,28 @@ let Breakdown = ({
 
   return (
     <Box
-      title={<WithInfo info="Share is of the total.">Cost By</WithInfo>}
+      title={
+        <WithInfo
+          info={
+            overlappingGroups.includes(group)
+              ? 'Share is of the total. A session with several repositories or tickets counts fully in each, so shares can add up to more than 100%.'
+              : 'Share is of the total.'
+          }
+        >
+          Cost By
+        </WithInfo>
+      }
       rightActions={
-        <OptionToggle
-          size="2"
-          ariaLabel="Cost By"
-          items={breakdownGroups.map(item => ({ id: item.id, label: item.label }))}
-          value={group}
-          onChange={value => setGroup(value as BreakdownGroup)}
-        />
+        <GroupSelect>
+          <Select
+            size="2"
+            label="Cost By"
+            hideLabel
+            items={breakdownGroups.map(item => ({ id: item.id, label: item.label }))}
+            value={group}
+            onChange={value => setGroup(value as BreakdownGroup)}
+          />
+        </GroupSelect>
       }
     >
       {renderWithLoader(

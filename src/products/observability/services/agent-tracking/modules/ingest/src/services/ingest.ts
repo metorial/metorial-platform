@@ -17,6 +17,7 @@ import {
 } from '@mtsrc/agent-tracking-otlp';
 import {
   assertIngestAllowed,
+  channelNotAllowedError,
   clientNotAllowedError,
   isClientAllowed,
   normalizeClient
@@ -24,6 +25,7 @@ import {
 import {
   bulkBatchHeaderSchema,
   bulkItemSchema,
+  parseTimestamp,
   type BulkBatchHeader,
   type BulkDialect,
   type BulkRejection,
@@ -38,12 +40,8 @@ import {
   invalidClientError,
   invalidPayloadError
 } from '../lib/errors';
-import {
-  isPlainObject,
-  parseJsonObject,
-  parseJsonObjectBytes,
-  parseTimestamp
-} from '../lib/payload';
+import { isPlainObject, parseJsonObject, parseJsonObjectBytes } from '../lib/payload';
+import { allowsDialect, allowsHookRoute, ingestPolicyFor } from '../lib/policy';
 import { getRuntime } from '../lib/runtime';
 
 let maxHeaderBytes = 4096;
@@ -119,7 +117,7 @@ class IngestServiceImpl {
 
     if (decoded.itemCount > otlpLimits.maxItems) throw new ServiceError(tooManyItemsError());
 
-    let mapped = mapOtlpDecoded(signal, decoded);
+    let mapped = mapOtlpDecoded(signal, decoded, ingestPolicyFor(principal));
     let collector = createCollector(d.call, { route: 'otlp_http', lane: 'live' });
 
     let notAllowed = 0;
@@ -167,6 +165,8 @@ class IngestServiceImpl {
     let client = normalizeClient(d.client);
     if (!client) throw new ServiceError(invalidClientError());
 
+    if (!allowsHookRoute(d.call.principal)) throw new ServiceError(channelNotAllowedError());
+
     if (d.bytes.length == 0) throw invalid('The request body is empty.');
 
     let payload = parseJsonObjectBytes(d.bytes);
@@ -211,6 +211,7 @@ class IngestServiceImpl {
     }
 
     let { principal } = d.call;
+    let policy = ingestPolicyFor(principal);
     let lane = header.mode == 'backfill' ? ('backfill' as const) : ('live' as const);
     let now = getRuntime().clock().getTime();
 
@@ -286,6 +287,11 @@ class IngestServiceImpl {
           continue;
         }
 
+        if (!allowsDialect({ principal, policy, manifest: resolution.manifest, lane })) {
+          reject('not_allowed');
+          continue;
+        }
+
         if (
           (item.client_version && item.client_version.length > maxClientVersionLength) ||
           !isVersionSupported(resolution.manifest, item.client_version)
@@ -340,9 +346,33 @@ class IngestServiceImpl {
           continue;
         }
 
+        let checked = resolution.dialect.check?.(payload);
+
+        if (checked && !checked.success) {
+          reject(
+            'parse_error',
+            this.describeFirstError(
+              checked.errors.map(error => ({
+                ...error,
+                path: ['payload', ...(error.path ?? [])]
+              }))
+            )
+          );
+          continue;
+        }
+
         let identityHint = `${item.source.kind}|${item.source.ref}|${item.source.seq ?? ''}`;
 
-        let mapped = resolution.dialect.map({ identityHint }, payload);
+        let mapped = resolution.dialect.map(
+          {
+            identityHint,
+            client,
+            ...(item.client_version ? { clientVersion: item.client_version } : {}),
+            observedAt,
+            policy
+          },
+          checked ? (checked.value as Record<string, unknown>) : payload
+        );
 
         if (!collector.add(mapped, observedAt)) {
           reject('parse_error', 'The payload could not be mapped.');

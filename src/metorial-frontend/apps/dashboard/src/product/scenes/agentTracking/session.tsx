@@ -6,25 +6,36 @@ import { Paths } from '@metorial/frontend-config';
 import { PageHeader } from '@metorial/layout';
 import { MetricsSummary } from '@metorial/metrics-page';
 import { useAgentTrackingSession } from '@metorial/state';
-import { Button, Callout, Datalist, Flex, RenderDate, Text, theme } from '@metorial/ui';
+import { Badge, Button, Callout, Datalist, Flex, RenderDate, Text, theme } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useNow } from '@metorial/use-now';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
-import { formatSpan, formatTimeSpan, sessionLength, sessionTitle } from './activity';
+import { formatSpan, formatTimeSpan, sessionHeading, sessionLength } from './activity';
 import { CostValue } from './cost';
 import { agentTrackingErrorStatus, AgentTrackingErrorState } from './errorState';
 import { WithInfo } from './info';
 import { MemberDetails, memberPath } from './memberParts';
+import {
+  linesChangedLabel,
+  otherDefaultBranch,
+  pullRequestKindLabels,
+  pullRequestLabel,
+  repositoryLabel,
+  shortSha,
+  worktreeLabel
+} from './sessionContext';
 import { describeSessionCost, sessionCostKind } from './sessionCost';
 import {
   clientVersion,
   costIsSettling,
   DetailColumns,
+  MaybeLink,
   ModelNameCell,
   SessionActivityLabel,
-  settlingLabel
+  settlingLabel,
+  TicketLinks
 } from './sessionParts';
 import { clientLabel, formatRequests } from './spendSummary';
 
@@ -38,7 +49,7 @@ let tokenKinds = [
   { id: 'reasoning', label: 'Reasoning' }
 ] as const;
 
-let ModelList = styled.div`
+let RowList = styled.div`
   display: flex;
   flex-direction: column;
 
@@ -47,7 +58,7 @@ let ModelList = styled.div`
   }
 `;
 
-let ModelRow = styled.div`
+let ListRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -147,9 +158,9 @@ let CostByModel = ({ session }: { session: Session }) => (
         {settlingLabel} The cost per model arrives 30 to 90 seconds after activity.
       </Text>
     ) : session.usageByModel.length ? (
-      <ModelList>
+      <RowList>
         {session.usageByModel.map(usage => (
-          <ModelRow key={usage.key}>
+          <ListRow key={usage.key}>
             <Flex direction="column" gap={2}>
               <ModelNameCell model={usage.model} unknownModelNames={usage.unknownModelNames} />
               <Text as="span" size="1" color="gray600">
@@ -161,9 +172,9 @@ let CostByModel = ({ session }: { session: Session }) => (
             <Text as="span" size="2" weight="medium" wrap="nowrap">
               <CostValue cost={usage.cost} />
             </Text>
-          </ModelRow>
+          </ListRow>
         ))}
-      </ModelList>
+      </RowList>
     ) : (
       <Text size="2" color="gray600">
         No model usage recorded.
@@ -171,6 +182,111 @@ let CostByModel = ({ session }: { session: Session }) => (
     )}
   </Box>
 );
+
+let contextItems = (context: Session['context']) => {
+  let defaultBranch = otherDefaultBranch(context);
+  let worktree = worktreeLabel(context.worktree);
+  let lines = linesChangedLabel(context.lines);
+
+  return [
+    context.repositories.length
+      ? {
+          label: context.repositories.length == 1 ? 'Repository' : 'Repositories',
+          value: (
+            <Flex direction="column" gap={2}>
+              {context.repositories.map(repository => (
+                <MaybeLink key={repository.id} url={repository.url}>
+                  {repositoryLabel(repository)}
+                </MaybeLink>
+              ))}
+            </Flex>
+          )
+        }
+      : null,
+    context.branch ? { label: 'Branch', value: context.branch } : null,
+    defaultBranch ? { label: 'Default Branch', value: defaultBranch } : null,
+    context.tickets.length
+      ? { label: 'Tickets', value: <TicketLinks tickets={context.tickets} /> }
+      : null,
+    context.pullRequests.length
+      ? {
+          label: 'Pull Requests',
+          value: (
+            <Flex direction="column" gap={4}>
+              {context.pullRequests.map(pullRequest => (
+                <Flex key={pullRequest.key} gap={8} align="center">
+                  <MaybeLink url={pullRequest.url}>{pullRequestLabel(pullRequest)}</MaybeLink>
+                  <Badge size="1" color={pullRequest.kind == 'opened' ? 'green' : 'gray'}>
+                    {pullRequestKindLabels[pullRequest.kind]}
+                  </Badge>
+                </Flex>
+              ))}
+            </Flex>
+          )
+        }
+      : null,
+    lines ? { label: 'Lines Changed', value: lines } : null,
+    worktree ? { label: 'Worktree', value: worktree } : null,
+    context.subPath ? { label: 'Sub-Path', value: context.subPath } : null,
+    context.permissionMode ? { label: 'Permission Mode', value: context.permissionMode } : null
+  ].filter(item => item !== null);
+};
+
+let CommitList = ({ commits }: { commits: Session['commits'] }) => (
+  <RowList>
+    {commits.map(commit => (
+      <ListRow key={commit.sha}>
+        <Flex direction="column" gap={2}>
+          <Flex gap={8} align="center">
+            <span title={commit.sha}>
+              <Text as="span" size="2" weight="medium">
+                {shortSha(commit.sha)}
+              </Text>
+            </span>
+            {commit.aiAuthored ? (
+              <Badge size="1" color="violet">
+                AI Co-Authored
+              </Badge>
+            ) : null}
+          </Flex>
+
+          {commit.tickets.length ? <TicketLinks tickets={commit.tickets} /> : null}
+        </Flex>
+
+        <Text as="span" size="1" color="gray600" wrap="nowrap">
+          <RenderDate date={commit.committedAt} />
+        </Text>
+      </ListRow>
+    ))}
+  </RowList>
+);
+
+let ContextBox = ({ session }: { session: Session }) => {
+  let items = contextItems(session.context);
+
+  return (
+    <Box title="Context">
+      {items.length || session.commits.length ? (
+        <Flex direction="column" gap={16}>
+          {items.length ? <Datalist items={items} /> : null}
+
+          {session.commits.length ? (
+            <Flex direction="column" gap={6}>
+              <Text as="span" size="2" weight="medium">
+                Commits
+              </Text>
+              <CommitList commits={session.commits} />
+            </Flex>
+          ) : null}
+        </Flex>
+      ) : (
+        <Text size="2" color="gray600">
+          No repository information was reported for this session.
+        </Text>
+      )}
+    </Box>
+  );
+};
 
 let MemberBox = ({ session }: { session: Session }) => {
   let ctx = useInstanceContext();
@@ -217,7 +333,8 @@ let SessionHeader = ({ sessionId, session }: { sessionId: string; session?: Sess
   let ctx = useInstanceContext();
   let now = useNow();
 
-  let title = session ? sessionTitle(session, now) : 'Session';
+  let heading = session ? sessionHeading(session, now) : null;
+  let title = heading?.title ?? 'Session';
   let path = Paths.instance.agentTracking.session(
     ctx.organization,
     ctx.project,
@@ -227,6 +344,7 @@ let SessionHeader = ({ sessionId, session }: { sessionId: string; session?: Sess
 
   let description = session
     ? [
+        heading?.byline,
         formatTimeSpan(session.startedAt, session.endedAt ?? session.lastActivityAt, now),
         [clientLabel(session.client), clientVersion(session.client)].filter(Boolean).join(' '),
         session.client.surface
@@ -255,6 +373,7 @@ let SessionDetail = ({ session }: { session: Session }) => (
       <Flex direction="column" gap={20}>
         <SessionFigures session={session} />
         <CostExplanation session={session} />
+        <ContextBox session={session} />
         <TokensBox session={session} />
       </Flex>
 

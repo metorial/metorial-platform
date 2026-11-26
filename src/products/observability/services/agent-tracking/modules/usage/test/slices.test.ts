@@ -123,6 +123,25 @@ describe('buildSessionSlices', () => {
     });
   });
 
+  it('stamps the branch and ticket refs of the session', () => {
+    let tracked = {
+      ...session,
+      context: { ...session.context, branch: 'ivan/mt-365-title', ticketRefs: ['MT-365'] }
+    } as SessionDocument;
+
+    let [document] = buildSessionSlices({
+      session: tracked,
+      attribution,
+      now,
+      slices: [baseSlice()]
+    });
+    let [plain] = buildSessionSlices({ session, attribution, now, slices: [baseSlice()] });
+
+    expect(document).toMatchObject({ branch: 'ivan/mt-365-title', ticketRefs: ['MT-365'] });
+    expect(plain!.ticketRefs).toEqual([]);
+    expect(plain).not.toHaveProperty('branch');
+  });
+
   it('keeps slice ids stable so rewrites replace documents in place', () => {
     let first = buildSessionSlices({ session, attribution, now, slices: [baseSlice()] });
     let second = buildSessionSlices({
@@ -175,6 +194,7 @@ describe('buildSessionlessSlices', () => {
       sessionsStarted: 0
     });
     expect(documents[0]!.sessionKey).toBeUndefined();
+    expect(documents[0]!.ticketRefs).toEqual([]);
     expect(documents[1]!.client).toEqual({ family: 'unknown' });
     expect(documents[0]!.expiresAt).toEqual(new Date('2026-12-11T00:00:00Z'));
   });

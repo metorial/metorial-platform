@@ -7,7 +7,12 @@ export * from './agentTrackingSetupStatus';
 export * from './agentTrackingSpend';
 export * from './agentTrackingTool';
 export * from './agentTrackingView';
-export { filterValueList, filterValueValidator } from '../lib/filterValues';
+export {
+  filterValueList,
+  filterValueValidator,
+  nameFilterValueValidator,
+  ticketFilterValueValidator
+} from '../lib/filterValues';
 export { memberInsightsFlags, memberInsightsGroups } from '../lib/memberInsights';
 export { growthRateBounds } from '../lib/projection';
 export * from '../lib/agentActivity';

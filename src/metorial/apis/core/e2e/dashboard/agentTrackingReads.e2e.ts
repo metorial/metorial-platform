@@ -17,6 +17,8 @@ import {
   agentTrackingPath,
   claudeRequest,
   ingestFirstUsage,
+  sendDesktopContext,
+  serviceSessions,
   trackedConsumer
 } from '@metorial/agent-tracking-e2e';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -398,8 +400,56 @@ describe('api-core dashboard: agent tracking reads', () => {
       member: null,
       model: null,
       client: null,
+      repository: null,
       requests: null
     });
+  });
+
+  it('accepts the repository, branch and ticket groupings, fields and session filters', async () => {
+    for (let group_by of ['repository', 'branch', 'ticket']) {
+      let breakdown = expectOk(
+        await org.clients.rest.get(agentTrackingPath(org, '/spend/breakdown'), {
+          query: { group_by, range: 'month_to_date' }
+        })
+      );
+      expect(breakdown).toMatchObject({ group_by, items: [] });
+    }
+
+    for (let field of ['repository', 'branch', 'ticket']) {
+      let values = expectOk(
+        await org.clients.rest.get(agentTrackingPath(org, '/filter-values'), {
+          query: { field }
+        })
+      );
+      expect(values).toMatchObject({ field, items: [] });
+    }
+
+    let filtered = expectOk(
+      await org.clients.rest.get(agentTrackingPath(org, '/sessions'), {
+        query: {
+          repository_id: ['aten_missing', 'aten_other'],
+          branch: 'main',
+          ticket: 'ENG-1',
+          pull_request: 'github.com/acme/api#7'
+        }
+      })
+    );
+    expect(filtered).toMatchObject({ object: 'list', items: [] });
+
+    expectError(
+      await org.clients.rest.get(agentTrackingPath(org, '/sessions'), {
+        query: { branch: 'x'.repeat(201) }
+      }),
+      400,
+      'invalid_data'
+    );
+    for (let ticket of ['#42', ['ENG-1', '#7']]) {
+      expectError(
+        await org.clients.rest.get(agentTrackingPath(org, '/sessions'), { query: { ticket } }),
+        400,
+        'invalid_data'
+      );
+    }
   });
 
   it('lists only members that have sent data to this instance', async () => {
@@ -624,6 +674,22 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
       requests: 1,
       cost: { currency: 'usd', total_micros: 1000, is_estimate: true }
     });
+    expect(session.context).toEqual({
+      repositories: [],
+      branch: null,
+      default_branch: null,
+      head: null,
+      worktree: null,
+      sub_path: null,
+      permission_mode: null,
+      title: null,
+      tickets: [],
+      pull_requests: [],
+      commit_count: 0,
+      pull_request_count: 0,
+      lines: { added: 0, removed: 0 }
+    });
+    expect(session.commits).toEqual([]);
 
     expectError(
       await org.clients.rest.get(agentTrackingPath(org, `/sessions/atse_${uniqueId('x')}`)),
@@ -910,5 +976,135 @@ describe('api-core dashboard: agent tracking member insights', () => {
 
     let active = await read('/members/insights');
     expect(byEmail(active.items)[emails.idle]).toBeUndefined();
+  });
+});
+
+describe('api-core dashboard: agent tracking session context', () => {
+  let org = useOrganization();
+
+  let sessionsPath = () => agentTrackingPath(org, '/sessions');
+
+  let read = async (path: string, query: RestQuery = {}) =>
+    expectOk(await org.clients.rest.get(agentTrackingPath(org, path), { query }));
+
+  beforeAll(async () => {
+    let now = Date.now();
+    let sessionId = uniqueId('session');
+
+    let source = await ingestFirstUsage(org, [
+      claudeRequest({ sessionId, at: new Date(now - 10 * minuteMs) }),
+      claudeRequest({ sessionId: uniqueId('session'), at: new Date(now - 5 * minuteMs) })
+    ]);
+
+    await sendDesktopContext({ ids: org.ids, ingestUrl: source.ingest_url }, sessionId, {
+      remoteUrl: 'git@github.com:acme/api.git',
+      branch: 'ada/eng-12-login',
+      ticketRefs: ['ENG-9'],
+      pullRequest: { provider: 'github', repository: 'acme/api', number: 7 }
+    });
+
+    await eventually(
+      async () => {
+        let reported = (await serviceSessions(org.ids)).find(
+          session => session.context.branch == 'ada/eng-12-login'
+        );
+        expect(reported?.summary?.pullRequestRefs).toHaveLength(1);
+      },
+      { timeoutMs: 120_000, intervalMs: 1_000 }
+    );
+  }, 300_000);
+
+  it('presents the context of a session in snake case', async () => {
+    let [session] = await listAll(org.clients.rest, sessionsPath(), {
+      query: { branch: 'ada/eng-12-login' }
+    });
+
+    expectPresented(session, 'agent_tracking.session');
+    expect(session.context).toMatchObject({
+      repositories: [
+        {
+          provider: 'github.com',
+          owner: 'acme',
+          name: 'api',
+          url: 'https://github.com/acme/api'
+        }
+      ],
+      branch: 'ada/eng-12-login',
+      default_branch: 'main',
+      sub_path: 'services/api',
+      pull_requests: [
+        {
+          key: 'github.com/acme/api#7',
+          provider: 'github.com',
+          repository: 'acme/api',
+          number: 7,
+          kind: 'opened',
+          url: 'https://github.com/acme/api/pull/7'
+        }
+      ],
+      commit_count: 1,
+      pull_request_count: 1,
+      lines: { added: 12, removed: 3 }
+    });
+    expect(session).not.toHaveProperty('commits');
+
+    let detail = expectPresented(
+      await read(`/sessions/${session.id}`),
+      'agent_tracking.session_detail'
+    );
+    expect(detail.commits).toEqual([
+      expect.objectContaining({
+        sha: 'c'.repeat(40),
+        committed_at: expect.any(String),
+        branch: null,
+        tickets: [{ key: 'ENG-9', url: null }],
+        ai_authored: true
+      })
+    ]);
+  });
+
+  it('filters sessions by repository, ticket and pull request', async () => {
+    let [session] = await listAll(org.clients.rest, sessionsPath(), {
+      query: { branch: 'ada/eng-12-login' }
+    });
+
+    for (let query of [
+      { repository_id: session.context.repositories[0].id },
+      { ticket: ['eng-12', 'OPS-1'] },
+      { pull_request: 'github.com/acme/api#7' }
+    ]) {
+      expect(ids(await listAll(org.clients.rest, sessionsPath(), { query }))).toEqual([
+        session.id
+      ]);
+    }
+  });
+
+  it('breaks spend down by ticket and lists repositories as filter values', async () => {
+    let byTicket = await read('/spend/breakdown', {
+      group_by: 'ticket',
+      range: 'last_7_days'
+    });
+    expect(
+      byTicket.items
+        .filter((item: any) => item.kind == 'ticket')
+        .map((item: any) => item.key)
+        .sort()
+    ).toEqual(['ENG-12', 'ENG-9']);
+
+    let byRepository = await read('/spend/breakdown', {
+      group_by: 'repository',
+      range: 'last_7_days'
+    });
+    expect(byRepository.items.find((item: any) => item.kind == 'repository')).toMatchObject({
+      repository: { owner: 'acme', name: 'api' }
+    });
+
+    let values = await read('/filter-values', { field: 'repository', search: 'acme' });
+    expect(values.items).toEqual([
+      expect.objectContaining({
+        kind: 'repository',
+        repository: expect.objectContaining({ name: 'api' })
+      })
+    ]);
   });
 });

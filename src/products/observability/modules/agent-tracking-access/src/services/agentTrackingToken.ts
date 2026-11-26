@@ -13,7 +13,7 @@ import {
   type Organization,
   type Project
 } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
+import { Fabric, type AgentTrackingOrganizationSettingsValues } from '@metorial/fabric';
 import {
   agentTrackingSettingsService,
   agentTrackingSyncService,
@@ -25,6 +25,16 @@ import { mirrorIngestToken, revokeAgentTrackingIngestToken } from '../lib/ingest
 import { issueCallOpts, issueInScope } from '../lib/issue';
 import { revokeIngestTokenQueue } from '../queues/revokeTokens';
 
+let telemetryOffDesktop: Record<
+  keyof AgentTrackingOrganizationSettingsValues['desktop'],
+  false
+> = {
+  toolDetails: false,
+  sessionContext: false,
+  sessionTitles: false,
+  historyImport: false
+};
+
 class AgentTrackingTokenServiceImpl {
   async listDeviceTelemetry(d: {
     organization: Organization;
@@ -35,9 +45,9 @@ class AgentTrackingTokenServiceImpl {
       organization: d.organization,
       project: d.project
     });
-    let toolDetails =
-      enabled &&
-      (await agentTrackingSettingsService.getOrganizationValues(d)).desktop.toolDetails;
+    let desktop = enabled
+      ? (await agentTrackingSettingsService.getOrganizationValues(d)).desktop
+      : telemetryOffDesktop;
 
     let signedInOids = enabled
       ? d.consumerDevices.filter(device => device.status == 'active').map(device => device.oid)
@@ -61,7 +71,12 @@ class AgentTrackingTokenServiceImpl {
     return new Map(
       d.consumerDevices.map(device => [
         device.oid,
-        { enabled, tokenId: activeTokenIds.get(device.oid) ?? null, toolDetails }
+        {
+          enabled,
+          tokenId: activeTokenIds.get(device.oid) ?? null,
+          directExport: enabled,
+          ...desktop
+        }
       ])
     );
   }

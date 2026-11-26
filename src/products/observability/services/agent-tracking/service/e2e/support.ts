@@ -2,6 +2,7 @@ import { createClient } from '@lowerdeck/rpc-client';
 import { uniqueId } from '@lowerdeck/testing-tools';
 import { e2eEndpoint } from '@metorial/e2e/env';
 import type { AgentTrackingClient } from '@mtsrc/agent-tracking-api-internal';
+import { desktopContextId } from '@mtsrc/agent-tracking-spec';
 
 export let packageName = '@mtsrc/agent-tracking-service';
 
@@ -87,6 +88,9 @@ export let createToken = async (input: TokenInput = {}, scope?: Scope) => {
   return { ...target, token, secret: token.secret };
 };
 
+export let createHookToken = (input: TokenInput = {}, scope?: Scope) =>
+  createToken({ deviceMode: 'ephemeral', ...input }, scope);
+
 export let createSource = async (input: SourceInput = {}, scope?: Scope) => {
   let target = scope ?? (await createScope());
 
@@ -119,6 +123,78 @@ export let ingest = (
     },
     body: options.method == 'GET' ? undefined : (options.body ?? '{}')
   });
+
+export let bulkHeader = (overrides: Record<string, unknown> = {}) => ({
+  batch_id: 'batch-1',
+  mode: 'live',
+  sent_at: new Date().toISOString(),
+  agent: { name: 'metorial-desktop', version: '1.0.0', install_id: 'install-1' },
+  ...overrides
+});
+
+type DesktopSession = { client: string; clientVersion?: string; sessionId: string };
+
+export let desktopItem = (
+  seq: number,
+  payload: Record<string, unknown>,
+  session: DesktopSession = { client: 'codex', clientVersion: '0.63.0', sessionId: 'conv-1' }
+) => ({
+  client: session.client,
+  ...(session.clientVersion ? { client_version: session.clientVersion } : {}),
+  channel: 'envelope',
+  dialect: desktopContextId,
+  source: { kind: 'desktop', ref: `session:${session.sessionId}`, seq },
+  observed_at: new Date().toISOString(),
+  payload: { session_id: session.sessionId, ...payload }
+});
+
+export let ndjson = (...lines: unknown[]) =>
+  lines.map(line => (typeof line == 'string' ? line : JSON.stringify(line))).join('\n') + '\n';
+
+export let bulk = (credential: string, body: string, headers: Record<string, string> = {}) =>
+  ingest('/v1/bulk', {
+    credential,
+    body,
+    headers: { 'content-type': 'application/x-ndjson', ...headers }
+  });
+
+export let sendDesktopContext = async (secret: string, sessionId: string) => {
+  let session = { client: 'claude-code', sessionId };
+
+  let response = await bulk(
+    secret,
+    ndjson(
+      { ...bulkHeader(), batch_id: uniqueId('batch') },
+      desktopItem(
+        1,
+        {
+          kind: 'session_context',
+          remote_url: 'https://github.com/acme/api.git',
+          branch: 'ivan/mt-365-title',
+          default_branch: 'main',
+          worktree: false,
+          sub_path: 'services/api'
+        },
+        session
+      ),
+      desktopItem(2, { kind: 'commit', sha: 'c'.repeat(40), ticket_refs: ['ENG-9'] }, session),
+      desktopItem(
+        3,
+        {
+          kind: 'pull_request',
+          relation: 'opened',
+          provider: 'github',
+          repository: 'acme/api',
+          number: 7
+        },
+        session
+      ),
+      desktopItem(4, { kind: 'session_stats', lines_added: 12, lines_removed: 3 }, session)
+    )
+  );
+
+  return (await response.json()) as { accepted: number; rejected: number };
+};
 
 export let storedRecords = async (
   scope: { organizationId?: string; instanceId?: string },

@@ -149,15 +149,20 @@ export let sessionsDataset: DatasetDef = {
       'Whether the client reported the session or it was inferred.'
     ),
     ticket: arrayField('context.ticketRefs', 'string', 'Ticket references.', {
-      dimension: false,
       cardinality: 'high',
       searchable: true
     }),
     branch: stored('context.branch', 'string', 'The VCS branch.', {
-      dimension: false,
+      sensitivity: 'personal',
       cardinality: 'high',
       searchable: true
     }),
+    pull_request: arrayField(
+      'summary.pullRequestRefs.key',
+      'string',
+      'Pull requests the session opened or linked, as provider/owner/name#number.',
+      { cardinality: 'high', searchable: true }
+    ),
     'mcp.server': arrayField('summary.mcpServers', 'string', 'MCP servers used.', {
       searchable: true
     }),

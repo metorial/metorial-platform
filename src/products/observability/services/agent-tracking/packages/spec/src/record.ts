@@ -134,8 +134,34 @@ export type SessionContextData = {
   repo?: SessionContextRepo;
   branch?: string;
   head?: string;
+  default_branch?: string;
+  worktree?: boolean;
+  sub_path?: string;
+  permission_mode?: string;
+  title?: string;
   tags?: SessionContextTag[];
   ticket_refs?: string[];
+};
+
+export type VcsCommitData = {
+  sha: string;
+  branch?: string;
+  committed_at?: string;
+  ticket_refs?: string[];
+  ai_authored?: boolean;
+  source: SessionContextSource;
+};
+
+export let vcsPullRequestKinds = ['opened', 'linked'] as const;
+
+export type VcsPullRequestKind = (typeof vcsPullRequestKinds)[number];
+
+export type VcsPullRequestData = {
+  kind: VcsPullRequestKind;
+  provider: string;
+  repository: string;
+  number: number;
+  source: SessionContextSource;
 };
 
 export type RecordAttribution = {

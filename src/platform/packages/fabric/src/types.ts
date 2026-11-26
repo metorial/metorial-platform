@@ -958,7 +958,13 @@ export type AgentTrackingViewInput = {
 export type AgentTrackingOrganizationSettingsValues = {
   organizationId: string;
   privacy: { hideIndividuals: boolean; minGroupUsers: number };
-  desktop: { toolDetails: boolean };
+  desktop: {
+    toolDetails: boolean;
+    sessionContext: boolean;
+    sessionTitles: boolean;
+    historyImport: boolean;
+  };
+  links: { ticketUrlTemplate: string | null };
 };
 
 export type AgentTrackingProjectSettingsValues = {
@@ -983,6 +989,7 @@ export type AgentTrackingSettingsValues =
 export type AgentTrackingSettingsInput = {
   privacy?: Partial<AgentTrackingOrganizationSettingsValues['privacy']>;
   desktop?: Partial<AgentTrackingOrganizationSettingsValues['desktop']>;
+  links?: Partial<AgentTrackingOrganizationSettingsValues['links']>;
   retention?: Partial<AgentTrackingProjectSettingsValues['retention']>;
   content?: Partial<AgentTrackingInstanceSettingsValues['content']>;
   classification?: Partial<AgentTrackingInstanceSettingsValues['classification']>;

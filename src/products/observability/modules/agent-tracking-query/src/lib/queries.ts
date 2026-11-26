@@ -10,6 +10,7 @@ import type {
   AgentTrackingSpendFilters,
   BreakdownGroup,
   FilterField,
+  SpendGroup,
   SpendReportGroup
 } from './types';
 
@@ -57,22 +58,34 @@ export let distinctCappedWarning = 'distinct_capped';
 
 export let retentionClippedWarning = 'retention_clipped';
 
-export let breakdownGroups = { member: 'user', model: 'model' } as const satisfies Record<
-  BreakdownGroup,
-  string
->;
+export let breakdownGroups = {
+  member: 'user',
+  model: 'model',
+  repository: 'repo',
+  branch: 'branch',
+  ticket: 'ticket'
+} as const satisfies Record<BreakdownGroup, string>;
 
 export let filterFields = {
   member: 'user',
   model: 'model',
   client: 'client.family',
-  seat: 'billing.seat'
+  seat: 'billing.seat',
+  repository: 'repo',
+  branch: 'branch',
+  ticket: 'ticket'
 } as const satisfies Record<FilterField, string>;
 
 export let reportBreakdownGroups = {
-  ...breakdownGroups,
+  member: breakdownGroups.member,
+  model: breakdownGroups.model,
   client: filterFields.client
 } as const satisfies Record<SpendReportGroup, string>;
+
+export let spendGroupColumns = {
+  ...breakdownGroups,
+  ...reportBreakdownGroups
+} as const satisfies Record<SpendGroup, string>;
 
 export let breakdownGroupKeys = Object.keys(breakdownGroups) as BreakdownGroup[];
 
@@ -95,7 +108,19 @@ export let spendMeasures = [
     where: { field: 'cost.list', op: 'isNull' },
     as: 'requests_without_list_price'
   },
-  'tokens'
+  'tokens',
+  {
+    fn: 'sum',
+    field: 'tokens.total',
+    where: { field: 'cost.usd', op: 'isNull' },
+    as: 'tokens_without_cost'
+  },
+  {
+    fn: 'sum',
+    field: 'tokens.total',
+    where: { field: 'cost.list', op: 'isNull' },
+    as: 'tokens_without_list_price'
+  }
 ];
 
 // A slice that only marks a session start does not count. Total tokens is not stored, so its
@@ -216,14 +241,13 @@ export let sessionModelsQuery = (d: {
 
 export let breakdownQuery = (d: {
   range: ResolvedRange;
-  groupBy: SpendReportGroup;
+  groupBy: SpendGroup;
   filters?: AgentTrackingSpendFilters;
   limit?: number;
 }) => ({
   ...usageQuery(d.range, spendWhere(d.filters ?? {})),
-  dimensions: [reportBreakdownGroups[d.groupBy]],
+  dimensions: [spendGroupColumns[d.groupBy]],
   measures: spendMeasures,
-  derived: [{ as: 'share', expr: { shareOfTotal: 'cost.usd' }, format: 'percent' }],
   orderBy: [{ by: 'cost.usd', direction: 'desc' }],
   limit: d.limit ?? breakdownLimit,
   other: true,
@@ -409,7 +433,7 @@ export let memberInsightsUsageQuery = (d: {
   ...usageQuery(d.range, undefined),
   dimensions: ['user'],
   measures: [
-    ...spendMeasures.filter(measure => measure != 'tokens'),
+    ...spendMeasures,
     ...activityMeasures,
     costWhere({ field: 'user', op: 'isNull' }, insightColumns.unattributedCost),
     ...(d.modelIds

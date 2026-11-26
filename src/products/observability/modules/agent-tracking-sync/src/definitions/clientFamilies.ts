@@ -2,6 +2,14 @@ export let agentTrackingClientFamilies = {
   claude_code: { name: 'Claude Code', serviceFamily: 'claude-code' }
 } as const;
 
+let otherClientFamilyNames: Record<string, string> = {
+  codex: 'Codex',
+  cursor: 'Cursor',
+  antigravity: 'Antigravity',
+  opencode: 'OpenCode',
+  copilot: 'GitHub Copilot'
+};
+
 export type AgentTrackingClientFamily = keyof typeof agentTrackingClientFamilies;
 
 export let agentTrackingClientFamilyKeys = Object.keys(
@@ -22,4 +30,8 @@ export let fromServiceFamily = (family: string) =>
       ) ?? family);
 
 export let clientFamilyName = (family: string) =>
-  isClientFamily(family) ? agentTrackingClientFamilies[family].name : null;
+  isClientFamily(family)
+    ? agentTrackingClientFamilies[family].name
+    : Object.prototype.hasOwnProperty.call(otherClientFamilyNames, family)
+      ? otherClientFamilyNames[family]!
+      : null;

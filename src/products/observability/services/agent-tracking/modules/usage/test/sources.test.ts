@@ -11,6 +11,7 @@ describe('sourceKindOf', () => {
     expect(sourceKindOf({ channel: 'otlp.metrics' })).toBe('otel.metrics');
     expect(sourceKindOf({ channel: 'transcript' })).toBe('transcript');
     expect(sourceKindOf({ channel: 'envelope' })).toBe('plugin');
+    expect(sourceKindOf({ channel: 'sse' })).toBe('plugin');
   });
 
   it('treats only provider feeds as vendor data, whatever the credential', () => {
@@ -62,6 +63,11 @@ describe('usageRank', () => {
       usageRank('copilot-cli', 'otel.logs')
     );
     expect(usageRank('opencode', 'plugin')).toBeLessThan(usageRank('opencode', 'otel.spans'));
+    expect(usageRank('antigravity', 'transcript')).toBe(0);
+    expect(usageRank('antigravity', 'transcript')).toBeLessThan(
+      usageRank('antigravity', 'otel.logs')
+    );
+    expect(usageRank('antigravity', 'plugin')).toBe(usageRank('antigravity', undefined));
   });
 
   it('ranks unknown families by the default order and unknown kinds last', () => {

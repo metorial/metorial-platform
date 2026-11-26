@@ -19,8 +19,10 @@ import type { PricePeriod } from '@mtsrc/agent-tracking-model-resolver';
 import type { OverridePricer } from '@mtsrc/agent-tracking-module-pricing';
 import type {
   ReportedCost,
+  SessionCommitRef,
   SessionCoverage,
   SessionModelSummary,
+  SessionPullRequestRef,
   SessionSummary,
   SourceKind
 } from '@mtsrc/agent-tracking-store';
@@ -41,6 +43,11 @@ import {
 
 let preferredBases = ['billed', 'contract', 'server_estimate', 'client_estimate'] as const;
 let centsPerUsd = 100n;
+
+let maxCommitRefs = 50;
+let maxPullRequestRefs = 20;
+let commitTimeAheadMs = 5 * 60 * 1000;
+let commitTimeBeforeSessionMs = 30 * 24 * 60 * 60 * 1000;
 
 let vendorSourceOrder: VendorSource[] = [
   'reported',
@@ -93,8 +100,11 @@ type UsageEntry = {
   userId?: string;
   billing: Billing;
   tokens?: RequestTokens;
+  aggregate: boolean;
   costs: CostEntry[];
   failed: boolean;
+  errorClass?: string;
+  keyed: boolean;
 };
 
 type ModelTotals = Grouped & {
@@ -115,8 +125,9 @@ type SliceTotals = {
   computed?: Amount;
   contract?: Amount;
   preferred?: Amount;
-  codeLines: { added: number; removed: number };
-  toolLines: { added: number; removed: number };
+  codeLines: Lines;
+  toolLines: Lines;
+  statsLines: Lines;
 };
 
 type Grouped = {
@@ -127,6 +138,14 @@ type Grouped = {
 };
 
 type CostedEntry = { costs: CostEntry[]; computed?: Amount; contract?: Amount };
+
+type CumulativeLines = { occurredAt: Date; added: number; removed: number };
+
+type PullRequestEntry = { ref: SessionPullRequestRef; at: Date };
+
+type CommitEntry = { ref: SessionCommitRef; committedAt?: Date };
+
+type Lines = { added: number; removed: number };
 
 let strongerSource = (a: VendorSource | undefined, b: VendorSource | undefined) =>
   !a || (b && vendorSourceOrder.indexOf(b) < vendorSourceOrder.indexOf(a)) ? b : a;
@@ -220,6 +239,80 @@ let increment = (target: Record<string, number>, key: string) => {
   target[key] = (target[key] ?? 0) + 1;
 };
 
+let strings = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry == 'string')
+    : undefined;
+
+let dateOf = (value: unknown) => {
+  let date = typeof value == 'string' ? new Date(value) : undefined;
+
+  return date && Number.isFinite(date.getTime()) ? date : undefined;
+};
+
+let mergeCommitRef = (
+  refs: Map<string, CommitEntry>,
+  key: string,
+  occurredAt: Date,
+  data: Record<string, unknown>
+) => {
+  let sha = text(data.sha);
+  if (!sha) return;
+
+  let entry = refs.get(key) ?? { ref: { sha, at: occurredAt } };
+  let { ref } = entry;
+  if (occurredAt < ref.at) ref.at = occurredAt;
+
+  let branch = text(data.branch);
+  let ticketRefs = strings(data.ticketRefs);
+
+  if (branch && !ref.branch) ref.branch = branch;
+  if (ticketRefs?.length && !ref.ticketRefs) ref.ticketRefs = ticketRefs;
+  if (typeof data.aiAuthored == 'boolean' && ref.aiAuthored === undefined) {
+    ref.aiAuthored = data.aiAuthored;
+  }
+  entry.committedAt ??= dateOf(data.committedAt);
+
+  refs.set(key, entry);
+};
+
+let commitTime = (entry: CommitEntry, sessionStart: Date | undefined) => {
+  let { committedAt } = entry;
+  if (!committedAt) return entry.ref.at;
+
+  let tooLate = committedAt.getTime() > entry.ref.at.getTime() + commitTimeAheadMs;
+  let tooEarly =
+    !!sessionStart &&
+    committedAt.getTime() < sessionStart.getTime() - commitTimeBeforeSessionMs;
+
+  return tooLate || tooEarly ? entry.ref.at : committedAt;
+};
+
+let mergePullRequestRef = (
+  refs: Map<string, PullRequestEntry>,
+  occurredAt: Date,
+  data: Record<string, unknown>
+) => {
+  let provider = text(data.provider);
+  let repository = text(data.repository);
+  let number = typeof data.number == 'number' ? data.number : undefined;
+  let kind = data.kind == 'linked' ? ('linked' as const) : ('opened' as const);
+  if (!provider || !repository || !number) return;
+
+  let key = `${provider}/${repository}#${number}`;
+  let entry = refs.get(key) ?? {
+    ref: { key, provider, repository, number, kind },
+    at: occurredAt
+  };
+  if (occurredAt > entry.at) entry.at = occurredAt;
+  if (kind == 'opened') entry.ref.kind = kind;
+
+  refs.set(key, entry);
+};
+
+let newestFirst = <T extends { at: Date }>(entries: Iterable<T>, limit: number) =>
+  [...entries].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, limit);
+
 export type CostBasis = (typeof preferredBases)[number] | 'computed';
 
 let hasBasis = (entry: CostedEntry, basis: (typeof preferredBases)[number]) =>
@@ -301,8 +394,10 @@ export let aggregateSession = async (d: {
   let subagentNames = new Map<string, string>();
   let codeLines = { added: 0, removed: 0 };
   let toolLines = { added: 0, removed: 0 };
-  let commits = 0;
   let pullRequests = 0;
+  let commitRefs = new Map<string, CommitEntry>();
+  let pullRequestRefs = new Map<string, PullRequestEntry>();
+  let statsSamples: CumulativeLines[] = [];
   let errorsByClass: Record<string, number> = {};
   let compactions = 0;
   let hasContext = false;
@@ -311,6 +406,7 @@ export let aggregateSession = async (d: {
 
   let correlations = new Map<string, Correlation>();
   let usage: UsageEntry[] = [];
+  let requestSlots = new Map<string, number>();
   let slices = new Map<string, SliceTotals>();
 
   let sliceFor = (d: {
@@ -357,7 +453,8 @@ export let aggregateSession = async (d: {
         },
         costs: new Map(),
         codeLines: { added: 0, removed: 0 },
-        toolLines: { added: 0, removed: 0 }
+        toolLines: { added: 0, removed: 0 },
+        statsLines: { added: 0, removed: 0 }
       };
 
       slices.set(key, totals);
@@ -396,7 +493,16 @@ export let aggregateSession = async (d: {
     if (document.source.role != 'primary') continue;
 
     let dedupeKey = document.source.factKey ?? document._id;
-    if (!isNew(document.type, dedupeKey)) continue;
+    let keyedRequest = document.type == 'model.request' && !!document.source.factKey;
+
+    if (document.type == 'vcs.commit') {
+      mergeCommitRef(commitRefs, dedupeKey, occurredAt, data);
+    }
+    if (document.type == 'vcs.pull_request') {
+      mergePullRequestRef(pullRequestRefs, occurredAt, data);
+    }
+
+    if (!keyedRequest && !isNew(document.type, dedupeKey)) continue;
 
     let error = record(data.error);
     let errorClass = text(error?.class);
@@ -455,6 +561,15 @@ export let aggregateSession = async (d: {
         let lines = record(data.lines);
         if (!lines) break;
 
+        if (data.cumulative === true) {
+          statsSamples.push({
+            occurredAt,
+            added: count(lines.added),
+            removed: count(lines.removed)
+          });
+          break;
+        }
+
         let totals = sliceFor({ occurredAt, subagentId });
 
         codeLines.added += count(lines.added);
@@ -473,10 +588,6 @@ export let aggregateSession = async (d: {
 
         break;
       }
-
-      case 'vcs.commit':
-        commits++;
-        break;
 
       case 'vcs.pull_request':
         if (!data.kind || data.kind == 'opened') pullRequests++;
@@ -512,11 +623,7 @@ export let aggregateSession = async (d: {
       data
     });
 
-    if (document.type == 'model.request' && data.outcome && data.outcome != 'ok') {
-      increment(errorsByClass, errorClass ?? 'unknown');
-    }
-
-    usage.push({
+    let entry: UsageEntry = {
       type: document.type,
       rank: usageRank(d.family, source),
       source,
@@ -531,9 +638,57 @@ export let aggregateSession = async (d: {
       userId: document.attribution?.userId,
       billing: reportedBilling({ billing: data.billing, authMode: document.client.authMode }),
       tokens,
+      aggregate: record(data.usage)?.provenance == 'aggregate',
       costs: cost ? [cost] : [],
-      failed: document.type == 'model.request' && !!data.outcome && data.outcome != 'ok'
-    });
+      failed: document.type == 'model.request' && !!data.outcome && data.outcome != 'ok',
+      errorClass,
+      keyed: keyedRequest
+    };
+
+    // Two sources can report the same request under one fact key; the better-ranked one is kept
+    // whichever arrived first.
+    let slot = keyedRequest ? requestSlots.get(dedupeKey) : undefined;
+
+    if (slot === undefined) {
+      let index = usage.push(entry) - 1;
+      if (keyedRequest) requestSlots.set(dedupeKey, index);
+    } else if (entry.rank < usage[slot]!.rank) {
+      usage[slot] = entry;
+    }
+  }
+
+  for (let entry of usage) {
+    if (entry.failed) increment(errorsByClass, entry.errorClass ?? 'unknown');
+  }
+
+  let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
+  let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
+  let winner = usageBearing.find(entry => entry.rank == winnerRank)?.source;
+
+  let requestEntries = usage.filter(entry => entry.type == 'model.request');
+  let winnerHasRequests = requestEntries.some(entry => entry.rank == winnerRank);
+
+  // A keyed transcript request fills a gap in the winning source only when all of that source's
+  // usage requests are keyed; otherwise it could be counted twice.
+  let winnerUsageRequests = requestEntries
+    .filter(entry => entry.rank == winnerRank && (entry.tokens || entry.costs.length))
+    .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+  let fillsGaps =
+    winnerUsageRequests.length > 0 && winnerUsageRequests.every(entry => entry.keyed);
+  let isGapFill = (entry: UsageEntry) =>
+    fillsGaps && entry.keyed && entry.source == 'transcript' && entry.rank != winnerRank;
+  let countsUsageOf = (entry: UsageEntry) => entry.rank == winnerRank || isGapFill(entry);
+
+  // The transcript has no billing, so a gap takes the billing of the nearest earlier winning
+  // request (else the first).
+  for (let entry of usage) {
+    if (!isGapFill(entry)) continue;
+
+    let nearest =
+      winnerUsageRequests.findLast(other => other.occurredAt <= entry.occurredAt) ??
+      winnerUsageRequests[0]!;
+
+    entry.billing = { ...nearest.billing };
   }
 
   // A session-level provider that overrides the sign-in also tells where requests without their
@@ -550,13 +705,6 @@ export let aggregateSession = async (d: {
     declarations: d.declarations,
     defaultBilling: defaultBillingOf(d.family)
   });
-
-  let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
-  let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
-  let winner = usageBearing.find(entry => entry.rank == winnerRank)?.source;
-
-  let requestEntries = usage.filter(entry => entry.type == 'model.request');
-  let winnerHasRequests = requestEntries.some(entry => entry.rank == winnerRank);
 
   let modelByCorrelation = new Map<string, UsageEntry>();
 
@@ -590,7 +738,7 @@ export let aggregateSession = async (d: {
   let counted = usage
     .filter(entry =>
       entry.type == 'model.request'
-        ? !winnerHasRequests || entry.rank == winnerRank
+        ? !winnerHasRequests || countsUsageOf(entry)
         : entry.rank == winnerRank
     )
     .map(entry => {
@@ -603,13 +751,16 @@ export let aggregateSession = async (d: {
 
       let resolution = resolve(modelSource, entry.occurredAt);
 
-      let countsUsage = entry.rank == winnerRank;
+      let countsUsage = countsUsageOf(entry);
       let tokens = countsUsage ? entry.tokens : undefined;
       let costs = countsUsage ? entry.costs : [];
 
-      let contextTokens = tokens
-        ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
-        : 0;
+      // Usage summed over several model calls says nothing about the size of any one context,
+      // so it is priced at the base tier, as sessionless rollups are.
+      let contextTokens =
+        tokens && !entry.aggregate
+          ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
+          : 0;
       let computedNumber =
         resolution.period && tokens
           ? computeRequestCost({ pricing: resolution.period.pricing, tokens, contextTokens })
@@ -653,7 +804,11 @@ export let aggregateSession = async (d: {
 
   for (let item of counted) {
     let isRequest = item.entry.type == 'model.request';
-    let preferred = preferredAmount(item, basis);
+
+    // A transcript request filling a gap reports no cost, so it counts at its list cost.
+    let preferred =
+      preferredAmount(item, basis) ??
+      (isGapFill(item.entry) && basis != 'billed' ? item.computed : undefined);
 
     if (isRequest) {
       requests++;
@@ -746,7 +901,33 @@ export let aggregateSession = async (d: {
     if (preferred !== undefined) slice.preferred = (slice.preferred ?? 0n) + preferred;
   }
 
-  let useCodeLines = codeLines.added + codeLines.removed > 0;
+  statsSamples.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+
+  let peak = { added: 0, removed: 0 };
+
+  for (let sample of statsSamples) {
+    let totals = sliceFor({ occurredAt: sample.occurredAt });
+
+    totals.statsLines.added += Math.max(0, sample.added - peak.added);
+    totals.statsLines.removed += Math.max(0, sample.removed - peak.removed);
+    peak = {
+      added: Math.max(peak.added, sample.added),
+      removed: Math.max(peak.removed, sample.removed)
+    };
+  }
+
+  let latestSample = statsSamples[statsSamples.length - 1];
+  let statsLines = {
+    added: latestSample?.added ?? 0,
+    removed: latestSample?.removed ?? 0
+  };
+
+  let hasLines = (lines: Lines) => lines.added + lines.removed > 0;
+  let lineSource: 'codeLines' | 'toolLines' | 'statsLines' = hasLines(codeLines)
+    ? 'codeLines'
+    : hasLines(toolLines)
+      ? 'toolLines'
+      : 'statsLines';
 
   if (firstOccurredAt) {
     sliceFor({
@@ -800,9 +981,19 @@ export let aggregateSession = async (d: {
     ...(totals.computed !== undefined ? { costComputedUsd: toDecimal(totals.computed) } : {}),
     ...(totals.contract !== undefined ? { costContractUsd: toDecimal(totals.contract) } : {}),
     ...(costUsd !== undefined ? { costUsd: toDecimal(costUsd) } : {}),
-    lines: useCodeLines ? codeLines : toolLines,
-    commits,
+    lines: { codeLines, toolLines, statsLines }[lineSource],
+    commits: commitRefs.size,
     pullRequests,
+    commitRefs: newestFirst(
+      [...commitRefs.values()].map(entry => ({
+        ...entry.ref,
+        at: commitTime(entry, firstOccurredAt)
+      })),
+      maxCommitRefs
+    ),
+    pullRequestRefs: newestFirst(pullRequestRefs.values(), maxPullRequestRefs).map(
+      entry => entry.ref
+    ),
     errorsByClass,
     compactions
   };
@@ -820,7 +1011,7 @@ export let aggregateSession = async (d: {
         ? { costContractUsd: toDecimal(totals.contract) }
         : {}),
       ...(totals.preferred !== undefined ? { costUsd: toDecimal(totals.preferred) } : {}),
-      lines: useCodeLines ? totals.codeLines : totals.toolLines
+      lines: totals[lineSource]
     })),
     coverage: {
       hasUsage: usageBearing.length > 0,

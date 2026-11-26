@@ -9,7 +9,14 @@ export let mocks = {
   },
   enabled: { value: true },
   flagged: { value: true },
-  toolDetails: { value: false },
+  desktop: {
+    value: {
+      toolDetails: false,
+      sessionContext: true,
+      sessionTitles: false,
+      historyImport: false
+    }
+  },
   flagChecks: [] as unknown[],
   settings: {
     ingestPublicUrl: 'https://ingest.example.com' as string | undefined
@@ -38,7 +45,7 @@ export let syncModule = {
     syncEntities: mocks.syncEntities
   },
   agentTrackingSettingsService: {
-    getOrganizationValues: async () => ({ desktop: { toolDetails: mocks.toolDetails.value } })
+    getOrganizationValues: async () => ({ desktop: { ...mocks.desktop.value } })
   },
   isAgentTrackingEnabled: () => mocks.enabled.value,
   assertAgentTrackingEnabled: async (d: {
@@ -92,7 +99,12 @@ export let resetMocks = () => {
   vi.clearAllMocks();
   mocks.enabled.value = true;
   mocks.flagged.value = true;
-  mocks.toolDetails.value = false;
+  mocks.desktop.value = {
+    toolDetails: false,
+    sessionContext: true,
+    sessionTitles: false,
+    historyImport: false
+  };
   mocks.flagChecks.length = 0;
   mocks.settings.ingestPublicUrl = 'https://ingest.example.com';
   mocks.afterCommit = [];

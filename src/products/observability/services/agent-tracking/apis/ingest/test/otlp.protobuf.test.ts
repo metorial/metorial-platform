@@ -382,3 +382,40 @@ describe('otlp handler (protobuf)', () => {
     expect(pipeline.records()).toHaveLength(0);
   });
 });
+
+describe('otlp handler (protobuf) with detailed tool reporting off', () => {
+  it('takes tool details out of a protobuf export from a device token', async () => {
+    let pipeline = createPipeline({
+      contentPolicy: { defaultMode: 'full' },
+      organization: { settings: { desktop: { toolDetails: false, sessionContext: true } } }
+    });
+
+    let group: Group<LogDesc> = {
+      ...claude,
+      scope: { name: 'com.anthropic.claude_code.events' },
+      items: [
+        {
+          timeNs: nanosOf(otlpAt),
+          body: 'claude_code.tool_result',
+          attributes: {
+            'event.name': 'tool_result',
+            'session.id': 'session-1',
+            tool_use_id: 'tool-1',
+            tool_name: 'mcp__github__create_pr',
+            success: 'true',
+            tool_input: JSON.stringify({ title: sentinel })
+          }
+        }
+      ]
+    };
+
+    await post(pipeline, '/v1/logs', encodeLogsRequest([group]));
+
+    let [record] = pipeline.records();
+
+    expect(record!.type).toBe('tool.call');
+    expect(record!.data.tool).toEqual({ name: 'mcp_tool', kind: 'mcp', class: 'mcp' });
+    expect(record!.content).toEqual([]);
+    expect(JSON.stringify(pipeline.records())).not.toMatch(/SENTINEL|github__/);
+  });
+});

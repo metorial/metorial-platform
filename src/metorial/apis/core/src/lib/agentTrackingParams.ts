@@ -5,9 +5,14 @@ import {
   rangePresets
 } from '@metorial/module-agent-tracking-query';
 
-export let idFilter = (name: string, description: string, examples: string[]) =>
+export let idFilter = (
+  name: string,
+  description: string,
+  examples: string[],
+  value: () => ReturnType<typeof filterValueValidator> = filterValueValidator
+) =>
   v.optional(
-    v.union([filterValueValidator(), filterValueList()], { name, description, examples })
+    v.union([value(), filterValueList({}, value())], { name, description, examples })
   );
 
 export let timeZoneField = (description: string) =>

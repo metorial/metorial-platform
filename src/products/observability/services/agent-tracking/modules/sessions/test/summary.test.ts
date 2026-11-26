@@ -7,6 +7,7 @@ import { pricing } from '@mtsrc/agent-tracking-module-knowledge/test/fixtures';
 import type { MatchableOverride } from '@mtsrc/agent-tracking-module-pricing';
 import { createOverridePricer } from '@mtsrc/agent-tracking-module-pricing';
 import { override } from '@mtsrc/agent-tracking-module-pricing/test/fixtures';
+import type { IngestChannel } from '@mtsrc/agent-tracking-spec';
 import { aggregateSession, preferredAmount, selectCostBasis } from '../src/lib/summary';
 import { summaryRecord, usd } from './fixtures';
 
@@ -130,6 +131,341 @@ describe('aggregateSession', () => {
       usageSource: 'otel.logs'
     });
     expect(aggregate.lastTurnObservedAt).toEqual(new Date('2026-03-04T10:00:41Z'));
+  });
+
+  it('counts each commit once, whichever channel reported it', async () => {
+    let sha = '06de4d4304e317c123c4bbb07394249ed0cde401';
+    let other = 'a'.repeat(40);
+
+    let { summary } = await aggregateSession({
+      records: [
+        summaryRecord({ type: 'session.start', at: '2026-03-04T10:00:00Z' }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:01:00Z',
+          channel: 'otlp.logs',
+          factKey: `commit:sk_1:${sha}`,
+          data: { sha, branch: 'main', source: 'otel' }
+        }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:01:02Z',
+          channel: 'transcript',
+          factKey: `commit:sk_1:${sha}`,
+          data: { sha, source: 'transcript' }
+        }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:05:00Z',
+          channel: 'otlp.logs',
+          factKey: `commit:sk_1:${other}`,
+          data: { sha: other, source: 'otel' }
+        }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:06:00Z',
+          role: 'duplicate',
+          factKey: `commit:sk_1:${'b'.repeat(40)}`
+        })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.commits).toBe(2);
+    expect(summary.pullRequests).toBe(0);
+  });
+
+  it('counts opened pull requests once and not linked ones', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        summaryRecord({
+          type: 'vcs.pull_request',
+          at: '2026-03-04T10:01:00Z',
+          factKey: 'pr:sk_1:example-org/probe-repo#42:opened',
+          data: { kind: 'opened', number: 42 }
+        }),
+        summaryRecord({
+          type: 'vcs.pull_request',
+          at: '2026-03-04T10:01:05Z',
+          channel: 'transcript',
+          factKey: 'pr:sk_1:example-org/probe-repo#42:opened',
+          data: { kind: 'opened', number: 42 }
+        }),
+        summaryRecord({
+          type: 'vcs.pull_request',
+          at: '2026-03-04T10:02:00Z',
+          factKey: 'pr:sk_1:example-org/probe-repo#7:linked',
+          data: { kind: 'linked', number: 7 }
+        })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.pullRequests).toBe(1);
+  });
+
+  it('lists each commit once, newest first, with what any channel knew about it', async () => {
+    let sha = '06de4d4304e317c123c4bbb07394249ed0cde401';
+    let other = 'a'.repeat(40);
+
+    let { summary } = await aggregateSession({
+      records: [
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:01:00Z',
+          channel: 'otlp.logs',
+          factKey: `commit:sk_1:${sha}`,
+          data: { sha, branch: 'ivan/mt-365-title', source: 'otel' }
+        }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:01:02Z',
+          channel: 'envelope',
+          factKey: `commit:sk_1:${sha}`,
+          data: { sha, ticketRefs: ['MT-365'], aiAuthored: true, source: 'probe' }
+        }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:05:00Z',
+          channel: 'envelope',
+          factKey: `commit:sk_1:${other}`,
+          data: { sha: other, source: 'probe' }
+        }),
+        summaryRecord({
+          type: 'vcs.commit',
+          at: '2026-03-04T10:06:00Z',
+          role: 'duplicate',
+          factKey: `commit:sk_1:${'b'.repeat(40)}`,
+          data: { sha: 'b'.repeat(40) }
+        })
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.commits).toBe(2);
+    expect(summary.commitRefs).toEqual([
+      { sha: other, at: new Date('2026-03-04T10:05:00Z') },
+      {
+        sha,
+        at: new Date('2026-03-04T10:01:00Z'),
+        branch: 'ivan/mt-365-title',
+        ticketRefs: ['MT-365'],
+        aiAuthored: true
+      }
+    ]);
+  });
+
+  it('keeps the latest 50 commits', async () => {
+    let { summary } = await aggregateSession({
+      records: Array.from({ length: 60 }, (_, index) => {
+        let sha = index.toString(16).padStart(40, '0');
+
+        return summaryRecord({
+          type: 'vcs.commit',
+          at: new Date(Date.UTC(2026, 2, 4, 10, index)).toISOString(),
+          factKey: `commit:sk_1:${sha}`,
+          data: { sha }
+        });
+      }),
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.commits).toBe(60);
+    expect(summary.commitRefs).toHaveLength(50);
+    expect(summary.commitRefs![0]!.sha).toBe((59).toString(16).padStart(40, '0'));
+  });
+
+  it('lists each pull request once and counts only opened ones', async () => {
+    let pullRequest = (d: { at: string; kind: string; number: number; url?: string }) =>
+      summaryRecord({
+        type: 'vcs.pull_request',
+        at: d.at,
+        channel: 'envelope',
+        factKey: `pr:sk_1:acme/api#${d.number}:${d.kind}`,
+        data: {
+          kind: d.kind,
+          provider: 'github.com',
+          repository: 'acme/api',
+          number: d.number,
+          ...(d.url ? { url: d.url } : {}),
+          source: 'probe'
+        }
+      });
+
+    let { summary } = await aggregateSession({
+      records: [
+        pullRequest({ at: '2026-03-04T10:01:00Z', kind: 'linked', number: 7 }),
+        pullRequest({
+          at: '2026-03-04T10:02:00Z',
+          kind: 'opened',
+          number: 7,
+          url: 'https://github.com/acme/api/pull/7'
+        }),
+        pullRequest({ at: '2026-03-04T10:03:00Z', kind: 'linked', number: 3 })
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.pullRequests).toBe(1);
+    expect(summary.pullRequestRefs).toEqual([
+      {
+        key: 'github.com/acme/api#3',
+        provider: 'github.com',
+        repository: 'acme/api',
+        number: 3,
+        kind: 'linked'
+      },
+      {
+        key: 'github.com/acme/api#7',
+        provider: 'github.com',
+        repository: 'acme/api',
+        number: 7,
+        kind: 'opened'
+      }
+    ]);
+    expect(JSON.stringify(summary.pullRequestRefs)).not.toContain('https');
+  });
+
+  it('keeps an opened pull request opened when a commit links it later', async () => {
+    let pullRequest = (at: string, kind: string, provider = 'github.com') =>
+      summaryRecord({
+        type: 'vcs.pull_request',
+        at,
+        channel: 'envelope',
+        factKey: `pr:sk_1:${provider}/acme/api#7:${kind}`,
+        data: { kind, provider, repository: 'acme/api', number: 7, source: 'probe' }
+      });
+
+    let { summary } = await aggregateSession({
+      records: [
+        pullRequest('2026-03-04T10:01:00Z', 'opened'),
+        pullRequest('2026-03-04T10:02:00Z', 'linked'),
+        pullRequest('2026-03-04T10:03:00Z', 'linked', 'gitlab.com')
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.pullRequests).toBe(1);
+    expect(summary.pullRequestRefs).toEqual([
+      {
+        key: 'gitlab.com/acme/api#7',
+        provider: 'gitlab.com',
+        repository: 'acme/api',
+        number: 7,
+        kind: 'linked'
+      },
+      {
+        key: 'github.com/acme/api#7',
+        provider: 'github.com',
+        repository: 'acme/api',
+        number: 7,
+        kind: 'opened'
+      }
+    ]);
+  });
+
+  it('uses a plausible committer date and the observed time otherwise', async () => {
+    let commit = (sha: string, at: string, committedAt: string) =>
+      summaryRecord({
+        type: 'vcs.commit',
+        at,
+        channel: 'envelope',
+        factKey: `commit:sk_1:${sha}`,
+        data: { sha, committedAt, source: 'probe' }
+      });
+
+    let { summary } = await aggregateSession({
+      records: [
+        summaryRecord({ type: 'session.start', at: '2026-03-04T10:00:00Z' }),
+        commit('a'.repeat(40), '2026-03-04T10:10:00Z', '2026-03-04T10:09:30Z'),
+        commit('b'.repeat(40), '2026-03-04T10:20:00Z', '2026-03-04T11:20:00Z'),
+        commit('c'.repeat(40), '2026-03-04T10:30:00Z', '2016-01-01T00:00:00Z')
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.commitRefs!.map(ref => [ref.sha[0], ref.at.toISOString()])).toEqual([
+      ['c', '2026-03-04T10:30:00.000Z'],
+      ['b', '2026-03-04T10:20:00.000Z'],
+      ['a', '2026-03-04T10:09:30.000Z']
+    ]);
+  });
+
+  it('takes the latest running line total and spreads its growth over the buckets', async () => {
+    let stats = (at: string, added: number, removed: number) =>
+      summaryRecord({
+        type: 'code.change',
+        at,
+        channel: 'envelope',
+        data: { lines: { added, removed }, cumulative: true, source: 'probe' }
+      });
+
+    let { summary, slices } = await aggregateSession({
+      records: [
+        stats('2026-03-04T10:31:00Z', 25, 4),
+        stats('2026-03-04T10:01:00Z', 10, 2),
+        stats('2026-03-04T10:02:00Z', 10, 2),
+        stats('2026-03-04T10:46:00Z', 20, 4)
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.lines).toEqual({ added: 20, removed: 4 });
+    expect(
+      slices
+        .map(slice => ({ bucket: slice.bucket.toISOString(), lines: slice.lines }))
+        .sort((a, b) => a.bucket.localeCompare(b.bucket))
+    ).toEqual([
+      { bucket: '2026-03-04T10:00:00.000Z', lines: { added: 10, removed: 2 } },
+      { bucket: '2026-03-04T10:30:00.000Z', lines: { added: 15, removed: 2 } },
+      { bucket: '2026-03-04T10:45:00.000Z', lines: { added: 0, removed: 0 } }
+    ]);
+  });
+
+  it('falls back to the running totals only without tool-derived line counts', async () => {
+    let records = () => [
+      summaryRecord({ type: 'session.start', at: '2026-03-04T10:00:00Z' }),
+      summaryRecord({
+        type: 'tool.call',
+        at: '2026-03-04T10:01:00Z',
+        data: { tool: { class: 'file_edit' }, lines: { added: 7, removed: 1 } }
+      })
+    ];
+    let stats = summaryRecord({
+      type: 'code.change',
+      at: '2026-03-04T10:02:00Z',
+      channel: 'envelope',
+      data: { lines: { added: 500, removed: 90 }, cumulative: true, source: 'probe' }
+    });
+
+    let without = await aggregateSession({
+      records: records(),
+      family: 'claude-code',
+      catalog
+    });
+    let withStats = await aggregateSession({
+      records: [...records(), stats],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(without.summary.lines).toEqual({ added: 7, removed: 1 });
+    expect(withStats.summary.lines).toEqual(without.summary.lines);
+    expect(withStats.slices.map(slice => slice.lines)).toEqual(
+      without.slices.map(slice => slice.lines)
+    );
+    expect(
+      (await aggregateSession({ records: sessionRecords(), family: 'claude-code', catalog }))
+        .summary.lines
+    ).toEqual({ added: 3, removed: 2 });
   });
 
   it('prefers billed cost, keeps every reported basis and prices each request', async () => {
@@ -913,5 +1249,484 @@ describe('cost basis selection', () => {
     let basis = selectCostBasis([entry]);
     expect(basis).toBe('client_estimate');
     expect(preferredAmount(entry, basis)).toBe(2n);
+  });
+});
+
+describe('aggregateSession for clients without OTel', () => {
+  let request = (
+    family: string,
+    channel: IngestChannel,
+    i: number,
+    data: Record<string, unknown> = {},
+    type = 'model.request'
+  ) =>
+    summaryRecord({
+      type,
+      at: `2026-03-04T10:0${i}:00Z`,
+      channel,
+      client: { family },
+      data: {
+        outcome: 'ok',
+        model,
+        usage: { inputUncached: 1000, output: 100 },
+        purpose: 'main',
+        ...data
+      }
+    });
+
+  let cursorTurn = (i: number, usage: Record<string, unknown>) =>
+    request(
+      'cursor',
+      'hook',
+      i,
+      { usage: { provenance: 'aggregate', ...usage } },
+      'turn.completed'
+    );
+
+  let context = (family: string) =>
+    summaryRecord({
+      type: 'session.context',
+      at: '2026-03-04T10:00:00Z',
+      channel: 'envelope',
+      client: { family },
+      data: { source: 'probe', branch: 'main' },
+      attribution: { repoId: 'atrp_1' }
+    });
+
+  it.each([
+    ['antigravity', 'transcript'],
+    ['opencode', 'sse']
+  ] as const)(
+    'counts %s usage from its %s dialect and the repository from Desktop',
+    async (family, channel) => {
+      let { summary, coverage } = await aggregateSession({
+        records: [context(family), ...[0, 1, 2].map(i => request(family, channel, i))],
+        family,
+        catalog
+      });
+
+      expect(coverage).toMatchObject({
+        hasUsage: true,
+        hasContext: true,
+        hasRepo: true,
+        usageSource: channel == 'sse' ? 'plugin' : channel
+      });
+      expect(summary.requests).toBe(3);
+      expect(summary.tokens).toMatchObject({ inputUncached: 3000, output: 300 });
+      expect(decimal(summary.costComputedUsd)).toBe('0.0135');
+      expect(decimal(summary.costUsd)).toBe('0.0135');
+    }
+  );
+
+  it('counts Cursor turns as turns with their usage, cost and the repository', async () => {
+    let { summary, coverage, slices } = await aggregateSession({
+      records: [
+        context('cursor'),
+        ...[0, 1, 2].map(i => cursorTurn(i, { inputUncached: 1000, output: 100 }))
+      ],
+      family: 'cursor',
+      catalog
+    });
+
+    expect(coverage).toMatchObject({ hasUsage: true, hasRepo: true, usageSource: 'hook' });
+    expect(summary.turns).toBe(3);
+    expect(summary.requests).toBe(0);
+    expect(summary.tokens).toMatchObject({ inputUncached: 3000, output: 300 });
+    expect(decimal(summary.costUsd)).toBe('0.0135');
+    expect(summary.models[0]).toMatchObject({ modelId: 'claude-sonnet-4-5', requests: 0 });
+    expect(slices.reduce((sum, slice) => sum + slice.turns, 0)).toBe(3);
+  });
+
+  it('prices a Cursor turn at the base tier, not on its summed context', async () => {
+    let usage = { inputUncached: 40_000, cacheRead: 320_000, output: 4000 };
+
+    let turn = await aggregateSession({
+      records: [cursorTurn(0, usage)],
+      family: 'cursor',
+      catalog
+    });
+    let oneRequest = await aggregateSession({
+      records: [request('claude-code', 'otlp.logs', 0, { usage })],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(decimal(turn.summary.costComputedUsd)).toBe('0.276');
+    expect(decimal(turn.summary.costUsd)).toBe('0.276');
+    expect(decimal(oneRequest.summary.costComputedUsd)).toBe('0.522');
+  });
+
+  it('keeps Codex turn aggregates out of a session priced from its requests', async () => {
+    let usage = { inputUncached: 40_000, cacheRead: 320_000, output: 4000 };
+
+    let { summary } = await aggregateSession({
+      records: [
+        request('codex', 'otlp.traces', 0, { usage }),
+        {
+          ...request(
+            'codex',
+            'otlp.traces',
+            1,
+            { usage: { provenance: 'aggregate', ...usage } },
+            'turn.completed'
+          ),
+          source: {
+            adapter: 'test',
+            dialect: 'test.v1',
+            channel: 'otlp.traces',
+            role: 'aggregate'
+          }
+        }
+      ],
+      family: 'codex',
+      catalog
+    });
+
+    expect(summary.requests).toBe(1);
+    expect(summary.turns).toBe(0);
+    expect(summary.tokens).toMatchObject({ inputUncached: 40_000, cacheRead: 320_000 });
+    expect(decimal(summary.costComputedUsd)).toBe('0.522');
+  });
+
+  it('prefers the cost OpenCode reported and ignores its OTel spans for the same work', async () => {
+    let { summary, coverage } = await aggregateSession({
+      records: [0, 1].flatMap(i => [
+        request('opencode', 'sse', i, { cost: usd('0.002') }),
+        request('opencode', 'otlp.traces', i, { usage: { inputUncached: 1000, output: 100 } })
+      ]),
+      family: 'opencode',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('plugin');
+    expect(summary.requests).toBe(2);
+    expect(summary.tokens).toMatchObject({ inputUncached: 2000, output: 200 });
+    expect(
+      summary.costReported.map(cost => ({ basis: cost.basis, amount: decimal(cost.amount) }))
+    ).toEqual([{ basis: 'client_estimate', amount: '0.004' }]);
+    expect(decimal(summary.costUsd)).toBe('0.004');
+  });
+
+  it('counts the tokens of a model the catalog does not know without a price', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        request('antigravity', 'transcript', 0, { model: { id: 'gemini-4-hydrogen-high' } })
+      ],
+      family: 'antigravity',
+      catalog
+    });
+
+    expect(summary.requests).toBe(1);
+    expect(summary.tokens).toMatchObject({ inputUncached: 1000, output: 100 });
+    expect(summary.costComputedUsd).toBeUndefined();
+    expect(summary.models[0]).toMatchObject({ requests: 1 });
+    expect(summary.models[0]!.modelId).toBeUndefined();
+  });
+});
+
+describe('aggregateSession with imported history', () => {
+  let otel = (i: number, extra: { factKey?: string | null; at?: string } = {}) =>
+    summaryRecord({
+      type: 'model.request',
+      at: extra.at ?? `2026-03-04T10:0${i}:00.500Z`,
+      channel: 'otlp.logs',
+      ...(extra.factKey === null ? {} : { factKey: extra.factKey ?? `req:sk:r${i}` }),
+      ctx: { requestId: `r${i}` },
+      data: {
+        outcome: 'ok',
+        model,
+        usage: { inputUncached: 1000, output: 100 },
+        cost: usd('0.0045')
+      }
+    });
+
+  let transcript = (
+    i: number,
+    usage: Record<string, number> = { inputUncached: 1, output: 1 }
+  ) =>
+    summaryRecord({
+      type: 'model.request',
+      at: `2026-03-04T10:0${i}:00.000Z`,
+      channel: 'transcript',
+      factKey: `req:sk:r${i}`,
+      ctx: { requestId: `r${i}` },
+      data: { outcome: 'ok', model, usage, purpose: 'main' }
+    });
+
+  let ten = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+  let sorted = (records: ReturnType<typeof summaryRecord>[]) =>
+    [...records].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+
+  it('counts a transcript-only session and prices it from the catalog', async () => {
+    let { summary, coverage } = await aggregateSession({
+      records: ten.map(i => transcript(i, { inputUncached: 1000, output: 100 })),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('transcript');
+    expect(summary.requests).toBe(10);
+    expect(summary.tokens).toMatchObject({ inputUncached: 10_000, output: 1000 });
+    expect(summary.costReported).toEqual([]);
+    expect(decimal(summary.costComputedUsd)).toBe('0.045');
+    expect(decimal(summary.costUsd)).toBe('0.045');
+    expect(summary.models[0]).toMatchObject({ modelId: 'claude-sonnet-4-5', requests: 10 });
+  });
+
+  it('counts a request once with the OTel numbers when the transcript has it too', async () => {
+    let { summary, coverage } = await aggregateSession({
+      records: sorted(ten.flatMap(i => [otel(i), transcript(i)])),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('otel.logs');
+    expect(summary.requests).toBe(10);
+    expect(summary.tokens).toMatchObject({ inputUncached: 10_000, output: 1000 });
+    expect(decimal(summary.costUsd)).toBe('0.045');
+  });
+
+  it('fills the requests OTel missed from the transcript, each once', async () => {
+    let { summary, slices } = await aggregateSession({
+      records: sorted([
+        ...ten.slice(0, 8).map(i => otel(i)),
+        ...ten.map(i =>
+          transcript(i, i < 8 ? undefined : { inputUncached: 1000, output: 100 })
+        )
+      ]),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.requests).toBe(10);
+    expect(summary.tokens).toMatchObject({ inputUncached: 10_000, output: 1000 });
+    expect(
+      summary.costReported.map(cost => ({ basis: cost.basis, amount: decimal(cost.amount) }))
+    ).toEqual([{ basis: 'client_estimate', amount: '0.036' }]);
+    expect(decimal(summary.costComputedUsd)).toBe('0.045');
+    expect(decimal(summary.costUsd)).toBe('0.045');
+    expect(slices.reduce((sum, slice) => sum + slice.requests, 0)).toBe(10);
+  });
+
+  it('ignores the transcript when an OTel request has no fact key', async () => {
+    let { summary, coverage } = await aggregateSession({
+      records: sorted([
+        ...ten.slice(0, 7).map(i => otel(i)),
+        otel(7, { factKey: null }),
+        ...ten.map(i => transcript(i, { inputUncached: 1000, output: 100 }))
+      ]),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('otel.logs');
+    expect(summary.requests).toBe(8);
+    expect(summary.tokens).toMatchObject({ inputUncached: 8000, output: 800 });
+    expect(decimal(summary.costUsd)).toBe('0.036');
+  });
+
+  it('keeps the OTel record of a request whichever arrived first', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        transcript(1, { inputUncached: 5, output: 5 }),
+        otel(1, { at: '2026-03-04T10:01:00.500Z' }),
+        transcript(1, { inputUncached: 5, output: 5 })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(summary.requests).toBe(1);
+    expect(summary.tokens).toMatchObject({ inputUncached: 1000, output: 100 });
+    expect(decimal(summary.costUsd)).toBe('0.0045');
+  });
+
+  it('keeps one usage source for a Codex session with OTel and a rollout', async () => {
+    let codexRecord = (channel: 'otlp.logs' | 'transcript', i: number) =>
+      summaryRecord({
+        type: 'model.request',
+        at: `2026-03-04T10:0${i}:00Z`,
+        channel,
+        client: { family: 'codex' },
+        data: { outcome: 'ok', model, usage: { inputUncached: 1000, output: 100 } }
+      });
+
+    let both = await aggregateSession({
+      records: sorted(
+        [0, 1, 2].flatMap(i => [codexRecord('otlp.logs', i), codexRecord('transcript', i)])
+      ),
+      family: 'codex',
+      catalog
+    });
+    let rolloutOnly = await aggregateSession({
+      records: [0, 1, 2].map(i => codexRecord('transcript', i)),
+      family: 'codex',
+      catalog
+    });
+
+    expect(both.coverage.usageSource).toBe('otel.logs');
+    expect(both.summary.requests).toBe(3);
+    expect(both.summary.tokens.inputUncached).toBe(3000);
+    expect(rolloutOnly.coverage.usageSource).toBe('transcript');
+    expect(rolloutOnly.summary.requests).toBe(3);
+    expect(decimal(rolloutOnly.summary.costUsd)).toBe('0.0135');
+  });
+
+  it('counts a request that failed mid-stream once, with its error in order', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        summaryRecord({
+          type: 'tool.call',
+          at: '2026-03-04T10:00:00Z',
+          data: { tool: { class: 'shell' }, error: { class: 'timeout' } }
+        }),
+        transcript(1, { inputUncached: 1000, output: 20 }),
+        summaryRecord({
+          type: 'model.request',
+          at: '2026-03-04T10:01:00.500Z',
+          channel: 'otlp.logs',
+          factKey: 'req:sk:r1',
+          ctx: { requestId: 'r1' },
+          data: { outcome: 'error', error: { class: 'overloaded' }, model }
+        }),
+        otel(2),
+        summaryRecord({
+          type: 'client.error',
+          at: '2026-03-04T10:03:00Z',
+          data: { error: { class: 'crash' } }
+        })
+      ],
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(Object.entries(summary.errorsByClass)).toEqual([
+      ['timeout', 1],
+      ['crash', 1],
+      ['overloaded', 1]
+    ]);
+    expect(summary.requests).toBe(2);
+    expect(summary.failedRequests).toBe(1);
+    expect(summary.tokens).toMatchObject({ inputUncached: 1000, output: 100 });
+  });
+
+  describe('billing', () => {
+    let plan = { mode: 'included', plan: 'max' };
+
+    let billingOf = (row: {
+      billingMode?: string;
+      billingSource?: string;
+      billingPlan?: string;
+      requests: number;
+    }) => [row.billingMode, row.billingSource ?? null, row.billingPlan ?? null, row.requests];
+
+    let withBilling = (record: ReturnType<typeof summaryRecord>, billing: unknown) => ({
+      ...record,
+      data: { ...record.data, billing }
+    });
+
+    let userDeclaration = createDeclarationLookup({
+      declarations: [
+        {
+          id: 'atbd_user',
+          organizationId: 'ator_a',
+          projectId: null,
+          userId: null,
+          agentId: 'claude-code',
+          mode: 'api',
+          plan: null,
+          validFrom: new Date('2026-01-01T00:00:00Z'),
+          validTo: null,
+          archivedAt: null
+        }
+      ],
+      organizationId: 'ator_a',
+      projectId: 'atpr_a'
+    });
+
+    it('bills a gap-filled request like the OTel requests around it', async () => {
+      let { summary } = await aggregateSession({
+        records: sorted([
+          ...ten.slice(0, 8).map(i => withBilling(otel(i), plan)),
+          ...ten.map(i => transcript(i, { inputUncached: 1000, output: 100 }))
+        ]),
+        family: 'claude-code',
+        catalog,
+        declarations: userDeclaration
+      });
+
+      expect(summary.models.map(billingOf)).toEqual([['included', 'reported', 'max', 10]]);
+    });
+
+    it('takes the billing of the nearest earlier OTel request when they differ', async () => {
+      let { summary } = await aggregateSession({
+        records: sorted([
+          withBilling(otel(1), { mode: 'api' }),
+          withBilling(otel(3), plan),
+          transcript(0, { inputUncached: 1000, output: 100 }),
+          transcript(2, { inputUncached: 1000, output: 100 }),
+          transcript(4, { inputUncached: 1000, output: 100 })
+        ]),
+        family: 'claude-code',
+        catalog
+      });
+
+      expect(summary.models.map(billingOf)).toEqual([
+        ['api', 'reported', null, 3],
+        ['included', 'reported', 'max', 2]
+      ]);
+    });
+
+    it('leaves a transcript-only session to declarations', async () => {
+      let records = ten
+        .slice(0, 2)
+        .map(i => transcript(i, { inputUncached: 1000, output: 100 }));
+
+      let declared = await aggregateSession({
+        records,
+        family: 'claude-code',
+        catalog,
+        declarations: userDeclaration
+      });
+      let undeclared = await aggregateSession({ records, family: 'claude-code', catalog });
+
+      expect(declared.summary.models.map(billingOf)).toEqual([['api', 'declared', null, 2]]);
+      expect(undeclared.summary.models.map(billingOf)).toEqual([['unknown', null, null, 2]]);
+    });
+
+    it('infers overage across OTel and gap-filled main-thread requests', async () => {
+      let ttl = (i: number, ttl: '1h' | '5m') =>
+        transcript(i, {
+          inputUncached: 1000,
+          output: 100,
+          ...(ttl == '1h' ? { cacheWrite1h: 1000 } : { cacheWrite5m: 1000 })
+        });
+      let mainOtel = (i: number, cache: Record<string, number>) => ({
+        ...otel(i),
+        data: {
+          ...otel(i).data,
+          billing: plan,
+          purpose: 'main',
+          usage: { inputUncached: 1000, output: 100, ...cache }
+        }
+      });
+
+      let { summary } = await aggregateSession({
+        records: sorted([
+          mainOtel(0, { cacheWrite1h: 1000 }),
+          ttl(1, '1h'),
+          ttl(2, '5m'),
+          mainOtel(3, { cacheWrite5m: 1000 })
+        ]),
+        family: 'claude-code',
+        catalog
+      });
+
+      expect(summary.models.map(billingOf)).toEqual([
+        ['included', 'reported', 'max', 2],
+        ['overage', 'inferred', 'max', 2]
+      ]);
+    });
   });
 });

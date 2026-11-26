@@ -225,7 +225,15 @@ describe('agent-tracking/sync/scope', () => {
   });
 
   it('pushes the settings stored in Metorial with every scope', async () => {
-    storedSettings.organization = { hideIndividuals: true, minGroupUsers: 8 };
+    storedSettings.organization = {
+      hideIndividuals: true,
+      minGroupUsers: 8,
+      toolDetails: true,
+      sessionContext: false,
+      sessionTitles: true,
+      historyImport: false,
+      ticketUrlTemplate: 'https://linear.app/acme/issue/{key}'
+    };
     storedSettings.project = { recordDays: 30, contentDays: null, usageDays: 200 };
     storedSettings.instance = { mode: 'full', deterministicEnabled: false, aiEnabled: true };
     vi.mocked(db.instance.findUnique).mockResolvedValue(linked(instance) as any);
@@ -233,7 +241,13 @@ describe('agent-tracking/sync/scope', () => {
     await run({ type: 'instance', id: 'inst_1' });
 
     expect(mocks.agentTracking.organization.upsert.mock.calls[0]![0].settings).toEqual({
-      privacy: { hideIndividuals: true, minGroupUsers: 8 }
+      privacy: { hideIndividuals: true, minGroupUsers: 8 },
+      desktop: {
+        toolDetails: true,
+        sessionContext: false,
+        sessionTitles: true,
+        historyImport: false
+      }
     });
     expect(mocks.agentTracking.project.upsert.mock.calls[0]![0]).toMatchObject({
       recordRetentionDays: 30,

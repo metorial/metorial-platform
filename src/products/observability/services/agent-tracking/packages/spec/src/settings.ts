@@ -11,10 +11,32 @@ export type OrganizationPrivacySettings = {
   minGroupUsers?: number;
 };
 
+export type OrganizationDesktopSettings = {
+  toolDetails?: boolean;
+  sessionContext?: boolean;
+  sessionTitles?: boolean;
+  historyImport?: boolean;
+};
+
+export let defaultOrganizationDesktopSettings: Required<OrganizationDesktopSettings> = {
+  toolDetails: false,
+  sessionContext: true,
+  sessionTitles: false,
+  historyImport: false
+};
+
+export let fullIngestPolicy: Required<OrganizationDesktopSettings> = {
+  toolDetails: true,
+  sessionContext: true,
+  sessionTitles: true,
+  historyImport: true
+};
+
 export type OrganizationSettings = {
   allowedEmailDomains?: string[];
   sliceErasureMode?: SliceErasureMode;
   privacy?: OrganizationPrivacySettings;
+  desktop?: OrganizationDesktopSettings;
 };
 
 export type ClassificationSettings = {
@@ -49,3 +71,10 @@ export type QueryExportScope = {
 export type QueryExportPart = { number: number; etag: string; size: number; rows: number };
 
 export type ClassifierFeatures = Record<string, unknown>;
+
+export let desktopSettingsOf = (
+  settings: Pick<OrganizationSettings, 'desktop'>
+): Required<OrganizationDesktopSettings> => ({
+  ...defaultOrganizationDesktopSettings,
+  ...settings.desktop
+});

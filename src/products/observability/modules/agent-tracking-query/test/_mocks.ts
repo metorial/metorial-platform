@@ -58,13 +58,16 @@ export let withInstanceScope = vi.fn(
 
 export let privacy = { hideIndividuals: false, minGroupUsers: 5 };
 
-export let desktop = { toolDetails: false };
+export let desktop = { toolDetails: false, sessionTitles: false };
+
+export let links = { ticketUrlTemplate: null as string | null };
 
 export let agentTrackingEnabled = vi.fn(async (_d: any) => true);
 
 export let syncModule = {
   ...clientFamilies,
   consumerEntitySource: 'metorial.consumer',
+  ticketUrlTemplateKey: '{key}',
   ignoreNotFound: async <T>(promise: Promise<T>) => {
     try {
       return await promise;
@@ -77,7 +80,11 @@ export let syncModule = {
   withInstanceScope,
   isAgentTrackingEnabledForOrganization: agentTrackingEnabled,
   agentTrackingSettingsService: {
-    getOrganizationValues: async () => ({ privacy: { ...privacy }, desktop: { ...desktop } })
+    getOrganizationValues: async () => ({
+      privacy: { ...privacy },
+      desktop: { ...desktop },
+      links: { ...links }
+    })
   }
 };
 
@@ -117,6 +124,25 @@ export let remoteMember = (overrides: Record<string, unknown> = {}) => ({
   ...overrides
 });
 
+export let remoteRepository = (overrides: Record<string, unknown> = {}) => ({
+  ...remoteMember({
+    id: 'aten_repo',
+    kind: 'repo',
+    status: 'discovered',
+    source: null,
+    ref: null,
+    name: 'acme/api',
+    attributes: {
+      provider: 'github.com',
+      owner: 'acme',
+      name: 'api',
+      url: 'https://github.com/acme/api'
+    },
+    identifiers: [{ type: 'remote', value: 'github.com/acme/api', createdAt: new Date() }]
+  }),
+  ...overrides
+});
+
 export let resetMocks = () => {
   rpc.calls.length = 0;
   rpc.handlers = {};
@@ -132,6 +158,8 @@ export let resetMocks = () => {
   privacy.hideIndividuals = false;
   privacy.minGroupUsers = 5;
   desktop.toolDetails = false;
+  desktop.sessionTitles = false;
+  links.ticketUrlTemplate = null;
 };
 
 export let callsTo = (path: string) => rpc.calls.filter(call => call.path == path);

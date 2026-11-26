@@ -7,7 +7,7 @@ import {
   createProject,
   createScope,
   createSource,
-  createToken,
+  createHookToken,
   errorCode,
   agentTracking,
   ingest,
@@ -45,7 +45,13 @@ describe('organizations', () => {
     expect(organization.settings).toEqual({
       allowedEmailDomains: [],
       sliceErasureMode: null,
-      privacy: { hideIndividuals: false, minGroupUsers: 5 }
+      privacy: { hideIndividuals: false, minGroupUsers: 5 },
+      desktop: {
+        toolDetails: false,
+        sessionContext: true,
+        sessionTitles: false,
+        historyImport: false
+      }
     });
     expect(organization.archivedAt).toBeNull();
   });
@@ -68,8 +74,41 @@ describe('organizations', () => {
     expect(changed.settings).toEqual({
       allowedEmailDomains: ['acme.com'],
       sliceErasureMode: 'anonymize',
-      privacy: { hideIndividuals: false, minGroupUsers: 5 }
+      privacy: { hideIndividuals: false, minGroupUsers: 5 },
+      desktop: {
+        toolDetails: false,
+        sessionContext: true,
+        sessionTitles: false,
+        historyImport: false
+      }
     });
+  });
+
+  it('stores the Desktop settings Metorial sends and returns them', async () => {
+    let created = await createOrganization();
+    let desktop = {
+      toolDetails: true,
+      sessionContext: false,
+      sessionTitles: true,
+      historyImport: true
+    };
+
+    let changed = await agentTracking().organization.upsert({
+      ref: created.ref,
+      settings: { desktop }
+    });
+    let read = await agentTracking().organization.get({ organizationId: created.id });
+
+    expect(changed.settings.desktop).toEqual(desktop);
+    expect(read.settings.desktop).toEqual(desktop);
+    expect(read.settings.privacy).toEqual({ hideIndividuals: false, minGroupUsers: 5 });
+
+    let partial = await agentTracking().organization.upsert({
+      ref: created.ref,
+      settings: { desktop: { sessionContext: true } }
+    });
+
+    expect(partial.settings.desktop).toEqual({ ...desktop, sessionContext: true });
   });
 
   it('finds an organization by id or ref', async () => {
@@ -288,7 +327,7 @@ describe('archived scopes', () => {
   it.each(['organization', 'project', 'instance'] as const)(
     'stops accepting tokens and sources of an archived %s',
     async level => {
-      let token = await createToken();
+      let token = await createHookToken();
       let source = await createSource({}, token);
 
       expect((await sendHook(token.secret)).status).toBe(acceptedStatus);
@@ -308,8 +347,8 @@ describe('archived scopes', () => {
   );
 
   it('keeps sibling instances working when one is archived', async () => {
-    let first = await createToken();
-    let sibling = await createToken(
+    let first = await createHookToken();
+    let sibling = await createHookToken(
       {},
       { ...first, instance: await createInstance(first.organization, first.project) }
     );
@@ -323,13 +362,13 @@ describe('archived scopes', () => {
 
 describe('erasure', () => {
   let seed = async () => {
-    let first = await createToken();
-    let sibling = await createToken(
+    let first = await createHookToken();
+    let sibling = await createHookToken(
       {},
       { ...first, instance: await createInstance(first.organization, first.project) }
     );
     let otherProject = await createProject(first.organization);
-    let cousin = await createToken(
+    let cousin = await createHookToken(
       {},
       {
         ...first,
@@ -337,7 +376,7 @@ describe('erasure', () => {
         instance: await createInstance(first.organization, otherProject)
       }
     );
-    let stranger = await createToken();
+    let stranger = await createHookToken();
 
     for (let target of [first, sibling, cousin, stranger]) {
       expect((await sendHook(target.secret)).status).toBe(acceptedStatus);

@@ -1,4 +1,4 @@
-import { Badge, Flex, Text } from '@metorial/ui';
+import { Badge, Flex, Text, theme } from '@metorial/ui';
 import { useNow } from '@metorial/use-now';
 import React from 'react';
 import styled from 'styled-components';
@@ -11,6 +11,7 @@ import {
 } from './activity';
 import { CostValue } from './cost';
 import { WithInfo } from './info';
+import { linkableUrl } from './sessionContext';
 import { formatRequests, modelLabel, unknownModelLabel } from './spendSummary';
 
 export let settlingLabel = 'Settling…';
@@ -47,6 +48,35 @@ type SessionSummary = {
 };
 
 type Model = { id: string; name: string | null };
+
+type Ticket = { key: string; url: string | null };
+
+let ExternalLink = styled.a`
+  color: ${theme.colors.primary};
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+export let MaybeLink = ({
+  url,
+  children
+}: {
+  url: string | null | undefined;
+  children: React.ReactNode;
+}) => {
+  let href = linkableUrl(url);
+
+  return href ? (
+    <ExternalLink href={href} target="_blank" rel="noreferrer noopener">
+      {children}
+    </ExternalLink>
+  ) : (
+    <>{children}</>
+  );
+};
 
 export let Muted = ({ children }: { children: React.ReactNode }) => (
   <Text as="span" size="2" color="gray600">
@@ -186,3 +216,31 @@ export let SessionActivityLabel = ({ session }: { session: SessionSummary }) => 
     </Badge>
   );
 };
+
+export let FirstAndRest = ({ names, maxWidth }: { names: string[]; maxWidth: number }) => {
+  let [first] = names;
+  if (!first) return <Muted>—</Muted>;
+
+  return (
+    <Flex align="center" gap={4} title={names.join(', ')} style={{ minWidth: 0, maxWidth }}>
+      <Text as="span" size="2" truncate>
+        {first}
+      </Text>
+      {names.length > 1 ? (
+        <Text as="span" size="2" color="gray600" wrap="nowrap">
+          +{names.length - 1}
+        </Text>
+      ) : null}
+    </Flex>
+  );
+};
+
+export let TicketLinks = ({ tickets }: { tickets: Ticket[] }) => (
+  <Flex gap={8} wrap="wrap">
+    {tickets.map(ticket => (
+      <MaybeLink key={ticket.key} url={ticket.url}>
+        {ticket.key}
+      </MaybeLink>
+    ))}
+  </Flex>
+);

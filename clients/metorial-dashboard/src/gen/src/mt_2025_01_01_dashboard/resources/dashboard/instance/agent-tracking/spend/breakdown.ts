@@ -3,7 +3,7 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 export type DashboardInstanceAgentTrackingSpendBreakdownOutput = {
   object: 'agent_tracking.spend_breakdown';
   range: { preset: string | null; from: Date; to: Date; timeZone: string };
-  groupBy: 'member' | 'model';
+  groupBy: 'member' | 'model' | 'repository' | 'branch' | 'ticket';
   total: {
     cost: {
       currency: 'usd';
@@ -25,7 +25,7 @@ export type DashboardInstanceAgentTrackingSpendBreakdownOutput = {
     };
   };
   items: {
-    kind: 'member' | 'model' | 'unknown' | 'other';
+    kind: 'member' | 'model' | 'repository' | 'branch' | 'ticket' | 'unknown' | 'other';
     key: string;
     member: {
       object: 'agent_tracking.member';
@@ -38,6 +38,15 @@ export type DashboardInstanceAgentTrackingSpendBreakdownOutput = {
       needsReview: boolean;
     } | null;
     model: { id: string; name: string | null } | null;
+    repository: {
+      id: string;
+      provider: string | null;
+      host: string | null;
+      owner: string | null;
+      name: string | null;
+      url: string | null;
+    } | null;
+    ticket: { key: string; url: string | null } | null;
     unknownModelNames: string[];
     share: number | null;
     cost: {
@@ -143,7 +152,7 @@ export let mapDashboardInstanceAgentTrackingSpendBreakdownOutput =
   ]);
 
 export type DashboardInstanceAgentTrackingSpendBreakdownQuery = {
-  groupBy: 'member' | 'model';
+  groupBy: 'member' | 'model' | 'repository' | 'branch' | 'ticket';
   range?:
     'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
   from?: Date | undefined;

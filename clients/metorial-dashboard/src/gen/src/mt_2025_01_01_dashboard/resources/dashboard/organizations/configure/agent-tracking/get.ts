@@ -5,7 +5,13 @@ export type DashboardOrganizationsConfigureAgentTrackingGetOutput = {
   organizationId: string;
   serviceStatus: 'applied' | 'pending' | 'unknown';
   privacy: { hideIndividuals: boolean; minGroupUsers: number };
-  desktop: { toolDetails: boolean };
+  desktop: {
+    toolDetails: boolean;
+    sessionContext: boolean;
+    sessionTitles: boolean;
+    historyImport: boolean;
+  };
+  links: { ticketUrlTemplate: string | null };
 };
 
 export let mapDashboardOrganizationsConfigureAgentTrackingGetOutput =
@@ -13,5 +19,10 @@ export let mapDashboardOrganizationsConfigureAgentTrackingGetOutput =
     'organization_id',
     'service_status',
     ['privacy', 0, [1, ['hide_individuals', 'min_group_users']]],
-    ['desktop', 0, [1, ['tool_details']]]
+    [
+      'desktop',
+      0,
+      [1, ['tool_details', 'session_context', 'session_titles', 'history_import']]
+    ],
+    ['links', 0, [1, ['ticket_url_template']]]
   ]);

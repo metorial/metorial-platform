@@ -1,4 +1,4 @@
-import type { ClassificationSettings } from '@mtsrc/agent-tracking-spec';
+import type { ClassificationSettings, OrganizationSettings } from '@mtsrc/agent-tracking-spec';
 
 export let mergeSettings = <T extends object>(
   current: T | undefined,
@@ -25,3 +25,11 @@ export let mergeClassification = (
     ...(changes.ai || current?.ai ? { ai: mergeSettings(current?.ai, changes.ai) } : {})
   };
 };
+
+export let mergeOrganizationSettings = (
+  current: OrganizationSettings | undefined,
+  changes: OrganizationSettings | undefined
+): OrganizationSettings => ({
+  ...mergeSettings(current, changes),
+  ...(changes?.desktop ? { desktop: mergeSettings(current?.desktop, changes.desktop) } : {})
+});

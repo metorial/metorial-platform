@@ -1,10 +1,10 @@
 import type { MeasurementType } from '@mtsrc/agent-tracking-spec';
-import type { OtlpAttributes, OtlpMetricPoint } from '@mtsrc/agent-tracking-otlp';
+import type { OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
 import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { actorOf, attributeFingerprint, safeNativeName } from './otlp/common';
 import { readFields } from './fields';
 import { dateFromNanos } from './time';
-import type { OtlpGroupContext } from './types';
+import type { FilteredMetricPoint, OtlpGroupContext } from './types';
 
 let maxDroppedNames = 8;
 
@@ -90,7 +90,7 @@ export let droppedAttributes = (attributes: OtlpAttributes, used: Iterable<strin
 
 export let measurementDraft = (
   context: OtlpGroupContext,
-  point: OtlpMetricPoint,
+  point: FilteredMetricPoint,
   spec: MeasurementSpec
 ): RecordDraft | null => {
   let histogram = point.histogram;
@@ -125,7 +125,7 @@ export let measurementDraft = (
       'metric',
       point.name,
       context.resourceFingerprint,
-      attributeFingerprint(point.attributes),
+      attributeFingerprint(point.identityAttributes ?? point.attributes),
       String(point.startNs),
       String(point.timeNs)
     ].join('|'),

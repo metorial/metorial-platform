@@ -15,7 +15,8 @@ import { CostValue } from './cost';
 import { formatAmount, formatCost, toDollars, toMicros } from './costFormat';
 import { WithInfo } from './info';
 import { MemberIdentity } from './memberParts';
-import { ModelNameCell } from './sessionParts';
+import { repositoryLabel } from './sessionContext';
+import { MaybeLink, ModelNameCell } from './sessionParts';
 import {
   breakdownOthersLabel,
   clientLabel,
@@ -34,7 +35,16 @@ let estimatedColor = getChartColor('gray');
 let breakdownNameHeaders: Record<BreakdownGroup, string> = {
   model: 'Model',
   client: 'Client',
-  member: 'Member'
+  member: 'Member',
+  repository: 'Repository',
+  branch: 'Branch',
+  ticket: 'Ticket'
+};
+
+let missingValueLabels: Partial<Record<BreakdownGroup, string>> = {
+  repository: 'No Repository',
+  branch: 'No Branch',
+  ticket: 'No Ticket'
 };
 
 let estimateSeriesIds = ['estimated', 'projected'];
@@ -51,9 +61,18 @@ type SpendCounts = { sessions: number; members: number; capped: boolean } | null
 
 type BreakdownRow = {
   kind: string;
+  key: string;
   member: { id: string; name: string | null; email: string | null; matched: boolean } | null;
   model: { id: string; name: string | null } | null;
   client?: { family: string; name: string | null } | null;
+  repository?: {
+    id: string;
+    host: string | null;
+    owner: string | null;
+    name: string | null;
+    url: string | null;
+  } | null;
+  ticket?: { key: string; url: string | null } | null;
   unknownModelNames: string[];
 };
 
@@ -203,6 +222,22 @@ let BreakdownName = ({
 
   if (group == 'member') return <MemberIdentity member={item.member} />;
 
+  let missing = missingValueLabels[group];
+  if (missing) {
+    let target =
+      item.kind == 'unknown'
+        ? null
+        : item.repository
+          ? { name: repositoryLabel(item.repository), url: item.repository.url }
+          : { name: item.key, url: item.ticket?.url ?? null };
+
+    return (
+      <Text as="span" size="2" weight="medium" color={target ? undefined : 'gray600'}>
+        {target ? <MaybeLink url={target.url}>{target.name}</MaybeLink> : missing}
+      </Text>
+    );
+  }
+
   if (group == 'client') {
     return (
       <Text as="span" size="2" weight="medium" color={item.client ? undefined : 'gray600'}>
@@ -310,13 +345,13 @@ export let SpendCountsSummary = ({
 );
 
 export let UnpricedNotice = ({ cost, requests }: { cost: SpendCost; requests: number }) =>
-  cost.requestsWithoutCost > 0 ? (
+  cost.requestsWithoutCost > 0 || cost.totalMicros === null ? (
     <>
       <Spacer height={10} />
 
       <Text size="2" weight="medium" color="orange900">
         {cost.totalMicros === null
-          ? `None of the ${formatNumber(requests)} requests has a known cost, so there is no total. That is not the same as zero.`
+          ? `None of the ${requests ? `${formatNumber(requests)} requests` : 'usage'} has a known cost, so there is no total. That is not the same as zero.`
           : `${formatUnpricedRequests(cost.requestsWithoutCost)}. The total leaves them out, so the real cost may be higher.`}
       </Text>
     </>

@@ -1,5 +1,9 @@
 import type { Decimal, Tokens } from '@mtsrc/agent-tracking-cost';
-import type { BillingMode, BillingSource } from '@mtsrc/agent-tracking-spec';
+import type {
+  BillingMode,
+  BillingSource,
+  VcsPullRequestKind
+} from '@mtsrc/agent-tracking-spec';
 import mongoose from 'mongoose';
 import type { TagOrigin } from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
@@ -87,6 +91,22 @@ export type SessionModelSummary = {
   costContractUsd?: Decimal;
 };
 
+export type SessionCommitRef = {
+  sha: string;
+  at: Date;
+  branch?: string;
+  ticketRefs?: string[];
+  aiAuthored?: boolean;
+};
+
+export type SessionPullRequestRef = {
+  key: string;
+  provider: string;
+  repository: string;
+  number: number;
+  kind: VcsPullRequestKind;
+};
+
 export type SessionSummary = {
   durationMs: number;
   turns: number;
@@ -107,6 +127,8 @@ export type SessionSummary = {
   lines: { added: number; removed: number };
   commits: number;
   pullRequests: number;
+  commitRefs?: SessionCommitRef[];
+  pullRequestRefs?: SessionPullRequestRef[];
   errorsByClass: Record<string, number>;
   compactions: number;
 };
@@ -154,6 +176,11 @@ export type SessionDocument = {
     repoIds: string[];
     branch?: string;
     head?: string;
+    defaultBranch?: string;
+    worktree?: boolean;
+    subPath?: string;
+    permissionMode?: string;
+    title?: string;
     ticketRefs: string[];
     tags: SessionTag[];
     pathStored: boolean;
@@ -210,6 +237,8 @@ export type UsageSliceDocument = {
   subagentId?: string;
   workspaceIds: string[];
   repoIds: string[];
+  branch?: string;
+  ticketRefs: string[];
   dims: SliceDim[];
   dimIds: string[];
 
@@ -284,6 +313,13 @@ SessionSchema.index({ organizationId: 1, 'observed.agentId': 1, startedAt: -1 })
 SessionSchema.index({ organizationId: 1, lastActivityAt: -1, _id: -1 });
 SessionSchema.index({ organizationId: 1, instanceId: 1, lastActivityAt: -1, _id: -1 });
 SessionSchema.index({ organizationId: 1, 'observed.userId': 1, lastActivityAt: -1, _id: -1 });
+SessionSchema.index({ organizationId: 1, 'context.repoIds': 1, lastActivityAt: -1, _id: -1 });
+SessionSchema.index({
+  organizationId: 1,
+  'context.ticketRefs': 1,
+  lastActivityAt: -1,
+  _id: -1
+});
 SessionSchema.index({ organizationId: 1, state: 1, lastActivityAt: 1 });
 SessionSchema.index({ state: 1, lastActivityAt: 1 });
 SessionSchema.index(

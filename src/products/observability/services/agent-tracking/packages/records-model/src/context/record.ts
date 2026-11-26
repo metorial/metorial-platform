@@ -1,4 +1,4 @@
-import type { SessionContextData } from '@mtsrc/agent-tracking-spec';
+import { workspaceKeyPattern, type SessionContextData } from '@mtsrc/agent-tracking-spec';
 import type { ContentInput } from '@mtsrc/agent-tracking-content';
 import { hmac128, type OrganizationKey } from '@mtsrc/agent-tracking-crypto';
 import { normalizeRoot, rootHash } from './roots';
@@ -22,7 +22,8 @@ let stableStringify = (value: unknown): string => {
 export let contextFingerprint = (value: unknown) => stableStringify(value);
 
 // The working directory travels as a `path` content input, so the content policy decides whether
-// its text is kept; the record itself only carries the keyed hash.
+// its text is kept; the record itself only carries the keyed hash. Metorial Desktop sends an
+// opaque workspace key instead, hashed the same way and dropped.
 export let finishSessionContext = (d: {
   organizationKey: OrganizationKey;
   rootScope: string;
@@ -30,10 +31,15 @@ export let finishSessionContext = (d: {
   content: ContentInput[] | undefined;
   data: Record<string, unknown>;
 }): { data: SessionContextData; factKey: string | null } => {
-  let data = { ...d.data } as SessionContextData;
+  let { workspace_key: workspaceKey, ...rest } = d.data;
+  let data = rest as SessionContextData;
 
   let pathInput = d.content?.find(input => input.role == 'path');
-  let root = normalizeRoot(typeof pathInput?.value == 'string' ? pathInput.value : undefined);
+  let root =
+    normalizeRoot(typeof pathInput?.value == 'string' ? pathInput.value : undefined) ??
+    (typeof workspaceKey == 'string' && workspaceKeyPattern.test(workspaceKey)
+      ? `key:${workspaceKey.toLowerCase()}`
+      : undefined);
 
   if (root) {
     data.workspace = {

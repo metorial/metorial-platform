@@ -18,6 +18,14 @@ let organizationSettingsSchema = v.object({
         v.number({ modifiers: [v.integer(), v.minValue(2), v.maxValue(100)] })
       )
     })
+  ),
+  desktop: v.optional(
+    v.object({
+      toolDetails: v.optional(v.boolean()),
+      sessionContext: v.optional(v.boolean()),
+      sessionTitles: v.optional(v.boolean()),
+      historyImport: v.optional(v.boolean())
+    })
   )
 });
 

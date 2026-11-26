@@ -11,6 +11,7 @@ import {
 import type { OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
 import { groupContext } from '../../src/otlp/common';
 import { claudeCodeOtlp, claudeCodeOtlpId } from '../../src/otlp/claudeCode';
+import { mapOtlpGroup } from '../../src/registry';
 
 let resource: OtlpAttributes = {
   'service.name': 'claude-code',
@@ -1186,5 +1187,168 @@ describe('claudeCodeOtlp through buildRecord', () => {
     let b = buildMapped(mapLog('user_prompt', { prompt: 'x' })[0]!);
 
     expect(a).toEqual(b);
+  });
+});
+
+describe('claudeCodeOtlp commits', () => {
+  let sha = '06de4d4304e317c123c4bbb07394249ed0cde401';
+
+  let commitParameters = (extra: Record<string, unknown> = {}) =>
+    JSON.stringify({
+      bash_command: 'git',
+      full_command: 'git commit -m "Add notes"',
+      git_commit_id: sha,
+      git_branch: 'feature/MT-124-second',
+      ...extra
+    });
+
+  let commitResult = (attributes: OtlpAttributes = {}) =>
+    mapLog('tool_result', {
+      tool_use_id: 'tu-commit',
+      tool_name: 'Bash',
+      success: 'true',
+      tool_parameters: commitParameters(),
+      'vcs.ref.head.name': 'feature/MT-124-second',
+      'vcs.ref.head.revision': sha,
+      'vcs.ref.head.type': 'branch',
+      ...attributes
+    });
+
+  let commitOf = (mapped: ReturnType<typeof mapLog>) =>
+    mapped.find(entry => entry.draft.type == 'vcs.commit')?.draft;
+
+  it('reports the commit a successful shell command made', () => {
+    let mapped = commitResult();
+
+    expect(mapped.map(entry => entry.draft.type)).toEqual(['tool.call', 'vcs.commit']);
+    expect(commitOf(mapped)).toMatchObject({
+      kind: 'event',
+      identity: `vcs.commit|sess-1|${sha}`,
+      factKey: `commit:{session_key}:${sha}`,
+      ctx: { sessionId: 'sess-1', turnId: 'prompt-1', toolCallId: 'tu-commit' },
+      data: { sha, branch: 'feature/MT-124-second', source: 'otel' }
+    });
+
+    let record = buildMapped(mapped[1]!, { route: 'otlp_http' });
+
+    expect(record.type).toBe('vcs.commit');
+    expect(record.source.fact_key).toBe(`commit:${record.ctx.session_key}:${sha}`);
+  });
+
+  it('falls back to the head revision and branch', () => {
+    let draft = commitOf(
+      commitResult({ tool_parameters: '{"bash_command":"git"}', 'vcs.ref.head.name': 'main' })
+    );
+
+    expect(draft?.data).toEqual({ sha, branch: 'main', source: 'otel' });
+  });
+
+  it('takes no branch from a head that is not a branch', () => {
+    let draft = commitOf(
+      commitResult({
+        tool_parameters: '{"bash_command":"git"}',
+        'vcs.ref.head.name': 'v1.0.0',
+        'vcs.ref.head.type': 'tag'
+      })
+    );
+
+    expect(draft?.data).toEqual({ sha, source: 'otel' });
+  });
+
+  it('reads a commit lifted out of the tool parameters', () => {
+    let draft = commitOf(
+      commitResult({
+        tool_parameters: undefined as never,
+        'vcs.ref.head.revision': undefined as never,
+        git_commit_id: sha.toUpperCase(),
+        git_branch: 'feature/lifted'
+      })
+    );
+
+    expect(draft?.data).toEqual({ sha, branch: 'feature/lifted', source: 'otel' });
+  });
+
+  it('reports nothing for a failed or unknown result', () => {
+    expect(commitOf(commitResult({ success: 'false' }))).toBeUndefined();
+    expect(commitOf(commitResult({ success: undefined as never }))).toBeUndefined();
+  });
+
+  it('reports nothing without a full commit id', () => {
+    let without = { tool_parameters: '{"bash_command":"git"}', 'vcs.ref.head.revision': '' };
+
+    expect(commitOf(commitResult(without))).toBeUndefined();
+    expect(
+      commitOf(
+        commitResult({
+          ...without,
+          tool_parameters: commitParameters({ git_commit_id: '06de4d4' })
+        })
+      )
+    ).toBeUndefined();
+    expect(
+      commitOf(
+        commitResult({
+          ...without,
+          tool_parameters: commitParameters({ git_commit_id: 'z'.repeat(40) })
+        })
+      )
+    ).toBeUndefined();
+  });
+
+  it('reports nothing for tools other than the shell', () => {
+    expect(commitOf(commitResult({ tool_name: 'Edit' }))).toBeUndefined();
+  });
+
+  it('reports nothing without a session', () => {
+    expect(commitOf(commitResult({ 'session.id': undefined as never }))).toBeUndefined();
+  });
+
+  it('survives tool parameters it cannot read', () => {
+    let revisionless = { 'vcs.ref.head.revision': undefined as never };
+
+    for (let tool_parameters of ['{"git_commit_id":', '[1,2]', 'x'.repeat(70_000)]) {
+      let mapped = commitResult({ ...revisionless, tool_parameters });
+
+      expect(mapped.map(entry => entry.draft.type)).toEqual(['tool.call']);
+    }
+
+    let big = commitParameters({ padding: 'x'.repeat(70_000) });
+    expect(commitOf(commitResult({ ...revisionless, tool_parameters: big }))).toBeUndefined();
+  });
+
+  it('reads tool parameters sent as a key-value list', () => {
+    let draft = commitOf(
+      commitResult({
+        'vcs.ref.head.revision': undefined as never,
+        tool_parameters: { git_commit_id: sha, git_branch: 'main' }
+      })
+    );
+
+    expect(draft?.data).toEqual({ sha, branch: 'main', source: 'otel' });
+  });
+
+  it('still reports the commit with tool details off, without the tool details', () => {
+    let log = logRecord({
+      'event.name': 'tool_result',
+      'session.id': 'sess-1',
+      tool_name: 'Bash',
+      success: 'true',
+      tool_parameters: commitParameters(),
+      tool_input: '{"command":"git commit -m \\"Add notes\\""}'
+    });
+
+    let { mapped } = mapOtlpGroup('logs', groupOf([log], resource), {
+      toolDetails: false,
+      sessionContext: true
+    });
+    let call = mapped.find(entry => entry.draft.type == 'tool.call')!.draft;
+
+    expect(commitOf(mapped)?.data).toEqual({
+      sha,
+      branch: 'feature/MT-124-second',
+      source: 'otel'
+    });
+    expect(call.content).toEqual([]);
+    expect(JSON.stringify(mapped)).not.toContain('Add notes');
   });
 });

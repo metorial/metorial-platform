@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createPipeline, errorBody } from './pipeline';
+import { createPipeline as createTestPipeline, errorBody } from './pipeline';
 import { setRuntime } from '@mtsrc/agent-tracking-module-ingest';
 import { setRecordSink } from '@mtsrc/agent-tracking-module-records';
 
 let sentinel = 'SENTINEL-d41d8cd9';
+
+let createPipeline = (overrides: Parameters<typeof createTestPipeline>[0] = {}) =>
+  createTestPipeline({
+    ...overrides,
+    binding: { deviceId: undefined, deviceMode: 'ephemeral', ...overrides.binding }
+  });
 
 let hookPath = (client: string) => `/v1/ingest/hooks/${client}`;
 
@@ -392,6 +398,23 @@ describe('hook handler', () => {
 
       expect(first!.id).toBe(second!.id);
     });
+  });
+
+  describe('device-bound tokens', () => {
+    it.each(['claude-code', 'codex', 'cursor', 'my-agent'])(
+      'refuses hooks for %s from a token bound to a device',
+      async client => {
+        let pipeline = createTestPipeline();
+
+        let response = await pipeline.send(hookPath(client), {
+          body: JSON.stringify(toolHook())
+        });
+
+        expect(response.status).toBe(403);
+        expect((await errorBody(response)).code).toBe('channel_not_allowed');
+        expect(pipeline.records()).toHaveLength(0);
+      }
+    );
   });
 
   describe('request validation', () => {

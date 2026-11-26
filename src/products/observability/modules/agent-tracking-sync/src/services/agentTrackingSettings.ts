@@ -26,6 +26,8 @@ import { pushInstanceScope, pushOrganizationScope, pushProjectScope } from '../l
 import {
   instanceSettingsOf,
   narrowsCapture,
+  narrowsDesktop,
+  normalizeTicketUrlTemplate,
   organizationSettingsOf,
   projectSettingsOf,
   readInstanceSettings,
@@ -107,7 +109,7 @@ let organizationLevel = (
     ),
   write: settings =>
     withTransaction(async db => {
-      let data = { ...settings.privacy, ...settings.desktop };
+      let data = { ...settings.privacy, ...settings.desktop, ...settings.links };
 
       return await db.agentTrackingOrganizationSettings.upsert({
         where: { organizationOid: d.organization.oid },
@@ -133,7 +135,8 @@ let organizationLevel = (
     );
     return holds(organization.settings, serviceOrganizationSettings(settings));
   },
-  syncTarget: { type: 'organization', id: d.organization.id }
+  syncTarget: { type: 'organization', id: d.organization.id },
+  narrows: narrowsDesktop
 });
 
 let projectLevel = (d: ProjectScope): Level<AgentTrackingProjectSettingsValues> => ({
@@ -241,10 +244,18 @@ class AgentTrackingSettingsServiceImpl {
   async updateOrganizationSettings(
     d: OrganizationScope & {
       auditScope: AuditScope;
-      input: Pick<AgentTrackingSettingsInput, 'privacy' | 'desktop'>;
+      input: Pick<AgentTrackingSettingsInput, 'privacy' | 'desktop' | 'links'>;
     }
   ) {
-    return await this.update(organizationLevel(d), d);
+    return await this.update(organizationLevel(d), {
+      ...d,
+      input: {
+        ...d.input,
+        links: d.input.links && {
+          ticketUrlTemplate: normalizeTicketUrlTemplate(d.input.links.ticketUrlTemplate)
+        }
+      }
+    });
   }
 
   async updateProjectSettings(
