@@ -45,6 +45,8 @@ type Config struct {
 	PodAudience         string
 	TrustConfigMap      string
 	CAConfigMap         string
+	RegistryPullSecret  string
+	RegistrySyncEvery   time.Duration
 
 	FunctionImage string
 	BuildImage    string
@@ -254,6 +256,8 @@ func Load() (*Config, error) {
 		PodAudience:         l.str("CLUSTER_MANAGER_POD_AUDIENCE", "metorial-cluster-manager-pods"),
 		TrustConfigMap:      l.str("CLUSTER_MANAGER_TRUST_CONFIGMAP", "runtime-trust"),
 		CAConfigMap:         l.str("CLUSTER_MANAGER_CA_CONFIGMAP", "runtime-ca"),
+		RegistryPullSecret:  l.str("CLUSTER_MANAGER_REGISTRY_PULL_SECRET", ""),
+		RegistrySyncEvery:   l.duration("CLUSTER_MANAGER_REGISTRY_SYNC_INTERVAL", time.Minute),
 
 		FunctionImage: l.required("CLUSTER_MANAGER_FUNCTION_IMAGE_NODE24"),
 		BuildImage:    l.required("CLUSTER_MANAGER_BUILD_IMAGE_UBUNTU"),

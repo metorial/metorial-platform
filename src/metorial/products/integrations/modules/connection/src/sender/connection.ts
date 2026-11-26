@@ -10,6 +10,7 @@ import { db, type SessionMessage } from '@metorial-subspace/db';
 import { broadcastNats } from '../lib/nats';
 import { topics } from '../lib/topic';
 import type { CreateMessageProps } from '../shared/createMessage';
+import { readToolCallTransferResult } from '../shared/toolCallTransfer';
 import {
   type CallToolProps,
   type InitProps,
@@ -76,6 +77,7 @@ export class SenderConnection {
     }
 
     let connection = this.manager.connection;
+    let session = this.manager.session;
 
     let sub = broadcastNats.subscribe(
       topics.sessionConnection.encode({
@@ -136,9 +138,14 @@ export class SenderConnection {
 
         for await (let msg of sub) {
           let data = serialize.decode(new TextDecoder().decode(msg.data)) as BroadcastMessage;
+          let result = await readToolCallTransferResult({
+            result: data.result,
+            sessionOid: session.oid,
+            connectionOid: connection.oid
+          });
 
           yield {
-            ...data.result,
+            ...result,
             channel: data.channel
           };
         }

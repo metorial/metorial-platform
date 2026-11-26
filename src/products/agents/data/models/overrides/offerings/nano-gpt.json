@@ -342,6 +342,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "TEE/glm-5.3-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "GLM 5.3 Uncensored is an experimental uncensored derivative of Z.ai's GLM-5.3 with its refusal mechanism modified, produced by a third party. It is not the canonical GLM-5.3 and the index has no separate entry for it.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "TheDrummer/Anubis-70B-v1": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -1001,6 +1008,13 @@
     "by": "agent",
     "at": "2026-11-17"
   },
+  "kitani/evolve-beta": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "No catalog model matches evolve-beta; Kitani is an inference provider of open models and community fine-tunes, and search results identify no maker or lineage for the name, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "lightonai/LightOnOCR-2-1B": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1631,6 +1645,20 @@
     "by": "agent",
     "at": "2026-11-20"
   },
+  "upstage/solar-mini-4-5": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Solar Mini 4.5 Preview is a new Upstage checkpoint (released 2026-11-23, 35B total/3B active MoE, 512K context), distinct from upstage/solar-mini4 (2026-09-22); the index has no Solar Mini 4.5 entry yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "upstage/solar-mini-4-5:thinking": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Thinking-mode serving of Solar Mini 4.5 Preview, the new Upstage checkpoint released 2026-11-23; the index has only upstage/solar-mini4 (Solar Mini 4), a different generation, so defer rather than link the wrong model.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "venice-uncensored": {
     "decision": "link",
     "model": "cognitivecomputations/dolphin-mistral-24b-venice-edition",
@@ -1686,6 +1714,13 @@
     "reason": "xtools-at's uncensored Heretic build, listed on Hugging Face as a finetune of Jackrong/DeepSeek-V4-Pro-Qwen3.5-9B, itself a Qwen3.5 9B distill of DeepSeek V4 Pro; a derivative of a distill is not any catalog model, and the index has no entry.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "yetalabs/kimi-k3.1-pro-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "YetaLabs Kimi-K3.1-Pro-abliterated is an abliterated checkpoint of moonshotai/Kimi-K3.1-Pro per its Hugging Face card (finetune:moonshotai/Kimi-K3.1-Pro); a weights fine-tune is not the Kimi K3.1 Pro base model",
+    "by": "agent",
+    "at": "2026-11-26"
   },
   "z-ai/GLM-4.6-turbo": {
     "decision": "link",

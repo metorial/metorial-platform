@@ -20,6 +20,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "glm-5.2": {
+    "decision": "link",
+    "model": "zhipu/glm-5.2",
+    "reason": "Eden AI lists Z.ai's GLM-5.2 (June 2026 flagship, 1M context); NVIDIA and Z.ai listings confirm it. Eden AI quotes cheapest-endpoint aggregator prices, explaining the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "glm-5.3": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "Eden AI lists Z.ai's GLM-5.3 directly (Aug 2026 flagship); Z.ai docs and Ollama confirm it. Eden AI quotes cheapest-endpoint aggregator prices, explaining the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "glm-5.3-flash": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "Eden AI lists Z.ai's GLM-5.3-Flash directly (Aug 26 2026, 320B MoE multimodal); Z.ai and NVIDIA listings confirm. Eden AI quotes cheapest-endpoint aggregator prices, explaining the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "gpt-oss-20b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-20b",
+    "reason": "Eden AI lists OpenAI's gpt-oss-20b (Aug 2025, 21B MoE, 131K context); Hugging Face and Vercel confirm. Eden AI quotes cheapest-endpoint aggregator prices, explaining the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "greenference/gpt-oss-20b": {
     "decision": "link",
     "model": "openai/gpt-oss-20b",
@@ -33,5 +61,26 @@
     "reason": "Eden AI's GreenPT-hosted route for Alibaba's Qwen3 235B-A22B Instruct 2507 open-weight checkpoint (250K context); the GreenPT sub-provider's 1.0/3.0 rate is a premium over the model's median, not a different model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Eden AI lists Meta's Llama-3.3-70B-Instruct exactly (Dec 2024, 128K context); Hugging Face and Oracle confirm. Eden AI quotes cheapest-endpoint aggregator prices, explaining the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "~glm-flash-latest": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "Offering explicitly labels it GLM-5.3-Flash; the '-latest' alias is a Z.ai release alias currently serving GLM-5.3-Flash, and Z.ai docs confirm it. Eden AI is an aggregator quoting its cheapest of 16 endpoints, which explains the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
+  "~glm-latest": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "Offering explicitly labels it GLM-5.3; the '-latest' alias currently resolves to Z.ai's flagship GLM-5.3. Eden AI aggregates many providers and quotes cheapest-endpoint prices, which explains the below-median price.",
+    "by": "agent",
+    "at": "2026-11-25"
   }
 }

@@ -9,7 +9,8 @@ import type {
 } from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
-import { db } from '../../db';
+import type { SlateEvent } from '../../../prisma/generated/client';
+import { db, withTransaction } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
 import { reportSlateDiscoveryFailure } from '../../lib/failureReports';
@@ -27,6 +28,15 @@ import { slateInvocationService } from '../../services';
 import { discoverSlateCapabilities } from './discoverCapabilities';
 
 let Sentry = getSentry();
+
+let createDiscoveryEvent = (
+  event: Pick<SlateEvent, 'type' | 'message' | 'slateOid' | 'slateVersionOid'>
+) =>
+  retryOnOidCollision(() =>
+    db.slateEvent.create({
+      data: { ...getId('slateEvent'), ...event }
+    })
+  );
 
 let normalizeDiscoveredDocs = (docs: unknown): PrismaJson.SlateDocReferences => {
   if (!Array.isArray(docs)) return [];
@@ -532,14 +542,11 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
     let suppressServerErrorReporting =
       !stagedDeployment && version.status === 'discovery_failed';
 
-    await db.slateEvent.create({
-      data: {
-        ...getId('slateEvent'),
-        type: 'discovery_started',
-        message: `Discovery started for version ${version.version}`,
-        slateOid: slate.oid,
-        slateVersionOid: version.oid
-      }
+    await createDiscoveryEvent({
+      type: 'discovery_started',
+      message: `Discovery started for version ${version.version}`,
+      slateOid: slate.oid,
+      slateVersionOid: version.oid
     });
 
     try {
@@ -859,14 +866,11 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         }
       });
 
-      await db.slateEvent.createMany({
-        data: {
-          ...getId('slateEvent'),
-          type: 'discovery_succeeded',
-          message: `Discovery succeeded for version ${version.version}`,
-          slateOid: slate.oid,
-          slateVersionOid: version.oid
-        }
+      await createDiscoveryEvent({
+        type: 'discovery_succeeded',
+        message: `Discovery succeeded for version ${version.version}`,
+        slateOid: slate.oid,
+        slateVersionOid: version.oid
       });
 
       let versionUpdateData = {
@@ -902,7 +906,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           semver.gt(version.version, slate.currentVersion.version) ||
           (followsRegistryCurrentVersion() && !slate.currentVersion.willBeCurrent))
       ) {
-        await db.$transaction(async db => {
+        let activateVersion = async () => {
           await db.slateVersion.updateMany({
             where: { oid: version.oid },
             data: versionUpdateData
@@ -914,19 +918,27 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           });
 
           await db.slateAction.updateMany({
-            where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
             data: { mostRecentSpecificationOid: specification.oid }
           });
           await db.slateAuthMethod.updateMany({
-            where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
             data: { mostRecentSpecificationOid: specification.oid }
           });
           await db.slateConfigSchema.updateMany({
-            where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
             data: { mostRecentSpecificationOid: specification.oid }
           });
           await db.slateTriggerGroup.updateMany({
-            where: { slateSpecifications: { some: { specificationOid: specification.oid } } },
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
             data: { mostRecentSpecificationOid: specification.oid }
           });
 
@@ -974,7 +986,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
               }
             });
           }
-        });
+        };
+
+        await retryOnOidCollision(() => withTransaction(activateVersion));
       } else {
         await db.slateVersion.updateMany({
           where: { oid: version.oid },
@@ -1061,14 +1075,11 @@ export let discoverSlateErrorQueueProcessor = discoverSlateErrorQueue.process(as
     }).catch(error => console.error('Could not report slate discovery failure', error));
   }
 
-  await db.slateEvent.create({
-    data: {
-      ...getId('slateEvent'),
-      type: 'discovery_failed',
-      message: `Discovery failed for version ${version.version}`,
-      slateOid: version.slate.oid,
-      slateVersionOid: version.oid
-    }
+  await createDiscoveryEvent({
+    type: 'discovery_failed',
+    message: `Discovery failed for version ${version.version}`,
+    slateOid: version.slate.oid,
+    slateVersionOid: version.oid
   });
 
   await db.slateVersionDiscovery.create({

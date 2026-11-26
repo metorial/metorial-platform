@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance-seed/seed-tts-3-0": {
+    "decision": "defer",
+    "until": "2026-12-26",
+    "reason": "Seed-TTS 3.0 is ByteDance Seed's streaming text-to-speech model (per OpenRouter and fal listings); the index has no seed-tts entry (seed-audio-1.0 is a different model), so defer until models.dev adds it",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "bytedance-seed/seedream-5-5": {
     "decision": "defer",
     "until": "2026-12-13",
@@ -667,6 +674,13 @@
     "reason": "Inkling 2 Mini is a new Thinking Machines model (3.4B active/26.4B total MoE, released 2026-11-20 per the vendor listing and HF card thinkingmachines/Inkling-2-Mini). The index has no entry for it — inkling-2-small (2026-11-05) is a different, earlier sibling — so defer until the catalog adds it.",
     "by": "agent",
     "at": "2026-11-21"
+  },
+  "tngtech/deepseek-r1t2-chimera": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "HF metadata lists merge relations to DeepSeek R1, R1-0528, and V3-0324: TNG's Assembly-of-Experts tri-parent merge is not any single parent checkpoint, and the index has no tngtech entry, so the catalog does not model it.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "unbiased/pareto-26.10": {
     "decision": "defer",

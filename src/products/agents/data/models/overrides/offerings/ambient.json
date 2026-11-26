@@ -1,4 +1,11 @@
 {
+  "ambient/large": {
+    "decision": "link",
+    "model": "zhipu/glm-5.2",
+    "reason": "Ambient's docs list GLM 5.2 (z-ai/glm-5.2, also reachable as ambient/large) as their supported production model, so the current link is right; the 0.045 input price is Ambient's own cheap serving price, not a different model",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "ambient/small": {
     "decision": "exclude",
     "category": "other",

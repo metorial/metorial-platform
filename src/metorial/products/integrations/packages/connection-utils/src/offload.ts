@@ -1,6 +1,6 @@
 import { delay } from '@lowerdeck/delay';
 import type { SessionMessage } from '@metorial-subspace/db';
-import { sessionMessageBucketRecord, storage } from './storage';
+import { liveMessageStorage, sessionMessageBucketRecord, storage } from './storage';
 
 let BACKGROUND_OFFLOAD_ATTEMPTS = 3;
 let BACKGROUND_OFFLOAD_RETRY_DELAY_MS = 500;
@@ -13,7 +13,10 @@ export interface OffloadedSessionMessage {
 }
 
 export let offload = {
-  offloadSessionMessage: async (message: Pick<SessionMessage, 'id' | 'input' | 'output'>) => {
+  offloadSessionMessage: async (
+    message: Pick<SessionMessage, 'id' | 'input' | 'output'>,
+    opts?: { live?: boolean }
+  ) => {
     let offloaded: OffloadedSessionMessage = {
       v: 1,
       messageId: message.id,
@@ -21,7 +24,8 @@ export let offload = {
       output: message.output
     };
 
-    await storage.putObject(
+    let client = opts?.live ? liveMessageStorage : storage;
+    await client.putObject(
       sessionMessageBucketRecord.bucket,
       `msg/${message.id}/data`,
       JSON.stringify(offloaded)
@@ -54,9 +58,13 @@ export let offload = {
     }
   },
 
-  getOffloadedSessionMessage: async (message: Pick<SessionMessage, 'id'>) => {
+  getOffloadedSessionMessage: async (
+    message: Pick<SessionMessage, 'id'>,
+    opts?: { live?: boolean }
+  ) => {
     try {
-      let res = await storage.getObject(
+      let client = opts?.live ? liveMessageStorage : storage;
+      let res = await client.getObject(
         sessionMessageBucketRecord.bucket,
         `msg/${message.id}/data`
       );

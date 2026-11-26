@@ -35,6 +35,7 @@ import (
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/metrics"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/objectstore"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/preflight"
+	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/pullsecret"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/rpc/clustermanagerrpc"
 )
 
@@ -225,6 +226,23 @@ func run(log *slog.Logger) error {
 	podAuthn := auth.NewAuthenticator(auth.ListenerPod, m, podVerifiers...)
 	controlAuth := auth.NewControlAuth(controlAuthn, cfg.PlatformNamespace, cfg.FunctionsCallerSA, cfg.BuildCallerSA, cfg.InsecureDisableControlAuth)
 
+	pullSecrets := &pullsecret.Syncer{
+		Source:          platform.Kube,
+		SourceNamespace: cfg.PlatformNamespace,
+		SecretName:      cfg.RegistryPullSecret,
+		Targets: []pullsecret.Target{
+			{Client: fnCluster.Kube, Namespace: cfg.FunctionsNamespace, ServiceAccount: cfg.FunctionRuntimeSA},
+			{Client: platform.Kube, Namespace: cfg.BuildsNamespace, ServiceAccount: cfg.BuildRuntimeSA},
+		},
+		Interval: cfg.RegistrySyncEvery,
+		Log:      log,
+	}
+	if pullSecrets.Enabled() {
+		if err := pullSecrets.Sync(ctx); err != nil {
+			log.Warn("registry pull secret sync failed", "secret", cfg.RegistryPullSecret, "error", err)
+		}
+	}
+
 	status := &statusHolder{}
 	var preflightSource *doctorchecks.Preflight
 	if cfg.Preflight != config.PreflightOff {
@@ -232,6 +250,7 @@ func run(log *slog.Logger) error {
 			Config:         cfg,
 			Platform:       platform,
 			Functions:      fnCluster,
+			PullSecrets:    pullSecrets,
 			ControlAuth:    controlAuthn,
 			PodAuth:        podAuthn,
 			DryRunFunction: fnManager.DryRun,
@@ -354,6 +373,9 @@ func run(log *slog.Logger) error {
 
 	wg.Go(func() {
 		fnManager.Tracker().Run(ctx, flushTick, fnManager.FlushLastInvoked)
+	})
+	wg.Go(func() {
+		pullSecrets.Run(ctx)
 	})
 	wg.Go(func() {
 		collector.Run(ctx, platform.Kube, cfg.PlatformNamespace, cfg.LeaseName, cfg.PodName)
