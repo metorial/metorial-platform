@@ -39,7 +39,8 @@ let {
 }));
 
 vi.mock('@mtsrc/mcp-runtime-env', () => ({
-  oauthCallbackUrl: defaultRedirectUri
+  oauthCallbackUrl: defaultRedirectUri,
+  integrationsOAuthCallbackUrl: 'https://integrations.example.com/oauth-callback/mcp'
 }));
 
 vi.mock('@mtsrc/mcp-runtime-db', () => ({
@@ -113,6 +114,30 @@ describe('getRemoteOAuthRedirectUri', () => {
   });
 });
 
+describe('registered OAuth callbacks', () => {
+  it.each([
+    [{ callbackUrlOverride: null, usesIntegrationsCallback: false }, defaultRedirectUri],
+    [
+      { callbackUrlOverride: null, usesIntegrationsCallback: true },
+      'https://integrations.example.com/oauth-callback/mcp'
+    ],
+    [
+      {
+        callbackUrlOverride: 'https://customer.example.com/callback',
+        usesIntegrationsCallback: true
+      },
+      'https://customer.example.com/callback'
+    ]
+  ] as [Parameters<typeof getRemoteOAuthRedirectUri>[0]['registration'], string][])(
+    'uses the callback stored for %j',
+    (registration, redirectUri) => {
+      expect(
+        getRemoteOAuthRedirectUri({ connection: { registrationOid: 1n }, registration })
+      ).toBe(redirectUri);
+    }
+  );
+});
+
 describe('remoteOauthAuthorizationService.startAuthorization', () => {
   it('uses the explicit server OAuth setup when the inverse relation is not linked yet', async () => {
     let callbackUrlOverride = 'https://subspace.example.com/oauth-callback/test-provider';
@@ -143,6 +168,7 @@ describe('remoteOauthAuthorizationService.startAuthorization', () => {
     dbMock.remoteOAuthConnectionSetup.create.mockResolvedValue(createdSetup);
 
     let result = await remoteOauthAuthorizationService.startAuthorization({
+      tenant: tenant as any,
       connection: connection as any,
       serverOAuthSetup: { callbackUrlOverride }
     });
@@ -249,8 +275,11 @@ describe('remoteOauthAuthorizationService.completeAuthorization', () => {
       redirectUri: 'https://app.example.com/oauth/complete',
       serverInstanceConfiguration: null
     };
+    let pinnedRedirectUri = 'https://old.customer.example.com/oauth-callback';
     let attempt = {
       oid: 18n,
+      redirectUri: pinnedRedirectUri,
+      registrationOid: 22n,
       stateIdentifier: 'test-state',
       codeVerifier: null,
       connection,
@@ -290,6 +319,12 @@ describe('remoteOauthAuthorizationService.completeAuthorization', () => {
       response: { code: 'test-code', state: 'test-state' }
     });
 
+    expect(remoteOAuthConnectionServiceMock.DANGEROUSLY_getCredentials).toHaveBeenCalledWith(
+      expect.objectContaining({ registrationOid: 22n })
+    );
+    expect(oauthUtilsMock.exchangeCodeForTokens).toHaveBeenCalledWith(
+      expect.objectContaining({ redirectUri: pinnedRedirectUri })
+    );
     expect(result.redirectUrl).toContain('metorial_oauth_setup_id=oauth_setup_test');
     expect(dbMock.remoteOAuthConnectionProfile.upsert).not.toHaveBeenCalled();
     expect(dbMock.remoteOAuthConnectionAuthToken.create).toHaveBeenCalledTimes(1);

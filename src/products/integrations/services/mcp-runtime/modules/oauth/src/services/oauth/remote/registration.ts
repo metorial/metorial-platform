@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import { integrationsOAuthCallbackUrl } from '@mtsrc/mcp-runtime-env';
 import { db } from '@mtsrc/mcp-runtime-db';
 import { getId } from '@mtsrc/mcp-runtime-db';
 import { OAuthUtils } from '@mtsrc/mcp-runtime-oauth-utils';
@@ -50,6 +51,10 @@ class remoteOAuthRegistrationServiceImpl {
     let reg = await OAuthUtils.registerClient({
       tenant: connection.tenant,
       config: connection.config.config,
+      callback: {
+        callbackUrlOverride: connection.tenant.dynamicOAuthCallbackUrlOverride,
+        usesIntegrationsCallback: !!integrationsOAuthCallbackUrl
+      },
       owner: {
         config: connection.config,
         connection

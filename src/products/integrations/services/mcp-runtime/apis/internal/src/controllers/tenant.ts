@@ -45,6 +45,21 @@ export let tenantController = app.controller({
       return tenantPresenter(tenant);
     }),
 
+  getOAuthCallbackSettings: app
+    .handler()
+    .input(v.object({ identifier: v.string() }))
+    .do(ctx => tenantService.getOAuthCallbackSettings(ctx.input)),
+
+  updateOAuthCallbackSettings: tenantApp
+    .handler()
+    .input(v.object({ tenantId: v.string(), callbackUrlOverride: v.nullable(v.string()) }))
+    .do(ctx =>
+      tenantService.updateOAuthCallbackSettings({
+        tenant: ctx.tenant,
+        callbackUrlOverride: ctx.input.callbackUrlOverride
+      })
+    ),
+
   get: tenantApp
     .handler()
     .input(

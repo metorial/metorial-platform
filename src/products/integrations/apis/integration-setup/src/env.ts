@@ -12,6 +12,7 @@ export let env = defineSettings({
     ALLOW_CORS: v.optional(v.string()),
 
     SLATES_HUB_PUBLIC_URL: v.string(),
+    SHUTTLE_PUBLIC_URL: v.optional(v.string({ modifiers: [v.url()] })),
     TOOL_CALL_ROUTER_URL: v.optional(v.string())
   },
 
