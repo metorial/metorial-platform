@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db } from '@mtsrc/mcp-runtime-db';
-import { ID, snowflake } from '@mtsrc/mcp-runtime-db';
+import { db, ID, snowflake, type Tenant } from '@mtsrc/mcp-runtime-db';
 import { integrationsOAuthCallbackUrl, oauthCallbackUrl } from '@mtsrc/mcp-runtime-env';
 import { linkFunctionBayTenant } from '../internal/functionBayTenant';
 
