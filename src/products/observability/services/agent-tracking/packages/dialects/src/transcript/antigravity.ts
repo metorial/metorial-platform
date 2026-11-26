@@ -3,9 +3,17 @@ import {
   antigravityTranscriptRequestSchema
 } from '@mtsrc/agent-tracking-spec';
 import { usageDialect } from '../usageRequest';
-import { buildUsage, normalizeEffort } from '../values';
+import { buildUsage } from '../values';
 
-let effortSuffix = /-(low|medium|high)$/;
+// The CLI appends the thinking level to the model id; the level does not change the price.
+let levelSuffix = /^(.+)-(low|medium|high|xhigh)$/;
+
+let efforts: Record<string, string> = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'max'
+};
 
 export let antigravityTranscript = usageDialect({
   id: antigravityTranscriptId,
@@ -18,16 +26,18 @@ export let antigravityTranscript = usageDialect({
       payload.input_tokens + payload.output_tokens + (payload.cache_read_tokens ?? 0);
     if (counted == 0) return null;
 
+    let [, model = payload.model, level] = levelSuffix.exec(payload.model) ?? [];
+
     return {
       sessionId: payload.session_id,
       identity: [payload.step_index],
-      model: payload.model,
+      model,
       usage: buildUsage({
         inputUncached: payload.input_tokens,
         cacheRead: payload.cache_read_tokens,
         output: payload.output_tokens
       }),
-      effort: normalizeEffort(effortSuffix.exec(payload.model)?.[1]),
+      effort: level ? efforts[level] : undefined,
       purpose: 'main'
     };
   }

@@ -50,20 +50,27 @@ describe('the Antigravity transcript dialect', () => {
     expect(record!.source.fact_key).toBeNull();
   });
 
-  it('takes the effort from the model suffix and keeps the model id as sent', () => {
+  it.each([
+    ['gemini-4-hydrogen-low', 'gemini-4-hydrogen', 'low'],
+    ['gemini-4-hydrogen-medium', 'gemini-4-hydrogen', 'medium'],
+    ['gemini-4-hydrogen-high', 'gemini-4-hydrogen', 'high'],
+    ['gemini-4-neon-xhigh', 'gemini-4-neon', 'max'],
+    ['gemini-4-hydrogen', 'gemini-4-hydrogen', undefined],
+    ['gemini-highway', 'gemini-highway', undefined],
+    ['gemini-high-flash', 'gemini-high-flash', undefined],
+    ['high', 'high', undefined]
+  ])('stores %s as the model %s with the effort %s', (sent, model, effort) => {
+    let [record] = build(request({ model: sent }));
+
+    expect(record!.data.model).toEqual({ id: model });
+    expect(record!.data.effort).toBe(effort);
+  });
+
+  it('keeps the record id of a step whatever the level', () => {
     let [high] = build(request({ model: 'gemini-4-hydrogen-high' }));
-    let [low] = build(request({ model: 'gemini-4-hydrogen-low' }));
-    let [medium] = build(request({ model: 'gemini-4-hydrogen-medium' }));
     let [plain] = build(request());
 
-    expect(high!.data).toMatchObject({
-      model: { id: 'gemini-4-hydrogen-high' },
-      effort: 'high'
-    });
-    expect(low!.data.effort).toBe('low');
-    expect(medium!.data.effort).toBe('medium');
-    expect(plain!.data.effort).toBeUndefined();
-    expect(build(request({ model: 'gemini-highway' }))[0]!.data.effort).toBeUndefined();
+    expect(high!.id).toBe(plain!.id);
   });
 
   it('reads usage without cache reads', () => {
