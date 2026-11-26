@@ -20,6 +20,13 @@
     "by": "agent",
     "at": "2026-11-19"
   },
+  "qwen/qwen3.6-35b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "Qwen's blog and the Hugging Face repo Qwen/Qwen3.6-35B-A3B confirm the offering is exactly Qwen3.6-35B-A3B (35B/3B active MoE, 262K context). The lower input price ($0.045 vs median $0.244) is a cheaper third-party serving of the open-weights model, not a different model.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "unsloth/qwen3.8-27b-gguf": {
     "decision": "link",
     "model": "alibaba/qwen3.8-27b",
