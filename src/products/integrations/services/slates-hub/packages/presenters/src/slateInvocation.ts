@@ -1,0 +1,118 @@
+import { getSentry } from '@lowerdeck/sentry';
+import type {
+  SlateAttachment,
+  SlateDeployment,
+  SlateInvocation,
+  SlateVersion
+} from '@mtsrc/slates-hub-db/client';
+import { db } from '@mtsrc/slates-hub-db/db';
+import { loadStoredSlateInvocation } from '@mtsrc/slates-hub-module-invocations/loadStored';
+import { redactWebhookInvocationMessages } from '@mtsrc/slates-hub-module-invocations/webhookContent';
+import type { StoredSlateInvocation } from '@mtsrc/slates-hub-module-invocations/types';
+import { slateInvocationAttachmentsPresenter } from './slateAttachment';
+
+let Sentry = getSentry();
+
+type InvocationWithStoredAttachments = SlateInvocation & {
+  slateInvocationAttachment?: Array<{
+    attachments: SlateAttachment;
+  }>;
+};
+
+export let slateInvocationLitePresenter = async (inv: InvocationWithStoredAttachments) => {
+  let i = 0;
+  while (inv.isPending) {
+    if (i++ > 10) {
+      Sentry.captureMessage('Invocation still pending after 10 poll attempts', {
+        level: 'warning',
+        extra: { invocationId: inv.id, invocationOid: String(inv.oid) }
+      });
+      break;
+    }
+
+    let res = await db.slateInvocation.findUniqueOrThrow({
+      where: { oid: inv.oid },
+      include: {
+        slateInvocationAttachment: {
+          include: {
+            attachments: true
+          }
+        }
+      }
+    });
+    if (!res.isPending) {
+      inv = {
+        ...inv,
+        ...res
+      };
+
+      break;
+    }
+  }
+
+  let output: StoredSlateInvocation =
+    (await loadStoredSlateInvocation(inv)) ??
+    ({
+      id: inv.id,
+      requests: [],
+      responses: [],
+      logs: []
+    } satisfies StoredSlateInvocation);
+
+  let { requests, responses, requestTraces } = redactWebhookInvocationMessages({
+    requests: output.requests,
+    responses: output.responses,
+    requestTraces: output.requestTraces
+  });
+
+  return {
+    object: 'slate.invocation',
+
+    id: inv.id,
+    status: inv.isPending
+      ? ('processing_result' as const)
+      : output.provider?.status === 'failed' || inv.hasInvocationError
+        ? ('invocation_failed' as const)
+        : inv.hasResponseError
+          ? ('message_failed' as const)
+          : ('succeeded' as const),
+
+    requests,
+    responses,
+    requestTraces,
+    error: output.provider?.error,
+    logs: (output.logs ?? []).map(([timestamp, message]) => ({
+      timestamp,
+      message
+    })),
+    attachments: await slateInvocationAttachmentsPresenter(inv),
+
+    provider: output.provider
+      ? {
+          id: output.provider.id,
+          status: output.provider.status,
+          billedTimeMs: output.provider.billedTimeMs,
+          computeTimeMs: output.provider.computeTimeMs
+        }
+      : null,
+
+    createdAt: inv.createdAt
+  };
+};
+
+export let slateInvocationPresenter = async (
+  inv: InvocationWithStoredAttachments & {
+    deployment: SlateDeployment & {
+      slateVersion: SlateVersion;
+    };
+  }
+) => {
+  let inner = await slateInvocationLitePresenter(inv);
+
+  return {
+    ...inner,
+
+    slateDeploymentId: inv.deployment.id,
+    slateVersionId: inv.deployment.slateVersion.id
+  };
+};

@@ -56,8 +56,8 @@ COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/schem
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/migrations/ ./prisma/core/migrations/
 COPY --from=builder --link --chown=10001:10001 /app/src/platform/multi-region/prisma/schema/ ./prisma/global/schema/
 COPY --from=builder --link --chown=10001:10001 /app/src/platform/multi-region/prisma/migrations/ ./prisma/global/migrations/
-COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/schema/ ./prisma/subspace/schema/
-COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/migrations/ ./prisma/subspace/migrations/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/integrations/db/prisma/schema/ ./prisma/subspace/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/products/integrations/db/prisma/migrations/ ./prisma/subspace/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [

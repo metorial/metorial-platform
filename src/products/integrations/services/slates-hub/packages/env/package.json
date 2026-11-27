@@ -1,0 +1,16 @@
+{
+  "name": "@mtsrc/slates-hub-env",
+  "private": true,
+  "exports": {
+    "./env": "./src/env.ts",
+    "./metorialApiUrl": "./src/metorialApiUrl.ts",
+    "./oauthCallbackUrl": "./src/oauthCallbackUrl.ts",
+    "./webhookUrl": "./src/webhookUrl.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/editions": "workspace:*",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
+  }
+}

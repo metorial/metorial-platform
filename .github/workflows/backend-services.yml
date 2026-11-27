@@ -36,7 +36,7 @@ jobs:
       - uses: ./.github/actions/detect-test-changes
         id: changes
         with:
-          tasks: test --filter=./src/platform/packages/* --filter=./src/platform/modules/* --filter=./src/metorial/products/** --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=./src/products/integrations/services/mcp-runtime/** --filter=@metorial/slates --filter=@mtsrc/email-service --filter=./src/products/agents/services/ai-gateway/** --filter=@metorial/module-ai-gateway --filter=@metorial/api-core --filter=@metorial/presenters --filter=@metorial/audit-listeners
+          tasks: test --filter=./src/platform/packages/* --filter=./src/platform/modules/* --filter=./src/products/integrations/modules/* --filter=./src/products/integrations/packages/* --filter=./src/products/integrations/adapters/* --filter=./src/products/integrations/provider-backends/* --filter=./src/products/integrations/db --filter=./src/products/*/apis/* --filter=./src/products/sandbox/** --filter=./src/lib/** --filter=@mtsrc/secret-store-service --filter=@mtsrc/functions-service --filter=@mtsrc/mcp-runtime-service --filter=./src/products/integrations/services/mcp-runtime/** --filter=@metorial/slates --filter=@mtsrc/email-service --filter=./src/products/agents/services/ai-gateway/** --filter=@metorial/module-ai-gateway --filter=@metorial/api-core --filter=@metorial/presenters --filter=@metorial/audit-listeners
 
   migrations:
     name: Check Prisma migrations
@@ -91,7 +91,7 @@ jobs:
             dockerfile: ./src/platform/services/search/service/Dockerfile
           - name: slates-hub
             image: ghcr.io/metorial/slates-hub
-            dockerfile: ./src/slates/apps/hub/Dockerfile
+            dockerfile: ./src/products/integrations/services/slates-hub/service/Dockerfile
           - name: slates-registry
             image: ghcr.io/metorial/slates-registry
             dockerfile: ./src/products/integrations/services/slates-registry/Dockerfile
@@ -119,7 +119,7 @@ jobs:
             dockerfile: ./src/products/agents/services/ai-gateway/service/Dockerfile
           - name: subspace-worker
             image: ghcr.io/metorial/subspace-worker
-            dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
+            dockerfile: ./src/products/integrations/services/subspace-worker/service/Dockerfile
           - name: agent-tracking
             image: ghcr.io/metorial/agent-tracking
             dockerfile: ./src/products/observability/services/agent-tracking/service/Dockerfile

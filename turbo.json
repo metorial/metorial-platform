@@ -204,7 +204,7 @@
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/slates-client#build": {
-      "dependsOn": ["^build", "@metorial/slates#prisma:generate"],
+      "dependsOn": ["^build", "@mtsrc/slates-hub-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@mtsrc/ai-gateway-client-internal#build": {
@@ -362,7 +362,7 @@
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/tsconfig*.json",
         "$TURBO_ROOT$/.prettierrc",
-        "$TURBO_ROOT$/src/metorial-frontend/packages/state/src/config/generated/organizationConfigs.ts"
+        "$TURBO_ROOT$/src/frontends/metorial/packages/state/src/config/generated/organizationConfigs.ts"
       ],
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]

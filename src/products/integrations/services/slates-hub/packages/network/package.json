@@ -1,0 +1,22 @@
+{
+  "name": "@mtsrc/slates-hub-network",
+  "private": true,
+  "exports": {
+    "./assertPublicWebSocketUrl": "./src/assertPublicWebSocketUrl.ts",
+    "./egressGateway": "./src/egressGateway.ts",
+    "./gatewayFetch": "./src/gatewayFetch.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/ssrf": "workspace:2.0.0",
+    "@metorial-platform-systems/runtime-egress-grants": "workspace:*",
+    "@metorial/editions": "workspace:*",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-function-bay": "workspace:*",
+    "ipaddr.js": "^2.5.0"
+  },
+  "devDependencies": {
+    "vitest": "5.0.4"
+  }
+}

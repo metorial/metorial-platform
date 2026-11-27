@@ -145,7 +145,7 @@
     "extraInputs": []
   },
   "subspace-worker": {
-    "dockerfile": "src/metorial/products/integrations/apps/worker/Dockerfile",
+    "dockerfile": "src/products/integrations/services/subspace-worker/service/Dockerfile",
     "image": "ghcr.io/metorial/subspace-worker",
     "platform": "linux/amd64",
     "workspace": ".",
@@ -177,7 +177,7 @@
     "extraInputs": []
   },
   "slates-hub": {
-    "dockerfile": "src/slates/apps/hub/Dockerfile",
+    "dockerfile": "src/products/integrations/services/slates-hub/service/Dockerfile",
     "image": "ghcr.io/metorial/slates-hub",
     "platform": "linux/amd64",
     "workspace": ".",
@@ -185,7 +185,8 @@
       "prisma:generate",
       "server:build",
       "admin:build",
-      "--filter=@metorial/slates"
+      "--filter=@metorial/slates",
+      "--filter=@mtsrc/slates-hub-db"
     ],
     "buildArguments": {},
     "extraInputs": []

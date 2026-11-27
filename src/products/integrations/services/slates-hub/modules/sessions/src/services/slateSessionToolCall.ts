@@ -1,0 +1,640 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import type { SlatesParticipant } from '@slates/proto';
+import { addDays, differenceInMinutes } from 'date-fns';
+import type {
+  SlateInstance,
+  SlateInstanceConfig,
+  SlateInvocation,
+  Tenant
+} from '@mtsrc/slates-hub-db/client';
+import { db } from '@mtsrc/slates-hub-db/db';
+import { getId } from '@mtsrc/slates-hub-db/id';
+import { signedIntegrationAttachmentUrl } from '@mtsrc/slates-hub-module-invocations/attachmentSignature';
+import {
+  attachmentEgressFor,
+  type AttachmentEgress
+} from '@mtsrc/slates-hub-module-invocations/attachmentEgress';
+import {
+  claimAttachmentUpload,
+  confirmAttachmentUpload
+} from '@mtsrc/slates-hub-module-invocations/attachmentUpload';
+import { getStoredAttachmentsStorageKey } from '@mtsrc/slates-hub-module-invocations/store';
+import { isTransientInvocationError } from '@mtsrc/slates-hub-module-invocations/invocationErrors';
+import { containsSecretPlaceholder } from '@mtsrc/slates-hub-protocol/secretSerializer';
+import { slateInstanceConfigChangedQueue } from '@mtsrc/slates-hub-module-instances/configChanged';
+import { invocationsBucketRecord, storage } from '@mtsrc/slates-hub-storage/storage';
+import { slateErrorService } from '@mtsrc/slates-hub-module-errors/slateError';
+import { slateAuthHandlerService } from '@mtsrc/slates-hub-module-instances/slateInstanceAuthHandler';
+import { slateInvocationService } from '@mtsrc/slates-hub-module-invocations/slateInvocation';
+import { slateSessionService } from './slateSession';
+
+let include = {
+  action: true,
+  invocation: {
+    include: {
+      slateInvocationAttachment: {
+        include: {
+          attachments: true
+        }
+      }
+    }
+  },
+  session: true,
+  slateVersion: true
+};
+
+type SlateToolCallAttachment = {
+  content:
+    | {
+        type: 'url';
+        url: string;
+        headers?: Record<string, string>;
+        query?: Record<string, string>;
+        refreshReference?: unknown;
+        refreshAt?: string;
+      }
+    | {
+        type: 'content';
+        encoding: 'base64' | 'utf-8';
+        content: string;
+      }
+    | {
+        type: 'upload_reference';
+        referenceId: string;
+      };
+  mimeType?: string;
+};
+
+let ATTACHMENT_EXPIRATION_DAYS = 7;
+
+let throwStoredConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_provider_configuration',
+      message: `Provider instance configuration has an error: ${d.errorMessage ?? d.errorCode}`
+    })
+  );
+};
+
+// A stored runtime failure says nothing about the config, and nothing re-validates a config
+// until it changes. Clear it, re-validate in the background and let the call go through
+// instead of blocking the instance indefinitely.
+let handleStoredConfigError = async (d: {
+  config: SlateInstanceConfig;
+  errorCode: string;
+  versionId: string;
+}) => {
+  if (!isTransientInvocationError({ code: d.errorCode, message: d.config.errorMessage })) {
+    throwStoredConfigError({ errorCode: d.errorCode, errorMessage: d.config.errorMessage });
+  }
+
+  let cleared = await db.slateInstanceConfig.updateMany({
+    where: { oid: d.config.oid, errorCode: d.errorCode },
+    data: { errorCode: null, errorMessage: null, errorInvocationId: null }
+  });
+  if (!cleared.count) return;
+
+  await slateInstanceConfigChangedQueue.add({
+    newConfigId: d.config.id,
+    versionId: d.versionId
+  });
+};
+
+class slateSessionToolCallServiceImpl {
+  async createSlateToolCall(d: {
+    input: {
+      tenantId: string;
+      sessionId: string;
+
+      toolId: string;
+      authConfigId?: string;
+      enclaveId?: string;
+      egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
+      input: Record<string, any>;
+      participants: SlatesParticipant[];
+      downloadUrlAttachments?: boolean;
+    };
+  }) {
+    let session = await db.slateSession.findFirst({
+      where: {
+        tenant: { OR: [{ id: d.input.tenantId }, { identifier: d.input.tenantId }] },
+        id: d.input.sessionId
+      },
+      include: {
+        slate: true,
+        slateInstance: { include: { currentConfig: true } },
+        slateVersion: { include: { specification: true } },
+        instanceConfiguration: true,
+        tenant: true
+      }
+    });
+    if (!session) throw new ServiceError(notFoundError('slate.session'));
+    if (!session.slate.currentVersionOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provider does not have a current version set.'
+        })
+      );
+    }
+    if (!session.slateInstance.currentConfig) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provider instance does not have a current configuration set.'
+        })
+      );
+    }
+    if (session.slateInstance.currentConfig.errorCode) {
+      await handleStoredConfigError({
+        config: session.slateInstance.currentConfig,
+        errorCode: session.slateInstance.currentConfig.errorCode,
+        versionId: session.slateVersion.id
+      });
+    }
+
+    let lastActiveOrCreatedAt = session.lastActiveAt ?? session.createdAt;
+    if (Math.abs(differenceInMinutes(new Date(), lastActiveOrCreatedAt)) > 5) {
+      let version = await slateSessionService.getSessionVersion({
+        slate: session.slate,
+        slateInstance: session.slateInstance
+      });
+
+      if (version.oid !== session.slateVersionOid) {
+        session.slateVersion = version;
+        await db.slateSession.updateMany({
+          where: { oid: session.oid },
+          data: { slateVersionOid: version.oid }
+        });
+      }
+    }
+
+    let version = session.slateVersion;
+    if (
+      version.status !== 'active' ||
+      !version.specification ||
+      !version.providerDeploymentInfo
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provider is not active or does not have an active deployment.'
+        })
+      );
+    }
+
+    if (d.input.authConfigId && !version.specification.authMethods.length) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'authentication_not_supported',
+          message: 'Provider does not have any authentication methods configured.'
+        })
+      );
+    }
+    if (!d.input.authConfigId && version.specification.authMethods.length) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'authentication_required',
+          message: 'Authentication method is required for this provider.'
+        })
+      );
+    }
+
+    let authConfig = d.input.authConfigId
+      ? await slateAuthHandlerService.getSlateInstanceAuth({
+          tenant: session.tenant,
+          slateInstance: session.slateInstance,
+          authConfigId: d.input.authConfigId,
+          minExpirationBuffer: 30 * 1000
+        })
+      : undefined;
+
+    let action = await db.slateAction.findFirst({
+      where: {
+        type: 'tool',
+        slateOid: session.slate.oid,
+        slateSpecifications: { some: { specificationOid: version.specification.oid } },
+        OR: [{ id: d.input.toolId }, { key: d.input.toolId }, { identifier: d.input.toolId }]
+      }
+    });
+    if (!action) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'invalid_tool_action',
+          message: 'Tool action not found for this provider.'
+        })
+      );
+    }
+
+    let startTime = Date.now();
+
+    let stack = await slateInvocationService.createInvocationWithState({
+      tenant: session.tenant,
+      participants: d.input.participants,
+      slateVersion: session.slateVersion,
+      enclaveId: d.input.enclaveId ?? session.instanceConfiguration?.enclaveId,
+      egressPolicy:
+        d.input.egressPolicy ??
+        (session.instanceConfiguration
+          ?.egressPolicy as SlatesHubPrismaJson.CompiledEgressNetworkAllowList | null) ??
+        undefined,
+
+      config: session.slateInstance.currentConfig.value ?? {},
+      session: { id: session.id, state: {} },
+      auth: authConfig
+        ? {
+            authenticationMethodId: authConfig.authMethod.key,
+            data: authConfig.output ?? {}
+          }
+        : null
+    });
+    let callRes = await slateInvocationService.invokeToolAction({
+      stack,
+      actionId: action.key,
+      input: d.input.input
+    });
+
+    let durationMs = Date.now() - startTime;
+
+    let call = await db.slateSessionToolCall.create({
+      data: {
+        ...getId('slateToolCall'),
+
+        status: callRes.status === 'success' ? 'succeeded' : 'failed',
+        errorCode: callRes.status === 'error' ? callRes.error.code : null,
+        errorMessage: callRes.status === 'error' ? callRes.error.message : null,
+        durationMs,
+
+        actionOid: action.oid,
+        sessionOid: session.oid,
+        invocationOid: callRes.invocation.oid,
+        slateVersionOid: session.slateVersion.oid
+      }
+    });
+
+    await db.slateSession.updateMany({
+      where: { oid: session.oid },
+      data: { lastActiveAt: new Date() }
+    });
+
+    if (callRes.status === 'error') {
+      slateErrorService
+        .recordSlateError({
+          type: 'tool_call_failed',
+          errorCode: callRes.error.code,
+          errorMessage: callRes.error.message,
+          tenantOid: session.tenantOid,
+          slateOid: session.slateOid,
+          slateVersionOid: session.slateVersionOid,
+          slateInstanceOid: session.slateInstanceOid,
+          invocationOid: callRes.invocation.oid,
+          toolCallOid: call.oid,
+          sessionOid: session.oid
+        })
+        .catch(() => {});
+
+      return {
+        status: 'error' as const,
+        call,
+        invocationId: callRes.invocation.id,
+        error: callRes.error
+      };
+    }
+
+    let attachments = session.tenant.storeToolCallAttachments
+      ? (
+          await Promise.all(
+            (callRes.data.attachments ?? []).map(attachment =>
+              this.ensureAttachment({
+                content: attachment.content,
+                mimeType: attachment.mimeType,
+                invocation: callRes.invocation,
+                tenant: session.tenant,
+                slateInstance: session.slateInstance,
+                authConfig,
+                egress: attachmentEgressFor({
+                  instanceConfiguration: session.instanceConfiguration,
+                  inline: { enclaveId: d.input.enclaveId, egressPolicy: d.input.egressPolicy }
+                })
+              })
+            )
+          )
+        ).filter(a => a !== null)
+      : [];
+
+    return {
+      call,
+      invocationId: callRes.invocation.id,
+      status: 'success' as const,
+
+      output: callRes.data.output,
+      message: callRes.data.message,
+      attachments
+    };
+  }
+
+  private async ensureAttachment(d: {
+    content: SlateToolCallAttachment['content'];
+    mimeType?: string | undefined;
+    invocation: SlateInvocation;
+    tenant: Tenant;
+    slateInstance: SlateInstance;
+    authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
+    egress: AttachmentEgress;
+  }) {
+    if (d.content.type === 'url') {
+      return this.ensureProxiedUrlAttachment({
+        content: d.content,
+        mimeType: d.mimeType,
+        invocation: d.invocation,
+        tenant: d.tenant,
+        slateInstance: d.slateInstance,
+        authConfig: d.authConfig,
+        egress: d.egress
+      });
+    }
+
+    if (d.content.type === 'upload_reference') {
+      return this.ensureUploadedAttachment({
+        referenceId: d.content.referenceId,
+        mimeType: d.mimeType,
+        invocation: d.invocation
+      });
+    }
+
+    let contentBuffer = Buffer.from(d.content.content, d.content.encoding);
+    let digest = new Uint8Array(await crypto.subtle.digest('SHA-256', contentBuffer));
+    let digestString = Buffer.from(digest).toString('hex');
+
+    let blob = await db.slateAttachmentBlob.findFirst({ where: { digest } });
+    if (!blob) {
+      let storageKey = getStoredAttachmentsStorageKey(digestString);
+
+      await storage.putObject(
+        invocationsBucketRecord.bucket,
+        storageKey,
+        contentBuffer,
+        d.mimeType ?? 'application/octet-stream'
+      );
+
+      try {
+        blob = await db.slateAttachmentBlob.upsert({
+          where: { digest },
+          create: {
+            ...getId('slateAttachmentBlob'),
+            digest,
+            storageBucket: invocationsBucketRecord.bucket,
+            storageKey,
+            mimeType: d.mimeType,
+            sizeBytes: contentBuffer.byteLength
+          },
+          update: {}
+        });
+      } catch (e) {
+        try {
+          blob = await db.slateAttachmentBlob.findFirst({ where: { digest } });
+        } catch {}
+
+        if (!blob) throw e;
+      }
+    }
+
+    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
+
+    let attachment = await db.slateAttachment.create({
+      data: {
+        ...getId('slateAttachment'),
+        digest,
+        storageBucket: blob.storageBucket,
+        storageKey: blob.storageKey,
+        expiresAt
+      }
+    });
+
+    await db.slateInvocationAttachment.createMany({
+      data: {
+        ...getId('slateInvocationAttachment'),
+        invocationOid: d.invocation.oid,
+        attachmentsOid: attachment.oid
+      }
+    });
+
+    return {
+      type: 'url' as const,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
+      mimeType: d.mimeType,
+      urlExpiresAt: expiresAt
+    };
+  }
+
+  private async ensureProxiedUrlAttachment(d: {
+    content: Extract<SlateToolCallAttachment['content'], { type: 'url' }>;
+    mimeType?: string | undefined;
+    invocation: SlateInvocation;
+    tenant: Tenant;
+    slateInstance: SlateInstance;
+    authConfig?: Awaited<ReturnType<typeof slateAuthHandlerService.getSlateInstanceAuth>>;
+    egress: AttachmentEgress;
+  }) {
+    let needsAuthConfig =
+      containsSecretPlaceholder(d.content.url) ||
+      containsSecretPlaceholder(d.content.headers) ||
+      containsSecretPlaceholder(d.content.query);
+
+    if (needsAuthConfig && !d.authConfig) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'attachment_missing_auth_config',
+          message:
+            'Attachment references an auth-config secret placeholder, but this tool call has no auth config to resolve it against.'
+        })
+      );
+    }
+
+    if (d.content.refreshReference !== undefined && !d.content.refreshAt) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'attachment_refresh_expiry_missing',
+          message: 'Attachment has a refreshReference but no refreshAt expiry was provided.'
+        })
+      );
+    }
+
+    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
+
+    let attachment = await db.slateAttachment.create({
+      data: {
+        ...getId('slateAttachment'),
+        tenantOid: d.tenant.oid,
+        authConfigOid:
+          needsAuthConfig || d.content.refreshReference !== undefined
+            ? (d.authConfig?.authConfig.oid ?? null)
+            : null,
+        slateInstanceOid:
+          d.content.refreshReference !== undefined ? d.slateInstance.oid : null,
+        ...d.egress,
+        targetUrl: d.content.url,
+        headers: d.content.headers ?? undefined,
+        query: d.content.query ?? undefined,
+        mimeType: d.mimeType,
+        refreshReference: d.content.refreshReference ?? undefined,
+        refreshAfter: d.content.refreshAt ? new Date(d.content.refreshAt) : null,
+        expiresAt
+      }
+    });
+
+    await db.slateInvocationAttachment.createMany({
+      data: {
+        ...getId('slateInvocationAttachment'),
+        invocationOid: d.invocation.oid,
+        attachmentsOid: attachment.oid
+      }
+    });
+
+    return {
+      type: 'url' as const,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
+      mimeType: d.mimeType,
+      urlExpiresAt: expiresAt
+    };
+  }
+
+  private async ensureUploadedAttachment(d: {
+    referenceId: string;
+    mimeType?: string | undefined;
+    invocation: SlateInvocation;
+  }) {
+    let claimed = await claimAttachmentUpload({
+      referenceId: d.referenceId,
+      invocation: d.invocation
+    });
+    if (!claimed) return null;
+
+    let { upload, info } = claimed;
+    let expiresAt = addDays(new Date(), ATTACHMENT_EXPIRATION_DAYS);
+    let attachment = await db.slateAttachment.create({
+      data: {
+        ...getId('slateAttachment'),
+        digest: null,
+        storageBucket: upload.storageBucket,
+        storageKey: upload.storageKey,
+        expiresAt
+      }
+    });
+
+    await confirmAttachmentUpload(claimed);
+
+    await db.slateInvocationAttachment.createMany({
+      data: {
+        ...getId('slateInvocationAttachment'),
+        invocationOid: d.invocation.oid,
+        attachmentsOid: attachment.oid
+      }
+    });
+
+    return {
+      type: 'url' as const,
+      attachmentId: attachment.id,
+      url: await signedIntegrationAttachmentUrl(attachment.id),
+      mimeType: d.mimeType ?? info.content_type ?? upload.mimeType ?? undefined,
+      urlExpiresAt: expiresAt
+    };
+  }
+
+  async getSlateToolCallById(d: { tenant: Tenant; id: string }) {
+    let slateSessionToolCall = await db.slateSessionToolCall.findFirst({
+      where: {
+        session: { tenantOid: d.tenant.oid },
+        id: d.id
+      },
+      include
+    });
+    if (!slateSessionToolCall)
+      throw new ServiceError(notFoundError('slate.session.tool_call'));
+    return slateSessionToolCall;
+  }
+
+  async listSlateToolCalls(d: {
+    tenant: Tenant;
+    slateIds?: string[];
+    slateInstanceIds?: string[];
+    slateVersionIds?: string[];
+    sessionIds?: string[];
+    toolIds?: string[];
+  }) {
+    let slateInstances = d.slateInstanceIds
+      ? await db.slateInstance.findMany({
+          where: { id: { in: d.slateInstanceIds }, tenantOid: d.tenant.oid }
+        })
+      : undefined;
+    let slates = d.slateIds
+      ? await db.slate.findMany({
+          where: { id: { in: d.slateIds } }
+        })
+      : undefined;
+    let slateVersions = d.slateVersionIds
+      ? await db.slateVersion.findMany({
+          where: { id: { in: d.slateVersionIds } }
+        })
+      : undefined;
+    let tools = d.toolIds
+      ? await db.slateAction.findMany({
+          where: { id: { in: d.toolIds } }
+        })
+      : undefined;
+    let sessions = d.sessionIds
+      ? await db.slateSession.findMany({
+          where: { id: { in: d.sessionIds }, tenantOid: d.tenant.oid }
+        })
+      : undefined;
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.slateSessionToolCall.findMany({
+            ...opts,
+            where: {
+              session: { tenantOid: d.tenant.oid },
+
+              AND: [
+                ...(tools ? [{ actionOid: { in: tools.map(t => t.oid) } }] : []),
+
+                ...(slateVersions
+                  ? [{ slateVersionOid: { in: slateVersions.map(sv => sv.oid) } }]
+                  : []),
+
+                ...(slateInstances
+                  ? [
+                      {
+                        session: { slateInstanceOid: { in: slateInstances.map(si => si.oid) } }
+                      }
+                    ]
+                  : []),
+
+                ...(slates ? [{ session: { slateOid: { in: slates.map(s => s.oid) } } }] : []),
+
+                ...(sessions ? [{ sessionOid: { in: sessions.map(s => s.oid) } }] : [])
+              ]
+            },
+            include
+          })
+      )
+    );
+  }
+
+  async getManySlateToolCallsByIds(d: { ids: string[]; tenant: Tenant }) {
+    return db.slateSessionToolCall.findMany({
+      where: {
+        session: { tenantOid: d.tenant.oid },
+        id: { in: d.ids }
+      },
+      include
+    });
+  }
+}
+
+export let slateSessionToolCallService = Service.create(
+  'slateSessionToolCallService',
+  () => new slateSessionToolCallServiceImpl()
+).build();

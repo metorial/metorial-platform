@@ -1,0 +1,67 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
+import { db } from '@mtsrc/slates-hub-db/db';
+import { getId } from '@mtsrc/slates-hub-db/id';
+
+let include = {};
+
+class tenantServiceImpl {
+  async upsertTenant(d: {
+    input: {
+      name: string;
+      identifier: string;
+      logRetentionInDays?: number;
+      storeContent?: boolean;
+      collectErrors?: boolean;
+      storeToolCallAttachments?: boolean;
+      disableCallbacks?: boolean;
+    };
+  }) {
+    return await db.tenant.upsert({
+      where: { identifier: d.input.identifier },
+      update: {
+        name: d.input.name,
+        logRetentionInDays: d.input.logRetentionInDays,
+        storeContent: d.input.storeContent,
+        collectErrors: d.input.collectErrors,
+        storeToolCallAttachments: d.input.storeToolCallAttachments,
+        disableCallbacks: d.input.disableCallbacks
+      },
+      create: {
+        ...getId('tenant'),
+        name: d.input.name,
+        identifier: d.input.identifier,
+        logRetentionInDays: d.input.logRetentionInDays,
+        storeContent: d.input.storeContent ?? true,
+        collectErrors: d.input.collectErrors ?? true,
+        storeToolCallAttachments: d.input.storeToolCallAttachments ?? true,
+        disableCallbacks: d.input.disableCallbacks ?? false
+      },
+      include
+    });
+  }
+
+  async getTenantById(d: { id: string }) {
+    let tenant = await db.tenant.findFirst({
+      where: { OR: [{ id: d.id }, { identifier: d.id }] },
+      include
+    });
+    if (!tenant) throw new ServiceError(notFoundError('tenant'));
+    return tenant;
+  }
+}
+
+export let tenantService = Service.create(
+  'tenantService',
+  () => new tenantServiceImpl()
+).build();
+
+// Sentinel tenant that owns infrastructure (secrets, invocations) for
+// resources that aren't linked to a real tenant, e.g. global webhook
+// registrations configured from the admin panel.
+export let globalTenant = await tenantService.upsertTenant({
+  input: {
+    identifier: '__slates_global__',
+    name: 'Global (Slates Hub)'
+  }
+});

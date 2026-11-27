@@ -76,7 +76,6 @@ export default project({
     start: ['e2e:start'],
     image: 'app-api',
     tests: [
-      '../../../../metorial/products/*/modules/*',
       '../../../../platform/modules/*',
       '../../../*/modules/*',
       '../../../*/apis/*',
