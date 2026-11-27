@@ -33,7 +33,7 @@ vi.mock('@metorial-subspace/module-provider-issue', () => ({
   providerIssueRecorderService: { recordSessionError: mocks.recordSessionError }
 }));
 
-vi.mock('@metorial/db', () => import('../../../../../../../metorial/db/src/lib/unique'));
+vi.mock('@metorial/db', () => import('../../../../../../../platform/db/src/lib/unique'));
 
 vi.mock('@lowerdeck/hash', () => ({ Hash: { sha256: async () => 'error-hash' } }));
 

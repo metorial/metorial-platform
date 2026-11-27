@@ -286,7 +286,7 @@ As remaining code moves, use these destination rules:
 | Standalone services at the source root | Product `services/` or `platform/services/`, according to ownership                        |
 | `metorial/db/`                                                        | `platform/db/`                                                                             |
 | `metorial/apis/`                                                      | `products/<product>/apis/`, `surfaces/metorial/apis/`, or `platform/apis/`, according to ownership |
-| `metorial/presenters/`                                                | `surfaces/metorial/presenters/`                                                            |
+| `metorial/presenters/`                                                | `platform/presenters/`                                                              |
 | `metorial/packages/`                                                  | Moved to `platform/packages/`; use product packages or `lib/` for new code when appropriate |
 | `metorial-frontend/`                                                  | `frontends/metorial/`                                                                      |
 | `lowerdeck/`                                                          | `lib/<group>/`, grouped by technical area                                                  |

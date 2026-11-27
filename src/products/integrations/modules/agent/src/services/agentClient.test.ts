@@ -39,7 +39,7 @@ vi.mock('@metorial-subspace/db', () => ({
   addAfterTransactionHook: mocks.addAfterTransactionHook
 }));
 
-vi.mock('@metorial/db', () => import('../../../../../../metorial/db/src/lib/unique'));
+vi.mock('@metorial/db', () => import('../../../../../../platform/db/src/lib/unique'));
 
 vi.mock('@metorial-subspace/module-search', () => ({
   voyager: { record: { search: vi.fn() } },

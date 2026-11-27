@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@metorial/db', () => import('../../../../../../metorial/db/src/lib/unique'));
+vi.mock('@metorial/db', () => import('../../../../../../platform/db/src/lib/unique'));
 
 let { db, getIdMock, upsertMock, findUniqueMock } = vi.hoisted(() => {
   let upsertMock = vi.fn(async (args: any) => ({
