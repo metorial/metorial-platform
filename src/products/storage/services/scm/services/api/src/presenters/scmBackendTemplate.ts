@@ -15,6 +15,9 @@ let providerFor = (type: ScmBackendTemplate['type']): keyof typeof callbackPaths
       ? 'gitlab'
       : 'bitbucket';
 
+export let getScmOAuthCallbackUrl = (type: ScmBackendTemplate['type']) =>
+  `${env.service.ORIGIN_SERVICE_PUBLIC_URL}${callbackPaths[providerFor(type)]}`;
+
 export let scmBackendTemplatePresenter = (template: ScmBackendTemplate) => {
   let provider = providerFor(template.type);
   let publicUrl = env.service.ORIGIN_SERVICE_PUBLIC_URL;
@@ -35,7 +38,7 @@ export let scmBackendTemplatePresenter = (template: ScmBackendTemplate) => {
     hasClientSecret: hasTemplateSecret(template, 'clientSecret'),
     hasAppPrivateKey: hasTemplateSecret(template, 'appPrivateKey'),
     hasAppWebhookSecret: hasTemplateSecret(template, 'appWebhookSecret'),
-    oauthCallbackUrl: `${publicUrl}${callbackPaths[provider]}`,
+    oauthCallbackUrl: getScmOAuthCallbackUrl(template.type),
     appWebhookUrl:
       provider === 'github'
         ? `${publicUrl}/origin/webhook-ingest/github-app-template/${template.id}`
