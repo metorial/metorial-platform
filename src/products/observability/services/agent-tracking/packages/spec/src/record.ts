@@ -101,6 +101,11 @@ export type CredentialKind = (typeof credentialKinds)[number];
 
 export let sessionOrigins = ['native', 'linked', 'inferred'] as const;
 
+let allZeroIdPattern = /^0+$/;
+
+// OTLP and W3C trace context define an all-zero trace or span id as no id at all.
+export let isAllZeroId = (id: string) => allZeroIdPattern.test(id);
+
 export type SessionOrigin = (typeof sessionOrigins)[number];
 
 export let contextTagOrigins = ['source', 'repo', 'environment'] as const;

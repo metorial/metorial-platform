@@ -1,4 +1,4 @@
-import type { NormalizedRecord } from '@mtsrc/agent-tracking-spec';
+import { isAllZeroId, type NormalizedRecord } from '@mtsrc/agent-tracking-spec';
 import type {
   OtlpAttributes,
   OtlpGroup,
@@ -158,14 +158,21 @@ export let actorOf = (
   };
 };
 
-export let traceOf = (ids: { traceId: string; spanId: string; parentSpanId?: string }) =>
-  ids.traceId || ids.spanId
+let validTraceId = (id: string | undefined) => (id && !isAllZeroId(id) ? id : undefined);
+
+export let traceOf = (ids: { traceId: string; spanId: string; parentSpanId?: string }) => {
+  let traceId = validTraceId(ids.traceId);
+  let spanId = validTraceId(ids.spanId);
+  let parentSpanId = validTraceId(ids.parentSpanId);
+
+  return traceId || spanId
     ? {
-        ...(ids.traceId ? { traceId: ids.traceId } : {}),
-        ...(ids.spanId ? { spanId: ids.spanId } : {}),
-        ...(ids.parentSpanId ? { parentSpanId: ids.parentSpanId } : {})
+        ...(traceId ? { traceId } : {}),
+        ...(spanId ? { spanId } : {}),
+        ...(parentSpanId ? { parentSpanId } : {})
       }
     : undefined;
+};
 
 export let stripPrefix = (value: string, prefix: string) =>
   value.startsWith(prefix) ? value.slice(prefix.length) : value;

@@ -68,6 +68,8 @@ import {
 } from './dashboard';
 import {
   agentTrackingSessionController,
+  agentTrackingSessionToolCallController,
+  agentTrackingToolCallSessionController,
   agentController,
   callbackController,
   callbackEventController,
@@ -749,6 +751,8 @@ export let dashboardController = Controller.create<any>(
     dashboardAgentTrackingSpendController,
     dashboardAgentTrackingToolController,
     agentTrackingSessionController,
+    agentTrackingSessionToolCallController,
+    agentTrackingToolCallSessionController,
     dashboardAgentTrackingFilterValueController,
     dashboardAgentTrackingMemberController,
     dashboardAgentTrackingOrganizationSettingsController,

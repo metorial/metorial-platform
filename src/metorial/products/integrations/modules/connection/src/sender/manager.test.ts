@@ -1045,6 +1045,30 @@ describe('SenderManager tool call rate limits', () => {
     expect(rateLimitService.consume).not.toHaveBeenCalled();
   });
 
+  it('passes the client call to the message it creates', async () => {
+    let manager = createToolCallManager();
+
+    await manager.callTool({
+      ...callProps('mcp'),
+      clientCall: { id: 'call_abc', source: 'codex' }
+    });
+
+    expect(manager.createMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: expect.objectContaining({ key: 'calculate' }),
+        clientCall: { id: 'call_abc', source: 'codex' }
+      })
+    );
+  });
+
+  it('creates manual tool calls without a client call', async () => {
+    let manager = createToolCallManager();
+
+    await manager.callTool(callProps('tool_call'));
+
+    expect(manager.createMessage.mock.calls[0]![0].clientCall).toBeUndefined();
+  });
+
   it('skips project rate limits for sessions without a Metorial project', async () => {
     let manager = createToolCallManager(null);
 

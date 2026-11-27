@@ -11,7 +11,7 @@ import type { IngestPrincipal } from './principal';
 import type { RecordDraft, RecordSource } from './draft';
 import { sanitizeExtras } from './extras';
 
-let maxIdLength = 256;
+export let maxIdLength = 256;
 let maxEmailLength = 254;
 let maxLabelLength = 128;
 let minPlausibleTime = Date.UTC(2015, 0, 1);

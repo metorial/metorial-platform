@@ -1,3 +1,4 @@
+import { listedSessionFilter } from '@mtsrc/agent-tracking-store';
 import {
   arrayField,
   billingFields,
@@ -97,7 +98,8 @@ export let sessionsDataset: DatasetDef = {
   name: 'sessions',
   collection: 'sessions',
   description:
-    'One document per session, with its summary, context, attribution and coverage.',
+    'One document per session, with its summary, context, attribution and coverage. Sessions in which nothing happened (no prompt, counted model request, turn, tool call, usage, metric, code change, commit, pull request or Desktop context) are left out.',
+  baseMatch: listedSessionFilter,
   timeField: 'startedAt',
   maxRangeDays: 400,
   maxHourlyRangeDays: 31,
@@ -166,6 +168,18 @@ export let sessionsDataset: DatasetDef = {
     'mcp.server': arrayField('summary.mcpServers', 'string', 'MCP servers used.', {
       searchable: true
     }),
+    'metorial.provider': arrayField(
+      'summary.metorial.providerIds',
+      'id',
+      'Metorial providers the session’s MCP tool calls reached.',
+      { distinct: true }
+    ),
+    'metorial.tool': arrayField(
+      'summary.metorial.toolKeys',
+      'string',
+      'Keys of the Metorial tools the session’s MCP tool calls reached. Empty for calls sent while Detailed Tool Reporting was off.',
+      { searchable: true, cardinality: 'high' }
+    ),
     'coverage.hasUsage': boolField('coverage.hasUsage', 'Whether usage data arrived.'),
     'coverage.hasContext': boolField('coverage.hasContext', 'Whether context data arrived.'),
     'coverage.hasRepo': boolField('coverage.hasRepo', 'Whether a repository is known.'),

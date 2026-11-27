@@ -1,5 +1,6 @@
-import { isServiceError } from '@lowerdeck/error';
+import { isServiceError, notFoundError, ServiceError } from '@lowerdeck/error';
 import * as clientFamilies from '@metorial/module-agent-tracking-sync/src/definitions/clientFamilies';
+import type { Instance } from '@metorial/db';
 import { vi } from 'vitest';
 
 type Handler = (input: any, opts: any) => unknown;
@@ -79,6 +80,11 @@ export let syncModule = {
   requireAgentTracking: () => client,
   withInstanceScope,
   isAgentTrackingEnabledForOrganization: agentTrackingEnabled,
+  assertAgentTrackingEnabled: async (d: any) => {
+    if (!(await agentTrackingEnabled(d))) {
+      throw new ServiceError(notFoundError(d.entity ?? 'agent_tracking'));
+    }
+  },
   agentTrackingSettingsService: {
     getOrganizationValues: async () => ({
       privacy: { ...privacy },
@@ -86,6 +92,48 @@ export let syncModule = {
       links: { ...links }
     })
   }
+};
+
+export let toolCalls = {
+  rows: [] as any[],
+  listToolCalls: vi.fn(async (d: any) => ({
+    run: async (page: { limit: number; after?: string }) => {
+      let visible = toolCalls.rows
+        .filter(row => !row.hiddenFrom || row.hiddenFrom != d.organizationActor?.id)
+        .filter(row => row.instanceId == d.instance.id)
+        .filter(row => !d.ids || d.ids.includes(row.id))
+        .filter(row => !d.clientCallIds || d.clientCallIds.includes(row.clientCallId))
+        .filter(row => !d.clientCallSource || row.clientCallSource == d.clientCallSource)
+        .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      let start = page.after ? visible.findIndex(row => row.id == page.after) + 1 : 0;
+      let items = visible.slice(start, start + page.limit);
+
+      return {
+        items,
+        pagination: {
+          hasNextPage: start + page.limit < visible.length,
+          hasPreviousPage: start > 0
+        }
+      };
+    }
+  }))
+};
+
+export let sessionModule = { toolCallService: toolCalls };
+
+export let connectionModule = { toolCallClientSources: ['claude-code', 'codex'] as const };
+
+export let providers = {
+  rows: [] as { id: string; name: string; instanceId: string | null }[],
+  getManyProvidersByIds: vi.fn(async (d: { instance: { id: string }; ids: string[] }) =>
+    providers.rows.filter(
+      row => d.ids.includes(row.id) && (!row.instanceId || row.instanceId == d.instance.id)
+    )
+  )
+};
+
+export let catalogModule = {
+  providerService: { getManyProvidersByIds: providers.getManyProvidersByIds }
 };
 
 export let consumers = { findMany: vi.fn(async (_query: any): Promise<any[]> => []) };
@@ -99,7 +147,12 @@ export let dbModule = { db: { consumer: consumers, instanceConsumer: instanceCon
 export let scope = {
   organization: { oid: 1n, id: 'org_1', name: 'Acme' },
   project: { oid: 2n, id: 'proj_1', name: 'Production' },
-  instance: { oid: 3n, id: 'inst_1', name: 'Default' }
+  instance: {
+    oid: 3n,
+    id: 'inst_1',
+    name: 'Default',
+    subspaceEnvironmentId: 'env_1'
+  } as Instance
 };
 
 export let remoteMember = (overrides: Record<string, unknown> = {}) => ({
@@ -153,6 +206,15 @@ export let resetMocks = () => {
   instanceConsumers.findMany.mockReset();
   instanceConsumers.findMany.mockImplementation(async () => []);
   withInstanceScope.mockClear();
+  toolCalls.rows = [];
+  toolCalls.listToolCalls.mockClear();
+  providers.rows = [];
+  providers.getManyProvidersByIds.mockReset();
+  providers.getManyProvidersByIds.mockImplementation(async d =>
+    providers.rows.filter(
+      row => d.ids.includes(row.id) && (!row.instanceId || row.instanceId == d.instance.id)
+    )
+  );
   agentTrackingEnabled.mockReset();
   agentTrackingEnabled.mockImplementation(async () => true);
   privacy.hideIndividuals = false;

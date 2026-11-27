@@ -1,7 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import type { Organization } from '@mtsrc/agent-tracking-db';
-import { desktopSettingsOf } from '@mtsrc/agent-tracking-spec';
-import { sessionPresenter } from './presenters/session';
+import { sessionPresenter, sessionTitlesShown } from './presenters/session';
 import {
   maxSessionPageSize,
   sessionListOrders,
@@ -12,11 +10,9 @@ import {
 import { organizationApp } from './_app';
 import { sessionAttributionRoutes } from './sessionAttribution';
 import { sessionClassificationRoutes } from './sessionClassification';
+import { sessionToolCallRoutes } from './sessionToolCalls';
 
 let idsSchema = v.optional(v.array(v.string()));
-
-let titlesShown = (organization: Pick<Organization, 'settings'>) =>
-  desktopSettingsOf(organization.settings).sessionTitles;
 
 export let sessionRoutes = {
   get: organizationApp
@@ -28,7 +24,7 @@ export let sessionRoutes = {
         sessionKey: ctx.input.sessionKey
       });
 
-      return sessionPresenter({ session, titles: titlesShown(ctx.organization) });
+      return sessionPresenter({ session, titles: sessionTitlesShown(ctx.organization) });
     }),
 
   list: organizationApp
@@ -48,6 +44,7 @@ export let sessionRoutes = {
         branches: idsSchema,
         ticketRefs: idsSchema,
         pullRequests: idsSchema,
+        metorialProviderIds: idsSchema,
         states: v.optional(v.array(v.enumOf(sessionStates))),
         from: v.optional(v.date()),
         to: v.optional(v.date()),
@@ -78,6 +75,7 @@ export let sessionRoutes = {
           branches: ctx.input.branches,
           ticketRefs: ctx.input.ticketRefs,
           pullRequests: ctx.input.pullRequests,
+          metorialProviderIds: ctx.input.metorialProviderIds,
           states: ctx.input.states,
           from: ctx.input.from,
           to: ctx.input.to,
@@ -91,7 +89,7 @@ export let sessionRoutes = {
         before: ctx.input.before
       });
 
-      let titles = titlesShown(ctx.organization);
+      let titles = sessionTitlesShown(ctx.organization);
 
       return {
         object: 'list',
@@ -109,5 +107,6 @@ export let sessionRoutes = {
 export let sessionController = organizationApp.controller({
   ...sessionRoutes,
   ...sessionAttributionRoutes,
-  ...sessionClassificationRoutes
+  ...sessionClassificationRoutes,
+  ...sessionToolCallRoutes
 });

@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import type {
   AgentTrackingCost,
   AgentTrackingMember,
+  AgentTrackingProvider,
   AgentTrackingRepository,
   AgentTrackingSpendCost,
   AgentTrackingTicket,
@@ -291,6 +292,33 @@ export let presentAgentTrackingRepository = (repository: AgentTrackingRepository
   owner: repository.owner,
   name: repository.name,
   url: repository.url
+});
+
+export let agentTrackingProviderSchema = v.object(
+  {
+    id: v.string({
+      name: 'id',
+      description: 'Unique ID.',
+      examples: ['pro_0mhNnEqM7XQb3vXq8gD2']
+    }),
+    name: v.nullable(
+      v.string({
+        name: 'name',
+        description:
+          'Display name. `null` when the provider is not available to you, such as without the `instance.provider:read` scope.',
+        examples: ['Linear']
+      })
+    )
+  },
+  {
+    name: 'provider',
+    description: 'A Metorial provider that MCP tool calls of AI coding agents reached.'
+  }
+);
+
+export let presentAgentTrackingProvider = (provider: AgentTrackingProvider) => ({
+  id: provider.id,
+  name: provider.name
 });
 
 export let agentTrackingTicketSchema = v.object(

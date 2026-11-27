@@ -15,6 +15,7 @@ import { Controller } from '@metorial/rest';
 import { idFilter, rangeFields, rangeOf } from '../../../lib/agentTrackingParams';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
+import { canReadProviders } from '../../../lib/toolCallAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { agentTrackingInstanceGroup } from './group';
 
@@ -82,6 +83,11 @@ export let agentTrackingSessionController = Controller.create(
               ['github.com/acme/api#7'],
               nameFilterValueValidator
             ),
+            provider_id: idFilter(
+              'provider_id',
+              'Only return sessions whose MCP tool calls reached one of these Metorial providers, by `providers[].id`.',
+              ['pro_0mhNnEqM7XQb3vXq8gD2']
+            ),
             order_by: v.optional(
               v.enumOf(sessionListOrderBys, {
                 name: 'order_by',
@@ -99,6 +105,7 @@ export let agentTrackingSessionController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
+          canReadProviders: await canReadProviders(ctx),
           memberIds: normalizeArrayParam(ctx.query.member_id),
           modelIds: normalizeArrayParam(ctx.query.model_id),
           clientFamilies: normalizeArrayParam(ctx.query.client_family),
@@ -106,6 +113,7 @@ export let agentTrackingSessionController = Controller.create(
           branches: normalizeArrayParam(ctx.query.branch),
           tickets: normalizeArrayParam(ctx.query.ticket),
           pullRequests: normalizeArrayParam(ctx.query.pull_request),
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
           orderBy: ctx.query.order_by,
           range: rangeOf(ctx.query)
         });
@@ -129,6 +137,7 @@ export let agentTrackingSessionController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
+          canReadProviders: await canReadProviders(ctx),
           sessionId: requireParam(ctx.params, 'sessionId')
         });
 

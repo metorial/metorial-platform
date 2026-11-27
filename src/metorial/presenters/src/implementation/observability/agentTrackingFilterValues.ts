@@ -6,9 +6,11 @@ import {
   agentTrackingClientSchema,
   agentTrackingMemberSchema,
   agentTrackingModelSchema,
+  agentTrackingProviderSchema,
   agentTrackingRangeSchema,
   agentTrackingRepositorySchema,
   presentAgentTrackingMember,
+  presentAgentTrackingProvider,
   presentAgentTrackingRange,
   presentAgentTrackingRepository
 } from './agentTrackingCommon';
@@ -30,6 +32,7 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
       model: item.model ? { id: item.model.id, name: item.model.name } : null,
       client: item.client ? { family: item.client.family, name: item.client.name } : null,
       repository: item.repository ? presentAgentTrackingRepository(item.repository) : null,
+      provider: item.provider ? presentAgentTrackingProvider(item.provider) : null,
       requests: item.requests
     }))
   }))
@@ -54,13 +57,14 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
           value: v.string({
             name: 'value',
             description:
-              'The value to pass as `member_id`, `model_id`, `client_family`, `repository_id`, `branch` or `ticket`, or as `seat` to member insights. `unknown` selects usage without a member (Unknown Member), or usage whose model is not matched to the model catalog (Unknown Model). Seat values are passed on as the agent reported them on its requests.',
+              'The value to pass as `member_id`, `model_id`, `client_family`, `repository_id`, `branch`, `ticket` or `provider_id`, or as `seat` to member insights. `unknown` selects usage without a member (Unknown Member), or usage whose model is not matched to the model catalog (Unknown Model). Seat values are passed on as the agent reported them on its requests.',
             examples: [
               'aten_0mhNnEqM7XQb3vXq8gD2',
               'claude-sonnet-4-5',
               'claude_code',
               'premium',
               'ENG-123',
+              'pro_0mhNnEqM7XQb3vXq8gD2',
               'unknown'
             ]
           }),
@@ -73,10 +77,11 @@ export let v1AgentTrackingFilterValuesPresenter = Presenter.create(
           model: v.nullable(agentTrackingModelSchema),
           client: v.nullable(agentTrackingClientSchema),
           repository: v.nullable(agentTrackingRepositorySchema),
+          provider: v.nullable(agentTrackingProviderSchema),
           requests: v.nullable(
             v.number({
               name: 'requests',
-              description: `Model requests in the range, for ordering. Seat values count request records, which are kept for ${requestRecordDays} days. \`null\` for the \`unknown\` option, which is offered without being counted, and for values described by \`value\`.`
+              description: `Model requests in the range, for ordering. Seat values count request records, which are kept for ${requestRecordDays} days. Provider values count the tool calls in the range that reached the provider. \`null\` for the \`unknown\` option, which is offered without being counted, and for values described by \`value\`.`
             })
           )
         }),

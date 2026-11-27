@@ -21,6 +21,7 @@ import { ruleController } from './rule';
 import { sessionController } from './session';
 import { queryController } from './query';
 import { queryExportController } from './queryExport';
+import { toolCallLinkController } from './toolCallLink';
 
 export let rootController = app.controller({
   organization: organizationController,
@@ -36,6 +37,7 @@ export let rootController = app.controller({
   user: userController,
   rule: ruleController,
   session: sessionController,
+  toolCallLink: toolCallLinkController,
   query: queryController,
   queryExport: queryExportController,
   coverage: coverageController,

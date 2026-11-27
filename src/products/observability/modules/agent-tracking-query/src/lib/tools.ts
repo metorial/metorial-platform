@@ -8,6 +8,7 @@ import type {
   AgentTrackingMcpServerUsage,
   AgentTrackingMcpServerUsageItem,
   AgentTrackingMcpToolUsage,
+  AgentTrackingProvider,
   AgentTrackingSkillUsage,
   AgentTrackingSkillUsageItem,
   AgentTrackingToolCallFigures
@@ -18,6 +19,8 @@ export let maxSkills = 500;
 export let maxMcpServers = 500;
 
 export let maxMcpTools = 2000;
+
+let maxMcpServerProviders = 2000;
 
 export let toolsHiddenError = individualsHiddenError({
   message:
@@ -96,6 +99,40 @@ export let mcpToolUsageQuery = (range: ResolvedRange) => ({
   limit: maxMcpTools
 });
 
+export let mcpServerProvidersQuery = (range: ResolvedRange) => ({
+  ...recordQuery('tool_calls', range),
+  where: mcpWhere,
+  dimensions: [
+    { field: 'mcp.server', missing: 'exclude' },
+    { field: 'metorial.provider', missing: 'exclude' }
+  ],
+  measures: ['tool_calls'],
+  orderBy: [{ by: 'tool_calls', direction: 'desc' }],
+  limit: maxMcpServerProviders
+});
+
+// A server name can stand for different providers in different agent configurations, so only
+// a name whose stamped calls all reached one provider gets it. A cut-off result could hide a
+// second provider, so it gives none.
+export let serverProviderIdsOf = (result: UsageResult) => {
+  let idsByServer = new Map<string, Set<string>>();
+  if (result.meta?.truncated) return new Map<string, string>();
+
+  for (let row of result.rows) {
+    let server = nameOf(row['mcp.server']);
+    let providerId = nameOf(row['metorial.provider']);
+    if (!server || !providerId) continue;
+
+    idsByServer.set(server, (idsByServer.get(server) ?? new Set()).add(providerId));
+  }
+
+  return new Map(
+    [...idsByServer].flatMap(([server, ids]) =>
+      ids.size == 1 ? [[server, [...ids][0]!] as const] : []
+    )
+  );
+};
+
 export let mcpSummaryQuery = (range: ResolvedRange) => ({
   ...recordQuery('tool_calls', range),
   measures: [...Object.values(mcpSummaryColumns), 'mcp_calls.named']
@@ -166,6 +203,7 @@ export let skillItemsOf = (result: UsageResult): AgentTrackingSkillUsageItem[] =
 export let mcpServerItemsOf = (d: {
   servers: UsageResult;
   tools: UsageResult;
+  providers?: Map<string, AgentTrackingProvider>;
 }): AgentTrackingMcpServerUsageItem[] => {
   let toolsByServer = new Map<string, AgentTrackingMcpToolUsage[]>();
   for (let row of d.tools.rows) {
@@ -182,7 +220,14 @@ export let mcpServerItemsOf = (d: {
     let name = nameOf(row['mcp.server']);
     if (!name) return [];
 
-    return [{ name, ...figuresOf(row, groupColumns), tools: toolsByServer.get(name) ?? [] }];
+    return [
+      {
+        name,
+        provider: d.providers?.get(name) ?? null,
+        ...figuresOf(row, groupColumns),
+        tools: toolsByServer.get(name) ?? []
+      }
+    ];
   });
 };
 

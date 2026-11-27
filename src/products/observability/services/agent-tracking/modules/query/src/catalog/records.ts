@@ -225,6 +225,33 @@ export let toolCallsDataset: DatasetDef = {
       cardinality: 'high'
     }),
     outcome: enumField('data.outcome', outcomes, 'How the call ended.'),
+    'metorial.provider': stored(
+      'metorial.providerId',
+      'id',
+      'The Metorial provider the call reached. Empty until Metorial matched the call to one of its own tool calls.',
+      { distinct: true }
+    ),
+    'metorial.tool': stored(
+      'metorial.toolKey',
+      'string',
+      'The key of the Metorial tool the call reached. Empty for calls sent while Detailed Tool Reporting was off.',
+      { searchable: true, cardinality: 'high' }
+    ),
+    'metorial.deployment': stored(
+      'metorial.deploymentId',
+      'id',
+      'The Metorial provider deployment that served the call.'
+    ),
+    'metorial.integration': stored(
+      'metorial.integrationId',
+      'id',
+      'The Metorial integration the call went through, when it went through one.'
+    ),
+    'metorial.server': stored(
+      'metorial.magicMcpServerId',
+      'id',
+      'The Metorial MCP server the call went through, when it went through one.'
+    ),
     'source.channel': enumField(
       'source.channel',
       ingestChannels,

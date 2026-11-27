@@ -15,7 +15,13 @@ import type {
   SourceHealthDocument
 } from '@mtsrc/agent-tracking-store';
 import type { SessionAssignment } from './assign';
-import { correlationKey, orphanKey, recordActor, recordCorrelations } from './keys';
+import {
+  correlationKey,
+  movesSessionBounds,
+  orphanKey,
+  recordActor,
+  recordCorrelations
+} from './keys';
 import { tryRedis } from '@mtsrc/agent-tracking-redis';
 import { correlationCacheKey, inferCacheKey } from './cacheKeys';
 import { sourceKindOf } from '@mtsrc/agent-tracking-module-usage';
@@ -78,6 +84,11 @@ let ticketRefsOf = (records: NormalizedRecord[]) =>
     )
   ).filter(ref => !isIssueRef(ref));
 
+let ownRecords = (records: NormalizedRecord[]) =>
+  records.filter(record =>
+    movesSessionBounds({ origin: record.ctx.session_origin, role: record.source.role })
+  );
+
 let groupBySession = (records: NormalizedRecord[]) => {
   let groups = new Map<string, SessionGroup>();
 
@@ -120,9 +131,10 @@ let loadRoots = async (groups: SessionGroup[], collections: StoreCollections) =>
 
 let stateOps = (group: SessionGroup): AnyBulkWrite<SessionDocument>[] => {
   let filter = { _id: group.sessionKey };
+  let own = ownRecords(group.records);
+  if (!own.length) return [];
 
-  let lastOf = (type: string) =>
-    latestBy(group.records.filter(record => record.type == type))[0];
+  let lastOf = (type: string) => latestBy(own.filter(record => record.type == type))[0];
 
   let end = lastOf('session.end');
   let start = lastOf('session.start');
@@ -170,8 +182,15 @@ let sessionUpsert = (d: {
   let records = d.group.records;
   let byTime = latestBy(records);
   let first = byTime[byTime.length - 1]!;
-  let last = byTime[0]!;
-  let startedAt = occurredAt(first);
+  let own = ownRecords(byTime);
+  let bounded = own.length ? own : byTime;
+  let startedAt = occurredAt(bounded[bounded.length - 1]!);
+
+  let bounds = {
+    startedAt,
+    lastActivityAt: occurredAt(bounded[0]!),
+    expiresAt: new Date(startedAt.getTime() + principal.instance.usageRetentionDays * dayMs)
+  };
 
   let set: Record<string, unknown> = { settlePending: true };
   let setOnInsert: Record<string, unknown> = {
@@ -186,7 +205,8 @@ let sessionUpsert = (d: {
     'versions.attribution': 0,
     'versions.facts': 0,
     'client.family': first.client.family,
-    state: 'active'
+    state: 'active',
+    ...(own.length ? {} : bounds)
   };
 
   let surface = byTime.find(record => record.client.surface)?.client.surface;
@@ -265,13 +285,13 @@ let sessionUpsert = (d: {
         $set: set,
         ...(Object.keys(unset).length ? { $unset: unset } : {}),
         $setOnInsert: setOnInsert,
-        $min: {
-          startedAt,
-          expiresAt: new Date(
-            startedAt.getTime() + principal.instance.usageRetentionDays * dayMs
-          )
+        ...(own.length
+          ? { $min: { startedAt: bounds.startedAt, expiresAt: bounds.expiresAt } }
+          : {}),
+        $max: {
+          ...(own.length ? { lastActivityAt: bounds.lastActivityAt } : {}),
+          lastObservedAt: d.observedAt
         },
-        $max: { lastActivityAt: occurredAt(last), lastObservedAt: d.observedAt },
         $addToSet: {
           'observed.clientUserIds': addToSet(unique(attribution.map(a => a.client_user_id))),
           'observed.clientInstallationIds': addToSet(

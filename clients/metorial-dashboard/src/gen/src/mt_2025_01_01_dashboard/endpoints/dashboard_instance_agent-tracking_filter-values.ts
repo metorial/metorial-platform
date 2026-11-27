@@ -9,7 +9,7 @@ import {
 
 /**
  * @name Agent Tracking Filter Values controller
- * @description The members, models, clients and seats a filter can choose from.
+ * @description The members, models, clients, seats, repositories, branches, tickets and providers a filter can choose from.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -36,7 +36,7 @@ export class MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint {
 
   /**
    * @name List filter values
-   * @description Returns the members, models, clients or seats that sent usage in a range, including members seen only in telemetry. Seats come from request records and need a range of at most 90 days. With `value`, describes those values instead, without reading usage. Results can be up to a minute old.
+   * @description Returns the values of one filter field that sent usage in a range, including members seen only in telemetry. Providers are those that coding agent tool calls in the range reached. Seats and providers need a range of at most 90 days. With `value`, describes those values instead, without reading usage. Results can be up to a minute old.
    *
    * @param `instanceId` - string
    * @param `query` - DashboardInstanceAgentTrackingFilterValuesListQuery

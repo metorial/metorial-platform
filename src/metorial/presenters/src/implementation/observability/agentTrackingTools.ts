@@ -4,11 +4,28 @@ import {
   maxMcpServers,
   maxMcpTools,
   maxSkills,
+  providerCallGroups,
+  providerCallsLimit,
+  type AgentTrackingProviderCallFigures,
   type AgentTrackingToolCallFigures
 } from '@metorial/module-agent-tracking-query';
 import { Presenter } from '@metorial/presenter';
-import { agentTrackingMcpServerUsageType, agentTrackingSkillUsageType } from '../../types';
-import { agentTrackingRangeSchema, presentAgentTrackingRange } from './agentTrackingCommon';
+import {
+  agentTrackingMcpServerUsageType,
+  agentTrackingProviderCallsType,
+  agentTrackingSkillUsageType
+} from '../../types';
+import {
+  agentTrackingClientSchema,
+  agentTrackingMemberSchema,
+  agentTrackingProviderSchema,
+  agentTrackingRangeSchema,
+  agentTrackingRepositorySchema,
+  presentAgentTrackingMember,
+  presentAgentTrackingProvider,
+  presentAgentTrackingRange,
+  presentAgentTrackingRepository
+} from './agentTrackingCommon';
 
 let count = (name: string, description: string) => v.number({ name, description });
 
@@ -148,6 +165,7 @@ export let v1AgentTrackingMcpServerUsagePresenter = Presenter.create(
     },
     items: usage.items.map(item => ({
       name: item.name,
+      provider: item.provider ? presentAgentTrackingProvider(item.provider) : null,
       ...presentCallFigures(item),
       tools: item.tools.map(tool => ({ name: tool.name, ...presentCallFigures(tool) }))
     })),
@@ -190,6 +208,10 @@ export let v1AgentTrackingMcpServerUsagePresenter = Presenter.create(
                   'The MCP server name the agent reported: the name of its entry in the agent’s configuration.',
                 examples: ['metorial-github']
               }),
+              provider: v.nullable(agentTrackingProviderSchema, {
+                description:
+                  'The Metorial provider every matched call of this server reached. `null` when no call or several providers matched, or the provider is not available to you.'
+              }),
               ...callFigureProperties,
               tools: v.array(
                 v.object(
@@ -221,6 +243,101 @@ export let v1AgentTrackingMcpServerUsagePresenter = Presenter.create(
       {
         name: 'mcp_server_usage',
         description: `How often the tools of each MCP server were called over a range, with failures. ${sourceNote}`
+      }
+    )
+  )
+  .build();
+
+let providerCallFigureProperties = {
+  calls: count('calls', 'Tool calls.'),
+  failed: count('failed', 'Calls that ended in an error, a timeout, a refusal or a block.')
+};
+
+let presentProviderCallFigures = (figures: AgentTrackingProviderCallFigures) => ({
+  calls: figures.calls,
+  failed: figures.failed
+});
+
+export let v1AgentTrackingProviderCallsPresenter = Presenter.create(
+  agentTrackingProviderCallsType
+)
+  .presenter(async ({ providerCalls }) => ({
+    object: 'agent_tracking.provider_calls' as const,
+
+    range: presentAgentTrackingRange(providerCalls.range),
+    group_by: providerCalls.groupBy,
+    provider_id: providerCalls.providerId,
+    tool_key: providerCalls.toolKey,
+    total: presentProviderCallFigures(providerCalls.total),
+    items: providerCalls.items.map(item => ({
+      kind: item.kind,
+      key: item.key,
+      member: item.member ? presentAgentTrackingMember(item.member) : null,
+      repository: item.repository ? presentAgentTrackingRepository(item.repository) : null,
+      client: item.client ? { family: item.client.family, name: item.client.name } : null,
+      ...presentProviderCallFigures(item)
+    }))
+  }))
+  .schema(
+    v.object(
+      {
+        object: v.literal('agent_tracking.provider_calls', {
+          description: 'String representing the object’s type.'
+        }),
+
+        range: agentTrackingRangeSchema,
+        group_by: v.enumOf(providerCallGroups, {
+          name: 'group_by',
+          description: 'What the calls are grouped by.'
+        }),
+        provider_id: v.nullable(
+          v.string({
+            name: 'provider_id',
+            description: 'The provider the calls were narrowed to. `null` for every provider.',
+            examples: ['pro_0mhNnEqM7XQb3vXq8gD2']
+          })
+        ),
+        tool_key: v.nullable(
+          v.string({
+            name: 'tool_key',
+            description: 'The tool the calls were narrowed to. `null` for every tool.',
+            examples: ['create_issue']
+          })
+        ),
+        total: v.object(providerCallFigureProperties, {
+          name: 'total',
+          description: 'All counted calls in the range, including those not listed.'
+        }),
+        items: v.array(
+          v.object(
+            {
+              kind: v.enumOf([...providerCallGroups, 'unknown', 'other'], {
+                name: 'kind',
+                description:
+                  '`unknown` for calls without a repository or member. `other` for the calls of every group past the listed ones.'
+              }),
+              key: v.string({
+                name: 'key',
+                description:
+                  'The repository or member ID, the client family, `unknown` or `other`. Unique within the list.',
+                examples: ['aten_0mhNnEqM7XQb3vXq8gD2', 'claude_code', 'unknown']
+              }),
+              member: v.nullable(agentTrackingMemberSchema),
+              repository: v.nullable(agentTrackingRepositorySchema),
+              client: v.nullable(agentTrackingClientSchema),
+              ...providerCallFigureProperties
+            },
+            { name: 'group', description: 'The calls of one repository, member or client.' }
+          ),
+          {
+            name: 'items',
+            description: `The groups with the most calls first, at most ${providerCallsLimit}, then \`other\` when more groups had calls.`
+          }
+        )
+      },
+      {
+        name: 'provider_calls',
+        description: `MCP tool calls of AI coding agents that reached a Metorial provider, by repository, member or client. Only Claude Code and Codex calls are matched to Metorial’s own tool calls, a few minutes after they happen. ${sourceNote}`
       }
     )
   )

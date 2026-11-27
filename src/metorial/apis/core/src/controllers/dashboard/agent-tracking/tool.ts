@@ -1,14 +1,19 @@
 import { v } from '@lowerdeck/validation';
 import {
   agentTrackingToolService,
+  providerCallGroups,
+  providerCallsLimit,
   requestRecordDays
 } from '@metorial/module-agent-tracking-query';
 import {
   agentTrackingMcpServerUsagePresenter,
+  agentTrackingProviderCallsPresenter,
   agentTrackingSkillUsagePresenter
 } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
 import { rangeOf } from '../../../lib/agentTrackingParams';
+import { canReadProviders } from '../../../lib/toolCallAccess';
+import { checkAccess } from '../../../middleware/checkAccess';
 import {
   agentTrackingBasePath,
   agentTrackingReadGroup,
@@ -69,10 +74,66 @@ export let dashboardAgentTrackingToolController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
+          canReadProviders: await canReadProviders(ctx),
           range: rangeOf(ctx.query)
         });
 
         return agentTrackingMcpServerUsagePresenter.present({ usage });
+      }),
+
+    providerCalls: agentTrackingReadGroup
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .get(
+        Path(
+          `${agentTrackingBasePath}/tools/provider-calls`,
+          'dashboard.instance.agentTracking.tools.providerCalls'
+        ),
+        {
+          name: 'Get agent provider calls',
+          description: `Returns the MCP tool calls of Claude Code and Codex that reached Metorial providers over a range, with failures, by repository, member or client. ${privacyNote}`,
+          hideInDocs: true
+        }
+      )
+      .query(
+        'default',
+        v.object({
+          group_by: v.enumOf(providerCallGroups, {
+            name: 'group_by',
+            description: `What to group the calls by. The ${providerCallsLimit} groups with the most calls are listed.`
+          }),
+          provider_id: v.optional(
+            v.string({
+              name: 'provider_id',
+              description: 'Only count calls that reached this provider.',
+              examples: ['pro_0mhNnEqM7XQb3vXq8gD2'],
+              modifiers: [v.maxLength(200)]
+            })
+          ),
+          tool_key: v.optional(
+            v.string({
+              name: 'tool_key',
+              description:
+                'Only count calls of the tool with this key. Calls recorded without their tool, such as while Detailed Tool Reporting is off, never match.',
+              examples: ['create_issue'],
+              modifiers: [v.maxLength(200)]
+            })
+          ),
+          ...rangeQueryFieldsFor(requestRecordDays)
+        })
+      )
+      .output(agentTrackingProviderCallsPresenter)
+      .do(async ctx => {
+        let providerCalls = await agentTrackingToolService.getProviderCalls({
+          organization: ctx.organization,
+          project: ctx.project,
+          instance: ctx.instance,
+          groupBy: ctx.query.group_by,
+          providerId: ctx.query.provider_id,
+          toolKey: ctx.query.tool_key,
+          range: rangeOf(ctx.query)
+        });
+
+        return agentTrackingProviderCallsPresenter.present({ providerCalls });
       })
   }
 );

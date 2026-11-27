@@ -175,6 +175,7 @@ describe('api-core dashboard: agent tracking tools of ingested usage', () => {
         failed: 1,
         error_rate: 0.5,
         members: 1,
+        provider: null,
         tools: [expect.objectContaining({ name: 'create_issue', calls: 2, failed: 1 })]
       })
     ]);

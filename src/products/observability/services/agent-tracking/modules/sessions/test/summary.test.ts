@@ -7,7 +7,7 @@ import { pricing } from '@mtsrc/agent-tracking-module-knowledge/test/fixtures';
 import type { MatchableOverride } from '@mtsrc/agent-tracking-module-pricing';
 import { createOverridePricer } from '@mtsrc/agent-tracking-module-pricing';
 import { override } from '@mtsrc/agent-tracking-module-pricing/test/fixtures';
-import type { IngestChannel } from '@mtsrc/agent-tracking-spec';
+import { desktopContextId, type IngestChannel } from '@mtsrc/agent-tracking-spec';
 import { aggregateSession, preferredAmount, selectCostBasis } from '../src/lib/summary';
 import { summaryRecord, usd } from './fixtures';
 
@@ -1728,5 +1728,240 @@ describe('aggregateSession with imported history', () => {
         ['overage', 'inferred', 'max', 2]
       ]);
     });
+  });
+});
+
+describe('aggregateSession activity', () => {
+  let codex = { family: 'codex' };
+
+  let start = () =>
+    summaryRecord({
+      type: 'session.start',
+      at: '2026-03-04T10:00:00Z',
+      channel: 'otlp.logs',
+      client: codex,
+      data: { model: 'codex-auto-review' }
+    });
+
+  let prewarm = () =>
+    summaryRecord({
+      type: 'model.request',
+      at: '2026-03-04T10:00:01Z',
+      channel: 'otlp.logs',
+      role: 'supplemental',
+      client: codex,
+      data: {
+        outcome: 'ok',
+        usage: { inputUncached: 2 },
+        purpose: 'auxiliary',
+        warmup: true
+      }
+    });
+
+  let prompt = (at = '2026-03-04T10:05:00Z') =>
+    summaryRecord({ type: 'prompt.submitted', at, channel: 'otlp.logs', client: codex });
+
+  let aggregate = (records: ReturnType<typeof summaryRecord>[]) =>
+    aggregateSession({ records, family: 'codex', catalog });
+
+  let started = (slices: { sessionsStarted: number }[]) =>
+    slices.reduce((total, slice) => total + slice.sessionsStarted, 0);
+
+  it('marks a session with only a start and a prewarm as empty and does not count it', async () => {
+    let { empty, slices, summary } = await aggregate([start(), prewarm()]);
+
+    expect(empty).toBe(true);
+    expect(started(slices)).toBe(0);
+    expect(summary.requests).toBe(0);
+  });
+
+  it('counts a session with one prompt', async () => {
+    let { empty, slices } = await aggregate([start(), prewarm(), prompt()]);
+
+    expect(empty).toBe(false);
+    expect(started(slices)).toBe(1);
+  });
+
+  it('counts a session that became busy after it was empty', async () => {
+    let records = [start(), prewarm()];
+
+    expect((await aggregate(records)).empty).toBe(true);
+    expect((await aggregate([...records, prompt()])).empty).toBe(false);
+  });
+
+  it('counts a session with only context from Desktop', async () => {
+    let { empty, slices } = await aggregate([
+      summaryRecord({
+        type: 'session.context',
+        at: '2026-03-04T10:00:00Z',
+        channel: 'envelope',
+        dialect: desktopContextId,
+        client: codex,
+        data: { source: 'probe', branch: 'main' }
+      })
+    ]);
+
+    expect(empty).toBe(false);
+    expect(started(slices)).toBe(1);
+  });
+
+  it('does not count context from hooks or source tags as activity', async () => {
+    let { empty } = await aggregate([
+      start(),
+      summaryRecord({
+        type: 'session.context',
+        at: '2026-03-04T10:00:00Z',
+        client: codex,
+        data: { source: 'credential', tags: [{ k: 'team', v: 'core', origin: 'source' }] }
+      })
+    ]);
+
+    expect(empty).toBe(true);
+  });
+
+  it.each([
+    ['a counted model request', { type: 'model.request', channel: 'otlp.logs' as const }],
+    ['a tool call', { type: 'tool.call', data: { tool: { class: 'shell' } } }],
+    ['a commit', { type: 'vcs.commit', data: { sha: 'a'.repeat(40) } }],
+    [
+      'a pull request',
+      {
+        type: 'vcs.pull_request',
+        data: { provider: 'github.com', repository: 'acme/api', number: 7 }
+      }
+    ],
+    ['a usage charge', { type: 'usage.charge', data: { cost: usd('0.01') } }]
+  ])('counts a session with %s', async (_, record) => {
+    let { empty } = await aggregate([
+      start(),
+      summaryRecord({ at: '2026-03-04T10:02:00Z', client: codex, ...record })
+    ]);
+
+    expect(empty).toBe(false);
+  });
+
+  it('measures a GenAI session from its root span and the primary spans linked to it', async () => {
+    let span = (at: string, type: string, linked: boolean) =>
+      summaryRecord({
+        type,
+        at,
+        channel: 'otlp.traces',
+        client: { family: 'genai' },
+        ctx: linked ? { sessionOrigin: 'linked' } : {},
+        data: type == 'model.request' ? { usage: { inputUncached: 100, output: 10 } } : {}
+      });
+
+    let { summary, firstOccurredAt, lastOccurredAt, empty } = await aggregateSession({
+      records: [
+        span('2026-03-04T09:59:00Z', 'model.request', true),
+        span('2026-03-04T10:00:00Z', 'agent.start', false),
+        span('2026-03-04T10:04:00Z', 'tool.call', true)
+      ],
+      family: 'genai',
+      catalog
+    });
+
+    expect(firstOccurredAt).toEqual(new Date('2026-03-04T09:59:00Z'));
+    expect(lastOccurredAt).toEqual(new Date('2026-03-04T10:04:00Z'));
+    expect(summary.durationMs).toBe(300_000);
+    expect(empty).toBe(false);
+  });
+
+  it('counts a Codex session exported only as traces', async () => {
+    let { empty, slices } = await aggregate([
+      summaryRecord({
+        type: 'turn.completed',
+        at: '2026-03-04T10:01:00Z',
+        channel: 'otlp.traces',
+        role: 'aggregate',
+        client: codex,
+        data: {
+          outcome: 'ok',
+          model: { id: 'gpt-5' },
+          usage: { inputUncached: 1200, output: 80, provenance: 'aggregate' }
+        }
+      })
+    ]);
+
+    expect(empty).toBe(false);
+    expect(started(slices)).toBe(1);
+  });
+
+  it('counts usage of any role but not a connection warmup', async () => {
+    let supplemental = summaryRecord({
+      type: 'model.request',
+      at: '2026-03-04T10:01:00Z',
+      channel: 'otlp.traces',
+      role: 'supplemental',
+      client: codex,
+      data: { usage: { inputUncached: 500 } }
+    });
+
+    expect((await aggregate([start(), supplemental])).empty).toBe(false);
+    expect((await aggregate([start(), prewarm()])).empty).toBe(true);
+  });
+
+  it('never marks a session with measurements as empty', async () => {
+    let checked = 0;
+
+    let measured = await aggregateSession({
+      records: [start()],
+      family: 'claude-code',
+      catalog,
+      hasMeasurements: async () => (checked++, true)
+    });
+
+    expect(measured.empty).toBe(false);
+    expect(started(measured.slices)).toBe(1);
+    expect(checked).toBe(1);
+
+    await aggregateSession({
+      records: [start(), prompt()],
+      family: 'claude-code',
+      catalog,
+      hasMeasurements: async () => (checked++, true)
+    });
+
+    expect(checked).toBe(1);
+  });
+
+  it('measures the session from its own records, not from linked housekeeping', async () => {
+    let linked = (at: string) =>
+      summaryRecord({
+        type: 'model.request',
+        at,
+        channel: 'otlp.logs',
+        role: 'supplemental',
+        client: codex,
+        ctx: { sessionOrigin: 'linked' }
+      });
+
+    let { summary, firstOccurredAt, lastOccurredAt, slices } = await aggregate([
+      linked('2026-03-04T09:40:00Z'),
+      start(),
+      prompt('2026-03-04T10:02:30Z'),
+      linked('2026-03-04T10:15:00Z')
+    ]);
+
+    expect(firstOccurredAt).toEqual(new Date('2026-03-04T10:00:00Z'));
+    expect(lastOccurredAt).toEqual(new Date('2026-03-04T10:02:30Z'));
+    expect(summary.durationMs).toBe(150_000);
+    expect(slices.find(slice => slice.sessionsStarted)?.bucket).toEqual(
+      new Date('2026-03-04T10:00:00Z')
+    );
+  });
+
+  it('falls back to linked records when a session has no records of its own', async () => {
+    let { firstOccurredAt } = await aggregate([
+      summaryRecord({
+        type: 'model.request',
+        at: '2026-03-04T10:01:00Z',
+        role: 'supplemental',
+        client: codex,
+        ctx: { sessionOrigin: 'linked' }
+      })
+    ]);
+
+    expect(firstOccurredAt).toEqual(new Date('2026-03-04T10:01:00Z'));
   });
 });

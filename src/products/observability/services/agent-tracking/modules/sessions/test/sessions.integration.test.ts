@@ -341,7 +341,8 @@ describe('settling', () => {
 
     let session = (await harness.session(nativeKey))!;
     expect(session.startedAt).toEqual(at);
-    expect(session.summary).toMatchObject({ turns: 1, requests: 1 });
+    expect(session.lastActivityAt).toEqual(minutesAfter(at, 1));
+    expect(session.summary).toMatchObject({ turns: 1, requests: 1, durationMs: 60_000 });
     expect(session.summary!.tokens.inputUncached).toBe(500);
     expect(session.settledObservedAt).toEqual(session.lastObservedAt);
     expect(session.coverage).toMatchObject({ hasUsage: true, usageSource: 'otel.logs' });
@@ -354,6 +355,49 @@ describe('settling', () => {
       turns: 1,
       requests: 1
     });
+  });
+
+  it('leaves a session in which nothing happened out of the list until a prompt arrives', async () => {
+    let harness = await createSessionHarness();
+    let at = new Date(Date.now() - 10 * 60 * 1000);
+    let organization = harness.scope.organization;
+
+    let [quiet] = await harness.ingest([
+      { type: 'session.start', at, sessionId: 'quiet-1' },
+      {
+        type: 'model.request',
+        at: minutesAfter(at, 0.1),
+        sessionId: 'quiet-1',
+        channel: 'otlp.logs',
+        role: 'supplemental',
+        data: { usage: { inputUncached: 2 }, purpose: 'auxiliary', warmup: true }
+      }
+    ]);
+    let quietKey = quiet!.ctx.session_key!;
+
+    let [busy] = await harness.ingest([
+      { type: 'prompt.submitted', at: minutesAfter(at, 1), sessionId: 'busy-1' }
+    ]);
+    let busyKey = busy!.ctx.session_key!;
+
+    await settleSession({ sessionKey: quietKey });
+    await settleSession({ sessionKey: busyKey });
+
+    let listed = async () =>
+      (await sessionService.listSessions({ organization, filters: {} })).items.map(
+        session => session._id
+      );
+
+    expect((await harness.session(quietKey))!.empty).toBe(true);
+    expect(await listed()).toEqual([busyKey]);
+
+    await harness.ingest([
+      { type: 'prompt.submitted', at: minutesAfter(at, 2), sessionId: 'quiet-1' }
+    ]);
+    await settleSession({ sessionKey: quietKey });
+
+    expect((await harness.session(quietKey))!.empty).toBeUndefined();
+    expect(await listed()).toEqual([quietKey, busyKey]);
   });
 
   it('clears the pending flag once facts cover the latest write', async () => {

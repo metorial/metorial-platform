@@ -54,9 +54,12 @@ import {
   v1AgentTrackingIngestSourcePresenter,
   v1AgentTrackingMcpServerUsagePresenter,
   v1AgentTrackingMemberInsightsPresenter,
+  v1AgentTrackingProviderCallsPresenter,
   v1AgentTrackingMemberPresenter,
   v1AgentTrackingSessionDetailPresenter,
   v1AgentTrackingSessionPresenter,
+  v1AgentTrackingSessionToolCallsPresenter,
+  v1AgentTrackingToolCallSessionPresenter,
   v1AgentTrackingInstanceSettingsPresenter,
   v1AgentTrackingOrganizationSettingsPresenter,
   v1AgentTrackingProjectSettingsPresenter,
@@ -402,8 +405,10 @@ import {
   agentTrackingIngestSourceType,
   agentTrackingMcpServerUsageType,
   agentTrackingMemberInsightsType,
+  agentTrackingProviderCallsType,
   agentTrackingMemberType,
   agentTrackingSessionDetailType,
+  agentTrackingSessionToolCallsType,
   agentTrackingSessionType,
   agentTrackingInstanceSettingsType,
   agentTrackingOrganizationSettingsType,
@@ -413,6 +418,7 @@ import {
   agentTrackingSpendBreakdownType,
   agentTrackingSpendReportType,
   agentTrackingSpendTimelineType,
+  agentTrackingToolCallSessionType,
   agentTrackingViewType,
   agentType,
   apiKeyType,
@@ -1628,6 +1634,22 @@ export let agentTrackingSessionDetailPresenter = declarePresenter(
   }
 );
 
+export let agentTrackingSessionToolCallsPresenter = declarePresenter(
+  agentTrackingSessionToolCallsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingSessionToolCallsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingSessionToolCallsPresenter
+  }
+);
+
+export let agentTrackingToolCallSessionPresenter = declarePresenter(
+  agentTrackingToolCallSessionType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingToolCallSessionPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingToolCallSessionPresenter
+  }
+);
+
 export let agentTrackingFilterValuesPresenter = declarePresenter(
   agentTrackingFilterValuesType,
   {
@@ -1659,6 +1681,14 @@ export let agentTrackingMcpServerUsagePresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1AgentTrackingMcpServerUsagePresenter,
     mt_2026_01_01_magnetar: v1AgentTrackingMcpServerUsagePresenter
+  }
+);
+
+export let agentTrackingProviderCallsPresenter = declarePresenter(
+  agentTrackingProviderCallsType,
+  {
+    mt_2025_01_01_dashboard: v1AgentTrackingProviderCallsPresenter,
+    mt_2026_01_01_magnetar: v1AgentTrackingProviderCallsPresenter
   }
 );
 

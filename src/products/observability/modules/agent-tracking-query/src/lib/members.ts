@@ -26,7 +26,7 @@ type RemoteMember = Awaited<ReturnType<AgentTracking['entity']['list']>>['items'
 export let unique = (values: (string | null | undefined)[]) =>
   [...new Set(values.filter((value): value is string => !!value))].sort();
 
-let chunks = <T>(values: T[], size: number) =>
+export let chunks = <T>(values: T[], size: number) =>
   Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
     values.slice(index * size, (index + 1) * size)
   );

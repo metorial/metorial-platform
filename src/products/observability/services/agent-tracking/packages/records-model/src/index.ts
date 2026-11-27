@@ -7,4 +7,10 @@ export { normalizeClient } from './clients';
 export { normalizeRoot, rootHash } from './context/roots';
 export { parseRemote, repoFromParts, repoFromSlug, repoIdentifier } from './context/remote';
 export { isIssueRef, normalizeTicketRefs, ticketRefsFromBranch } from './context/tickets';
-export { type BuildContext, buildRecord, isPlausibleTime, safeLabel } from './builder';
+export {
+  type BuildContext,
+  buildRecord,
+  isPlausibleTime,
+  maxIdLength,
+  safeLabel
+} from './builder';

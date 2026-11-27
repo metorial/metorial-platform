@@ -73,8 +73,14 @@ export let filterFields = {
   seat: 'billing.seat',
   repository: 'repo',
   branch: 'branch',
-  ticket: 'ticket'
+  ticket: 'ticket',
+  provider: 'metorial.provider'
 } as const satisfies Record<FilterField, string>;
+
+export let filterValueDatasets: Partial<Record<FilterField, 'requests' | 'tool_calls'>> = {
+  seat: 'requests',
+  provider: 'tool_calls'
+};
 
 export let reportBreakdownGroups = {
   member: breakdownGroups.member,

@@ -13,7 +13,9 @@ export type SpendGroup = BreakdownGroup | SpendReportGroup;
 export type SessionListOrderBy = 'last_activity' | 'cost';
 
 export type FilterField =
-  'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket';
+  'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket' | 'provider';
+
+export type ProviderCallGroup = 'repository' | 'member' | 'client';
 
 export type AgentTrackingSpendFilters = {
   clientFamilies?: string[];
@@ -110,6 +112,8 @@ export type AgentTrackingRepository = {
 };
 
 export type AgentTrackingTicket = { key: string; url: string | null };
+
+export type AgentTrackingProvider = { id: string; name: string | null };
 
 export type AgentTrackingPullRequest = {
   key: string;
@@ -295,6 +299,7 @@ export type AgentTrackingSessionView = {
   requests: number;
   summaryPending: boolean;
   context: AgentTrackingSessionContext;
+  providers: AgentTrackingProvider[];
   startedAt: Date;
   lastActivityAt: Date;
   endedAt: Date | null;
@@ -313,6 +318,36 @@ export type AgentTrackingSessionDetail = AgentTrackingSessionView & {
   commits: AgentTrackingCommit[];
 };
 
+export type AgentTrackingMetorialToolCall = {
+  id: string;
+  status: 'waiting_for_response' | 'succeeded' | 'failed';
+  tool: { id: string; key: string; name: string };
+  provider: { id: string; name: string };
+  sessionId: string;
+  connectionId: string | null;
+  messageId: string;
+  createdAt: Date;
+};
+
+export type AgentTrackingSessionToolCall = {
+  occurredAt: Date;
+  durationMs: number | null;
+  outcome: string | null;
+  toolCall: AgentTrackingMetorialToolCall;
+};
+
+export type AgentTrackingSessionToolCalls = {
+  sessionId: string;
+  items: AgentTrackingSessionToolCall[];
+  unmatchedCount: number | null;
+  hasMore: boolean;
+};
+
+export type AgentTrackingToolCallSession = {
+  toolCallId: string;
+  session: AgentTrackingSessionView;
+};
+
 export type AgentTrackingFilterValue = {
   value: string;
   kind: FilterField | 'unknown';
@@ -320,6 +355,7 @@ export type AgentTrackingFilterValue = {
   model: AgentTrackingModel | null;
   client: Pick<AgentTrackingClient, 'family' | 'name'> | null;
   repository: AgentTrackingRepository | null;
+  provider: AgentTrackingProvider | null;
   requests: number | null;
 };
 
@@ -452,6 +488,7 @@ export type AgentTrackingMcpToolUsage = AgentTrackingToolCallFigures & { name: s
 
 export type AgentTrackingMcpServerUsageItem = AgentTrackingToolCallFigures & {
   name: string;
+  provider: AgentTrackingProvider | null;
   tools: AgentTrackingMcpToolUsage[];
 };
 
@@ -484,4 +521,23 @@ export type AgentTrackingSkillUsage = {
   };
   items: AgentTrackingSkillUsageItem[];
   truncated: boolean;
+};
+
+export type AgentTrackingProviderCallFigures = { calls: number; failed: number };
+
+export type AgentTrackingProviderCallItem = AgentTrackingProviderCallFigures & {
+  kind: ProviderCallGroup | 'unknown' | 'other';
+  key: string;
+  member: AgentTrackingMember | null;
+  repository: AgentTrackingRepository | null;
+  client: Pick<AgentTrackingClient, 'family' | 'name'> | null;
+};
+
+export type AgentTrackingProviderCalls = {
+  range: AgentTrackingRange;
+  groupBy: ProviderCallGroup;
+  providerId: string | null;
+  toolKey: string | null;
+  total: AgentTrackingProviderCallFigures;
+  items: AgentTrackingProviderCallItem[];
 };

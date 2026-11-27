@@ -788,6 +788,7 @@ describe('agentTrackingFilterValueService', () => {
         model: { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5' },
         client: null,
         repository: null,
+        provider: null,
         requests: 4
       },
       {
@@ -797,6 +798,7 @@ describe('agentTrackingFilterValueService', () => {
         model: null,
         client: null,
         repository: null,
+        provider: null,
         requests: null
       }
     ]);
@@ -851,6 +853,7 @@ describe('repository, branch and ticket filter values', () => {
           name: 'api',
           url: 'https://github.com/acme/api'
         },
+        provider: null,
         requests: 9
       },
       expect.objectContaining({
@@ -971,6 +974,7 @@ describe('agentTrackingFilterValueService for clients and held values', () => {
         model: null,
         client: { family: 'claude_code', name: 'Claude Code' },
         repository: null,
+        provider: null,
         requests: 9
       },
       {
@@ -980,6 +984,7 @@ describe('agentTrackingFilterValueService for clients and held values', () => {
         model: null,
         client: { family: 'cursor', name: 'Cursor' },
         repository: null,
+        provider: null,
         requests: 2
       }
     ]);
@@ -1118,6 +1123,7 @@ describe('seat and plan filter values', () => {
         model: null,
         client: null,
         repository: null,
+        provider: null,
         requests: 7
       },
       {
@@ -1127,6 +1133,7 @@ describe('seat and plan filter values', () => {
         model: null,
         client: null,
         repository: null,
+        provider: null,
         requests: 2
       }
     ]);
@@ -1161,6 +1168,7 @@ describe('seat and plan filter values', () => {
         model: null,
         client: null,
         repository: null,
+        provider: null,
         requests: null
       }
     ]);

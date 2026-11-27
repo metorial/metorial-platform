@@ -1,4 +1,6 @@
+import type { Organization } from '@mtsrc/agent-tracking-db';
 import { isSummaryStale } from '@mtsrc/agent-tracking-module-sessions';
+import { desktopSettingsOf } from '@mtsrc/agent-tracking-spec';
 import type {
   ReportedCost,
   SessionDocument,
@@ -87,8 +89,16 @@ let summaryPresenter = (summary: SessionSummary) => ({
   })),
 
   errorsByClass: summary.errorsByClass,
-  compactions: summary.compactions
+  compactions: summary.compactions,
+
+  metorial: {
+    providerIds: summary.metorial?.providerIds ?? [],
+    toolKeys: summary.metorial?.toolKeys ?? []
+  }
 });
+
+export let sessionTitlesShown = (organization: Pick<Organization, 'settings'>) =>
+  desktopSettingsOf(organization.settings).sessionTitles;
 
 export let sessionPresenter = ({
   session,

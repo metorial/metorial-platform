@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { NormalizedRecord } from '@mtsrc/agent-tracking-spec';
+import type { NormalizedRecord, RecordRole } from '@mtsrc/agent-tracking-spec';
 import { resolveBulkDialect } from '@mtsrc/agent-tracking-dialects';
 import {
   buildDraft,
@@ -156,5 +156,173 @@ describe('writeSessions repository ids', () => {
         update: { $push: { 'context.repoIds': { $each: [], $slice: 16 } } }
       }
     });
+  });
+});
+
+describe('writeSessions time bounds', () => {
+  let event = (d: {
+    id: string;
+    type?: string;
+    at: string;
+    linked?: boolean;
+    role?: RecordRole;
+  }) => {
+    let record = buildDraft(
+      {
+        kind: 'event',
+        type: d.type ?? 'model.request',
+        role: d.role ?? (d.linked ? 'supplemental' : 'primary'),
+        identity: d.id,
+        occurredAt: new Date(d.at),
+        client: { family: 'codex' },
+        ctx: { sessionId: 'conv-1' },
+        data: {}
+      },
+      { principal }
+    );
+
+    record.ctx.session_origin = d.linked ? 'linked' : 'native';
+
+    return record;
+  };
+
+  it('takes the start and last activity from its own records and linked housekeeping not', async () => {
+    let update = upsertOf(
+      await sessionOps([
+        event({ id: 'linked-early', at: '2026-06-15T09:40:00Z', linked: true }),
+        event({ id: 'own-start', type: 'session.start', at: '2026-06-15T10:00:00Z' }),
+        event({ id: 'own-prompt', type: 'prompt.submitted', at: '2026-06-15T10:05:00Z' }),
+        event({ id: 'linked-late', at: '2026-06-15T10:30:00Z', linked: true })
+      ])
+    );
+
+    expect(update.$min).toMatchObject({ startedAt: new Date('2026-06-15T10:00:00Z') });
+    expect(update.$max).toEqual({
+      lastActivityAt: new Date('2026-06-15T10:05:00Z'),
+      lastObservedAt: now
+    });
+  });
+
+  it('never moves the bounds or the state of a session for linked housekeeping alone', async () => {
+    let ops = await sessionOps([
+      event({ id: 'linked-1', at: '2026-06-15T09:40:00Z', linked: true }),
+      event({ id: 'linked-2', type: 'session.end', at: '2026-06-15T11:10:00Z', linked: true })
+    ]);
+    let update = upsertOf(ops);
+
+    expect(update.$min).toBeUndefined();
+    expect(update.$max).toEqual({ lastObservedAt: now });
+    expect(update.$setOnInsert).toMatchObject({
+      startedAt: new Date('2026-06-15T09:40:00Z'),
+      lastActivityAt: new Date('2026-06-15T11:10:00Z'),
+      expiresAt: expect.any(Date)
+    });
+    expect(ops.filter(op => !op.updateOne.upsert)).toEqual([]);
+  });
+
+  it('moves the bounds for linked primary spans of a GenAI app around its root span', async () => {
+    let update = upsertOf(
+      await sessionOps([
+        event({ id: 'chat-1', at: '2026-06-15T09:58:00Z', linked: true, role: 'primary' }),
+        event({ id: 'root', type: 'agent.start', at: '2026-06-15T10:00:00Z' }),
+        event({
+          id: 'tool-1',
+          type: 'tool.call',
+          at: '2026-06-15T10:07:00Z',
+          linked: true,
+          role: 'primary'
+        })
+      ])
+    );
+
+    expect(update.$min).toMatchObject({ startedAt: new Date('2026-06-15T09:58:00Z') });
+    expect(update.$max).toEqual({
+      lastActivityAt: new Date('2026-06-15T10:07:00Z'),
+      lastObservedAt: now
+    });
+  });
+
+  it('wakes a session for a linked primary record alone', async () => {
+    let ops = await sessionOps([
+      event({ id: 'chat-2', at: '2026-06-15T11:00:00Z', linked: true, role: 'primary' })
+    ]);
+    let update = upsertOf(ops);
+
+    expect(update.$min).toMatchObject({ startedAt: new Date('2026-06-15T11:00:00Z') });
+    expect(ops.filter(op => !op.updateOne.upsert)).toEqual([
+      {
+        updateOne: {
+          filter: { _id: expect.any(String), state: 'idle' },
+          update: { $set: { state: 'active' } }
+        }
+      }
+    ]);
+  });
+
+  it('does not end a session on a linked end record', async () => {
+    let ops = await sessionOps([
+      event({ id: 'own-start', type: 'session.start', at: '2026-06-15T10:00:00Z' }),
+      event({
+        id: 'linked-end',
+        type: 'session.end',
+        at: '2026-06-15T10:30:00Z',
+        linked: true
+      })
+    ]);
+
+    expect(ops.filter(op => !op.updateOne.upsert)).toEqual([
+      {
+        updateOne: {
+          filter: { _id: expect.any(String), state: { $ne: 'active' } },
+          update: { $set: { state: 'active' }, $unset: { endedAt: '' } }
+        }
+      }
+    ]);
+  });
+});
+
+describe('writeSessions correlation links', () => {
+  let linkOps = async (traceId: string) => {
+    let ops: Op[] = [];
+
+    let record = buildDraft(
+      {
+        kind: 'event',
+        type: 'session.start',
+        identity: `start-${traceId}`,
+        occurredAt: new Date('2026-06-15T10:00:00Z'),
+        client: { family: 'codex' },
+        ctx: { sessionId: 'conv-1', trace: { traceId } },
+        data: {}
+      },
+      { principal }
+    );
+    record.ctx.session_origin = 'native';
+
+    let collections = {
+      sessions: {
+        find: () => ({ toArray: async () => [] }),
+        bulkWrite: async () => undefined
+      },
+      sessionLinks: { bulkWrite: async (written: Op[]) => void ops.push(...written) },
+      sourceHealth: { bulkWrite: async () => undefined }
+    } as unknown as StoreCollections;
+
+    await writeSessions({
+      principal,
+      records: [record],
+      observedAt: now,
+      assignment: { inferKeys: new Map(), inferred: new Map() },
+      collections
+    });
+
+    return ops.map(op => op.updateOne.filter._id);
+  };
+
+  it('lets the first native record claim its trace, but never an all-zero one', async () => {
+    let trace = '4bf92f3577b34da6a3ce929d0e0e4736';
+
+    expect(await linkOps(trace)).toEqual([`${principal.instance.id}:trace:${trace}`]);
+    expect(await linkOps('0'.repeat(32))).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@ import { usageQueueProcessors } from './queues';
 
 export * from './lib/interval';
 export type { UsagePoint, UsageSeries } from './lib/query';
+export { resolveUsageSessionDimsMany, type UsageSessionDims } from './lib/subspace';
 export * from './lib/types';
 export * from './recorders';
 export * from './services';

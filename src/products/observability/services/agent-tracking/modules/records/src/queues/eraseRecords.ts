@@ -22,7 +22,8 @@ export let eraseScopeFields: Record<EraseCollection, EraseScopeField[]> = {
   sessions: ['organizationId', 'projectId', 'instanceId'],
   sessionLinks: ['instanceId'],
   usageSlices: ['organizationId', 'projectId', 'instanceId'],
-  sourceHealth: ['organizationId', 'instanceId']
+  sourceHealth: ['organizationId', 'instanceId'],
+  toolCallLinks: ['organizationId', 'projectId', 'instanceId']
 };
 
 export let eraseCollections = Object.keys(eraseScopeFields) as EraseCollection[];

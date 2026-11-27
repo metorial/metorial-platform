@@ -5,6 +5,7 @@ import { unknownMemberKey } from './members';
 import type {
   AgentTrackingFilterValue,
   AgentTrackingMember,
+  AgentTrackingProvider,
   AgentTrackingRepository,
   FilterField
 } from './types';
@@ -53,7 +54,8 @@ let valuePatterns: Record<FilterField, RegExp> = {
   seat: /^[^\u0000-\u001f]+$/,
   repository: /^aten_[A-Za-z0-9]+$/,
   branch: /^[^\u0000-\u001f\u007f]+$/,
-  ticket: /^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]{0,6}$/
+  ticket: /^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]{0,6}$/,
+  provider: /^pro_[A-Za-z0-9]+$/
 };
 
 export let isFilterValueOf = (field: FilterField, value: string) =>
@@ -72,6 +74,7 @@ export let unknownOption: AgentTrackingFilterValue = {
   model: null,
   client: null,
   repository: null,
+  provider: null,
   requests: null
 };
 
@@ -81,6 +84,7 @@ export let filterValueItem = (
   d: {
     member?: AgentTrackingMember | null;
     repository?: AgentTrackingRepository | null;
+    provider?: AgentTrackingProvider | null;
     name?: string | null;
     requests?: number | null;
   }
@@ -94,6 +98,7 @@ export let filterValueItem = (
     model: field == 'model' ? { id: value, name: d.name ?? null } : null,
     client: client ? { family: client.family, name: client.name } : null,
     repository: field == 'repository' ? (d.repository ?? null) : null,
+    provider: field == 'provider' ? (d.provider ?? { id: value, name: null }) : null,
     requests: d.requests ?? null
   };
 };

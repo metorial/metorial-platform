@@ -12,7 +12,8 @@ export let derivedCollectionNames = {
   sessions: 'sessions',
   sessionLinks: 'session_links',
   usageSlices: 'usage_slices',
-  sourceHealth: 'source_health'
+  sourceHealth: 'source_health',
+  toolCallLinks: 'tool_call_links'
 } as const;
 
 export type ReportedCost = {
@@ -131,6 +132,7 @@ export type SessionSummary = {
   pullRequestRefs?: SessionPullRequestRef[];
   errorsByClass: Record<string, number>;
   compactions: number;
+  metorial?: { providerIds: string[]; toolKeys: string[] };
 };
 
 export type SessionCoverage = {
@@ -202,11 +204,16 @@ export type SessionDocument = {
   settledObservedAt?: Date;
   settlePending?: true;
   frozen?: true;
+  empty?: true;
   coverage?: SessionCoverage;
   classification?: SessionClassification;
 
   expiresAt: Date;
 };
+
+// A session settled as empty, one in which nothing happened, stays stored but is left out wherever
+// sessions are listed or counted.
+export let listedSessionFilter = { empty: { $ne: true as const } };
 
 // `<instanceId>:<type>:<value>` maps a correlation id to its session. `orphan:<…same…>` lists
 // records that carried the correlation id before any session claimed it; settling links them.
@@ -215,6 +222,30 @@ export type SessionLinkDocument = {
   instanceId: string;
   sessionKey?: string;
   recordIds?: string[];
+  expiresAt: Date;
+};
+
+export type ToolCallLinkTarget = {
+  toolCallId: string;
+  providerId: string;
+  toolKey?: string;
+  deploymentId?: string;
+  integrationId?: string;
+  magicMcpServerId?: string;
+};
+
+// `<instanceId>:<clientFamily>:<toolCallId>` holds the Metorial tool call an agent's tool call
+// reached. When two Metorial calls claim one pair it is kept as a conflict without a target.
+export type ToolCallLinkDocument = {
+  _id: string;
+  organizationId: string;
+  projectId: string;
+  instanceId: string;
+  clientFamily: string;
+  toolCallId: string;
+  metorial?: ToolCallLinkTarget & { calledAt: Date };
+  conflict?: true;
+  createdAt: Date;
   expiresAt: Date;
 };
 
@@ -320,6 +351,12 @@ SessionSchema.index({
   lastActivityAt: -1,
   _id: -1
 });
+SessionSchema.index({
+  organizationId: 1,
+  'summary.metorial.providerIds': 1,
+  lastActivityAt: -1,
+  _id: -1
+});
 SessionSchema.index({ organizationId: 1, state: 1, lastActivityAt: 1 });
 SessionSchema.index({ state: 1, lastActivityAt: 1 });
 SessionSchema.index(
@@ -366,3 +403,11 @@ export let SourceHealthSchema = new mongoose.Schema<SourceHealthDocument>(
 );
 
 SourceHealthSchema.index({ organizationId: 1, instanceId: 1, updatedAt: -1 });
+
+export let ToolCallLinkSchema = new mongoose.Schema<ToolCallLinkDocument>(
+  { _id: String, organizationId: String, instanceId: String },
+  schemaOptions
+);
+
+ToolCallLinkSchema.index({ organizationId: 1, instanceId: 1 });
+ToolCallLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

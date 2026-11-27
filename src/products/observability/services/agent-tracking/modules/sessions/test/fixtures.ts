@@ -15,6 +15,7 @@ export let summaryRecord = (d: {
   at: string;
   id?: string;
   channel?: IngestChannel;
+  dialect?: string;
   role?: RecordRole;
   factKey?: string;
   credentialKind?: 'token' | 'source';
@@ -32,7 +33,7 @@ export let summaryRecord = (d: {
   ...(d.durationMs !== undefined ? { durationMs: d.durationMs } : {}),
   source: {
     adapter: 'test',
-    dialect: 'test.v1',
+    dialect: d.dialect ?? 'test.v1',
     channel: d.channel ?? 'hook',
     role: d.role ?? 'primary',
     ...(d.factKey ? { factKey: d.factKey } : {})

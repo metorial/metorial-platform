@@ -2,7 +2,7 @@ import { badRequestError, preconditionFailedError, ServiceError } from '@lowerde
 import { Service } from '@lowerdeck/service';
 import type mongoose from 'mongoose';
 import type { Organization } from '@mtsrc/agent-tracking-db';
-import { getStore, isStoreConfigured } from '@mtsrc/agent-tracking-store';
+import { getStore, isStoreConfigured, listedSessionFilter } from '@mtsrc/agent-tracking-store';
 import type { SessionDocument, SourceHealthDocument } from '@mtsrc/agent-tracking-store';
 import {
   buildCoverage,
@@ -38,6 +38,7 @@ class CoverageServiceImpl {
 
     let sessionFilter = {
       ...scoped,
+      ...listedSessionFilter,
       startedAt: { $gte: d.range.from, $lt: d.range.to }
     } as mongoose.mongo.Filter<SessionDocument>;
 

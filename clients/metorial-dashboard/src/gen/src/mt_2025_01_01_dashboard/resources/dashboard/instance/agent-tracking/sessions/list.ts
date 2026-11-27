@@ -73,6 +73,7 @@ export type DashboardInstanceAgentTrackingSessionsListOutput = {
       pullRequestCount: number;
       lines: { added: number; removed: number };
     };
+    providers: { id: string; name: string | null }[];
     startedAt: Date;
     lastActivityAt: Date;
     endedAt: Date | null;
@@ -145,6 +146,7 @@ export type DashboardInstanceAgentTrackingSessionsListQuery = {
   branch?: string | string[] | undefined;
   ticket?: string | string[] | undefined;
   pullRequest?: string | string[] | undefined;
+  providerId?: string | string[] | undefined;
   orderBy?: 'last_activity' | 'cost' | undefined;
   range?:
     'today' | 'last_7_days' | 'last_30_days' | 'month_to_date' | 'last_month' | undefined;
@@ -167,6 +169,7 @@ export let mapDashboardInstanceAgentTrackingSessionsListQuery =
             'client_family',
             'repository_id',
             'pull_request',
+            'provider_id',
             'order_by',
             ['from', 0, 4],
             ['to', 0, 4],

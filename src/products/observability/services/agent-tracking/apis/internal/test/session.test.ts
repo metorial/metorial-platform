@@ -148,6 +148,24 @@ describe('sessionPresenter', () => {
       permissionMode: null,
       title: null
     });
-    expect(presented.summary).toMatchObject({ commitRefs: [], pullRequestRefs: [] });
+    expect(presented.summary).toMatchObject({
+      commitRefs: [],
+      pullRequestRefs: [],
+      metorial: { providerIds: [], toolKeys: [] }
+    });
+  });
+
+  it('returns the Metorial providers and tools the session reached', () => {
+    let presented = sessionPresenter({
+      session: session({
+        summary: summary({ metorial: { providerIds: ['pro_1'], toolKeys: ['search'] } })
+      }),
+      titles: false
+    });
+
+    expect(presented.summary?.metorial).toEqual({
+      providerIds: ['pro_1'],
+      toolKeys: ['search']
+    });
   });
 });

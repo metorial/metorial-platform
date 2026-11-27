@@ -42,6 +42,7 @@ describe('planScopeErasure', () => {
       'events',
       'measurements',
       'sessions',
+      'toolCallLinks',
       'usageSlices'
     ]);
     expect(collections({ organizationId: 'ator_1', instanceId: 'atin_1' })).toEqual([

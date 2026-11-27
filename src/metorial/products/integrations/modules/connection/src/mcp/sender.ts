@@ -52,6 +52,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { uniqBy } from 'lodash';
 import { PING_MESSAGE_ID_PREFIX } from '../const';
+import { type ClientCall, readClientCall, stripCodexTurnMetadata } from '../lib/clientCall';
 import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
 import { isSkillResourceUri, SKILLS_EXTENSION_ID } from '../lib/requestSkills';
 import { providerToolPresenter } from '../presenter';
@@ -182,12 +183,18 @@ export class McpSender {
     }
   }
 
-  async handleMessage(msg: JSONRPCMessage, opts: HandleResponseOpts) {
+  async handleMessage(incomingMsg: JSONRPCMessage, opts: HandleResponseOpts) {
+    let clientCall = readClientCall({
+      message: incomingMsg,
+      clientName: this.connection?.mcpData?.clientInfo?.name
+    });
+    let msg = stripCodexTurnMetadata(incomingMsg);
+
     let method = 'method' in msg ? msg.method : undefined;
     let id = 'id' in msg ? msg.id : undefined;
 
     try {
-      let res = await this.handleMessageInternal(msg, opts);
+      let res = await this.handleMessageInternal(msg, opts, clientCall);
       if (!res || (!res.mcp && !res.store)) return null;
 
       let broadcastMessage = 'message' in res && res.message ? res.message : null;
@@ -337,7 +344,11 @@ export class McpSender {
     };
   }
 
-  private async handleMessageInternal(msg: JSONRPCMessage, opts: HandleResponseOpts) {
+  private async handleMessageInternal(
+    msg: JSONRPCMessage,
+    opts: HandleResponseOpts,
+    clientCall: ClientCall | null
+  ) {
     let method = 'method' in msg ? msg.method : null;
     let id = 'id' in msg ? msg.id : null;
 
@@ -429,7 +440,7 @@ export class McpSender {
       case 'tools/call': {
         let toolCall = mcpValidate(id, CallToolRequestSchema, msg);
         if (!toolCall.success) return { mcp: toolCall.error, store: true };
-        return this.handleToolCallMessage(id, { ...toolCall.data, id }, opts);
+        return this.handleToolCallMessage(id, { ...toolCall.data, id }, opts, clientCall);
       }
 
       case 'prompts/list': {
@@ -1002,13 +1013,15 @@ export class McpSender {
   private async handleToolCallMessage(
     id: ID,
     msg: CallToolRequest & JSONRPCRequest,
-    opts: { waitForResponse: boolean }
+    opts: { waitForResponse: boolean },
+    clientCall: ClientCall | null
   ) {
     let result = await this.withProgressNotification(
       msg,
       async () =>
         await this.manager.callTool({
           clientMcpId: id,
+          clientCall,
           toolId: msg.params.name,
           input: {
             type: 'mcp',

@@ -51,7 +51,9 @@ describe('api-core dashboard: agent tracking reads', () => {
     ['/spend/breakdown', { group_by: 'member' }],
     ['/spend/report', {}],
     ['/sessions', {}],
+    ['/tool-call-sessions', { tool_call_id: 'tcl_e2e_missing' }],
     ['/filter-values', { field: 'member' }],
+    ['/tools/provider-calls', { group_by: 'repository' }],
     ['/members', {}],
     ['/members/insights', {}],
     ['/setup-status', {}]
@@ -72,6 +74,35 @@ describe('api-core dashboard: agent tracking reads', () => {
       adminOnlyClients(org, member, otherOrg),
       client => client.get(agentTrackingPath(org, `/sessions/atse_${uniqueId('missing')}`)),
       { ...adminOnly, session: 404 }
+    );
+  });
+
+  it('lets only admins read the tool calls of one session', async () => {
+    await expectAuthMatrix(
+      adminOnlyClients(org, member, otherOrg),
+      client =>
+        client.get(agentTrackingPath(org, `/sessions/atse_${uniqueId('missing')}/tool-calls`)),
+      { ...adminOnly, session: 404 }
+    );
+  });
+
+  it('finds no agent session for unknown tool calls and bounds the lookup', async () => {
+    let path = agentTrackingPath(org, '/tool-call-sessions');
+
+    let found = expectOk(
+      await org.clients.rest.get(path, {
+        query: { tool_call_id: ['tcl_e2e_missing', 'tcl_e2e_other'] }
+      })
+    );
+    expect(found).toMatchObject({ object: 'list', items: [] });
+
+    expectError(await org.clients.rest.get(path), 400, 'invalid_data');
+    expectError(
+      await org.clients.rest.get(path, {
+        query: { tool_call_id: Array.from({ length: 101 }, (_, i) => `tcl_e2e_${i}`) }
+      }),
+      400,
+      'invalid_data'
     );
   });
 
@@ -401,8 +432,67 @@ describe('api-core dashboard: agent tracking reads', () => {
       model: null,
       client: null,
       repository: null,
+      provider: null,
       requests: null
     });
+  });
+
+  it('presents empty agent provider calls for each grouping and validates them', async () => {
+    let path = agentTrackingPath(org, '/tools/provider-calls');
+
+    for (let group_by of ['repository', 'member', 'client']) {
+      let calls = expectPresented(
+        expectOk(
+          await org.clients.rest.get(path, {
+            query: { group_by, provider_id: 'pro_e2e_missing', tool_key: 'create_issue' }
+          })
+        ),
+        'agent_tracking.provider_calls'
+      );
+      expect(calls).toMatchObject({
+        group_by,
+        provider_id: 'pro_e2e_missing',
+        tool_key: 'create_issue',
+        total: { calls: 0, failed: 0 },
+        items: []
+      });
+    }
+
+    expectError(await org.clients.rest.get(path), 400, 'invalid_data');
+    expectError(
+      await org.clients.rest.get(path, { query: { group_by: 'ticket' } }),
+      400,
+      'invalid_data'
+    );
+  });
+
+  it('accepts the provider filter of sessions and lists no provider values for a fresh instance', async () => {
+    let sessions = expectOk(
+      await org.clients.rest.get(agentTrackingPath(org, '/sessions'), {
+        query: { provider_id: ['pro_e2e_missing', 'pro_e2e_other'] }
+      })
+    );
+    expect(sessions).toMatchObject({ object: 'list', items: [] });
+
+    let values = expectOk(
+      await org.clients.rest.get(agentTrackingPath(org, '/filter-values'), {
+        query: { field: 'provider' }
+      })
+    );
+    expect(values).toMatchObject({ field: 'provider', items: [] });
+
+    let described = expectOk(
+      await org.clients.rest.get(agentTrackingPath(org, '/filter-values'), {
+        query: { field: 'provider', value: ['pro_e2emissing', 'aten_not_a_provider'] }
+      })
+    );
+    expect(described.items).toEqual([
+      expect.objectContaining({
+        value: 'pro_e2emissing',
+        kind: 'provider',
+        provider: { id: 'pro_e2emissing', name: null }
+      })
+    ]);
   });
 
   it('accepts the repository, branch and ticket groupings, fields and session filters', async () => {
@@ -582,8 +672,13 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     for (let response of [
       await instanceKey.get('/agent-tracking/sessions'),
       await instanceKey.get(`/agent-tracking/sessions/${session.id}`),
+      await instanceKey.get(`/agent-tracking/sessions/${session.id}/tool-calls`),
+      await instanceKey.get('/agent-tracking/tool-call-sessions', {
+        query: { tool_call_id: 'tcl_e2e_missing' }
+      }),
       await org.clients.management.get(managementPath),
-      await org.clients.management.get(`${managementPath}/${session.id}`)
+      await org.clients.management.get(`${managementPath}/${session.id}`),
+      await org.clients.management.get(`${managementPath}/${session.id}/tool-calls`)
     ]) {
       let error = expectError(response, 403, 'forbidden');
       expect(error.message).toBe('This endpoint is only for the dashboard for now.');
@@ -701,6 +796,31 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
     );
   });
 
+  it('lists no Metorial tool calls for sessions that made no MCP tool calls', async () => {
+    let sessions = await listAll(org.clients.rest, sessionsPath());
+
+    for (let session of sessions) {
+      let toolCalls = expectPresented(
+        await read(`/sessions/${session.id}/tool-calls`),
+        'agent_tracking.session_tool_calls'
+      );
+      expect(toolCalls).toEqual({
+        object: 'agent_tracking.session_tool_calls',
+        session_id: session.id,
+        items: [],
+        unmatched_count: 0,
+        has_more: false
+      });
+    }
+
+    expectError(
+      await org.clients.rest.get(
+        agentTrackingPath(org, `/sessions/atse_${uniqueId('x')}/tool-calls`)
+      ),
+      404
+    );
+  });
+
   it('answers 404 for a session of another instance of the same organization', async () => {
     let sessions = await listAll(org.clients.rest, sessionsPath());
     let base = `/dashboard/organizations/${org.ids.organizationId}`;
@@ -718,6 +838,12 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
       expectError(
         await org.clients.rest.get(
           agentTrackingPath(otherInstanceId, `/sessions/${session.id}`)
+        ),
+        404
+      );
+      expectError(
+        await org.clients.rest.get(
+          agentTrackingPath(otherInstanceId, `/sessions/${session.id}/tool-calls`)
         ),
         404
       );

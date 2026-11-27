@@ -3,10 +3,14 @@ import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-en
 import {
   mapDashboardInstanceAgentTrackingToolsMcpServersOutput,
   mapDashboardInstanceAgentTrackingToolsMcpServersQuery,
+  mapDashboardInstanceAgentTrackingToolsProviderCallsOutput,
+  mapDashboardInstanceAgentTrackingToolsProviderCallsQuery,
   mapDashboardInstanceAgentTrackingToolsSkillsOutput,
   mapDashboardInstanceAgentTrackingToolsSkillsQuery,
   type DashboardInstanceAgentTrackingToolsMcpServersOutput,
   type DashboardInstanceAgentTrackingToolsMcpServersQuery,
+  type DashboardInstanceAgentTrackingToolsProviderCallsOutput,
+  type DashboardInstanceAgentTrackingToolsProviderCallsQuery,
   type DashboardInstanceAgentTrackingToolsSkillsOutput,
   type DashboardInstanceAgentTrackingToolsSkillsQuery
 } from '../resources';
@@ -97,6 +101,38 @@ export class MetorialDashboardInstanceAgentTrackingToolsEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceAgentTrackingToolsMcpServersOutput
+    );
+  }
+
+  /**
+   * @name Get agent provider calls
+   * @description Returns the MCP tool calls of Claude Code and Codex that reached Metorial providers over a range, with failures, by repository, member or client. Refused when the organization hides individual data.
+   *
+   * @param `instanceId` - string
+   * @param `query` - DashboardInstanceAgentTrackingToolsProviderCallsQuery
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceAgentTrackingToolsProviderCallsOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  providerCalls(
+    instanceId: string,
+    query?: DashboardInstanceAgentTrackingToolsProviderCallsQuery,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceAgentTrackingToolsProviderCallsOutput> {
+    let path = `dashboard/instances/${encodeURIComponent(instanceId)}/agent-tracking/tools/provider-calls`;
+
+    let request = {
+      path,
+
+      query: query
+        ? mapDashboardInstanceAgentTrackingToolsProviderCallsQuery.transformTo(query)
+        : undefined,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceAgentTrackingToolsProviderCallsOutput
     );
   }
 }

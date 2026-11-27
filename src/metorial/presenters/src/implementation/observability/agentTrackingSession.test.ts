@@ -67,6 +67,10 @@ let session = {
     pullRequestCount: 1,
     lines: { added: 12, removed: 3 }
   },
+  providers: [
+    { id: 'pro_linear', name: 'Linear' },
+    { id: 'pro_gone', name: null }
+  ],
   startedAt: new Date('2026-11-17T09:00:00Z'),
   lastActivityAt: new Date('2026-11-17T10:00:00Z'),
   endedAt: null
@@ -102,6 +106,15 @@ describe('agent tracking session presenters', () => {
       lines: { added: 12, removed: 3 }
     });
     expect(presented).not.toHaveProperty('commits');
+  });
+
+  it('presents the providers the session reached, a provider Metorial cannot show without a name', async () => {
+    let presented = await v1AgentTrackingSessionPresenter.present({ session }, context).run();
+
+    expect(presented.providers).toEqual([
+      { id: 'pro_linear', name: 'Linear' },
+      { id: 'pro_gone', name: null }
+    ]);
   });
 
   it('adds the commits of the session to the detail', async () => {

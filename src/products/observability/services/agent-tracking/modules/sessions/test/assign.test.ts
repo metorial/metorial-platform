@@ -31,7 +31,12 @@ let collections = {
 
 let secondsAfter = (seconds: number) => new Date(start.getTime() + seconds * 1000);
 
-let record = (d: { seconds: number; role?: RecordRole; sessionId?: string }) => {
+let record = (d: {
+  seconds: number;
+  role?: RecordRole;
+  sessionId?: string;
+  traceId?: string;
+}) => {
   let built = buildDraft(
     {
       kind: 'event',
@@ -40,7 +45,10 @@ let record = (d: { seconds: number; role?: RecordRole; sessionId?: string }) => 
       occurredAt: secondsAfter(d.seconds),
       client: { family: 'codex' },
       ...(d.role ? { role: d.role } : {}),
-      ctx: d.sessionId ? { sessionId: d.sessionId } : {}
+      ctx: {
+        ...(d.sessionId ? { sessionId: d.sessionId } : {}),
+        ...(d.traceId ? { trace: { traceId: d.traceId } } : {})
+      }
     },
     { principal },
     { adapter: 'codex', dialect: 'codex.otlp.v1', channel: 'otlp.logs' }
@@ -138,5 +146,42 @@ describe('inferred sessions', () => {
     await assign([primary]);
 
     expect(primary.ctx.session_key).toBe('sk_cached');
+  });
+});
+
+describe('linked sessions', () => {
+  let zeroTrace = '0'.repeat(32);
+  let realTrace = '4bf92f3577b34da6a3ce929d0e0e4736';
+
+  beforeEach(() => cache.clear());
+
+  it('links a record without a session id to the session that shares its trace', async () => {
+    let native = record({ seconds: 0, sessionId: 'thread-1', traceId: realTrace });
+    let stray = record({ seconds: 5, role: 'supplemental', traceId: realTrace });
+
+    await assign([native, stray]);
+
+    expect(stray.ctx).toMatchObject({
+      session_key: native.ctx.session_key,
+      session_origin: 'linked'
+    });
+  });
+
+  it('never links through an all-zero trace id', async () => {
+    let native = record({ seconds: 0, sessionId: 'thread-1', traceId: zeroTrace });
+    let stray = record({ seconds: 5, role: 'supplemental', traceId: zeroTrace });
+
+    await assign([native, stray]);
+
+    expect(stray.ctx.session_key).toBeUndefined();
+  });
+
+  it('ignores a link stored earlier for the all-zero trace id', async () => {
+    cache.set(`corr:${principal.instance.id}:trace:${zeroTrace}`, 'sk_claimed');
+
+    let stray = record({ seconds: 5, role: 'supplemental', traceId: zeroTrace });
+    await assign([stray]);
+
+    expect(stray.ctx.session_key).toBeUndefined();
   });
 });

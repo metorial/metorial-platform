@@ -63,6 +63,8 @@ describe('api-core dashboard: agent tracking settings', () => {
   let limited = useMember(org);
   let projectAdmin = useMember(org);
   let organizationAdmin = useMember(org);
+  let agentReader = useMember(org);
+  let agentAndToolCallReader = useMember(org);
 
   let routes = () => agentTrackingSettingsPaths(org.ids);
 
@@ -234,6 +236,20 @@ describe('api-core dashboard: agent tracking settings', () => {
 
     await update('organization', { privacy: { min_group_users: 5 } });
     await update('project', { retention: { usage_days: null } });
+  });
+
+  it('splits agent provider calls only for viewers who can also read tool calls', async () => {
+    await grant(agentReader, org.ids.instanceId, ['instance.agent_tracking:read']);
+    await grant(agentAndToolCallReader, org.ids.instanceId, [
+      'instance.agent_tracking:read',
+      'instance.provider.session:read'
+    ]);
+
+    let query = { query: { group_by: 'repository' } };
+    let path = agentTrackingPath(org, '/tools/provider-calls');
+
+    expectError(await agentReader.clients.rest.get(path, query), 403);
+    expectOk(await agentAndToolCallReader.clients.rest.get(path, query));
   });
 
   it('rejects values out of range', async () => {
@@ -437,6 +453,8 @@ describe('api-core dashboard: agent tracking with individuals hidden', () => {
     ['/spend/breakdown', { group_by: 'model' }],
     ['/sessions', {}],
     [`/sessions/atse_${uniqueId('missing')}`, {}],
+    [`/sessions/atse_${uniqueId('missing')}/tool-calls`, {}],
+    ['/tool-call-sessions', { tool_call_id: 'tcl_e2e_missing' }],
     ['/filter-values', { field: 'member' }],
     ['/filter-values', { field: 'model' }],
     ['/members', {}],
@@ -444,7 +462,11 @@ describe('api-core dashboard: agent tracking with individuals hidden', () => {
     ['/spend/timeline', { range: 'today' }],
     ['/members/insights', {}],
     ['/spend/breakdown', { group_by: 'model', member_id: 'aten_0mhNnEqM7XQb3vXq8gD2' }],
-    ['/filter-values', { field: 'seat' }]
+    ['/filter-values', { field: 'seat' }],
+    ['/filter-values', { field: 'provider' }],
+    ['/tools/provider-calls', { group_by: 'member' }],
+    ['/tools/provider-calls', { group_by: 'repository' }],
+    ['/tools/provider-calls', { group_by: 'client' }]
   ];
 
   it('answers 403 to reads about one person, filters and today, and presents whole UTC days', async () => {

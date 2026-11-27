@@ -71,8 +71,12 @@ describe('sessions', () => {
   it('ends a session on SessionEnd and filters the list by state', async () => {
     let { organization, instance, secret } = await createHookToken();
 
-    await sendHooks(secret, uniqueId('session'), ['SessionStart', 'SessionEnd']);
-    await sendHooks(secret, uniqueId('session'), ['SessionStart']);
+    await sendHooks(secret, uniqueId('session'), [
+      'SessionStart',
+      'UserPromptSubmit',
+      'SessionEnd'
+    ]);
+    await sendHooks(secret, uniqueId('session'), ['SessionStart', 'UserPromptSubmit']);
 
     let ended = await agentTracking().session.list({
       organizationId: organization.id,
@@ -102,6 +106,48 @@ describe('sessions', () => {
     expect(rest.items).toHaveLength(1);
     expect(rest.items[0]!.sessionKey).not.toBe(page.items[0]!.sessionKey);
   });
+
+  it(
+    'leaves a session in which nothing happened out of the list until a prompt arrives',
+    { timeout: 120_000 },
+    async () => {
+      let { organization, instance, secret } = await createHookToken();
+      let quiet = uniqueId('session');
+
+      await sendHooks(secret, quiet, ['SessionStart', 'SessionEnd']);
+      await sendHooks(secret, uniqueId('session'), ['SessionStart', 'UserPromptSubmit']);
+
+      let listed = async () =>
+        (
+          await agentTracking().session.list({
+            organizationId: organization.id,
+            instanceIds: [instance.id]
+          })
+        ).items;
+
+      let busy = await eventually(
+        async () => {
+          let items = await listed();
+          expect(items).toHaveLength(1);
+          expect(items[0]!.summary?.prompts).toBe(1);
+
+          return items[0]!;
+        },
+        { timeoutMs: 60_000 }
+      );
+
+      await sendHooks(secret, quiet, ['UserPromptSubmit']);
+
+      await eventually(
+        async () => {
+          let items = await listed();
+          expect(items).toHaveLength(2);
+          expect(items.map(item => item.sessionKey)).toContain(busy.sessionKey);
+        },
+        { timeoutMs: 60_000 }
+      );
+    }
+  );
 
   it('keeps sessions inside their organization', async () => {
     let { organization, instance, secret } = await createHookToken();

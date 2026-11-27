@@ -158,6 +158,9 @@ model ToolCall {
   rationale String?
   operation String?
 
+  clientCallId     String?
+  clientCallSource String?
+
   messageOid BigInt         @unique
   message    SessionMessage @relation(fields: [messageOid], references: [oid])
 
@@ -197,6 +200,7 @@ model ToolCall {
   @@index([instanceOid])
   @@index([sessionOid])
   @@index([providerRunOid])
+  @@index([tenantOid, clientCallId])
 }
 
 model ToolCallAttachment {

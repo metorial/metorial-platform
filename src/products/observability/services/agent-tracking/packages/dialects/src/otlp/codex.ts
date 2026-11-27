@@ -308,6 +308,10 @@ let mapEvent = (state: LogState): RecordDraft[] => {
     }
 
     case 'api_request': {
+      // The background app-server logs requests of its own, outside any thread; they carry no
+      // model or usage, and a session they were linked to would be stretched by them.
+      if (!sessionIdOf(fields)) return [];
+
       let status = fields.int('http.response.status_code');
       let duration = fields.count('duration_ms');
       let attempt = fields.count('attempt');

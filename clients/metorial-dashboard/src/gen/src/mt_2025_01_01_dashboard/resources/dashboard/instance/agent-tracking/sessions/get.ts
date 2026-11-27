@@ -72,6 +72,7 @@ export type DashboardInstanceAgentTrackingSessionsGetOutput = {
     pullRequestCount: number;
     lines: { added: number; removed: number };
   };
+  providers: { id: string; name: string | null }[];
   startedAt: Date;
   lastActivityAt: Date;
   endedAt: Date | null;

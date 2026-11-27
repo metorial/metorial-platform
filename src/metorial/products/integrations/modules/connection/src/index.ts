@@ -1,6 +1,11 @@
 export * from './controller';
 export * from './health';
 export * from './lib/callbackEventTools';
+export {
+  type ClientCall,
+  type ToolCallClientSource,
+  toolCallClientSources
+} from './lib/clientCall';
 export * from './lib/connectionFailedTool';
 export type {
   RequestScopedTool,

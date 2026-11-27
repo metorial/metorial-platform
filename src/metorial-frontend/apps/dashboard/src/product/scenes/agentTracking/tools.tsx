@@ -15,6 +15,7 @@ import { styled } from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { formatDateTime } from './activity';
 import { agentTrackingErrorFor } from './errorState';
+import { WithInfo } from './info';
 import {
   defaultAgentTrackingRange,
   formatAgentTrackingRange,
@@ -97,43 +98,8 @@ let LastUsed = ({ date, now }: { date: Date | string | null; now: Date }) =>
     <Muted>—</Muted>
   );
 
-let AgentUsageSettingsLink = ({ children }: { children: React.ReactNode }) => {
-  let ctx = useInstanceContext();
-
-  return (
-    <Link
-      to={Paths.organization.instance.agentUsage(ctx.organization, ctx.project, ctx.instance)}
-    >
-      {children}
-    </Link>
-  );
-};
-
-let detailsOffText = (subject: string) =>
-  `Detailed Tool Reporting is off, so Claude Code set up by Metorial Desktop or the Agent Usage settings file sends no custom ${subject} names. Codex sends them either way.`;
-
-let DetailedReportingOff = ({ subject, hasItems }: { subject: string; hasItems: boolean }) =>
-  hasItems ? (
-    <Text size="2" color="gray600">
-      {`${detailsOffText(subject)} Claude Code usage may be missing from this list. `}
-      <AgentUsageSettingsLink>Agent Usage Settings</AgentUsageSettingsLink>
-    </Text>
-  ) : (
-    <Callout
-      color="gray"
-      action={
-        <AgentUsageSettingsLink>
-          <Button size="2" variant="outline" as="span">
-            Agent Usage Settings
-          </Button>
-        </AgentUsageSettingsLink>
-      }
-    >
-      {detailsOffText(subject)} The counts below still include every use without a name. An
-      organization admin can turn it on in the Agent Usage settings; usage sent before that
-      keeps no names.
-    </Callout>
-  );
+let detailsOffNote = (subject: string) =>
+  `Detailed Tool Reporting is off, so Claude Code set up by Metorial Desktop or the Agent Usage settings file sends no custom ${subject} names. Codex sends them either way. The counts still include every use without a name. An organization admin can turn it on in the Agent Usage settings; usage sent before that keeps no names.`;
 
 let ExportButton = ({ onClick }: { onClick: () => void }) => (
   <Button size="2" variant="outline" iconLeft={<RiDownload2Line />} onClick={onClick}>
@@ -159,6 +125,21 @@ let MetorialUsageLink = () => {
         </Button>
       </Link>
     </Flex>
+  );
+};
+
+let ServerProvider = ({ provider }: { provider: McpServerItem['provider'] }) => {
+  let ctx = useInstanceContext();
+  if (!provider?.name) return null;
+
+  return (
+    <Link
+      to={Paths.instance.provider(ctx.organization, ctx.project, ctx.instance, provider.id)}
+    >
+      <Text as="span" size="1" color="gray600">
+        {provider.name}
+      </Text>
+    </Link>
   );
 };
 
@@ -205,6 +186,7 @@ let McpServersTable = ({ usage }: { usage: McpServerUsage }) => {
         <Text as="span" size="2" weight="medium">
           {server.name}
         </Text>
+        <ServerProvider provider={server.provider} />
       </Flex>,
       ...callCells(server)
     ];
@@ -258,46 +240,38 @@ type ToolUsageBoxProps = {
 
 let ToolUsageBox = (props: ToolUsageBoxProps) => {
   let hasItems = !!props.usage.items.length;
-  let detailsOff = props.usage.toolDetails ? null : (
-    <DetailedReportingOff subject={props.subject} hasItems={hasItems} />
-  );
+  let info = props.usage.toolDetails
+    ? sourceNote
+    : `${sourceNote} ${detailsOffNote(props.subject)}`;
 
   return (
-    <>
-      {hasItems ? null : detailsOff}
+    <Box
+      title={<WithInfo info={info}>{props.title}</WithInfo>}
+      description={formatAgentTrackingRange(props.usage.range)}
+      rightActions={hasItems ? <ExportButton onClick={props.onExport} /> : null}
+    >
+      <Flex direction="column" gap={16}>
+        <MetricsSummary columns={props.summary.length} items={props.summary} />
 
-      <Box
-        title={props.title}
-        description={formatAgentTrackingRange(props.usage.range)}
-        rightActions={hasItems ? <ExportButton onClick={props.onExport} /> : null}
-      >
-        <Flex direction="column" gap={16}>
-          <MetricsSummary columns={props.summary.length} items={props.summary} />
+        {props.unnamed ? (
+          <Text size="2" color="gray600">
+            {props.unnamed}
+          </Text>
+        ) : null}
 
-          {props.unnamed ? (
-            <Text size="2" color="gray600">
-              {props.unnamed}
-            </Text>
-          ) : null}
+        {hasItems ? (
+          props.table
+        ) : (
+          <Text size="2" color="gray600">
+            {props.emptyText}
+          </Text>
+        )}
 
-          {hasItems ? detailsOff : null}
+        {props.usage.truncated ? <Callout color="gray">{props.truncatedText}</Callout> : null}
 
-          {hasItems ? (
-            props.table
-          ) : (
-            <Text size="2" color="gray600">
-              {props.emptyText}
-            </Text>
-          )}
-
-          {props.usage.truncated ? (
-            <Callout color="gray">{props.truncatedText}</Callout>
-          ) : null}
-
-          {props.footer}
-        </Flex>
-      </Box>
-    </>
+        {props.footer}
+      </Flex>
+    </Box>
   );
 };
 
@@ -420,28 +394,22 @@ export let AgentTrackingTools = ({ instanceId }: { instanceId: string }) => {
 
   return (
     <Flex direction="column" gap={20}>
-      <Flex direction="column" gap={8}>
-        <Flex align="center" gap={12} wrap="wrap">
-          <div>
-            <OptionToggle
-              size="2"
-              ariaLabel="Show"
-              items={views.map(item => ({ id: item.id, label: item.label }))}
-              value={view}
-              onChange={value => setView(value as ToolsView)}
-            />
-          </div>
-
-          <FilterToolbar
-            filters={[spendRangeFilter.filter]}
-            filterState={filterState}
-            placeholder="Filter..."
+      <Flex align="center" gap={12} wrap="wrap">
+        <div>
+          <OptionToggle
+            size="2"
+            ariaLabel="Show"
+            items={views.map(item => ({ id: item.id, label: item.label }))}
+            value={view}
+            onChange={value => setView(value as ToolsView)}
           />
-        </Flex>
+        </div>
 
-        <Text size="1" color="gray600">
-          {sourceNote}
-        </Text>
+        <FilterToolbar
+          filters={[spendRangeFilter.filter]}
+          filterState={filterState}
+          placeholder="Filter..."
+        />
       </Flex>
 
       {view == 'mcp' ? (

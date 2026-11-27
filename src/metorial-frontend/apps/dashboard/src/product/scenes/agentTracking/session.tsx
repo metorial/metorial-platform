@@ -17,6 +17,7 @@ import { CostValue } from './cost';
 import { agentTrackingErrorStatus, AgentTrackingErrorState } from './errorState';
 import { WithInfo } from './info';
 import { MemberDetails, memberPath } from './memberParts';
+import { unknownProviderLabel } from './providerCalls';
 import {
   linesChangedLabel,
   otherDefaultBranch,
@@ -27,6 +28,7 @@ import {
   worktreeLabel
 } from './sessionContext';
 import { describeSessionCost, sessionCostKind } from './sessionCost';
+import { SessionToolCallsBox } from './sessionToolCalls';
 import {
   clientVersion,
   costIsSettling,
@@ -261,8 +263,41 @@ let CommitList = ({ commits }: { commits: Session['commits'] }) => (
   </RowList>
 );
 
+let ProviderLinks = ({ providers }: { providers: Session['providers'] }) => {
+  let ctx = useInstanceContext();
+
+  return (
+    <Flex gap={8} wrap="wrap">
+      {providers.map(provider =>
+        provider.name ? (
+          <Link
+            key={provider.id}
+            to={Paths.instance.provider(
+              ctx.organization,
+              ctx.project,
+              ctx.instance,
+              provider.id
+            )}
+          >
+            {provider.name}
+          </Link>
+        ) : (
+          <Text key={provider.id} as="span" size="2" color="gray600">
+            {unknownProviderLabel}
+          </Text>
+        )
+      )}
+    </Flex>
+  );
+};
+
 let ContextBox = ({ session }: { session: Session }) => {
-  let items = contextItems(session.context);
+  let items = [
+    ...contextItems(session.context),
+    ...(session.providers.length
+      ? [{ label: 'Providers', value: <ProviderLinks providers={session.providers} /> }]
+      : [])
+  ];
 
   return (
     <Box title="Context">
@@ -365,7 +400,7 @@ let SessionHeader = ({ sessionId, session }: { sessionId: string; session?: Sess
   );
 };
 
-let SessionDetail = ({ session }: { session: Session }) => (
+let SessionDetail = ({ instanceId, session }: { instanceId: string; session: Session }) => (
   <Flex direction="column" gap={20}>
     <SessionHeader sessionId={session.id} session={session} />
 
@@ -374,6 +409,7 @@ let SessionDetail = ({ session }: { session: Session }) => (
         <SessionFigures session={session} />
         <CostExplanation session={session} />
         <ContextBox session={session} />
+        <SessionToolCallsBox instanceId={instanceId} sessionId={session.id} />
         <TokensBox session={session} />
       </Flex>
 
@@ -435,5 +471,5 @@ export let AgentTrackingSession = ({
         </Flex>
       )
     }
-  )(({ session }) => <SessionDetail session={session.data} />);
+  )(({ session }) => <SessionDetail instanceId={instanceId} session={session.data} />);
 };

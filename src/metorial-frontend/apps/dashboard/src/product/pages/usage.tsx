@@ -1,5 +1,6 @@
 import { formatDuration } from '@metorial/chart';
 import { ContentLayout, PageHeader } from '@metorial/layout';
+import { UsageAgentCallCards } from '../scenes/agentTracking/providerCallsCards';
 import {
   UsageEventsCard,
   UsageLineCard,
@@ -195,6 +196,8 @@ export let UsagePage = () => (
             kinds={['session_error']}
             groupBy="error_type"
           />
+
+          <UsageAgentCallCards range={range} />
         </>
       )}
     </UsageSection>

@@ -211,6 +211,33 @@ describe('codexOtlp log events', () => {
     expect(one('api_request').data).toEqual({});
   });
 
+  it('maps no api request without a session id', () => {
+    let daemonRequest = logRecord(
+      { 'event.name': 'api_request', duration_ms: 120, attempt: 1 },
+      { traceId: '0'.repeat(32), spanId: '0'.repeat(16) }
+    );
+
+    expect(
+      codexOtlp.mapLog!(ctx('logs', { 'service.name': 'codex-app-server' }), daemonRequest)
+    ).toEqual([]);
+  });
+
+  it('keeps no trace from all-zero ids and keeps a real trace', () => {
+    let zero = { traceId: '0'.repeat(32), spanId: '0'.repeat(16) };
+    let real = { traceId: '4bf92f3577b34da6a3ce929d0e0e4736', spanId: '00f067aa0ba902b7' };
+
+    expect(one('user_prompt', {}, zero).ctx).not.toHaveProperty('trace');
+    expect(one('user_prompt', {}, real).ctx?.trace).toEqual(real);
+  });
+
+  it('keeps an api request with a conversation id unchanged', () => {
+    expect(one('api_request', { 'http.response.status_code': 200 })).toMatchObject({
+      type: 'model.request',
+      role: 'supplemental',
+      ctx: { sessionId: 'conv-1', turnId: 'turn-1' }
+    });
+  });
+
   it('only maps completed sse events', () => {
     expect(mapLog('sse_event', { 'event.kind': 'response.created' })).toEqual([]);
     expect(mapLog('sse_event', {})).toEqual([]);

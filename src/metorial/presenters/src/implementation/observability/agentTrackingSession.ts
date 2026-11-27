@@ -6,6 +6,7 @@ import {
   agentTrackingCostSchema,
   agentTrackingMemberSchema,
   agentTrackingModelSchema,
+  agentTrackingProviderSchema,
   agentTrackingRepositorySchema,
   agentTrackingSpendFiguresProperties,
   agentTrackingTicketSchema,
@@ -13,6 +14,7 @@ import {
   agentTrackingUnknownModelNamesSchema,
   presentAgentTrackingCost,
   presentAgentTrackingMember,
+  presentAgentTrackingProvider,
   presentAgentTrackingRepository,
   presentAgentTrackingSpendCost,
   presentAgentTrackingTicket,
@@ -203,6 +205,7 @@ export let v1AgentTrackingSessionPresenter = Presenter.create(agentTrackingSessi
     summary_pending: session.summaryPending,
 
     context: presentContext(session.context),
+    providers: session.providers.map(presentAgentTrackingProvider),
 
     started_at: session.startedAt,
     last_activity_at: session.lastActivityAt,
@@ -280,6 +283,11 @@ export let v1AgentTrackingSessionPresenter = Presenter.create(agentTrackingSessi
       }),
 
       context: contextSchema,
+      providers: v.array(agentTrackingProviderSchema, {
+        name: 'providers',
+        description:
+          'Metorial providers the MCP tool calls of the session reached, at most 16. Only Claude Code and Codex calls are matched, a few minutes after they happen.'
+      }),
 
       started_at: v.date({ name: 'started_at', description: 'When the session started.' }),
       last_activity_at: v.date({

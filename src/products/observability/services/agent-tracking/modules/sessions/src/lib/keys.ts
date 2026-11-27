@@ -1,4 +1,9 @@
-import type { NormalizedRecord } from '@mtsrc/agent-tracking-spec';
+import {
+  isAllZeroId,
+  type NormalizedRecord,
+  type RecordRole,
+  type SessionOrigin
+} from '@mtsrc/agent-tracking-spec';
 import type { IngestPrincipal } from '@mtsrc/agent-tracking-records-model';
 import type { RecordDocument } from '@mtsrc/agent-tracking-store';
 
@@ -10,8 +15,12 @@ export type Correlation = { type: CorrelationType; value: string };
 
 export type RecordActor = { userId?: string; deviceId?: string; agentId?: string };
 
+// Records stored before the readers dropped all-zero trace ids still carry them; such an id is no
+// trace, and as a correlation it would join unrelated records across the instance.
 let correlations = (values: [CorrelationType, string | undefined][]): Correlation[] =>
-  values.flatMap(([type, value]) => (value ? [{ type, value }] : []));
+  values.flatMap(([type, value]) =>
+    value && !(type == 'trace' && isAllZeroId(value)) ? [{ type, value }] : []
+  );
 
 export let recordCorrelations = (record: NormalizedRecord) => {
   let ctx = record.ctx;
@@ -34,6 +43,11 @@ export let documentCorrelations = (document: Pick<RecordDocument, 'ctx'>) => {
     ['generation', ctx.generationId]
   ]);
 };
+
+// A record linked to a session by a correlation id tells when the session ran only when it is
+// primary work of its own; housekeeping linked that way could stretch it arbitrarily.
+export let movesSessionBounds = (d: { origin?: SessionOrigin; role: RecordRole }) =>
+  d.origin != 'linked' || d.role == 'primary';
 
 export let correlationKey = (instanceId: string, correlation: Correlation) =>
   `${instanceId}:${correlation.type}:${correlation.value}`;

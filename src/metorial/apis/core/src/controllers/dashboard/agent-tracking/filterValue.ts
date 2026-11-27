@@ -9,13 +9,14 @@ import { agentTrackingFilterValuesPresenter } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
 import { idFilter, rangeOf } from '../../../lib/agentTrackingParams';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { canReadProviders } from '../../../lib/toolCallAccess';
 import { agentTrackingBasePath, agentTrackingReadGroup, rangeQueryFields } from './readGroup';
 
 export let dashboardAgentTrackingFilterValueController = Controller.create(
   {
     name: 'Agent Tracking Filter Values',
     description:
-      'The members, models, clients, seats, repositories, branches and tickets a filter can choose from.',
+      'The members, models, clients, seats, repositories, branches, tickets and providers a filter can choose from.',
     hideInDocs: true
   },
   {
@@ -27,7 +28,7 @@ export let dashboardAgentTrackingFilterValueController = Controller.create(
         ),
         {
           name: 'List filter values',
-          description: `Returns the values of one filter field that sent usage in a range, including members seen only in telemetry. Seats need a range of at most ${requestRecordDays} days. With \`value\`, describes those values instead, without reading usage. Results can be up to a minute old.`,
+          description: `Returns the values of one filter field that sent usage in a range, including members seen only in telemetry. Providers are those that coding agent tool calls in the range reached. Seats and providers need a range of at most ${requestRecordDays} days. With \`value\`, describes those values instead, without reading usage. Results can be up to a minute old.`,
           hideInDocs: true
         }
       )
@@ -63,6 +64,7 @@ export let dashboardAgentTrackingFilterValueController = Controller.create(
           project: ctx.project,
           instance: ctx.instance,
           field: ctx.query.field,
+          canReadProviders: ctx.query.field == 'provider' && (await canReadProviders(ctx)),
           search: ctx.query.search,
           values: normalizeArrayParam(ctx.query.value),
           range: rangeOf(ctx.query)

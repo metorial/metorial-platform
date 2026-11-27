@@ -2,13 +2,22 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceAgentTrackingFilterValuesListOutput = {
   object: 'agent_tracking.filter_values';
-  field: 'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket';
+  field:
+    'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket' | 'provider';
   range: { preset: string | null; from: Date; to: Date; timeZone: string };
   truncated: boolean;
   items: {
     value: string;
     kind:
-      'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket' | 'unknown';
+      | 'member'
+      | 'model'
+      | 'client'
+      | 'seat'
+      | 'repository'
+      | 'branch'
+      | 'ticket'
+      | 'provider'
+      | 'unknown';
     member: {
       object: 'agent_tracking.member';
       id: string;
@@ -29,6 +38,7 @@ export type DashboardInstanceAgentTrackingFilterValuesListOutput = {
       name: string | null;
       url: string | null;
     } | null;
+    provider: { id: string; name: string | null } | null;
     requests: number | null;
   }[];
 };
@@ -40,7 +50,8 @@ export let mapDashboardInstanceAgentTrackingFilterValuesListOutput =
   ]);
 
 export type DashboardInstanceAgentTrackingFilterValuesListQuery = {
-  field: 'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket';
+  field:
+    'member' | 'model' | 'client' | 'seat' | 'repository' | 'branch' | 'ticket' | 'provider';
   search?: string | undefined;
   value?: string | string[] | undefined;
   range?:

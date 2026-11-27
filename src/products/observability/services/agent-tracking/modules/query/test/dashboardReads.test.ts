@@ -19,6 +19,7 @@ describe('last activity per member', () => {
 
     expect(JSON.stringify(pipeline)).toContain('"$max"');
     expect(JSON.stringify(pipeline)).toContain('lastActivityAt');
+    expect(pipeline[0]).toMatchObject({ $match: { empty: { $ne: true } } });
     expect(datasets.sessions.metrics.last_activity).toMatchObject({ fn: 'max', type: 'date' });
 
     let earlier = new Date('2026-11-14T10:47:00.000Z');

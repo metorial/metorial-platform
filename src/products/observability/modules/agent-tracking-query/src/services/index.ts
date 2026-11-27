@@ -15,6 +15,7 @@ export {
 } from '../lib/filterValues';
 export { memberInsightsFlags, memberInsightsGroups } from '../lib/memberInsights';
 export { growthRateBounds } from '../lib/projection';
+export { providerCallGroups, providerCallsLimit } from '../lib/providerCalls';
 export * from '../lib/agentActivity';
 export {
   agentActiveWindowDays,

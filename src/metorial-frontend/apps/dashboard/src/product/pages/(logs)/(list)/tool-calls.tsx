@@ -25,6 +25,7 @@ export let ToolCallsPage = () => {
   return renderWithLoader({ instance })(({ instance }) => (
     <ToolCallsTable
       instanceId={instance.data.id}
+      showAgentSessions
       layout={{
         framed: true,
         topContent: (

@@ -12,9 +12,11 @@ import {
   MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint,
   MetorialDashboardInstanceAgentTrackingMembersEndpoint,
   MetorialDashboardInstanceAgentTrackingSessionsEndpoint,
+  MetorialDashboardInstanceAgentTrackingSessionsToolCallsEndpoint,
   MetorialDashboardInstanceAgentTrackingSettingsEndpoint,
   MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint,
   MetorialDashboardInstanceAgentTrackingSpendEndpoint,
+  MetorialDashboardInstanceAgentTrackingToolCallSessionsEndpoint,
   MetorialDashboardInstanceAgentTrackingToolsEndpoint,
   MetorialDashboardInstanceAgentTrackingViewsEndpoint,
   MetorialDashboardInstanceAiToolDetectionsEndpoint,
@@ -1240,7 +1242,15 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     ingestSources: new MetorialDashboardInstanceAgentTrackingIngestSourcesEndpoint(manager),
     spend: new MetorialDashboardInstanceAgentTrackingSpendEndpoint(manager),
     tools: new MetorialDashboardInstanceAgentTrackingToolsEndpoint(manager),
-    sessions: new MetorialDashboardInstanceAgentTrackingSessionsEndpoint(manager),
+    sessions: Object.assign(
+      new MetorialDashboardInstanceAgentTrackingSessionsEndpoint(manager),
+      {
+        toolCalls: new MetorialDashboardInstanceAgentTrackingSessionsToolCallsEndpoint(manager)
+      }
+    ),
+    toolCallSessions: new MetorialDashboardInstanceAgentTrackingToolCallSessionsEndpoint(
+      manager
+    ),
     filterValues: new MetorialDashboardInstanceAgentTrackingFilterValuesEndpoint(manager),
     members: new MetorialDashboardInstanceAgentTrackingMembersEndpoint(manager),
     setupStatus: new MetorialDashboardInstanceAgentTrackingSetupStatusEndpoint(manager),

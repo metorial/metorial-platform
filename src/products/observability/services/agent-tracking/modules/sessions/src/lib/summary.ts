@@ -27,10 +27,11 @@ import type {
   SourceKind
 } from '@mtsrc/agent-tracking-store';
 import type { RecordDocument } from '@mtsrc/agent-tracking-store';
-import { documentCorrelations, type Correlation } from './keys';
+import { documentCorrelations, movesSessionBounds, type Correlation } from './keys';
+import { isMcpToolCall, toolCallIdOf, toolCallKey, type ToolCallRef } from './toolCalls';
 import { sourceKindOf, usageRank } from '@mtsrc/agent-tracking-module-usage';
 import { bucketStart } from '@mtsrc/agent-tracking-layers';
-import { isClaudeCodeMainQuerySource } from '@mtsrc/agent-tracking-spec';
+import { desktopContextId, isClaudeCodeMainQuerySource } from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
 import {
   addTokens,
@@ -70,14 +71,24 @@ export type SummaryRecord = Pick<
   | 'ctx'
   | 'data'
   | 'attribution'
+  | 'metorial'
 >;
+
+export type SessionMcpToolCallRef = ToolCallRef & {
+  stamped: boolean;
+  unstamped: boolean;
+  missingToolKey: boolean;
+};
 
 export type SessionAggregate = {
   records: number;
+  empty: boolean;
   summary: SessionSummary;
   slices: BaseSlice[];
   coverage: Omit<SessionCoverage, 'fullyAttributed'>;
   correlations: Correlation[];
+  mcpToolCalls: SessionMcpToolCallRef[];
+  toolCallRepoIds: (string | null)[];
   firstOccurredAt?: Date;
   lastOccurredAt?: Date;
   lastTurnObservedAt?: Date;
@@ -146,6 +157,19 @@ type PullRequestEntry = { ref: SessionPullRequestRef; at: Date };
 type CommitEntry = { ref: SessionCommitRef; committedAt?: Date };
 
 type Lines = { added: number; removed: number };
+
+type Span = { first?: Date; firstSubagentId?: string; last?: Date; endedAt: number };
+
+let widen = (span: Span, occurredAt: Date, durationMs: number, subagentId?: string) => {
+  if (!span.first || occurredAt < span.first) {
+    span.first = occurredAt;
+    span.firstSubagentId = subagentId;
+  }
+
+  if (!span.last || occurredAt > span.last) span.last = occurredAt;
+
+  span.endedAt = Math.max(span.endedAt, occurredAt.getTime() + durationMs);
+};
 
 let strongerSource = (a: VendorSource | undefined, b: VendorSource | undefined) =>
   !a || (b && vendorSourceOrder.indexOf(b) < vendorSourceOrder.indexOf(a)) ? b : a;
@@ -367,6 +391,7 @@ export let aggregateSession = async (d: {
   pricing?: OverridePricer | null;
   declarations?: DeclarationLookup | null;
   correlationsSince?: Date;
+  hasMeasurements?: () => Promise<boolean>;
 }): Promise<SessionAggregate> => {
   let seen = new Map<string, Set<string>>();
   let isNew = (type: string, key: string) => {
@@ -379,11 +404,11 @@ export let aggregateSession = async (d: {
   };
 
   let records = 0;
-  let firstOccurredAt: Date | undefined;
-  let lastOccurredAt: Date | undefined;
-  let lastEndedAt = 0;
+  let ownSpan: Span = { endedAt: 0 };
+  let anySpan: Span = { endedAt: 0 };
   let lastTurnObservedAt: Date | undefined;
-  let firstSubagentId: string | undefined;
+  let fromDesktop = false;
+  let worked = false;
 
   let turns = 0;
   let prompts = 0;
@@ -405,6 +430,8 @@ export let aggregateSession = async (d: {
   let sessionProvider: string | undefined;
 
   let correlations = new Map<string, Correlation>();
+  let mcpToolCalls = new Map<string, SessionMcpToolCallRef>();
+  let toolCallRepoIds = new Set<string | null>();
   let usage: UsageEntry[] = [];
   let requestSlots = new Map<string, number>();
   let slices = new Map<string, SliceTotals>();
@@ -471,14 +498,10 @@ export let aggregateSession = async (d: {
     let ctx = document.ctx ?? {};
     let subagentId = ctx.agent?.id;
 
-    if (!firstOccurredAt || occurredAt < firstOccurredAt) {
-      firstOccurredAt = occurredAt;
-      firstSubagentId = subagentId;
+    widen(anySpan, occurredAt, document.durationMs ?? 0, subagentId);
+    if (movesSessionBounds({ origin: ctx.sessionOrigin, role: document.source.role })) {
+      widen(ownSpan, occurredAt, document.durationMs ?? 0, subagentId);
     }
-
-    if (!lastOccurredAt || occurredAt > lastOccurredAt) lastOccurredAt = occurredAt;
-
-    lastEndedAt = Math.max(lastEndedAt, occurredAt.getTime() + (document.durationMs ?? 0));
 
     if (!d.correlationsSince || document.observedAt > d.correlationsSince) {
       for (let correlation of documentCorrelations(document)) {
@@ -486,9 +509,36 @@ export let aggregateSession = async (d: {
       }
     }
 
+    if (document.type == 'tool.call')
+      toolCallRepoIds.add(document.attribution?.repoId ?? null);
+
+    if (isMcpToolCall(document)) {
+      let ref = { clientFamily: document.client.family, toolCallId: toolCallIdOf(document)! };
+      let call = mcpToolCalls.get(toolCallKey(ref)) ?? {
+        ...ref,
+        stamped: false,
+        unstamped: false,
+        missingToolKey: false
+      };
+
+      if (document.metorial) call.stamped = true;
+      else call.unstamped = true;
+      if (document.metorial && !document.metorial.toolKey) call.missingToolKey = true;
+
+      mcpToolCalls.set(toolCallKey(ref), call);
+    }
+
     if (document.type == 'session.context') hasContext = true;
     if (document.attribution?.workspaceId) hasContext = true;
     if (document.attribution?.repoId) hasContext = hasRepo = true;
+    if (document.source.dialect == desktopContextId) fromDesktop = true;
+
+    // Turns and usage count in every role, since some clients send them only as aggregates or
+    // spans; a connection warmup is no work.
+    let carriesUsage = !!readTokens(data.usage) || !!readCost(data.cost);
+    if (document.type == 'turn.completed' || (carriesUsage && data.warmup !== true)) {
+      worked = true;
+    }
 
     if (document.source.role != 'primary') continue;
 
@@ -929,17 +979,35 @@ export let aggregateSession = async (d: {
       ? 'toolLines'
       : 'statsLines';
 
-  if (firstOccurredAt) {
+  let lines = { codeLines, toolLines, statsLines }[lineSource];
+
+  // A thread in which nothing happened, like one that only warmed up its connection, is kept but
+  // not listed or counted as a session. The summary does not read measurements, so a session with
+  // any of them is never empty.
+  let empty =
+    !worked &&
+    !prompts &&
+    !toolCalls &&
+    !requestEntries.length &&
+    !commitRefs.size &&
+    !pullRequestRefs.size &&
+    !hasLines(lines) &&
+    !fromDesktop &&
+    !(await d.hasMeasurements?.());
+
+  let span = ownSpan.first ? ownSpan : anySpan;
+
+  if (span.first && !empty) {
     sliceFor({
-      occurredAt: firstOccurredAt,
-      subagentId: firstSubagentId
+      occurredAt: span.first,
+      subagentId: span.firstSubagentId
     }).slice.sessionsStarted = 1;
   }
 
   let subagentIds = new Set([...subagentNames.keys(), ...subagents.keys()]);
 
   let summary: SessionSummary = {
-    durationMs: firstOccurredAt ? Math.max(0, lastEndedAt - firstOccurredAt.getTime()) : 0,
+    durationMs: span.first ? Math.max(0, span.endedAt - span.first.getTime()) : 0,
     turns,
     prompts,
     requests,
@@ -981,13 +1049,13 @@ export let aggregateSession = async (d: {
     ...(totals.computed !== undefined ? { costComputedUsd: toDecimal(totals.computed) } : {}),
     ...(totals.contract !== undefined ? { costContractUsd: toDecimal(totals.contract) } : {}),
     ...(costUsd !== undefined ? { costUsd: toDecimal(costUsd) } : {}),
-    lines: { codeLines, toolLines, statsLines }[lineSource],
+    lines,
     commits: commitRefs.size,
     pullRequests,
     commitRefs: newestFirst(
       [...commitRefs.values()].map(entry => ({
         ...entry.ref,
-        at: commitTime(entry, firstOccurredAt)
+        at: commitTime(entry, span.first)
       })),
       maxCommitRefs
     ),
@@ -1000,6 +1068,7 @@ export let aggregateSession = async (d: {
 
   return {
     records,
+    empty,
     summary,
     slices: [...slices.values()].map(totals => ({
       ...totals.slice,
@@ -1020,8 +1089,10 @@ export let aggregateSession = async (d: {
       ...(winner ? { usageSource: winner } : {})
     },
     correlations: [...correlations.values()],
-    firstOccurredAt,
-    lastOccurredAt,
+    mcpToolCalls: [...mcpToolCalls.values()],
+    toolCallRepoIds: [...toolCallRepoIds],
+    firstOccurredAt: span.first,
+    lastOccurredAt: span.last,
     lastTurnObservedAt
   };
 };

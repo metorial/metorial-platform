@@ -11,6 +11,7 @@ import {
   getBrowserTimeZone,
   type AgentTrackingRangePreset
 } from './range';
+import { providerLabel } from './providerCalls';
 import { repositoryLabel } from './sessionContext';
 import { modelLabel } from './spendSummary';
 
@@ -43,6 +44,8 @@ let filterValueOption =
       };
     }
 
+    if (value.provider) return { id: value.value, label: providerLabel(value.provider) };
+
     return {
       id: value.value,
       label: value.model ? modelLabel(value.model) : value.value,
@@ -53,7 +56,12 @@ let filterValueOption =
 let filterValuesFilter =
   (
     field: DashboardInstanceAgentTrackingFilterValuesListQuery['field'],
-    d: Pick<EntityDefinition, 'id' | 'label' | 'noun' | 'mode'>
+    {
+      emptyText,
+      ...d
+    }: Pick<EntityDefinition, 'id' | 'label' | 'noun' | 'mode'> & {
+      emptyText?: (rangeText: string) => string;
+    }
   ) =>
   (instanceId: string | undefined, rangeText = 'this range') =>
     defineEntityFilter({
@@ -61,7 +69,7 @@ let filterValuesFilter =
       emptyMessage: search =>
         search
           ? `No matching ${d.noun} in ${rangeText}.`
-          : `No ${d.noun} sent usage in ${rangeText}.`,
+          : (emptyText?.(rangeText) ?? `No ${d.noun} sent usage in ${rangeText}.`),
       useList: q => {
         let range = useContext(AgentTrackingFilterRangeContext);
         let values = useAgentTrackingFilterValues(
@@ -117,5 +125,13 @@ export let agentTrackingFilters = {
     label: 'Ticket',
     noun: 'tickets',
     mode: 'search'
+  }),
+  provider: filterValuesFilter('provider', {
+    id: 'providerId',
+    label: 'Provider',
+    noun: 'providers',
+    mode: 'recent',
+    emptyText: rangeText =>
+      `No coding agent tool call reached a Metorial provider in ${rangeText}.`
   })
 };

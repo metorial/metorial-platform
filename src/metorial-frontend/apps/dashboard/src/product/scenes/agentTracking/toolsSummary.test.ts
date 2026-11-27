@@ -44,10 +44,11 @@ let mcpUsage = (): McpServerUsage => ({
   items: [
     {
       name: 'metorial-github',
+      provider: { id: 'pro_github', name: 'GitHub' },
       ...figures(4),
       tools: [{ name: 'create_issue', ...figures(4) }]
     },
-    { name: '=cmd', ...figures(3), tools: [] }
+    { name: '=cmd', provider: null, ...figures(3), tools: [] }
   ],
   truncated: false
 });

@@ -262,6 +262,47 @@ describe('otlp ingest', () => {
     expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
+  it('stores no Codex api request that belongs to no thread', async () => {
+    let { instance, secret } = await createToken();
+
+    let apiRequest = (attributes: { key: string; value: unknown }[]) => ({
+      timeUnixNano: nowNanos(),
+      traceId: '0'.repeat(32),
+      spanId: '0'.repeat(16),
+      body: { stringValue: 'codex.api_request' },
+      attributes: [
+        attr('event.name', 'codex.api_request'),
+        attr('duration_ms', 120),
+        attr('attempt', 1),
+        ...attributes
+      ]
+    });
+
+    let response = await send('/v1/logs', secret, {
+      resourceLogs: [
+        {
+          resource: resource('codex-app-server'),
+          scopeLogs: [
+            {
+              scope: { name: 'codex_otel.log_only' },
+              logRecords: [apiRequest([]), apiRequest([attr('conversation.id', 'thread-1')])]
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(response.status).toBe(200);
+
+    let stored = await instanceRecords(instance);
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.record).toMatchObject({
+      type: 'model.request',
+      ctx: { session_id: 'thread-1' }
+    });
+  });
+
   it('keeps records of different instances apart', async () => {
     let first = await createToken();
     let second = await createToken();

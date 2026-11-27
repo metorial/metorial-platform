@@ -10,6 +10,7 @@ import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
 import { agentTrackingFilters } from './filters';
 import { WithInfo } from './info';
 import { MemberIdentity, memberPath } from './memberParts';
+import { providerLabel } from './providerCalls';
 import { lastActiveRangeFilter, lastActiveRangeQuery, useLastActiveRange } from './range';
 import { repositoryLabel } from './sessionContext';
 import {
@@ -23,7 +24,7 @@ import { clientLabel } from './spendSummary';
 
 let filterRangeText = 'the last 30 days';
 
-let listCellWidths = { repository: 190, branch: 150, tickets: 100 };
+let listCellWidths = { repository: 190, branch: 150, tickets: 100, providers: 160 };
 
 type Session = DashboardInstanceAgentTrackingSessionsListOutput['items'][number];
 
@@ -78,6 +79,7 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
         ),
         branch: f.entity(agentTrackingFilters.branch(props.instanceId, filterRangeText)),
         ticket: f.entity(agentTrackingFilters.ticket(props.instanceId, filterRangeText)),
+        providerId: f.entity(agentTrackingFilters.provider(props.instanceId, filterRangeText)),
         range: lastActiveRangeFilter
       };
 
@@ -103,6 +105,7 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
             repositoryId: filters.repositoryId,
             branch: filters.branch,
             ticket: filters.ticket,
+            providerId: filters.providerId,
             ...lastActiveRangeQuery(filters.range?.[0])
           }
         )
@@ -143,6 +146,17 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
           <FirstAndRest
             names={row.context.tickets.map(ticket => ticket.key)}
             maxWidth={listCellWidths.tickets}
+          />
+        )
+      }),
+      col.custom<Session>({
+        id: 'providers',
+        header: 'Providers',
+        isDefault: false,
+        render: row => (
+          <FirstAndRest
+            names={row.providers.map(providerLabel)}
+            maxWidth={listCellWidths.providers}
           />
         )
       }),

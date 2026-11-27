@@ -3,6 +3,7 @@ export * from './agentTrackingIngestSource';
 export * from './agentTrackingMember';
 export * from './agentTrackingMemberInsights';
 export * from './agentTrackingSession';
+export * from './agentTrackingSessionToolCall';
 export * from './agentTrackingSettings';
 export * from './agentTrackingSetupStatus';
 export * from './agentTrackingSpend';

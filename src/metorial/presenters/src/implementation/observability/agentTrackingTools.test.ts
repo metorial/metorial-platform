@@ -4,11 +4,14 @@ vi.mock('@metorial/module-agent-tracking-query', () => ({
   maxDistinctCount: 10_000,
   maxMcpServers: 500,
   maxMcpTools: 2000,
-  maxSkills: 500
+  maxSkills: 500,
+  providerCallGroups: ['repository', 'member', 'client'],
+  providerCallsLimit: 10
 }));
 
 import {
   v1AgentTrackingMcpServerUsagePresenter,
+  v1AgentTrackingProviderCallsPresenter,
   v1AgentTrackingSkillUsagePresenter
 } from './agentTrackingTools';
 
@@ -77,8 +80,13 @@ describe('agent tracking MCP server usage presenter', () => {
             toolDetails: true,
             summary: { ...figures, calls: 6, namedCalls: 4, countsCapped: true },
             items: [
-              { name: 'github', ...figures, tools: [{ name: 'create_issue', ...figures }] },
-              { name: 'figma', ...figures, errorRate: null, tools: [] }
+              {
+                name: 'github',
+                provider: { id: 'pro_github', name: 'GitHub' },
+                ...figures,
+                tools: [{ name: 'create_issue', ...figures }]
+              },
+              { name: 'figma', provider: null, ...figures, errorRate: null, tools: [] }
             ],
             truncated: true
           }
@@ -103,12 +111,68 @@ describe('agent tracking MCP server usage presenter', () => {
       items: [
         {
           name: 'github',
+          provider: { id: 'pro_github', name: 'GitHub' },
           ...presentedFigures,
           tools: [{ name: 'create_issue', ...presentedFigures }]
         },
-        { name: 'figma', ...presentedFigures, error_rate: null, tools: [] }
+        { name: 'figma', provider: null, ...presentedFigures, error_rate: null, tools: [] }
       ],
       truncated: true
+    });
+  });
+});
+
+describe('agent tracking provider calls presenter', () => {
+  it('presents the groups with their calls and failures in snake case', async () => {
+    let repository = {
+      id: 'aten_repo',
+      provider: 'github.com',
+      host: 'github.com',
+      owner: 'acme',
+      name: 'api',
+      url: 'https://github.com/acme/api'
+    };
+    let none = { member: null, repository: null, client: null };
+
+    let presented = await v1AgentTrackingProviderCallsPresenter
+      .present(
+        {
+          providerCalls: {
+            range,
+            groupBy: 'repository',
+            providerId: 'pro_linear',
+            toolKey: null,
+            total: { calls: 11, failed: 3 },
+            items: [
+              {
+                ...none,
+                kind: 'repository',
+                key: 'aten_repo',
+                repository,
+                calls: 7,
+                failed: 2
+              },
+              { ...none, kind: 'unknown', key: 'unknown', calls: 3, failed: 0 },
+              { ...none, kind: 'other', key: 'other', calls: 1, failed: 1 }
+            ]
+          }
+        },
+        context
+      )
+      .run();
+
+    expect(presented).toEqual({
+      object: 'agent_tracking.provider_calls',
+      range: { preset: 'last_7_days', from: range.from, to: range.to, time_zone: 'UTC' },
+      group_by: 'repository',
+      provider_id: 'pro_linear',
+      tool_key: null,
+      total: { calls: 11, failed: 3 },
+      items: [
+        { ...none, kind: 'repository', key: 'aten_repo', repository, calls: 7, failed: 2 },
+        { ...none, kind: 'unknown', key: 'unknown', calls: 3, failed: 0 },
+        { ...none, kind: 'other', key: 'other', calls: 1, failed: 1 }
+      ]
     });
   });
 });

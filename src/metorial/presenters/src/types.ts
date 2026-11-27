@@ -208,15 +208,18 @@ import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type {
   AgentTrackingFilterValues,
   AgentTrackingMcpServerUsage,
+  AgentTrackingProviderCalls,
   AgentTrackingMemberInsights,
   AgentTrackingSeenMember,
   AgentTrackingSessionDetail,
+  AgentTrackingSessionToolCalls,
   AgentTrackingSessionView,
   AgentTrackingSetupStatus,
   AgentTrackingSkillUsage,
   AgentTrackingSpendBreakdown,
   AgentTrackingSpendReport,
   AgentTrackingSpendTimeline,
+  AgentTrackingToolCallSession,
   AgentTrackingViewRecord
 } from '@metorial/module-agent-tracking-query';
 import type {
@@ -2813,6 +2816,14 @@ export let agentTrackingSessionDetailType = PresentableType.create<{
   session: AgentTrackingSessionDetail;
 }>()('agent_tracking.session_detail');
 
+export let agentTrackingSessionToolCallsType = PresentableType.create<{
+  toolCalls: AgentTrackingSessionToolCalls;
+}>()('agent_tracking.session_tool_calls');
+
+export let agentTrackingToolCallSessionType = PresentableType.create<{
+  toolCallSession: AgentTrackingToolCallSession;
+}>()('agent_tracking.tool_call_session');
+
 export let agentTrackingFilterValuesType = PresentableType.create<{
   filterValues: AgentTrackingFilterValues;
 }>()('agent_tracking.filter_values');
@@ -2833,6 +2844,10 @@ export let agentTrackingSkillUsageType = PresentableType.create<{
 export let agentTrackingMcpServerUsageType = PresentableType.create<{
   usage: AgentTrackingMcpServerUsage;
 }>()('agent_tracking.mcp_server_usage');
+
+export let agentTrackingProviderCallsType = PresentableType.create<{
+  providerCalls: AgentTrackingProviderCalls;
+}>()('agent_tracking.provider_calls');
 
 export let agentTrackingSetupStatusType = PresentableType.create<{
   setupStatus: AgentTrackingSetupStatus;

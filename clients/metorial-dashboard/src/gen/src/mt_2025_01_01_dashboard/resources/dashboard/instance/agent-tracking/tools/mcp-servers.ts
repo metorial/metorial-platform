@@ -15,6 +15,7 @@ export type DashboardInstanceAgentTrackingToolsMcpServersOutput = {
   };
   items: {
     name: string;
+    provider: { id: string; name: string | null } | null;
     calls: number;
     failed: number;
     errorRate: number | null;
