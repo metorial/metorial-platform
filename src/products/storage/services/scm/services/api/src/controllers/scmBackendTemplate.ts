@@ -2,7 +2,10 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { getScmProviderOptions, scmProviderTypes } from '../lib/scmPolicy';
 import { scmBackendPresenter } from '../presenters/scmBackend';
-import { scmBackendTemplatePresenter } from '../presenters/scmBackendTemplate';
+import {
+  getScmOAuthCallbackUrl,
+  scmBackendTemplatePresenter
+} from '../presenters/scmBackendTemplate';
 import { scmBackendTemplateService } from '../services/scmBackendTemplate';
 import { app } from './_app';
 import { tenantApp } from './tenant';
@@ -29,7 +32,12 @@ export let scmBackendTemplateController = app.controller({
   providerOptions: app
     .handler()
     .input(v.object({}))
-    .do(async () => ({ items: getScmProviderOptions() })),
+    .do(async () => ({
+      items: getScmProviderOptions().map(option => ({
+        ...option,
+        oauthCallbackUrl: getScmOAuthCallbackUrl(option.type)
+      }))
+    })),
 
   list: app
     .handler()
