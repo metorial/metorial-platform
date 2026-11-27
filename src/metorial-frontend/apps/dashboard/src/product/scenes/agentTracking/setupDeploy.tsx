@@ -1,8 +1,7 @@
 import { CodeBlock } from '@metorial/code';
 import type { DashboardInstanceAgentTrackingSetupStatusGetOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
 import { saveBlob } from '@metorial/file-browser';
-import { useAgentTrackingIngestSources, useAgentTrackingSetupStatus } from '@metorial/state';
+import { useAgentTrackingSetupStatus } from '@metorial/state';
 import {
   Badge,
   Button,
@@ -21,11 +20,7 @@ import { RiDownloadLine, RiFileCopyLine } from '@remixicon/react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useToggle } from 'react-use';
 import styled from 'styled-components';
-import {
-  agentTrackingErrorStatus,
-  AgentTrackingErrorState,
-  noIngestAddressText
-} from './errorState';
+import { agentTrackingErrorStatus } from './errorState';
 import { WithInfo } from './info';
 import {
   buildClaudeCodeManagedSettings,
@@ -36,10 +31,12 @@ import {
   localHistoryDays,
   managedSettingsFileName,
   managedSettingsLocations,
+  organizationSwitchLabel,
   type ClaudeCodeSettingsOptions,
   type ManagedSettingsOs,
   type OrganizationReporting
 } from './settingsFile';
+import { CommandStep, CopyButton, MissingFile } from './setupParts';
 
 let templateFileName = 'managed-settings.TEMPLATE.json';
 
@@ -56,7 +53,6 @@ type OptionDescriptor = {
   sends: string;
   unlocks: string;
   note?: string;
-  organizationSwitch?: string;
   availability: 'always' | 'choice' | 'later';
 };
 
@@ -74,7 +70,7 @@ let optionDescriptors: OptionDescriptor[] = [
     setting: 'keepLocalHistory',
     label: 'Keep Local History',
     sends: `Nothing. It sets how long Claude Code keeps local session history on every machine that gets this file: ${localHistoryDays} days.`,
-    unlocks: 'Importing past sessions in a later release, which needs that history.',
+    unlocks: 'History Import of past sessions by Metorial Desktop, which reads that history.',
     note: `It overrides each member's own setting, including a longer one: a member who keeps more than ${localHistoryDays} days loses the older history at Claude Code's next cleanup.`,
     availability: 'choice'
   },
@@ -83,8 +79,7 @@ let optionDescriptors: OptionDescriptor[] = [
     setting: 'repository',
     label: 'Repository',
     sends: 'The repository of each session, taken from its git remote.',
-    unlocks: 'Spend by repository, in a later release.',
-    organizationSwitch: 'Session Context',
+    unlocks: 'Spend and Sessions by repository.',
     availability: 'choice'
   },
   {
@@ -93,10 +88,8 @@ let optionDescriptors: OptionDescriptor[] = [
     label: 'Detailed Tool Reporting',
     sends:
       "Skill, MCP, agent and plugin names, the branch and commit of Claude Code's own commits (kept only with Session Context on) and the error text of failed tools. With them, Claude Code also sends tool inputs, file paths and commands off the device.",
-    unlocks:
-      'Skill and MCP server usage on the Tools tab, and spend by branch in a later release.',
-    note: "Off by default because it sends tool inputs, file paths and commands. By default Agent Usage keeps only the size and a fingerprint of each tool input and error text; the text is kept only when this environment's content settings are set to keep it.",
-    organizationSwitch: 'Detailed Tool Reporting',
+    unlocks: 'Skill and MCP server usage on the Tools tab, and Spend by branch.',
+    note: "On by default only when the organization has Detailed Tool Reporting on, because it sends tool inputs, file paths and commands. By default Agent Usage keeps only the size and a fingerprint of each tool input and error text; the text is kept only when this environment's content settings are set to keep it.",
     availability: 'choice'
   },
   {
@@ -104,7 +97,7 @@ let optionDescriptors: OptionDescriptor[] = [
     label: 'Hooks',
     sends: 'Session titles, tool calls and failures.',
     unlocks: 'Session detail.',
-    note: 'Not available yet. It arrives in a later release with its own setup.',
+    note: 'Not part of this file; this page has no setup for hooks.',
     availability: 'later'
   }
 ];
@@ -159,24 +152,6 @@ let HintBadge = ({
   </Tooltip>
 );
 
-export let CopyButton = ({
-  value,
-  label,
-  variant = 'outline'
-}: {
-  value: string;
-  label: string;
-  variant?: 'outline' | 'ghost';
-}) => {
-  let { copy, copied } = useCopy(value);
-
-  return (
-    <Button size="1" variant={variant} iconLeft={<RiFileCopyLine />} onClick={() => copy()}>
-      {copied ? 'Copied' : label}
-    </Button>
-  );
-};
-
 let SettingsOptions = ({
   instanceId,
   options,
@@ -225,8 +200,8 @@ let SettingsOptions = ({
               </Text>
               {offForOrganization ? (
                 <Text size="2" color="gray600">
-                  This organization has {option.organizationSwitch} turned off; an organization
-                  admin can turn it on in the Agent Usage settings.
+                  This organization has {organizationSwitchLabel(option.setting!)} turned off;
+                  an organization admin can turn it on in the Agent Usage settings.
                 </Text>
               ) : null}
             </Flex>
@@ -254,62 +229,6 @@ let SettingsOptions = ({
         );
       })}
     </div>
-  );
-};
-
-export let CommandStep = ({
-  title,
-  command,
-  language
-}: {
-  title: string;
-  command: string;
-  language: string;
-}) => (
-  <>
-    <Text size="2" weight="medium">
-      {title}
-    </Text>
-    <CodeBlock code={command} language={language} lineNumbers={false} />
-    <div>
-      <CopyButton value={command} label="Copy Command" />
-    </div>
-  </>
-);
-
-export let MissingFile = ({
-  instanceId,
-  notConfigured,
-  subject = 'file'
-}: {
-  instanceId: string;
-  notConfigured: boolean;
-  subject?: string;
-}) => {
-  let activeKeys = useAgentTrackingIngestSources(instanceId, { limit: 1, status: 'active' });
-
-  if (notConfigured) {
-    return (
-      <Text size="2" color="gray600">
-        The {subject} is built from an ingestion key.
-      </Text>
-    );
-  }
-
-  return renderWithLoader(
-    { activeKeys },
-    { error: error => <AgentTrackingErrorState error={error} onRetry={activeKeys.refetch} /> }
-  )(({ activeKeys }) =>
-    activeKeys.data.items.length ? (
-      <Callout color="gray">
-        {noIngestAddressText} No {subject} can be built, but existing keys can still be
-        revoked.
-      </Callout>
-    ) : (
-      <Text size="2" color="gray600">
-        Create an ingestion key first. The {subject} is built from it.
-      </Text>
-    )
   );
 };
 

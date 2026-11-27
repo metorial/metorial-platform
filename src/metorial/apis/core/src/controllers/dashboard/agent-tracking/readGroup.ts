@@ -2,6 +2,7 @@ import { maxRangeDays } from '@metorial/module-agent-tracking-query';
 import { rangeFields } from '../../../lib/agentTrackingParams';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup } from '../../../middleware/instanceGroup';
+import { withIntegrationsAccess } from '../../../middleware/integrationsAccess';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { requireAgentTrackingEnabled } from '../../../middleware/requireAgentTrackingEnabled';
 
@@ -10,7 +11,8 @@ export let agentTrackingBasePath = '/dashboard/instances/:instanceId/agent-track
 export let agentTrackingReadGroup = instanceGroup
   .use(isDashboardGroup())
   .use(requireAgentTrackingEnabled())
-  .use(checkAccess({ possibleScopes: ['instance.agent_tracking:read'] }));
+  .use(checkAccess({ possibleScopes: ['instance.agent_tracking:read'] }))
+  .use(withIntegrationsAccess());
 
 export let rangeQueryFieldsFor = (maxDays: number) =>
   rangeFields({

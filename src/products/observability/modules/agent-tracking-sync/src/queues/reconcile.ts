@@ -208,7 +208,7 @@ export let reconcileEntitiesQueueProcessor = reconcileEntitiesQueue.process(asyn
     after: data.after
   });
 
-  // Agents seen in telemetry are kept: they exist for more than the sync.
+  // An agent seen in telemetry stays even when no device configures or detects it.
   let synced = page.items.filter(
     item => item.source == source && item.ref && (data.kind != 'agent' || !item.lastSeenAt)
   );
@@ -294,7 +294,6 @@ let liveAgentRefs = async (d: { organization: Organization; refs: string[] }) =>
   return live;
 };
 
-// Batches the reconcile of agents after changes that can leave detected agents behind.
 export let enqueueAgentReconcile = async (organizationId: string) =>
   await reconcileEntitiesQueue.add(
     { organizationId, kind: 'agent' },

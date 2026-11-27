@@ -9,7 +9,6 @@ import { agentTrackingFilterValuesPresenter } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
 import { idFilter, rangeOf } from '../../../lib/agentTrackingParams';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
-import { canReadProviders } from '../../../lib/toolCallAccess';
 import { agentTrackingBasePath, agentTrackingReadGroup, rangeQueryFields } from './readGroup';
 
 export let dashboardAgentTrackingFilterValueController = Controller.create(
@@ -64,7 +63,8 @@ export let dashboardAgentTrackingFilterValueController = Controller.create(
           project: ctx.project,
           instance: ctx.instance,
           field: ctx.query.field,
-          canReadProviders: ctx.query.field == 'provider' && (await canReadProviders(ctx)),
+          canReadProviders:
+            ctx.query.field == 'provider' && (await ctx.integrationsAccess.providers()),
           search: ctx.query.search,
           values: normalizeArrayParam(ctx.query.value),
           range: rangeOf(ctx.query)

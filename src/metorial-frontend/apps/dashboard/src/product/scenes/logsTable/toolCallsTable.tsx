@@ -13,11 +13,11 @@ import {
   type TableLayoutProps
 } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import { useAgentTrackingInstanceSettings, useToolCalls } from '@metorial/state';
+import { useToolCalls } from '@metorial/state';
 import { ID } from '@metorial/ui-product';
 import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
-import { useAgentTrackingAvailability } from '../agentTracking/access';
-import { toolCallsListMode, type AgentSession } from '../agentTracking/toolCallLinks';
+import { useAgentTrackingIndividualsVisibility } from '../agentTracking/privacy';
+import type { AgentSession } from '../agentTracking/toolCallLinks';
 import { AgentSessionCell, useToolCallAgentSessions } from '../agentTracking/toolCallSession';
 import { entityFilters } from '../entityFilters';
 import { toolCallLinkQuery, toolCallStatus } from './toolCallParts';
@@ -29,7 +29,7 @@ type ToolCallFilters = Omit<
   'limit' | 'after' | 'before' | 'cursor'
 >;
 
-type ToolCallsListProps = { instanceId: string; filters?: ToolCallFilters };
+type ToolCallsListProps = { instanceId: string; filters?: ToolCallFilters; pending?: boolean };
 
 let toolCallsList = (name: string) =>
   createDataList<ToolCallsListProps>(name)
@@ -43,12 +43,16 @@ let toolCallsList = (name: string) =>
       consumerId: f.entity(entityFilters.consumer(props.instanceId))
     }))
     .search('Search by tool, provider, agent, consumer or tool call ID…')
-    .paginated(({ props, filters, search }) =>
-      useToolCalls(
+    .paginated(({ props, filters, search }) => {
+      let toolCalls = useToolCalls(
         props.instanceId,
         withDefaults(props.filters, { order: 'desc' as const, ...filters, search })
-      )
-    );
+      );
+
+      return props.pending && !toolCalls.error
+        ? { ...toolCalls, isLoading: true, data: null }
+        : toolCalls;
+    });
 
 let toolCallColumns = <Item extends ToolCall>(
   d: { extra?: TableColumn<Item>[]; showAgent?: boolean } = {}
@@ -109,6 +113,7 @@ let ToolCallsListWithAgentSessions = toolCallsList('tool-calls-with-agent-sessio
         col.custom({
           id: 'agentSession',
           header: 'Agent Session',
+          interactive: true,
           render: (toolCall, _props, ctx: InstanceContext) => (
             <AgentSessionCell session={toolCall.agentSession} ctx={ctx} />
           )
@@ -123,25 +128,11 @@ type ToolCallsTableListProps = ToolCallsListProps &
   TableLayoutProps & { listVariant?: DataListVariant; emptyState: string };
 
 let ToolCallsListForAgentTracking = (props: ToolCallsTableListProps) => {
-  let { enabled, access } = useAgentTrackingAvailability();
-  let settings = useAgentTrackingInstanceSettings(
-    enabled && access.hasScope ? props.instanceId : null
-  );
+  let { visibility } = useAgentTrackingIndividualsVisibility();
 
-  let mode = toolCallsListMode({
-    enabled,
-    scopes: { loaded: !!access.data || !!access.error, hasScope: access.hasScope },
-    settings: {
-      loaded: !!settings.data,
-      failed: !!settings.error,
-      hideIndividuals: !!settings.data?.privacy.hideIndividuals
-    }
-  });
-  if (mode == 'pending') return null;
+  if (visibility == 'visible') return <ToolCallsListWithAgentSessions {...props} />;
 
-  let List = mode == 'agentSessions' ? ToolCallsListWithAgentSessions : ToolCallsList;
-
-  return <List {...props} />;
+  return <ToolCallsList {...props} pending={visibility == 'pending'} />;
 };
 
 export let ToolCallsTable = ({

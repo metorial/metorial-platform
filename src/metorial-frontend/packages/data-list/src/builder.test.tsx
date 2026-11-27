@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, useLocation } from 'react-router-dom';
 import { expect, it } from 'vitest';
 import { createDataList } from './builder';
 import { col } from './helpers/columns';
@@ -107,4 +107,74 @@ it('hides pagination when there is only one page and the list opts in', async ()
 
   let multiplePages = await render(React.createElement(createPagedList(1), {}));
   expect(multiplePages.textContent).toContain('Next');
+});
+
+let clickLeftToBrowser = (target: Element, init: MouseEventInit = {}) => {
+  let leftToBrowser = false;
+  let listener = (event: Event) => {
+    leftToBrowser = !event.defaultPrevented;
+    event.preventDefault();
+  };
+
+  document.addEventListener('click', listener);
+  target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...init }));
+  document.removeEventListener('click', listener);
+
+  return leftToBrowser;
+};
+
+it('keeps an interactive column out of the row link and stretches the row link over it', async () => {
+  let location = { pathname: '' };
+
+  let LocationProbe = () => {
+    location.pathname = useLocation().pathname;
+    return null;
+  };
+
+  let linked = createDataList('linked-list')
+    .items(() => ({ items: rows }))
+    .columns([
+      col.name<Row>(),
+      col.custom<Row>({
+        id: 'owner',
+        interactive: true,
+        render: row => <Link to={`/owners/${row.id}`}>Owner of {row.name}</Link>
+      })
+    ])
+    .link(row => `/rows/${row.id}`)
+    .build();
+
+  let container = await render(
+    <>
+      {React.createElement(linked, {})}
+      <LocationProbe />
+    </>
+  );
+
+  let [firstRow] = Array.from(container.querySelectorAll('tbody tr'));
+  let [nameCell, ownerCell] = Array.from(firstRow!.querySelectorAll('td'));
+  let [rowLink, ownerLink] = Array.from(ownerCell!.querySelectorAll('a'));
+
+  expect(container.querySelector('a a')).toBeNull();
+  expect(nameCell!.querySelector('a')?.getAttribute('href')).toBe('/rows/a');
+  expect(rowLink!.getAttribute('href')).toBe('/rows/a');
+  expect(rowLink!.children).toHaveLength(0);
+  expect(ownerLink!.getAttribute('href')).toBe('/owners/a');
+
+  let modified = false;
+  await act(async () => {
+    modified = clickLeftToBrowser(rowLink!, { metaKey: true });
+  });
+  expect(modified).toBe(true);
+  expect(location.pathname).toBe('/');
+
+  await act(async () => {
+    clickLeftToBrowser(rowLink!);
+  });
+  expect(location.pathname).toBe('/rows/a');
+
+  await act(async () => {
+    clickLeftToBrowser(ownerLink!);
+  });
+  expect(location.pathname).toBe('/owners/a');
 });

@@ -39,18 +39,3 @@ export let sessionToolCallNotes = (d: { unmatchedCount: number | null; hasMore: 
       ? 'This list is cut off, so some tool calls of this session are not shown.'
       : null
   ].filter((note): note is string => !!note);
-
-export type ToolCallsListMode = 'plain' | 'agentSessions' | 'pending';
-
-export let toolCallsListMode = (d: {
-  enabled: boolean;
-  scopes: { loaded: boolean; hasScope: boolean };
-  settings: { loaded: boolean; failed: boolean; hideIndividuals: boolean };
-}): ToolCallsListMode => {
-  if (!d.enabled) return 'plain';
-  if (!d.scopes.loaded) return 'pending';
-  if (!d.scopes.hasScope || d.settings.failed) return 'plain';
-  if (!d.settings.loaded) return 'pending';
-
-  return d.settings.hideIndividuals ? 'plain' : 'agentSessions';
-};

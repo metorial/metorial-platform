@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeRedis } from '@mtsrc/agent-tracking-redis';
 import { sessionToolCallService } from '../src/services/sessionToolCall';
 import { sessionMcpToolCallFilter, toolCallLookupFilter } from '../src/lib/records';
+import { isMcpToolCall, mcpToolCallMatch, type ToolCallRecord } from '../src/lib/toolCalls';
 import { createSessionHarness, minutesAfter, store } from './harness';
 
 let linear = {
@@ -112,6 +113,48 @@ describe('session tool calls', () => {
       },
       expect.objectContaining({ toolCallId: 'toolu_b', outcome: 'error', mcpServer: null })
     ]);
+  });
+
+  it('matches the same MCP tool calls in the store as in memory, for every client', async () => {
+    let harness = await createSessionHarness();
+    let start = new Date(Date.now() - 60 * 60 * 1000);
+    let tools = [
+      linear,
+      shell,
+      { name: 'mcp_tool', kind: 'unknown', class: 'other' },
+      { name: 'mcp_other', kind: 'unknown', class: 'other' },
+      { name: 'lookup', kind: 'unknown', class: 'other' }
+    ];
+
+    await harness.ingest(
+      ['claude-code', 'codex', 'cursor'].flatMap((family, f) =>
+        tools.map((tool, t) => ({
+          type: 'tool.call',
+          at: minutesAfter(start, f * tools.length + t),
+          sessionId: `match-${family}`,
+          family,
+          ctx: { toolCallId: `toolu_${family}_${t}` },
+          data: { tool, outcome: 'ok' }
+        }))
+      )
+    );
+
+    let events = harness.collections().events;
+    let organizationId = harness.scope.organization.id;
+
+    let stored = await events
+      .find<ToolCallRecord>({ organizationId, type: 'tool.call' })
+      .toArray();
+    let matched = await events
+      .find<ToolCallRecord>({ organizationId, ...mcpToolCallMatch })
+      .toArray();
+
+    let ids = (documents: ToolCallRecord[]) =>
+      documents.map(document => document.ctx.toolCallId).sort();
+
+    expect(stored).toHaveLength(15);
+    expect(ids(matched)).toEqual(ids(stored.filter(isMcpToolCall)));
+    expect(ids(matched)).toHaveLength(9);
   });
 
   it('finds the session of an id within the organization and instance', async () => {

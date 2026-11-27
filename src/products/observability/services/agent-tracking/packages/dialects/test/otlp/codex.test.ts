@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import { buildMapped } from '../build';
 import {
@@ -1074,7 +1075,7 @@ describe('codexOtlp with tool details off', () => {
   });
 
   it('keeps arguments, output and names with detailed tool reporting on', () => {
-    let { mapped } = mapOtlpGroup('logs', groupOf([mcpResult()], resource));
+    let { mapped } = mapOtlpGroup('logs', groupOf([mcpResult()], resource), fullIngestPolicy);
 
     expect(mapped[0]!.draft.data?.['tool']).toMatchObject({
       name: 'probe_echo',

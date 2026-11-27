@@ -11,7 +11,8 @@ import {
   unknownNames,
   unknownOption
 } from '../lib/filterValues';
-import { lookupMembers, unique, unknownMemberKey } from '../lib/members';
+import { unique } from '../lib/entities';
+import { lookupMembers, unknownMemberKey } from '../lib/members';
 import { individualsHiddenError, loadPrivacy } from '../lib/privacy';
 import { filtersHiddenError, seatValuesHiddenError } from '../lib/privateSpend';
 import { lookupProviders, type ProviderReadScope } from '../lib/providers';

@@ -4,9 +4,15 @@ import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { codexBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool } from '../tools';
+import {
+  classifyTool,
+  hasMcpServer,
+  isMcpTool,
+  redactedMcpNamespace,
+  redactedMcpTool
+} from '../tools';
 import { dateFromNanos, dateFromValue, firstDate } from '../time';
-import { isMcpName, redactedMcpNamespace, redactedMcpTool, rewrite } from './policy';
+import { rewrite } from './policy';
 import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
@@ -183,17 +189,17 @@ let turnFact = (fields: FieldReader) => {
   return id ? `turn:{session_key}:${id}` : null;
 };
 
-let toolOf = (fields: FieldReader) => {
+let mcpCallSpan = 'mcp.tools.call';
+
+let toolOf = (fields: FieldReader, source?: string) => {
   let name = fields.str('tool_name', 'tool.name');
   if (!name) return undefined;
 
-  let server = fields.str('mcp_server', 'mcp.server.name');
-  if (server) return classifyTool(name, { mcpServer: server });
-
-  let redacted =
-    name == redactedMcpTool || fields.str('tool_namespace') == redactedMcpNamespace;
-
-  return classifyTool(name, redacted ? { explicitKind: 'mcp' } : {});
+  return classifyTool(name, {
+    server: fields.str('mcp_server') ?? fields.str('mcp.server.name'),
+    namespace: fields.raw('tool_namespace'),
+    source
+  });
 };
 
 // In code mode the model calls one `exec` tool that runs a script, and every tool the script
@@ -828,8 +834,8 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
       );
     }
 
-    case 'mcp.tools.call': {
-      let tool = toolOf(fields);
+    case mcpCallSpan: {
+      let tool = toolOf(fields, redactedMcpNamespace);
       let errorType = nativeLabel(fields.str('error.type'));
       let errored = failed || errorType !== undefined;
 
@@ -868,28 +874,23 @@ let codexDetails = new Set([
   'skill.name'
 ]);
 
-export let isCodexMcpServer = (value: unknown) => typeof value == 'string' && value.length > 0;
-
-export let isCodexMcpToolName = (value: unknown) =>
-  typeof value == 'string' && value.includes('__');
-
-export let codexWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+let codexWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let { attributes } = item;
   let mcp =
-    isMcpName(item.attributes['tool_namespace']) ||
-    isCodexMcpServer(item.attributes['mcp_server']) ||
-    typeof item.attributes['mcp.server.name'] == 'string';
+    item.name == mcpCallSpan ||
+    hasMcpServer(attributes['mcp_server']) ||
+    hasMcpServer(attributes['mcp.server.name']) ||
+    isMcpTool({ namespace: attributes['tool_namespace'] });
 
   return {
-    name: isMcpName(item.name) ? redactedMcpTool : item.name,
-    attributes: rewrite(item.attributes, (key, value) => {
+    name: isMcpTool({ name: item.name }) ? redactedMcpTool : item.name,
+    attributes: rewrite(attributes, (key, value) => {
       if (codexDetails.has(key)) return undefined;
       if (key == 'tool_namespace' && mcp) return redactedMcpNamespace;
 
-      if (key == 'tool_name' || key == 'tool.name') {
-        return mcp || isCodexMcpToolName(value) ? redactedMcpTool : value;
+      if (key == 'tool_name' || key == 'tool.name' || key == 'tool') {
+        return mcp || isMcpTool({ name: value }) ? redactedMcpTool : value;
       }
-
-      if (key == 'tool' && isMcpName(value)) return redactedMcpTool;
 
       return value;
     })

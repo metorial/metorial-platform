@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import type { OtlpAttributes } from '@mtsrc/agent-tracking-otlp';
 import { buildMapped } from '../build';
@@ -261,7 +262,7 @@ describe('genAiOtlp.mapSpan other operations', () => {
     });
     let group = groupOf([span], { 'service.name': 'opencode' });
 
-    let full = mapOtlpGroup('traces', group);
+    let full = mapOtlpGroup('traces', group, fullIngestPolicy);
     let redacted = mapOtlpGroup('traces', group, { toolDetails: false, sessionContext: true });
 
     expect(full.mapped[0]!.draft.data).toMatchObject({

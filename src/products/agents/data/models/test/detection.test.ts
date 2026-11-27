@@ -3,12 +3,14 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   buildDetectionCatalog,
-  detectionPlatforms,
   findDetectionTool,
-  getDetectionCatalog
+  getDetectionCatalog,
+  type DetectionPlatform
 } from '../src/detection';
 import { agentSeeds } from '../src/registry/agents';
 import { detectionSeeds } from '../src/registry/detection';
+
+let detectionPlatforms: DetectionPlatform[] = ['macos', 'windows', 'linux'];
 
 let committedCatalog = path.join(import.meta.dirname, '..', 'detection.json');
 

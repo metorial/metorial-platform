@@ -14,18 +14,9 @@ import type {
 } from '../types';
 import { gitParameterKeys, parseToolParameters } from '../vcs';
 
-let mcpPrefix = 'mcp__';
-
 let gitKeys = new Set<string>(gitParameterKeys);
 
-export let redactedMcpTool = 'mcp_tool';
-
-export let redactedMcpNamespace = 'mcp';
-
 export type AttributeValue = OtlpAttributes[string];
-
-export let isMcpName = (value: unknown) =>
-  typeof value == 'string' && value.startsWith(mcpPrefix);
 
 export let isContent = (key: string, base: string) =>
   key == base || key == `${base}_truncated` || key == `${base}_original_length`;

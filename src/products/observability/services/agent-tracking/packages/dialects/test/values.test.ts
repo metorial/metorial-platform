@@ -87,6 +87,24 @@ describe('buildUsage', () => {
     expect(usage).not.toHaveProperty('output');
   });
 
+  it('derives the uncached input from a count with cache reads and writes, by the same rule', () => {
+    expect(
+      buildUsage({ inputIncludingCacheReadsAndWrites: 100, cacheRead: 30, cacheWrite: 20 })
+    ).toMatchObject({
+      usage: { input_uncached: 50, cache_read: 30, cache_write: 20 },
+      derived: ['usage.input_uncached']
+    });
+
+    let negative = buildUsage({
+      inputIncludingCacheReadsAndWrites: 10,
+      cacheRead: 30,
+      cacheWrite: 20
+    });
+
+    expect(negative.warnings).toEqual(['usage_negative:input_uncached']);
+    expect(negative.usage).not.toHaveProperty('input_uncached');
+  });
+
   it('drops negative components', () => {
     let { usage } = buildUsage({ inputUncached: -1, output: 4 });
 

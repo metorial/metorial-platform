@@ -1,7 +1,7 @@
 import { repositoryLabel } from './sessionContext';
 import { memberName, unknownRepositoryLabel } from './spendSummary';
 
-export let unknownProviderLabel = 'Unknown Provider';
+let unknownProviderLabel = 'Unknown Provider';
 
 export let providerLabel = (provider: { name: string | null }) =>
   provider.name ?? unknownProviderLabel;
@@ -21,21 +21,13 @@ type ProviderCallItem = {
   failed: number;
 };
 
-export type ProviderCallRow = {
+type ProviderCallRow = {
   key: string;
   label: string;
   href: string | null;
   count: number;
   errorCount: number;
 };
-
-export let agentCallGroups = (d: {
-  available: boolean;
-  settings: { loaded: boolean; failed: boolean; hideIndividuals: boolean };
-}): ProviderCallGroup[] =>
-  d.available && d.settings.loaded && !d.settings.failed && !d.settings.hideIndividuals
-    ? ['repository', 'member']
-    : [];
 
 export let providerCallRows = (
   items: ProviderCallItem[],

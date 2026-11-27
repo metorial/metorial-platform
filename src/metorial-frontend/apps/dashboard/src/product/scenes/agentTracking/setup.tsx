@@ -41,14 +41,14 @@ import {
   showCreateIngestSourceDialog,
   type CreatedIngestSource
 } from './keys';
-import { useAgentTrackingPrivacy } from './privacy';
+import { useAgentTrackingIndividualsVisibility } from './privacy';
 import { useSearchParamOption } from './searchParams';
 import { clientVersion } from './sessionParts';
 import {
   buildClaudeCodeManagedSettings,
-  claudeCodeLogsEndpoint,
   defaultClaudeCodeSettingsOptions,
   managedSettingsFileName,
+  otlpLogsEndpoint,
   withOrganizationReporting,
   type ClaudeCodeSettingsOptions
 } from './settingsFile';
@@ -310,23 +310,19 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
   let [created, setCreated] = useState<CreatedIngestSource | null>(null);
   let organizationSettings = useAgentTrackingOrganizationSettings(ctx.organization?.id);
   let [chosenOptions, setOptions] = useState<ClaudeCodeSettingsOptions | null>(null);
-  let organizationToolDetails = organizationSettings.data?.desktop.toolDetails;
   let organizationReporting = organizationSettings.data?.desktop;
   let options = useMemo(
     () =>
       withOrganizationReporting(
-        chosenOptions ?? {
-          ...defaultClaudeCodeSettingsOptions,
-          toolDetails: organizationToolDetails ?? false
-        },
+        chosenOptions ?? defaultClaudeCodeSettingsOptions(organizationReporting),
         organizationReporting
       ),
-    [chosenOptions, organizationToolDetails, organizationReporting]
+    [chosenOptions, organizationReporting]
   );
   let [showKeys, toggleKeys] = useToggle(false);
   let [showDeploy, setShowDeploy] = useState<boolean | null>(null);
-  let settings = useAgentTrackingPrivacy();
-  let individualsHidden = settings.data?.privacy.hideIndividuals ?? true;
+  let { visibility } = useAgentTrackingIndividualsVisibility();
+  let individualsHidden = visibility != 'visible';
   let [listeningSince] = useState(() => new Date());
   let hadDataOnArrival = useRef<boolean | null>(null);
 
@@ -338,7 +334,7 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
   let ingestUrl = created?.ingestUrl ?? activeKey?.ingestUrl ?? null;
   let anyKey = activeKey ?? keys.data?.items[0];
   let ingestConfigured = !!created?.ingestUrl || !anyKey || !!anyKey.ingestUrl;
-  let logsEndpoint = ingestUrl ? claudeCodeLogsEndpoint(ingestUrl) : null;
+  let logsEndpoint = ingestUrl ? otlpLogsEndpoint(ingestUrl) : null;
 
   let hasKey = !!created || !!activeKey;
   let hasData = !!setupStatus.data?.lastReceivedAt;
@@ -495,13 +491,11 @@ export let AgentTrackingSetup = ({ instanceId }: { instanceId: string }) => {
       number={d.number}
       state={hasData ? 'done' : 'pending'}
       title={
-        <WithInfo info={individualsHidden && settings.data ? null : d.matchInfo}>
-          Members Seen
-        </WithInfo>
+        <WithInfo info={visibility == 'hidden' ? null : d.matchInfo}>Members Seen</WithInfo>
       }
       description={
-        individualsHidden && settings.data
-          ? 'This organization hides individual data, so members are not listed; an organization admin can change this in Project Settings.'
+        visibility == 'hidden'
+          ? 'This organization hides individual data, so members are not listed; an organization admin can change this in the Agent Usage settings.'
           : undefined
       }
       action={

@@ -19,7 +19,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 let maxFilterValues = 100;
 let maxFilterValueLength = 128;
 
-let idFilter = (name: string, description: string) =>
+let detectionFilter = (name: string, description: string) =>
   v.optional(
     v.union(
       [
@@ -52,19 +52,19 @@ export let aiToolDetectionController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            consumer_id: idFilter(
+            consumer_id: detectionFilter(
               'consumer_id',
               'Only return detections on devices of these consumers.'
             ),
-            consumer_profile_id: idFilter(
+            consumer_profile_id: detectionFilter(
               'consumer_profile_id',
               'Only return detections on devices enrolled by these consumer profiles.'
             ),
-            consumer_device_id: idFilter(
+            consumer_device_id: detectionFilter(
               'consumer_device_id',
               'Only return detections on these devices.'
             ),
-            tool_key: idFilter('tool_key', 'Only return detections of these AI tools.'),
+            tool_key: detectionFilter('tool_key', 'Only return detections of these AI tools.'),
             policy_status: v.optional(
               v.union(
                 [v.enumOf(aiToolPolicyStatuses), v.array(v.enumOf(aiToolPolicyStatuses))],

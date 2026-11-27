@@ -590,10 +590,10 @@ describe('hook handler', () => {
       }
     });
 
-    it('treats a tool named like the placeholder as an ordinary tool while detailed tool reporting is on', async () => {
+    it('classifies a tool named like the placeholder as MCP while detailed tool reporting is on too', async () => {
       let { tool } = await toolOfHook(on, toolHook({ tool_name: 'mcp_tool' }));
 
-      expect(tool).toEqual({ name: 'mcp_tool', kind: 'unknown', class: 'other' });
+      expect(tool).toEqual({ name: 'mcp_tool', kind: 'mcp', class: 'mcp' });
     });
 
     it('keeps the tool call id, duration and outcome of a redacted call', async () => {

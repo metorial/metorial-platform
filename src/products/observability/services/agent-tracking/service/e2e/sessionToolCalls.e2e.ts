@@ -5,42 +5,10 @@ import {
   createHookToken,
   createScope,
   createToolDetailsHookToken,
-  ingest,
-  rpcErrorCode
+  rpcErrorCode,
+  sendHook,
+  sendToolCall
 } from './support';
-
-type HookClient = 'claude-code' | 'codex';
-
-let sendHook = async (d: {
-  secret: string;
-  client?: HookClient;
-  sessionId: string;
-  event: string;
-  extra?: Record<string, unknown>;
-}) => {
-  let response = await ingest(`/v1/ingest/hooks/${d.client ?? 'claude-code'}`, {
-    credential: d.secret,
-    body: JSON.stringify({ session_id: d.sessionId, hook_event_name: d.event, ...d.extra })
-  });
-
-  expect(response.status).toBe(200);
-};
-
-let sendToolCall = (d: {
-  secret: string;
-  client?: HookClient;
-  sessionId: string;
-  toolCallId: string;
-  toolName: string;
-  event?: string;
-}) =>
-  sendHook({
-    secret: d.secret,
-    client: d.client,
-    sessionId: d.sessionId,
-    event: d.event ?? 'PostToolUse',
-    extra: { tool_use_id: d.toolCallId, tool_name: d.toolName, duration_ms: 250 }
-  });
 
 let sessionOf = async (organizationId: string, instanceId: string) =>
   await eventually(

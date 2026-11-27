@@ -8,10 +8,10 @@ export let AgentTrackingToolsPage = () => {
   let instance = useCurrentInstance();
 
   return renderWithLoader({ instance })(({ instance }) => (
-    <AgentTrackingDataGate instanceId={instance.data.id} subject="Skill and MCP Usage">
-      <AgentTrackingIndividualsGate subject="Skill and MCP server usage">
+    <AgentTrackingIndividualsGate subject="Skill and MCP server usage">
+      <AgentTrackingDataGate instanceId={instance.data.id} subject="Skill and MCP Usage">
         <AgentTrackingTools instanceId={instance.data.id} />
-      </AgentTrackingIndividualsGate>
-    </AgentTrackingDataGate>
+      </AgentTrackingDataGate>
+    </AgentTrackingIndividualsGate>
   ));
 };

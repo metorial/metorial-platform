@@ -15,8 +15,6 @@ export type Correlation = { type: CorrelationType; value: string };
 
 export type RecordActor = { userId?: string; deviceId?: string; agentId?: string };
 
-// Records stored before the readers dropped all-zero trace ids still carry them; such an id is no
-// trace, and as a correlation it would join unrelated records across the instance.
 let correlations = (values: [CorrelationType, string | undefined][]): Correlation[] =>
   values.flatMap(([type, value]) =>
     value && !(type == 'trace' && isAllZeroId(value)) ? [{ type, value }] : []

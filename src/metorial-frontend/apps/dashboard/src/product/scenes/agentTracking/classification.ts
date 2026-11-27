@@ -1,11 +1,11 @@
 let hostedModelPromptLength = '2,000';
 
-export type ClassificationValues = {
+type ClassificationValues = {
   deterministicEnabled: boolean;
   aiEnabled: boolean;
 };
 
-export type ContentMode = 'basic' | 'shape' | 'full';
+type ContentMode = 'basic' | 'shape' | 'full';
 
 export let classificationUpdate = (values: ClassificationValues): ClassificationValues => ({
   deterministicEnabled: values.deterministicEnabled,

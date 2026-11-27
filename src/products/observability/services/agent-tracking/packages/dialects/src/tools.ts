@@ -1,3 +1,10 @@
+import {
+  isMcpServerPlaceholder,
+  isMcpToolPlaceholder,
+  redactedMcpTool
+} from '@mtsrc/agent-tracking-spec';
+import { isFieldSource } from './fields';
+
 export type ToolKind =
   'builtin' | 'mcp' | 'extension' | 'shell' | 'agent' | 'skill' | 'unknown';
 
@@ -19,13 +26,21 @@ export type ToolRef = {
   mcp?: { server: string; tool: string };
 };
 
-export type ToolHints = {
-  mcpServer?: string;
-  mcpTool?: string;
-  explicitKind?: 'mcp' | 'builtin';
+export type McpToolSignals = {
+  name?: unknown;
+  server?: unknown;
+  namespace?: unknown;
+  source?: unknown;
 };
 
+export type ToolHints = Omit<McpToolSignals, 'name'> & { mcpTool?: string; client?: string };
+
 let maxToolNameLength = 128;
+let mcpPrefix = 'mcp__';
+
+export { redactedMcpTool };
+
+export let redactedMcpNamespace = 'mcp';
 
 let classByName: Record<string, ToolClass> = {
   bash: 'shell',
@@ -96,7 +111,7 @@ let cleanName = (name: string) => {
 };
 
 export let parseMcpToolName = (name: string): { server: string; tool: string } | null => {
-  if (!name.startsWith('mcp__')) return null;
+  if (!name.startsWith(mcpPrefix)) return null;
 
   let rest = name.slice(5);
   let separator = rest.indexOf('__');
@@ -105,14 +120,52 @@ export let parseMcpToolName = (name: string): { server: string; tool: string } |
   return { server: rest.slice(0, separator), tool: rest.slice(separator + 2) };
 };
 
+export let isMcpToolName = (value: unknown) =>
+  typeof value == 'string' && value.includes('__');
+
+export let hasMcpServer = (value: unknown) =>
+  typeof value == 'string'
+    ? value.length > 0
+    : isFieldSource(value) && Object.keys(value).length > 0;
+
+export let isMcpTool = (d: McpToolSignals) =>
+  isMcpToolName(d.name) ||
+  isMcpToolPlaceholder(d.name) ||
+  hasMcpServer(d.server) ||
+  d.source == redactedMcpNamespace ||
+  d.namespace == redactedMcpNamespace ||
+  isMcpToolName(d.namespace);
+
+let splitMcpToolName = (name: string) => {
+  if (name.startsWith(mcpPrefix)) return null;
+
+  let separator = name.indexOf('__');
+  if (separator <= 0 || separator + 2 >= name.length) return null;
+
+  return { server: name.slice(0, separator), tool: name.slice(separator + 2) };
+};
+
+let serverNameOf = (value: unknown, client: string | undefined) =>
+  typeof value == 'string' &&
+  value.length > 0 &&
+  !(client == 'claude-code' && isMcpServerPlaceholder(value))
+    ? value
+    : undefined;
+
 export let classifyTool = (rawName: string, hints: ToolHints = {}): ToolRef => {
   let name = cleanName(rawName) || 'unknown';
 
-  let parsed = hints.mcpServer
-    ? { server: hints.mcpServer, tool: hints.mcpTool ?? name }
-    : parseMcpToolName(name);
+  let server = serverNameOf(hints.server, hints.client);
+  let parsed = server
+    ? { server, tool: hints.mcpTool ?? name }
+    : (parseMcpToolName(name) ?? splitMcpToolName(name));
+  let reported = isMcpTool({
+    server: hints.server,
+    namespace: hints.namespace,
+    source: hints.source
+  });
 
-  if (parsed || hints.explicitKind == 'mcp') {
+  if (parsed || reported || isMcpToolPlaceholder(name) || name.startsWith(mcpPrefix)) {
     return {
       name,
       kind: 'mcp',
@@ -125,9 +178,7 @@ export let classifyTool = (rawName: string, hints: ToolHints = {}): ToolRef => {
 
   let toolClass = classOf(name);
 
-  if (!toolClass) {
-    return { name, kind: hints.explicitKind ?? 'unknown', class: 'other' };
-  }
+  if (!toolClass) return { name, kind: 'unknown', class: 'other' };
 
   if (toolClass == 'shell') return { name, kind: 'shell', class: 'shell' };
   if (toolClass == 'agent') return { name, kind: 'agent', class: 'agent' };

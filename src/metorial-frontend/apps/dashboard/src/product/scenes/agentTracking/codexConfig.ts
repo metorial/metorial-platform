@@ -1,4 +1,4 @@
-import { claudeCodeLogsEndpoint, ingestionKeyPlaceholder } from './settingsFile';
+import { otlpLogsEndpoint, ingestionKeyPlaceholder } from './settingsFile';
 
 export let codexConfigPath = '~/.codex/config.toml';
 
@@ -26,7 +26,7 @@ export let buildCodexConfig = (d: {
   ingestUrl: string;
   secret: string | null | undefined;
 }) => {
-  let endpoint = claudeCodeLogsEndpoint(d.ingestUrl);
+  let endpoint = otlpLogsEndpoint(d.ingestUrl);
   let authorization = `Bearer ${d.secret || ingestionKeyPlaceholder}`;
   let exporterLine = `exporter = { otlp-http = { endpoint = ${tomlBasicString(endpoint)}, protocol = "json", headers = { Authorization = ${tomlBasicString(authorization)} } } }`;
 

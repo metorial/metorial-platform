@@ -16,9 +16,16 @@ export let loadSettings = (scope: Pick<ReadScope, 'organization'>) =>
 export let loadPrivacy = async (scope: Pick<ReadScope, 'organization'>) =>
   (await loadSettings(scope)).privacy;
 
-export let loadVisibleSettings = async (scope: Pick<ReadScope, 'organization'>) => {
+export let loadVisibleSettings = async (
+  scope: Pick<ReadScope, 'organization'>,
+  hiddenError: ConstructorParameters<typeof ServiceError>[0] = individualsHiddenError
+) => {
   let settings = await loadSettings(scope);
-  if (settings.privacy.hideIndividuals) throw new ServiceError(individualsHiddenError);
+  if (settings.privacy.hideIndividuals) throw new ServiceError(hiddenError);
 
   return settings;
+};
+
+export let assertIndividualsVisible = async (scope: Pick<ReadScope, 'organization'>) => {
+  await loadVisibleSettings(scope);
 };

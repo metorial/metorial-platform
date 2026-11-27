@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import type { SessionContextData } from '@mtsrc/agent-tracking-spec';
 import { buildMapped } from './build';
@@ -11,7 +12,7 @@ import { genAiOtlp } from '../src/otlp/genai';
 import { mapOtlpGroup } from '../src/registry';
 import type { Mapped } from '../src/types';
 
-let hookContext = { identityHint: 'h', occurredAt: hookTime };
+let hookContext = { policy: fullIngestPolicy, identityHint: 'h', occurredAt: hookTime };
 
 let contextOf = (mapped: Mapped[]) =>
   mapped.filter(entry => entry.draft.type == 'session.context');
@@ -188,7 +189,8 @@ describe('otlp context', () => {
       groupOf(
         [logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1', prompt_length: 3 })],
         claudeResource
-      )
+      ),
+      fullIngestPolicy
     );
 
     let [context] = contextOf(result.mapped);
@@ -214,7 +216,8 @@ describe('otlp context', () => {
       groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
         ...claudeResource,
         'vcs.ref.head.name': 'ENG-7-\u2066fix'
-      })
+      }),
+      fullIngestPolicy
     );
 
     expect(dataOf(contextOf(result.mapped)[0])?.branch).toBeUndefined();
@@ -226,7 +229,8 @@ describe('otlp context', () => {
       groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
         ...claudeResource,
         'vcs.ref.head.type': 'tag'
-      })
+      }),
+      fullIngestPolicy
     );
 
     expect(dataOf(contextOf(result.mapped)[0])?.branch).toBeUndefined();
@@ -247,7 +251,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'claude-code' }
-      )
+      ),
+      fullIngestPolicy
     );
 
     expect(result.mapped[0]?.draft.actor).toEqual({
@@ -270,7 +275,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'codex_cli_rs' }
-      )
+      ),
+      fullIngestPolicy
     );
 
     expect(result.dialect).toBe(codexOtlp);
@@ -294,7 +300,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'copilot-chat' }
-      ) as OtlpGroup<OtlpSpan>
+      ) as OtlpGroup<OtlpSpan>,
+      fullIngestPolicy
     );
 
     expect(result.dialect).toBe(genAiOtlp);
@@ -311,7 +318,8 @@ describe('otlp context', () => {
       'logs',
       groupOf([logRecord({ 'event.name': 'user_prompt', 'session.id': 's-1' })], {
         'service.name': 'claude-code'
-      })
+      }),
+      fullIngestPolicy
     );
 
     expect(contextOf(result.mapped)).toHaveLength(0);
@@ -329,7 +337,8 @@ describe('otlp context', () => {
           })
         ],
         { 'service.name': 'my-agent' }
-      ) as OtlpGroup<OtlpSpan>
+      ) as OtlpGroup<OtlpSpan>,
+      fullIngestPolicy
     );
 
     let record = buildMapped(contextOf(result.mapped)[0]!);

@@ -15,8 +15,6 @@ export { agentSurfaces, type AgentSurface } from './types';
 // Bumped when the shape of the published catalog changes, not when its entries do.
 export let detectionCatalogSchema = 1;
 
-export let detectionPlatforms: DetectionPlatform[] = ['macos', 'windows', 'linux'];
-
 export interface DetectionCatalogSignatures {
   config_dirs: string[];
   apps: string[];

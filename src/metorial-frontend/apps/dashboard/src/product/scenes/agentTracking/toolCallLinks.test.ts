@@ -4,8 +4,7 @@ import {
   agentSessionSummary,
   maxToolCallSessionLookups,
   sessionToolCallNotes,
-  toolCallSessionLookupIds,
-  toolCallsListMode
+  toolCallSessionLookupIds
 } from './toolCallLinks';
 
 let session = (context: Record<string, unknown> = {}) =>
@@ -68,47 +67,5 @@ describe('tool call links', () => {
       '1,200 other MCP tool calls of this session are not linked to a Metorial tool call you can see.',
       'This list is cut off, so some tool calls of this session are not shown.'
     ]);
-  });
-
-  it('shows agent sessions only with agent tracking, the read scope and individuals visible', () => {
-    let ready = {
-      enabled: true,
-      scopes: { loaded: true, hasScope: true },
-      settings: { loaded: true, failed: false, hideIndividuals: false }
-    };
-
-    expect(toolCallsListMode(ready)).toBe('agentSessions');
-    expect(toolCallsListMode({ ...ready, enabled: false })).toBe('plain');
-    expect(
-      toolCallsListMode({
-        ...ready,
-        enabled: false,
-        scopes: { loaded: false, hasScope: false }
-      })
-    ).toBe('plain');
-    expect(toolCallsListMode({ ...ready, scopes: { loaded: false, hasScope: false } })).toBe(
-      'pending'
-    );
-    expect(toolCallsListMode({ ...ready, scopes: { loaded: true, hasScope: false } })).toBe(
-      'plain'
-    );
-    expect(
-      toolCallsListMode({
-        ...ready,
-        settings: { loaded: false, failed: false, hideIndividuals: false }
-      })
-    ).toBe('pending');
-    expect(
-      toolCallsListMode({
-        ...ready,
-        settings: { loaded: true, failed: false, hideIndividuals: true }
-      })
-    ).toBe('plain');
-    expect(
-      toolCallsListMode({
-        ...ready,
-        settings: { loaded: false, failed: true, hideIndividuals: false }
-      })
-    ).toBe('plain');
   });
 });

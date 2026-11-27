@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { dialectManifests, type IngestPolicy } from '@mtsrc/agent-tracking-dialects';
 import { principalFixture } from '@mtsrc/agent-tracking-records-model/test/principal';
 import type { RecordLane } from '@mtsrc/agent-tracking-spec';
-import { allowsDialect, backfillMaxAgeDaysFor, ingestPolicyFor } from '../src/lib/policy';
+import {
+  allowsDialect,
+  backfillMaxAgeDaysFor,
+  ingestPolicyFor,
+  oldestAllowedAt
+} from '../src/lib/policy';
 
 type Token = 'bound' | 'ephemeral' | 'vendor';
 
@@ -207,6 +212,104 @@ describe('backfillMaxAgeDaysFor', () => {
           })
         )
       ).toBe(500);
+    }
+  });
+});
+
+describe('oldestAllowedAt', () => {
+  let now = Date.parse('2026-11-27T12:00:00Z');
+  let day = 86_400_000;
+
+  let principal = (
+    token: Token,
+    desktop: { historyImport?: boolean; historyImportDays?: number }
+  ) =>
+    principalFixture(
+      { suffix: `oldest-${token}` },
+      {
+        binding: principals[token].binding,
+        organization: { settings: { desktop } },
+        instance: { recordRetentionDays: 400, backfillMaxAgeDays: null }
+      }
+    );
+
+  it('bounds live items of a device-bound token by a week while History Import is off', () => {
+    expect(oldestAllowedAt({ principal: principal('bound', {}), lane: 'live', now })).toBe(
+      now - 7 * day
+    );
+  });
+
+  it('applies the History Import window to live items while it is on', () => {
+    expect(
+      oldestAllowedAt({
+        principal: principal('bound', { historyImport: true, historyImportDays: 120 }),
+        lane: 'live',
+        now
+      })
+    ).toBe(now - 120 * day);
+  });
+
+  it('never bounds live items tighter than a week', () => {
+    expect(
+      oldestAllowedAt({
+        principal: principal('bound', { historyImport: true, historyImportDays: 1 }),
+        lane: 'live',
+        now
+      })
+    ).toBe(now - 7 * day);
+  });
+
+  it('keeps the backfill limit for the backfill lane', () => {
+    expect(
+      oldestAllowedAt({
+        principal: principal('bound', { historyImport: true, historyImportDays: 30 }),
+        lane: 'backfill',
+        now
+      })
+    ).toBe(now - 30 * day);
+
+    expect(
+      oldestAllowedAt({ principal: principal('vendor', {}), lane: 'backfill', now })
+    ).toBe(now - 400 * day);
+  });
+
+  it('bounds live drop-box formats by record retention whatever History Import says', () => {
+    let waiting = { waitsOnDevice: true };
+
+    expect(
+      oldestAllowedAt({
+        principal: principal('bound', {}),
+        lane: 'live',
+        now,
+        manifest: waiting
+      })
+    ).toBe(now - 400 * day);
+    expect(
+      oldestAllowedAt({
+        principal: principal('bound', { historyImport: true, historyImportDays: 30 }),
+        lane: 'live',
+        now,
+        manifest: waiting
+      })
+    ).toBe(now - 400 * day);
+    expect(
+      oldestAllowedAt({ principal: principal('bound', {}), lane: 'live', now, manifest: {} })
+    ).toBe(now - 7 * day);
+  });
+
+  it('marks exactly the formats a hook or plugin leaves in the drop box as waiting', () => {
+    expect(
+      dialectManifests
+        .filter(manifest => manifest.waitsOnDevice)
+        .map(manifest => manifest.dialect)
+    ).toEqual(['cursor.hooks.v1', 'opencode.plugin.v1']);
+  });
+
+  it('leaves live items of tokens that are not bound to a device unbounded', () => {
+    for (let token of ['ephemeral', 'vendor'] as const) {
+      expect(
+        oldestAllowedAt({ principal: principal(token, {}), lane: 'live', now })
+      ).toBeNull();
     }
   });
 });

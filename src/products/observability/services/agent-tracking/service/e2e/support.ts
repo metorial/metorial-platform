@@ -1,8 +1,12 @@
 import { createClient } from '@lowerdeck/rpc-client';
 import { uniqueId } from '@lowerdeck/testing-tools';
+import { expect } from 'vitest';
 import { e2eEndpoint } from '@metorial/e2e/env';
 import type { AgentTrackingClient } from '@mtsrc/agent-tracking-api-internal';
-import { desktopContextId } from '@mtsrc/agent-tracking-spec';
+import {
+  desktopContextId,
+  type OrganizationDesktopSettings
+} from '@mtsrc/agent-tracking-spec';
 
 export let packageName = '@mtsrc/agent-tracking-service';
 
@@ -91,11 +95,13 @@ export let createToken = async (input: TokenInput = {}, scope?: Scope) => {
 export let createHookToken = (input: TokenInput = {}, scope?: Scope) =>
   createToken({ deviceMode: 'ephemeral', ...input }, scope);
 
-export let createToolDetailsHookToken = async (input: TokenInput = {}) =>
-  createHookToken(
-    input,
-    await createScope({ organization: { settings: { desktop: { toolDetails: true } } } })
-  );
+export let createDesktopToken = async (
+  desktop: OrganizationDesktopSettings,
+  input: TokenInput = {}
+) => createToken(input, await createScope({ organization: { settings: { desktop } } }));
+
+export let createToolDetailsHookToken = (input: TokenInput = {}) =>
+  createDesktopToken({ toolDetails: true }, { deviceMode: 'ephemeral', ...input });
 
 export let createSource = async (input: SourceInput = {}, scope?: Scope) => {
   let target = scope ?? (await createScope());
@@ -254,3 +260,40 @@ export let isoRange = (from: Date, to: Date) => ({
   from: from.toISOString(),
   to: to.toISOString()
 });
+
+type HookClient = 'claude-code' | 'codex';
+
+export let sendHook = async (d: {
+  secret: string;
+  client?: HookClient;
+  sessionId: string;
+  event: string;
+  extra?: Record<string, unknown>;
+}) => {
+  let response = await ingest(`/v1/ingest/hooks/${d.client ?? 'claude-code'}`, {
+    credential: d.secret,
+    body: JSON.stringify({ session_id: d.sessionId, hook_event_name: d.event, ...d.extra })
+  });
+
+  expect(response.status).toBe(200);
+};
+
+export let sendToolCall = (d: {
+  secret: string;
+  client?: HookClient;
+  sessionId: string;
+  toolCallId: string;
+  toolName?: string;
+  event?: string;
+}) =>
+  sendHook({
+    secret: d.secret,
+    client: d.client,
+    sessionId: d.sessionId,
+    event: d.event ?? 'PostToolUse',
+    extra: {
+      tool_use_id: d.toolCallId,
+      tool_name: d.toolName ?? 'mcp__linear__create_issue',
+      duration_ms: 250
+    }
+  });

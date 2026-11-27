@@ -7,6 +7,7 @@ import type {
 import mongoose from 'mongoose';
 import type { TagOrigin } from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
+import type { RecordMetorialLink } from './models';
 
 export let derivedCollectionNames = {
   sessions: 'sessions',
@@ -211,8 +212,6 @@ export type SessionDocument = {
   expiresAt: Date;
 };
 
-// A session settled as empty, one in which nothing happened, stays stored but is left out wherever
-// sessions are listed or counted.
 export let listedSessionFilter = { empty: { $ne: true as const } };
 
 // `<instanceId>:<type>:<value>` maps a correlation id to its session. `orphan:<…same…>` lists
@@ -225,14 +224,7 @@ export type SessionLinkDocument = {
   expiresAt: Date;
 };
 
-export type ToolCallLinkTarget = {
-  toolCallId: string;
-  providerId: string;
-  toolKey?: string;
-  deploymentId?: string;
-  integrationId?: string;
-  magicMcpServerId?: string;
-};
+export type ToolCallLinkTarget = RecordMetorialLink;
 
 // `<instanceId>:<clientFamily>:<toolCallId>` holds the Metorial tool call an agent's tool call
 // reached. When two Metorial calls claim one pair it is kept as a conflict without a target.

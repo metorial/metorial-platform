@@ -7,6 +7,10 @@ vi.mock(
 );
 vi.mock('@metorial/db', async () => (await import('./_mocks')).dbModule);
 vi.mock(
+  '@metorial/module-consumer-core',
+  async () => (await import('./_mocks')).consumerCoreModule
+);
+vi.mock(
   '@metorial-subspace/module-session',
   async () => (await import('./_mocks')).sessionModule
 );

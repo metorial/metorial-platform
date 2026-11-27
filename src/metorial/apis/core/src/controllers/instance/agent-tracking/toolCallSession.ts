@@ -8,7 +8,6 @@ import { agentTrackingToolCallSessionPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
-import { canReadProviders, canReadToolCalls } from '../../../lib/toolCallAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { agentTrackingInstanceGroup } from './group';
 
@@ -56,8 +55,8 @@ export let agentTrackingToolCallSessionController = Controller.create(
           project: ctx.project,
           instance: ctx.instance,
           organizationActor: getOwnershipActor(ctx),
-          canReadToolCalls: await canReadToolCalls(ctx),
-          canReadProviders: await canReadProviders(ctx),
+          canReadToolCalls: await ctx.integrationsAccess.toolCalls(),
+          canReadProviders: await ctx.integrationsAccess.providers(),
           toolCallIds: normalizeArrayParam(ctx.query.tool_call_id) ?? []
         });
 

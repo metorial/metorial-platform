@@ -14,7 +14,7 @@ let getAccessMember = (ctx: object) => {
   return undefined;
 };
 
-export let assertAccess = async (ctx: { auth: AuthInfo }, input: AccessInput) => {
+let assertAccess = async (ctx: { auth: AuthInfo }, input: AccessInput) => {
   await accessService.checkAccess({
     authInfo: ctx.auth,
     possibleScopes: input.possibleScopes,

@@ -13,7 +13,7 @@ export let opencodePluginId = 'opencode.plugin.v1';
 
 let maxSessionTokens = 1_000_000_000_000;
 let maxStepIndex = 1_000_000_000;
-let maxCostUsd = 1_000_000;
+export let maxCostUsd = 1_000_000;
 
 let requestBase = {
   kind: v.literal('request'),

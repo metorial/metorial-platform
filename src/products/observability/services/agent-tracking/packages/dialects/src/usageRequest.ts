@@ -1,6 +1,6 @@
 import type { RecordDraft, RecordSource } from '@mtsrc/agent-tracking-records-model';
 import type { BulkContext, BulkItemDialect, PayloadCheck } from './types';
-import { modelRef, type Cost, type UsageResult } from './values';
+import { modelRef, type Cost, type TokenUsage, type UsageResult } from './values';
 
 let identityPrefixes = { 'model.request': 'request', 'turn.completed': 'turn' } as const;
 
@@ -18,6 +18,15 @@ export type UsageRequest = {
   purpose?: 'main' | 'subagent';
 };
 
+let countedTokens = (usage: TokenUsage | undefined) =>
+  usage
+    ? (usage.input_uncached ?? 0) +
+      (usage.cache_read ?? 0) +
+      (usage.cache_write ?? 0) +
+      (usage.output ?? 0) +
+      (usage.reasoning ?? 0)
+    : 0;
+
 type Checked<T> =
   { success: true; value: T } | Extract<ReturnType<PayloadCheck>, { success: false }>;
 
@@ -27,7 +36,7 @@ export let bulkClient = (context: BulkContext, surface?: string): RecordDraft['c
   ...(surface ? { surface } : {})
 });
 
-export let usageRequestDraft = (context: BulkContext, d: UsageRequest): RecordDraft => {
+let usageRequestDraft = (context: BulkContext, d: UsageRequest): RecordDraft => {
   let type = d.type ?? 'model.request';
 
   return {
@@ -68,8 +77,9 @@ export let usageDialect = <T>(d: {
 
     map: (context, validated) => {
       let request = d.request(validated as T);
+      if (!request || (countedTokens(request.usage.usage) == 0 && !request.cost)) return [];
 
-      return request ? [{ source, draft: usageRequestDraft(context, request) }] : [];
+      return [{ source, draft: usageRequestDraft(context, request) }];
     }
   };
 };

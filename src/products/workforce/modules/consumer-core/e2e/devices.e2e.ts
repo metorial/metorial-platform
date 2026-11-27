@@ -113,13 +113,17 @@ describe('module-consumer-core devices', () => {
     fixture: OrganizationFixture,
     desktop: { consumerProfile: ConsumerProfile },
     oauthToken: Awaited<ReturnType<typeof signInDesktop>> | undefined,
-    input: Parameters<typeof consumerDeviceService.checkInDevice>[0]['input'] = deviceInput()
+    input: Parameters<typeof consumerDeviceService.checkInDevice>[0]['input'] = deviceInput(),
+    skillAccess: Parameters<
+      typeof consumerDeviceService.checkInDevice
+    >[0]['skillAccess'] = 'any'
   ) =>
     consumerDeviceService.checkInDevice({
       instance: fixture.instance,
       consumerProfile: desktop.consumerProfile,
       oauthToken,
       auditScope: fixture.auditScope,
+      skillAccess,
       input
     });
 
@@ -377,6 +381,15 @@ describe('module-consumer-core devices', () => {
     ]);
 
     await checkIn(fixture, desktop, oauthToken, { ...input, reportedSkills: [] });
+    expect(await stored()).toEqual([]);
+
+    let reported = { ...input, reportedSkills: [{ skillId: billing.id, name: 'billing' }] };
+    await checkIn(fixture, desktop, oauthToken, reported, {
+      where: { id: { not: billing.id } }
+    });
+    expect(await stored()).toEqual([]);
+
+    await checkIn(fixture, desktop, oauthToken, reported, 'none');
     expect(await stored()).toEqual([]);
   });
 

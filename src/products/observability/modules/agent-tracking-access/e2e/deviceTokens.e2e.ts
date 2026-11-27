@@ -135,7 +135,6 @@ describe('module-agent-tracking-access device tokens', () => {
     });
     expect(telemetry.get(device.oid)).toEqual({
       enabled: true,
-      directExport: true,
       tokenId: current.ingestToken.serviceIngestTokenId,
       ...defaultDesktop
     });
@@ -189,7 +188,6 @@ describe('module-agent-tracking-access device tokens', () => {
     });
     expect(telemetry.get(device.oid)).toEqual({
       enabled: true,
-      directExport: true,
       tokenId: null,
       ...defaultDesktop
     });
@@ -223,7 +221,6 @@ describe('module-agent-tracking-access device telemetry settings', () => {
     });
     expect(telemetry.get(device.oid)).toEqual({
       enabled: true,
-      directExport: true,
       tokenId: null,
       ...desktop,
       historyImportDays: 90

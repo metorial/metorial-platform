@@ -51,7 +51,6 @@ let consumerDevice = {
 let telemetryOff = {
   enabled: false,
   tokenId: null,
-  directExport: false,
   toolDetails: false,
   sessionContext: false,
   sessionTitles: false,
@@ -62,7 +61,6 @@ let telemetryOff = {
 let telemetryOn = {
   enabled: true,
   tokenId: 'git_1',
-  directExport: true,
   toolDetails: true,
   sessionContext: true,
   sessionTitles: false,
@@ -90,7 +88,6 @@ describe('consumer device telemetry', () => {
       telemetry: {
         enabled: true,
         token_id: 'git_1',
-        direct_export: true,
         tool_details: true,
         session_context: true,
         session_titles: false,
@@ -100,13 +97,13 @@ describe('consumer device telemetry', () => {
     });
   });
 
-  it('offers direct export only while telemetry is collected', async () => {
+  it('sends no direct export flag, which Metorial Desktop reads as on', async () => {
     for (let telemetry of [telemetryOn, telemetryOff]) {
       let device = await consumerConsumerDevicePresenter
         .present({ consumerDevice, telemetry, monitor, install }, context)
         .run();
 
-      expect(device.telemetry.direct_export).toBe(telemetry.enabled);
+      expect(device.telemetry).not.toHaveProperty('direct_export');
     }
   });
 

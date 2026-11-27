@@ -1,21 +1,11 @@
 import { eventually, uniqueId } from '@lowerdeck/testing-tools';
 import { describe, expect, it } from 'vitest';
-import { agentTracking, createHookToken, createToolDetailsHookToken, ingest } from './support';
-
-let sendToolCall = async (d: { secret: string; sessionId: string; toolCallId: string }) => {
-  let response = await ingest('/v1/ingest/hooks/claude-code', {
-    credential: d.secret,
-    body: JSON.stringify({
-      session_id: d.sessionId,
-      hook_event_name: 'PostToolUse',
-      tool_use_id: d.toolCallId,
-      tool_name: 'mcp__linear__create_issue',
-      duration_ms: 250
-    })
-  });
-
-  expect(response.status).toBe(200);
-};
+import {
+  agentTracking,
+  createHookToken,
+  createToolDetailsHookToken,
+  sendToolCall
+} from './support';
 
 let link = (toolCallId: string, metorial: { toolCallId: string; providerId: string }) => ({
   clientFamily: 'claude-code',
@@ -43,7 +33,7 @@ let sessionWithProviders = async (d: {
     { timeoutMs: 30_000 }
   );
 
-describe('tool call links', () => {
+describe('tool call links in session summaries, without record stamps under the in-memory sink', () => {
   it('adds the provider to the session whether the link or the records came first', async () => {
     let { organization, instance, secret } = await createToolDetailsHookToken();
     let sessionId = uniqueId('session');

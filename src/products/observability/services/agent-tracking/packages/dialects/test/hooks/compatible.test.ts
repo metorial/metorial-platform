@@ -1,9 +1,10 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import { buildMapped } from '../build';
 import { claudeCodeHooks, codexHooks } from '../../src/hooks';
 import { claudeHookPayloads, hookTime, sentinel } from './fixtures';
 
-let context = { identityHint: 'hint-1', occurredAt: hookTime };
+let context = { policy: fullIngestPolicy, identityHint: 'hint-1', occurredAt: hookTime };
 
 let mapOne = (payload: Record<string, unknown>, dialect = claudeCodeHooks) => {
   let mapped = dialect
@@ -465,8 +466,14 @@ describe('identity', () => {
   });
 
   it('differs per hint so retries of different deliveries stay distinct', () => {
-    let a = claudeCodeHooks.map({ identityHint: 'a' }, claudeHookPayloads['Stop']!);
-    let b = claudeCodeHooks.map({ identityHint: 'b' }, claudeHookPayloads['Stop']!);
+    let a = claudeCodeHooks.map(
+      { policy: fullIngestPolicy, identityHint: 'a' },
+      claudeHookPayloads['Stop']!
+    );
+    let b = claudeCodeHooks.map(
+      { policy: fullIngestPolicy, identityHint: 'b' },
+      claudeHookPayloads['Stop']!
+    );
 
     expect(a[0]?.draft.identity).not.toBe(b[0]?.draft.identity);
   });
@@ -479,8 +486,10 @@ describe('identity', () => {
 
   it('defaults occurredAt to null', () => {
     expect(
-      claudeCodeHooks.map({ identityHint: 'h' }, { hook_event_name: 'Stop' })[0]?.draft
-        .occurredAt
+      claudeCodeHooks.map(
+        { policy: fullIngestPolicy, identityHint: 'h' },
+        { hook_event_name: 'Stop' }
+      )[0]?.draft.occurredAt
     ).toBeNull();
   });
 });

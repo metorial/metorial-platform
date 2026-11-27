@@ -10,15 +10,12 @@ import { getStore, isStoreConfigured } from '@mtsrc/agent-tracking-store';
 import { sessionMcpToolCallRecords, toolCallRecordReader } from '../lib/records';
 import {
   collectSessionMcpToolCalls,
-  maxSessionToolCalls,
   maxToolCallLookups,
   resolveToolCallSessions,
   type ToolCallRef
 } from '../lib/toolCalls';
 
 export {
-  maxRecordsPerToolCall,
-  maxSessionToolCalls,
   maxToolCallLookups,
   type SessionMcpToolCall,
   type ToolCallRef,
@@ -52,7 +49,7 @@ class SessionToolCallServiceImpl {
       organizationId: d.organization.id,
       sessionKey: session._id
     });
-    let calls = await collectSessionMcpToolCalls({ records, limit: maxSessionToolCalls });
+    let calls = await collectSessionMcpToolCalls({ records });
 
     return { session, ...calls };
   }

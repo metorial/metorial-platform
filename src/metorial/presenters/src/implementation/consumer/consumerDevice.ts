@@ -149,19 +149,9 @@ export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
 
 export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType)
   .presenter(async ({ consumerDevice, telemetry, monitor, install }, opts) => {
-    if (!telemetry) {
+    if (!telemetry || !monitor || !install) {
       throw new Error(
-        'The consumer device presenter needs the telemetry state of the device.'
-      );
-    }
-    if (!monitor) {
-      throw new Error(
-        'The consumer device presenter needs the monitor settings of the device.'
-      );
-    }
-    if (!install) {
-      throw new Error(
-        'The consumer device presenter needs the install settings of the device.'
+        'The consumer device presenter needs the telemetry state, monitor settings and install settings of the device.'
       );
     }
 
@@ -172,7 +162,6 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       telemetry: {
         enabled: telemetry.enabled,
         token_id: telemetry.tokenId,
-        direct_export: telemetry.directExport,
         tool_details: telemetry.toolDetails,
         session_context: telemetry.sessionContext,
         session_titles: telemetry.sessionTitles,
@@ -182,7 +171,14 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
       monitor: {
         ai_tool_detection: monitor.aiToolDetection,
         catalog_version: monitor.catalogVersion,
-        intervals: monitor.intervals
+        intervals: {
+          config_dirs: monitor.intervals.config_dirs,
+          apps: monitor.intervals.apps,
+          binaries: monitor.intervals.binaries,
+          ide_extensions: monitor.intervals.ide_extensions,
+          processes: monitor.intervals.processes,
+          report: monitor.intervals.report
+        }
       },
       install: {
         connection_mode: install.connectionMode
@@ -206,11 +202,6 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
                 'The ID of the active telemetry token of the device, the `token_id` the telemetry token endpoint returned. Null when the device has no active token or telemetry is not collected. When it differs from the token the device holds, that token no longer works.'
             })
           ),
-          direct_export: v.boolean({
-            name: 'direct_export',
-            description:
-              "`true` when AI tools can send telemetry straight to Metorial with the device's telemetry token. Metorial removes tool details while detailed tool reporting is off, and Git and repository data while session context is off. `false` while telemetry is not collected."
-          }),
           tool_details: v.boolean({
             name: 'tool_details',
             description:

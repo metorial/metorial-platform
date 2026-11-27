@@ -1,10 +1,10 @@
-import { isServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Organization, Project } from '@metorial/db';
 import { isAgentTrackingEnabledForOrganization } from '@metorial/module-agent-tracking-sync';
+import { consumerDeviceSettingsService } from '@metorial/module-consumer-core';
 import { consumerAgentKey, type AgentActivity } from '../lib/agentActivity';
-import { resolveConsumerRefs, unique } from '../lib/members';
+import { unique } from '../lib/entities';
+import { resolveConsumerRefs } from '../lib/members';
 import { loadPrivacy } from '../lib/privacy';
 import {
   agentActiveWindowDays,
@@ -12,7 +12,7 @@ import {
   agentActivityQuery
 } from '../lib/queries';
 import { cachedRead, runUsageQuery } from '../lib/scope';
-import { fromService } from '../lib/service';
+import { failSoft, fromService } from '../lib/service';
 
 let dayMs = 24 * 60 * 60 * 1000;
 
@@ -22,6 +22,7 @@ type ActivityScope = {
   organization: Organization;
   project: Project;
   instance: Pick<Instance, 'oid' | 'id' | 'name'>;
+  reader: { isHuman: boolean; canReadAgentUsage: boolean };
 };
 
 type ActivityRow = { agentKey: string; memberId: string | null; lastUsedAt: string };
@@ -35,6 +36,8 @@ class AgentTrackingAgentActivityServiceImpl {
   async getAgentActivity(
     d: ActivityScope & { agentKeys: string[] }
   ): Promise<AgentActivity | null> {
+    if (!(await this.isVisible(d))) return null;
+
     let result = await this.loadActivity({ ...d, byMember: false });
     if (!result) return null;
 
@@ -47,20 +50,24 @@ class AgentTrackingAgentActivityServiceImpl {
   async getConsumerAgentActivity(
     d: ActivityScope & { agentKeys: string[] }
   ): Promise<AgentActivity | null> {
-    let privacy = await this.tryRead(() => loadPrivacy(d));
+    if (!(await this.isVisible(d))) return null;
+
+    let privacy = await failSoft(() => loadPrivacy(d), null);
     if (!privacy || privacy.hideIndividuals) return null;
 
     let result = await this.loadActivity({ ...d, byMember: true });
     if (!result) return null;
 
     let rows = result.rows;
-    let consumerIds = await this.tryRead(() =>
-      fromService(() =>
-        resolveConsumerRefs({
-          organizationId: d.organization.id,
-          ids: unique(rows.map(row => row.memberId))
-        })
-      )
+    let consumerIds = await failSoft(
+      () =>
+        fromService(() =>
+          resolveConsumerRefs({
+            organizationId: d.organization.id,
+            ids: unique(rows.map(row => row.memberId))
+          })
+        ),
+      null
     );
     if (!consumerIds) return null;
 
@@ -75,6 +82,12 @@ class AgentTrackingAgentActivityServiceImpl {
     return { lastUsed, complete: !result.truncated };
   }
 
+  private async isVisible(d: ActivityScope) {
+    if (!d.reader.isHuman || !d.reader.canReadAgentUsage) return false;
+
+    return await consumerDeviceSettingsService.isAiToolDetectionActive(d);
+  }
+
   private async loadActivity(d: ActivityScope & { agentKeys: string[]; byMember: boolean }) {
     let agentKeys = unique(d.agentKeys);
     if (!agentKeys.length) return { rows: [] as ActivityRow[], truncated: false };
@@ -87,49 +100,41 @@ class AgentTrackingAgentActivityServiceImpl {
 
     let to = new Date(Math.floor(Date.now() / minuteMs) * minuteMs);
 
-    return await this.tryRead(() =>
-      cachedRead({
-        scope: d,
-        read: d.byMember ? 'agentActivity.byMember' : 'agentActivity.byAgent',
-        input: { agentKeys, to: to.toISOString() },
-        load: async () => {
-          let result = await runUsageQuery(
-            d,
-            agentActivityQuery({
-              window: { from: new Date(to.getTime() - agentActivityLookbackDays * dayMs), to },
-              activeSince: new Date(to.getTime() - agentActiveWindowDays * dayMs),
-              agentKeys,
-              byMember: d.byMember
-            })
-          );
+    return await failSoft(
+      () =>
+        cachedRead({
+          scope: d,
+          read: d.byMember ? 'agentActivity.byMember' : 'agentActivity.byAgent',
+          input: { agentKeys, to: to.toISOString() },
+          load: async () => {
+            let result = await runUsageQuery(
+              d,
+              agentActivityQuery({
+                window: {
+                  from: new Date(to.getTime() - agentActivityLookbackDays * dayMs),
+                  to
+                },
+                activeSince: new Date(to.getTime() - agentActiveWindowDays * dayMs),
+                agentKeys,
+                byMember: d.byMember
+              })
+            );
 
-          let rows: ActivityRow[] = result.rows
-            .filter(
-              row => typeof row.agent == 'string' && typeof row.last_activity == 'string'
-            )
-            .map(row => ({
-              agentKey: row.agent as string,
-              memberId: typeof row.user == 'string' ? row.user : null,
-              lastUsedAt: row.last_activity as string
-            }));
+            let rows: ActivityRow[] = result.rows
+              .filter(
+                row => typeof row.agent == 'string' && typeof row.last_activity == 'string'
+              )
+              .map(row => ({
+                agentKey: row.agent as string,
+                memberId: typeof row.user == 'string' ? row.user : null,
+                lastUsedAt: row.last_activity as string
+              }));
 
-          return { rows, truncated: !!result.meta?.truncated };
-        }
-      })
+            return { rows, truncated: !!result.meta?.truncated };
+          }
+        }),
+      null
     );
-  }
-
-  private async tryRead<T>(read: () => Promise<T>) {
-    try {
-      return await read();
-    } catch (error) {
-      if (isServiceError(error)) return null;
-
-      getSentry().captureException(error);
-      console.error('[agent-tracking-query] Could not load agent activity', error);
-
-      return null;
-    }
   }
 }
 

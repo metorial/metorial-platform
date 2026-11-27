@@ -1,8 +1,8 @@
 import { CodeBlock } from '@metorial/code';
 import { Callout, Flex, Text } from '@metorial/ui';
 import { buildCodexConfig, codexConfigPath, codexRestartCommand } from './codexConfig';
-import { ingestionKeyPlaceholder } from './settingsFile';
-import { CommandStep, CopyButton, MissingFile } from './setupDeploy';
+import { ingestionKeyPlaceholder, toolDetailsOffText } from './settingsFile';
+import { CommandStep, CopyButton, MissingFile } from './setupParts';
 
 type CodexConfig = ReturnType<typeof buildCodexConfig>;
 
@@ -14,9 +14,8 @@ let CodexSends = () => (
     <Text size="2" color="gray700">
       Sends: Each model request with its model and tokens, and each tool call with its
       arguments and output. Codex always sends tool arguments and output and has no setting to
-      turn that off. Metorial keeps MCP server, MCP tool and skill names and tool arguments and
-      output only while the organization has Detailed Tool Reporting on in the Agent Usage
-      settings, and then according to this environment's content settings.
+      turn that off. {toolDetailsOffText} With it on in the Agent Usage settings, tool
+      arguments and output are kept according to this environment's content settings.
     </Text>
     <Text size="2" color="gray700">
       Not sent: The repository, branch and commits of a session, which are not in Codex's

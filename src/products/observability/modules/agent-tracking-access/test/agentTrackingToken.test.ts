@@ -107,19 +107,16 @@ describe('agentTrackingTokenService', () => {
       });
       expect(telemetry.get(1n)).toEqual({
         enabled: true,
-        directExport: true,
         tokenId: null,
         ...defaultDesktop
       });
       expect(telemetry.get(2n)).toEqual({
         enabled: true,
-        directExport: true,
         tokenId: 'git_new',
         ...defaultDesktop
       });
       expect(telemetry.get(3n)).toEqual({
         enabled: true,
-        directExport: true,
         tokenId: null,
         ...defaultDesktop
       });
@@ -136,7 +133,6 @@ describe('agentTrackingTokenService', () => {
 
       expect(telemetry.get(1n)).toEqual({
         enabled: false,
-        directExport: false,
         tokenId: null,
         ...desktopOff
       });
@@ -166,13 +162,11 @@ describe('agentTrackingTokenService', () => {
 
       expect(on.get(1n)).toEqual({
         enabled: true,
-        directExport: true,
         tokenId: null,
         ...desktop
       });
       expect(off.get(1n)).toEqual({
         enabled: false,
-        directExport: false,
         tokenId: null,
         ...desktopOff
       });
@@ -208,7 +202,6 @@ describe('agentTrackingTokenService', () => {
 
       expect(telemetry.get(1n)).toEqual({
         enabled: false,
-        directExport: false,
         tokenId: null,
         ...desktopOff
       });

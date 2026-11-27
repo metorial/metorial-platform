@@ -51,6 +51,11 @@ type Model = { id: string; name: string | null };
 
 type Ticket = { key: string; url: string | null };
 
+let NamesRow = styled(Flex)<{ $maxWidth: number }>`
+  min-width: 0;
+  max-width: ${p => p.$maxWidth}px;
+`;
+
 let ExternalLink = styled.a`
   color: ${theme.colors.primary};
   text-decoration: none;
@@ -222,7 +227,7 @@ export let FirstAndRest = ({ names, maxWidth }: { names: string[]; maxWidth: num
   if (!first) return <Muted>—</Muted>;
 
   return (
-    <Flex align="center" gap={4} title={names.join(', ')} style={{ minWidth: 0, maxWidth }}>
+    <NamesRow align="center" gap={4} title={names.join(', ')} $maxWidth={maxWidth}>
       <Text as="span" size="2" truncate>
         {first}
       </Text>
@@ -231,7 +236,7 @@ export let FirstAndRest = ({ names, maxWidth }: { names: string[]; maxWidth: num
           +{names.length - 1}
         </Text>
       ) : null}
-    </Flex>
+    </NamesRow>
   );
 };
 

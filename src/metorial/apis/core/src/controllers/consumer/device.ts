@@ -10,15 +10,17 @@ import {
   type Organization,
   type Project
 } from '@metorial/db';
-import { getDetectionCatalog } from '@metorial/model-catalog/detection';
 import {
   consumerDeviceDetectionService,
   consumerDeviceService,
   consumerDeviceSettingsService,
   consumerDeviceStatuses,
-  maxDetectionFindings
+  maxDetectionFindings,
+  type ReportedSkillAccess
 } from '@metorial/module-consumer-core';
+import type { AnyAccessTagSelector } from '@metorial/module-access';
 import { flagService } from '@metorial/module-flags';
+import { getConsumerSkillAccessWhere } from '@metorial/module-skill';
 import {
   consumerDeviceDetectionCatalogPresenter,
   consumerDeviceDetectionReportPresenter,
@@ -26,15 +28,9 @@ import {
   consumerDeviceTelemetryTokenPresenter
 } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
-import {
-  getDeviceMonitor,
-  requireDetectionCatalog,
-  requireDetectionReporting,
-  withVisibleDetections
-} from '../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { requireParam } from '../../lib/requireParam';
-import { grantableDeviceSkills, reportedSkillsValidator } from '../../lib/deviceSkills';
+import { reportedSkillsValidator } from '../../lib/deviceSkills';
 import { getSignedInOAuthToken } from '../../lib/signedInOAuthToken';
 import { checkAccess } from '../../middleware/checkAccess';
 import { requireDeviceTelemetry } from './deviceTelemetry';
@@ -75,9 +71,13 @@ let consumerDeviceGroup = devicesGroup.use(async ctx => {
 
 let consumerDeviceTelemetryGroup = consumerDeviceGroup.use(requireDeviceTelemetry);
 
-let consumerDeviceDetectionGroup = consumerDeviceGroup.use(requireDetectionReporting);
+let reportedSkillAccessOf = async (
+  accessTags: AnyAccessTagSelector | undefined
+): Promise<ReportedSkillAccess> => {
+  let where = await getConsumerSkillAccessWhere({ accessTags });
 
-let detectionCatalogGroup = devicesGroup.use(requireDetectionCatalog);
+  return where ? { where } : 'any';
+};
 
 type PresentableDevice = Parameters<
   typeof consumerDevicePresenter.present
@@ -86,24 +86,26 @@ type PresentableDevice = Parameters<
 type DeviceContext = { organization: Organization; project: Project; instance: Instance };
 
 let presentDevices = async (ctx: DeviceContext, consumerDevices: PresentableDevice[]) => {
-  let [telemetry, settings] = await Promise.all([
+  let [telemetry, view] = await Promise.all([
     agentTrackingTokenService.listDeviceTelemetry({
       organization: ctx.organization,
       project: ctx.project,
       consumerDevices
     }),
-    consumerDeviceSettingsService.getSettings({ instance: ctx.instance })
+    consumerDeviceSettingsService.getDeviceViews({
+      organization: ctx.organization,
+      project: ctx.project,
+      instance: ctx.instance,
+      consumerDevices
+    })
   ]);
 
-  let monitor = await getDeviceMonitor(ctx, settings);
-  let install = { connectionMode: settings?.connectionMode ?? 'local_proxy' } as const;
-
-  return consumerDevices.map(consumerDevice =>
+  return view.consumerDevices.map(consumerDevice =>
     consumerDevicePresenter.present({
-      consumerDevice: withVisibleDetections(consumerDevice, monitor.aiToolDetection),
+      consumerDevice,
       telemetry: telemetry.get(consumerDevice.oid),
-      monitor,
-      install
+      monitor: view.monitor,
+      install: view.install
     })
   );
 };
@@ -209,6 +211,7 @@ export let consumerDeviceController = Controller.create(
           consumerProfile: ctx.consumerProfile,
           oauthToken: getSignedInOAuthToken(ctx),
           auditScope: ctx.auditScope,
+          skillAccess: await reportedSkillAccessOf(ctx.accessTags),
           input: {
             installationId: ctx.body.installation_id,
             name: ctx.body.name,
@@ -223,7 +226,10 @@ export let consumerDeviceController = Controller.create(
               supportsSkills: client.supports_skills
             })),
             magicMcpTokenIds: ctx.body.magic_mcp_token_ids,
-            reportedSkills: await grantableDeviceSkills(ctx, ctx.body.skills)
+            reportedSkills: ctx.body.skills?.map(skill => ({
+              skillId: skill.skill_id,
+              name: skill.name
+            }))
           }
         });
 
@@ -361,7 +367,7 @@ export let consumerDeviceController = Controller.create(
         return await presentDevice(ctx, consumerDevice);
       }),
 
-    getDetectionCatalog: detectionCatalogGroup
+    getDetectionCatalog: devicesGroup
       .get(consumerPath('device-detection-catalog', 'deviceDetectionCatalog.get'), {
         name: 'Get device detection catalog',
         description:
@@ -369,11 +375,16 @@ export let consumerDeviceController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['consumer#instance.device:read'] }))
       .output(consumerDeviceDetectionCatalogPresenter)
-      .do(async () =>
-        consumerDeviceDetectionCatalogPresenter.present({ catalog: getDetectionCatalog() })
+      .do(async ctx =>
+        consumerDeviceDetectionCatalogPresenter.present({
+          catalog: await consumerDeviceDetectionService.getCatalog({
+            organization: ctx.organization,
+            project: ctx.project
+          })
+        })
       ),
 
-    reportDetections: consumerDeviceDetectionGroup
+    reportDetections: consumerDeviceGroup
       .post(
         consumerPath('devices/:consumerDeviceId/detections', 'devices.detections.report'),
         {
@@ -453,6 +464,8 @@ export let consumerDeviceController = Controller.create(
       .output(consumerDeviceDetectionReportPresenter)
       .do(async ctx => {
         let report = await consumerDeviceDetectionService.reportDetections({
+          organization: ctx.organization,
+          project: ctx.project,
           consumerDevice: ctx.consumerDevice,
           oauthToken: getSignedInOAuthToken(ctx),
           auditScope: ctx.auditScope,

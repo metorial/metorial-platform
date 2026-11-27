@@ -1,6 +1,7 @@
 import type { PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { lookupMembers, unique } from '../lib/members';
+import { unique } from '../lib/entities';
+import { lookupMembers } from '../lib/members';
 import { costOf, countOf } from '../lib/money';
 import { pageByAnchor } from '../lib/pageByAnchor';
 import { loadVisibleSettings } from '../lib/privacy';

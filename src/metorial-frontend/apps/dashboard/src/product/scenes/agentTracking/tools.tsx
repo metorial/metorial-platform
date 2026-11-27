@@ -14,16 +14,18 @@ import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { formatDateTime } from './activity';
+import { ProviderLink, SkillLink } from './entityLinks';
 import { agentTrackingErrorFor } from './errorState';
 import { WithInfo } from './info';
 import {
+  agentTrackingRangeFilter,
   defaultAgentTrackingRange,
   formatAgentTrackingRange,
-  getBrowserTimeZone,
-  spendRangeFilter
+  getBrowserTimeZone
 } from './range';
 import { useSearchParamOption, useSearchParamWriter } from './searchParams';
 import { Muted } from './sessionParts';
+import { toolDetailsOffText } from './settingsFile';
 import { SortHeader } from './sortHeader';
 import {
   buildMcpServersCsv,
@@ -31,15 +33,16 @@ import {
   defaultSortOrder,
   formatRate,
   membersFormatter,
+  skillSort,
   skillSortRows,
   sortToolRows,
+  toggledToolSortParams,
   toolsCsvFileName,
   toolSortIds,
   unnamedNotice,
   type McpServerItem,
   type McpServerUsage,
   type McpToolItem,
-  type SkillItem,
   type SkillUsage,
   type SortOrder,
   type ToolSort
@@ -56,7 +59,7 @@ let viewIds = views.map(view => view.id);
 
 let orderIds = ['asc', 'desc'] as const;
 
-let toolFilters = [spendRangeFilter.filter];
+let toolFilters = [agentTrackingRangeFilter.filter];
 
 let sourceNote =
   'From agent telemetry: what Claude Code and Codex report about their own tool calls, not Metorial’s own MCP server logs.';
@@ -66,16 +69,21 @@ let ToolName = styled.span`
   color: ${theme.colors.gray700};
 `;
 
-let useToolSort = () => {
+let useToolSort = (effectiveSort: (sort: ToolSort) => ToolSort = sort => sort) => {
   let [, setParam] = useSearchParamWriter();
-  let [sort] = useSearchParamOption<ToolSort>('sort', toolSortIds, 'calls');
-  let [order] = useSearchParamOption<SortOrder>('order', orderIds, defaultSortOrder(sort));
+  let [requestedSort] = useSearchParamOption<ToolSort>('sort', toolSortIds, 'calls');
+  let [order] = useSearchParamOption<SortOrder>(
+    'order',
+    orderIds,
+    defaultSortOrder(requestedSort)
+  );
+  let sort = effectiveSort(requestedSort);
 
   let toggle = (next: ToolSort) => {
-    let nextOrder = next == sort ? (order == 'asc' ? 'desc' : 'asc') : defaultSortOrder(next);
+    let params = toggledToolSortParams({ sort, order }, next);
 
-    setParam('sort', next == 'calls' ? undefined : next);
-    setParam('order', nextOrder == defaultSortOrder(next) ? undefined : nextOrder);
+    setParam('sort', params.sort);
+    setParam('order', params.order);
   };
 
   return { sort, order, toggle };
@@ -96,13 +104,14 @@ let sortHeader = (sorting: ToolSorting, id: ToolSort, label: string, info?: stri
 
 let LastUsed = ({ date, now }: { date: Date | string | null; now: Date }) =>
   date ? (
-    <span style={{ whiteSpace: 'nowrap' }}>{formatDateTime(new Date(date), now)}</span>
+    <Text as="span" size="2" wrap="nowrap">
+      {formatDateTime(new Date(date), now)}
+    </Text>
   ) : (
     <Muted>—</Muted>
   );
 
-let detailsOffNote = (subject: string) =>
-  `Detailed Tool Reporting is off, so Claude Code set up by Metorial Desktop or the Agent Usage settings file sends no custom ${subject} names. Codex sends them either way. The counts still include every use without a name. An organization admin can turn it on in the Agent Usage settings; usage sent before that keeps no names.`;
+let detailsOffNote = `${toolDetailsOffText} It is off for this organization; an organization admin can turn it on in the Agent Usage settings, and usage sent before that keeps no names.`;
 
 let ExportButton = ({ onClick }: { onClick: () => void }) => (
   <Button size="2" variant="outline" iconLeft={<RiDownload2Line />} onClick={onClick}>
@@ -121,34 +130,6 @@ let MetorialUsageLink = () => {
       <Button size="2" variant="outline" as="span">
         Metorial MCP Usage
       </Button>
-    </Link>
-  );
-};
-
-let ServerProvider = ({ provider }: { provider: McpServerItem['provider'] }) => {
-  let ctx = useInstanceContext();
-  if (!provider?.name) return null;
-
-  return (
-    <Link
-      to={Paths.instance.provider(ctx.organization, ctx.project, ctx.instance, provider.id)}
-    >
-      <Text as="span" size="1" color="gray600">
-        {provider.name}
-      </Text>
-    </Link>
-  );
-};
-
-let MetorialSkill = ({ skill }: { skill: SkillItem['skill'] }) => {
-  let ctx = useInstanceContext();
-  if (!skill) return null;
-
-  return (
-    <Link to={Paths.instance.skill(ctx.organization, ctx.project, ctx.instance, skill.id)}>
-      <Text as="span" size="1" color="gray600">
-        {skill.name}
-      </Text>
     </Link>
   );
 };
@@ -196,7 +177,7 @@ let McpServersTable = ({ usage }: { usage: McpServerUsage }) => {
         <Text as="span" size="2" weight="medium">
           {server.name}
         </Text>
-        <ServerProvider provider={server.provider} />
+        {server.provider?.name ? <ProviderLink provider={server.provider} muted /> : null}
       </Flex>,
       ...callCells(server)
     ];
@@ -232,7 +213,6 @@ let McpServersTable = ({ usage }: { usage: McpServerUsage }) => {
 
 type ToolUsageBoxProps = {
   title: string;
-  subject: string;
   usage: {
     range: McpServerUsage['range'];
     toolDetails: boolean;
@@ -251,9 +231,7 @@ type ToolUsageBoxProps = {
 let ToolUsageBox = (props: ToolUsageBoxProps) => {
   let hasItems = !!props.usage.items.length;
   let note = props.unnamed ?? (hasItems ? null : props.emptyText);
-  let info = props.usage.toolDetails
-    ? sourceNote
-    : `${sourceNote} ${detailsOffNote(props.subject)}`;
+  let info = props.usage.toolDetails ? sourceNote : `${sourceNote} ${detailsOffNote}`;
 
   return (
     <Box
@@ -295,7 +273,6 @@ let membersSummaryItem = (summary: {
 let McpServerUsageBox = ({ usage }: { usage: McpServerUsage }) => (
   <ToolUsageBox
     title="MCP Servers"
-    subject="MCP server"
     usage={usage}
     summary={[
       { id: 'calls', label: 'MCP Tool Calls', value: formatNumber(usage.summary.calls) },
@@ -317,9 +294,8 @@ let McpServerUsageBox = ({ usage }: { usage: McpServerUsage }) => (
 );
 
 let SkillsTable = ({ usage }: { usage: SkillUsage }) => {
-  let sorting = useToolSort();
+  let sorting = useToolSort(skillSort);
   let now = useNow();
-  let sort = sorting.sort == 'error_rate' ? 'calls' : sorting.sort;
   let members = membersFormatter(usage.summary.countsCapped, [
     usage.summary.members,
     ...usage.items.map(item => item.members)
@@ -333,13 +309,16 @@ let SkillsTable = ({ usage }: { usage: SkillUsage }) => {
         sortHeader(sorting, 'members', 'Members'),
         sortHeader(sorting, 'last_used', 'Last Used')
       ]}
-      data={sortToolRows(skillSortRows(usage.items), sort, sorting.order).map(item => [
-        <Flex key="name" align="center" gap={6}>
-          <Text as="span" size="2" weight="medium">
-            {item.name}
-          </Text>
-          <MetorialSkill skill={item.skill} />
-        </Flex>,
+      data={sortToolRows(skillSortRows(usage.items), sorting.sort, sorting.order).map(item => [
+        <Text key="name" as="span" size="2" weight="medium">
+          {item.skill ? (
+            <span title={`Reported as ${item.name}`}>
+              <SkillLink skill={item.skill} />
+            </span>
+          ) : (
+            item.name
+          )}
+        </Text>,
         formatNumber(item.activations),
         members(item.members),
         <LastUsed key="last" date={item.lastUsedAt} now={now} />
@@ -351,7 +330,6 @@ let SkillsTable = ({ usage }: { usage: SkillUsage }) => {
 let SkillUsageBox = ({ usage }: { usage: SkillUsage }) => (
   <ToolUsageBox
     title="Skills"
-    subject="skill"
     usage={usage}
     summary={[
       {
@@ -398,7 +376,7 @@ let UsageSection = <Data,>({
 export let AgentTrackingTools = ({ instanceId }: { instanceId: string }) => {
   let [view, setView] = useSearchParamOption<ToolsView>('view', viewIds, 'mcp');
   let { filterState, payload } = useFilterState({ filters: toolFilters });
-  let range = spendRangeFilter.parse(payload.range)?.[0] ?? defaultAgentTrackingRange;
+  let range = agentTrackingRangeFilter.parse(payload.range)?.[0] ?? defaultAgentTrackingRange;
   let query = { range, timeZone: getBrowserTimeZone() };
   let mcpUsage = useAgentTrackingMcpServerUsage(instanceId, view == 'mcp' ? query : null);
   let skillUsage = useAgentTrackingSkillUsage(instanceId, view == 'skills' ? query : null);

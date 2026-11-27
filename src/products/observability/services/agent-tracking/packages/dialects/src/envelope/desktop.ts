@@ -13,11 +13,10 @@ import { contextDraft } from '../context';
 import { surfaceFromLabel } from '../otlp/common';
 import type { BulkContext, BulkItemDialect, Mapped } from '../types';
 import { bulkClient } from '../usageRequest';
-import { cleanBranch, cleanText } from '../values';
+import { cleanBranch } from '../values';
 import { commitDraft, pullRequestDraft } from '../vcs';
 
 let adapter = 'metorial-desktop';
-let maxTitleLength = 256;
 
 let codeChangeType = 'code.change';
 
@@ -36,9 +35,7 @@ let mapped = (draft: RecordDraft | null): Mapped[] => (draft ? [{ source, draft 
 let sessionContext = (context: BulkContext, payload: DesktopSessionContextPayload) => {
   let surface = surfaceFromLabel(payload.entrypoint);
   let repo = payload.remote_url ? parseRemote(payload.remote_url) : null;
-  let title = context.policy.sessionTitles
-    ? cleanText(payload.title, maxTitleLength)
-    : undefined;
+  let title = context.policy.sessionTitles ? payload.title?.trim() || undefined : undefined;
 
   let draft = contextDraft(baseOf(context, payload.session_id, surface), {
     source: 'probe',

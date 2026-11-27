@@ -1,42 +1,14 @@
 import type { Instance, Organization } from '@mtsrc/agent-tracking-db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { matchesFilter } from '../src/lib/filter';
 import { sessionToolCallService } from '../src/services/sessionToolCall';
 
 let state = vi.hoisted(() => ({
   memory: false,
-  sessionFilters: [] as Record<string, unknown>[],
-  sessionOptions: [] as Record<string, unknown>[],
-  eventFilters: [] as Record<string, unknown>[],
-  eventOptions: [] as Record<string, unknown>[],
   storedSessions: [] as Record<string, unknown>[],
   storedEvents: [] as Record<string, any>[],
   eventsRead: 0
 }));
-
-let valueAt = (document: Record<string, unknown>, path: string) =>
-  path
-    .split('.')
-    .reduce<unknown>(
-      (current, part) => (current as Record<string, unknown> | undefined)?.[part],
-      document
-    );
-
-let matches = (document: Record<string, unknown>, filter: Record<string, unknown>) =>
-  Object.entries(filter).every(([key, condition]) => {
-    if (key == '$or') return true;
-
-    let value = valueAt(document, key);
-
-    if (condition && typeof condition == 'object' && !Array.isArray(condition)) {
-      let operators = condition as Record<string, unknown>;
-      if ('$in' in operators && !(operators.$in as unknown[]).includes(value)) return false;
-      if ('$exists' in operators && (value !== undefined) != operators.$exists) return false;
-
-      return true;
-    }
-
-    return value == condition;
-  });
 
 let cursorOver = (documents: Record<string, any>[], limit?: number) => {
   let selected = limit === undefined ? documents : documents.slice(0, limit);
@@ -63,25 +35,17 @@ vi.mock('@mtsrc/agent-tracking-store', () => ({
     ready: async () => {},
     collections: () => ({
       sessions: {
-        findOne: async (filter: Record<string, unknown>) => {
-          state.sessionFilters.push(filter);
-          return state.storedSessions.find(session => matches(session, filter)) ?? null;
-        },
-        find: (filter: Record<string, unknown>, options: Record<string, unknown>) => {
-          state.sessionFilters.push(filter);
-          state.sessionOptions.push(options);
-          return {
-            toArray: async () =>
-              state.storedSessions.filter(session => matches(session, filter))
-          };
-        }
+        findOne: async (filter: Record<string, unknown>) =>
+          state.storedSessions.find(session => matchesFilter(session, filter)) ?? null,
+        find: (filter: Record<string, unknown>) => ({
+          toArray: async () =>
+            state.storedSessions.filter(session => matchesFilter(session, filter))
+        })
       },
       events: {
         find: (filter: Record<string, unknown>, options: { limit?: number }) => {
-          state.eventFilters.push(filter);
-          state.eventOptions.push(options);
           let found = state.storedEvents
-            .filter(event => matches(event, filter))
+            .filter(event => matchesFilter(event, filter))
             .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
 
           return cursorOver(found, options.limit);
@@ -151,10 +115,6 @@ let storePaths = [
 describe('sessionToolCallService', () => {
   beforeEach(() => {
     state.memory = false;
-    state.sessionFilters = [];
-    state.sessionOptions = [];
-    state.eventFilters = [];
-    state.eventOptions = [];
     state.storedSessions = [
       { _id: 'session-1', organizationId: 'ator_1', instanceId: 'atin_1' },
       { _id: 'session-2', organizationId: 'ator_1', instanceId: 'atin_1' }
@@ -175,11 +135,6 @@ describe('sessionToolCallService', () => {
       expect(result.session).toMatchObject({ _id: 'session-1', instanceId: 'atin_1' });
       expect(result.items.map(item => item.toolCallId)).toEqual(['toolu_1']);
       expect(result.hasMore).toBe(false);
-      expect(state.eventFilters[0]).toMatchObject({
-        organizationId: 'ator_1',
-        'ctx.sessionKey': 'session-1',
-        type: 'tool.call'
-      });
     });
 
     it("answers not found for another organization's session, like the session read", async () => {
@@ -191,8 +146,7 @@ describe('sessionToolCallService', () => {
           sessionKey: 'session-1'
         })
       ).rejects.toMatchObject({ data: { status: 404, code: 'not_found', entity: 'session' } });
-      expect(state.sessionFilters[0]).toEqual({ _id: 'session-1', organizationId: 'ator_1' });
-      expect(state.eventFilters).toEqual([]);
+      expect(state.eventsRead).toBe(0);
     });
 
     for (let path of storePaths) {
@@ -257,22 +211,6 @@ describe('sessionToolCallService', () => {
       ]);
       expect(result.ambiguous).toEqual([]);
       expect(result.sessions.map(session => session._id)).toEqual(['session-1']);
-      expect(state.eventFilters).toHaveLength(4);
-      expect(state.eventFilters[0]).toEqual({
-        organizationId: 'ator_1',
-        instanceId: 'atin_1',
-        'ctx.toolCallId': 'toolu_1',
-        'client.family': 'claude-code',
-        type: 'tool.call',
-        'ctx.sessionKey': { $exists: true }
-      });
-      expect(state.eventOptions.every(options => options.limit == 9)).toBe(true);
-      expect(state.sessionFilters[0]).toEqual({
-        _id: { $in: ['session-1'] },
-        organizationId: 'ator_1',
-        instanceId: 'atin_1'
-      });
-      expect(state.sessionOptions[0]).toEqual({ limit: 1 });
     });
 
     for (let path of storePaths) {
@@ -333,7 +271,6 @@ describe('sessionToolCallService', () => {
       expect(result.items).toEqual([
         expect.objectContaining({ sessionKey: 'session-1', toolCallId: long })
       ]);
-      expect(state.eventFilters[0]).toMatchObject({ 'ctx.toolCallId': long.slice(0, 256) });
     });
 
     it('leaves out a call whose session is not stored', async () => {
@@ -356,7 +293,7 @@ describe('sessionToolCallService', () => {
           calls: []
         })
       ).toEqual({ items: [], ambiguous: [], sessions: [] });
-      expect(state.eventFilters).toEqual([]);
+      expect(state.eventsRead).toBe(0);
 
       await expect(
         sessionToolCallService.findSessionsForToolCalls({

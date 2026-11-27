@@ -62,7 +62,7 @@ import {
   type SessionVisibilityWhere
 } from '../lib/sessionVisibility';
 
-let MAX_CLIENT_CALL_IDS = 200;
+export let maxClientCallIds = 200;
 
 let include = {
   attachments: true,
@@ -201,10 +201,10 @@ class toolCallServiceImpl {
     } & ListToolCallsParams
   ) {
     let clientCallIds = d.clientCallIds ? [...new Set(d.clientCallIds)] : undefined;
-    if (clientCallIds && clientCallIds.length > MAX_CLIENT_CALL_IDS) {
+    if (clientCallIds && clientCallIds.length > maxClientCallIds) {
       throw new ServiceError(
         badRequestError({
-          message: `At most ${MAX_CLIENT_CALL_IDS} client call ids can be looked up at once`
+          message: `At most ${maxClientCallIds} client call ids can be looked up at once`
         })
       );
     }

@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import type { AgentTracking } from '@metorial/module-agent-tracking-sync';
-import { unique, unknownMemberKey } from './members';
+import { unique } from './entities';
+import { unknownMemberKey } from './members';
 import { maxRangeDays } from './range';
 import type { SessionListOrderBy } from './types';
 
@@ -43,6 +44,12 @@ export let sessionUsageRange = (session: { startedAt: Date; lastActivityAt: Date
 
 export let sessionNotFound = (sessionId: string) =>
   new ServiceError(notFoundError('agent_tracking.session', sessionId));
+
+export let sessionKeyOf = (sessionId: string) => {
+  if (!sessionId.startsWith(sessionIdPrefix)) throw sessionNotFound(sessionId);
+
+  return sessionId.slice(sessionIdPrefix.length);
+};
 
 export let unknownModelNamesOf = (session: Pick<RemoteSession, 'summary'>) =>
   unique(

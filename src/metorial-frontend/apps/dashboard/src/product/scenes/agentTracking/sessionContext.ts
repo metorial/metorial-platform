@@ -18,7 +18,7 @@ export let shortSha = (sha: string) => sha.slice(0, shortShaLength);
 export let linkableUrl = (url: string | null | undefined) =>
   url && isHttpUrl(url) ? url : null;
 
-export let withHost = (host: string | null, path: string) =>
+let withHost = (host: string | null, path: string) =>
   host && !publicGitHosts.has(host) ? `${host}/${path}` : path;
 
 export let repositoryLabel = (repository: Repository) => {

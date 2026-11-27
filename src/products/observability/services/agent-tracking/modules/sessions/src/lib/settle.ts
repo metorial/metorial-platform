@@ -6,7 +6,6 @@ import { organizationPricingService } from '@mtsrc/agent-tracking-module-pricing
 import { createOverridePricer } from '@mtsrc/agent-tracking-module-pricing';
 import { queueSessionSettle } from '../queues/sessionSettle';
 import { recordReadbackService } from '@mtsrc/agent-tracking-module-records';
-import { getStore } from '@mtsrc/agent-tracking-store';
 import type { SessionDocument } from '@mtsrc/agent-tracking-store';
 import { isSummaryStale } from './freshness';
 import { movesSessionBounds, orphanKey, type Correlation } from './keys';
@@ -15,17 +14,12 @@ import { tryRedis } from '@mtsrc/agent-tracking-redis';
 import { summaryLockKey } from './cacheKeys';
 import { aggregateSession, type SessionAggregate } from './summary';
 import { applyToolCallLinks, resolveSessionToolCallLinks } from './toolCallLinks';
+import { copySessionRepoToToolCalls } from './toolCallRepos';
 import { SUMMARY_VERSION } from '@mtsrc/agent-tracking-layers';
 import { Events } from '@mtsrc/agent-tracking-events';
+import { collections } from './collections';
 
 let summaryLockSeconds = 60;
-
-let collections = async () => {
-  let store = getStore();
-  await store.ready();
-
-  return store.collections();
-};
 
 export let computeSessionAggregate = async (
   session: SessionDocument,
@@ -246,9 +240,9 @@ export let settleSession = async (d: { sessionKey: string }) => {
     session,
     calls: aggregate.mcpToolCalls,
     links: aggregate.links,
-    toolCallRepoIds: aggregate.toolCallRepoIds,
     staleSessionKeys: aggregate.staleSessionKeys
   });
+  await copySessionRepoToToolCalls({ session, repoIds: aggregate.toolCallRepoIds });
   await attributionService.resolveSession({ sessionKey: session._id });
   await usageSliceService.writeSessionSlices({
     sessionKey: session._id,

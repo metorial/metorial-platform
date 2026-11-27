@@ -18,9 +18,9 @@ import {
   useMcpTestServer,
   useOrganization
 } from '@metorial/e2e';
-import { loadOrganizationFixture, subspaceDb } from '@metorial/e2e/db';
+import { db, loadOrganizationFixture, subspaceDb } from '@metorial/e2e/db';
 import { describe, expect, it } from 'vitest';
-import { pushToolCallsCron, toolCallCheckpoint } from '../src/queues/pushToolCalls';
+import { pushToolCallsCron } from '../src/queues/pushToolCalls';
 
 let cronOptions = { timeoutMs: 180_000, intervalMs: 2_000 };
 
@@ -42,7 +42,12 @@ describe('module-agent-tracking-sync tool calls', () => {
 
     await eventuallyWithCron(
       pushToolCallsCron,
-      async () => expect(await toolCallCheckpoint(fixture.instance).since()).toBeDefined(),
+      async () =>
+        expect(
+          await db.queueCheckpoint.findUnique({
+            where: { queue: `agent-tracking/tool-calls/${fixture.instance.id}` }
+          })
+        ).not.toBeNull(),
       cronOptions
     );
 

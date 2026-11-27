@@ -1,3 +1,4 @@
+import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { describe, expect, it } from 'vitest';
 import { groupOf, logRecord, metricPoint, spanOf } from '@mtsrc/agent-tracking-otlp/test/otlp';
 import type { OtlpAttributes, OtlpDecoded } from '@mtsrc/agent-tracking-otlp';
@@ -89,7 +90,7 @@ describe('mapOtlpGroup', () => {
       claude
     );
 
-    let result = mapOtlpGroup('logs', group);
+    let result = mapOtlpGroup('logs', group, fullIngestPolicy);
 
     expect(result).toMatchObject({ dialect: claudeCodeOtlp, suppressed: 0, failed: 0 });
     expect(result.mapped.map(m => m.draft.type)).toEqual([
@@ -108,7 +109,7 @@ describe('mapOtlpGroup', () => {
       claude
     );
 
-    let result = mapOtlpGroup('metrics', group);
+    let result = mapOtlpGroup('metrics', group, fullIngestPolicy);
 
     expect(result.mapped).toHaveLength(1);
     expect(result.suppressed).toBe(2);
@@ -125,7 +126,7 @@ describe('mapOtlpGroup', () => {
 
     let group = groupOf([throwing, logRecord({ 'event.name': 'user_prompt' })], claude);
 
-    let result = mapOtlpGroup('logs', group);
+    let result = mapOtlpGroup('logs', group, fullIngestPolicy);
 
     expect(result.failed).toBe(1);
     expect(result.mapped).toHaveLength(1);
@@ -138,7 +139,7 @@ describe('mapOtlpGroup', () => {
     try {
       let group = groupOf([spanOf('a'), spanOf('b')], { 'service.name': 'codex_cli_rs' });
 
-      expect(mapOtlpGroup('traces', group)).toMatchObject({
+      expect(mapOtlpGroup('traces', group, fullIngestPolicy)).toMatchObject({
         dialect: codexOtlp,
         mapped: [],
         suppressed: 2,
@@ -152,9 +153,17 @@ describe('mapOtlpGroup', () => {
   it('routes unknown groups through quarantine for every signal', () => {
     let resource = { 'service.name': 'mystery' };
 
-    let logs = mapOtlpGroup('logs', groupOf([logRecord({}, { body: 'e' })], resource));
-    let metrics = mapOtlpGroup('metrics', groupOf([metricPoint('m', 1)], resource));
-    let traces = mapOtlpGroup('traces', groupOf([spanOf('s')], resource));
+    let logs = mapOtlpGroup(
+      'logs',
+      groupOf([logRecord({}, { body: 'e' })], resource),
+      fullIngestPolicy
+    );
+    let metrics = mapOtlpGroup(
+      'metrics',
+      groupOf([metricPoint('m', 1)], resource),
+      fullIngestPolicy
+    );
+    let traces = mapOtlpGroup('traces', groupOf([spanOf('s')], resource), fullIngestPolicy);
 
     for (let result of [logs, metrics, traces]) {
       expect(result.dialect).toBe(quarantineOtlp);
@@ -164,7 +173,7 @@ describe('mapOtlpGroup', () => {
   });
 
   it('handles empty groups', () => {
-    expect(mapOtlpGroup('logs', groupOf([], {}))).toMatchObject({
+    expect(mapOtlpGroup('logs', groupOf([], {}), fullIngestPolicy)).toMatchObject({
       mapped: [],
       suppressed: 0,
       failed: 0
@@ -193,7 +202,8 @@ describe('mapOtlpDecoded', () => {
           }
         ),
         groupOf([metricPoint('anything', 1)], { 'service.name': 'mystery' })
-      ])
+      ]),
+      fullIngestPolicy
     );
 
     expect(result.groups.map(g => g.dialect)).toEqual([
@@ -207,7 +217,7 @@ describe('mapOtlpDecoded', () => {
   });
 
   it('is empty for no groups', () => {
-    expect(mapOtlpDecoded('logs', decoded([]))).toEqual({
+    expect(mapOtlpDecoded('logs', decoded([]), fullIngestPolicy)).toEqual({
       groups: [],
       mapped: 0,
       suppressed: 0,
@@ -223,14 +233,14 @@ describe('dialectManifests', () => {
         client: 'claude-code',
         channel: 'hook',
         dialect: 'claude-code.hooks.v1',
-        notOnDevice: true
+        device: 'never'
       },
-      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1', notOnDevice: true },
+      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1', device: 'never' },
       ...['claude-code', 'codex', 'cursor', 'antigravity', 'opencode'].map(client => ({
         client,
         channel: 'envelope',
         dialect: 'metorial.desktop.context.v1',
-        deviceOnly: true,
+        device: 'only',
         requires: 'sessionContext'
       })),
       ...[
@@ -239,14 +249,19 @@ describe('dialectManifests', () => {
       ].map(transcript => ({
         ...transcript,
         channel: 'transcript',
-        deviceOnly: true,
+        device: 'only',
         backfillOnly: true
       })),
       ...[
-        { client: 'cursor', channel: 'hook', dialect: 'cursor.hooks.v1' },
+        { client: 'cursor', channel: 'hook', dialect: 'cursor.hooks.v1', waitsOnDevice: true },
         { client: 'antigravity', channel: 'transcript', dialect: 'antigravity.transcript.v1' },
-        { client: 'opencode', channel: 'sse', dialect: 'opencode.plugin.v1' }
-      ].map(usage => ({ ...usage, deviceOnly: true }))
+        {
+          client: 'opencode',
+          channel: 'sse',
+          dialect: 'opencode.plugin.v1',
+          waitsOnDevice: true
+        }
+      ].map(usage => ({ ...usage, device: 'only' }))
     ]);
   });
 
@@ -286,7 +301,7 @@ describe('resolveBulkDialect', () => {
       ).toMatchObject({
         ok: true,
         dialect: desktopContext,
-        manifest: { client, requires: 'sessionContext', deviceOnly: true }
+        manifest: { client, requires: 'sessionContext', device: 'only' }
       });
     }
   );
@@ -324,19 +339,19 @@ describe('resolveBulkDialect', () => {
     expect(resolveBulkDialect('cursor', 'hook', 'cursor.hooks.v1')).toMatchObject({
       ok: true,
       dialect: cursorHooks,
-      manifest: { deviceOnly: true }
+      manifest: { device: 'only' }
     });
     expect(
       resolveBulkDialect('antigravity', 'transcript', 'antigravity.transcript.v1')
     ).toMatchObject({
       ok: true,
       dialect: antigravityTranscript,
-      manifest: { deviceOnly: true }
+      manifest: { device: 'only' }
     });
     expect(resolveBulkDialect('opencode', 'sse', 'opencode.plugin.v1')).toMatchObject({
       ok: true,
       dialect: opencodePlugin,
-      manifest: { deviceOnly: true }
+      manifest: { device: 'only' }
     });
 
     for (let [client, channel, dialect] of [

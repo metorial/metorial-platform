@@ -53,7 +53,7 @@ export type OtlpDialect = {
 export type HookContext = {
   identityHint: string;
   occurredAt?: Date | null;
-  policy?: OtlpPolicy;
+  policy: OtlpPolicy;
 };
 
 export type HookDialect = {
@@ -94,6 +94,6 @@ export type DialectManifest = {
   maxVersion?: string;
   requires?: keyof IngestPolicy;
   backfillOnly?: boolean;
-  deviceOnly?: boolean;
-  notOnDevice?: boolean;
+  device?: 'only' | 'never';
+  waitsOnDevice?: boolean;
 };

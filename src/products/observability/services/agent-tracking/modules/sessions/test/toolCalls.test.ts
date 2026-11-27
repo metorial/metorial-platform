@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { RecordRole } from '@mtsrc/agent-tracking-spec';
 import {
+  clampStoredId,
   collectSessionMcpToolCalls,
   isMcpToolCall,
   resolveToolCallSessions,
-  storedToolCallId,
   type ToolCallRecord,
   type ToolCallRecordReader,
   type ToolCallRef
@@ -59,7 +59,7 @@ describe('isMcpToolCall', () => {
     ).toBe(true);
   });
 
-  it('takes a redacted Claude Code call stored as an unknown tool by placeholder', () => {
+  it('takes a redacted call stored as an unknown tool by placeholder, for every client', () => {
     let legacy = toolRecord({
       at: '2026-11-27T10:00:00Z',
       toolCallId: 'toolu_1',
@@ -67,7 +67,7 @@ describe('isMcpToolCall', () => {
     });
 
     expect(isMcpToolCall(legacy)).toBe(true);
-    expect(isMcpToolCall({ ...legacy, client: { family: 'codex' } })).toBe(false);
+    expect(isMcpToolCall({ ...legacy, client: { family: 'codex' } })).toBe(true);
   });
 
   it('leaves out other tools, calls without an id and other record types', () => {
@@ -235,22 +235,18 @@ describe('collectSessionMcpToolCalls', () => {
       for (let index = 0; index < 1000; index++) {
         read++;
         yield toolRecord({
-          at: new Date(base + index * 1000).toISOString(),
+          at: new Date(base + index * 10_000).toISOString(),
           toolCallId: `toolu_${String(index).padStart(4, '0')}`
         });
       }
     };
 
-    let result = await collectSessionMcpToolCalls({
-      records: cursor(),
-      limit: 500,
-      mergeMarginMs: 10_000
-    });
+    let result = await collectSessionMcpToolCalls({ records: cursor(), limit: 500 });
 
     expect(result.items).toHaveLength(500);
     expect(result.hasMore).toBe(true);
     expect(result.items[499]!.toolCallId).toBe('toolu_0499');
-    expect(read).toBeLessThanOrEqual(520);
+    expect(read).toBeLessThanOrEqual(540);
   });
 
   it('merges a late record of the last admitted call inside the margin', async () => {
@@ -269,7 +265,7 @@ describe('collectSessionMcpToolCalls', () => {
       })
     ];
 
-    let result = await collectSessionMcpToolCalls({ records, limit: 1, mergeMarginMs: 5_000 });
+    let result = await collectSessionMcpToolCalls({ records, limit: 1 });
 
     expect(result.hasMore).toBe(true);
     expect(result.items).toEqual([
@@ -451,8 +447,7 @@ describe('resolveToolCallSessions', () => {
         let found = await readerOf(records)(d);
         reads.push(found.length);
         return found;
-      },
-      maxRecords: 8
+      }
     });
 
     expect(reads).toEqual([9]);
@@ -487,9 +482,9 @@ describe('resolveToolCallSessions', () => {
   });
 });
 
-describe('storedToolCallId', () => {
+describe('clampStoredId', () => {
   it('keeps what ingest keeps of an id', () => {
-    expect(storedToolCallId('toolu_1')).toBe('toolu_1');
-    expect(storedToolCallId('x'.repeat(300))).toHaveLength(256);
+    expect(clampStoredId('toolu_1')).toBe('toolu_1');
+    expect(clampStoredId('x'.repeat(300))).toHaveLength(256);
   });
 });

@@ -6,6 +6,7 @@ import { buildMapped } from './build';
 import { claudeCodeOtlp } from '../src/otlp/claudeCode';
 import { codexOtlp } from '../src/otlp/codex';
 import { genAiOtlp } from '../src/otlp/genai';
+import { claudeCodeHooks } from '../src/hooks';
 import { mapOtlpGroup } from '../src/registry';
 import { fullIngestPolicy } from '@mtsrc/agent-tracking-spec';
 import { withOtlpPolicy } from '../src/otlp/policy';
@@ -462,7 +463,7 @@ describe('tool details at ingest', () => {
         { 'service.name': 'codex_cli_rs', 'vcs.repository.url.full': 'https://github.com/a/b' }
       );
 
-    let full = mapOtlpGroup('metrics', points()).mapped;
+    let full = mapOtlpGroup('metrics', points(), fullIngestPolicy).mapped;
     let redacted = mapOtlpGroup('metrics', points(), neither).mapped;
 
     expect(redacted.map(entry => entry.draft.data?.['value'])).toEqual([1, 3]);
@@ -483,6 +484,76 @@ describe('tool details at ingest', () => {
     let group = groupOf([logRecord({ 'event.name': 'x', tool_input: 'kept' })]);
 
     expect(withOtlpPolicy('logs', genAiOtlp, group, noToolDetails)).toEqual(group);
+  });
+});
+
+describe('one MCP rule on every route', () => {
+  let hookTool = (toolName: string, policy: OtlpPolicy) =>
+    claudeCodeHooks.map(
+      { identityHint: 'h', policy },
+      {
+        hook_event_name: 'PostToolUse',
+        session_id: 's-1',
+        tool_use_id: 'toolu_1',
+        tool_name: toolName
+      }
+    )[0]!.draft.data?.['tool'];
+
+  it('hides a Claude Code tool named like an MCP tool through OTLP and hooks alike', () => {
+    expect(claudeLog({ 'event.name': 'tool_result', tool_name: 'my__tool' })).toMatchObject({
+      tool_name: 'mcp_tool'
+    });
+    expect(hookTool('my__tool', noToolDetails)).toMatchObject({
+      name: 'mcp_tool',
+      kind: 'mcp'
+    });
+  });
+
+  it('hides a Claude Code tool that reports an MCP source or server', () => {
+    expect(
+      claudeLog({ 'event.name': 'tool_result', tool_name: 'lookup', tool_source: 'mcp' })
+    ).toMatchObject({ tool_name: 'mcp_tool' });
+    expect(
+      claudeLog({ 'event.name': 'tool_result', tool_name: 'lookup', mcp_server_name: 'docs' })
+    ).toEqual({ 'event.name': 'tool_result', tool_name: 'mcp_tool' });
+  });
+
+  it('hides a Codex MCP tool whose second server attribute names the server', () => {
+    expect(
+      codexLog({
+        'event.name': 'codex.tool_result',
+        tool_name: 'create_issue',
+        mcp_server: '',
+        'mcp.server.name': 'linear'
+      })
+    ).toEqual({ 'event.name': 'codex.tool_result', tool_name: 'mcp_tool' });
+  });
+
+  it('hides the tool of a Codex MCP call span without a server attribute', () => {
+    let span = spanOf('mcp.tools.call', { tool_name: 'create_issue' });
+    let [item] = withOtlpPolicy('traces', codexOtlp, groupOf([span]), noToolDetails).items;
+
+    expect(item!.name).toBe('mcp.tools.call');
+    expect(item!.attributes['tool_name']).toBe('mcp_tool');
+  });
+
+  it('hides a GenAI MCP name without a tool part', () => {
+    let span = spanOf('execute_tool mcp__docs', {
+      'gen_ai.operation.name': 'execute_tool',
+      'gen_ai.tool.name': 'mcp__docs'
+    });
+    let [item] = withOtlpPolicy('traces', genAiOtlp, groupOf([span]), noToolDetails).items;
+
+    expect(item!.name).toBe('execute_tool mcp_tool');
+    expect(item!.attributes['gen_ai.tool.name']).toBe('mcp_tool');
+  });
+
+  it('classifies a placeholder or an MCP-shaped name as MCP with tool details on', () => {
+    expect(hookTool('mcp_tool', fullIngestPolicy)).toMatchObject({ kind: 'mcp' });
+    expect(hookTool('docs__lookup', fullIngestPolicy)).toMatchObject({
+      name: 'docs__lookup',
+      kind: 'mcp'
+    });
   });
 });
 
@@ -558,7 +629,9 @@ describe('session context at ingest', () => {
       'service.name': 'claude-code'
     });
 
-    let kept = mapOtlpGroup('logs', group).mapped.map(entry => entry.draft.type);
+    let kept = mapOtlpGroup('logs', group, fullIngestPolicy).mapped.map(
+      entry => entry.draft.type
+    );
     let dropped = mapOtlpGroup('logs', group, neither).mapped.map(entry => entry.draft.type);
 
     expect(kept).toEqual(['tool.call', 'vcs.commit', 'session.context']);

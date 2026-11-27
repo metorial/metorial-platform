@@ -4,6 +4,7 @@ import {
   ServiceError,
   tooManyRequestsError
 } from '@lowerdeck/error';
+import { getSentry } from '@lowerdeck/sentry';
 
 export let queryCallOptions = { timeoutMs: 15_000, retry: false, captureErrors: false };
 
@@ -72,5 +73,15 @@ export let fromService = async <T>(run: () => Promise<T>) => {
 
       throw translateServiceError(error);
     }
+  }
+};
+
+export let failSoft = async <T>(read: () => Promise<T>, fallback: T): Promise<T> => {
+  try {
+    return await read();
+  } catch (error) {
+    if (!isServiceError(error)) getSentry().captureException(error);
+
+    return fallback;
   }
 };

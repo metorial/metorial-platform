@@ -2,10 +2,10 @@ import { defaultStoragePolicy } from '@mtsrc/agent-tracking-store';
 import { getStore } from '@mtsrc/agent-tracking-store';
 import { recordReadbackService, toRecordDocument } from '@mtsrc/agent-tracking-module-records';
 import type { SessionDocument } from '@mtsrc/agent-tracking-store';
+import { matchesFilter, type Filter } from './filter';
 import type { SummaryRecord } from './summary';
 import {
   compareRecords,
-  isMcpToolCall,
   mcpToolCallMatch,
   toolCallProjection,
   type ToolCallRecord,
@@ -94,7 +94,7 @@ export let sessionHasMeasurements = async (
 let memoryToolCalls = async (d: {
   organizationId: string;
   instanceId?: string;
-  match: (document: ToolCallRecord) => boolean;
+  filter?: Filter;
 }) => {
   let stored = await recordReadbackService.list({
     organizationId: d.organizationId,
@@ -106,7 +106,9 @@ let memoryToolCalls = async (d: {
     if (item.record.kind != 'event' || item.record.type != 'tool.call') continue;
 
     let mapped = toRecordDocument(item.record, { storage: defaultStoragePolicy, now: epoch });
-    if (mapped && d.match(mapped.document)) documents.push(mapped.document);
+    if (mapped && (!d.filter || matchesFilter(mapped.document, d.filter))) {
+      documents.push(mapped.document);
+    }
   }
 
   return documents.sort(compareRecords);
@@ -131,6 +133,20 @@ export let toolCallLookupFilter = (d: {
   'ctx.sessionKey': { $exists: true }
 });
 
+export let toolCallPairFilter = (d: {
+  organizationId: string;
+  instanceId: string;
+  clientFamily: string;
+  toolCallIds: string[];
+}) => ({
+  organizationId: d.organizationId,
+  instanceId: d.instanceId,
+  'ctx.toolCallId': { $in: d.toolCallIds },
+  'client.family': d.clientFamily,
+  type: 'tool.call',
+  'ctx.sessionKey': { $exists: true }
+});
+
 export let sessionMcpToolCallRecords = async (d: {
   organizationId: string;
   sessionKey: string;
@@ -138,7 +154,7 @@ export let sessionMcpToolCallRecords = async (d: {
   if (recordReadbackService.isAvailable()) {
     return await memoryToolCalls({
       organizationId: d.organizationId,
-      match: document => document.ctx.sessionKey == d.sessionKey && isMcpToolCall(document)
+      filter: sessionMcpToolCallFilter(d)
     });
   }
 
@@ -158,16 +174,11 @@ export let toolCallRecordReader = async (d: {
   instanceId: string;
 }): Promise<ToolCallRecordReader> => {
   if (recordReadbackService.isAvailable()) {
-    let documents = await memoryToolCalls({ ...d, match: () => true });
+    let documents = await memoryToolCalls(d);
 
     return async ({ call, limit }) =>
       documents
-        .filter(
-          document =>
-            document.ctx.toolCallId == call.toolCallId &&
-            document.client.family == call.clientFamily &&
-            !!document.ctx.sessionKey
-        )
+        .filter(document => matchesFilter(document, toolCallLookupFilter({ ...d, call })))
         .slice(0, limit);
   }
 
@@ -196,21 +207,14 @@ export let toolCallPairReader = async (d: {
   instanceId: string;
 }): Promise<ToolCallPairReader> => {
   if (recordReadbackService.isAvailable()) {
-    let documents = await memoryToolCalls({ ...d, match: () => true });
+    let documents = await memoryToolCalls(d);
 
-    return async ({ clientFamily, toolCallIds, limit }) => {
-      let ids = new Set(toolCallIds);
-
-      return documents
-        .filter(
-          document =>
-            document.client.family == clientFamily &&
-            !!document.ctx.toolCallId &&
-            ids.has(document.ctx.toolCallId) &&
-            !!document.ctx.sessionKey
+    return async ({ clientFamily, toolCallIds, limit }) =>
+      documents
+        .filter(document =>
+          matchesFilter(document, toolCallPairFilter({ ...d, clientFamily, toolCallIds }))
         )
         .slice(0, limit);
-    };
   }
 
   let store = getStore();
@@ -220,16 +224,9 @@ export let toolCallPairReader = async (d: {
 
   return async ({ clientFamily, toolCallIds, limit }) =>
     await events
-      .find<ToolCallRecord>(
-        {
-          organizationId: d.organizationId,
-          instanceId: d.instanceId,
-          'ctx.toolCallId': { $in: toolCallIds },
-          'client.family': clientFamily,
-          type: 'tool.call',
-          'ctx.sessionKey': { $exists: true }
-        },
-        { projection: toolCallProjection, limit }
-      )
+      .find<ToolCallRecord>(toolCallPairFilter({ ...d, clientFamily, toolCallIds }), {
+        projection: toolCallProjection,
+        limit
+      })
       .toArray();
 };

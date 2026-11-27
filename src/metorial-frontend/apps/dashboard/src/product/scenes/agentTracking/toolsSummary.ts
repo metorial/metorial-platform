@@ -77,6 +77,21 @@ export let skillSortRows = (items: SkillItem[]): (SkillItem & SortableRow)[] =>
 
 export let defaultSortOrder = (sort: ToolSort): SortOrder => (sort == 'name' ? 'asc' : 'desc');
 
+export let skillSort = (sort: ToolSort): ToolSort => (sort == 'error_rate' ? 'calls' : sort);
+
+export let toggledToolSortParams = (
+  current: { sort: ToolSort; order: SortOrder },
+  next: ToolSort
+) => {
+  let order =
+    next == current.sort ? (current.order == 'asc' ? 'desc' : 'asc') : defaultSortOrder(next);
+
+  return {
+    sort: next == 'calls' ? undefined : next,
+    order: order == defaultSortOrder(next) ? undefined : order
+  };
+};
+
 export let formatRate = (rate: number | null) =>
   rate === null ? '—' : formatPercent(rate, { precision: rate > 0 && rate < 0.001 ? 2 : 1 });
 

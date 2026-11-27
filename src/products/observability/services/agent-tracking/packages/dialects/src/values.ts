@@ -96,26 +96,22 @@ export let buildUsage = (input: UsageInput): UsageResult => {
 
   let inputUncached = input.inputUncached;
 
-  if (inputUncached === undefined && input.inputIncludingCache !== undefined) {
-    let remainder = input.inputIncludingCache - (input.cacheRead ?? 0);
+  let inputRemainder =
+    input.inputIncludingCache !== undefined
+      ? input.inputIncludingCache - (input.cacheRead ?? 0)
+      : input.inputIncludingCacheReadsAndWrites !== undefined
+        ? input.inputIncludingCacheReadsAndWrites -
+          (input.cacheRead ?? 0) -
+          (input.cacheWrite ?? 0)
+        : undefined;
 
-    if (remainder >= 0) {
-      inputUncached = remainder;
+  if (inputUncached === undefined && inputRemainder !== undefined) {
+    if (inputRemainder >= 0) {
+      inputUncached = inputRemainder;
       derived.push('usage.input_uncached');
     } else {
       warnings.push('usage_negative:input_uncached');
     }
-  }
-
-  if (inputUncached === undefined && input.inputIncludingCacheReadsAndWrites !== undefined) {
-    let remainder =
-      input.inputIncludingCacheReadsAndWrites -
-      (input.cacheRead ?? 0) -
-      (input.cacheWrite ?? 0);
-
-    inputUncached = Math.max(remainder, 0);
-    derived.push('usage.input_uncached');
-    if (remainder < 0) warnings.push('usage_negative:input_uncached');
   }
 
   let output = input.output;

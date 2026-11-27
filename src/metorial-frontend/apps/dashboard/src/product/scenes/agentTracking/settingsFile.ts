@@ -10,13 +10,23 @@ export type ClaudeCodeSettingsOptions = {
   toolDetails: boolean;
 };
 
-export let defaultClaudeCodeSettingsOptions: ClaudeCodeSettingsOptions = {
+export type OrganizationReporting = { toolDetails: boolean; sessionContext: boolean };
+
+export let defaultClaudeCodeSettingsOptions = (
+  organization: OrganizationReporting | null | undefined
+): ClaudeCodeSettingsOptions => ({
   keepLocalHistory: true,
   repository: true,
-  toolDetails: false
+  toolDetails: organization?.toolDetails ?? false
+});
+
+export let organizationSwitchLabels: Record<keyof OrganizationReporting, string> = {
+  toolDetails: 'Detailed Tool Reporting',
+  sessionContext: 'Session Context'
 };
 
-export type OrganizationReporting = { toolDetails: boolean; sessionContext: boolean };
+export let toolDetailsOffText =
+  'With Detailed Tool Reporting off, Agent Usage removes MCP server, MCP tool, skill, custom command and agent names and tool inputs, outputs and error text from the data of every coding agent, Codex included; built-in tool names such as Bash and Read are kept, and counts still include every use.';
 
 let organizationSwitchOf: Partial<
   Record<keyof ClaudeCodeSettingsOptions, keyof OrganizationReporting>
@@ -34,6 +44,12 @@ export let isOffForOrganization = (
   return !!organizationSwitch && organization?.[organizationSwitch] === false;
 };
 
+export let organizationSwitchLabel = (setting: keyof ClaudeCodeSettingsOptions) => {
+  let organizationSwitch = organizationSwitchOf[setting];
+
+  return organizationSwitch ? organizationSwitchLabels[organizationSwitch] : null;
+};
+
 export let withOrganizationReporting = (
   options: ClaudeCodeSettingsOptions,
   organization: OrganizationReporting | null | undefined
@@ -48,7 +64,7 @@ type ClaudeCodeManagedSettings = {
   cleanupPeriodDays?: number;
 };
 
-export let claudeCodeLogsEndpoint = (ingestUrl: string) =>
+export let otlpLogsEndpoint = (ingestUrl: string) =>
   `${ingestUrl.trim().replace(/\/+$/, '')}/v1/logs`;
 
 // Only the logs signal goes to ingest, through per-signal variables, so metrics or traces
@@ -62,7 +78,7 @@ export let buildClaudeCodeManagedSettings = (d: {
     CLAUDE_CODE_ENABLE_TELEMETRY: '1',
     OTEL_LOGS_EXPORTER: 'otlp',
     OTEL_EXPORTER_OTLP_LOGS_PROTOCOL: 'http/protobuf',
-    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: claudeCodeLogsEndpoint(d.ingestUrl),
+    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: otlpLogsEndpoint(d.ingestUrl),
     OTEL_EXPORTER_OTLP_LOGS_HEADERS: `Authorization=Bearer ${d.secret || ingestionKeyPlaceholder}`
   };
 

@@ -25,7 +25,16 @@ export let desktopContextClients = [
   'opencode'
 ] as const;
 
-let maxListedRefs = 32;
+export let maxTicketRefs = 8;
+
+let ticketNumber = '[1-9][0-9]{0,6}';
+
+export let ticketKeyPatterns = {
+  upper: `[A-Z][A-Z0-9_]{1,9}-${ticketNumber}`,
+  mixed: `[A-Za-z][A-Za-z0-9]{1,9}-${ticketNumber}`,
+  issue: '#[1-9][0-9]{0,8}'
+};
+
 let maxLines = 1_000_000_000;
 let maxPullRequestNumber = 2_147_483_647;
 let earliestTimestamp = Date.UTC(2015, 0, 1);
@@ -60,7 +69,9 @@ let sha = pattern(commitShaPattern);
 let lineCount = count(maxLines);
 let pullRequestNumber = count(maxPullRequestNumber, 1);
 let ticketRef = pattern(
-  /^(?:[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]{0,6}|[A-Za-z][A-Za-z0-9]{1,9}-[1-9][0-9]{0,6}|#[1-9][0-9]{0,8})$/
+  new RegExp(
+    `^(?:${ticketKeyPatterns.upper}|${ticketKeyPatterns.mixed}|${ticketKeyPatterns.issue})$`
+  )
 );
 
 let desktopSessionContextSchema = v.object({
@@ -92,7 +103,7 @@ let desktopCommitSchema = v.object({
   sha,
   branch: v.optional(label(256)),
   committed_at: v.optional(timestamp),
-  ticket_refs: v.optional(v.array(ticketRef, { modifiers: [v.maxLength(maxListedRefs)] })),
+  ticket_refs: v.optional(v.array(ticketRef, { modifiers: [v.maxLength(maxTicketRefs)] })),
   ai_authored: v.optional(v.boolean())
 });
 

@@ -1,14 +1,18 @@
+import { agentSeeds } from '@metorial/model-catalog/src/registry/agents';
+
 export let agentTrackingClientFamilies = {
   claude_code: { name: 'Claude Code', serviceFamily: 'claude-code' }
 } as const;
 
-let otherClientFamilyNames: Record<string, string> = {
-  codex: 'Codex',
-  cursor: 'Cursor',
-  antigravity: 'Antigravity',
-  opencode: 'OpenCode',
-  copilot: 'GitHub Copilot'
-};
+let otherClientFamilyNames = new Map([
+  ['codex', 'Codex'],
+  ['cursor', 'Cursor'],
+  ['opencode', 'OpenCode'],
+  ['antigravity', 'Antigravity'],
+  ['copilot', 'GitHub Copilot']
+]);
+
+let registryNames = new Map(agentSeeds.map(agent => [agent.id, agent.name]));
 
 export type AgentTrackingClientFamily = keyof typeof agentTrackingClientFamilies;
 
@@ -29,9 +33,7 @@ export let fromServiceFamily = (family: string) =>
         key => agentTrackingClientFamilies[key].serviceFamily == family
       ) ?? family);
 
-export let clientFamilyName = (family: string) =>
+export let clientFamilyName = (family: string): string | null =>
   isClientFamily(family)
     ? agentTrackingClientFamilies[family].name
-    : Object.prototype.hasOwnProperty.call(otherClientFamilyNames, family)
-      ? otherClientFamilyNames[family]!
-      : null;
+    : (otherClientFamilyNames.get(family) ?? registryNames.get(family) ?? null);

@@ -1,4 +1,4 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -10,10 +10,13 @@ import {
   ID,
   Instance,
   OAuthToken,
+  Organization,
   Prisma,
+  Project,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { getDetectionCatalog } from '@metorial/model-catalog/detection';
 import {
   detectionDisabledError,
   detectionObservedAt,
@@ -24,6 +27,7 @@ import {
 } from '../lib/aiToolDetection';
 import { aiToolPolicyService } from './aiToolPolicy';
 import { consumerDeviceInclude } from './consumerDevice';
+import { consumerDeviceSettingsService } from './consumerDeviceSettings';
 
 export let consumerDeviceDetectionStatuses = ['present', 'gone'] as const;
 
@@ -34,7 +38,17 @@ export let consumerDeviceDetectionInclude = {
 } satisfies Prisma.ConsumerDeviceDetectionInclude;
 
 class ConsumerDeviceDetectionServiceImpl {
+  async getCatalog(d: { organization: Organization; project: Project }) {
+    if (!(await consumerDeviceSettingsService.isAiToolDetectionFlagged(d))) {
+      throw new ServiceError(notFoundError('consumer.device.detection_catalog'));
+    }
+
+    return getDetectionCatalog();
+  }
+
   async reportDetections(d: {
+    organization: Organization;
+    project: Project;
     consumerDevice: ConsumerDevice;
     oauthToken: Pick<OAuthToken, 'oid'> | undefined;
     auditScope: AuditScope;
@@ -44,6 +58,9 @@ class ConsumerDeviceDetectionServiceImpl {
       findings: DetectionFinding[];
     };
   }) {
+    if (!(await consumerDeviceSettingsService.isAiToolDetectionFlagged(d))) {
+      throw new ServiceError(detectionDisabledError());
+    }
     this.assertDeviceSignIn(d);
     this.assertDeviceActive(d.consumerDevice);
 
@@ -242,8 +259,6 @@ class ConsumerDeviceDetectionServiceImpl {
     };
   }
 
-  // Only the device's own Metorial Desktop sign-in may speak for it, not another credential
-  // of the same consumer.
   private assertDeviceSignIn(d: {
     consumerDevice: Pick<ConsumerDevice, 'oauthTokenOid'>;
     oauthToken: Pick<OAuthToken, 'oid'> | undefined;

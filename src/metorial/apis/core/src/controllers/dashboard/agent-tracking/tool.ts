@@ -12,8 +12,7 @@ import {
 } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
 import { rangeOf } from '../../../lib/agentTrackingParams';
-import { canReadProviders, canReadSkills } from '../../../lib/toolCallAccess';
-import { checkAccess } from '../../../middleware/checkAccess';
+import { requireToolCallReadAccess } from '../../../middleware/integrationsAccess';
 import {
   agentTrackingBasePath,
   agentTrackingReadGroup,
@@ -49,7 +48,7 @@ export let dashboardAgentTrackingToolController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
-          canReadSkills: await canReadSkills(ctx),
+          canReadSkills: await ctx.integrationsAccess.skills(),
           range: rangeOf(ctx.query)
         });
 
@@ -75,7 +74,7 @@ export let dashboardAgentTrackingToolController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
-          canReadProviders: await canReadProviders(ctx),
+          canReadProviders: await ctx.integrationsAccess.providers(),
           range: rangeOf(ctx.query)
         });
 
@@ -83,7 +82,7 @@ export let dashboardAgentTrackingToolController = Controller.create(
       }),
 
     providerCalls: agentTrackingReadGroup
-      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(requireToolCallReadAccess())
       .get(
         Path(
           `${agentTrackingBasePath}/tools/provider-calls`,

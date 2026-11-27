@@ -100,7 +100,6 @@ export let toolCalls = {
   listToolCalls: vi.fn(async (d: any) => ({
     run: async (page: { limit: number; after?: string }) => {
       let visible = toolCalls.rows
-        .filter(row => !row.hiddenFrom || row.hiddenFrom != d.organizationActor?.id)
         .filter(row => row.instanceId == d.instance.id)
         .filter(row => !d.ids || d.ids.includes(row.id))
         .filter(row => !d.clientCallIds || d.clientCallIds.includes(row.clientCallId))
@@ -120,7 +119,15 @@ export let toolCalls = {
   }))
 };
 
-export let sessionModule = { toolCallService: toolCalls };
+export let detection = { active: true };
+
+export let consumerCoreModule = {
+  consumerDeviceSettingsService: {
+    isAiToolDetectionActive: vi.fn(async (_d: any) => detection.active)
+  }
+};
+
+export let sessionModule = { toolCallService: toolCalls, maxClientCallIds: 200 };
 
 export let connectionModule = { toolCallClientSources: ['claude-code', 'codex'] as const };
 
@@ -282,6 +289,8 @@ export let resetMocks = () => {
   desktop.toolDetails = false;
   desktop.sessionTitles = false;
   links.ticketUrlTemplate = null;
+  detection.active = true;
+  consumerCoreModule.consumerDeviceSettingsService.isAiToolDetectionActive.mockClear();
 };
 
 export let callsTo = (path: string) => rpc.calls.filter(call => call.path == path);

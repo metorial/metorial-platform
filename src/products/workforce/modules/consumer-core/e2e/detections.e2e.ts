@@ -39,6 +39,7 @@ let createDevice = async (
     consumerProfile: owner.consumerProfile,
     oauthToken,
     auditScope: fixture.auditScope,
+    skillAccess: 'none',
     input: {
       installationId: uniqueId('installation-0123456789'),
       name: 'E2E MacBook',
@@ -60,6 +61,9 @@ let createDevice = async (
 
 let enableDetection = async (fixture: OrganizationFixture) =>
   await consumerDeviceSettingsService.updateSettings({
+    organization: fixture.organization,
+    project: fixture.project,
+    actor: { isHuman: true },
     instance: fixture.instance,
     auditScope: fixture.auditScope,
     input: { privacyNoticeAccepted: true, aiToolDetectionEnabled: true }
@@ -77,6 +81,7 @@ describe('module-consumer-core AI tool detections', () => {
   let settingsOrg = useOrganization();
   let connectionOrg = useOrganization();
   let purgeOrg = useOrganization();
+  let machineOrg = useOrganization();
 
   let fixture: OrganizationFixture;
 
@@ -89,6 +94,8 @@ describe('module-consumer-core AI tool detections', () => {
     generatedAt = new Date()
   ) =>
     consumerDeviceDetectionService.reportDetections({
+      organization: fixture.organization,
+      project: fixture.project,
       consumerDevice,
       oauthToken: deviceTokens.get(consumerDevice.oid),
       auditScope: fixture.auditScope,
@@ -210,6 +217,8 @@ describe('module-consumer-core AI tool detections', () => {
 
     await expectServiceError(
       consumerDeviceDetectionService.reportDetections({
+        organization: disabledFixture.organization,
+        project: disabledFixture.project,
         consumerDevice,
         oauthToken: deviceTokens.get(consumerDevice.oid),
         auditScope: disabledFixture.auditScope,
@@ -414,6 +423,9 @@ describe('module-consumer-core AI tool detections', () => {
       privacyNoticeAccepted?: boolean;
     }) =>
       consumerDeviceSettingsService.updateSettings({
+        organization: settingsFixture.organization,
+        project: settingsFixture.project,
+        actor: { isHuman: true },
         instance: settingsFixture.instance,
         auditScope: settingsFixture.auditScope,
         input
@@ -458,6 +470,38 @@ describe('module-consumer-core AI tool detections', () => {
     ]);
   });
 
+  it('leaves turning detection on, accepting the notice and going direct to a person', async () => {
+    let machineFixture = await loadOrganizationFixture(machineOrg.ids);
+    let update = (
+      isHuman: boolean,
+      input: Parameters<typeof consumerDeviceSettingsService.updateSettings>[0]['input']
+    ) =>
+      consumerDeviceSettingsService.updateSettings({
+        organization: machineFixture.organization,
+        project: machineFixture.project,
+        instance: machineFixture.instance,
+        auditScope: machineFixture.auditScope,
+        actor: { isHuman },
+        input
+      });
+
+    for (let input of [
+      { privacyNoticeAccepted: true },
+      { aiToolDetectionEnabled: true },
+      { connectionMode: 'direct' as const }
+    ]) {
+      await expectServiceError(update(false, input), 'forbidden');
+    }
+    expect(
+      await consumerDeviceSettingsService.getSettings({ instance: machineFixture.instance })
+    ).toBeNull();
+
+    await update(true, { privacyNoticeAccepted: true, aiToolDetectionEnabled: true });
+    expect(
+      await update(false, { aiToolDetectionEnabled: false, connectionMode: 'local_proxy' })
+    ).toMatchObject({ aiToolDetectionEnabled: false, connectionMode: 'local_proxy' });
+  });
+
   it('keeps the connection mode apart from detection and hands it to devices', async () => {
     let connectionFixture = await loadOrganizationFixture(connectionOrg.ids);
     let instance = connectionFixture.instance;
@@ -465,6 +509,9 @@ describe('module-consumer-core AI tool detections', () => {
       input: Parameters<typeof consumerDeviceSettingsService.updateSettings>[0]['input']
     ) =>
       consumerDeviceSettingsService.updateSettings({
+        organization: connectionFixture.organization,
+        project: connectionFixture.project,
+        actor: { isHuman: true },
         instance,
         auditScope: connectionFixture.auditScope,
         input
@@ -512,6 +559,8 @@ describe('module-consumer-core AI tool detections', () => {
     for (let oauthToken of [otherSignIn, undefined]) {
       await expectServiceError(
         consumerDeviceDetectionService.reportDetections({
+          organization: fixture.organization,
+          project: fixture.project,
           consumerDevice,
           oauthToken,
           auditScope: fixture.auditScope,
@@ -533,6 +582,7 @@ describe('module-consumer-core AI tool detections', () => {
       consumerProfile: desktop.consumerProfile,
       oauthToken: newSignIn,
       auditScope: fixture.auditScope,
+      skillAccess: 'none',
       input: {
         installationId: consumerDevice.installationId,
         name: 'E2E MacBook',
@@ -550,6 +600,8 @@ describe('module-consumer-core AI tool detections', () => {
     expect(fromOldSignIn.consumerDevice.detectionSeq).toBeNull();
 
     let restarted = await consumerDeviceDetectionService.reportDetections({
+      organization: fixture.organization,
+      project: fixture.project,
       consumerDevice: reenrolled,
       oauthToken: newSignIn,
       auditScope: fixture.auditScope,
@@ -609,6 +661,8 @@ describe('module-consumer-core AI tool detections', () => {
     let { consumerDevice } = await createDevice(purgeFixture);
     let reportFor = (seq: number) =>
       consumerDeviceDetectionService.reportDetections({
+        organization: purgeFixture.organization,
+        project: purgeFixture.project,
         consumerDevice,
         oauthToken: deviceTokens.get(consumerDevice.oid),
         auditScope: purgeFixture.auditScope,
@@ -617,6 +671,9 @@ describe('module-consumer-core AI tool detections', () => {
     await reportFor(3);
 
     await consumerDeviceSettingsService.updateSettings({
+      organization: purgeFixture.organization,
+      project: purgeFixture.project,
+      actor: { isHuman: true },
       instance: purgeFixture.instance,
       auditScope: purgeFixture.auditScope,
       input: { aiToolDetectionEnabled: false }

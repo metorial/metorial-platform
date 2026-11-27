@@ -1,13 +1,11 @@
-let maxTicketRefs = 8;
+import { maxTicketRefs, ticketKeyPatterns } from '@mtsrc/agent-tracking-spec';
 
-let number = '[1-9][0-9]{0,6}';
-let upperKey = `[A-Z][A-Z0-9_]{1,9}-${number}`;
-let mixedKey = `[A-Za-z][A-Za-z0-9]{1,9}-${number}`;
+let { upper: upperKey, mixed: mixedKey } = ticketKeyPatterns;
 
 let upperKeyPattern = new RegExp(`(?<![A-Za-z0-9])(${upperKey})(?![A-Za-z0-9]|\\.[0-9])`, 'g');
 let segmentKeyPattern = new RegExp(`(?<=^|/)(${mixedKey})(?=[-/_]|$)`, 'g');
 let wholeKeyPattern = new RegExp(`^(?:${upperKey}|${mixedKey})$`);
-let issuePattern = /^#[1-9][0-9]{0,8}$/;
+let issuePattern = new RegExp(`^${ticketKeyPatterns.issue}$`);
 
 let skippedBranchOwners = new Set(['dependabot', 'renovate']);
 

@@ -35,7 +35,6 @@ let enqueueEntitySync = async (target: EntitySyncTarget) => {
   });
 };
 
-// Agents that only a detection kept around are dropped by the agent reconcile.
 let enqueueAgentCleanup = async (instanceOid: bigint) => {
   if (!isAgentTrackingEnabled()) return;
 

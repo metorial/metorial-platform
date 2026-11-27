@@ -1,4 +1,4 @@
-import { listEntitiesByIds, unique } from './members';
+import { listEntitiesByIds, unique } from './entities';
 import type { ReadScope } from './scope';
 import type { AgentTrackingRepository } from './types';
 import { repositoryHost, repositoryUrl, splitRepository } from './urls';

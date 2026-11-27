@@ -18,6 +18,7 @@ import { useAgentTrackingSettingsAccess } from './access';
 import { classificationUpdate, hostedModelPromptText } from './classification';
 import { agentTrackingErrorStatus, AgentTrackingErrorState, notSetUpText } from './errorState';
 import { WithInfo } from './info';
+import { organizationSwitchLabels, toolDetailsOffText } from './settingsFile';
 
 let minGroupUsersRange = { min: 3, max: 100 };
 
@@ -38,13 +39,12 @@ type InstanceSettings = DashboardInstanceAgentTrackingSettingsGetOutput;
 let desktopSwitches = [
   {
     id: 'toolDetails',
-    label: 'Detailed Tool Reporting',
-    description:
-      'When on, Agent Usage keeps MCP server and tool names, skill names, and custom command and agent names. Tool inputs, outputs and error text are kept only as a size and a fingerprint by default. When off, all of these are removed; built-in tool names such as Bash and Read are kept.'
+    label: organizationSwitchLabels.toolDetails,
+    description: `When on, Agent Usage keeps MCP server and tool names, skill names, and custom command and agent names. Tool inputs, outputs and error text are kept only as a size and a fingerprint by default. ${toolDetailsOffText}`
   },
   {
     id: 'sessionContext',
-    label: 'Session Context',
+    label: organizationSwitchLabels.sessionContext,
     description:
       'Keeps the repository, branch, commits, ticket keys and working folder of each agent session, and its pull requests from Metorial Desktop. By default the folder is not kept as its full path, and code and commit messages are never part of it.'
   },
@@ -304,7 +304,7 @@ let ClassificationSection = ({
       form={form}
       update={update}
       canWrite={canWrite}
-      readOnlyText="Only organization admins can change these settings."
+      readOnlyText="Only members who can change Agent Usage in this environment can change these settings."
     >
       <Switch
         label={

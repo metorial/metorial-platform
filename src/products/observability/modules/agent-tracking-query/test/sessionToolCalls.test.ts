@@ -107,6 +107,12 @@ describe('agentTrackingSessionService.listSessionToolCalls', () => {
 
   beforeEach(() => {
     resetMocks();
+    rpc.handlers['session:findByToolCalls'] = () => ({
+      object: 'list',
+      items: [],
+      ambiguous: [],
+      sessions: []
+    });
   });
 
   it('answers not found without asking agent tracking while it is off', async () => {
@@ -256,6 +262,68 @@ describe('agentTrackingSessionService.listSessionToolCalls', () => {
     expect(result.unmatchedCount).toBe(0);
   });
 
+  it('links no Metorial call to an agent call id that is ambiguous across sessions', async () => {
+    rpc.handlers['session:listMcpToolCalls'] = mcpToolCalls([
+      agentCall('toolu_1'),
+      agentCall('toolu_2'),
+      agentCall('toolu_3')
+    ]);
+    rpc.handlers['session:findByToolCalls'] = () => ({
+      object: 'list',
+      items: [],
+      ambiguous: [{ clientFamily: 'claude-code', toolCallId: 'toolu_2' }],
+      sessions: []
+    });
+    toolCalls.rows = [
+      metorialRow('tcl_a', { clientCallId: 'toolu_1' }),
+      metorialRow('tcl_b', { clientCallId: 'toolu_2' })
+    ];
+
+    let result = await list();
+
+    expect(result.items.map(item => item.toolCall.id)).toEqual(['tcl_a']);
+    expect(result.unmatchedCount).toBe(2);
+    expect(callsTo('session:findByToolCalls').map(call => call.input)).toEqual([
+      {
+        organizationId: 'org_1',
+        instanceId: 'inst_1',
+        toolCalls: [
+          { clientFamily: 'claude-code', toolCallId: 'toolu_1' },
+          { clientFamily: 'claude-code', toolCallId: 'toolu_2' }
+        ]
+      }
+    ]);
+  });
+
+  it('links nothing for the ids it could not check and keeps the other batches', async () => {
+    let ids = Array.from({ length: 250 }, (_, i) => `toolu_${String(i).padStart(3, '0')}`);
+    rpc.handlers['session:listMcpToolCalls'] = mcpToolCalls(ids.map(id => agentCall(id)));
+    toolCalls.rows = ids.map(id => metorialRow(`tcl_${id.slice(6)}`, { clientCallId: id }));
+    rpc.handlers['session:findByToolCalls'] = ({ toolCalls: asked }) => {
+      if (asked.length == 200) throw new ServiceError(notFoundError('instance', 'inst_1'));
+      return { object: 'list', items: [], ambiguous: [], sessions: [] };
+    };
+
+    let result = await list();
+
+    expect(result.items.map(item => item.toolCall.id)).toEqual(
+      ids.slice(200).map(id => `tcl_${id.slice(6)}`)
+    );
+    expect(result.unmatchedCount).toBe(200);
+  });
+
+  it('checks the ambiguity of at most 200 matched calls at once', async () => {
+    let ids = Array.from({ length: 450 }, (_, i) => `toolu_${String(i).padStart(3, '0')}`);
+    rpc.handlers['session:listMcpToolCalls'] = mcpToolCalls(ids.map(id => agentCall(id)));
+    toolCalls.rows = ids.map(id => metorialRow(`tcl_${id.slice(6)}`, { clientCallId: id }));
+
+    await list();
+
+    expect(
+      callsTo('session:findByToolCalls').map(call => call.input.toolCalls.length)
+    ).toEqual([200, 200, 50]);
+  });
+
   it('counts the calls that did not go through Metorial and passes the cut-off on', async () => {
     rpc.handlers['session:listMcpToolCalls'] = mcpToolCalls(
       [
@@ -312,20 +380,19 @@ describe('agentTrackingSessionService.listSessionToolCalls', () => {
     });
   });
 
-  it('leaves out a Metorial call the actor may not see', async () => {
+  it('passes the organization actor through to the Metorial tool call lookup', async () => {
     rpc.handlers['session:listMcpToolCalls'] = mcpToolCalls([
       agentCall('toolu_1'),
       agentCall('toolu_2')
     ]);
-    toolCalls.rows = [
-      metorialRow('tcl_a', { clientCallId: 'toolu_1' }),
-      metorialRow('tcl_b', { clientCallId: 'toolu_2', hiddenFrom: actor.id }),
-      metorialRow('tcl_c', { clientCallId: 'toolu_2', instanceId: 'inst_2' })
-    ];
+    toolCalls.rows = [metorialRow('tcl_a', { clientCallId: 'toolu_1' })];
 
     let result = await list();
 
     expect(result.items.map(item => item.toolCall.id)).toEqual(['tcl_a']);
+    expect(toolCalls.listToolCalls).toHaveBeenCalledWith(
+      expect.objectContaining({ instance: scope.instance, organizationActor: actor })
+    );
   });
 
   it('lists nothing and reveals no count to an actor who cannot read tool calls', async () => {
@@ -341,6 +408,7 @@ describe('agentTrackingSessionService.listSessionToolCalls', () => {
       hasMore: false
     });
     expect(toolCalls.listToolCalls).not.toHaveBeenCalled();
+    expect(callsTo('session:findByToolCalls')).toEqual([]);
   });
 });
 
@@ -468,12 +536,15 @@ describe('agentTrackingSessionService.listToolCallSessions', () => {
     expect(await lookup(['tcl_a', 'tcl_c'])).toEqual([]);
   });
 
-  it('leaves out tool calls the actor may not see without asking agent tracking', async () => {
-    toolCalls.rows = [metorialRow('tcl_a', { clientCallId: 'toolu_1', hiddenFrom: actor.id })];
+  it('asks agent tracking nothing when the actor can see none of the tool calls', async () => {
+    toolCalls.rows = [];
     rpc.handlers['session:findByToolCalls'] = () => found();
 
     expect(await lookup(['tcl_a'])).toEqual([]);
     expect(callsTo('session:findByToolCalls')).toEqual([]);
+    expect(toolCalls.listToolCalls).toHaveBeenCalledWith(
+      expect.objectContaining({ instance: scope.instance, organizationActor: actor })
+    );
   });
 
   it('returns nothing to an actor who cannot read tool calls', async () => {

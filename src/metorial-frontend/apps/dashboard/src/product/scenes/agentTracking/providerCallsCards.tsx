@@ -1,17 +1,17 @@
 import { Paths } from '@metorial/frontend-config';
-import {
-  useAgentTrackingInstanceSettings,
-  useAgentTrackingProviderCalls
-} from '@metorial/state';
+import { useAgentTrackingProviderCalls } from '@metorial/state';
 import { useInstanceContext } from '../../lib/dataList';
-import { UsageTopList } from '../instanceUsage/cards';
+import { getUsageErrorMessage, UsageTopList } from '../instanceUsage/cards';
 import type { UsageRange } from '../instanceUsage/query';
-import { useAgentTrackingAvailability } from './access';
+import { agentTrackingErrorStatus } from './errorState';
 import { memberPath } from './memberParts';
-import { agentCallGroups, providerCallRows, type ProviderCallGroup } from './providerCalls';
+import { useAgentTrackingIndividualsVisibility } from './privacy';
+import { providerCallRows, type ProviderCallGroup } from './providerCalls';
 import { getBrowserTimeZone, withQuery } from './range';
 
 let cardLimit = 8;
+
+let groups: ProviderCallGroup[] = ['repository', 'member'];
 
 let cards: Record<ProviderCallGroup, { title: string; info: string }> = {
   repository: {
@@ -40,7 +40,7 @@ let AgentCallsCard = ({
     to: range.to,
     timeZone: getBrowserTimeZone()
   });
-  if (calls.error) return null;
+  if (agentTrackingErrorStatus(calls.error) == 403) return null;
 
   let rows = providerCallRows(calls.data?.items ?? [], {
     groupBy,
@@ -58,6 +58,7 @@ let AgentCallsCard = ({
       description="By tool calls"
       info={cards[groupBy].info}
       loading={calls.isLoading}
+      error={getUsageErrorMessage(calls.error)}
       rows={rows}
       emptyText="No coding agent tool calls in this range."
     />
@@ -66,18 +67,8 @@ let AgentCallsCard = ({
 
 export let UsageAgentCallCards = ({ range }: { range: UsageRange }) => {
   let ctx = useInstanceContext();
-  let { available } = useAgentTrackingAvailability();
-  let settings = useAgentTrackingInstanceSettings(available ? ctx.instanceId : null);
-
-  let groups = agentCallGroups({
-    available,
-    settings: {
-      loaded: !!settings.data,
-      failed: !!settings.error,
-      hideIndividuals: !!settings.data?.privacy.hideIndividuals
-    }
-  });
-  if (!ctx.instanceId) return null;
+  let { visibility } = useAgentTrackingIndividualsVisibility();
+  if (!ctx.instanceId || visibility != 'visible') return null;
 
   return (
     <>

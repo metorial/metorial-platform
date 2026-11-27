@@ -1,5 +1,9 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import * as clientFamilies from '@metorial/module-agent-tracking-sync/src/definitions/clientFamilies';
+import {
+  acceptedHistoryImportDays,
+  defaultHistoryImportDays
+} from '@metorial/module-agent-tracking-sync/src/lib/settings';
 import { expect, vi } from 'vitest';
 
 export let mocks = {
@@ -42,11 +46,8 @@ let isEnabledForOrganization = async (d: unknown) => {
 
 export let syncModule = {
   ...clientFamilies,
-  defaultHistoryImportDays: 90,
-  acceptedHistoryImportDays: (
-    desktop: { historyImportDays: number },
-    retention: { recordDays: number | null }
-  ) => Math.min(desktop.historyImportDays, retention.recordDays ?? 90),
+  defaultHistoryImportDays,
+  acceptedHistoryImportDays,
   agentTrackingSyncService: {
     backfillRoster: mocks.backfillRoster,
     syncEntities: mocks.syncEntities

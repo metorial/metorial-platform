@@ -1,13 +1,9 @@
-import { isServiceError, ServiceError } from '@lowerdeck/error';
-import { getSentry } from '@lowerdeck/sentry';
+import { ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Organization, Project } from '@metorial/db';
-import {
-  agentTrackingSettingsService,
-  assertAgentTrackingEnabled
-} from '@metorial/module-agent-tracking-sync';
+import { assertAgentTrackingEnabled } from '@metorial/module-agent-tracking-sync';
 import { lookupMembers } from '../lib/members';
-import { individualsHiddenError, loadPrivacy } from '../lib/privacy';
+import { individualsHiddenError, loadVisibleSettings } from '../lib/privacy';
 import {
   providerCallFiguresOf,
   providerCallItemsOf,
@@ -52,7 +48,7 @@ import {
   skillUsageQuery,
   toolsHiddenError
 } from '../lib/tools';
-import { fromService } from '../lib/service';
+import { failSoft, fromService } from '../lib/service';
 import type {
   AgentTrackingMcpServerUsage,
   AgentTrackingMember,
@@ -66,11 +62,16 @@ import type {
 
 let noRows: UsageResult = { rows: [] };
 
+type ToolReadScope = ReadScope & { organization: Organization; project: Project };
+
 class AgentTrackingToolServiceImpl {
   async getSkillUsage(
-    d: ReadScope & SkillReadScope & { range: RangeInput }
+    d: ToolReadScope & SkillReadScope & { range: RangeInput }
   ): Promise<AgentTrackingSkillUsage> {
-    let { range, now, toolDetails } = await this.prepare(d);
+    let { range, now, toolDetails } = await this.prepare(d, {
+      hiddenError: toolsHiddenError,
+      label: 'Skill and MCP usage'
+    });
 
     let usage = await cachedRead({
       scope: d,
@@ -97,9 +98,12 @@ class AgentTrackingToolServiceImpl {
   }
 
   async getMcpServerUsage(
-    d: ReadScope & ProviderReadScope & { range: RangeInput }
+    d: ToolReadScope & ProviderReadScope & { range: RangeInput }
   ): Promise<AgentTrackingMcpServerUsage> {
-    let { range, now, toolDetails } = await this.prepare(d);
+    let { range, now, toolDetails } = await this.prepare(d, {
+      hiddenError: toolsHiddenError,
+      label: 'Skill and MCP usage'
+    });
 
     let usage = await cachedRead({
       scope: d,
@@ -132,27 +136,17 @@ class AgentTrackingToolServiceImpl {
   }
 
   async getProviderCalls(
-    d: ReadScope & {
-      organization: Organization;
-      project: Project;
+    d: ToolReadScope & {
       range: RangeInput;
       groupBy: ProviderCallGroup;
       providerId?: string;
       toolKey?: string;
     }
   ): Promise<AgentTrackingProviderCalls> {
-    await assertAgentTrackingEnabled({ organization: d.organization, project: d.project });
-
-    let privacy = await loadPrivacy(d);
-    if (privacy.hideIndividuals) {
-      throw new ServiceError(
-        d.groupBy == 'member' ? individualsHiddenError : providerCallsHiddenError
-      );
-    }
-
-    let range = normalizeRange(d.range);
-    let now = new Date();
-    assertRecordRange(resolveRange(range, now), 'Agent tool calls');
+    let { range, now } = await this.prepare(d, {
+      hiddenError: d.groupBy == 'member' ? individualsHiddenError : providerCallsHiddenError,
+      label: 'Agent tool calls'
+    });
 
     let providerId = d.providerId?.trim() || null;
     let toolKey = d.toolKey?.trim() || null;
@@ -206,7 +200,7 @@ class AgentTrackingToolServiceImpl {
   ): Promise<Map<string, AgentTrackingProvider>> {
     if (!d.canReadProviders) return new Map();
 
-    try {
+    return await failSoft(async () => {
       let stamped: UsageResult = await fromService(() =>
         runUsageQuery(d, mcpServerProvidersQuery(range))
       );
@@ -219,10 +213,7 @@ class AgentTrackingToolServiceImpl {
           return provider ? [[server, provider] as const] : [];
         })
       );
-    } catch (error) {
-      if (!isServiceError(error)) getSentry().captureException(error);
-      return new Map();
-    }
+    }, new Map<string, AgentTrackingProvider>());
   }
 
   private async installedSkills(
@@ -231,27 +222,25 @@ class AgentTrackingToolServiceImpl {
   ): Promise<Map<string, AgentTrackingSkill>> {
     if (!d.canReadSkills) return new Map();
 
-    try {
+    return await failSoft(async () => {
       let devices: UsageResult = await fromService(() =>
         runUsageQuery(d, skillDevicesQuery(range))
       );
 
       return await lookupSkills({ scope: d, devicesByName: skillDevicesOf(devices) });
-    } catch (error) {
-      if (!isServiceError(error)) getSentry().captureException(error);
-      return new Map();
-    }
+    }, new Map<string, AgentTrackingSkill>());
   }
 
-  private async prepare(d: ReadScope & { range: RangeInput }) {
-    let { privacy, desktop } = await agentTrackingSettingsService.getOrganizationValues({
-      organization: d.organization
-    });
-    if (privacy.hideIndividuals) throw new ServiceError(toolsHiddenError);
+  private async prepare(
+    d: ToolReadScope & { range: RangeInput },
+    opts: { hiddenError: ConstructorParameters<typeof ServiceError>[0]; label: string }
+  ) {
+    await assertAgentTrackingEnabled({ organization: d.organization, project: d.project });
+    let { desktop } = await loadVisibleSettings(d, opts.hiddenError);
 
     let range: NormalizedRange = normalizeRange(d.range);
     let now = new Date();
-    assertRecordRange(resolveRange(range, now), 'Skill and MCP usage');
+    assertRecordRange(resolveRange(range, now), opts.label);
 
     return { range, now, toolDetails: desktop.toolDetails };
   }

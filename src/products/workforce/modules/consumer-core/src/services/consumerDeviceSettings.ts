@@ -1,4 +1,4 @@
-import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
@@ -13,7 +13,9 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { flagService } from '@metorial/module-flags';
-import { aiToolDetectionFlag } from '../lib/aiToolDetection';
+import { aiToolDetectionFlag, deviceMonitor } from '../lib/aiToolDetection';
+
+let defaultConnectionMode: ConsumerDeviceConnectionMode = 'local_proxy';
 
 class ConsumerDeviceSettingsServiceImpl {
   async getSettings(d: { instance: Pick<Instance, 'oid'> }) {
@@ -45,15 +47,52 @@ class ConsumerDeviceSettingsServiceImpl {
     });
   }
 
+  async withVisibleDetections<ConsumerDevice extends { detections: unknown[] }>(d: {
+    organization: Organization;
+    project: Project;
+    consumerDevices: ConsumerDevice[];
+  }) {
+    return this.hideDetectionsUnless(
+      d.consumerDevices,
+      await this.isAiToolDetectionFlagged(d)
+    );
+  }
+
+  async getDeviceViews<ConsumerDevice extends { detections: unknown[] }>(d: {
+    organization: Organization;
+    project: Project;
+    instance: Pick<Instance, 'oid'>;
+    consumerDevices: ConsumerDevice[];
+  }) {
+    let [settings, detectionFlagged] = await Promise.all([
+      this.getSettings({ instance: d.instance }),
+      this.isAiToolDetectionFlagged(d)
+    ]);
+
+    return {
+      consumerDevices: this.hideDetectionsUnless(d.consumerDevices, detectionFlagged),
+      monitor: deviceMonitor({
+        aiToolDetection: !!settings?.aiToolDetectionEnabled && detectionFlagged
+      }),
+      install: { connectionMode: settings?.connectionMode ?? defaultConnectionMode }
+    };
+  }
+
   async updateSettings(d: {
+    organization: Organization;
+    project: Project;
     instance: Pick<Instance, 'oid'>;
     auditScope: AuditScope;
+    actor: { isHuman: boolean };
     input: {
       aiToolDetectionEnabled?: boolean;
       privacyNoticeAccepted?: boolean;
       connectionMode?: ConsumerDeviceConnectionMode;
     };
   }) {
+    await this.assertDetectionSettingsAvailable(d);
+    this.assertCanTurnOn(d);
+
     return await withTransaction(async db => {
       // Taken before the device rows, in the same order as detection reports.
       await db.$queryRaw`
@@ -91,11 +130,12 @@ class ConsumerDeviceSettingsServiceImpl {
         );
       }
 
-      let connectionMode = d.input.connectionMode ?? previous?.connectionMode ?? 'local_proxy';
+      let connectionMode =
+        d.input.connectionMode ?? previous?.connectionMode ?? defaultConnectionMode;
 
       let unchanged =
         (previous?.aiToolDetectionEnabled ?? false) == aiToolDetectionEnabled &&
-        (previous?.connectionMode ?? 'local_proxy') == connectionMode &&
+        (previous?.connectionMode ?? defaultConnectionMode) == connectionMode &&
         previous?.privacyNoticeAcceptedAt?.getTime() ==
           notice.privacyNoticeAcceptedAt?.getTime();
       if (unchanged) return previous;
@@ -132,6 +172,58 @@ class ConsumerDeviceSettingsServiceImpl {
 
       return consumerDeviceSettings;
     });
+  }
+
+  private hideDetectionsUnless<ConsumerDevice extends { detections: unknown[] }>(
+    consumerDevices: ConsumerDevice[],
+    visible: boolean
+  ) {
+    return consumerDevices.map(consumerDevice =>
+      visible ? consumerDevice : { ...consumerDevice, detections: [] }
+    );
+  }
+
+  private async assertDetectionSettingsAvailable(d: {
+    organization: Organization;
+    project: Project;
+    input: { aiToolDetectionEnabled?: boolean; privacyNoticeAccepted?: boolean };
+  }) {
+    if (
+      d.input.aiToolDetectionEnabled === undefined &&
+      d.input.privacyNoticeAccepted === undefined
+    ) {
+      return;
+    }
+    if (await this.isAiToolDetectionFlagged(d)) return;
+
+    throw new ServiceError(
+      forbiddenError({ message: 'AI tool detection isn’t available for this organization.' })
+    );
+  }
+
+  private assertCanTurnOn(d: {
+    actor: { isHuman: boolean };
+    input: {
+      aiToolDetectionEnabled?: boolean;
+      privacyNoticeAccepted?: boolean;
+      connectionMode?: ConsumerDeviceConnectionMode;
+    };
+  }) {
+    if (
+      !d.input.aiToolDetectionEnabled &&
+      !d.input.privacyNoticeAccepted &&
+      d.input.connectionMode != 'direct'
+    ) {
+      return;
+    }
+    if (d.actor.isHuman) return;
+
+    throw new ServiceError(
+      forbiddenError({
+        message:
+          'Only a signed-in dashboard user can accept the privacy notice, turn on AI tool detection or let AI tools connect directly.'
+      })
+    );
   }
 }
 

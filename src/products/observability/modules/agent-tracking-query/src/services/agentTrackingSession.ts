@@ -4,7 +4,7 @@ import {
   toolCallClientSources,
   type ToolCallClientSource
 } from '@metorial-subspace/module-connection';
-import { toolCallService } from '@metorial-subspace/module-session';
+import { maxClientCallIds, toolCallService } from '@metorial-subspace/module-session';
 import type { Instance, Organization, OrganizationActor, Project } from '@metorial/db';
 import {
   assertAgentTrackingEnabled,
@@ -14,10 +14,11 @@ import {
 import { sessionTtlSeconds } from '../lib/cache';
 import { clientOf, lookupModelNames } from '../lib/catalog';
 import { pullRequestUrl, repositoryHost, ticketsOf } from '../lib/urls';
-import { chunks, lookupMembers, unique } from '../lib/members';
+import { chunks, unique } from '../lib/entities';
+import { lookupMembers } from '../lib/members';
 import { costOf, countOf, tokensOf } from '../lib/money';
 import { normalizeTicketKey } from '../lib/filterValues';
-import { loadVisibleSettings } from '../lib/privacy';
+import { assertIndividualsVisible, loadVisibleSettings } from '../lib/privacy';
 import { lookupProviders, providersOf, type ProviderReadScope } from '../lib/providers';
 import { sessionModelsQuery } from '../lib/queries';
 import {
@@ -30,12 +31,12 @@ import {
 import { createRemotePaginator } from '../lib/remotePaginator';
 import { lookupRepositories } from '../lib/repositories';
 import { cachedRead, runUsageQuery, type ReadScope } from '../lib/scope';
-import { queryCallOptions } from '../lib/service';
+import { failSoft, queryCallOptions } from '../lib/service';
 import {
   serviceOrderBy,
   sessionAnchorOf,
   sessionIdOf,
-  sessionIdPrefix,
+  sessionKeyOf,
   sessionNotFound,
   sessionUsageRange,
   unknownModelNamesOf,
@@ -61,7 +62,7 @@ let maxSessionProviders = 16;
 
 export let maxToolCallSessionLookups = 100;
 
-let maxClientCallLookups = 200;
+let maxAmbiguityLookups = 200;
 
 let toolCallPageSize = 100;
 
@@ -211,9 +212,7 @@ class AgentTrackingSessionServiceImpl {
     d: ReadScope & ProviderReadScope & { sessionId: string }
   ): Promise<AgentTrackingSessionDetail> {
     let display = displaySettingsOf(await loadVisibleSettings(d), d);
-
-    if (!d.sessionId.startsWith(sessionIdPrefix)) throw sessionNotFound(d.sessionId);
-    let sessionKey = d.sessionId.slice(sessionIdPrefix.length);
+    let sessionKey = sessionKeyOf(d.sessionId);
 
     return await cachedRead({
       scope: d,
@@ -223,19 +222,13 @@ class AgentTrackingSessionServiceImpl {
       load: async () => {
         let agentTracking = requireAgentTracking();
 
-        let session = await agentTracking.session
-          .get({ organizationId: d.organization.id, sessionKey }, queryCallOptions)
-          .catch(error => {
-            if (
-              isServiceError(error) &&
-              error.data.status == 404 &&
-              error.data.entity == 'session'
-            ) {
-              throw sessionNotFound(d.sessionId);
-            }
-            throw error;
-          });
-        if (session.instanceId != d.instance.id) throw sessionNotFound(d.sessionId);
+        let session = await this.fromRemoteSession(
+          d,
+          agentTracking.session.get(
+            { organizationId: d.organization.id, sessionKey },
+            queryCallOptions
+          )
+        );
 
         let [[view], usageByModel] = await Promise.all([
           this.describe({ scope: d, sessions: [session], display }),
@@ -258,11 +251,9 @@ class AgentTrackingSessionServiceImpl {
   async listSessionToolCalls(
     d: ToolCallScope & { sessionId: string }
   ): Promise<AgentTrackingSessionToolCalls> {
-    await this.assertEnabled(d);
-    await loadVisibleSettings(d);
-
-    if (!d.sessionId.startsWith(sessionIdPrefix)) throw sessionNotFound(d.sessionId);
-    let sessionKey = d.sessionId.slice(sessionIdPrefix.length);
+    await assertAgentTrackingEnabled({ organization: d.organization, project: d.project });
+    await assertIndividualsVisible(d);
+    let sessionKey = sessionKeyOf(d.sessionId);
 
     let agentCalls = await cachedRead({
       scope: d,
@@ -270,22 +261,13 @@ class AgentTrackingSessionServiceImpl {
       input: { sessionKey },
       ttlSeconds: sessionTtlSeconds,
       load: async () => {
-        let result = await requireAgentTracking()
-          .session.listMcpToolCalls(
+        let result = await this.fromRemoteSession(
+          d,
+          requireAgentTracking().session.listMcpToolCalls(
             { organizationId: d.organization.id, sessionKey },
             queryCallOptions
           )
-          .catch(error => {
-            if (
-              isServiceError(error) &&
-              error.data.status == 404 &&
-              error.data.entity == 'session'
-            ) {
-              throw sessionNotFound(d.sessionId);
-            }
-            throw error;
-          });
-        if (result.instanceId != d.instance.id) throw sessionNotFound(d.sessionId);
+        );
 
         return { items: result.items, hasMore: result.hasMore };
       }
@@ -308,6 +290,12 @@ class AgentTrackingSessionServiceImpl {
       rowsByCall.set(key, [...(rowsByCall.get(key) ?? []), row]);
     }
 
+    let ambiguous = await this.ambiguousCalls({
+      scope: d,
+      calls: agentCalls.items.filter(call => rowsByCall.has(clientCallKey(call)))
+    });
+    for (let key of ambiguous) rowsByCall.delete(key);
+
     let items = agentCalls.items.flatMap(call =>
       (rowsByCall.get(clientCallKey(call)) ?? []).map(row => ({
         occurredAt: new Date(call.occurredAt),
@@ -329,7 +317,7 @@ class AgentTrackingSessionServiceImpl {
   async listToolCallSessions(
     d: ToolCallScope & { toolCallIds: string[] }
   ): Promise<AgentTrackingToolCallSession[]> {
-    await this.assertEnabled(d);
+    await assertAgentTrackingEnabled({ organization: d.organization, project: d.project });
     let display = displaySettingsOf(await loadVisibleSettings(d), d);
 
     let toolCallIds = [...new Set(d.toolCallIds)];
@@ -395,8 +383,59 @@ class AgentTrackingSessionServiceImpl {
     });
   }
 
-  private async assertEnabled(d: { organization: Organization; project: Project }) {
-    await assertAgentTrackingEnabled({ organization: d.organization, project: d.project });
+  private async fromRemoteSession<T extends { instanceId: string }>(
+    d: { instance: Pick<Instance, 'id'>; sessionId: string },
+    read: Promise<T>
+  ) {
+    let result = await read.catch(error => {
+      if (
+        isServiceError(error) &&
+        error.data.status == 404 &&
+        error.data.entity == 'session'
+      ) {
+        throw sessionNotFound(d.sessionId);
+      }
+      throw error;
+    });
+    if (result.instanceId != d.instance.id) throw sessionNotFound(d.sessionId);
+
+    return result;
+  }
+
+  private async ambiguousCalls(d: { scope: ToolCallScope; calls: ClientCallRef[] }) {
+    let calls = [...new Map(d.calls.map(call => [clientCallKey(call), call]))]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([, call]) => ({ clientFamily: call.clientFamily, toolCallId: call.toolCallId }));
+    if (!calls.length) return new Set<string>();
+
+    let keys: string[] = [];
+    for (let toolCalls of chunks(calls, maxAmbiguityLookups)) {
+      let ambiguous = await failSoft(
+        () =>
+          cachedRead({
+            scope: d.scope,
+            read: 'sessions.ambiguousToolCalls',
+            input: { calls: toolCalls },
+            ttlSeconds: sessionTtlSeconds,
+            load: async () => {
+              let result = await requireAgentTracking().session.findByToolCalls(
+                {
+                  organizationId: d.scope.organization.id,
+                  instanceId: d.scope.instance.id,
+                  toolCalls
+                },
+                queryCallOptions
+              );
+
+              return result.ambiguous.map(clientCallKey);
+            }
+          }),
+        toolCalls.map(clientCallKey)
+      );
+      keys.push(...ambiguous);
+    }
+
+    return new Set(keys);
   }
 
   private async findByClientCalls(d: { scope: ToolCallScope; calls: ClientCallRef[] }) {
@@ -412,7 +451,7 @@ class AgentTrackingSessionServiceImpl {
     let rows: MetorialToolCallRow[] = [];
     let truncated = false;
     for (let [clientCallSource, ids] of idsBySource) {
-      for (let clientCallIds of chunks(unique(ids), maxClientCallLookups)) {
+      for (let clientCallIds of chunks(unique(ids), maxClientCallIds)) {
         let found = await this.listAllToolCalls({
           scope: d.scope,
           params: { clientCallIds, clientCallSource }

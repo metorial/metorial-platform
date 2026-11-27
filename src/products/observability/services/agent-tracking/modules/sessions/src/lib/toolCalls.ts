@@ -1,6 +1,12 @@
 import { maxIdLength } from '@mtsrc/agent-tracking-records-model';
-import { claudeCodePlaceholderNames, type RecordRole } from '@mtsrc/agent-tracking-spec';
+import {
+  claudeCodePlaceholderNames,
+  isMcpServerPlaceholder,
+  isMcpToolPlaceholder,
+  type RecordRole
+} from '@mtsrc/agent-tracking-spec';
 import type { RecordDocument } from '@mtsrc/agent-tracking-store';
+import { record, text } from './fields';
 
 export let maxSessionToolCalls = 500;
 
@@ -8,7 +14,7 @@ export let maxToolCallLookups = 200;
 
 export let maxRecordsPerToolCall = 8;
 
-export let toolCallMergeMarginMs = 5 * 60 * 1000;
+let toolCallMergeMarginMs = 5 * 60 * 1000;
 
 let lookupConcurrency = 20;
 
@@ -18,10 +24,6 @@ let roleRank: Record<RecordRole, number> = {
   duplicate: 2,
   aggregate: 3
 };
-
-let placeholderMcpTools: readonly string[] = claudeCodePlaceholderNames.mcpTools;
-
-let placeholderMcpServers: readonly string[] = claudeCodePlaceholderNames.mcpServers;
 
 export type ToolCallRecord = Pick<
   RecordDocument,
@@ -50,6 +52,12 @@ export type SessionMcpToolCall = ToolCallRef & {
 
 export type ToolCallSession = ToolCallRef & { sessionKey: string; occurredAt: Date };
 
+export type SessionMcpToolCallRef = ToolCallRef & {
+  stamped: boolean;
+  unstamped: boolean;
+  missingToolKey: boolean;
+};
+
 export type ToolCallRecordReader = (d: {
   call: ToolCallRef;
   limit: number;
@@ -71,22 +79,14 @@ export let toolCallProjection = {
   metorial: 1
 } as const;
 
-// Older Claude Code records stored a redacted MCP call as an unknown tool named by placeholder.
 export let mcpToolCallMatch = {
   type: 'tool.call',
   'ctx.toolCallId': { $exists: true },
   $or: [
     { 'data.tool.kind': 'mcp' },
-    { 'client.family': 'claude-code', 'data.tool.name': { $in: [...placeholderMcpTools] } }
+    { 'data.tool.name': { $in: [...claudeCodePlaceholderNames.mcpTools] } }
   ]
 };
-
-let record = (value: unknown) =>
-  typeof value == 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-
-let text = (value: unknown) => (typeof value == 'string' && value ? value : undefined);
 
 let duration = (value: unknown) =>
   typeof value == 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
@@ -99,27 +99,33 @@ export let toolCallIdOf = (document: ToolCallShape) => text(document.ctx?.toolCa
 
 export let toolCallKey = (call: ToolCallRef) => `${call.clientFamily}\u0000${call.toolCallId}`;
 
-export let storedToolCallId = (toolCallId: string) => toolCallId.slice(0, maxIdLength);
+export let clampStoredId = (value: string) => value.slice(0, maxIdLength);
+
+export let isAmbiguousToolCall = (d: {
+  records: unknown[];
+  sessionKeys: Iterable<string | undefined>;
+  sessionKey?: string;
+}) => {
+  let sessions = new Set(d.sessionKeys);
+
+  return (
+    d.records.length > maxRecordsPerToolCall ||
+    sessions.size > 1 ||
+    (d.sessionKey !== undefined && sessions.size == 1 && !sessions.has(d.sessionKey))
+  );
+};
 
 export let isMcpToolCall = (document: ToolCallShape) => {
   if (document.type != 'tool.call' || !toolCallIdOf(document)) return false;
 
   let tool = toolOf(document);
-  if (tool?.kind == 'mcp') return true;
 
-  let name = text(tool?.name);
-
-  return (
-    document.client?.family == 'claude-code' && !!name && placeholderMcpTools.includes(name)
-  );
+  return tool?.kind == 'mcp' || isMcpToolPlaceholder(tool?.name);
 };
 
 let mcpServerOf = (document: ToolCallRecord) => {
   let server = text(record(toolOf(document)?.mcp)?.server);
-  if (!server) return undefined;
-
-  let placeholder =
-    document.client?.family == 'claude-code' && placeholderMcpServers.includes(server);
+  let placeholder = document.client?.family == 'claude-code' && isMcpServerPlaceholder(server);
 
   return placeholder ? undefined : server;
 };
@@ -192,13 +198,44 @@ let inStableOrder = async function* (
   yield* run.sort(compareRecords);
 };
 
+export let createSessionToolCallPass = () => {
+  let mcpToolCalls = new Map<string, SessionMcpToolCallRef>();
+  let repoIds = new Set<string | null>();
+
+  return {
+    add: (
+      document: ToolCallShape &
+        Pick<ToolCallRecord, 'metorial'> & {
+          attribution?: { repoId?: string };
+        }
+    ) => {
+      if (document.type == 'tool.call') repoIds.add(document.attribution?.repoId ?? null);
+      if (!isMcpToolCall(document)) return;
+
+      let ref = { clientFamily: document.client.family, toolCallId: toolCallIdOf(document)! };
+      let call = mcpToolCalls.get(toolCallKey(ref)) ?? {
+        ...ref,
+        stamped: false,
+        unstamped: false,
+        missingToolKey: false
+      };
+
+      if (document.metorial) call.stamped = true;
+      else call.unstamped = true;
+      if (document.metorial && !document.metorial.toolKey) call.missingToolKey = true;
+
+      mcpToolCalls.set(toolCallKey(ref), call);
+    },
+
+    result: () => ({ mcpToolCalls: [...mcpToolCalls.values()], toolCallRepoIds: [...repoIds] })
+  };
+};
+
 export let collectSessionMcpToolCalls = async (d: {
   records: AsyncIterable<ToolCallRecord> | Iterable<ToolCallRecord>;
   limit?: number;
-  mergeMarginMs?: number;
 }) => {
   let limit = d.limit ?? maxSessionToolCalls;
-  let mergeMarginMs = d.mergeMarginMs ?? toolCallMergeMarginMs;
   let calls = new Map<string, ToolCallRecord[]>();
   let hasMore = false;
   let readUntil: number | undefined;
@@ -219,7 +256,7 @@ export let collectSessionMcpToolCalls = async (d: {
 
     if (calls.size >= limit) {
       hasMore = true;
-      readUntil ??= document.occurredAt.getTime() + mergeMarginMs;
+      readUntil ??= document.occurredAt.getTime() + toolCallMergeMarginMs;
       continue;
     }
 
@@ -262,13 +299,10 @@ export let resolveToolCallSessions = async (d: {
   organizationId: string;
   instanceId: string;
   read: ToolCallRecordReader;
-  maxRecords?: number;
 }) => {
-  let maxRecords = d.maxRecords ?? maxRecordsPerToolCall;
-
   let requested = new Map<string, { stored: ToolCallRef; refs: Map<string, ToolCallRef> }>();
   for (let call of d.calls) {
-    let stored = { ...call, toolCallId: storedToolCallId(call.toolCallId) };
+    let stored = { ...call, toolCallId: clampStoredId(call.toolCallId) };
     let entry = requested.get(toolCallKey(stored)) ?? { stored, refs: new Map() };
     entry.refs.set(toolCallKey(call), call);
     requested.set(toolCallKey(stored), entry);
@@ -281,12 +315,12 @@ export let resolveToolCallSessions = async (d: {
   for (let start = 0; start < entries.length; start += lookupConcurrency) {
     await Promise.all(
       entries.slice(start, start + lookupConcurrency).map(async entry => {
-        let records = await d.read({ call: entry.stored, limit: maxRecords + 1 });
+        let records = await d.read({ call: entry.stored, limit: maxRecordsPerToolCall + 1 });
         let sessions = sessionsOf({ ...d, records, call: entry.stored });
         if (!sessions.size) return;
 
         let refs = [...entry.refs.values()];
-        if (sessions.size > 1 || records.length > maxRecords) {
+        if (isAmbiguousToolCall({ records, sessionKeys: sessions.keys() })) {
           ambiguous.push(...refs);
           return;
         }

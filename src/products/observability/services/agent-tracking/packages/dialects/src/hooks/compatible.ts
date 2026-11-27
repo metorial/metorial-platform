@@ -2,11 +2,10 @@ import type { ContentInput } from '@mtsrc/agent-tracking-content';
 import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { withHookContext } from '../context';
 import { readFields, withCoerced, type FieldReader } from '../fields';
-import { redactedMcpTool } from '../otlp/policy';
 import { classifyTool, parseMcpToolName, type ToolRef } from '../tools';
 import type { HookContext, HookDialect, Mapped } from '../types';
 import { errorFromStatus, nativeLabel, own, type ErrorClass } from '../values';
-import { hookPolicyOf, withHookPolicy } from './policy';
+import { withHookPolicy } from './policy';
 
 let maxHookEventLength = 64;
 
@@ -92,18 +91,14 @@ let toolOf = (state: HookState): ToolRef | undefined => {
   let name = fields.str('tool_name', 'toolName');
   if (!name) return undefined;
 
-  let server = fields.obj('mcp_server');
-  let serverName =
-    fields.str('mcp_server') ?? (typeof server?.name == 'string' ? server.name : undefined);
-  let redacted = !hookPolicyOf(state.context).toolDetails && name == redactedMcpTool;
+  let server = fields.raw('mcp_server');
+  let serverName = fields.str('mcp_server') ?? fields.obj('mcp_server')?.name;
 
-  let explicit = serverName
-    ? { mcpServer: serverName, mcpTool: parseMcpToolName(name)?.tool ?? name }
-    : redacted
-      ? { explicitKind: 'mcp' as const }
-      : {};
-
-  return classifyTool(name, explicit);
+  return classifyTool(name, {
+    server: typeof serverName == 'string' ? serverName : server,
+    mcpTool: parseMcpToolName(name)?.tool,
+    client: state.options.client
+  });
 };
 
 let baseDraft = (
@@ -429,7 +424,7 @@ export let createCompatibleHookDialect = (options: CompatibleHookOptions): HookD
   client: options.client,
 
   map: (context, payload): Mapped[] => {
-    let policy = hookPolicyOf(context);
+    let { policy } = context;
     let fields = readFields(withHookPolicy(payload, policy), 'payload.');
     let event = eventNameOf(fields) ?? 'unknown';
 

@@ -1388,7 +1388,7 @@ describe('aggregateSession for clients without OTel', () => {
     expect(decimal(summary.costComputedUsd)).toBe('0.522');
   });
 
-  it('prefers the cost OpenCode reported and ignores its OTel spans for the same work', async () => {
+  it('prices OpenCode from the catalog, keeps its cost as reported and ignores its OTel spans', async () => {
     let { summary, coverage } = await aggregateSession({
       records: [0, 1].flatMap(i => [
         request('opencode', 'sse', i, { cost: usd('0.002') }),
@@ -1404,7 +1404,48 @@ describe('aggregateSession for clients without OTel', () => {
     expect(
       summary.costReported.map(cost => ({ basis: cost.basis, amount: decimal(cost.amount) }))
     ).toEqual([{ basis: 'client_estimate', amount: '0.004' }]);
-    expect(decimal(summary.costUsd)).toBe('0.004');
+    expect(decimal(summary.costComputedUsd)).toBe('0.009');
+    expect(decimal(summary.costUsd)).toBe('0.009');
+  });
+
+  it('reports the cost OpenCode gave, bounded by its tokens, for a model the catalog does not know', async () => {
+    let unknown = { model: { id: 'house-model-1', provider: 'acme' } };
+
+    let { summary } = await aggregateSession({
+      records: [
+        request('opencode', 'sse', 0, { ...unknown, cost: usd('0.002') }),
+        request('opencode', 'sse', 1, { ...unknown, cost: usd('5000') }),
+        request('opencode', 'sse', 2, { cost: usd('0.002') })
+      ],
+      family: 'opencode',
+      catalog
+    });
+
+    expect(decimal(summary.costComputedUsd)).toBe('0.0045');
+    expect(decimal(summary.costUsd)).toBe('1.1065');
+    expect(
+      summary.costReported.map(cost => ({ basis: cost.basis, amount: decimal(cost.amount) }))
+    ).toEqual([{ basis: 'client_estimate', amount: '1.104' }]);
+  });
+
+  it('keeps the cost OpenCode gave without tokens for a model the catalog does not know', async () => {
+    let { summary } = await aggregateSession({
+      records: [
+        request('opencode', 'sse', 0, {
+          model: { id: 'house-model-1', provider: 'acme' },
+          usage: { inputUncached: 0, output: 0 },
+          cost: usd('5')
+        })
+      ],
+      family: 'opencode',
+      catalog
+    });
+
+    expect(summary.costComputedUsd).toBeUndefined();
+    expect(decimal(summary.costUsd)).toBe('5');
+    expect(
+      summary.costReported.map(cost => ({ basis: cost.basis, amount: decimal(cost.amount) }))
+    ).toEqual([{ basis: 'client_estimate', amount: '5' }]);
   });
 
   it('counts the tokens of a model the catalog does not know without a price', async () => {

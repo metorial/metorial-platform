@@ -40,14 +40,12 @@ let maxSessionTicketRefs = 64;
 let maxSessionRepos = 16;
 
 let latestContextFields = [
-  ['default_branch', 'context.defaultBranch'],
-  ['worktree', 'context.worktree'],
-  ['sub_path', 'context.subPath'],
-  ['permission_mode', 'context.permissionMode'],
-  ['title', 'context.title']
+  ['default_branch', 'context.defaultBranch', { snapshot: true }],
+  ['worktree', 'context.worktree', { snapshot: true }],
+  ['sub_path', 'context.subPath', { snapshot: true }],
+  ['permission_mode', 'context.permissionMode', { snapshot: true }],
+  ['title', 'context.title', { snapshot: false }]
 ] as const;
-
-let snapshotFields = new Set(['default_branch', 'worktree', 'sub_path', 'permission_mode']);
 
 type AnyBulkWrite<T extends mongoose.mongo.Document> = mongoose.mongo.AnyBulkWriteOperation<T>;
 
@@ -256,8 +254,8 @@ let sessionUpsert = (d: {
   let snapshot = contexts.find(entry => entry.record.source.dialect == desktopContextId)?.data;
   let unset: Record<string, ''> = {};
 
-  for (let [field, path] of latestContextFields) {
-    let fromSnapshot = snapshot && snapshotFields.has(field);
+  for (let [field, path, options] of latestContextFields) {
+    let fromSnapshot = snapshot && options.snapshot;
     let value = fromSnapshot
       ? snapshot![field]
       : contexts.find(entry => entry.data[field] !== undefined)?.data[field];

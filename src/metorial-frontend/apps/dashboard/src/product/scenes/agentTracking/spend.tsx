@@ -21,13 +21,13 @@ import { agentTrackingErrorFor } from './errorState';
 import { AgentTrackingFilterRangeContext, agentTrackingFilters } from './filters';
 import { WithInfo } from './info';
 import { MemberIdentity } from './memberParts';
-import { useAgentTrackingPrivacy } from './privacy';
+import { useAgentTrackingIndividualsVisibility } from './privacy';
 import {
+  agentTrackingRangeFilter,
   defaultAgentTrackingRange,
   formatAgentTrackingRange,
   getBrowserTimeZone,
   hiddenIndividualsSpendRangeFilter,
-  spendRangeFilter,
   withQuery,
   type AgentTrackingRangePreset
 } from './range';
@@ -551,7 +551,9 @@ let listValue = (payload: FilterPayload | undefined) => {
 };
 
 let useSpendFilters = (instanceId: string, individualsHidden: boolean) => {
-  let rangeFilter = individualsHidden ? hiddenIndividualsSpendRangeFilter : spendRangeFilter;
+  let rangeFilter = individualsHidden
+    ? hiddenIndividualsSpendRangeFilter
+    : agentTrackingRangeFilter;
   let filters = useMemo(() => {
     if (individualsHidden) return [rangeFilter.filter];
 
@@ -640,15 +642,10 @@ let SpendPage = ({
 };
 
 export let AgentTrackingSpend = ({ instanceId }: { instanceId: string }) => {
-  let settings = useAgentTrackingPrivacy();
+  let { visibility, settings } = useAgentTrackingIndividualsVisibility();
 
   return renderWithLoader(
     { settings },
     { error: agentTrackingErrorFor(settings) }
-  )(({ settings }) => (
-    <SpendPage
-      instanceId={instanceId}
-      individualsHidden={settings.data.privacy.hideIndividuals}
-    />
-  ));
+  )(() => <SpendPage instanceId={instanceId} individualsHidden={visibility == 'hidden'} />);
 };

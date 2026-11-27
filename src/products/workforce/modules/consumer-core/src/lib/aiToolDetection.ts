@@ -60,8 +60,6 @@ export let detectionStaleBefore = (now = new Date()) =>
 export let isDetectionReportStale = (reportedAt: Date | null, now = new Date()) =>
   !reportedAt || reportedAt < detectionStaleBefore(now);
 
-// Detections only count while the instance has detection on and the device is still signed
-// in. getUsage in aiToolPolicy.ts applies the same rule in SQL.
 export let visibleDetectionWhere = (
   d: { excludeStale?: boolean; includeGone?: boolean } = {}
 ) =>
@@ -86,7 +84,7 @@ export let deviceMonitor = (d: { aiToolDetection: boolean }): DeviceMonitor => (
   intervals: aiToolDetectionIntervals
 });
 
-// Tools the catalog doesn't know are dropped; a tool listed twice keeps its strongest finding.
+// A tool listed twice keeps its strongest finding.
 export let normalizeFindings = (findings: DetectionFinding[]) => {
   let byKey = new Map<string, DetectionFinding>();
 

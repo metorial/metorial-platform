@@ -5,7 +5,7 @@ import {
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
 import { cached, catalogTtlSeconds } from './cache';
-import { unique } from './members';
+import { unique } from './entities';
 import { readCallOptions } from './service';
 
 export let lookupModelNames = async (modelIds: (string | null | undefined)[]) => {

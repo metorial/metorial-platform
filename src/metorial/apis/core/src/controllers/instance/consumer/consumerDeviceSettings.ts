@@ -3,11 +3,8 @@ import { ConsumerDeviceConnectionMode } from '@metorial/db';
 import { consumerDeviceSettingsService } from '@metorial/module-consumer-core';
 import { consumerDeviceSettingsPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
-import {
-  assertCanTurnOnDeviceSettings,
-  assertDetectionSettingsAvailable,
-  deviceFlags
-} from '../../../lib/aiToolDetection';
+import { deviceFlags } from '../../../lib/aiToolDetection';
+import { isHumanDashboardUser } from '../../../lib/dashboardUser';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
@@ -74,18 +71,17 @@ export let consumerDeviceSettingsController = Controller.create(
       )
       .output(consumerDeviceSettingsPresenter)
       .do(async ctx => {
-        let input = {
-          aiToolDetectionEnabled: ctx.body.ai_tool_detection_enabled,
-          privacyNoticeAccepted: ctx.body.privacy_notice_accepted,
-          connectionMode: ctx.body.connection_mode
-        };
-        await assertDetectionSettingsAvailable(ctx, input);
-        assertCanTurnOnDeviceSettings(ctx, input);
-
         let settings = await consumerDeviceSettingsService.updateSettings({
+          organization: ctx.organization,
+          project: ctx.project,
           instance: ctx.instance,
           auditScope: ctx.auditScope,
-          input
+          actor: { isHuman: isHumanDashboardUser(ctx.auth) },
+          input: {
+            aiToolDetectionEnabled: ctx.body.ai_tool_detection_enabled,
+            privacyNoticeAccepted: ctx.body.privacy_notice_accepted,
+            connectionMode: ctx.body.connection_mode
+          }
         });
 
         return consumerDeviceSettingsPresenter.present({ instance: ctx.instance, settings });

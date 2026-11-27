@@ -14,9 +14,11 @@ import {
   rejection,
   resetMocks,
   rpc,
-  scope,
+  scope as mockScope,
   skills
 } from './_mocks';
+
+let scope = mockScope as any;
 
 let now = new Date('2026-11-22T12:00:00Z');
 

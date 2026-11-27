@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agentCallGroups, providerCallRows, providerLabel } from './providerCalls';
-
-let settings = { loaded: true, failed: false, hideIndividuals: false };
+import { providerCallRows, providerLabel } from './providerCalls';
 
 let repository = {
   id: 'aten_repo',
@@ -28,28 +26,6 @@ let hrefs = {
   repositoryHref: (id: string) => `/sessions?repositoryId=${id}`,
   memberHref: (id: string) => `/members/${id}`
 };
-
-describe('agentCallGroups', () => {
-  it('shows both cards only when agent tracking is available and individuals are shown', () => {
-    expect(agentCallGroups({ available: true, settings })).toEqual(['repository', 'member']);
-  });
-
-  it('shows nothing when agent tracking is not available', () => {
-    expect(agentCallGroups({ available: false, settings })).toEqual([]);
-  });
-
-  it('shows nothing while the settings load, when they fail, or when individuals are hidden', () => {
-    expect(
-      agentCallGroups({ available: true, settings: { ...settings, loaded: false } })
-    ).toEqual([]);
-    expect(
-      agentCallGroups({ available: true, settings: { ...settings, failed: true } })
-    ).toEqual([]);
-    expect(
-      agentCallGroups({ available: true, settings: { ...settings, hideIndividuals: true } })
-    ).toEqual([]);
-  });
-});
 
 describe('providerCallRows', () => {
   it('links repositories to their sessions and leaves unknown and other rows unlinked', () => {

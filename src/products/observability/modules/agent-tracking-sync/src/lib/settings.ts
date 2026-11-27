@@ -30,7 +30,6 @@ export let retentionDaysLimits = { min: 1, max: 3650 };
 
 export let defaultHistoryImportDays = 90;
 
-// Metorial Desktop lists Codex day folders up to 400 days back.
 export let historyImportDaysLimits = { min: 1, max: 365 };
 
 export let serviceRetentionDefaults = { recordDays: 90, contentDays: 30, usageDays: 400 };

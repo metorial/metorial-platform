@@ -28,10 +28,14 @@ import type {
 } from '@mtsrc/agent-tracking-store';
 import type { RecordDocument } from '@mtsrc/agent-tracking-store';
 import { documentCorrelations, movesSessionBounds, type Correlation } from './keys';
-import { isMcpToolCall, toolCallIdOf, toolCallKey, type ToolCallRef } from './toolCalls';
+import { createSessionToolCallPass, type SessionMcpToolCallRef } from './toolCalls';
 import { sourceKindOf, usageRank } from '@mtsrc/agent-tracking-module-usage';
 import { bucketStart } from '@mtsrc/agent-tracking-layers';
-import { desktopContextId, isClaudeCodeMainQuerySource } from '@mtsrc/agent-tracking-spec';
+import {
+  desktopContextId,
+  isClaudeCodeMainQuerySource,
+  maxCostUsd
+} from '@mtsrc/agent-tracking-spec';
 import { type VendorSource } from '@mtsrc/agent-tracking-model-resolver';
 import {
   addTokens,
@@ -41,9 +45,12 @@ import {
   toDecimal,
   type Tokens
 } from '@mtsrc/agent-tracking-cost';
+import { positiveCount, record, text } from './fields';
 
 let preferredBases = ['billed', 'contract', 'server_estimate', 'client_estimate'] as const;
 let centsPerUsd = 100n;
+let catalogFirstFamilies = new Set(['opencode']);
+let maxClientUsdPerMillionTokens = 1000n;
 
 let maxCommitRefs = 50;
 let maxPullRequestRefs = 20;
@@ -73,12 +80,6 @@ export type SummaryRecord = Pick<
   | 'attribution'
   | 'metorial'
 >;
-
-export type SessionMcpToolCallRef = ToolCallRef & {
-  stamped: boolean;
-  unstamped: boolean;
-  missingToolKey: boolean;
-};
 
 export type SessionAggregate = {
   records: number;
@@ -127,26 +128,24 @@ type ModelTotals = Grouped & {
   priceAssumed: boolean;
 };
 
-type SliceTotals = {
+type Costed = {
+  costs: Map<string, CostEntry>;
+  computed?: Amount;
+  contract?: Amount;
+};
+
+type SliceTotals = Costed & {
   slice: Omit<
     BaseSlice,
     'lines' | 'costReported' | 'costComputedUsd' | 'costContractUsd' | 'costUsd'
   >;
-  costs: Map<string, CostEntry>;
-  computed?: Amount;
-  contract?: Amount;
   preferred?: Amount;
   codeLines: Lines;
   toolLines: Lines;
   statsLines: Lines;
 };
 
-type Grouped = {
-  tokens: Tokens;
-  costs: Map<string, CostEntry>;
-  computed?: Amount;
-  contract?: Amount;
-};
+type Grouped = Costed & { tokens: Tokens };
 
 type CostedEntry = { costs: CostEntry[]; computed?: Amount; contract?: Amount };
 
@@ -174,18 +173,6 @@ let widen = (span: Span, occurredAt: Date, durationMs: number, subagentId?: stri
 let strongerSource = (a: VendorSource | undefined, b: VendorSource | undefined) =>
   !a || (b && vendorSourceOrder.indexOf(b) < vendorSourceOrder.indexOf(a)) ? b : a;
 
-let record = (value: unknown) =>
-  typeof value == 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-
-let text = (value: unknown) => (typeof value == 'string' && value ? value : undefined);
-
-let count = (value: unknown) =>
-  typeof value == 'number' && Number.isFinite(value) && value > 0 ? value : 0;
-
-// Claude Code requests stored before the dialect knew `sdk` and the other main-thread query
-// sources are marked as a subagent named after the source.
 let purposeOf = (family: string, data: Record<string, unknown>) => {
   let purpose = text(data.purpose);
   let agentName = text(data.agent_name);
@@ -203,15 +190,15 @@ export let readTokens = (value: unknown): RequestTokens | undefined => {
   let usage = record(value);
   if (!usage) return undefined;
 
-  let cacheWrite5m = count(usage.cacheWrite5m);
-  let cacheWrite1h = count(usage.cacheWrite1h);
+  let cacheWrite5m = positiveCount(usage.cacheWrite5m);
+  let cacheWrite1h = positiveCount(usage.cacheWrite1h);
 
   let tokens: RequestTokens = {
-    inputUncached: count(usage.inputUncached),
-    cacheRead: count(usage.cacheRead),
-    cacheWrite: count(usage.cacheWrite) || cacheWrite5m + cacheWrite1h,
-    output: count(usage.output),
-    reasoning: count(usage.reasoning),
+    inputUncached: positiveCount(usage.inputUncached),
+    cacheRead: positiveCount(usage.cacheRead),
+    cacheWrite: positiveCount(usage.cacheWrite) || cacheWrite5m + cacheWrite1h,
+    output: positiveCount(usage.output),
+    reasoning: positiveCount(usage.reasoning),
     ...(cacheWrite5m ? { cacheWrite5m } : {}),
     ...(cacheWrite1h ? { cacheWrite1h } : {})
   };
@@ -251,6 +238,44 @@ export let addCost = (target: Map<string, CostEntry>, cost: CostEntry) => {
   if (existing) existing.amount += cost.amount;
   else target.set(key, { ...cost });
 };
+
+let boundedClientCosts = (costs: CostEntry[], tokens: RequestTokens | undefined) => {
+  let usdCosts = costs.filter(cost => usdAmount(cost) !== undefined);
+  if (!usdCosts.length) return costs;
+
+  let usd = usdCosts.reduce((sum, cost) => sum + usdAmount(cost)!, 0n);
+  let counted = tokens
+    ? tokens.inputUncached +
+      tokens.cacheRead +
+      tokens.cacheWrite +
+      tokens.output +
+      tokens.reasoning
+    : 0;
+  let perMessage = parseAmount(maxCostUsd)!;
+  let byTokens =
+    (BigInt(counted) * parseAmount(1)! * maxClientUsdPerMillionTokens) / 1_000_000n;
+  let cap = counted > 0 && byTokens < perMessage ? byTokens : perMessage;
+
+  return [
+    ...costs.filter(cost => usdAmount(cost) === undefined),
+    { unit: 'usd', basis: usdCosts[0]!.basis, amount: usd < cap ? usd : cap }
+  ];
+};
+
+let addCosted = (
+  group: Costed,
+  item: { reported: CostEntry[]; computed?: Amount; contract?: Amount }
+) => {
+  for (let cost of item.reported) addCost(group.costs, cost);
+  if (item.computed !== undefined) group.computed = (group.computed ?? 0n) + item.computed;
+  if (item.contract !== undefined) group.contract = (group.contract ?? 0n) + item.contract;
+};
+
+let costFieldsOf = (group: Costed) => ({
+  costReported: reportedCosts(group.costs),
+  ...(group.computed !== undefined ? { costComputedUsd: toDecimal(group.computed) } : {}),
+  ...(group.contract !== undefined ? { costContractUsd: toDecimal(group.contract) } : {})
+});
 
 export let reportedCosts = (costs: Map<string, CostEntry>): ReportedCost[] =>
   [...costs.values()].map(cost => ({
@@ -384,6 +409,149 @@ let billingFields = (billing: Billing | undefined) =>
       }
     : {};
 
+let selectUsageSource = (usage: UsageEntry[]) => {
+  let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
+  let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
+  let winner = usageBearing.find(entry => entry.rank == winnerRank)?.source;
+
+  let requestEntries = usage.filter(entry => entry.type == 'model.request');
+  let winnerHasRequests = requestEntries.some(entry => entry.rank == winnerRank);
+
+  // A keyed transcript request fills a gap in the winning source only when all of that source's
+  // usage requests are keyed; otherwise it could be counted twice.
+  let winnerUsageRequests = requestEntries
+    .filter(entry => entry.rank == winnerRank && (entry.tokens || entry.costs.length))
+    .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+  let fillsGaps =
+    winnerUsageRequests.length > 0 && winnerUsageRequests.every(entry => entry.keyed);
+  let isGapFill = (entry: UsageEntry) =>
+    fillsGaps && entry.keyed && entry.source == 'transcript' && entry.rank != winnerRank;
+  let countsUsageOf = (entry: UsageEntry) => entry.rank == winnerRank || isGapFill(entry);
+
+  // The transcript has no billing, so a gap takes the billing of the nearest earlier winning
+  // request (else the first).
+  for (let entry of usage) {
+    if (!isGapFill(entry)) continue;
+
+    let nearest =
+      winnerUsageRequests.findLast(other => other.occurredAt <= entry.occurredAt) ??
+      winnerUsageRequests[0]!;
+
+    entry.billing = { ...nearest.billing };
+  }
+
+  return {
+    hasUsage: usageBearing.length > 0,
+    winner,
+    winnerRank,
+    requestEntries,
+    winnerHasRequests,
+    isGapFill,
+    countsUsageOf
+  };
+};
+
+let priceUsage = async (d: {
+  usage: UsageEntry[];
+  selection: ReturnType<typeof selectUsageSource>;
+  family: string;
+  catalog: CatalogIndex | null;
+  pricing?: OverridePricer | null;
+}) => {
+  let modelByCorrelation = new Map<string, UsageEntry>();
+
+  for (let entry of d.selection.requestEntries) {
+    if (!entry.modelRaw) continue;
+
+    if (entry.turnId) modelByCorrelation.set(`turn:${entry.turnId}`, entry);
+    if (entry.requestId) modelByCorrelation.set(`request:${entry.requestId}`, entry);
+  }
+
+  let requestOf = (entry: UsageEntry): ModelRequest | undefined =>
+    entry.modelRaw
+      ? {
+          raw: entry.modelRaw,
+          provider: entry.provider,
+          family: d.family,
+          baseUrl: entry.baseUrl,
+          subscription: isSubscriptionBilling(entry.billing)
+        }
+      : undefined;
+
+  let resolver = d.catalog
+    ? await d.catalog.prepare(d.usage.flatMap(entry => requestOf(entry) ?? []))
+    : null;
+
+  let resolve = (entry: UsageEntry, at: Date): ResolvedModel => {
+    let request = requestOf(entry);
+    return request && resolver ? resolver.resolveModel({ ...request, at }) : {};
+  };
+
+  return d.usage
+    .filter(entry =>
+      entry.type == 'model.request'
+        ? !d.selection.winnerHasRequests || d.selection.countsUsageOf(entry)
+        : entry.rank == d.selection.winnerRank
+    )
+    .map(entry => {
+      let modelSource =
+        entry.modelRaw || entry.type == 'model.request'
+          ? entry
+          : (modelByCorrelation.get(`request:${entry.requestId}`) ??
+            modelByCorrelation.get(`turn:${entry.turnId}`) ??
+            entry);
+
+      let resolution = resolve(modelSource, entry.occurredAt);
+
+      let countsUsage = d.selection.countsUsageOf(entry);
+      let tokens = countsUsage ? entry.tokens : undefined;
+      let catalogFirst = catalogFirstFamilies.has(d.family);
+      let reported = countsUsage ? entry.costs : [];
+      if (catalogFirst) reported = boundedClientCosts(reported, tokens);
+
+      // Usage summed over several model calls says nothing about the size of any one context,
+      // so it is priced at the base tier, as sessionless rollups are.
+      let contextTokens =
+        tokens && !entry.aggregate
+          ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
+          : 0;
+      let computedNumber =
+        resolution.period && tokens
+          ? computeRequestCost({ pricing: resolution.period.pricing, tokens, contextTokens })
+          : undefined;
+      let listed = computedNumber === undefined ? undefined : parseAmount(computedNumber);
+      let computed = listed;
+      let costs = catalogFirst && listed !== undefined ? [] : reported;
+
+      let contract =
+        d.pricing && (tokens || costs.length)
+          ? d.pricing({
+              at: entry.occurredAt,
+              resolution,
+              billingMode: entry.billing.mode,
+              list: computed,
+              tokens,
+              contextTokens
+            })
+          : undefined;
+
+      return {
+        entry,
+        resolution,
+        modelId: resolution.modelId,
+        modelRaw: modelSource.modelRaw,
+        provider: modelSource.provider,
+        tokens,
+        costs,
+        reported,
+        catalogFirst,
+        computed,
+        overrideId: contract?.override.id,
+        contract: contract?.amount
+      };
+    });
+};
+
 export let aggregateSession = async (d: {
   records: AsyncIterable<SummaryRecord> | Iterable<SummaryRecord>;
   family: string;
@@ -430,8 +598,7 @@ export let aggregateSession = async (d: {
   let sessionProvider: string | undefined;
 
   let correlations = new Map<string, Correlation>();
-  let mcpToolCalls = new Map<string, SessionMcpToolCallRef>();
-  let toolCallRepoIds = new Set<string | null>();
+  let toolCallPass = createSessionToolCallPass();
   let usage: UsageEntry[] = [];
   let requestSlots = new Map<string, number>();
   let slices = new Map<string, SliceTotals>();
@@ -509,24 +676,7 @@ export let aggregateSession = async (d: {
       }
     }
 
-    if (document.type == 'tool.call')
-      toolCallRepoIds.add(document.attribution?.repoId ?? null);
-
-    if (isMcpToolCall(document)) {
-      let ref = { clientFamily: document.client.family, toolCallId: toolCallIdOf(document)! };
-      let call = mcpToolCalls.get(toolCallKey(ref)) ?? {
-        ...ref,
-        stamped: false,
-        unstamped: false,
-        missingToolKey: false
-      };
-
-      if (document.metorial) call.stamped = true;
-      else call.unstamped = true;
-      if (document.metorial && !document.metorial.toolKey) call.missingToolKey = true;
-
-      mcpToolCalls.set(toolCallKey(ref), call);
-    }
+    toolCallPass.add(document);
 
     if (document.type == 'session.context') hasContext = true;
     if (document.attribution?.workspaceId) hasContext = true;
@@ -535,8 +685,10 @@ export let aggregateSession = async (d: {
 
     // Turns and usage count in every role, since some clients send them only as aggregates or
     // spans; a connection warmup is no work.
-    let carriesUsage = !!readTokens(data.usage) || !!readCost(data.cost);
-    if (document.type == 'turn.completed' || (carriesUsage && data.warmup !== true)) {
+    let tokens = readTokens(data.usage);
+    let cost = readCost(data.cost);
+
+    if (document.type == 'turn.completed' || ((tokens || cost) && data.warmup !== true)) {
       worked = true;
     }
 
@@ -598,10 +750,10 @@ export let aggregateSession = async (d: {
         totals.slice.toolCalls++;
 
         if (lines) {
-          toolLines.added += count(lines.added);
-          toolLines.removed += count(lines.removed);
-          totals.toolLines.added += count(lines.added);
-          totals.toolLines.removed += count(lines.removed);
+          toolLines.added += positiveCount(lines.added);
+          toolLines.removed += positiveCount(lines.removed);
+          totals.toolLines.added += positiveCount(lines.added);
+          totals.toolLines.removed += positiveCount(lines.removed);
         }
 
         break;
@@ -614,18 +766,18 @@ export let aggregateSession = async (d: {
         if (data.cumulative === true) {
           statsSamples.push({
             occurredAt,
-            added: count(lines.added),
-            removed: count(lines.removed)
+            added: positiveCount(lines.added),
+            removed: positiveCount(lines.removed)
           });
           break;
         }
 
         let totals = sliceFor({ occurredAt, subagentId });
 
-        codeLines.added += count(lines.added);
-        codeLines.removed += count(lines.removed);
-        totals.codeLines.added += count(lines.added);
-        totals.codeLines.removed += count(lines.removed);
+        codeLines.added += positiveCount(lines.added);
+        codeLines.removed += positiveCount(lines.removed);
+        totals.codeLines.added += positiveCount(lines.added);
+        totals.codeLines.removed += positiveCount(lines.removed);
         break;
       }
 
@@ -660,8 +812,6 @@ export let aggregateSession = async (d: {
       continue;
     }
 
-    let tokens = readTokens(data.usage);
-    let cost = readCost(data.cost);
     let model = record(data.model);
     let target = record(data.for);
 
@@ -695,8 +845,6 @@ export let aggregateSession = async (d: {
       keyed: keyedRequest
     };
 
-    // Two sources can report the same request under one fact key; the better-ranked one is kept
-    // whichever arrived first.
     let slot = keyedRequest ? requestSlots.get(dedupeKey) : undefined;
 
     if (slot === undefined) {
@@ -711,35 +859,8 @@ export let aggregateSession = async (d: {
     if (entry.failed) increment(errorsByClass, entry.errorClass ?? 'unknown');
   }
 
-  let usageBearing = usage.filter(entry => entry.tokens || entry.costs.length);
-  let winnerRank = Math.min(...usageBearing.map(entry => entry.rank));
-  let winner = usageBearing.find(entry => entry.rank == winnerRank)?.source;
-
-  let requestEntries = usage.filter(entry => entry.type == 'model.request');
-  let winnerHasRequests = requestEntries.some(entry => entry.rank == winnerRank);
-
-  // A keyed transcript request fills a gap in the winning source only when all of that source's
-  // usage requests are keyed; otherwise it could be counted twice.
-  let winnerUsageRequests = requestEntries
-    .filter(entry => entry.rank == winnerRank && (entry.tokens || entry.costs.length))
-    .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
-  let fillsGaps =
-    winnerUsageRequests.length > 0 && winnerUsageRequests.every(entry => entry.keyed);
-  let isGapFill = (entry: UsageEntry) =>
-    fillsGaps && entry.keyed && entry.source == 'transcript' && entry.rank != winnerRank;
-  let countsUsageOf = (entry: UsageEntry) => entry.rank == winnerRank || isGapFill(entry);
-
-  // The transcript has no billing, so a gap takes the billing of the nearest earlier winning
-  // request (else the first).
-  for (let entry of usage) {
-    if (!isGapFill(entry)) continue;
-
-    let nearest =
-      winnerUsageRequests.findLast(other => other.occurredAt <= entry.occurredAt) ??
-      winnerUsageRequests[0]!;
-
-    entry.billing = { ...nearest.billing };
-  }
+  let selection = selectUsageSource(usage);
+  let { hasUsage, winner, requestEntries, isGapFill } = selection;
 
   // A session-level provider that overrides the sign-in also tells where requests without their
   // own provider went.
@@ -756,92 +877,13 @@ export let aggregateSession = async (d: {
     defaultBilling: defaultBillingOf(d.family)
   });
 
-  let modelByCorrelation = new Map<string, UsageEntry>();
-
-  for (let entry of requestEntries) {
-    if (!entry.modelRaw) continue;
-
-    if (entry.turnId) modelByCorrelation.set(`turn:${entry.turnId}`, entry);
-    if (entry.requestId) modelByCorrelation.set(`request:${entry.requestId}`, entry);
-  }
-
-  let requestOf = (entry: UsageEntry): ModelRequest | undefined =>
-    entry.modelRaw
-      ? {
-          raw: entry.modelRaw,
-          provider: entry.provider,
-          family: d.family,
-          baseUrl: entry.baseUrl,
-          subscription: isSubscriptionBilling(entry.billing)
-        }
-      : undefined;
-
-  let resolver = d.catalog
-    ? await d.catalog.prepare(usage.flatMap(entry => requestOf(entry) ?? []))
-    : null;
-
-  let resolve = (entry: UsageEntry, at: Date): ResolvedModel => {
-    let request = requestOf(entry);
-    return request && resolver ? resolver.resolveModel({ ...request, at }) : {};
-  };
-
-  let counted = usage
-    .filter(entry =>
-      entry.type == 'model.request'
-        ? !winnerHasRequests || countsUsageOf(entry)
-        : entry.rank == winnerRank
-    )
-    .map(entry => {
-      let modelSource =
-        entry.modelRaw || entry.type == 'model.request'
-          ? entry
-          : (modelByCorrelation.get(`request:${entry.requestId}`) ??
-            modelByCorrelation.get(`turn:${entry.turnId}`) ??
-            entry);
-
-      let resolution = resolve(modelSource, entry.occurredAt);
-
-      let countsUsage = countsUsageOf(entry);
-      let tokens = countsUsage ? entry.tokens : undefined;
-      let costs = countsUsage ? entry.costs : [];
-
-      // Usage summed over several model calls says nothing about the size of any one context,
-      // so it is priced at the base tier, as sessionless rollups are.
-      let contextTokens =
-        tokens && !entry.aggregate
-          ? tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite
-          : 0;
-      let computedNumber =
-        resolution.period && tokens
-          ? computeRequestCost({ pricing: resolution.period.pricing, tokens, contextTokens })
-          : undefined;
-      let computed = computedNumber === undefined ? undefined : parseAmount(computedNumber);
-
-      let contract =
-        d.pricing && (tokens || costs.length)
-          ? d.pricing({
-              at: entry.occurredAt,
-              resolution,
-              billingMode: entry.billing.mode,
-              list: computed,
-              tokens,
-              contextTokens
-            })
-          : undefined;
-
-      return {
-        entry,
-        resolution,
-        modelId: resolution.modelId,
-        modelRaw: modelSource.modelRaw,
-        provider: modelSource.provider,
-        tokens,
-        costs,
-        computed,
-        overrideId: contract?.override.id,
-        contract: contract?.amount
-      };
-    });
+  let counted = await priceUsage({
+    usage,
+    selection,
+    family: d.family,
+    catalog: d.catalog,
+    pricing: d.pricing
+  });
 
   let basis = selectCostBasis(counted);
 
@@ -855,10 +897,11 @@ export let aggregateSession = async (d: {
   for (let item of counted) {
     let isRequest = item.entry.type == 'model.request';
 
-    // A transcript request filling a gap reports no cost, so it counts at its list cost.
-    let preferred =
-      preferredAmount(item, basis) ??
-      (isGapFill(item.entry) && basis != 'billed' ? item.computed : undefined);
+    let preferred = item.catalogFirst
+      ? (preferredAmount(item, basis == 'contract' ? 'contract' : 'computed') ??
+        preferredAmount(item, 'client_estimate'))
+      : (preferredAmount(item, basis) ??
+        (isGapFill(item.entry) && basis != 'billed' ? item.computed : undefined));
 
     if (isRequest) {
       requests++;
@@ -866,9 +909,7 @@ export let aggregateSession = async (d: {
     }
 
     if (item.tokens) addTokens(totals.tokens, item.tokens);
-    for (let cost of item.costs) addCost(totals.costs, cost);
-    if (item.computed !== undefined) totals.computed = (totals.computed ?? 0n) + item.computed;
-    if (item.contract !== undefined) totals.contract = (totals.contract ?? 0n) + item.contract;
+    addCosted(totals, item);
     if (preferred !== undefined) costUsd = (costUsd ?? 0n) + preferred;
 
     let { vendorId, vendorSource, offering, period } = item.resolution;
@@ -907,9 +948,7 @@ export let aggregateSession = async (d: {
       if (item.modelRaw) model.rawIds.add(item.modelRaw);
       if (isRequest) model.summary.requests++;
       if (item.tokens) addTokens(model.tokens, item.tokens);
-      for (let cost of item.costs) addCost(model.costs, cost);
-      if (item.computed !== undefined) model.computed = (model.computed ?? 0n) + item.computed;
-      if (item.contract !== undefined) model.contract = (model.contract ?? 0n) + item.contract;
+      addCosted(model, item);
 
       model.vendorSource = strongerSource(model.vendorSource, vendorSource);
       if (offering && (!model.offering || item.entry.occurredAt >= model.offering.at)) {
@@ -945,9 +984,7 @@ export let aggregateSession = async (d: {
     }
 
     if (item.tokens) addTokens(slice.slice.tokens, item.tokens);
-    for (let cost of item.costs) addCost(slice.costs, cost);
-    if (item.computed !== undefined) slice.computed = (slice.computed ?? 0n) + item.computed;
-    if (item.contract !== undefined) slice.contract = (slice.contract ?? 0n) + item.contract;
+    addCosted(slice, item);
     if (preferred !== undefined) slice.preferred = (slice.preferred ?? 0n) + preferred;
   }
 
@@ -982,8 +1019,7 @@ export let aggregateSession = async (d: {
   let lines = { codeLines, toolLines, statsLines }[lineSource];
 
   // A thread in which nothing happened, like one that only warmed up its connection, is kept but
-  // not listed or counted as a session. The summary does not read measurements, so a session with
-  // any of them is never empty.
+  // not listed or counted as a session.
   let empty =
     !worked &&
     !prompts &&
@@ -1040,14 +1076,10 @@ export let aggregateSession = async (d: {
         : {}),
       ...(model.priceAssumed ? { priceAssumed: true as const } : {}),
       tokens: model.tokens,
-      costReported: reportedCosts(model.costs),
-      ...(model.computed !== undefined ? { costComputedUsd: toDecimal(model.computed) } : {}),
-      ...(model.contract !== undefined ? { costContractUsd: toDecimal(model.contract) } : {})
+      ...costFieldsOf(model)
     })),
     tokens: totals.tokens,
-    costReported: reportedCosts(totals.costs),
-    ...(totals.computed !== undefined ? { costComputedUsd: toDecimal(totals.computed) } : {}),
-    ...(totals.contract !== undefined ? { costContractUsd: toDecimal(totals.contract) } : {}),
+    ...costFieldsOf(totals),
     ...(costUsd !== undefined ? { costUsd: toDecimal(costUsd) } : {}),
     lines,
     commits: commitRefs.size,
@@ -1072,25 +1104,18 @@ export let aggregateSession = async (d: {
     summary,
     slices: [...slices.values()].map(totals => ({
       ...totals.slice,
-      costReported: reportedCosts(totals.costs),
-      ...(totals.computed !== undefined
-        ? { costComputedUsd: toDecimal(totals.computed) }
-        : {}),
-      ...(totals.contract !== undefined
-        ? { costContractUsd: toDecimal(totals.contract) }
-        : {}),
+      ...costFieldsOf(totals),
       ...(totals.preferred !== undefined ? { costUsd: toDecimal(totals.preferred) } : {}),
       lines: totals[lineSource]
     })),
     coverage: {
-      hasUsage: usageBearing.length > 0,
+      hasUsage,
       hasContext,
       hasRepo,
       ...(winner ? { usageSource: winner } : {})
     },
     correlations: [...correlations.values()],
-    mcpToolCalls: [...mcpToolCalls.values()],
-    toolCallRepoIds: [...toolCallRepoIds],
+    ...toolCallPass.result(),
     firstOccurredAt: span.first,
     lastOccurredAt: span.last,
     lastTurnObservedAt

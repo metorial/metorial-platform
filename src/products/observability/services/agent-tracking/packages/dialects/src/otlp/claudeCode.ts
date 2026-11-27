@@ -1,6 +1,8 @@
 import type { ContentInput } from '@mtsrc/agent-tracking-content';
 import {
+  claudeCodeAgentQuery,
   claudeCodePlaceholderNames,
+  isClaudeCodeBuiltInAgent,
   isClaudeCodeMainQuerySource
 } from '@mtsrc/agent-tracking-spec';
 import type { OtlpAttributes, OtlpLogRecord, OtlpSpan } from '@mtsrc/agent-tracking-otlp';
@@ -9,9 +11,9 @@ import { claudeCodeBilling, claudeCodeProvider } from '../billing';
 import { otlpHeadBranch } from '../context';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool } from '../tools';
+import { classifyTool, isMcpTool, redactedMcpTool } from '../tools';
 import { dateFromNanos, dateFromValue, firstDate } from '../time';
-import { isContent, isMcpName, redactedMcpTool, rewrite, type AttributeValue } from './policy';
+import { isContent, rewrite, type AttributeValue } from './policy';
 import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
   buildUsage,
@@ -108,11 +110,6 @@ let clientOf = (context: OtlpGroupContext, fields: FieldReader): RecordDraft['cl
   };
 };
 
-let agentQuerySource = /^agent[:.](?:builtin[:.])?/;
-
-// 2.1.33x sends agent:builtin:<type> on events and agent.builtin.<type> on spans. Older versions
-// sent the bare subagent name, which only the agent attributes tell apart from helper requests
-// such as title generation.
 let purposeOf = (fields: FieldReader) => {
   let querySource = fields.str('query_source', 'query_source_safe');
   if (!querySource) return {};
@@ -123,10 +120,13 @@ let purposeOf = (fields: FieldReader) => {
 
   let agentName = nativeLabel(fields.str('agent.name'));
 
-  if (agentQuerySource.test(querySource)) {
-    let type = nativeLabel(querySource.replace(agentQuerySource, ''));
+  let agentQuery = claudeCodeAgentQuery(querySource);
 
-    return { purpose: 'subagent', ...ok(agentName ?? type, 'agent_name') };
+  if (agentQuery) {
+    return {
+      purpose: 'subagent',
+      ...ok(agentName ?? nativeLabel(agentQuery.type), 'agent_name')
+    };
   }
 
   if (querySource == 'subagent') {
@@ -172,24 +172,16 @@ let contentFrom = (
 };
 
 // gen_ai.usage.input_tokens on llm_request spans counts cache reads and writes too.
-let usageFrom = (fields: FieldReader) => {
-  let cacheRead = fields.count('cache_read_tokens', 'gen_ai.usage.cache_read.input_tokens');
-  let cacheWrite = fields.count(
-    'cache_creation_tokens',
-    'gen_ai.usage.cache_write.input_tokens'
-  );
-  let genAiInput = fields.count('gen_ai.usage.input_tokens');
-
-  return buildUsage({
+let usageFrom = (fields: FieldReader) =>
+  buildUsage({
     inputUncached: fields.count('input_tokens'),
-    inputIncludingCache: genAiInput === undefined ? undefined : genAiInput - (cacheWrite ?? 0),
-    cacheRead,
-    cacheWrite,
+    inputIncludingCacheReadsAndWrites: fields.count('gen_ai.usage.input_tokens'),
+    cacheRead: fields.count('cache_read_tokens', 'gen_ai.usage.cache_read.input_tokens'),
+    cacheWrite: fields.count('cache_creation_tokens', 'gen_ai.usage.cache_write.input_tokens'),
     cacheWrite5m: fields.count('cache_creation_5m_tokens'),
     cacheWrite1h: fields.count('cache_creation_1h_tokens'),
     output: fields.count('output_tokens', 'gen_ai.usage.output_tokens')
   });
-};
 
 let decisionFrom = (
   decision: string | undefined,
@@ -292,27 +284,17 @@ let toolFact = (fields: FieldReader) => {
   return id ? `tool:{session_key}:${id}` : null;
 };
 
-let placeholderMcpToolNames = new Set<string>(claudeCodePlaceholderNames.mcpTools);
-
-let placeholderMcpServerNames = new Set<string>(claudeCodePlaceholderNames.mcpServers);
-
 let placeholderSkillNames = new Set<string>(claudeCodePlaceholderNames.skills);
 
 let toolOf = (fields: FieldReader) => {
   let name = fields.str('tool_name', 'tool_name_safe');
   if (!name) return undefined;
 
-  let server = fields.str('mcp_server_name', 'anthropic.mcp.server.name');
-  if (server && !placeholderMcpServerNames.has(server)) {
-    return classifyTool(name, { mcpServer: server });
-  }
-
-  let mcp =
-    server !== undefined ||
-    placeholderMcpToolNames.has(name) ||
-    fields.str('tool_source') == 'mcp';
-
-  return classifyTool(name, mcp ? { explicitKind: 'mcp' } : {});
+  return classifyTool(name, {
+    server: fields.raw('mcp_server_name', 'anthropic.mcp.server.name'),
+    source: fields.raw('tool_source'),
+    client: 'claude-code'
+  });
 };
 
 let ok = <T>(value: T | undefined, key: string) =>
@@ -1018,12 +1000,8 @@ let claudeCodeToolEvents = new Set(['tool_result', 'tool', 'tool.execution']);
 
 let claudeCodeOutputKeys = new Set(['content', 'output']);
 
-let builtInAgentQuery = /^agent[:.]builtin[:.]/;
-
-let customName = 'custom';
+export let claudeCodeCustomName = 'custom';
 let mcpCommand = 'mcp';
-
-let isTrue = (value: unknown) => value === true || value == 'true';
 
 let liftedGitParameters = (value: AttributeValue | undefined): OtlpAttributes => {
   let parameters = value === undefined ? null : parseToolParameters(value);
@@ -1039,6 +1017,12 @@ let liftedGitParameters = (value: AttributeValue | undefined): OtlpAttributes =>
   return lifted;
 };
 
+let claudeCodeMcpSignals = (attributes: OtlpAttributes) => ({
+  name: attributes['tool_name'],
+  server: attributes['mcp_server_name'] ?? attributes['anthropic.mcp.server.name'],
+  source: attributes['tool_source']
+});
+
 // What Claude Code sends in place of these names without OTEL_LOG_TOOL_DETAILS. A hook name is
 // its event and matcher, and the matcher is the gated part.
 export let claudeCodePlaceholder = (
@@ -1048,20 +1032,28 @@ export let claudeCodePlaceholder = (
 ): AttributeValue => {
   switch (key) {
     case 'tool_name':
-      return isMcpName(value) ? redactedMcpTool : value;
+      return isMcpTool(claudeCodeMcpSignals(attributes)) ? redactedMcpTool : value;
 
     case 'command_name': {
       let source = attributes['command_source'];
-      return source == 'builtin' ? value : source == mcpCommand ? mcpCommand : customName;
+      return source == 'builtin'
+        ? value
+        : source == mcpCommand
+          ? mcpCommand
+          : claudeCodeCustomName;
     }
 
     case 'agent_type':
-      return isTrue(attributes['is_built_in']) ? value : customName;
+      return isClaudeCodeBuiltInAgent({ isBuiltIn: attributes['is_built_in'] })
+        ? value
+        : claudeCodeCustomName;
 
-    case 'agent.name': {
-      let query = attributes['query_source'] ?? attributes['query_source_safe'];
-      return typeof query == 'string' && builtInAgentQuery.test(query) ? value : customName;
-    }
+    case 'agent.name':
+      return isClaudeCodeBuiltInAgent({
+        querySource: attributes['query_source'] ?? attributes['query_source_safe']
+      })
+        ? value
+        : claudeCodeCustomName;
 
     case 'hook_name':
       return typeof value == 'string' ? value.split(':')[0]! : value;
@@ -1071,9 +1063,9 @@ export let claudeCodePlaceholder = (
   }
 };
 
-export let claudeCodeWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+let claudeCodeWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
   let event = stripPrefix(item.name, eventPrefix);
-  let mcpTool = isMcpName(item.attributes['tool_name']);
+  let mcpTool = isMcpTool(claudeCodeMcpSignals(item.attributes));
 
   let gated = (key: string) =>
     claudeCodeContent.some(base => isContent(key, base)) ||

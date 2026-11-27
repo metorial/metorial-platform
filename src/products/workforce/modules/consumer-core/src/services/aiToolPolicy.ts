@@ -8,7 +8,6 @@ import {
   db,
   ID,
   Instance,
-  Prisma,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -17,7 +16,7 @@ import {
   getDetectionCatalog,
   type DetectionCatalogTool
 } from '@metorial/model-catalog/detection';
-import { detectionStaleBefore } from '../lib/aiToolDetection';
+import { visibleDetectionWhere } from '../lib/aiToolDetection';
 
 export let aiToolPolicyStatuses = Object.values(AiToolPolicyStatus);
 
@@ -154,30 +153,54 @@ class AiToolPolicyServiceImpl {
     return (toolKey: string) => policyStatus(policies.get(toolKey));
   }
 
-  // Same rule as visibleDetectionWhere({ excludeStale: true }), which Prisma can't group by
-  // consumer.
   private async getUsage(d: { instance: Pick<Instance, 'oid'>; toolKey?: string }) {
-    let rows = await db.$queryRaw<AiToolUsage[]>`
-      SELECT
-        d."toolKey" AS "toolKey",
-        COUNT(DISTINCT d."consumerDeviceOid")::int AS "deviceCount",
-        COUNT(DISTINCT p."consumerOid")::int AS "peopleCount",
-        MAX(d."lastSeenAt") AS "lastSeenAt",
-        BOOL_OR(d."state" = 'running') AS "running"
-      FROM "ConsumerDeviceDetection" d
-      JOIN "ConsumerDevice" cd ON cd."oid" = d."consumerDeviceOid"
-      JOIN "ConsumerProfile" p ON p."oid" = cd."consumerProfileOid"
-      JOIN "ConsumerDeviceSettings" s ON s."instanceOid" = d."instanceOid"
-      WHERE d."instanceOid" = ${d.instance.oid}
-        AND s."aiToolDetectionEnabled"
-        AND d."goneAt" IS NULL
-        AND cd."status" = 'active'
-        AND cd."detectionReportedAt" >= ${detectionStaleBefore()}
-        ${d.toolKey ? Prisma.sql`AND d."toolKey" = ${d.toolKey}` : Prisma.empty}
-      GROUP BY d."toolKey"
-    `;
+    let detections = await db.consumerDeviceDetection.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        ...(d.toolKey ? { toolKey: d.toolKey } : {}),
+        ...visibleDetectionWhere({ excludeStale: true })
+      },
+      select: {
+        toolKey: true,
+        consumerDeviceOid: true,
+        lastSeenAt: true,
+        state: true,
+        consumerDevice: { select: { consumerProfile: { select: { consumerOid: true } } } }
+      }
+    });
 
-    return new Map(rows.map(row => [row.toolKey, row]));
+    let byTool = new Map<
+      string,
+      { devices: Set<bigint>; people: Set<bigint>; lastSeenAt: Date | null; running: boolean }
+    >();
+    for (let detection of detections) {
+      let usage = byTool.get(detection.toolKey) ?? {
+        devices: new Set<bigint>(),
+        people: new Set<bigint>(),
+        lastSeenAt: null,
+        running: false
+      };
+      usage.devices.add(detection.consumerDeviceOid);
+      usage.people.add(detection.consumerDevice.consumerProfile.consumerOid);
+      if (!usage.lastSeenAt || detection.lastSeenAt > usage.lastSeenAt) {
+        usage.lastSeenAt = detection.lastSeenAt;
+      }
+      usage.running ||= detection.state == 'running';
+      byTool.set(detection.toolKey, usage);
+    }
+
+    return new Map(
+      [...byTool].map(([toolKey, usage]): [string, AiToolUsage] => [
+        toolKey,
+        {
+          toolKey,
+          deviceCount: usage.devices.size,
+          peopleCount: usage.people.size,
+          lastSeenAt: usage.lastSeenAt,
+          running: usage.running
+        }
+      ])
+    );
   }
 
   private assertKnownTool(toolKey: string) {

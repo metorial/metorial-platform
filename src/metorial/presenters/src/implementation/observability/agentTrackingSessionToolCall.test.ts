@@ -94,6 +94,7 @@ describe('agent tracking session tool call presenters', () => {
           duration_ms: 120,
           outcome: 'success',
           tool_call: {
+            object: 'session.tool_call',
             id: 'tcl_a',
             status: 'succeeded',
             tool: { id: 'pto_issue', key: 'create_issue', name: 'Create Issue' },

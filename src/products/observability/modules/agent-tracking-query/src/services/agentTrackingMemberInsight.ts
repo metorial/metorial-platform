@@ -9,7 +9,8 @@ import {
   normalizeInclude,
   rankMemberInsights
 } from '../lib/memberInsights';
-import { instanceConsumerMemberIds, lookupMembers, unique } from '../lib/members';
+import { unique } from '../lib/entities';
+import { instanceConsumerMemberIds, lookupMembers } from '../lib/members';
 import { pageByAnchor } from '../lib/pageByAnchor';
 import { loadVisibleSettings } from '../lib/privacy';
 import {

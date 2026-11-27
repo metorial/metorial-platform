@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   buildClaudeCodeManagedSettings,
   buildManagedSettingsCommands,
-  claudeCodeLogsEndpoint,
   defaultClaudeCodeSettingsOptions,
   detectManagedSettingsOs,
   ingestionKeyPlaceholder,
   isOffForOrganization,
   managedSettingsLocations,
+  organizationSwitchLabel,
+  otlpLogsEndpoint,
   withOrganizationReporting
 } from './settingsFile';
 
@@ -19,7 +20,7 @@ describe('buildClaudeCodeManagedSettings', () => {
     let file = buildClaudeCodeManagedSettings({
       ingestUrl,
       secret,
-      options: defaultClaudeCodeSettingsOptions
+      options: defaultClaudeCodeSettingsOptions(null)
     });
 
     expect(file.json).toBe(
@@ -45,12 +46,12 @@ describe('buildClaudeCodeManagedSettings', () => {
     let off = buildClaudeCodeManagedSettings({
       ingestUrl,
       secret,
-      options: defaultClaudeCodeSettingsOptions
+      options: defaultClaudeCodeSettingsOptions(null)
     });
     let on = buildClaudeCodeManagedSettings({
       ingestUrl,
       secret,
-      options: { ...defaultClaudeCodeSettingsOptions, toolDetails: true }
+      options: { ...defaultClaudeCodeSettingsOptions(null), toolDetails: true }
     });
 
     expect(off.settings.env).not.toHaveProperty('OTEL_LOG_TOOL_DETAILS');
@@ -104,7 +105,7 @@ describe('buildClaudeCodeManagedSettings', () => {
       let file = buildClaudeCodeManagedSettings({
         ingestUrl,
         secret: missing,
-        options: defaultClaudeCodeSettingsOptions
+        options: defaultClaudeCodeSettingsOptions(null)
       });
 
       expect(file.usesPlaceholder).toBe(true);
@@ -118,7 +119,7 @@ describe('buildClaudeCodeManagedSettings', () => {
     let file = buildClaudeCodeManagedSettings({
       ingestUrl: ' https://ingest.example.com// ',
       secret,
-      options: defaultClaudeCodeSettingsOptions
+      options: defaultClaudeCodeSettingsOptions(null)
     });
 
     expect(file.settings.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT).toBe(
@@ -151,7 +152,7 @@ describe('buildManagedSettingsCommands', () => {
   let file = buildClaudeCodeManagedSettings({
     ingestUrl,
     secret,
-    options: defaultClaudeCodeSettingsOptions
+    options: defaultClaudeCodeSettingsOptions(null)
   });
 
   it('creates the macOS folder and quotes the path with a space', () => {
@@ -208,7 +209,7 @@ describe('buildManagedSettingsCommands', () => {
   it('points the check at the line that holds the ingest address', () => {
     let line = file.json.split('\n').find(line => line.includes('LOGS_ENDPOINT'));
 
-    expect(line).toContain(claudeCodeLogsEndpoint(ingestUrl));
+    expect(line).toContain(otlpLogsEndpoint(ingestUrl));
   });
 });
 
@@ -286,5 +287,26 @@ describe('isOffForOrganization', () => {
       expect(isOffForOrganization('toolDetails', organization)).toBe(false);
       expect(isOffForOrganization('repository', organization)).toBe(false);
     }
+  });
+});
+
+describe('defaultClaudeCodeSettingsOptions', () => {
+  it('turns tool details on only when the organization has Detailed Tool Reporting on', () => {
+    expect(defaultClaudeCodeSettingsOptions(null).toolDetails).toBe(false);
+    expect(
+      defaultClaudeCodeSettingsOptions({ toolDetails: false, sessionContext: true })
+        .toolDetails
+    ).toBe(false);
+    expect(
+      defaultClaudeCodeSettingsOptions({ toolDetails: true, sessionContext: true })
+    ).toEqual({ keepLocalHistory: true, repository: true, toolDetails: true });
+  });
+});
+
+describe('organizationSwitchLabel', () => {
+  it('names the organization switch an option follows', () => {
+    expect(organizationSwitchLabel('toolDetails')).toBe('Detailed Tool Reporting');
+    expect(organizationSwitchLabel('repository')).toBe('Session Context');
+    expect(organizationSwitchLabel('keepLocalHistory')).toBeNull();
   });
 });

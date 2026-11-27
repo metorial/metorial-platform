@@ -14,10 +14,10 @@ import styled from 'styled-components';
 import { useInstanceContext, type InstanceContext } from '../../lib/dataList';
 import { formatSpan, formatTimeSpan, sessionHeading, sessionLength } from './activity';
 import { CostValue } from './cost';
+import { ProviderLink } from './entityLinks';
 import { agentTrackingErrorStatus, AgentTrackingErrorState } from './errorState';
 import { WithInfo } from './info';
 import { MemberDetails, memberPath } from './memberParts';
-import { unknownProviderLabel } from './providerCalls';
 import {
   linesChangedLabel,
   otherDefaultBranch,
@@ -263,33 +263,13 @@ let CommitList = ({ commits }: { commits: Session['commits'] }) => (
   </RowList>
 );
 
-let ProviderLinks = ({ providers }: { providers: Session['providers'] }) => {
-  let ctx = useInstanceContext();
-
-  return (
-    <Flex gap={8} wrap="wrap">
-      {providers.map(provider =>
-        provider.name ? (
-          <Link
-            key={provider.id}
-            to={Paths.instance.provider(
-              ctx.organization,
-              ctx.project,
-              ctx.instance,
-              provider.id
-            )}
-          >
-            {provider.name}
-          </Link>
-        ) : (
-          <Text key={provider.id} as="span" size="2" color="gray600">
-            {unknownProviderLabel}
-          </Text>
-        )
-      )}
-    </Flex>
-  );
-};
+let ProviderLinks = ({ providers }: { providers: Session['providers'] }) => (
+  <Flex gap={8} wrap="wrap">
+    {providers.map(provider => (
+      <ProviderLink key={provider.id} provider={provider} />
+    ))}
+  </Flex>
+);
 
 let ContextBox = ({ session }: { session: Session }) => {
   let items = [

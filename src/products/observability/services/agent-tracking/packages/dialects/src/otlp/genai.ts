@@ -2,7 +2,7 @@ import type { RecordDraft } from '@mtsrc/agent-tracking-records-model';
 import { genAiBilling } from '../billing';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { measurementDraft } from '../measure';
-import { classifyTool, parseMcpToolName } from '../tools';
+import { classifyTool, isMcpTool, redactedMcpTool } from '../tools';
 import { dateFromNanos } from '../time';
 import type { Mapped, OtlpDialect, OtlpGroupContext, OtlpItemView } from '../types';
 import {
@@ -15,7 +15,6 @@ import {
   type ErrorClass
 } from '../values';
 import { actorOf, clientVersionOf, otlpSource, safeNativeName, traceOf } from './common';
-import { redactedMcpTool } from './policy';
 
 export let genAiOtlpId = 'genai.otlp.v1';
 
@@ -152,9 +151,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
 
   if (operation == 'execute_tool') {
     let name = fields.str('gen_ai.tool.name');
-    let tool = name
-      ? classifyTool(name, name == redactedMcpTool ? { explicitKind: 'mcp' } : {})
-      : undefined;
+    let tool = name ? classifyTool(name) : undefined;
     let callId = fields.str('gen_ai.tool.call.id');
 
     return finish(
@@ -295,17 +292,15 @@ let mapLog: OtlpDialect['mapLog'] = (context, log) => {
   ];
 };
 
-let isMcpTool = (value: unknown) => typeof value == 'string' && !!parseMcpToolName(value);
+let genAiWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
+  let tool = isMcpTool({ name: item.attributes['gen_ai.tool.name'] });
+  let spanTool = isMcpTool({ name: toolSpanPattern.exec(item.name)?.[1] });
 
-export let genAiWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
-  let tool = item.attributes['gen_ai.tool.name'];
-  let spanTool = toolSpanPattern.exec(item.name)?.[1];
-
-  if (!isMcpTool(tool) && !isMcpTool(spanTool)) return item;
+  if (!tool && !spanTool) return item;
 
   return {
-    name: isMcpTool(spanTool) ? `execute_tool ${redactedMcpTool}` : item.name,
-    attributes: isMcpTool(tool)
+    name: spanTool ? `execute_tool ${redactedMcpTool}` : item.name,
+    attributes: tool
       ? { ...item.attributes, 'gen_ai.tool.name': redactedMcpTool }
       : item.attributes
   };

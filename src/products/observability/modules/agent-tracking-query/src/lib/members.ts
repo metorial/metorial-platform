@@ -5,13 +5,12 @@ import {
   ignoreNotFound,
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
+import { chunks, listEntitiesByIds, unique } from './entities';
 import type { ReadScope } from './scope';
 import { readCallOptions } from './service';
 import type { AgentTrackingMember } from './types';
 
 export let unknownMemberKey = 'unknown';
-
-let maxEntityLookup = 100;
 
 let consumerLookupConcurrency = 20;
 
@@ -19,17 +18,7 @@ export let maxConsumerLookups = 500;
 
 let lookupStatuses = ['managed', 'discovered', 'merged'] as const;
 
-type EntityListInput = Parameters<AgentTracking['entity']['list']>[0];
-
 type RemoteMember = Awaited<ReturnType<AgentTracking['entity']['list']>>['items'][number];
-
-export let unique = (values: (string | null | undefined)[]) =>
-  [...new Set(values.filter((value): value is string => !!value))].sort();
-
-export let chunks = <T>(values: T[], size: number) =>
-  Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
-    values.slice(index * size, (index + 1) * size)
-  );
 
 let placeholderMember = (id: string, name: string | null = null): AgentTrackingMember => ({
   id,
@@ -40,32 +29,6 @@ let placeholderMember = (id: string, name: string | null = null): AgentTrackingM
   consumer: null,
   needsReview: false
 });
-
-export let listEntitiesByIds = async (d: {
-  organizationId: string;
-  kind: NonNullable<EntityListInput['kinds']>[number];
-  statuses: NonNullable<EntityListInput['statuses']>;
-  ids: string[];
-}) => {
-  let agentTracking = requireAgentTracking();
-
-  let pages = await Promise.all(
-    chunks(d.ids, maxEntityLookup).map(ids =>
-      agentTracking.entity.list(
-        {
-          organizationId: d.organizationId,
-          kinds: [d.kind],
-          statuses: d.statuses,
-          ids,
-          limit: maxEntityLookup
-        },
-        readCallOptions
-      )
-    )
-  );
-
-  return pages.flatMap(page => page.items);
-};
 
 let listByIds = (d: { organizationId: string; ids: string[] }) =>
   listEntitiesByIds({ ...d, kind: 'user', statuses: [...lookupStatuses] });

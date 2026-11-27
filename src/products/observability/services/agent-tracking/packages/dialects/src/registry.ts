@@ -1,8 +1,4 @@
-import {
-  desktopContextClients,
-  fullIngestPolicy,
-  type NormalizedRecord
-} from '@mtsrc/agent-tracking-spec';
+import { desktopContextClients, type NormalizedRecord } from '@mtsrc/agent-tracking-spec';
 import type { OtlpAttributes, OtlpDecoded, OtlpGroup } from '@mtsrc/agent-tracking-otlp';
 import { readOtlpContext, withOtlpContext } from './context';
 import { claudeCodeOtlp } from './otlp/claudeCode';
@@ -60,7 +56,7 @@ let mappers = {
 export let mapOtlpGroup = <T>(
   signal: OtlpSignal,
   received: OtlpGroup<T>,
-  policy: OtlpPolicy = fullIngestPolicy
+  policy: OtlpPolicy
 ): MappedGroup => {
   let selected = selectOtlpDialect(signal, received as OtlpGroup<unknown>);
   let { dialect } = selected;
@@ -121,7 +117,7 @@ export type MappedDecoded = {
 export let mapOtlpDecoded = <T>(
   signal: OtlpSignal,
   decoded: OtlpDecoded<T>,
-  policy: OtlpPolicy = fullIngestPolicy
+  policy: OtlpPolicy
 ): MappedDecoded => {
   let groups = decoded.groups.map(group => mapOtlpGroup(signal, group, policy));
 
@@ -135,67 +131,68 @@ export let mapOtlpDecoded = <T>(
 
 export type { NormalizedRecord };
 
-export let dialectManifests: DialectManifest[] = [
+type ManifestEntry = Omit<DialectManifest, 'dialect'>;
+
+let manifestEntries: ManifestEntry[] = [
   {
     client: 'claude-code',
     channel: 'hook',
-    dialect: claudeCodeHooks.id,
     handler: claudeCodeHooks,
-    notOnDevice: true
+    device: 'never'
   },
   {
     client: 'codex',
     channel: 'hook',
-    dialect: codexHooks.id,
     handler: codexHooks,
-    notOnDevice: true
+    device: 'never'
   },
-  ...desktopContextClients.map((client): DialectManifest => ({
+  ...desktopContextClients.map((client): ManifestEntry => ({
     client,
     channel: 'envelope',
-    dialect: desktopContext.id,
     handler: desktopContext,
-    deviceOnly: true,
+    device: 'only',
     requires: 'sessionContext'
   })),
   {
     client: 'claude-code',
     channel: 'transcript',
-    dialect: claudeCodeTranscript.id,
     handler: claudeCodeTranscript,
-    deviceOnly: true,
+    device: 'only',
     backfillOnly: true
   },
   {
     client: 'codex',
     channel: 'transcript',
-    dialect: codexTranscript.id,
     handler: codexTranscript,
-    deviceOnly: true,
+    device: 'only',
     backfillOnly: true
   },
   {
     client: 'cursor',
     channel: 'hook',
-    dialect: cursorHooks.id,
     handler: cursorHooks,
-    deviceOnly: true
+    device: 'only',
+    waitsOnDevice: true
   },
   {
     client: 'antigravity',
     channel: 'transcript',
-    dialect: antigravityTranscript.id,
     handler: antigravityTranscript,
-    deviceOnly: true
+    device: 'only'
   },
   {
     client: 'opencode',
     channel: 'sse',
-    dialect: opencodePlugin.id,
     handler: opencodePlugin,
-    deviceOnly: true
+    device: 'only',
+    waitsOnDevice: true
   }
 ];
+
+export let dialectManifests: DialectManifest[] = manifestEntries.map(entry => ({
+  ...entry,
+  dialect: entry.handler.id
+}));
 
 let manifestFor = (client: string, channel: string, dialect: string) =>
   dialectManifests.find(

@@ -2733,7 +2733,6 @@ export let consumerDeviceType = PresentableType.create<{
   telemetry?: {
     enabled: boolean;
     tokenId: string | null;
-    directExport: boolean;
     toolDetails: boolean;
     sessionContext: boolean;
     sessionTitles: boolean;

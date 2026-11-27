@@ -22,11 +22,11 @@ let FirstRun = ({ instanceId, subject }: { instanceId: string; subject: string }
 
     return (
       <Box
-        title={`Connect Claude Code to See ${subject}`}
+        title={`Connect a Coding Agent to See ${subject}`}
         description={
           hasKey
-            ? 'A key exists, but no Claude Code usage has arrived yet. Deploy the settings file and start Claude Code; the first session shows up here within about a minute.'
-            : "It takes about five minutes and installs nothing on members' machines. Create a key, put one settings file on each machine, then start Claude Code. The first session shows up here within about a minute."
+            ? 'A key exists, but no usage has arrived yet. Finish setup and start your coding agent; the first session shows up here within about a minute.'
+            : 'It takes about five minutes. Create a key, set up Claude Code or Codex on each machine, then start it. The first session shows up here within about a minute.'
         }
         rightActions={
           <Link to={Paths.instance.agentTracking.setup(...params)}>
@@ -42,13 +42,14 @@ let FirstRun = ({ instanceId, subject }: { instanceId: string; subject: string }
             {
               id: 'key',
               label: 'Create a Key',
-              description: 'You get a settings file with the key already in it.',
+              description: 'You get a settings file or config with the key already in it.',
               state: hasKey ? 'complete' : 'active'
             },
             {
               id: 'deploy',
               label: 'Deploy One File',
-              description: 'A copy-ready command for macOS, Linux or Windows, or your MDM.',
+              description:
+                'A copy-ready command or config for macOS, Linux or Windows, or your MDM.',
               state: hasKey ? 'active' : 'pending'
             },
             {

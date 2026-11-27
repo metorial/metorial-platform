@@ -1,6 +1,6 @@
 import { db, type Instance, type Organization } from '@metorial/db';
 import { deviceEntitySource } from '@metorial/module-agent-tracking-sync';
-import { listEntitiesByIds, unique } from './members';
+import { listEntitiesByIds, unique } from './entities';
 import type { AgentTrackingSkill } from './types';
 
 let deviceLookupStatuses = ['managed', 'discovered', 'merged'] as const;

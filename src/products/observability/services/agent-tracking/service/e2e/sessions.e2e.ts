@@ -8,24 +8,22 @@ import {
   agentTracking,
   ingest,
   rpcErrorCode,
-  sendDesktopContext
+  sendDesktopContext,
+  sendHook
 } from './support';
 
 let minuteMs = 60 * 1000;
 
 type ListInput = Parameters<ReturnType<typeof agentTracking>['session']['list']>[0];
 
-let hook = (sessionId: string, event: string, extra: Record<string, unknown> = {}) =>
-  JSON.stringify({ session_id: sessionId, hook_event_name: event, ...extra });
-
 let sendHooks = async (secret: string, sessionId: string, events: string[]) => {
   for (let event of events) {
-    let response = await ingest('/v1/ingest/hooks/claude-code', {
-      credential: secret,
-      body: hook(sessionId, event, event == 'UserPromptSubmit' ? { prompt: 'hello' } : {})
+    await sendHook({
+      secret,
+      sessionId,
+      event,
+      extra: event == 'UserPromptSubmit' ? { prompt: 'hello' } : {}
     });
-
-    expect(response.status).toBe(200);
   }
 };
 

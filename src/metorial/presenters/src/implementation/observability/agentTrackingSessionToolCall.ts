@@ -8,6 +8,8 @@ import {
 import { v1AgentTrackingSessionPresenter } from './agentTrackingSession';
 
 let presentToolCall = (toolCall: AgentTrackingMetorialToolCall) => ({
+  object: 'session.tool_call' as const,
+
   id: toolCall.id,
   status: toolCall.status,
   tool: { id: toolCall.tool.id, key: toolCall.tool.key, name: toolCall.tool.name },
@@ -20,6 +22,10 @@ let presentToolCall = (toolCall: AgentTrackingMetorialToolCall) => ({
 
 let toolCallSchema = v.object(
   {
+    object: v.literal('session.tool_call', {
+      description: 'String representing the object’s type.'
+    }),
+
     id: v.string({
       name: 'id',
       description: 'Unique ID.',

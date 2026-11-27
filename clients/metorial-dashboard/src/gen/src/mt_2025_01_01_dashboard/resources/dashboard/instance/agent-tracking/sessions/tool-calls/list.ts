@@ -9,6 +9,7 @@ export type DashboardInstanceAgentTrackingSessionsToolCallsListOutput = {
     durationMs: number | null;
     outcome: string | null;
     toolCall: {
+      object: 'session.tool_call';
       id: string;
       status: 'waiting_for_response' | 'failed' | 'succeeded';
       tool: { id: string; key: string; name: string };

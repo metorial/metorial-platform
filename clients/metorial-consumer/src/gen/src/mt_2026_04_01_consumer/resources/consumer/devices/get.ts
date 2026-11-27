@@ -42,7 +42,6 @@ export type ConsumerDevicesGetOutput = {
   telemetry: {
     enabled: boolean;
     tokenId: string | null;
-    directExport: boolean;
     toolDetails: boolean;
     sessionContext: boolean;
     sessionTitles: boolean;
@@ -112,7 +111,6 @@ export let mapConsumerDevicesGetOutput =
           1,
           [
             'token_id',
-            'direct_export',
             'tool_details',
             'session_context',
             'session_titles',

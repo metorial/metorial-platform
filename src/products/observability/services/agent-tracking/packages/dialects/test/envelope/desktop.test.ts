@@ -368,6 +368,16 @@ describe('the Desktop context dialect', () => {
         'invalid_type'
       ],
       [
+        {
+          kind: 'commit',
+          session_id: 's-1',
+          sha,
+          ticket_refs: Array.from({ length: 9 }, (_, i) => `MT-${i + 1}`)
+        },
+        'ticket_refs',
+        'invalid_max_length'
+      ],
+      [
         { kind: 'commit', session_id: 's-1', sha, ticket_refs: ['not a ref'] },
         'ticket_refs',
         'invalid_regex'

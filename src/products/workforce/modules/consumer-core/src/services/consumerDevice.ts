@@ -28,6 +28,8 @@ let knownClientKeys = new Set(['claude-code', 'claude-desktop', 'codex', 'cursor
 
 export let consumerDeviceStatuses = Object.values(ConsumerDeviceStatus);
 
+export type ReportedSkillAccess = 'any' | 'none' | { where: Prisma.SkillWhereInput };
+
 export let consumerDeviceInclude = {
   clients: {
     where: { reported: true },
@@ -52,6 +54,7 @@ class ConsumerDeviceServiceImpl {
     consumerProfile: ConsumerProfile;
     oauthToken: OAuthTokenWithAuthorization | undefined;
     auditScope: AuditScope;
+    skillAccess: ReportedSkillAccess;
     input: {
       installationId: string;
       name: string;
@@ -534,20 +537,25 @@ class ConsumerDeviceServiceImpl {
   private async syncReportedSkills(d: {
     instance: Instance;
     consumerDevice: Pick<ConsumerDevice, 'oid'>;
+    skillAccess: ReportedSkillAccess;
     input: { reportedSkills?: { skillId: string; name: string }[] };
   }) {
     if (!d.input.reportedSkills) return;
 
-    let reportedSkills = d.input.reportedSkills;
+    let reportedSkills = d.skillAccess == 'none' ? [] : d.input.reportedSkills;
+    let skillAccess = d.skillAccess;
 
     await withTransaction(async db => {
-      let skills = await db.skill.findMany({
-        where: {
-          id: { in: [...new Set(reportedSkills.map(skill => skill.skillId))] },
-          instanceOid: d.instance.oid,
-          status: 'active'
-        }
-      });
+      let skills = reportedSkills.length
+        ? await db.skill.findMany({
+            where: {
+              id: { in: [...new Set(reportedSkills.map(skill => skill.skillId))] },
+              instanceOid: d.instance.oid,
+              status: 'active',
+              ...(typeof skillAccess == 'object' ? { AND: [skillAccess.where] } : {})
+            }
+          })
+        : [];
       let skillOids = new Map(skills.map(skill => [skill.id, skill.oid]));
 
       let wanted = new Map<string, bigint>();

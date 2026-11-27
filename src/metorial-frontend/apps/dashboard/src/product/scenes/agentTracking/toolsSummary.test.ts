@@ -4,8 +4,10 @@ import {
   buildSkillsCsv,
   formatRate,
   membersFormatter,
+  skillSort,
   skillSortRows,
   sortToolRows,
+  toggledToolSortParams,
   toolsCsvFileName,
   unnamedNotice,
   type McpServerUsage,
@@ -112,6 +114,30 @@ describe('tool table sorting', () => {
     expect(
       sortToolRows(skillSortRows(skillUsage().items), 'calls', 'desc').map(row => row.name)
     ).toEqual(['pdf', 'docx']);
+  });
+
+  it('sorts skills, which have no error rate, by activations instead', () => {
+    expect(skillSort('error_rate')).toBe('calls');
+    expect(skillSort('members')).toBe('members');
+  });
+
+  it('flips the order of the active column and starts a new column at its default order', () => {
+    expect(toggledToolSortParams({ sort: 'calls', order: 'desc' }, 'calls')).toEqual({
+      sort: undefined,
+      order: 'asc'
+    });
+    expect(toggledToolSortParams({ sort: 'calls', order: 'asc' }, 'calls')).toEqual({
+      sort: undefined,
+      order: undefined
+    });
+    expect(toggledToolSortParams({ sort: 'calls', order: 'asc' }, 'name')).toEqual({
+      sort: 'name',
+      order: undefined
+    });
+    expect(toggledToolSortParams({ sort: 'name', order: 'asc' }, 'name')).toEqual({
+      sort: 'name',
+      order: 'desc'
+    });
   });
 });
 

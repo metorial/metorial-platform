@@ -10,6 +10,7 @@ import { agentTrackingAgentActivityService } from '../src/services/agentTracking
 import {
   agentTrackingEnabled,
   callsTo,
+  detection,
   privacy,
   remoteMember,
   resetMocks,
@@ -17,7 +18,10 @@ import {
   scope
 } from './_mocks';
 
-let activityScope = scope as any;
+let activityScope = {
+  ...scope,
+  reader: { isHuman: true, canReadAgentUsage: true }
+} as any;
 
 let earlier = '2026-11-10T08:00:00.000Z';
 
@@ -187,5 +191,28 @@ describe('agentTrackingAgentActivityService', () => {
 
     expect(activity).toEqual({ lastUsed: new Map(), complete: true });
     expect(callsTo('query:run')).toHaveLength(0);
+  });
+
+  it.each([
+    { isHuman: true, canReadAgentUsage: false },
+    { isHuman: false, canReadAgentUsage: true }
+  ])(
+    'shows no usage to a reader who is not a person reading agent usage: %o',
+    async reader => {
+      let d = { ...activityScope, reader, agentKeys: ['cursor'] };
+
+      expect(await agentTrackingAgentActivityService.getAgentActivity(d)).toBeNull();
+      expect(await agentTrackingAgentActivityService.getConsumerAgentActivity(d)).toBeNull();
+      expect(rpc.calls).toEqual([]);
+    }
+  );
+
+  it('shows no usage while AI tool detection is off', async () => {
+    detection.active = false;
+    let d = { ...activityScope, agentKeys: ['cursor'] };
+
+    expect(await agentTrackingAgentActivityService.getAgentActivity(d)).toBeNull();
+    expect(await agentTrackingAgentActivityService.getConsumerAgentActivity(d)).toBeNull();
+    expect(rpc.calls).toEqual([]);
   });
 });

@@ -81,7 +81,6 @@ class AgentTrackingTokenServiceImpl {
         {
           enabled,
           tokenId: activeTokenIds.get(device.oid) ?? null,
-          directExport: enabled,
           ...desktop
         }
       ])

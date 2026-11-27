@@ -353,6 +353,8 @@ export let agentTrackingOrganizationSettingsLoader = createLoader({
     agentTrackingSpendTimelineLoader,
     agentTrackingSpendBreakdownLoader,
     agentTrackingSpendReportLoader,
+    agentTrackingSkillUsageLoader,
+    agentTrackingMcpServerUsageLoader,
     agentTrackingSessionsLoader,
     agentTrackingSessionLoader,
     agentTrackingSessionToolCallsLoader,

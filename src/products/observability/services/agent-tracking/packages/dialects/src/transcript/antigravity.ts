@@ -22,10 +22,6 @@ export let antigravityTranscript = usageDialect({
   schema: antigravityTranscriptRequestSchema,
 
   request: payload => {
-    let counted =
-      payload.input_tokens + payload.output_tokens + (payload.cache_read_tokens ?? 0);
-    if (counted == 0) return null;
-
     let [, model = payload.model, level] = levelSuffix.exec(payload.model) ?? [];
 
     return {

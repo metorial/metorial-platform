@@ -1,6 +1,4 @@
-import { maxIdLength } from '@mtsrc/agent-tracking-records-model';
 import { recordReadbackService } from '@mtsrc/agent-tracking-module-records';
-import { getStore } from '@mtsrc/agent-tracking-store';
 import type {
   RecordMetorialLink,
   SessionDocument,
@@ -10,15 +8,17 @@ import type {
 } from '@mtsrc/agent-tracking-store';
 import { queueSessionSettle } from '../queues/sessionSettle';
 import { toolCallPairReader, toolCallRecordReader, type ToolCallPairReader } from './records';
-import type { SessionMcpToolCallRef } from './summary';
 import {
+  clampStoredId,
+  isAmbiguousToolCall,
   maxRecordsPerToolCall,
-  storedToolCallId,
   toolCallKey,
+  type SessionMcpToolCallRef,
   type ToolCallRecord,
   type ToolCallRecordReader,
   type ToolCallRef
 } from './toolCalls';
+import { collections } from './collections';
 
 export let maxToolCallLinks = 200;
 
@@ -55,26 +55,17 @@ type LinkScope = {
   recordRetentionDays: number;
 };
 
-let collections = async () => {
-  let store = getStore();
-  await store.ready();
-
-  return store.collections();
-};
-
 let chunked = <T>(items: T[], size: number) =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
     items.slice(index * size, (index + 1) * size)
   );
 
-let clamp = (value: string) => value.slice(0, maxIdLength);
-
 let optional = (key: string, value: string | undefined) =>
-  value ? { [key]: clamp(value) } : {};
+  value ? { [key]: clampStoredId(value) } : {};
 
 let storedRef = (call: ToolCallRef): ToolCallRef => ({
-  clientFamily: clamp(call.clientFamily),
-  toolCallId: storedToolCallId(call.toolCallId)
+  clientFamily: clampStoredId(call.clientFamily),
+  toolCallId: clampStoredId(call.toolCallId)
 });
 
 export let toolCallLinkId = (d: { instanceId: string } & ToolCallRef) => {
@@ -83,8 +74,8 @@ export let toolCallLinkId = (d: { instanceId: string } & ToolCallRef) => {
 };
 
 export let linkTargetOf = (input: ToolCallLinkTarget): RecordMetorialLink => ({
-  toolCallId: clamp(input.toolCallId),
-  providerId: clamp(input.providerId),
+  toolCallId: clampStoredId(input.toolCallId),
+  providerId: clampStoredId(input.providerId),
   ...optional('toolKey', input.toolKey),
   ...optional('deploymentId', input.deploymentId),
   ...optional('integrationId', input.integrationId),
@@ -219,16 +210,6 @@ export let readToolCallLinks = async (d: {
   return links;
 };
 
-let isAmbiguous = (d: { sessionKey: string; records: ToolCallRecord[] }) => {
-  let sessions = new Set(d.records.map(record => record.ctx?.sessionKey));
-
-  return (
-    d.records.length > maxRecordsPerToolCall ||
-    sessions.size > 1 ||
-    (sessions.size == 1 && !sessions.has(d.sessionKey))
-  );
-};
-
 export let ambiguousToolCallPairs = async (d: {
   session: Pick<SessionDocument, '_id'>;
   links: ToolCallLinkDocument[];
@@ -275,7 +256,9 @@ export let ambiguousToolCallPairs = async (d: {
 
       for (let toolCallId of ids) {
         let found = byId.get(toolCallId) ?? [];
-        if (!isAmbiguous({ sessionKey: d.session._id, records: found })) continue;
+        let sessionKeys = found.map(record => record.ctx?.sessionKey);
+        if (!isAmbiguousToolCall({ records: found, sessionKeys, sessionKey: d.session._id }))
+          continue;
 
         ambiguous.add(toolCallKey({ clientFamily, toolCallId }));
 
@@ -403,51 +386,15 @@ export let stampOps = (d: {
   });
 };
 
-export let toolCallRepoOps = (d: {
-  session: Pick<SessionDocument, '_id' | 'organizationId' | 'instanceId' | 'context'>;
-  repoIds: (string | null)[];
-}) => {
-  let sessionRepos = d.session.context?.repoIds ?? [];
-  let repoId = sessionRepos.length == 1 ? sessionRepos[0]! : null;
-  if (d.repoIds.every(current => current === repoId)) return [];
-
-  let filter = {
-    organizationId: d.session.organizationId,
-    instanceId: d.session.instanceId,
-    'ctx.sessionKey': d.session._id,
-    type: 'tool.call'
-  };
-
-  return [
-    repoId
-      ? {
-          updateMany: {
-            filter: { ...filter, 'attribution.repoId': { $ne: repoId } },
-            update: { $set: { 'attribution.repoId': repoId } }
-          }
-        }
-      : {
-          updateMany: {
-            filter: { ...filter, 'attribution.repoId': { $exists: true } },
-            update: { $unset: { 'attribution.repoId': '' } }
-          }
-        }
-  ];
-};
-
 export let applyToolCallLinks = async (d: {
-  session: Pick<SessionDocument, '_id' | 'organizationId' | 'instanceId' | 'context'>;
+  session: Pick<SessionDocument, '_id' | 'organizationId' | 'instanceId'>;
   calls: SessionMcpToolCallRef[];
   links: ToolCallLinkDocument[];
-  toolCallRepoIds: (string | null)[];
   staleSessionKeys: string[];
 }) => {
   if (recordReadbackService.isAvailable()) return 0;
 
-  let ops = [
-    ...stampOps(d),
-    ...toolCallRepoOps({ session: d.session, repoIds: d.toolCallRepoIds })
-  ];
+  let ops = stampOps(d);
 
   if (ops.length) {
     let { events } = await collections();

@@ -58,10 +58,11 @@ describe('the Cursor hooks dialect', () => {
     expect(record!.source.fact_key).toBeNull();
   });
 
-  it('floors the uncached input at zero like Cursor does and warns about it', () => {
+  it('warns instead of deriving a negative uncached input', () => {
     let [record] = build(request({ input_tokens: 100, cache_read_tokens: 150 }));
 
-    expect(record!.data.usage).toMatchObject({ input_uncached: 0, cache_read: 150 });
+    expect(record!.data.usage).toMatchObject({ cache_read: 150 });
+    expect(record!.data.usage).not.toHaveProperty('input_uncached');
     expect(record!.quality.warnings).toContain('usage_negative:input_uncached');
   });
 

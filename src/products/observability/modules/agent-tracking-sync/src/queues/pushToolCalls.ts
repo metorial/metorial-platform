@@ -1,7 +1,7 @@
 import { createQueueCheckpoint } from '@lowerdeck/queue-checkpoint';
 import { db as subspaceDb } from '@metorial-subspace/db';
 import { createCron } from '@metorial/cron';
-import { db, type Instance } from '@metorial/db';
+import { db, type Instance, type Organization, type Project } from '@metorial/db';
 import { resolveUsageSessionDimsMany } from '@metorial/module-usage';
 import { combineQueueProcessors, createQueue, pacedDelay } from '@metorial/queue';
 import { getAgentTracking, isAgentTrackingEnabled } from '../lib/client';
@@ -18,7 +18,7 @@ import {
 } from '../lib/toolCalls';
 
 let instancePageSize = 500;
-let toolCallPageSize = 200;
+let linksPerUpsert = 200;
 let commitLagMs = 30_000;
 let maxLookbackMs = 7 * 24 * 60 * 60 * 1000;
 let nextPageDelay = { baseMs: 1000, jitterMs: 1000 };
@@ -31,7 +31,7 @@ let checkpointPrefixEnd = 'agent-tracking/tool-calls0';
 
 let checkpointQueue = (instance: Pick<Instance, 'id'>) => `${checkpointPrefix}${instance.id}`;
 
-export let toolCallCheckpoint = (instance: Pick<Instance, 'id'>) =>
+let toolCallCheckpoint = (instance: Pick<Instance, 'id'>) =>
   createQueueCheckpoint({
     db,
     queue: checkpointQueue(instance),
@@ -62,75 +62,57 @@ let databaseNow = async () => {
   return row!.now;
 };
 
-export let pushToolCallsCron = createCron(
-  { name: 'agent-tracking/tool-calls/cron', cron: '*/5 * * * *' },
-  async () => {
-    if (!isAgentTrackingEnabled()) return;
+type ManyScan = { credential: 'token' | 'source' | 'checkpoint'; cursor?: string };
 
-    await pushToolCallsManyQueue.addMany([
-      { credential: 'token' },
-      { credential: 'source' },
-      { credential: 'checkpoint' }
-    ]);
-  }
-);
+type TrackedInstance = Instance & { organization: Organization; project: Project };
 
-export let pushToolCallsManyQueue = createQueue<{
-  credential: 'token' | 'source' | 'checkpoint';
-  cursor?: string;
-}>({
-  name: 'agent-tracking/tool-calls/many',
-  workerOpts: { concurrency: 1 }
-});
+let sweepCheckpoints = async (data: ManyScan) => {
+  let rows = await db.queueCheckpoint.findMany({
+    where: {
+      queue: {
+        ...(data.cursor ? { gt: data.cursor } : { gte: checkpointPrefix }),
+        lt: checkpointPrefixEnd
+      }
+    },
+    orderBy: { queue: 'asc' },
+    take: instancePageSize,
+    select: { queue: true }
+  });
+  if (!rows.length) return;
 
-export let pushToolCallsManyQueueProcessor = pushToolCallsManyQueue.process(async data => {
-  if (data.credential == 'checkpoint') {
-    let rows = await db.queueCheckpoint.findMany({
-      where: {
-        queue: {
-          ...(data.cursor ? { gt: data.cursor } : { gte: checkpointPrefix }),
-          lt: checkpointPrefixEnd
-        }
-      },
-      orderBy: { queue: 'asc' },
-      take: instancePageSize,
-      select: { queue: true }
+  let owned = rows.filter(row => row.queue.startsWith(checkpointPrefix));
+  let instanceIds = owned.map(row => row.queue.slice(checkpointPrefix.length));
+  let instances = await db.instance.findMany({
+    where: { id: { in: instanceIds } },
+    select: { id: true, oid: true }
+  });
+  let known = new Set(instances.map(instance => instance.id));
+  let orphaned = owned.filter(row => !known.has(row.queue.slice(checkpointPrefix.length)));
+
+  if (orphaned.length) {
+    await db.queueCheckpoint.deleteMany({
+      where: { queue: { in: orphaned.map(row => row.queue) } }
     });
-    if (!rows.length) return;
-
-    let owned = rows.filter(row => row.queue.startsWith(checkpointPrefix));
-    let instanceIds = owned.map(row => row.queue.slice(checkpointPrefix.length));
-    let instances = await db.instance.findMany({
-      where: { id: { in: instanceIds } },
-      select: { id: true, oid: true }
-    });
-    let known = new Set(instances.map(instance => instance.id));
-    let orphaned = owned.filter(row => !known.has(row.queue.slice(checkpointPrefix.length)));
-
-    if (orphaned.length) {
-      await db.queueCheckpoint.deleteMany({
-        where: { queue: { in: orphaned.map(row => row.queue) } }
-      });
-    }
-
-    if (instances.length) {
-      await pushToolCallsInstanceQueue.addManyWithOps(
-        instances.map(instance => ({
-          data: { instanceOid: instance.oid.toString() },
-          opts: instanceJobOpts(instance.oid)
-        }))
-      );
-    }
-
-    if (rows.length == instancePageSize) {
-      await pushToolCallsManyQueue.add(
-        { ...data, cursor: rows[rows.length - 1]!.queue },
-        pacedDelay(nextPageDelay)
-      );
-    }
-    return;
   }
 
+  if (instances.length) {
+    await pushToolCallsInstanceQueue.addManyWithOps(
+      instances.map(instance => ({
+        data: { instanceOid: instance.oid.toString() },
+        opts: instanceJobOpts(instance.oid)
+      }))
+    );
+  }
+
+  if (rows.length == instancePageSize) {
+    await pushToolCallsManyQueue.add(
+      { ...data, cursor: rows[rows.length - 1]!.queue },
+      pacedDelay(nextPageDelay)
+    );
+  }
+};
+
+let scanCredentials = async (data: ManyScan) => {
   let where = {
     status: 'active' as const,
     instanceOid: data.cursor ? { gt: BigInt(data.cursor) } : undefined
@@ -156,6 +138,127 @@ export let pushToolCallsManyQueueProcessor = pushToolCallsManyQueue.process(asyn
       pacedDelay(nextPageDelay)
     );
   }
+};
+
+let isTracked = async (instance: TrackedInstance) =>
+  !!instance.agentTrackingLinkedAt &&
+  instance.status == 'active' &&
+  instance.organization.status == 'active' &&
+  instance.project.status == 'active' &&
+  (await hasActiveCredential(instance)) &&
+  (await isAgentTrackingEnabledForOrganization({
+    organization: instance.organization,
+    project: instance.project
+  }));
+
+let openWindow = async (
+  checkpoint: ReturnType<typeof toolCallCheckpoint>
+): Promise<ScanWindow | null> => {
+  let upTo = new Date((await databaseNow()).getTime() - commitLagMs);
+  let since = await checkpoint.since();
+
+  if (!since) {
+    await checkpoint.commit(upTo);
+    return null;
+  }
+  if (since >= upTo) return null;
+
+  return { since: since.toISOString(), upTo: upTo.toISOString() };
+};
+
+let environmentOf = async (instance: Pick<Instance, 'subspaceEnvironmentId'>) =>
+  instance.subspaceEnvironmentId
+    ? await subspaceDb.environment.findUnique({
+        where: { id: instance.subspaceEnvironmentId },
+        select: { oid: true, tenantOid: true }
+      })
+    : null;
+
+let listPushedMessages = async (d: {
+  environment: { oid: bigint; tenantOid: bigint };
+  window: ScanWindow;
+}) =>
+  await subspaceDb.sessionMessage.findMany({
+    where: {
+      tenantOid: d.environment.tenantOid,
+      environmentOid: d.environment.oid,
+      ...windowWhere(d.window),
+      toolCall: {
+        is: {
+          tenantOid: d.environment.tenantOid,
+          clientCallId: { not: null },
+          clientCallSource: { not: null }
+        }
+      }
+    },
+    orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
+    take: linksPerUpsert,
+    select: pushedMessageSelect
+  });
+
+let pushLinks = async (d: {
+  agentTracking: NonNullable<ReturnType<typeof getAgentTracking>>;
+  instance: TrackedInstance;
+  messages: Awaited<ReturnType<typeof listPushedMessages>>;
+}) => {
+  let instance = d.instance;
+  let { organization, project } = instance;
+
+  let [sessionDims, settings] = await Promise.all([
+    resolveUsageSessionDimsMany(d.messages.map(message => message.session)),
+    readOrganizationSettings(organization.id)
+  ]);
+  let links = toolCallLinksOf({
+    messages: d.messages,
+    sessionDims,
+    toolDetails: organizationSettingsOf(organization, settings).desktop.toolDetails
+  });
+  if (!links.length) return 'continue' as const;
+
+  let failure: ReturnType<typeof linkFailureOf>;
+
+  await withInstanceScope({ organization, project, instance }, async () => {
+    try {
+      await d.agentTracking.toolCallLink.upsert({
+        organizationId: organization.id,
+        instanceId: instance.id,
+        links
+      });
+    } catch (error) {
+      failure = linkFailureOf(error);
+      if (!failure) throw error;
+    }
+  });
+  if (!failure) return 'continue' as const;
+
+  console.warn(
+    `[agent-tracking] tool call links of instance ${instance.id} failed with status ${failure.status}, ${failure.action == 'stop' ? 'stopping for now' : 'skipping the page'}`
+  );
+
+  return failure.action == 'stop' ? ('stop' as const) : ('continue' as const);
+};
+
+export let pushToolCallsCron = createCron(
+  { name: 'agent-tracking/tool-calls/cron', cron: '*/5 * * * *' },
+  async () => {
+    if (!isAgentTrackingEnabled()) return;
+
+    await pushToolCallsManyQueue.addMany([
+      { credential: 'token' },
+      { credential: 'source' },
+      { credential: 'checkpoint' }
+    ]);
+  }
+);
+
+export let pushToolCallsManyQueue = createQueue<ManyScan>({
+  name: 'agent-tracking/tool-calls/many',
+  workerOpts: { concurrency: 1 }
+});
+
+export let pushToolCallsManyQueueProcessor = pushToolCallsManyQueue.process(async data => {
+  if (data.credential == 'checkpoint') await sweepCheckpoints(data);
+  else await scanCredentials(data);
 });
 
 export let pushToolCallsInstanceQueue = createQueue<{
@@ -177,106 +280,32 @@ export let pushToolCallsInstanceQueueProcessor = pushToolCallsInstanceQueue.proc
     });
     if (!instance) return;
 
-    let { organization, project } = instance;
-    let tracked =
-      !!instance.agentTrackingLinkedAt &&
-      instance.status == 'active' &&
-      organization.status == 'active' &&
-      project.status == 'active' &&
-      (await hasActiveCredential(instance)) &&
-      (await isAgentTrackingEnabledForOrganization({ organization, project }));
-
-    if (!tracked) {
+    if (!(await isTracked(instance))) {
       await clearToolCallCheckpoint(instance);
       return;
     }
 
     let checkpoint = toolCallCheckpoint(instance);
-    let window = data.window;
-
-    if (!window) {
-      let upTo = new Date((await databaseNow()).getTime() - commitLagMs);
-      let since = await checkpoint.since();
-
-      if (!since) {
-        await checkpoint.commit(upTo);
-        return;
-      }
-      if (since >= upTo) return;
-
-      window = { since: since.toISOString(), upTo: upTo.toISOString() };
-    }
+    let window = data.window ?? (await openWindow(checkpoint));
+    if (!window) return;
 
     let upTo = new Date(window.upTo);
 
-    let environment = instance.subspaceEnvironmentId
-      ? await subspaceDb.environment.findUnique({
-          where: { id: instance.subspaceEnvironmentId },
-          select: { oid: true, tenantOid: true }
-        })
-      : null;
+    let environment = await environmentOf(instance);
     if (!environment) {
       await checkpoint.commit(upTo);
       return;
     }
 
-    let messages = await subspaceDb.sessionMessage.findMany({
-      where: {
-        tenantOid: environment.tenantOid,
-        environmentOid: environment.oid,
-        ...windowWhere(window),
-        toolCall: {
-          is: {
-            tenantOid: environment.tenantOid,
-            clientCallId: { not: null },
-            clientCallSource: { not: null }
-          }
-        }
-      },
-      orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],
-      take: toolCallPageSize,
-      select: pushedMessageSelect
-    });
-
+    let messages = await listPushedMessages({ environment, window });
     if (messages.length) {
-      let [sessionDims, settings] = await Promise.all([
-        resolveUsageSessionDimsMany(messages.map(message => message.session)),
-        readOrganizationSettings(organization.id)
-      ]);
-      let links = toolCallLinksOf({
-        messages,
-        sessionDims,
-        toolDetails: organizationSettingsOf(organization, settings).desktop.toolDetails
-      });
-
-      if (links.length) {
-        let failure: ReturnType<typeof linkFailureOf>;
-
-        await withInstanceScope({ organization, project, instance }, async () => {
-          try {
-            await agentTracking.toolCallLink.upsert({
-              organizationId: organization.id,
-              instanceId: instance.id,
-              links
-            });
-          } catch (error) {
-            failure = linkFailureOf(error);
-            if (!failure) throw error;
-          }
-        });
-
-        if (failure) {
-          console.warn(
-            `[agent-tracking] tool call links of instance ${instance.id} failed with status ${failure.status}, ${failure.action == 'stop' ? 'stopping for now' : 'skipping the page'}`
-          );
-          if (failure.action == 'stop') return;
-        }
-      }
+      let next = await pushLinks({ agentTracking, instance, messages });
+      if (next == 'stop') return;
     }
 
     let last = messages[messages.length - 1];
 
-    if (messages.length < toolCallPageSize || !last) {
+    if (messages.length < linksPerUpsert || !last) {
       await checkpoint.commit(upTo);
       return;
     }

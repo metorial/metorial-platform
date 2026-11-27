@@ -7,7 +7,10 @@ import { Flex, RenderDate, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { useInstanceContext } from '../../lib/dataList';
 import { toolCallLinkQuery, toolCallStatus } from '../logsTable/toolCallParts';
+import { agentTrackingErrorFor, agentTrackingErrorStatus } from './errorState';
 import { sessionToolCallNotes } from './toolCallLinks';
+
+let boxTitle = 'Metorial Tool Calls';
 
 type SessionToolCalls = DashboardInstanceAgentTrackingSessionsToolCallsListOutput;
 
@@ -16,10 +19,10 @@ let ToolCallsList = ({ toolCalls }: { toolCalls: SessionToolCalls }) => {
   let notes = sessionToolCallNotes(toolCalls);
 
   return (
-    <Box title="Metorial Tool Calls">
+    <Box title={boxTitle}>
       <Flex direction="column" gap={12}>
         <Table
-          headers={['Tool', 'Integration', 'Status', 'Time']}
+          headers={['Tool', 'Provider', 'Status', 'Time']}
           data={toolCalls.items.map(item => ({
             data: [
               <Flex key="tool" direction="column" gap={2}>
@@ -69,7 +72,13 @@ export let SessionToolCallsBox = ({
 
   return renderWithLoader(
     { toolCalls },
-    { loading: () => null, error: () => null }
+    {
+      loading: () => null,
+      error: error =>
+        agentTrackingErrorStatus(error) == 403 ? null : (
+          <Box title={boxTitle}>{agentTrackingErrorFor(toolCalls)(error)}</Box>
+        )
+    }
   )(({ toolCalls }) =>
     toolCalls.data.items.length ? <ToolCallsList toolCalls={toolCalls.data} /> : null
   );

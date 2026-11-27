@@ -15,7 +15,6 @@ import { Controller } from '@metorial/rest';
 import { idFilter, rangeFields, rangeOf } from '../../../lib/agentTrackingParams';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { requireParam } from '../../../lib/requireParam';
-import { canReadProviders } from '../../../lib/toolCallAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { agentTrackingInstanceGroup } from './group';
 
@@ -105,7 +104,7 @@ export let agentTrackingSessionController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
-          canReadProviders: await canReadProviders(ctx),
+          canReadProviders: await ctx.integrationsAccess.providers(),
           memberIds: normalizeArrayParam(ctx.query.member_id),
           modelIds: normalizeArrayParam(ctx.query.model_id),
           clientFamilies: normalizeArrayParam(ctx.query.client_family),
@@ -137,7 +136,7 @@ export let agentTrackingSessionController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
-          canReadProviders: await canReadProviders(ctx),
+          canReadProviders: await ctx.integrationsAccess.providers(),
           sessionId: requireParam(ctx.params, 'sessionId')
         });
 

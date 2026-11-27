@@ -83,16 +83,10 @@ let occurredAt = stored('occurredAt', 'date', 'When it happened.', {
 
 let claudeCode: Filter = { field: 'client.family', op: 'eq', value: 'claude-code' };
 
-// Older Claude Code records stored a redacted MCP call as an unknown tool named by placeholder.
 let mcpCall: Filter = {
   or: [
     { field: 'tool.kind', op: 'eq', value: 'mcp' },
-    {
-      and: [
-        claudeCode,
-        { field: 'tool.name', op: 'in', value: [...claudeCodePlaceholderNames.mcpTools] }
-      ]
-    }
+    { field: 'tool.name', op: 'in', value: [...claudeCodePlaceholderNames.mcpTools] }
   ]
 };
 

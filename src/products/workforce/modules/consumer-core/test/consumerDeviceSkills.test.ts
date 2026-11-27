@@ -64,12 +64,16 @@ let oauthToken = {
   oauthAuthorization: { subjectType: 'consumer', oauthApplication: { type: 'cli_auth' } }
 } as any;
 
-let checkIn = (reportedSkills?: { skillId: string; name: string }[]) =>
+let checkIn = (
+  reportedSkills?: { skillId: string; name: string }[],
+  skillAccess: Parameters<typeof consumerDeviceService.checkInDevice>[0]['skillAccess'] = 'any'
+) =>
   consumerDeviceService.checkInDevice({
     instance,
     consumerProfile,
     oauthToken,
     auditScope: {} as any,
+    skillAccess,
     input: {
       installationId: 'a'.repeat(32),
       name: 'Mac',
@@ -139,6 +143,31 @@ describe('device check-in skills', () => {
     expect(mocks.db.consumerDeviceSkill.createMany.mock.calls[0]![0].data).toMatchObject([
       { name: 'billing', skillOid: 12n }
     ]);
+  });
+
+  it('only keeps skills the signed-in consumer can access', async () => {
+    let where = { store: { is: { id: 'sto_shared' } } };
+
+    await checkIn([{ skillId: 'skl_billing', name: 'billing' }], { where });
+
+    expect(mocks.db.skill.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['skl_billing'] },
+        instanceOid: 3n,
+        status: 'active',
+        AND: [where]
+      }
+    });
+  });
+
+  it('stores no reported skill when the caller allows none', async () => {
+    await checkIn([{ skillId: 'skl_billing', name: 'billing' }], 'none');
+
+    expect(mocks.db.skill.findMany).not.toHaveBeenCalled();
+    expect(mocks.db.consumerDeviceSkill.deleteMany).toHaveBeenCalledWith({
+      where: { oid: { in: [1n, 2n] } }
+    });
+    expect(mocks.db.consumerDeviceSkill.createMany).not.toHaveBeenCalled();
   });
 
   it('keeps the stored list when the app leaves it out', async () => {

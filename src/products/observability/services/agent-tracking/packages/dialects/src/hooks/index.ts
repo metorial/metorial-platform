@@ -3,7 +3,6 @@ import { readFields, withCoerced } from '../fields';
 import type { HookDialect, Mapped } from '../types';
 import { nativeLabel } from '../values';
 import { createCompatibleHookDialect } from './compatible';
-import { hookPolicyOf } from './policy';
 
 export let claudeCodeHooks = createCompatibleHookDialect({
   id: 'claude-code.hooks.v1',
@@ -61,7 +60,7 @@ export let createGenericHooks = (client: string): HookDialect => ({
     ];
 
     return withCoerced(
-      hookPolicyOf(context).sessionContext ? withHookContext(mapped, fields, event) : mapped,
+      context.policy.sessionContext ? withHookContext(mapped, fields, event) : mapped,
       fields
     );
   }
@@ -77,12 +76,3 @@ let knownDialectFor = (client: string): HookDialect | undefined =>
 
 export let hookDialectFor = (client: string): HookDialect =>
   knownDialectFor(client) ?? createGenericHooks(client);
-
-export let hookDialectById = (client: string, id: string): HookDialect | null => {
-  let known = knownDialectFor(client);
-
-  if (known && known.id == id) return known;
-  if (id == genericHooksId) return createGenericHooks(client);
-
-  return null;
-};
