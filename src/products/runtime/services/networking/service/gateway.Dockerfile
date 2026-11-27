@@ -1,7 +1,7 @@
 # runtime-egress-gateway. Docker context is the OSS monorepo root (./oss):
 #   docker build -f src/products/runtime/services/networking/service/gateway.Dockerfile -t runtime-egress-gateway .
 
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /src
 

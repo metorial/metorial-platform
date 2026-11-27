@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /src
 COPY src/products/runtime/services/networking/legacy/deflector/go.mod src/products/runtime/services/networking/legacy/deflector/go.sum* ./
