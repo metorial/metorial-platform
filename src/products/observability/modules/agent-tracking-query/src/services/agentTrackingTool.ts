@@ -26,6 +26,7 @@ import {
   type ResolvedRange
 } from '../lib/range';
 import { lookupRepositories } from '../lib/repositories';
+import { lookupSkills, type SkillReadScope } from '../lib/skills';
 import {
   cachedRead,
   runUsageQueries,
@@ -44,6 +45,8 @@ import {
   mcpSummaryQuery,
   serverProviderIdsOf,
   skillItemsOf,
+  skillDevicesOf,
+  skillDevicesQuery,
   skillSummaryOf,
   skillSummaryQuery,
   skillUsageQuery,
@@ -56,6 +59,7 @@ import type {
   AgentTrackingProvider,
   AgentTrackingProviderCalls,
   AgentTrackingRepository,
+  AgentTrackingSkill,
   AgentTrackingSkillUsage,
   ProviderCallGroup
 } from '../lib/types';
@@ -63,23 +67,27 @@ import type {
 let noRows: UsageResult = { rows: [] };
 
 class AgentTrackingToolServiceImpl {
-  async getSkillUsage(d: ReadScope & { range: RangeInput }): Promise<AgentTrackingSkillUsage> {
+  async getSkillUsage(
+    d: ReadScope & SkillReadScope & { range: RangeInput }
+  ): Promise<AgentTrackingSkillUsage> {
     let { range, now, toolDetails } = await this.prepare(d);
 
     let usage = await cachedRead({
       scope: d,
       read: 'tools.skills',
-      input: { range: rangeCacheKey(range, now) },
+      input: { range: rangeCacheKey(range, now), skillNames: !!d.canReadSkills },
       load: async () => {
         let resolved = resolveRange(range, now);
-        let [summary = noRows, skills = noRows] = (
-          await runUsageQueries(d, [skillSummaryQuery(resolved), skillUsageQuery(resolved)])
-        ).map(result => result ?? noRows);
+        let [results, installedSkills] = await Promise.all([
+          runUsageQueries(d, [skillSummaryQuery(resolved), skillUsageQuery(resolved)]),
+          this.installedSkills(d, resolved)
+        ]);
+        let [summary = noRows, skills = noRows] = results.map(result => result ?? noRows);
 
         return {
           range: resolved,
           summary: skillSummaryOf(summary, anyDistinctCapped([summary, skills])),
-          items: skillItemsOf(skills),
+          items: skillItemsOf(skills, installedSkills),
           truncated: !!skills.meta?.truncated
         };
       }
@@ -211,6 +219,24 @@ class AgentTrackingToolServiceImpl {
           return provider ? [[server, provider] as const] : [];
         })
       );
+    } catch (error) {
+      if (!isServiceError(error)) getSentry().captureException(error);
+      return new Map();
+    }
+  }
+
+  private async installedSkills(
+    d: ReadScope & SkillReadScope,
+    range: ResolvedRange
+  ): Promise<Map<string, AgentTrackingSkill>> {
+    if (!d.canReadSkills) return new Map();
+
+    try {
+      let devices: UsageResult = await fromService(() =>
+        runUsageQuery(d, skillDevicesQuery(range))
+      );
+
+      return await lookupSkills({ scope: d, devicesByName: skillDevicesOf(devices) });
     } catch (error) {
       if (!isServiceError(error)) getSentry().captureException(error);
       return new Map();

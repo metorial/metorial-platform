@@ -30,7 +30,8 @@ export let claudeCodeTranscriptRequestSchema = v.object({
   cache_read_input_tokens: v.optional(tokens),
   cache_creation_input_tokens: v.optional(tokens),
   cache_creation_5m_input_tokens: v.optional(tokens),
-  cache_creation_1h_input_tokens: v.optional(tokens)
+  cache_creation_1h_input_tokens: v.optional(tokens),
+  purpose: v.optional(v.enumOf(['main', 'subagent']))
 });
 
 export let codexTranscriptRequestSchema = v.object({

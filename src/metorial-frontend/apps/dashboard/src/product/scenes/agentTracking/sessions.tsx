@@ -121,6 +121,7 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
       col.custom<Session>({
         id: 'repository',
         header: 'Repository',
+        isDefault: false,
         render: row => (
           <FirstAndRest
             names={row.context.repositories.map(repositoryLabel)}
@@ -142,6 +143,7 @@ let buildSessionsList = (name: string, d: { forMember: boolean }) =>
       col.custom<Session>({
         id: 'tickets',
         header: 'Tickets',
+        isDefault: false,
         render: row => (
           <FirstAndRest
             names={row.context.tickets.map(ticket => ticket.key)}

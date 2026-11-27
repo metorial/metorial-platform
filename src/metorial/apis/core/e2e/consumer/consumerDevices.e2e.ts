@@ -16,8 +16,11 @@ import { ID } from '@metorial/db';
 import { describe, expect, it } from 'vitest';
 import {
   agentTrackingPath,
+  agentTrackingSettingsPaths,
+  claudeCodeEventRecord,
   claudeRequest,
   expectIngested,
+  sendClaudeCodeLogs,
   sendClaudeCodeRequests,
   serviceSessions,
   trackedConsumer,
@@ -211,6 +214,65 @@ describe('api-core consumer: devices', () => {
     expect(serialized).not.toContain(desktop.oauthToken.refreshToken!);
   });
 
+  it('validates the reported skills and keeps the stored list when the app leaves it out', async () => {
+    let portal = await createPortal(org);
+    let desktop = await signInDesktop(org, portal.id);
+    let body = checkInBody();
+    let device = expectOk(await desktop.client.post('/consumer/devices/check-in', body));
+    let row = await db.consumerDevice.findUniqueOrThrow({ where: { id: device.id } });
+    let stored = () => db.consumerDeviceSkill.count({ where: { consumerDeviceOid: row.oid } });
+
+    for (let skills of [
+      Array.from({ length: 501 }, (_, i) => ({ skill_id: `skl_${i}`, name: `skill-${i}` })),
+      [{ skill_id: 'skl_1', name: '../escape' }],
+      [{ skill_id: 'skl_1', name: 'a'.repeat(65) }],
+      [{ skill_id: 'mgsr_1', name: 'billing' }]
+    ]) {
+      expectError(
+        await desktop.client.post('/consumer/devices/check-in', { ...body, skills }),
+        400,
+        'invalid_data'
+      );
+    }
+
+    expectOk(
+      await desktop.client.post('/consumer/devices/check-in', {
+        ...body,
+        skills: [{ skill_id: 'skl_0000000000000000000000', name: 'unknown' }]
+      })
+    );
+    expect(await stored()).toBe(0);
+
+    let fixture = await loadOrganizationFixture(org.ids);
+    let skill = await db.skill.create({
+      data: {
+        id: await ID.generateId('skill'),
+        name: uniqueId('device-skill'),
+        storeId: uniqueId('store'),
+        skillEntityId: uniqueId('entity'),
+        organizationOid: fixture.organization.oid,
+        projectOid: fixture.project.oid,
+        instanceOid: fixture.instance.oid
+      }
+    });
+    await db.consumerDeviceSkill.create({
+      data: {
+        id: await ID.generateId('consumerDeviceSkill'),
+        name: 'billing',
+        consumerDeviceOid: row.oid,
+        skillOid: skill.oid,
+        instanceOid: fixture.instance.oid
+      }
+    });
+
+    let checkedIn = expectOk(await desktop.client.post('/consumer/devices/check-in', body));
+    expect(checkedIn).not.toHaveProperty('skills');
+    expect(await stored()).toBe(1);
+
+    expectOk(await desktop.client.post('/consumer/devices/check-in', { ...body, skills: [] }));
+    expect(await stored()).toBe(0);
+  });
+
   it('keeps devices to the consumer profile that enrolled them', async () => {
     let portal = await createPortal(org);
     let desktop = await signInDesktop(org, portal.id);
@@ -356,6 +418,88 @@ describe('api-core consumer: devices', () => {
     });
   }, 150_000);
 
+  it('links a skill activated on a device to the Metorial skill that device installed under its name', async () => {
+    let portal = await createPortal(org);
+    let desktop = await signInDesktop(org, portal.id);
+    let device = expectOk(
+      await desktop.client.post('/consumer/devices/check-in', checkInBody())
+    );
+    let issued = expectOk(
+      await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`)
+    );
+    let fixture = await loadOrganizationFixture(org.ids);
+    let row = await db.consumerDevice.findUniqueOrThrow({ where: { id: device.id } });
+    let skill = await db.skill.create({
+      data: {
+        id: await ID.generateId('skill'),
+        name: uniqueId('Device Skill'),
+        storeId: uniqueId('store'),
+        skillEntityId: uniqueId('entity'),
+        organizationOid: fixture.organization.oid,
+        projectOid: fixture.project.oid,
+        instanceOid: fixture.instance.oid
+      }
+    });
+    let linkedName = uniqueId('linked');
+    let projectName = uniqueId('project');
+    for (let name of [linkedName, projectName]) {
+      await db.consumerDeviceSkill.create({
+        data: {
+          id: await ID.generateId('consumerDeviceSkill'),
+          name,
+          consumerDeviceOid: row.oid,
+          skillOid: skill.oid,
+          instanceOid: fixture.instance.oid
+        }
+      });
+    }
+
+    let sessionId = uniqueId('session');
+    let at = new Date(Date.now() - 60_000);
+    let activation = (name: string, source: string) =>
+      claudeCodeEventRecord({
+        event: 'skill_activated',
+        sessionId,
+        at,
+        attributes: { 'skill.name': name, invocation_trigger: 'model', 'skill.source': source }
+      });
+    let target = { ingestUrl: issued.ingest_url, secret: issued.token };
+    await expectIngested(await sendClaudeCodeRequests(target, [claudeRequest({ sessionId })]));
+    await expectIngested(
+      await sendClaudeCodeLogs(target, [
+        activation(linkedName, 'userSettings'),
+        activation(projectName, 'projectSettings')
+      ])
+    );
+
+    let skillOf = (usage: { items: { name: string; skill: unknown }[] }, name: string) =>
+      usage.items.find(item => item.name == name)?.skill;
+
+    let usage = await eventually(
+      async () => {
+        let usage = expectOk(
+          await org.clients.rest.get(agentTrackingPath(org, '/tools/skills'))
+        );
+        expect(skillOf(usage, linkedName)).toEqual({ id: skill.id, name: skill.name });
+
+        return usage;
+      },
+      { timeoutMs: 150_000, intervalMs: 5_000 }
+    );
+    expect(skillOf(usage, projectName)).toBeNull();
+
+    expectOk(await org.clients.instance.post(`/consumer-devices/${device.id}/revoke`));
+    await eventually(
+      async () => {
+        let after = expectOk(
+          await org.clients.rest.get(agentTrackingPath(org, '/tools/skills'))
+        );
+        expect(skillOf(after, linkedName)).toBeNull();
+      },
+      { timeoutMs: 150_000, intervalMs: 5_000 }
+    );
+  }, 360_000);
+
   it('rotates the telemetry token and refuses the replaced one', async () => {
     let portal = await createPortal(org);
     let desktop = await signInDesktop(org, portal.id);
@@ -429,5 +573,30 @@ describe('api-core consumer: devices', () => {
     );
     expect(revoked.status).toBe('revoked');
     expectError(await org.clients.instance.post(`/consumer-devices/${device.id}/revoke`), 412);
+  });
+});
+
+describe('api-core consumer: device history import window', () => {
+  let org = useOrganization();
+
+  it('tells the device how many days back history import goes', async () => {
+    let portal = await createPortal(org);
+    let desktop = await signInDesktop(org, portal.id);
+
+    let before = expectOk(
+      await desktop.client.post('/consumer/devices/check-in', checkInBody())
+    );
+    expect(before.telemetry).toMatchObject({ history_import: false, history_import_days: 90 });
+
+    expectOk(
+      await org.clients.rest.patch(agentTrackingSettingsPaths(org.ids).organization, {
+        desktop: { history_import: true, history_import_days: 45 }
+      })
+    );
+
+    let after = expectOk(
+      await desktop.client.post('/consumer/devices/check-in', checkInBody())
+    );
+    expect(after.telemetry).toMatchObject({ history_import: true, history_import_days: 45 });
   });
 });

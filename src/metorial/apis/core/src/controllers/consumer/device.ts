@@ -34,6 +34,7 @@ import {
 } from '../../lib/aiToolDetection';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { requireParam } from '../../lib/requireParam';
+import { grantableDeviceSkills, reportedSkillsValidator } from '../../lib/deviceSkills';
 import { getSignedInOAuthToken } from '../../lib/signedInOAuthToken';
 import { checkAccess } from '../../middleware/checkAccess';
 import { requireDeviceTelemetry } from './deviceTelemetry';
@@ -197,7 +198,8 @@ export let consumerDeviceController = Controller.create(
                 'Magic MCP tokens the app installed on this device. Tokens of the same consumer profile that belong to no device yet are linked to it, so revoking the device deletes them.',
               modifiers: [v.maxLength(maxInstallTokenIds)]
             })
-          )
+          ),
+          skills: v.optional(reportedSkillsValidator)
         })
       )
       .output(consumerDevicePresenter)
@@ -220,7 +222,8 @@ export let consumerDeviceController = Controller.create(
               installable: client.installable,
               supportsSkills: client.supports_skills
             })),
-            magicMcpTokenIds: ctx.body.magic_mcp_token_ids
+            magicMcpTokenIds: ctx.body.magic_mcp_token_ids,
+            reportedSkills: await grantableDeviceSkills(ctx, ctx.body.skills)
           }
         });
 

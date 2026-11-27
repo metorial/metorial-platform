@@ -1041,7 +1041,7 @@ let liftedGitParameters = (value: AttributeValue | undefined): OtlpAttributes =>
 
 // What Claude Code sends in place of these names without OTEL_LOG_TOOL_DETAILS. A hook name is
 // its event and matcher, and the matcher is the gated part.
-let claudeCodePlaceholder = (
+export let claudeCodePlaceholder = (
   attributes: OtlpAttributes,
   key: string,
   value: AttributeValue

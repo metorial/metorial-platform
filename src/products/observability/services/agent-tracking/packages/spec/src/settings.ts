@@ -11,21 +11,26 @@ export type OrganizationPrivacySettings = {
   minGroupUsers?: number;
 };
 
-export type OrganizationDesktopSettings = {
+export type OrganizationDesktopSwitches = {
   toolDetails?: boolean;
   sessionContext?: boolean;
   sessionTitles?: boolean;
   historyImport?: boolean;
 };
 
+export type OrganizationDesktopSettings = OrganizationDesktopSwitches & {
+  historyImportDays?: number;
+};
+
 export let defaultOrganizationDesktopSettings: Required<OrganizationDesktopSettings> = {
   toolDetails: false,
   sessionContext: true,
   sessionTitles: false,
-  historyImport: false
+  historyImport: false,
+  historyImportDays: 90
 };
 
-export let fullIngestPolicy: Required<OrganizationDesktopSettings> = {
+export let fullIngestPolicy: Required<OrganizationDesktopSwitches> = {
   toolDetails: true,
   sessionContext: true,
   sessionTitles: true,

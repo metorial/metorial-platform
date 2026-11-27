@@ -400,6 +400,274 @@ describe('hook handler', () => {
     });
   });
 
+  describe('organization reporting settings', () => {
+    let reporting = (settings: { toolDetails: boolean; sessionContext: boolean }) => ({
+      contentPolicy: { defaultMode: 'full' as const },
+      organization: {
+        settings: { desktop: { ...settings, sessionTitles: false, historyImport: false } }
+      }
+    });
+
+    let mcpHook = toolHook({
+      tool_name: 'mcp__github__create_pr',
+      mcp_server: { name: 'github' },
+      tool_input: { title: sentinel },
+      tool_response: { url: sentinel }
+    });
+
+    let skillHook = toolHook({
+      tool_name: 'Skill',
+      tool_use_id: 'toolu_2',
+      tool_input: { skill: 'release-notes' },
+      tool_response: { loaded: 'release-notes' }
+    });
+
+    let failedHook = toolHook({
+      hook_event_name: 'PostToolUseFailure',
+      tool_use_id: 'toolu_3',
+      error: `exit 1: ${sentinel}`
+    });
+
+    let commandHook = promptHook({
+      hook_event_name: 'UserPromptExpansion',
+      command_name: 'deploy-staging',
+      command_source: 'project'
+    });
+
+    let contextHook = {
+      session_id: 'session-1',
+      hook_event_name: 'SessionStart',
+      source: 'startup',
+      cwd: '/Users/someone/code/secret-project',
+      metorial: {
+        git: {
+          toplevel: '/Users/someone/code/secret-project',
+          remote_url: 'https://github.com/example-org/probe-repo',
+          branch: 'feature/MT-7-notes',
+          head: '06de4d4304e317c123c4bbb07394249ed0cde401'
+        }
+      }
+    };
+
+    let send = async (pipeline: ReturnType<typeof createPipeline>, client = 'claude-code') => {
+      for (let hook of [mcpHook, skillHook, failedHook, commandHook]) {
+        await pipeline.send(hookPath(client), { body: JSON.stringify(hook) });
+      }
+    };
+
+    let toolsOf = (pipeline: ReturnType<typeof createPipeline>) =>
+      pipeline.records().filter(record => record.type == 'tool.call');
+
+    it.each(['claude-code', 'codex'])(
+      'stores no MCP or skill names and no tool inputs from %s while detailed tool reporting is off',
+      async client => {
+        let pipeline = createPipeline(reporting({ toolDetails: false, sessionContext: true }));
+
+        await send(pipeline, client);
+
+        let stored = JSON.stringify(pipeline.records());
+        let command = pipeline.records().find(record => record.type == 'command.invoked');
+
+        expect(stored).not.toContain(sentinel);
+        expect(stored).not.toMatch(/github|create_pr|release-notes|deploy-staging/);
+        expect(toolsOf(pipeline).map(record => record.data.tool)).toEqual([
+          { name: 'mcp_tool', kind: 'mcp', class: 'mcp' },
+          { name: 'Skill', kind: 'unknown', class: 'other' },
+          { name: 'Bash', kind: 'shell', class: 'shell' }
+        ]);
+        for (let record of toolsOf(pipeline)) expect(record.content).toEqual([]);
+        expect(command!.data).toMatchObject({ name: 'custom', source: 'project' });
+      }
+    );
+
+    it('strips tool details by the default settings', async () => {
+      let pipeline = createPipeline({ contentPolicy: { defaultMode: 'full' } });
+
+      await send(pipeline);
+
+      expect(JSON.stringify(pipeline.records())).not.toMatch(/SENTINEL|github|release-notes/);
+    });
+
+    it('keeps tool details while detailed tool reporting is on', async () => {
+      let pipeline = createPipeline(reporting({ toolDetails: true, sessionContext: true }));
+
+      await send(pipeline);
+
+      let [mcp] = toolsOf(pipeline);
+      let command = pipeline.records().find(record => record.type == 'command.invoked');
+
+      expect(mcp!.data.tool).toEqual({
+        name: 'mcp__github__create_pr',
+        kind: 'mcp',
+        class: 'mcp',
+        mcp: { server: 'github', tool: 'create_pr' }
+      });
+      expect(
+        toolsOf(pipeline).map(record =>
+          record.content.some(entry => entry.text?.includes(sentinel))
+        )
+      ).toEqual([true, false, true]);
+      expect(JSON.stringify(toolsOf(pipeline)[1]!.content)).toContain('release-notes');
+      expect(command!.data).toMatchObject({ name: 'deploy-staging' });
+    });
+
+    it('stores no session context while session context is off', async () => {
+      let pipeline = createPipeline(reporting({ toolDetails: true, sessionContext: false }));
+
+      await pipeline.send(hookPath('claude-code'), { body: JSON.stringify(contextHook) });
+      await pipeline.send(hookPath('my-agent'), { body: JSON.stringify(contextHook) });
+
+      let stored = JSON.stringify(pipeline.seen());
+
+      expect(pipeline.seen().map(record => record.type)).toEqual([
+        'session.start',
+        'unmapped'
+      ]);
+      expect(stored).not.toMatch(/secret-project|probe-repo|MT-7|06de4d43/);
+    });
+
+    it('keeps session context while session context is on', async () => {
+      let pipeline = createPipeline(reporting({ toolDetails: false, sessionContext: true }));
+
+      await pipeline.send(hookPath('claude-code'), { body: JSON.stringify(contextHook) });
+
+      let context = pipeline.records().find(record => record.type == 'session.context');
+
+      expect(context!.data).toMatchObject({
+        branch: 'feature/MT-7-notes',
+        head: '06de4d4304e317c123c4bbb07394249ed0cde401'
+      });
+    });
+
+    let off = reporting({ toolDetails: false, sessionContext: true });
+    let on = reporting({ toolDetails: true, sessionContext: true });
+
+    let toolOfHook = async (
+      settings: ReturnType<typeof reporting>,
+      hook: Record<string, unknown>,
+      client = 'claude-code'
+    ) => {
+      let pipeline = createPipeline(settings);
+
+      await pipeline.send(hookPath(client), { body: JSON.stringify(hook) });
+
+      return { pipeline, tool: toolsOf(pipeline)[0]?.data.tool };
+    };
+
+    let placeholder = { name: 'mcp_tool', kind: 'mcp', class: 'mcp' };
+
+    it.each([
+      ['a string server', { tool_name: 'create_issue', mcp_server: 'linear' }],
+      ['a server object', { tool_name: 'create_issue', mcp_server: { name: 'linear' } }],
+      ['an MCP-shaped name', { tool_name: 'linear__create_issue' }]
+    ])(
+      'redacts an MCP call named by %s while detailed tool reporting is off',
+      async (_, extra) => {
+        for (let client of ['claude-code', 'codex']) {
+          let { pipeline, tool } = await toolOfHook(off, toolHook(extra), client);
+
+          expect(tool).toEqual(placeholder);
+          expect(JSON.stringify(pipeline.records())).not.toMatch(/linear|create_issue/);
+        }
+      }
+    );
+
+    it('keeps the server and tool of an MCP call while detailed tool reporting is on', async () => {
+      let expected = {
+        name: 'create_issue',
+        kind: 'mcp',
+        class: 'mcp',
+        mcp: { server: 'linear', tool: 'create_issue' }
+      };
+
+      for (let server of ['linear', { name: 'linear' }]) {
+        let { tool } = await toolOfHook(
+          on,
+          toolHook({ tool_name: 'create_issue', mcp_server: server })
+        );
+
+        expect(tool).toEqual(expected);
+      }
+    });
+
+    it('treats a tool named like the placeholder as an ordinary tool while detailed tool reporting is on', async () => {
+      let { tool } = await toolOfHook(on, toolHook({ tool_name: 'mcp_tool' }));
+
+      expect(tool).toEqual({ name: 'mcp_tool', kind: 'unknown', class: 'other' });
+    });
+
+    it('keeps the tool call id, duration and outcome of a redacted call', async () => {
+      let { pipeline } = await toolOfHook(
+        off,
+        toolHook({ tool_name: 'mcp__github__create_pr', duration_ms: 250 })
+      );
+      let [call] = toolsOf(pipeline);
+
+      expect(call!.ctx.tool_call_id).toBe('toolu_1');
+      expect(call!.source.fact_key).toBe(`tool:${call!.ctx.session_key}:toolu_1`);
+      expect(call!.data).toMatchObject({ tool: placeholder, outcome: 'ok', duration_ms: 250 });
+    });
+
+    let subagentHook = (agentType: string) => ({
+      session_id: 'session-1',
+      hook_event_name: 'SubagentStart',
+      agent_id: `agent-${agentType}`,
+      agent_type: agentType
+    });
+
+    let agentNames = async (settings: ReturnType<typeof reporting>) => {
+      let pipeline = createPipeline(settings);
+
+      for (let agentType of ['my-reviewer', 'Explore', 'general-purpose']) {
+        await pipeline.send(hookPath('claude-code'), {
+          body: JSON.stringify(subagentHook(agentType))
+        });
+      }
+
+      return pipeline.seen().map(record => record.data.name);
+    };
+
+    it('stores custom subagent names as the placeholder while detailed tool reporting is off', async () => {
+      expect(await agentNames(off)).toEqual(['custom', 'Explore', 'general-purpose']);
+    });
+
+    it('keeps custom subagent names while detailed tool reporting is on', async () => {
+      expect(await agentNames(on)).toEqual(['my-reviewer', 'Explore', 'general-purpose']);
+    });
+
+    let deniedHook = toolHook({
+      hook_event_name: 'PermissionDenied',
+      tool_use_id: 'toolu_9',
+      reason: `blocked rm -rf ${sentinel}`
+    });
+
+    it('stores no denial reason of a tool while detailed tool reporting is off', async () => {
+      let pipeline = createPipeline(off);
+
+      await pipeline.send(hookPath('claude-code'), { body: JSON.stringify(deniedHook) });
+
+      let [decision] = pipeline.seen();
+
+      expect(decision!.type).toBe('tool.decision');
+      expect(decision!.content).toEqual([]);
+      expect(JSON.stringify(pipeline.seen())).not.toContain(sentinel);
+    });
+
+    it('keeps the denial reason while detailed tool reporting is on', async () => {
+      let pipeline = createPipeline(on);
+
+      await pipeline.send(hookPath('claude-code'), { body: JSON.stringify(deniedHook) });
+
+      let [decision] = pipeline.seen();
+
+      expect(
+        decision!.content.some(
+          entry => entry.role == 'error_message' && entry.text?.includes(sentinel)
+        )
+      ).toBe(true);
+    });
+  });
+
   describe('device-bound tokens', () => {
     it.each(['claude-code', 'codex', 'cursor', 'my-agent'])(
       'refuses hooks for %s from a token bound to a device',

@@ -711,10 +711,11 @@ model AgentTrackingOrganizationSettings {
   hideIndividuals Boolean @default(false)
   minGroupUsers   Int     @default(5)
 
-  toolDetails    Boolean @default(false)
-  sessionContext Boolean @default(true)
-  sessionTitles  Boolean @default(false)
-  historyImport  Boolean @default(false)
+  toolDetails       Boolean @default(false)
+  sessionContext    Boolean @default(true)
+  sessionTitles     Boolean @default(false)
+  historyImport     Boolean @default(false)
+  historyImportDays Int     @default(90)
 
   ticketUrlTemplate String?
 
@@ -1900,6 +1901,7 @@ model ConsumerDevice {
 
   clients                   ConsumerDeviceClient[]
   detections                ConsumerDeviceDetection[]
+  skills                    ConsumerDeviceSkill[]
   magicMcpTokens            MagicMcpToken[]
   agentTrackingIngestTokens AgentTrackingIngestToken[]
 
@@ -1975,6 +1977,28 @@ model ConsumerDeviceClientExcludedSkill {
   createdAt DateTime @default(now())
 
   @@unique([consumerDeviceClientOid, skillOid])
+  @@index([skillOid])
+}
+
+model ConsumerDeviceSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  createdAt DateTime @default(now())
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, name])
+  @@index([instanceOid, name])
   @@index([skillOid])
 }
 
@@ -5088,6 +5112,7 @@ model Instance {
   consumers                            ConsumerProfile[]
   consumerDevices                      ConsumerDevice[]
   consumerDeviceDetections             ConsumerDeviceDetection[]
+  consumerDeviceSkills                 ConsumerDeviceSkill[]
   consumerDeviceSettings               ConsumerDeviceSettings?
   aiToolPolicies                       AiToolPolicy[]
   portals                              Portal[]
@@ -8358,7 +8383,7 @@ model Skill {
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
-  skillParticipants               SkillParticipant[]               @ignore
+  skillParticipants               SkillParticipant[]                  @ignore
   skillVersions                   SkillVersion[]
   skillAgents                     SkillAgent[]
   skillPluginSkills               SkillPluginSkill[]
@@ -8371,6 +8396,7 @@ model Skill {
   upstreamForkSyncs               SkillForkSync[]                     @relation("SkillForkSyncUpstream")
   skillImportItems                SkillImportItem[]
   consumerDeviceClientExclusions  ConsumerDeviceClientExcludedSkill[]
+  consumerDeviceSkills            ConsumerDeviceSkill[]
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeId])

@@ -47,6 +47,7 @@ export type ConsumerDevicesGetOutput = {
     sessionContext: boolean;
     sessionTitles: boolean;
     historyImport: boolean;
+    historyImportDays: number;
   };
   monitor: {
     aiToolDetection: boolean;
@@ -115,7 +116,8 @@ export let mapConsumerDevicesGetOutput =
             'tool_details',
             'session_context',
             'session_titles',
-            'history_import'
+            'history_import',
+            'history_import_days'
           ]
         ]
       ],

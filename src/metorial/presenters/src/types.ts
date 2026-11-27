@@ -2738,6 +2738,7 @@ export let consumerDeviceType = PresentableType.create<{
     sessionContext: boolean;
     sessionTitles: boolean;
     historyImport: boolean;
+    historyImportDays: number;
   };
   monitor?: DeviceMonitor;
   install?: { connectionMode: ConsumerDeviceConnectionMode };

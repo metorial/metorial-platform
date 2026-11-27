@@ -10,6 +10,7 @@ export type DashboardOrganizationsConfigureAgentTrackingGetOutput = {
     sessionContext: boolean;
     sessionTitles: boolean;
     historyImport: boolean;
+    historyImportDays: number;
   };
   links: { ticketUrlTemplate: string | null };
 };
@@ -22,7 +23,16 @@ export let mapDashboardOrganizationsConfigureAgentTrackingGetOutput =
     [
       'desktop',
       0,
-      [1, ['tool_details', 'session_context', 'session_titles', 'history_import']]
+      [
+        1,
+        [
+          'tool_details',
+          'session_context',
+          'session_titles',
+          'history_import',
+          'history_import_days'
+        ]
+      ]
     ],
     ['links', 0, [1, ['ticket_url_template']]]
   ]);

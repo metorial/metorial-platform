@@ -16,6 +16,33 @@ export let defaultClaudeCodeSettingsOptions: ClaudeCodeSettingsOptions = {
   toolDetails: false
 };
 
+export type OrganizationReporting = { toolDetails: boolean; sessionContext: boolean };
+
+let organizationSwitchOf: Partial<
+  Record<keyof ClaudeCodeSettingsOptions, keyof OrganizationReporting>
+> = {
+  repository: 'sessionContext',
+  toolDetails: 'toolDetails'
+};
+
+export let isOffForOrganization = (
+  setting: keyof ClaudeCodeSettingsOptions,
+  organization: OrganizationReporting | null | undefined
+) => {
+  let organizationSwitch = organizationSwitchOf[setting];
+
+  return !!organizationSwitch && organization?.[organizationSwitch] === false;
+};
+
+export let withOrganizationReporting = (
+  options: ClaudeCodeSettingsOptions,
+  organization: OrganizationReporting | null | undefined
+): ClaudeCodeSettingsOptions => ({
+  ...options,
+  repository: options.repository && !isOffForOrganization('repository', organization),
+  toolDetails: options.toolDetails && !isOffForOrganization('toolDetails', organization)
+});
+
 type ClaudeCodeManagedSettings = {
   env: Record<string, string>;
   cleanupPeriodDays?: number;

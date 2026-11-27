@@ -55,7 +55,8 @@ let telemetryOff = {
   toolDetails: false,
   sessionContext: false,
   sessionTitles: false,
-  historyImport: false
+  historyImport: false,
+  historyImportDays: 90
 };
 
 let telemetryOn = {
@@ -65,7 +66,8 @@ let telemetryOn = {
   toolDetails: true,
   sessionContext: true,
   sessionTitles: false,
-  historyImport: true
+  historyImport: true,
+  historyImportDays: 30
 };
 
 describe('consumer device telemetry', () => {
@@ -92,7 +94,8 @@ describe('consumer device telemetry', () => {
         tool_details: true,
         session_context: true,
         session_titles: false,
-        history_import: true
+        history_import: true,
+        history_import_days: 30
       }
     });
   });

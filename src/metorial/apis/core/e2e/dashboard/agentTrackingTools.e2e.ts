@@ -7,7 +7,8 @@ import {
   uniqueEmail,
   uniqueId,
   useMember,
-  useOrganization
+  useOrganization,
+  type BootstrappedOrganization
 } from '@metorial/e2e';
 import {
   agentTrackingPath,
@@ -18,8 +19,11 @@ import {
   ingestFirstUsage,
   sendClaudeCodeLogs
 } from '@metorial/agent-tracking-e2e';
+import { ID } from '@metorial/db';
+import { db, loadOrganizationFixture } from '@metorial/e2e/db';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { adminOnly, adminOnlyClients } from '../_agentTracking';
+import { createConsumerProfile, createPortal } from '../consumer/_shared';
 
 let minuteMs = 60 * 1000;
 
@@ -107,13 +111,59 @@ describe('api-core dashboard: agent tracking tools', () => {
   });
 });
 
+let installSkill = async (org: BootstrappedOrganization, name: string) => {
+  let fixture = await loadOrganizationFixture(org.ids);
+  let portal = await createPortal(org);
+  let profile = await createConsumerProfile(org, portal.id);
+  let consumerProfile = await db.consumerProfile.findUniqueOrThrow({
+    where: { id: profile.id }
+  });
+  let device = await db.consumerDevice.create({
+    data: {
+      id: await ID.generateId('consumerDevice'),
+      installationId: uniqueId('installation-0123456789'),
+      name: 'E2E MacBook',
+      os: 'macos',
+      arch: 'aarch64',
+      appVersion: '0.2.0',
+      consumerProfileOid: consumerProfile.oid,
+      instanceOid: fixture.instance.oid
+    }
+  });
+  let skill = await db.skill.create({
+    data: {
+      id: await ID.generateId('skill'),
+      name: uniqueId('Agent Skill'),
+      storeId: uniqueId('store'),
+      skillEntityId: uniqueId('entity'),
+      organizationOid: fixture.organization.oid,
+      projectOid: fixture.project.oid,
+      instanceOid: fixture.instance.oid
+    }
+  });
+  await db.consumerDeviceSkill.create({
+    data: {
+      id: await ID.generateId('consumerDeviceSkill'),
+      name,
+      consumerDeviceOid: device.oid,
+      skillOid: skill.oid,
+      instanceOid: fixture.instance.oid
+    }
+  });
+
+  return skill;
+};
+
 describe('api-core dashboard: agent tracking tools of ingested usage', () => {
   let org = useOrganization();
 
   let email = uniqueEmail('agent-tools');
   let serverName = uniqueId('github');
+  let skillName = uniqueId('pdf');
 
   beforeAll(async () => {
+    await installSkill(org, skillName);
+
     let now = Date.now();
     let sessionId = uniqueId('session');
     let source = await ingestFirstUsage(org, [
@@ -145,6 +195,11 @@ describe('api-core dashboard: agent tracking tools of ingested usage', () => {
           success: 'true'
         }),
         record('skill_activated', { 'skill.name': 'pdf', invocation_trigger: 'model' }),
+        record('skill_activated', {
+          'skill.name': skillName,
+          invocation_trigger: 'model',
+          'skill.source': 'userSettings'
+        }),
         record('skill_activated', {
           'skill.name': 'custom_skill',
           invocation_trigger: 'model'
@@ -181,21 +236,25 @@ describe('api-core dashboard: agent tracking tools of ingested usage', () => {
     ]);
   });
 
-  it('lists the named skill and counts the placeholder activation without listing it', async () => {
+  it('lists the named skills, links none sent without a Metorial device, and counts the placeholder activation', async () => {
     let usage = await eventually(
       async () => {
         let usage = expectOk(
           await org.clients.rest.get(agentTrackingPath(org, '/tools/skills'))
         );
-        expect(usage.summary).toMatchObject({ activations: 2, named_activations: 1 });
+        expect(usage.summary).toMatchObject({ activations: 3, named_activations: 2 });
 
         return usage;
       },
       { timeoutMs: 120_000, intervalMs: 2_000 }
     );
 
-    expect(usage.items).toEqual([
-      expect.objectContaining({ name: 'pdf', activations: 1, members: 1 })
-    ]);
+    expect(usage.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'pdf', skill: null, activations: 1, members: 1 }),
+        expect.objectContaining({ name: skillName, skill: null, activations: 1 })
+      ])
+    );
+    expect(usage.items).toHaveLength(2);
   });
 });

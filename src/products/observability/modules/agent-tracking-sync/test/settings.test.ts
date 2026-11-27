@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  acceptedHistoryImportDays,
   isTicketUrlTemplate,
   normalizeTicketUrlTemplate,
   ticketUrlTemplate
@@ -73,5 +74,19 @@ describe('normalizeTicketUrlTemplate', () => {
     expect(normalizeTicketUrlTemplate('   ')).toBeNull();
     expect(normalizeTicketUrlTemplate(null)).toBeNull();
     expect(normalizeTicketUrlTemplate(undefined)).toBeUndefined();
+  });
+});
+
+describe('acceptedHistoryImportDays', () => {
+  it.each([
+    [90, null, 90],
+    [365, null, 90],
+    [365, 200, 200],
+    [30, 200, 30],
+    [365, 3650, 365]
+  ])('a window of %i days with record retention %s gives %i', (window, recordDays, days) => {
+    expect(acceptedHistoryImportDays({ historyImportDays: window }, { recordDays })).toBe(
+      days
+    );
   });
 });

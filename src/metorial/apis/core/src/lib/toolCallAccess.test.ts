@@ -15,7 +15,7 @@ vi.mock('@metorial/module-flags', () => ({
   isFlagEnabled: (value: unknown) => value === true
 }));
 
-import { canReadProviders, canReadToolCalls } from './toolCallAccess';
+import { canReadProviders, canReadSkills, canReadToolCalls } from './toolCallAccess';
 
 let ctx = {
   auth: { type: 'user' },
@@ -93,5 +93,31 @@ describe('canReadProviders', () => {
       throw new ServiceError(forbiddenError({ message: 'No' }));
     });
     expect(await canReadProviders(ctx)).toBe(false);
+  });
+});
+
+describe('canReadSkills', () => {
+  it('allows a caller with the skill read scope while skills are on', async () => {
+    mocks.getFlags.mockImplementation(async () => ({ 'skills-enabled': true }));
+
+    expect(await canReadSkills(ctx)).toBe(true);
+    expect(mocks.assertAccess).toHaveBeenCalledWith(ctx, {
+      possibleScopes: ['instance.skill:read']
+    });
+  });
+
+  it('refuses while skills are off or without the scope', async () => {
+    mocks.getFlags.mockImplementation(async () => ({
+      'paid-integrations': true,
+      'skills-enabled': false
+    }));
+    expect(await canReadSkills(ctx)).toBe(false);
+    expect(mocks.assertAccess).not.toHaveBeenCalled();
+
+    mocks.getFlags.mockImplementation(async () => ({ 'skills-enabled': true }));
+    mocks.assertAccess.mockImplementation(async () => {
+      throw new ServiceError(forbiddenError({ message: 'No' }));
+    });
+    expect(await canReadSkills(ctx)).toBe(false);
   });
 });

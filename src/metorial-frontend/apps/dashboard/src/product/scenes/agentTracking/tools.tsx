@@ -39,6 +39,7 @@ import {
   type McpServerItem,
   type McpServerUsage,
   type McpToolItem,
+  type SkillItem,
   type SkillUsage,
   type SortOrder,
   type ToolSort
@@ -54,6 +55,8 @@ type ToolsView = (typeof views)[number]['id'];
 let viewIds = views.map(view => view.id);
 
 let orderIds = ['asc', 'desc'] as const;
+
+let toolFilters = [spendRangeFilter.filter];
 
 let sourceNote =
   'From agent telemetry: what Claude Code and Codex report about their own tool calls, not Metorial’s own MCP server logs.';
@@ -114,17 +117,11 @@ let MetorialUsageLink = () => {
   let ctx = useInstanceContext();
 
   return (
-    <Flex align="center" justify="space-between" gap={12} wrap="wrap">
-      <Text size="2" color="gray600">
-        Metorial’s own MCP servers have exact numbers from Metorial’s logs.
-      </Text>
-
-      <Link to={Paths.instance.usage(ctx.organization, ctx.project, ctx.instance)}>
-        <Button size="2" variant="outline" as="span">
-          View Metorial MCP Usage
-        </Button>
-      </Link>
-    </Flex>
+    <Link to={Paths.instance.usage(ctx.organization, ctx.project, ctx.instance)}>
+      <Button size="2" variant="outline" as="span">
+        Metorial MCP Usage
+      </Button>
+    </Link>
   );
 };
 
@@ -138,6 +135,19 @@ let ServerProvider = ({ provider }: { provider: McpServerItem['provider'] }) => 
     >
       <Text as="span" size="1" color="gray600">
         {provider.name}
+      </Text>
+    </Link>
+  );
+};
+
+let MetorialSkill = ({ skill }: { skill: SkillItem['skill'] }) => {
+  let ctx = useInstanceContext();
+  if (!skill) return null;
+
+  return (
+    <Link to={Paths.instance.skill(ctx.organization, ctx.project, ctx.instance, skill.id)}>
+      <Text as="span" size="1" color="gray600">
+        {skill.name}
       </Text>
     </Link>
   );
@@ -235,11 +245,12 @@ type ToolUsageBoxProps = {
   emptyText: string;
   truncatedText: string;
   onExport: () => void;
-  footer?: React.ReactNode;
+  actions?: React.ReactNode;
 };
 
 let ToolUsageBox = (props: ToolUsageBoxProps) => {
   let hasItems = !!props.usage.items.length;
+  let note = props.unnamed ?? (hasItems ? null : props.emptyText);
   let info = props.usage.toolDetails
     ? sourceNote
     : `${sourceNote} ${detailsOffNote(props.subject)}`;
@@ -248,28 +259,25 @@ let ToolUsageBox = (props: ToolUsageBoxProps) => {
     <Box
       title={<WithInfo info={info}>{props.title}</WithInfo>}
       description={formatAgentTrackingRange(props.usage.range)}
-      rightActions={hasItems ? <ExportButton onClick={props.onExport} /> : null}
+      rightActions={
+        <Flex align="center" gap={8}>
+          {props.actions}
+          {hasItems ? <ExportButton onClick={props.onExport} /> : null}
+        </Flex>
+      }
     >
       <Flex direction="column" gap={16}>
         <MetricsSummary columns={props.summary.length} items={props.summary} />
 
-        {props.unnamed ? (
+        {note ? (
           <Text size="2" color="gray600">
-            {props.unnamed}
+            {note}
           </Text>
         ) : null}
 
-        {hasItems ? (
-          props.table
-        ) : (
-          <Text size="2" color="gray600">
-            {props.emptyText}
-          </Text>
-        )}
+        {hasItems ? props.table : null}
 
         {props.usage.truncated ? <Callout color="gray">{props.truncatedText}</Callout> : null}
-
-        {props.footer}
       </Flex>
     </Box>
   );
@@ -301,10 +309,10 @@ let McpServerUsageBox = ({ usage }: { usage: McpServerUsage }) => (
       name: 'server name'
     })}
     table={<McpServersTable usage={usage} />}
-    emptyText="No MCP tool call with a server name arrived in this range."
+    emptyText="No MCP tool calls in this range."
     truncatedText="More servers or tools were used than are listed; the most used are shown."
     onExport={() => saveCsv(buildMcpServersCsv(usage), toolsCsvFileName('mcp', usage.range))}
-    footer={<MetorialUsageLink />}
+    actions={<MetorialUsageLink />}
   />
 );
 
@@ -326,9 +334,12 @@ let SkillsTable = ({ usage }: { usage: SkillUsage }) => {
         sortHeader(sorting, 'last_used', 'Last Used')
       ]}
       data={sortToolRows(skillSortRows(usage.items), sort, sorting.order).map(item => [
-        <Text key="name" as="span" size="2" weight="medium">
-          {item.name}
-        </Text>,
+        <Flex key="name" align="center" gap={6}>
+          <Text as="span" size="2" weight="medium">
+            {item.name}
+          </Text>
+          <MetorialSkill skill={item.skill} />
+        </Flex>,
         formatNumber(item.activations),
         members(item.members),
         <LastUsed key="last" date={item.lastUsedAt} now={now} />
@@ -357,7 +368,7 @@ let SkillUsageBox = ({ usage }: { usage: SkillUsage }) => (
       name: 'skill name'
     })}
     table={<SkillsTable usage={usage} />}
-    emptyText="No skill activation with a skill name arrived in this range."
+    emptyText="No skill activations in this range."
     truncatedText="More skills were used than are listed; the most used are shown."
     onExport={() => saveCsv(buildSkillsCsv(usage), toolsCsvFileName('skills', usage.range))}
   />
@@ -386,7 +397,7 @@ let UsageSection = <Data,>({
 
 export let AgentTrackingTools = ({ instanceId }: { instanceId: string }) => {
   let [view, setView] = useSearchParamOption<ToolsView>('view', viewIds, 'mcp');
-  let { filterState, payload } = useFilterState({ filters: [spendRangeFilter.filter] });
+  let { filterState, payload } = useFilterState({ filters: toolFilters });
   let range = spendRangeFilter.parse(payload.range)?.[0] ?? defaultAgentTrackingRange;
   let query = { range, timeZone: getBrowserTimeZone() };
   let mcpUsage = useAgentTrackingMcpServerUsage(instanceId, view == 'mcp' ? query : null);
@@ -406,7 +417,7 @@ export let AgentTrackingTools = ({ instanceId }: { instanceId: string }) => {
         </div>
 
         <FilterToolbar
-          filters={[spendRangeFilter.filter]}
+          filters={toolFilters}
           filterState={filterState}
           placeholder="Filter..."
         />

@@ -224,6 +224,13 @@ class AgentTrackingSettingsServiceImpl {
     );
   }
 
+  async getProjectValues(d: {
+    organization: Pick<Organization, 'id'>;
+    project: Pick<Project, 'id'>;
+  }) {
+    return projectSettingsOf(d, await readProjectSettings(d.project.id));
+  }
+
   async getOrganizationSettings(d: OrganizationScope) {
     return await this.get(organizationLevel(d));
   }

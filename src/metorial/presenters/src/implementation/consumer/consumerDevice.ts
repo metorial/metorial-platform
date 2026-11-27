@@ -176,7 +176,8 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
         tool_details: telemetry.toolDetails,
         session_context: telemetry.sessionContext,
         session_titles: telemetry.sessionTitles,
-        history_import: telemetry.historyImport
+        history_import: telemetry.historyImport,
+        history_import_days: telemetry.historyImportDays
       },
       monitor: {
         ai_tool_detection: monitor.aiToolDetection,
@@ -229,6 +230,12 @@ export let consumerConsumerDevicePresenter = Presenter.create(consumerDeviceType
             name: 'history_import',
             description:
               'The organization turned on history import: Metorial Desktop imports agent sessions from the session files the AI tools kept before it was installed. `false` while telemetry is not collected.'
+          }),
+          history_import_days: v.number({
+            name: 'history_import_days',
+            description:
+              "How many days back Metorial Desktop imports session files: the organization's setting, or the project's record retention when that is shorter.",
+            examples: [90]
           })
         },
         {

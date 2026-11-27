@@ -12,6 +12,7 @@ export type DashboardInstanceAgentTrackingToolsSkillsOutput = {
   };
   items: {
     name: string;
+    skill: { id: string; name: string } | null;
     activations: number;
     members: number;
     lastUsedAt: Date | null;

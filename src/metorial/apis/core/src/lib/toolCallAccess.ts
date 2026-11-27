@@ -8,7 +8,11 @@ let toolCallReadScope = 'instance.provider.session:read' as const;
 
 let providerReadScope = 'instance.provider:read' as const;
 
+let skillReadScope = 'instance.skill:read' as const;
+
 let integrationsFlag = 'paid-integrations' as const;
+
+let skillsFlag = 'skills-enabled' as const;
 
 type IntegrationsAccessContext = {
   auth: AuthInfo;
@@ -17,15 +21,16 @@ type IntegrationsAccessContext = {
   instance: Instance;
 };
 
-let canReadIntegrations = async (
+let canRead = async (
   ctx: IntegrationsAccessContext,
-  scope: typeof toolCallReadScope | typeof providerReadScope
+  flag: typeof integrationsFlag | typeof skillsFlag,
+  scope: typeof toolCallReadScope | typeof providerReadScope | typeof skillReadScope
 ) => {
   let flags = await flagService.getFlags({
     organization: ctx.organization,
     project: ctx.project
   });
-  if (!isFlagEnabled(flags[integrationsFlag])) return false;
+  if (!isFlagEnabled(flags[flag])) return false;
 
   try {
     await assertAccess(ctx, { possibleScopes: [scope] });
@@ -37,7 +42,10 @@ let canReadIntegrations = async (
 };
 
 export let canReadToolCalls = (ctx: IntegrationsAccessContext) =>
-  canReadIntegrations(ctx, toolCallReadScope);
+  canRead(ctx, integrationsFlag, toolCallReadScope);
 
 export let canReadProviders = (ctx: IntegrationsAccessContext) =>
-  canReadIntegrations(ctx, providerReadScope);
+  canRead(ctx, integrationsFlag, providerReadScope);
+
+export let canReadSkills = (ctx: IntegrationsAccessContext) =>
+  canRead(ctx, skillsFlag, skillReadScope);

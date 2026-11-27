@@ -59,8 +59,14 @@ let skillUsage = (): SkillUsage => ({
   toolDetails: false,
   summary: { activations: 5, namedActivations: 4, members: 2, countsCapped: false },
   items: [
-    { name: 'pdf', activations: 3, members: 2, lastUsedAt: null },
-    { name: 'docx', activations: 1, members: 1, lastUsedAt: new Date('2026-11-20T08:00:00Z') }
+    { name: 'pdf', skill: null, activations: 3, members: 2, lastUsedAt: null },
+    {
+      name: 'docx',
+      skill: { id: 'skl_docx', name: 'Word Documents' },
+      activations: 1,
+      members: 1,
+      lastUsedAt: new Date('2026-11-20T08:00:00Z')
+    }
   ],
   truncated: false
 });
@@ -128,10 +134,10 @@ describe('tool usage text', () => {
     let skills = { unit: 'skill activation', name: 'skill name' };
 
     expect(unnamedNotice({ total: 10, named: 7, ...mcp })).toBe(
-      '3 MCP tool calls came without a server name, so they are counted above but not listed.'
+      '3 MCP tool calls without a server name.'
     );
     expect(unnamedNotice({ total: 5, named: 4, ...skills })).toBe(
-      '1 skill activation came without a skill name, so it is counted above but not listed.'
+      '1 skill activation without a skill name.'
     );
     expect(unnamedNotice({ total: 5, named: 5, ...skills })).toBeNull();
   });

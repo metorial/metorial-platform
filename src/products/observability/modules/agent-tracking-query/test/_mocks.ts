@@ -68,6 +68,7 @@ export let agentTrackingEnabled = vi.fn(async (_d: any) => true);
 export let syncModule = {
   ...clientFamilies,
   consumerEntitySource: 'metorial.consumer',
+  deviceEntitySource: 'metorial.device',
   ticketUrlTemplateKey: '{key}',
   ignoreNotFound: async <T>(promise: Promise<T>) => {
     try {
@@ -142,7 +143,60 @@ export let instanceConsumers = {
   findMany: vi.fn(async (_query: any): Promise<any[]> => [])
 };
 
-export let dbModule = { db: { consumer: consumers, instanceConsumer: instanceConsumers } };
+export let deviceSkills = {
+  rows: [] as {
+    instanceOid: bigint;
+    name: string;
+    skillOid: bigint;
+    consumerDeviceId: string;
+    consumerDeviceStatus: string;
+  }[],
+  findMany: vi.fn(async (_query: any): Promise<any[]> => [])
+};
+
+export let skills = {
+  rows: [] as { oid: bigint; id: string; name: string; instanceOid: bigint; status: string }[],
+  findMany: vi.fn(async (_query: any): Promise<any[]> => [])
+};
+
+let activeSkillOids = () =>
+  new Set(skills.rows.filter(skill => skill.status == 'active').map(skill => skill.oid));
+
+let findDeviceSkills = async (query: any) => {
+  let active = activeSkillOids();
+
+  return deviceSkills.rows
+    .filter(
+      row =>
+        row.instanceOid == query.where.instanceOid &&
+        query.where.name.in.includes(row.name) &&
+        query.where.consumerDevice.id.in.includes(row.consumerDeviceId) &&
+        row.consumerDeviceStatus == query.where.consumerDevice.status &&
+        active.has(row.skillOid)
+    )
+    .map(row => ({
+      name: row.name,
+      skillOid: row.skillOid,
+      consumerDevice: { id: row.consumerDeviceId }
+    }));
+};
+
+let findSkills = async (query: any) =>
+  skills.rows.filter(
+    skill =>
+      query.where.oid.in.includes(skill.oid) &&
+      skill.instanceOid == query.where.instanceOid &&
+      skill.status == query.where.status
+  );
+
+export let dbModule = {
+  db: {
+    consumer: consumers,
+    instanceConsumer: instanceConsumers,
+    consumerDeviceSkill: deviceSkills,
+    skill: skills
+  }
+};
 
 export let scope = {
   organization: { oid: 1n, id: 'org_1', name: 'Acme' },
@@ -208,6 +262,12 @@ export let resetMocks = () => {
   withInstanceScope.mockClear();
   toolCalls.rows = [];
   toolCalls.listToolCalls.mockClear();
+  deviceSkills.rows = [];
+  deviceSkills.findMany.mockReset();
+  deviceSkills.findMany.mockImplementation(findDeviceSkills);
+  skills.rows = [];
+  skills.findMany.mockReset();
+  skills.findMany.mockImplementation(findSkills);
   providers.rows = [];
   providers.getManyProvidersByIds.mockReset();
   providers.getManyProvidersByIds.mockImplementation(async d =>

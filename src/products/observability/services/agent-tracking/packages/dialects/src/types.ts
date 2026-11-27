@@ -1,6 +1,6 @@
 import type {
   NormalizedRecord,
-  OrganizationDesktopSettings
+  OrganizationDesktopSwitches
 } from '@mtsrc/agent-tracking-spec';
 import type { RecordDraft, RecordSource } from '@mtsrc/agent-tracking-records-model';
 import type {
@@ -17,7 +17,7 @@ export type Mapped = { source: RecordSource; draft: RecordDraft };
 
 export type OtlpSignal = 'logs' | 'metrics' | 'traces';
 
-export type IngestPolicy = Required<OrganizationDesktopSettings>;
+export type IngestPolicy = Required<OrganizationDesktopSwitches>;
 
 export type OtlpPolicy = Pick<IngestPolicy, 'toolDetails' | 'sessionContext'>;
 
@@ -53,6 +53,7 @@ export type OtlpDialect = {
 export type HookContext = {
   identityHint: string;
   occurredAt?: Date | null;
+  policy?: OtlpPolicy;
 };
 
 export type HookDialect = {

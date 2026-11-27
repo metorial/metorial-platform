@@ -91,6 +91,12 @@ export let createToken = async (input: TokenInput = {}, scope?: Scope) => {
 export let createHookToken = (input: TokenInput = {}, scope?: Scope) =>
   createToken({ deviceMode: 'ephemeral', ...input }, scope);
 
+export let createToolDetailsHookToken = async (input: TokenInput = {}) =>
+  createHookToken(
+    input,
+    await createScope({ organization: { settings: { desktop: { toolDetails: true } } } })
+  );
+
 export let createSource = async (input: SourceInput = {}, scope?: Scope) => {
   let target = scope ?? (await createScope());
 

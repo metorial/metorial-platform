@@ -331,6 +331,55 @@ describe('module-consumer-core devices', () => {
     );
   });
 
+  it('stores the skills a device reports under their names and replaces them on check-in', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let other = await loadOrganizationFixture(otherOrg.ids);
+    let desktop = await createDesktopUser(fixture);
+    let oauthToken = await signInDesktop(fixture, desktop);
+    let billing = await createSkill(fixture);
+    let review = await createSkill(fixture);
+    let foreign = await createSkill(other);
+    let input = deviceInput();
+
+    let device = await checkIn(fixture, desktop, oauthToken, {
+      ...input,
+      reportedSkills: [
+        { skillId: billing.id, name: 'billing' },
+        { skillId: foreign.id, name: 'foreign' },
+        { skillId: review.id, name: 'billing' }
+      ]
+    });
+    let stored = async () =>
+      (
+        await db.consumerDeviceSkill.findMany({
+          where: { consumerDeviceOid: device.oid },
+          orderBy: { name: 'asc' }
+        })
+      ).map(row => ({ name: row.name, skillOid: row.skillOid, instanceOid: row.instanceOid }));
+
+    expect(await stored()).toEqual([
+      { name: 'billing', skillOid: billing.oid, instanceOid: fixture.instance.oid }
+    ]);
+
+    await checkIn(fixture, desktop, oauthToken, input);
+    expect(await stored()).toHaveLength(1);
+
+    await checkIn(fixture, desktop, oauthToken, {
+      ...input,
+      reportedSkills: [
+        { skillId: review.id, name: 'billing' },
+        { skillId: review.id, name: 'review' }
+      ]
+    });
+    expect(await stored()).toEqual([
+      { name: 'billing', skillOid: review.oid, instanceOid: fixture.instance.oid },
+      { name: 'review', skillOid: review.oid, instanceOid: fixture.instance.oid }
+    ]);
+
+    await checkIn(fixture, desktop, oauthToken, { ...input, reportedSkills: [] });
+    expect(await stored()).toEqual([]);
+  });
+
   it('links install tokens to the device of the sign-in that created them', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let desktop = await createDesktopUser(fixture);

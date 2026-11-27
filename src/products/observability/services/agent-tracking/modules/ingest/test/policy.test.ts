@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dialectManifests, type IngestPolicy } from '@mtsrc/agent-tracking-dialects';
 import { principalFixture } from '@mtsrc/agent-tracking-records-model/test/principal';
 import type { RecordLane } from '@mtsrc/agent-tracking-spec';
-import { allowsDialect, ingestPolicyFor } from '../src/lib/policy';
+import { allowsDialect, backfillMaxAgeDaysFor, ingestPolicyFor } from '../src/lib/policy';
 
 type Token = 'bound' | 'ephemeral' | 'vendor';
 
@@ -105,26 +105,108 @@ describe('ingestPolicyFor', () => {
     });
   });
 
-  it('keeps everything for tokens that are not bound to a device', () => {
-    let off = {
-      toolDetails: false,
-      sessionContext: false,
-      sessionTitles: false,
-      historyImport: false
-    };
+  it('applies the content switches to tokens that are not bound to a device', () => {
+    let withSettings = (token: 'ephemeral' | 'vendor', desktop: Partial<IngestPolicy>) => ({
+      ...principals[token],
+      organization: { ...principals[token].organization, settings: { desktop } }
+    });
 
     for (let token of ['ephemeral', 'vendor'] as const) {
-      let principal = {
-        ...principals[token],
-        organization: { ...principals[token].organization, settings: { desktop: off } }
-      };
+      expect(
+        ingestPolicyFor(
+          withSettings(token, {
+            toolDetails: false,
+            sessionContext: false,
+            sessionTitles: false,
+            historyImport: false
+          })
+        )
+      ).toEqual({
+        toolDetails: false,
+        sessionContext: false,
+        sessionTitles: true,
+        historyImport: true
+      });
 
-      expect(ingestPolicyFor(principal)).toEqual({
+      expect(
+        ingestPolicyFor(withSettings(token, { toolDetails: true, sessionContext: true }))
+      ).toEqual({
         toolDetails: true,
         sessionContext: true,
         sessionTitles: true,
         historyImport: true
       });
+
+      expect(ingestPolicyFor(principals[token])).toEqual({
+        toolDetails: false,
+        sessionContext: true,
+        sessionTitles: true,
+        historyImport: true
+      });
+    }
+  });
+});
+
+describe('backfillMaxAgeDaysFor', () => {
+  let principal = (
+    token: Token,
+    d: { historyImportDays?: number; recordRetentionDays: number; backfillMaxAgeDays?: number }
+  ) =>
+    principalFixture(
+      { suffix: `age-${token}` },
+      {
+        binding: principals[token].binding,
+        organization: {
+          settings:
+            d.historyImportDays === undefined
+              ? {}
+              : { desktop: { historyImportDays: d.historyImportDays } }
+        },
+        instance: {
+          recordRetentionDays: d.recordRetentionDays,
+          backfillMaxAgeDays: d.backfillMaxAgeDays ?? null
+        }
+      }
+    );
+
+  it.each([
+    ['the default window', { recordRetentionDays: 400 }, 90],
+    [
+      'a longer window within retention',
+      { historyImportDays: 365, recordRetentionDays: 400 },
+      365
+    ],
+    [
+      'a window longer than retention',
+      { historyImportDays: 365, recordRetentionDays: 90 },
+      90
+    ],
+    ['a shorter window', { historyImportDays: 7, recordRetentionDays: 90 }, 7],
+    [
+      'an instance backfill limit',
+      { historyImportDays: 365, recordRetentionDays: 400, backfillMaxAgeDays: 30 },
+      30
+    ]
+  ])('takes %s for a device-bound token', (_name, d, days) => {
+    expect(backfillMaxAgeDaysFor(principal('bound', d))).toBe(days);
+  });
+
+  it('keeps the instance limits for tokens that are not bound to a device', () => {
+    for (let token of ['ephemeral', 'vendor'] as const) {
+      expect(
+        backfillMaxAgeDaysFor(
+          principal(token, { historyImportDays: 7, recordRetentionDays: 400 })
+        )
+      ).toBe(400);
+      expect(
+        backfillMaxAgeDaysFor(
+          principal(token, {
+            historyImportDays: 7,
+            recordRetentionDays: 400,
+            backfillMaxAgeDays: 500
+          })
+        )
+      ).toBe(500);
     }
   });
 });

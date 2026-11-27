@@ -32,11 +32,13 @@ import {
   buildManagedSettingsCommands,
   detectManagedSettingsOs,
   ingestionKeyPlaceholder,
+  isOffForOrganization,
   localHistoryDays,
   managedSettingsFileName,
   managedSettingsLocations,
   type ClaudeCodeSettingsOptions,
-  type ManagedSettingsOs
+  type ManagedSettingsOs,
+  type OrganizationReporting
 } from './settingsFile';
 
 let templateFileName = 'managed-settings.TEMPLATE.json';
@@ -54,6 +56,7 @@ type OptionDescriptor = {
   sends: string;
   unlocks: string;
   note?: string;
+  organizationSwitch?: string;
   availability: 'always' | 'choice' | 'later';
 };
 
@@ -81,6 +84,7 @@ let optionDescriptors: OptionDescriptor[] = [
     label: 'Repository',
     sends: 'The repository of each session, taken from its git remote.',
     unlocks: 'Spend by repository, in a later release.',
+    organizationSwitch: 'Session Context',
     availability: 'choice'
   },
   {
@@ -88,10 +92,11 @@ let optionDescriptors: OptionDescriptor[] = [
     setting: 'toolDetails',
     label: 'Detailed Tool Reporting',
     sends:
-      'Skill, MCP, agent and plugin names, the branch of commits and the error text of failed tools. With them, Claude Code also sends tool inputs, file paths and commands off the device.',
+      "Skill, MCP, agent and plugin names, the branch and commit of Claude Code's own commits (kept only with Session Context on) and the error text of failed tools. With them, Claude Code also sends tool inputs, file paths and commands off the device.",
     unlocks:
       'Skill and MCP server usage on the Tools tab, and spend by branch in a later release.',
-    note: 'Off by default because it sends tool inputs, file paths and commands. Agent Usage keeps only the length and a keyed hash of each tool input and error text, never the text itself.',
+    note: "Off by default because it sends tool inputs, file paths and commands. By default Agent Usage keeps only the size and a fingerprint of each tool input and error text; the text is kept only when this environment's content settings are set to keep it.",
+    organizationSwitch: 'Detailed Tool Reporting',
     availability: 'choice'
   },
   {
@@ -154,7 +159,7 @@ let HintBadge = ({
   </Tooltip>
 );
 
-let CopyButton = ({
+export let CopyButton = ({
   value,
   label,
   variant = 'outline'
@@ -175,10 +180,12 @@ let CopyButton = ({
 let SettingsOptions = ({
   instanceId,
   options,
+  organization,
   onChange
 }: {
   instanceId: string;
   options: ClaudeCodeSettingsOptions;
+  organization: OrganizationReporting | null | undefined;
   onChange: (options: ClaudeCodeSettingsOptions) => void;
 }) => {
   let setupStatus = useAgentTrackingSetupStatus(instanceId);
@@ -198,46 +205,59 @@ let SettingsOptions = ({
         </>
       ) : null}
 
-      {optionDescriptors.map(option => (
-        <OptionRow key={option.id}>
-          <Flex direction="column" gap={4} style={{ minWidth: 0 }}>
-            <WithInfo info={option.note}>
-              <Text size="2" weight="strong">
-                {option.label}
+      {optionDescriptors.map(option => {
+        let offForOrganization =
+          !!option.setting && isOffForOrganization(option.setting, organization);
+
+        return (
+          <OptionRow key={option.id}>
+            <Flex direction="column" gap={4} style={{ minWidth: 0 }}>
+              <WithInfo info={option.note}>
+                <Text size="2" weight="strong">
+                  {option.label}
+                </Text>
+              </WithInfo>
+              <Text size="2" color="gray700">
+                Sends: {option.sends}
               </Text>
-            </WithInfo>
-            <Text size="2" color="gray700">
-              Sends: {option.sends}
-            </Text>
-            <Text size="2" color="gray700">
-              Unlocks: {option.unlocks}
-            </Text>
-          </Flex>
+              <Text size="2" color="gray700">
+                Unlocks: {option.unlocks}
+              </Text>
+              {offForOrganization ? (
+                <Text size="2" color="gray600">
+                  This organization has {option.organizationSwitch} turned off; an organization
+                  admin can turn it on in the Agent Usage settings.
+                </Text>
+              ) : null}
+            </Flex>
 
-          <Flex align="center" gap={12} style={{ flexShrink: 0 }}>
-            {setupStatus.data && option.availability != 'later' ? (
-              <HintBadge {...detectionBadges[setupStatus.data.options[option.id]]} />
-            ) : null}
+            <Flex align="center" gap={12} style={{ flexShrink: 0 }}>
+              {setupStatus.data && option.availability != 'later' ? (
+                <HintBadge {...detectionBadges[setupStatus.data.options[option.id]]} />
+              ) : null}
 
-            <Switch
-              label={option.label}
-              hideLabel
-              checked={
-                option.setting ? options[option.setting] : option.availability == 'always'
-              }
-              disabled={!option.setting}
-              onCheckedChange={checked =>
-                option.setting && onChange({ ...options, [option.setting]: checked })
-              }
-            />
-          </Flex>
-        </OptionRow>
-      ))}
+              <Switch
+                label={option.label}
+                hideLabel
+                checked={
+                  option.setting
+                    ? options[option.setting] && !offForOrganization
+                    : option.availability == 'always'
+                }
+                disabled={!option.setting || offForOrganization}
+                onCheckedChange={checked =>
+                  option.setting && onChange({ ...options, [option.setting]: checked })
+                }
+              />
+            </Flex>
+          </OptionRow>
+        );
+      })}
     </div>
   );
 };
 
-let CommandStep = ({
+export let CommandStep = ({
   title,
   command,
   language
@@ -257,19 +277,21 @@ let CommandStep = ({
   </>
 );
 
-let MissingFile = ({
+export let MissingFile = ({
   instanceId,
-  notConfigured
+  notConfigured,
+  subject = 'file'
 }: {
   instanceId: string;
   notConfigured: boolean;
+  subject?: string;
 }) => {
   let activeKeys = useAgentTrackingIngestSources(instanceId, { limit: 1, status: 'active' });
 
   if (notConfigured) {
     return (
       <Text size="2" color="gray600">
-        The file is built from an ingestion key.
+        The {subject} is built from an ingestion key.
       </Text>
     );
   }
@@ -280,11 +302,12 @@ let MissingFile = ({
   )(({ activeKeys }) =>
     activeKeys.data.items.length ? (
       <Callout color="gray">
-        {noIngestAddressText} No file can be built, but existing keys can still be revoked.
+        {noIngestAddressText} No {subject} can be built, but existing keys can still be
+        revoked.
       </Callout>
     ) : (
       <Text size="2" color="gray600">
-        Create an ingestion key first. The file is built from it.
+        Create an ingestion key first. The {subject} is built from it.
       </Text>
     )
   );
@@ -460,12 +483,14 @@ export let DeployInstructions = ({
   file,
   notConfigured,
   options,
+  organization,
   onOptionsChange
 }: {
   instanceId: string;
   file: ManagedSettingsFile | null;
   notConfigured: boolean;
   options: ClaudeCodeSettingsOptions;
+  organization: OrganizationReporting | null | undefined;
   onOptionsChange: (options: ClaudeCodeSettingsOptions) => void;
 }) => {
   let [mode, setMode] = useState<DeployMode>('machine');
@@ -513,6 +538,7 @@ export let DeployInstructions = ({
         <SettingsOptions
           instanceId={instanceId}
           options={options}
+          organization={organization}
           onChange={onOptionsChange}
         />
       ) : null}

@@ -8,11 +8,30 @@ import {
 
 let isDeviceBound = (principal: IngestPrincipal) => principal.binding.deviceMode == 'bound';
 
-// Only Metorial Desktop holds device-bound tokens; other credentials keep what their exporter sends.
-export let ingestPolicyFor = (principal: IngestPrincipal): IngestPolicy =>
-  isDeviceBound(principal)
-    ? desktopSettingsOf(principal.organization.settings)
-    : fullIngestPolicy;
+export let ingestPolicyFor = (principal: IngestPrincipal): IngestPolicy => {
+  let { historyImportDays: _, ...settings } = desktopSettingsOf(
+    principal.organization.settings
+  );
+  if (isDeviceBound(principal)) return settings;
+
+  return {
+    ...fullIngestPolicy,
+    toolDetails: settings.toolDetails,
+    sessionContext: settings.sessionContext
+  };
+};
+
+export let backfillMaxAgeDaysFor = (principal: IngestPrincipal) => {
+  let { instance } = principal;
+  let instanceDays = instance.backfillMaxAgeDays ?? instance.recordRetentionDays;
+  if (!isDeviceBound(principal)) return instanceDays;
+
+  return Math.min(
+    instanceDays,
+    instance.recordRetentionDays,
+    desktopSettingsOf(principal.organization.settings).historyImportDays
+  );
+};
 
 export let allowsHookRoute = (principal: IngestPrincipal) => !isDeviceBound(principal);
 

@@ -9,6 +9,7 @@ import type {
   AgentTrackingMcpServerUsageItem,
   AgentTrackingMcpToolUsage,
   AgentTrackingProvider,
+  AgentTrackingSkill,
   AgentTrackingSkillUsage,
   AgentTrackingSkillUsageItem,
   AgentTrackingToolCallFigures
@@ -21,6 +22,10 @@ export let maxMcpServers = 500;
 export let maxMcpTools = 2000;
 
 let maxMcpServerProviders = 2000;
+
+export let maxSkillDeviceRows = 10_000;
+
+let userLevelSkillSources = new Set(['user', 'usersettings']);
 
 export let toolsHiddenError = individualsHiddenError({
   message:
@@ -72,6 +77,44 @@ export let skillUsageQuery = (range: ResolvedRange) => ({
   orderBy: [{ by: 'skill_activations.named', direction: 'desc' }],
   limit: maxSkills
 });
+
+export let skillDevicesQuery = (range: ResolvedRange) => ({
+  ...recordQuery('skill_activations', range),
+  dimensions: [
+    { field: 'skill.name', missing: 'exclude' },
+    { field: 'skill.source', missing: 'null' },
+    { field: 'device', missing: 'null' }
+  ],
+  measures: ['skill_activations.named'],
+  orderBy: [{ by: 'skill_activations.named', direction: 'desc' }],
+  limit: maxSkillDeviceRows
+});
+
+// Metorial Desktop installs skills only into the user's own skill folders, so a name also reported
+// from a project, plugin or built-in skill, or from no known device, can be another skill.
+export let skillDevicesOf = (result: UsageResult) => {
+  let devicesByName = new Map<string, Set<string>>();
+  if (result.meta?.truncated) return devicesByName;
+
+  let unlinkable = new Set<string>();
+  for (let row of result.rows) {
+    let name = nameOf(row['skill.name']);
+    if (!name) continue;
+
+    let source = nameOf(row['skill.source']);
+    let device = nameOf(row.device);
+    if (!device || (source && !userLevelSkillSources.has(source.toLowerCase()))) {
+      unlinkable.add(name);
+      continue;
+    }
+
+    devicesByName.set(name, (devicesByName.get(name) ?? new Set()).add(device));
+  }
+
+  for (let name of unlinkable) devicesByName.delete(name);
+
+  return devicesByName;
+};
 
 export let skillSummaryQuery = (range: ResolvedRange) => ({
   ...recordQuery('skill_activations', range),
@@ -185,7 +228,10 @@ export let skillSummaryOf = (
   };
 };
 
-export let skillItemsOf = (result: UsageResult): AgentTrackingSkillUsageItem[] =>
+export let skillItemsOf = (
+  result: UsageResult,
+  skills?: Map<string, AgentTrackingSkill>
+): AgentTrackingSkillUsageItem[] =>
   result.rows.flatMap(row => {
     let name = nameOf(row['skill.name']);
     if (!name) return [];
@@ -193,6 +239,7 @@ export let skillItemsOf = (result: UsageResult): AgentTrackingSkillUsageItem[] =
     return [
       {
         name,
+        skill: skills?.get(name) ?? null,
         activations: countOf(row['skill_activations.named']),
         members: countOf(row['users.active']),
         lastUsedAt: dateOf(row.last_used)

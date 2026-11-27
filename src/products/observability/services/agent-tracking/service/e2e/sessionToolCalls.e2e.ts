@@ -1,6 +1,13 @@
 import { eventually, uniqueId } from '@lowerdeck/testing-tools';
 import { describe, expect, it } from 'vitest';
-import { agentTracking, createHookToken, createScope, ingest, rpcErrorCode } from './support';
+import {
+  agentTracking,
+  createHookToken,
+  createScope,
+  createToolDetailsHookToken,
+  ingest,
+  rpcErrorCode
+} from './support';
 
 type HookClient = 'claude-code' | 'codex';
 
@@ -51,7 +58,7 @@ let sessionOf = async (organizationId: string, instanceId: string) =>
 
 describe('session tool calls', () => {
   it("lists a session's MCP tool calls once per call, oldest first", async () => {
-    let { organization, instance, secret } = await createHookToken();
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let sessionId = uniqueId('session');
     let first = uniqueId('toolu');
     let second = uniqueId('toolu');
@@ -102,8 +109,35 @@ describe('session tool calls', () => {
     });
   });
 
-  it('finds the sessions of tool-call ids within one instance and client family', async () => {
+  it('lists redacted MCP tool calls under the placeholder with default settings', async () => {
     let { organization, instance, secret } = await createHookToken();
+    let sessionId = uniqueId('session');
+    let toolCallId = uniqueId('toolu');
+
+    await sendToolCall({
+      secret,
+      sessionId,
+      toolCallId,
+      toolName: 'mcp__linear__create_issue'
+    });
+    await sendToolCall({ secret, sessionId, toolCallId: uniqueId('toolu'), toolName: 'Bash' });
+
+    let session = await sessionOf(organization.id, instance.id);
+
+    let result = await agentTracking().session.listMcpToolCalls({
+      organizationId: organization.id,
+      sessionKey: session.sessionKey
+    });
+
+    expect(result.items.map(item => item.toolCallId)).toEqual([toolCallId]);
+    expect(result.items[0]).toMatchObject({ durationMs: 250, outcome: 'ok' });
+    expect(result.items[0]!.mcpServer ?? null).toBeNull();
+    expect(result.items[0]!.mcpTool ?? null).toBeNull();
+    expect(JSON.stringify(result)).not.toMatch(/linear|create_issue/);
+  });
+
+  it('finds the sessions of tool-call ids within one instance and client family', async () => {
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let sessionId = uniqueId('session');
     let shared = uniqueId('call');
 
@@ -164,7 +198,7 @@ describe('session tool calls', () => {
   });
 
   it('keeps tool calls inside their organization and instance', async () => {
-    let { organization, project, instance, secret } = await createHookToken();
+    let { organization, project, instance, secret } = await createToolDetailsHookToken();
     let other = await createScope();
     let sibling = await agentTracking().instance.upsert({
       organizationId: organization.id,
@@ -210,7 +244,7 @@ describe('session tool calls', () => {
   });
 
   it('links nothing for an id reused in two sessions and flags it', async () => {
-    let { organization, instance, secret } = await createHookToken();
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let reused = uniqueId('call');
     let long = `${uniqueId('toolu')}${'x'.repeat(300)}`;
 

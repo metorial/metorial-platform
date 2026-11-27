@@ -1526,6 +1526,90 @@ describe('aggregateSession with imported history', () => {
     expect(decimal(summary.costUsd)).toBe('0.036');
   });
 
+  let subagentRequest = (i: number, channel: IngestChannel) =>
+    summaryRecord({
+      type: 'model.request',
+      at: `2026-03-04T10:0${i}:00.${channel == 'transcript' ? '000' : '500'}Z`,
+      channel,
+      factKey: `req:sk:r${i}`,
+      ctx: {
+        requestId: `r${i}`,
+        ...(channel == 'transcript' ? {} : { agent: { id: 'agent_sub' } })
+      },
+      data: {
+        outcome: 'ok',
+        model,
+        purpose: 'subagent',
+        usage:
+          channel == 'transcript'
+            ? { inputUncached: 1, output: 1 }
+            : { inputUncached: 1000, output: 100 },
+        ...(channel == 'transcript' ? {} : { cost: usd('0.0045') })
+      }
+    });
+
+  it('counts an imported subagent request once with the OTel numbers when live telemetry has it', async () => {
+    let { summary, coverage } = await aggregateSession({
+      records: sorted([
+        ...ten.slice(0, 5).flatMap(i => [otel(i), transcript(i)]),
+        subagentRequest(5, 'otlp.logs'),
+        subagentRequest(5, 'transcript')
+      ]),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('otel.logs');
+    expect(summary.requests).toBe(6);
+    expect(summary.tokens).toMatchObject({ inputUncached: 6000, output: 600 });
+    expect(decimal(summary.costUsd)).toBe('0.027');
+  });
+
+  it('counts a request once with the live numbers when live calls it main and the import subagent', async () => {
+    let { summary, coverage } = await aggregateSession({
+      records: sorted([
+        ...ten.slice(0, 5).flatMap(i => [otel(i), transcript(i)]),
+        otel(5),
+        subagentRequest(5, 'transcript')
+      ]),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('otel.logs');
+    expect(summary.requests).toBe(6);
+    expect(summary.tokens).toMatchObject({ inputUncached: 6000, output: 600 });
+    expect(decimal(summary.costUsd)).toBe('0.027');
+  });
+
+  it('adds imported subagent requests to a session without live telemetry', async () => {
+    let subagent = (i: number) => ({
+      ...transcript(i, { inputUncached: 1000, output: 100 }),
+      data: {
+        outcome: 'ok',
+        model,
+        usage: { inputUncached: 1000, output: 100 },
+        purpose: 'subagent'
+      }
+    });
+
+    let { summary, coverage } = await aggregateSession({
+      records: sorted([
+        ...ten.slice(0, 5).map(i => transcript(i, { inputUncached: 1000, output: 100 })),
+        subagent(5),
+        subagent(6)
+      ]),
+      family: 'claude-code',
+      catalog
+    });
+
+    expect(coverage.usageSource).toBe('transcript');
+    expect(summary.requests).toBe(7);
+    expect(summary.tokens).toMatchObject({ inputUncached: 7000, output: 700 });
+    expect(decimal(summary.costComputedUsd)).toBe('0.0315');
+    expect(decimal(summary.costUsd)).toBe('0.0315');
+  });
+
   it('keeps the OTel record of a request whichever arrived first', async () => {
     let { summary } = await aggregateSession({
       records: [

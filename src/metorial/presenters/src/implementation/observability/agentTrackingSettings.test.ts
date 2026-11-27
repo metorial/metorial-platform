@@ -18,7 +18,8 @@ describe('agent tracking organization settings presenter', () => {
               toolDetails: false,
               sessionContext: true,
               sessionTitles: true,
-              historyImport: false
+              historyImport: false,
+              historyImportDays: 180
             },
             links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
           },
@@ -37,7 +38,8 @@ describe('agent tracking organization settings presenter', () => {
         tool_details: false,
         session_context: true,
         session_titles: true,
-        history_import: false
+        history_import: false,
+        history_import_days: 180
       },
       links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });

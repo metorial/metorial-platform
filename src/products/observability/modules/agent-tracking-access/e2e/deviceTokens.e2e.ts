@@ -29,7 +29,8 @@ let defaultDesktop = {
   toolDetails: false,
   sessionContext: true,
   sessionTitles: false,
-  historyImport: false
+  historyImport: false,
+  historyImportDays: 90
 };
 
 let createDevice = async (fixture: OrganizationFixture) => {
@@ -205,7 +206,8 @@ describe('module-agent-tracking-access device telemetry settings', () => {
       toolDetails: true,
       sessionContext: false,
       sessionTitles: true,
-      historyImport: true
+      historyImport: true,
+      historyImportDays: 200
     };
 
     await agentTrackingSettingsService.updateOrganizationSettings({
@@ -223,8 +225,23 @@ describe('module-agent-tracking-access device telemetry settings', () => {
       enabled: true,
       directExport: true,
       tokenId: null,
-      ...desktop
+      ...desktop,
+      historyImportDays: 90
     });
+
+    await agentTrackingSettingsService.updateProjectSettings({
+      organization: fixture.organization,
+      project: fixture.project,
+      auditScope: fixture.auditScope,
+      input: { retention: { recordDays: 120 } }
+    });
+
+    let longer = await agentTrackingTokenService.listDeviceTelemetry({
+      organization: fixture.organization,
+      project: fixture.project,
+      consumerDevices: [device]
+    });
+    expect(longer.get(device.oid)?.historyImportDays).toBe(120);
   });
 });
 

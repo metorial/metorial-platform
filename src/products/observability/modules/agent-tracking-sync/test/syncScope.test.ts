@@ -232,6 +232,7 @@ describe('agent-tracking/sync/scope', () => {
       sessionContext: false,
       sessionTitles: true,
       historyImport: false,
+      historyImportDays: 180,
       ticketUrlTemplate: 'https://linear.app/acme/issue/{key}'
     };
     storedSettings.project = { recordDays: 30, contentDays: null, usageDays: 200 };
@@ -246,7 +247,8 @@ describe('agent-tracking/sync/scope', () => {
         toolDetails: true,
         sessionContext: false,
         sessionTitles: true,
-        historyImport: false
+        historyImport: false,
+        historyImportDays: 180
       }
     });
     expect(mocks.agentTracking.project.upsert.mock.calls[0]![0]).toMatchObject({

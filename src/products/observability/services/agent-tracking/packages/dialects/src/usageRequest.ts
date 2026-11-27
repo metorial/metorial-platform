@@ -15,7 +15,7 @@ export type UsageRequest = {
   usage: UsageResult;
   cost?: Cost;
   effort?: string;
-  purpose?: 'main';
+  purpose?: 'main' | 'subagent';
 };
 
 type Checked<T> =

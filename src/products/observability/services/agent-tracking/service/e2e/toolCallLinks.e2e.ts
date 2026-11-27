@@ -1,6 +1,6 @@
 import { eventually, uniqueId } from '@lowerdeck/testing-tools';
 import { describe, expect, it } from 'vitest';
-import { agentTracking, createHookToken, ingest } from './support';
+import { agentTracking, createHookToken, createToolDetailsHookToken, ingest } from './support';
 
 let sendToolCall = async (d: { secret: string; sessionId: string; toolCallId: string }) => {
   let response = await ingest('/v1/ingest/hooks/claude-code', {
@@ -45,7 +45,7 @@ let sessionWithProviders = async (d: {
 
 describe('tool call links', () => {
   it('adds the provider to the session whether the link or the records came first', async () => {
-    let { organization, instance, secret } = await createHookToken();
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let sessionId = uniqueId('session');
     let early = uniqueId('toolu');
     let late = uniqueId('toolu');
@@ -92,8 +92,37 @@ describe('tool call links', () => {
     expect(none.items).toEqual([]);
   });
 
-  it('links nothing for a pair two Metorial tool calls claim', async () => {
+  it('links a redacted MCP call sent with default settings', async () => {
     let { organization, instance, secret } = await createHookToken();
+    let sessionId = uniqueId('session');
+    let toolCallId = uniqueId('toolu');
+    let providerId = uniqueId('pro');
+
+    await sendToolCall({ secret, sessionId, toolCallId });
+    await agentTracking().toolCallLink.upsert({
+      organizationId: organization.id,
+      instanceId: instance.id,
+      links: [link(toolCallId, { toolCallId: uniqueId('tcal'), providerId })]
+    });
+
+    let session = await sessionWithProviders({
+      organizationId: organization.id,
+      instanceId: instance.id,
+      providerIds: [providerId]
+    });
+
+    let calls = await agentTracking().session.listMcpToolCalls({
+      organizationId: organization.id,
+      sessionKey: session.sessionKey
+    });
+
+    expect(calls.items.map(item => item.toolCallId)).toEqual([toolCallId]);
+    expect(calls.items[0]!.mcpTool ?? null).toBeNull();
+    expect(JSON.stringify(calls)).not.toMatch(/linear|create_issue/);
+  });
+
+  it('links nothing for a pair two Metorial tool calls claim', async () => {
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let sessionId = uniqueId('session');
     let toolCallId = uniqueId('toolu');
     let providerId = uniqueId('pro');
@@ -123,7 +152,7 @@ describe('tool call links', () => {
   });
 
   it('links nothing for a pair two agent sessions share', async () => {
-    let { organization, instance, secret } = await createHookToken();
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let toolCallId = uniqueId('toolu');
 
     await sendToolCall({ secret, sessionId: uniqueId('session'), toolCallId });
@@ -148,7 +177,7 @@ describe('tool call links', () => {
   });
 
   it('keeps the provider but no tool key for a link sent without one', async () => {
-    let { organization, instance, secret } = await createHookToken();
+    let { organization, instance, secret } = await createToolDetailsHookToken();
     let toolCallId = uniqueId('toolu');
     let providerId = uniqueId('pro');
 
@@ -175,8 +204,8 @@ describe('tool call links', () => {
   });
 
   it("does not take another instance's links", async () => {
-    let first = await createHookToken();
-    let second = await createHookToken();
+    let first = await createToolDetailsHookToken();
+    let second = await createToolDetailsHookToken();
     let sessionId = uniqueId('session');
     let toolCallId = uniqueId('toolu');
 
@@ -201,7 +230,7 @@ describe('tool call links', () => {
   });
 
   it('refuses more than 200 links at once', async () => {
-    let { organization, instance } = await createHookToken();
+    let { organization, instance } = await createToolDetailsHookToken();
 
     await expect(
       agentTracking().toolCallLink.upsert({

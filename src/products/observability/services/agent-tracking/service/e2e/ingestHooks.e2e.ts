@@ -272,4 +272,93 @@ describe('hook ingest', () => {
     expect(secondItems[0]!.record.ingest.instance_id).toBe(second.instance.id);
     expect(secondItems[0]!.record.id).not.toBe(firstItems[0]!.record.id);
   });
+
+  describe('organization reporting settings', () => {
+    let reportingScope = (desktop: { toolDetails: boolean; sessionContext: boolean }) =>
+      createScope({
+        organization: { settings: { desktop } },
+        instance: { settings: { contentPolicy: { defaultMode: 'full' } } }
+      });
+
+    let mcpHook = JSON.stringify({
+      session_id: 'session-mcp',
+      hook_event_name: 'PostToolUse',
+      tool_name: 'mcp__github__create_pr',
+      tool_use_id: 'toolu_mcp',
+      mcp_server: { name: 'github' },
+      tool_input: { title: sentinel },
+      tool_response: { url: sentinel }
+    });
+
+    let startHook = JSON.stringify({
+      session_id: 'session-start',
+      hook_event_name: 'SessionStart',
+      source: 'startup',
+      cwd: '/Users/someone/secret-project',
+      metorial: { git: { branch: 'feature/MT-7-notes', head: 'a'.repeat(40) } }
+    });
+
+    let tokenFor = async (desktop: { toolDetails: boolean; sessionContext: boolean }) =>
+      createHookToken(
+        { contentPolicy: { defaultMode: 'full' } },
+        await reportingScope(desktop)
+      );
+
+    it.each(['claude-code', 'codex'])(
+      'stores no MCP names or tool inputs from %s while detailed tool reporting is off',
+      async client => {
+        let { instance, secret } = await tokenFor({
+          toolDetails: false,
+          sessionContext: true
+        });
+
+        let response = await ingest(`/v1/ingest/hooks/${client}`, {
+          credential: secret,
+          body: mcpHook
+        });
+
+        let items = await instanceRecords(instance);
+
+        expect(response.status).toBe(200);
+        expect(items[0]!.record.data.tool).toEqual({
+          name: 'mcp_tool',
+          kind: 'mcp',
+          class: 'mcp'
+        });
+        expect(items[0]!.record.content).toEqual([]);
+        expect(JSON.stringify(items)).not.toMatch(/SENTINEL|github|create_pr/);
+      }
+    );
+
+    it('keeps MCP names and tool inputs while detailed tool reporting is on', async () => {
+      let { instance, secret } = await tokenFor({ toolDetails: true, sessionContext: true });
+
+      await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: mcpHook });
+
+      let [item] = await instanceRecords(instance);
+
+      expect(item!.record.data.tool).toMatchObject({
+        mcp: { server: 'github', tool: 'create_pr' }
+      });
+      expect(item!.record.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
+    });
+
+    it('stores no session context while session context is off', async () => {
+      let off = await tokenFor({ toolDetails: true, sessionContext: false });
+      let on = await tokenFor({ toolDetails: true, sessionContext: true });
+
+      await ingest('/v1/ingest/hooks/claude-code', {
+        credential: off.secret,
+        body: startHook
+      });
+      await ingest('/v1/ingest/hooks/claude-code', { credential: on.secret, body: startHook });
+
+      let offItems = await instanceRecords(off.instance);
+      let onItems = await instanceRecords(on.instance);
+
+      expect(offItems.map(item => item.record.type)).toEqual(['session.start']);
+      expect(JSON.stringify(offItems)).not.toMatch(/secret-project|MT-7/);
+      expect(onItems.map(item => item.record.type)).toContain('session.context');
+    });
+  });
 });

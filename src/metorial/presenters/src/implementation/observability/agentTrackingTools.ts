@@ -94,6 +94,7 @@ export let v1AgentTrackingSkillUsagePresenter = Presenter.create(agentTrackingSk
     },
     items: usage.items.map(item => ({
       name: item.name,
+      skill: item.skill ? { id: item.skill.id, name: item.skill.name } : null,
       activations: item.activations,
       members: item.members,
       last_used_at: item.lastUsedAt
@@ -129,6 +130,31 @@ export let v1AgentTrackingSkillUsagePresenter = Presenter.create(agentTrackingSk
                 description: 'The skill name, as the agent reported it.',
                 examples: ['pdf']
               }),
+              skill: v.nullable(
+                v.object(
+                  {
+                    id: v.string({
+                      name: 'id',
+                      description: 'Unique ID.',
+                      examples: ['skl_0mhNnEqM7XQb3vXq8gD2']
+                    }),
+                    name: v.string({
+                      name: 'name',
+                      description: 'Display name.',
+                      examples: ['Billing Playbook']
+                    })
+                  },
+                  {
+                    name: 'skill',
+                    description:
+                      'A Metorial skill that Metorial Desktop installed for AI coding agents.'
+                  }
+                ),
+                {
+                  description:
+                    'The Metorial skill that Metorial Desktop installed under this name. `null` when none or several were, agents also reported the name from a project or plugin skill, or skills are not available to you.'
+                }
+              ),
               activations: count('activations', 'Times the skill was activated.'),
               members: count('members', `Members who activated it. ${membersDescription}`),
               last_used_at: lastUsedSchema('When it was last activated.')

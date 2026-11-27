@@ -242,6 +242,7 @@ export let ID = createIdGenerator({
   consumerDeviceClientExcludedMagicMcpServer: idType.sorted('codcm'),
   consumerDeviceClientExcludedSkill: idType.sorted('codcs'),
   consumerDeviceDetection: idType.sorted('codd'),
+  consumerDeviceSkill: idType.sorted('codsk'),
   consumerDeviceSettings: idType.sorted('cods'),
   aiToolPolicy: idType.sorted('aitp'),
   mcpClientType: idType.sorted('mcct'),

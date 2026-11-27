@@ -66,6 +66,7 @@ class ConsumerDeviceServiceImpl {
         supportsSkills: boolean;
       }[];
       magicMcpTokenIds?: string[];
+      reportedSkills?: { skillId: string; name: string }[];
     };
   }) {
     let oauthToken = this.assertDeviceSignIn(d.oauthToken);
@@ -94,6 +95,7 @@ class ConsumerDeviceServiceImpl {
           if (existing.status != 'active') throw this.endedSignInError();
 
           await this.syncReportedClients({ ...d, consumerDevice: existing });
+          await this.syncReportedSkills({ ...d, consumerDevice: existing });
           await this.linkInstallTokens({ ...d, consumerDevice: existing });
 
           return await db.consumerDevice.update({
@@ -151,6 +153,7 @@ class ConsumerDeviceServiceImpl {
         });
 
         await this.syncReportedClients({ ...d, consumerDevice: enrolled });
+        await this.syncReportedSkills({ ...d, consumerDevice: enrolled });
         await this.linkInstallTokens({ ...d, consumerDevice: enrolled });
 
         let consumerDevice = await db.consumerDevice.findUniqueOrThrow({
@@ -525,6 +528,63 @@ class ConsumerDeviceServiceImpl {
         },
         data: { reported: false }
       });
+    });
+  }
+
+  private async syncReportedSkills(d: {
+    instance: Instance;
+    consumerDevice: Pick<ConsumerDevice, 'oid'>;
+    input: { reportedSkills?: { skillId: string; name: string }[] };
+  }) {
+    if (!d.input.reportedSkills) return;
+
+    let reportedSkills = d.input.reportedSkills;
+
+    await withTransaction(async db => {
+      let skills = await db.skill.findMany({
+        where: {
+          id: { in: [...new Set(reportedSkills.map(skill => skill.skillId))] },
+          instanceOid: d.instance.oid,
+          status: 'active'
+        }
+      });
+      let skillOids = new Map(skills.map(skill => [skill.id, skill.oid]));
+
+      let wanted = new Map<string, bigint>();
+      for (let reported of reportedSkills) {
+        let skillOid = skillOids.get(reported.skillId);
+        if (skillOid !== undefined && !wanted.has(reported.name)) {
+          wanted.set(reported.name, skillOid);
+        }
+      }
+
+      let existing = await db.consumerDeviceSkill.findMany({
+        where: { consumerDeviceOid: d.consumerDevice.oid }
+      });
+      let kept = existing.filter(row => wanted.get(row.name) === row.skillOid);
+      let keptNames = new Set(kept.map(row => row.name));
+      let stale = existing.filter(row => !keptNames.has(row.name));
+
+      if (stale.length) {
+        await db.consumerDeviceSkill.deleteMany({
+          where: { oid: { in: stale.map(row => row.oid) } }
+        });
+      }
+
+      let added = [...wanted].filter(([name]) => !keptNames.has(name));
+      if (added.length) {
+        await db.consumerDeviceSkill.createMany({
+          data: await Promise.all(
+            added.map(async ([name, skillOid]) => ({
+              id: await ID.generateId('consumerDeviceSkill'),
+              name,
+              consumerDeviceOid: d.consumerDevice.oid,
+              skillOid,
+              instanceOid: d.instance.oid
+            }))
+          )
+        });
+      }
     });
   }
 

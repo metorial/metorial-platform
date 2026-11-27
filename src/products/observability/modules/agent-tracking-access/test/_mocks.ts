@@ -14,9 +14,11 @@ export let mocks = {
       toolDetails: false,
       sessionContext: true,
       sessionTitles: false,
-      historyImport: false
+      historyImport: false,
+      historyImportDays: 90
     }
   },
+  recordDays: { value: null as number | null },
   flagChecks: [] as unknown[],
   settings: {
     ingestPublicUrl: 'https://ingest.example.com' as string | undefined
@@ -40,12 +42,18 @@ let isEnabledForOrganization = async (d: unknown) => {
 
 export let syncModule = {
   ...clientFamilies,
+  defaultHistoryImportDays: 90,
+  acceptedHistoryImportDays: (
+    desktop: { historyImportDays: number },
+    retention: { recordDays: number | null }
+  ) => Math.min(desktop.historyImportDays, retention.recordDays ?? 90),
   agentTrackingSyncService: {
     backfillRoster: mocks.backfillRoster,
     syncEntities: mocks.syncEntities
   },
   agentTrackingSettingsService: {
-    getOrganizationValues: async () => ({ desktop: { ...mocks.desktop.value } })
+    getOrganizationValues: async () => ({ desktop: { ...mocks.desktop.value } }),
+    getProjectValues: async () => ({ retention: { recordDays: mocks.recordDays.value } })
   },
   isAgentTrackingEnabled: () => mocks.enabled.value,
   assertAgentTrackingEnabled: async (d: {
@@ -103,8 +111,10 @@ export let resetMocks = () => {
     toolDetails: false,
     sessionContext: true,
     sessionTitles: false,
-    historyImport: false
+    historyImport: false,
+    historyImportDays: 90
   };
+  mocks.recordDays.value = null;
   mocks.flagChecks.length = 0;
   mocks.settings.ingestPublicUrl = 'https://ingest.example.com';
   mocks.afterCommit = [];

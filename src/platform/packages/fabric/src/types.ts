@@ -963,6 +963,7 @@ export type AgentTrackingOrganizationSettingsValues = {
     sessionContext: boolean;
     sessionTitles: boolean;
     historyImport: boolean;
+    historyImportDays: number;
   };
   links: { ticketUrlTemplate: string | null };
 };

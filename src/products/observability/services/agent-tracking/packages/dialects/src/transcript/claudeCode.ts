@@ -26,6 +26,6 @@ export let claudeCodeTranscript = usageDialect({
       cacheWrite1h: payload.cache_creation_1h_input_tokens,
       output: payload.output_tokens
     }),
-    purpose: 'main'
+    purpose: payload.purpose ?? 'main'
   })
 });

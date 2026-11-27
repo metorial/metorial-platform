@@ -46,7 +46,16 @@ describe('agent tracking skill usage presenter', () => {
             range,
             toolDetails: false,
             summary: { activations: 9, namedActivations: 7, members: 3, countsCapped: false },
-            items: [{ name: 'pdf', activations: 7, members: 3, lastUsedAt }],
+            items: [
+              {
+                name: 'billing',
+                skill: { id: 'skl_billing', name: 'Billing Playbook' },
+                activations: 7,
+                members: 3,
+                lastUsedAt
+              },
+              { name: 'pdf', skill: null, activations: 2, members: 1, lastUsedAt: null }
+            ],
             truncated: false
           }
         },
@@ -64,9 +73,19 @@ describe('agent tracking skill usage presenter', () => {
       },
       tool_details: false,
       summary: { activations: 9, named_activations: 7, members: 3, counts_capped: false },
-      items: [{ name: 'pdf', activations: 7, members: 3, last_used_at: lastUsedAt }],
+      items: [
+        {
+          name: 'billing',
+          skill: { id: 'skl_billing', name: 'Billing Playbook' },
+          activations: 7,
+          members: 3,
+          last_used_at: lastUsedAt
+        },
+        { name: 'pdf', skill: null, activations: 2, members: 1, last_used_at: null }
+      ],
       truncated: false
     });
+    expect(v1AgentTrackingSkillUsagePresenter.schema.validate(presented).success).toBe(true);
   });
 });
 

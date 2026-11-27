@@ -124,6 +124,7 @@ model Instance {
   consumers                            ConsumerProfile[]
   consumerDevices                      ConsumerDevice[]
   consumerDeviceDetections             ConsumerDeviceDetection[]
+  consumerDeviceSkills                 ConsumerDeviceSkill[]
   consumerDeviceSettings               ConsumerDeviceSettings?
   aiToolPolicies                       AiToolPolicy[]
   portals                              Portal[]

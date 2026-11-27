@@ -1089,6 +1089,51 @@ describe('bulk handler', () => {
       });
     });
 
+    it('marks imported subagent requests as subagent work', async () => {
+      let pipeline = createPipeline(historyOn);
+
+      let result = await sendOk(
+        pipeline,
+        backfill,
+        claudeItem(),
+        claudeItem({ purpose: 'subagent' }, 2),
+        claudeItem({ purpose: 'review' }, 3)
+      );
+
+      expect(result.rejections).toEqual([
+        { i: 2, code: 'parse_error', detail: 'payload.purpose: invalid_enum' }
+      ]);
+      expect(pipeline.records().map(record => record.data.purpose)).toEqual([
+        'main',
+        'subagent'
+      ]);
+    });
+
+    it.each([
+      ['the organization window', 180, 400, 180],
+      ['the record retention when it is shorter than the window', 365, 200, 200]
+    ])(
+      'accepts imported lines up to %s',
+      async (_name, historyImportDays, recordRetentionDays, days) => {
+        let pipeline = createPipeline({
+          organization: {
+            settings: { desktop: { historyImport: true, historyImportDays } }
+          },
+          instance: { backfillMaxAgeDays: null, recordRetentionDays }
+        });
+
+        let result = await sendOk(
+          pipeline,
+          backfill,
+          { ...claudeItem(), observed_at: isoMinus(days, 1000) },
+          { ...claudeItem({}, 2), observed_at: isoMinus(days, -1000) }
+        );
+
+        expect(result.accepted).toBe(1);
+        expect(result.rejections).toEqual([{ i: 1, code: 'too_old' }]);
+      }
+    );
+
     it('rejects transcript items in live batches even while History Import is on', async () => {
       let pipeline = createPipeline(historyOn);
 
@@ -1429,6 +1474,92 @@ describe('bulk handler', () => {
       );
 
       expect(result).toMatchObject({ accepted: 2, rejected: 0 });
+    });
+
+    let reporting = (settings: { toolDetails: boolean; sessionContext: boolean }) => ({
+      contentPolicy: { defaultMode: 'full' as const },
+      organization: { settings: { desktop: settings } }
+    });
+
+    let mcpItem = (client: string, dialect: string) =>
+      item({
+        client,
+        dialect,
+        payload: {
+          session_id: 'session-1',
+          hook_event_name: 'PostToolUse',
+          tool_name: 'mcp__github__create_pr',
+          tool_use_id: 'toolu_1',
+          mcp_server: { name: 'github' },
+          tool_input: { title: sentinel },
+          tool_response: { url: sentinel }
+        }
+      });
+
+    let contextItem = item({
+      source: { kind: 'transcript', ref: 'file-1', seq: 2 },
+      payload: {
+        session_id: 'session-1',
+        hook_event_name: 'SessionStart',
+        cwd: '/Users/someone/code/secret-project',
+        metorial: { git: { branch: 'feature/MT-7-notes', head: 'a'.repeat(40) } }
+      }
+    });
+
+    it('strips MCP names and tool inputs from hook items while detailed tool reporting is off', async () => {
+      for (let token of unbound) {
+        let pipeline = createPipeline({
+          ...token,
+          ...reporting({ toolDetails: false, sessionContext: true })
+        });
+
+        await sendOk(
+          pipeline,
+          header(),
+          mcpItem('claude-code', 'claude-code.hooks.v1'),
+          mcpItem('codex', 'codex.hooks.v1')
+        );
+
+        let tools = pipeline.records().filter(record => record.type == 'tool.call');
+
+        expect(tools.map(record => record.data.tool)).toEqual([
+          { name: 'mcp_tool', kind: 'mcp', class: 'mcp' },
+          { name: 'mcp_tool', kind: 'mcp', class: 'mcp' }
+        ]);
+        expect(JSON.stringify(pipeline.records())).not.toMatch(/SENTINEL|github|create_pr/);
+      }
+    });
+
+    it('keeps MCP names and tool inputs from hook items while detailed tool reporting is on', async () => {
+      let pipeline = createPipeline({
+        ...hookToken,
+        ...reporting({ toolDetails: true, sessionContext: true })
+      });
+
+      await sendOk(pipeline, header(), mcpItem('claude-code', 'claude-code.hooks.v1'));
+
+      let [tool] = pipeline.records().filter(record => record.type == 'tool.call');
+
+      expect(tool!.data.tool).toMatchObject({ mcp: { server: 'github', tool: 'create_pr' } });
+      expect(tool!.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
+    });
+
+    it('stores no session context from hook items while session context is off', async () => {
+      let off = createPipeline({
+        ...hookToken,
+        ...reporting({ toolDetails: true, sessionContext: false })
+      });
+      let on = createPipeline({
+        ...hookToken,
+        ...reporting({ toolDetails: true, sessionContext: true })
+      });
+
+      await sendOk(off, header(), contextItem);
+      await sendOk(on, header(), contextItem);
+
+      expect(off.seen().map(record => record.type)).toEqual(['session.start']);
+      expect(JSON.stringify(off.seen())).not.toMatch(/secret-project|MT-7/);
+      expect(on.records().map(record => record.type)).toContain('session.context');
     });
   });
 

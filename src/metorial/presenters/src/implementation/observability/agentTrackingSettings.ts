@@ -42,7 +42,8 @@ export let v1AgentTrackingOrganizationSettingsPresenter = Presenter.create(
       tool_details: settings.desktop.toolDetails,
       session_context: settings.desktop.sessionContext,
       session_titles: settings.desktop.sessionTitles,
-      history_import: settings.desktop.historyImport
+      history_import: settings.desktop.historyImport,
+      history_import_days: settings.desktop.historyImportDays
     },
     links: { ticket_url_template: settings.links.ticketUrlTemplate }
   }))
@@ -98,6 +99,12 @@ export let v1AgentTrackingOrganizationSettingsPresenter = Presenter.create(
             name: 'history_import',
             description:
               'Metorial Desktop imports agent sessions from before it was installed, from the session files the AI tools keep on each device. Off by default.'
+          }),
+          history_import_days: v.number({
+            name: 'history_import_days',
+            description:
+              "How many days back history import goes, from 1 to 365. Records older than a project's record retention are refused. 90 by default.",
+            examples: [90]
           })
         },
         {

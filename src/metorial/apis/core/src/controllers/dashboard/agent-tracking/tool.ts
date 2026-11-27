@@ -12,7 +12,7 @@ import {
 } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
 import { rangeOf } from '../../../lib/agentTrackingParams';
-import { canReadProviders } from '../../../lib/toolCallAccess';
+import { canReadProviders, canReadSkills } from '../../../lib/toolCallAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import {
   agentTrackingBasePath,
@@ -49,6 +49,7 @@ export let dashboardAgentTrackingToolController = Controller.create(
           organization: ctx.organization,
           project: ctx.project,
           instance: ctx.instance,
+          canReadSkills: await canReadSkills(ctx),
           range: rangeOf(ctx.query)
         });
 

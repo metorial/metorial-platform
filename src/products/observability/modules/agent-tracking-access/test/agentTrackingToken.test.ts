@@ -77,14 +77,16 @@ describe('agentTrackingTokenService', () => {
       toolDetails: false,
       sessionContext: true,
       sessionTitles: false,
-      historyImport: false
+      historyImport: false,
+      historyImportDays: 90
     };
 
     let desktopOff = {
       toolDetails: false,
       sessionContext: false,
       sessionTitles: false,
-      historyImport: false
+      historyImport: false,
+      historyImportDays: 90
     };
 
     it('returns the newest active bound token of each signed-in device', async () => {
@@ -146,7 +148,8 @@ describe('agentTrackingTokenService', () => {
         toolDetails: true,
         sessionContext: false,
         sessionTitles: true,
-        historyImport: true
+        historyImport: true,
+        historyImportDays: 30
       };
       mocks.desktop.value = desktop;
       vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
@@ -173,6 +176,26 @@ describe('agentTrackingTokenService', () => {
         tokenId: null,
         ...desktopOff
       });
+    });
+
+    it('sends the window the ingest accepts: the shorter of the setting and the record retention', async () => {
+      vi.mocked(db.agentTrackingIngestToken.findMany).mockResolvedValue([]);
+      let windowFor = async (historyImportDays: number, recordDays: number | null) => {
+        mocks.desktop.value = { ...defaultDesktop, historyImport: true, historyImportDays };
+        mocks.recordDays.value = recordDays;
+
+        let telemetry = await agentTrackingTokenService.listDeviceTelemetry({
+          ...scope,
+          consumerDevices: [active]
+        });
+
+        return telemetry.get(1n)!.historyImportDays;
+      };
+
+      expect(await windowFor(365, null)).toBe(90);
+      expect(await windowFor(365, 200)).toBe(200);
+      expect(await windowFor(30, 200)).toBe(30);
+      expect(await windowFor(30, null)).toBe(30);
     });
 
     it('reports telemetry off while the public ingest URL is not set', async () => {

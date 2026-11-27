@@ -20,7 +20,8 @@ let defaults = {
     toolDetails: false,
     sessionContext: true,
     sessionTitles: false,
-    historyImport: false
+    historyImport: false,
+    historyImportDays: 90
   },
   links: { ticketUrlTemplate: null },
   retention: { recordDays: null, contentDays: null, usageDays: null },
@@ -312,7 +313,8 @@ describe('module-agent-tracking-sync Desktop settings and links', () => {
       toolDetails: true,
       sessionContext: true,
       sessionTitles: true,
-      historyImport: true
+      historyImport: true,
+      historyImportDays: 180
     };
 
     let wider = await agentTrackingSettingsService.updateOrganizationSettings({
@@ -348,12 +350,17 @@ describe('module-agent-tracking-sync Desktop settings and links', () => {
       organization: fixture.organization,
       auditScope: fixture.auditScope,
       input: {
-        desktop: { sessionContext: false, sessionTitles: false },
+        desktop: { sessionContext: false, sessionTitles: false, historyImportDays: 30 },
         links: { ticketUrlTemplate: '' }
       }
     });
 
-    let narrowed = { ...desktop, sessionContext: false, sessionTitles: false };
+    let narrowed = {
+      ...desktop,
+      sessionContext: false,
+      sessionTitles: false,
+      historyImportDays: 30
+    };
     expect(narrower).toMatchObject({
       settings: { desktop: narrowed, links: { ticketUrlTemplate: null } },
       serviceStatus: 'applied'

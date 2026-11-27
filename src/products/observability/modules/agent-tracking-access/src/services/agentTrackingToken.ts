@@ -15,9 +15,11 @@ import {
 } from '@metorial/db';
 import { Fabric, type AgentTrackingOrganizationSettingsValues } from '@metorial/fabric';
 import {
+  acceptedHistoryImportDays,
   agentTrackingSettingsService,
   agentTrackingSyncService,
   canIssueAgentTrackingKeys,
+  defaultHistoryImportDays,
   requireAgentTracking
 } from '@metorial/module-agent-tracking-sync';
 import { issuedKeyContentPolicy } from '../lib/contentPolicy';
@@ -25,17 +27,24 @@ import { mirrorIngestToken, revokeAgentTrackingIngestToken } from '../lib/ingest
 import { issueCallOpts, issueInScope } from '../lib/issue';
 import { revokeIngestTokenQueue } from '../queues/revokeTokens';
 
-let telemetryOffDesktop: Record<
-  keyof AgentTrackingOrganizationSettingsValues['desktop'],
-  false
-> = {
+let telemetryOffDesktop: AgentTrackingOrganizationSettingsValues['desktop'] = {
   toolDetails: false,
   sessionContext: false,
   sessionTitles: false,
-  historyImport: false
+  historyImport: false,
+  historyImportDays: defaultHistoryImportDays
 };
 
 class AgentTrackingTokenServiceImpl {
+  private async deviceDesktopSettings(d: { organization: Organization; project: Project }) {
+    let [{ desktop }, { retention }] = await Promise.all([
+      agentTrackingSettingsService.getOrganizationValues(d),
+      agentTrackingSettingsService.getProjectValues(d)
+    ]);
+
+    return { ...desktop, historyImportDays: acceptedHistoryImportDays(desktop, retention) };
+  }
+
   async listDeviceTelemetry(d: {
     organization: Organization;
     project: Project;
@@ -45,9 +54,7 @@ class AgentTrackingTokenServiceImpl {
       organization: d.organization,
       project: d.project
     });
-    let desktop = enabled
-      ? (await agentTrackingSettingsService.getOrganizationValues(d)).desktop
-      : telemetryOffDesktop;
+    let desktop = enabled ? await this.deviceDesktopSettings(d) : telemetryOffDesktop;
 
     let signedInOids = enabled
       ? d.consumerDevices.filter(device => device.status == 'active').map(device => device.oid)

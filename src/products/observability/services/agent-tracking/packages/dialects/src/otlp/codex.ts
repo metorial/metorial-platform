@@ -868,11 +868,15 @@ let codexDetails = new Set([
   'skill.name'
 ]);
 
+export let isCodexMcpServer = (value: unknown) => typeof value == 'string' && value.length > 0;
+
+export let isCodexMcpToolName = (value: unknown) =>
+  typeof value == 'string' && value.includes('__');
+
 export let codexWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
-  let server = item.attributes['mcp_server'];
   let mcp =
     isMcpName(item.attributes['tool_namespace']) ||
-    (typeof server == 'string' && server.length > 0) ||
+    isCodexMcpServer(item.attributes['mcp_server']) ||
     typeof item.attributes['mcp.server.name'] == 'string';
 
   return {
@@ -882,8 +886,7 @@ export let codexWithoutToolDetails = (item: OtlpItemView): OtlpItemView => {
       if (key == 'tool_namespace' && mcp) return redactedMcpNamespace;
 
       if (key == 'tool_name' || key == 'tool.name') {
-        let named = typeof value == 'string' && value.includes('__');
-        return mcp || named ? redactedMcpTool : value;
+        return mcp || isCodexMcpToolName(value) ? redactedMcpTool : value;
       }
 
       if (key == 'tool' && isMcpName(value)) return redactedMcpTool;

@@ -30,7 +30,8 @@ let defaults = {
       tool_details: false,
       session_context: true,
       session_titles: false,
-      history_import: false
+      history_import: false,
+      history_import_days: 90
     },
     links: { ticket_url_template: null }
   },
@@ -272,6 +273,9 @@ describe('api-core dashboard: agent tracking settings', () => {
           }
         }
       ],
+      ['organization', { desktop: { history_import_days: 0 } }],
+      ['organization', { desktop: { history_import_days: 366 } }],
+      ['organization', { desktop: { history_import_days: 30.5 } }],
       ['project', { retention: { record_days: 0 } }],
       ['project', { retention: { usage_days: 1.5 } }],
       ['instance', { content: { mode: 'everything' } }]
@@ -287,7 +291,8 @@ describe('api-core dashboard: agent tracking settings', () => {
         tool_details: true,
         session_context: false,
         session_titles: true,
-        history_import: true
+        history_import: true,
+        history_import_days: 200
       },
       links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });
@@ -306,7 +311,8 @@ describe('api-core dashboard: agent tracking settings', () => {
         tool_details: true,
         session_context: false,
         session_titles: true,
-        history_import: true
+        history_import: true,
+        history_import_days: 200
       },
       links: { ticket_url_template: 'https://linear.app/acme/issue/{key}' }
     });
@@ -333,7 +339,8 @@ describe('api-core dashboard: agent tracking settings', () => {
           tool_details: false,
           session_context: true,
           session_titles: false,
-          history_import: false
+          history_import: false,
+          history_import_days: 90
         },
         links: { ticket_url_template: '' }
       })
@@ -381,7 +388,8 @@ describe('api-core dashboard: agent tracking settings', () => {
           toolDetails: true,
           sessionContext: false,
           sessionTitles: true,
-          historyImport: true
+          historyImport: true,
+          historyImportDays: 200
         },
         links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
       },
@@ -391,7 +399,8 @@ describe('api-core dashboard: agent tracking settings', () => {
           toolDetails: false,
           sessionContext: true,
           sessionTitles: false,
-          historyImport: false
+          historyImport: false,
+          historyImportDays: 90
         },
         links: { ticketUrlTemplate: null }
       }
@@ -427,7 +436,8 @@ describe('api-core dashboard: agent tracking settings', () => {
           toolDetails: true,
           sessionContext: false,
           sessionTitles: true,
-          historyImport: true
+          historyImport: true,
+          historyImportDays: 200
         },
         links: { ticketUrlTemplate: 'https://linear.app/acme/issue/{key}' }
       }

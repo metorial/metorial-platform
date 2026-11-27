@@ -28,6 +28,11 @@ export let minGroupUsersLimits = { min: 3, max: 100 };
 
 export let retentionDaysLimits = { min: 1, max: 3650 };
 
+export let defaultHistoryImportDays = 90;
+
+// Metorial Desktop lists Codex day folders up to 400 days back.
+export let historyImportDaysLimits = { min: 1, max: 365 };
+
 export let serviceRetentionDefaults = { recordDays: 90, contentDays: 30, usageDays: 400 };
 
 export let ticketUrlTemplateKey = '{key}';
@@ -41,6 +46,13 @@ let contentModeRank: Record<AgentTrackingContentMode, number> = {
   shape: 1,
   full: 2
 };
+
+let desktopSwitches = [
+  'toolDetails',
+  'sessionContext',
+  'sessionTitles',
+  'historyImport'
+] as const satisfies readonly (keyof AgentTrackingOrganizationSettingsValues['desktop'])[];
 
 export type AgentTrackingPrivacy = AgentTrackingOrganizationSettingsValues['privacy'];
 
@@ -79,7 +91,14 @@ export let organizationSettingsOf = (
     toolDetails: row?.toolDetails ?? false,
     sessionContext: row?.sessionContext ?? true,
     sessionTitles: row?.sessionTitles ?? false,
-    historyImport: row?.historyImport ?? false
+    historyImport: row?.historyImport ?? false,
+    historyImportDays: Math.min(
+      Math.max(
+        row?.historyImportDays ?? defaultHistoryImportDays,
+        historyImportDaysLimits.min
+      ),
+      historyImportDaysLimits.max
+    )
   },
   links: { ticketUrlTemplate: row?.ticketUrlTemplate ?? null }
 });
@@ -114,6 +133,15 @@ export let instanceSettingsOf = (
     aiEnabled: row?.aiEnabled ?? false
   }
 });
+
+export let acceptedHistoryImportDays = (
+  desktop: Pick<AgentTrackingOrganizationSettingsValues['desktop'], 'historyImportDays'>,
+  retention: Pick<AgentTrackingProjectSettingsValues['retention'], 'recordDays'>
+) =>
+  Math.min(
+    desktop.historyImportDays,
+    retention.recordDays ?? serviceRetentionDefaults.recordDays
+  );
 
 export let narrowsCapture = (current: CaptureSettings, next: CaptureSettings) =>
   contentModeRank[next.content.mode] < contentModeRank[current.content.mode] ||
@@ -162,10 +190,8 @@ export let narrowsDesktop = (
   current: Pick<AgentTrackingOrganizationSettingsValues, 'desktop'>,
   next: Pick<AgentTrackingOrganizationSettingsValues, 'desktop'>
 ) =>
-  Object.entries(current.desktop).some(
-    ([key, enabled]) =>
-      enabled && !next.desktop[key as keyof AgentTrackingOrganizationSettingsValues['desktop']]
-  );
+  next.desktop.historyImportDays < current.desktop.historyImportDays ||
+  desktopSwitches.some(key => current.desktop[key] && !next.desktop[key]);
 
 export let serviceOrganizationSettings = (
   settings: Pick<AgentTrackingOrganizationSettingsValues, 'privacy' | 'desktop'>

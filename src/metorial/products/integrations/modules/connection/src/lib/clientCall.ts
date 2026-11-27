@@ -45,8 +45,7 @@ export let readClientCall = (d: {
   let claudeCodeId = toClientCallId(meta[CLAUDE_CODE_CALL_ID_KEY]);
   if (claudeCodeId) return { id: claudeCodeId, source: 'claude-code' };
 
-  let isCodex =
-    Object.hasOwn(meta, CODEX_TURN_METADATA_KEY) || d.clientName === CODEX_CLIENT_NAME;
+  let isCodex = CODEX_TURN_METADATA_KEY in meta || d.clientName === CODEX_CLIENT_NAME;
   let codexId = isCodex ? toClientCallId(meta[CODEX_CALL_ID_KEY]) : null;
   if (codexId) return { id: codexId, source: 'codex' };
 
@@ -59,7 +58,7 @@ export let stripCodexTurnMetadata = (message: JSONRPCMessage): JSONRPCMessage =>
 
   let body = (message as Record<string, unknown>)[field];
   if (!isPlainObject(body) || !isPlainObject(body._meta)) return message;
-  if (!Object.hasOwn(body._meta, CODEX_TURN_METADATA_KEY)) return message;
+  if (!(CODEX_TURN_METADATA_KEY in body._meta)) return message;
 
   let { [CODEX_TURN_METADATA_KEY]: _turnMetadata, ...meta } = body._meta;
 

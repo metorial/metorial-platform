@@ -10,6 +10,7 @@ export type DashboardOrganizationsConfigureAgentTrackingUpdateOutput = {
     sessionContext: boolean;
     sessionTitles: boolean;
     historyImport: boolean;
+    historyImportDays: number;
   };
   links: { ticketUrlTemplate: string | null };
 };
@@ -22,7 +23,16 @@ export let mapDashboardOrganizationsConfigureAgentTrackingUpdateOutput =
     [
       'desktop',
       0,
-      [1, ['tool_details', 'session_context', 'session_titles', 'history_import']]
+      [
+        1,
+        [
+          'tool_details',
+          'session_context',
+          'session_titles',
+          'history_import',
+          'history_import_days'
+        ]
+      ]
     ],
     ['links', 0, [1, ['ticket_url_template']]]
   ]);
@@ -40,6 +50,7 @@ export type DashboardOrganizationsConfigureAgentTrackingUpdateBody = {
         sessionContext?: boolean | undefined;
         sessionTitles?: boolean | undefined;
         historyImport?: boolean | undefined;
+        historyImportDays?: number | undefined;
       }
     | undefined;
   links?: { ticketUrlTemplate?: string | null | undefined } | undefined;
@@ -51,7 +62,16 @@ export let mapDashboardOrganizationsConfigureAgentTrackingUpdateBody =
     [
       'desktop',
       0,
-      [1, ['tool_details', 'session_context', 'session_titles', 'history_import']]
+      [
+        1,
+        [
+          'tool_details',
+          'session_context',
+          'session_titles',
+          'history_import',
+          'history_import_days'
+        ]
+      ]
     ],
     ['links', 0, [1, ['ticket_url_template']]]
   ]);

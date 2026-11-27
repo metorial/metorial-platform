@@ -503,8 +503,11 @@ export type AgentTrackingMcpServerUsage = {
   truncated: boolean;
 };
 
+export type AgentTrackingSkill = { id: string; name: string };
+
 export type AgentTrackingSkillUsageItem = {
   name: string;
+  skill: AgentTrackingSkill | null;
   activations: number;
   members: number;
   lastUsedAt: Date | null;

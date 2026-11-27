@@ -69,6 +69,29 @@ describe('the Claude Code transcript dialect', () => {
     expect(record!.data.cost).toBeUndefined();
   });
 
+  it('labels a subagent request like live telemetry does, with the same fact key', () => {
+    let log = logRecord({
+      'event.name': 'api_request',
+      'session.id': 'sess-1',
+      request_id: 'req_01',
+      query_source: 'agent:builtin:Explore',
+      model: 'claude-opus-5-5',
+      input_tokens: 2,
+      output_tokens: 790
+    });
+    let [otel] = claudeCodeOtlp.mapLog!(
+      groupContext('logs', groupOf([], { 'service.name': 'claude-code' })),
+      log
+    ).map(entry => buildMapped(entry));
+    let [record] = build(request({ purpose: 'subagent' }));
+
+    expect(otel!.data.purpose).toBe('subagent');
+    expect(record!.data.purpose).toBe('subagent');
+    expect(record!.source.fact_key).toBe(otel!.source.fact_key);
+    expect(record!.ctx.session_key).toBe(otel!.ctx.session_key);
+    expect(build(request({ purpose: 'main' }))[0]!.data.purpose).toBe('main');
+  });
+
   it('uses the fact key of the OTel api_request for the same request', () => {
     let log = logRecord({
       'event.name': 'api_request',
@@ -135,7 +158,8 @@ describe('the Claude Code transcript dialect', () => {
     ['tokens as a hex string', { cache_read_input_tokens: '0x10' }, 'cache_read_input_tokens'],
     ['another kind', { kind: 'cost_state' }, 'kind'],
     ['a long session id', { session_id: 's'.repeat(257) }, 'session_id'],
-    ['a request id with a space', { request_id: 'req 01' }, 'request_id']
+    ['a request id with a space', { request_id: 'req 01' }, 'request_id'],
+    ['another purpose', { purpose: 'compaction' }, 'purpose']
   ])('rejects %s', (_name, overrides, field) => {
     let result = check(request(overrides));
 

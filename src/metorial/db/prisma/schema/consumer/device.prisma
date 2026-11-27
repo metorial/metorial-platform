@@ -36,6 +36,7 @@ model ConsumerDevice {
 
   clients                   ConsumerDeviceClient[]
   detections                ConsumerDeviceDetection[]
+  skills                    ConsumerDeviceSkill[]
   magicMcpTokens            MagicMcpToken[]
   agentTrackingIngestTokens AgentTrackingIngestToken[]
 
@@ -111,6 +112,28 @@ model ConsumerDeviceClientExcludedSkill {
   createdAt DateTime @default(now())
 
   @@unique([consumerDeviceClientOid, skillOid])
+  @@index([skillOid])
+}
+
+model ConsumerDeviceSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  createdAt DateTime @default(now())
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@unique([consumerDeviceOid, name])
+  @@index([instanceOid, name])
   @@index([skillOid])
 }
 

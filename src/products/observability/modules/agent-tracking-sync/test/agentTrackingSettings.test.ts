@@ -57,7 +57,8 @@ let defaultDesktop = {
   toolDetails: false,
   sessionContext: true,
   sessionTitles: false,
-  historyImport: false
+  historyImport: false,
+  historyImportDays: 90
 };
 
 let defaultStoredOrganization = {
@@ -183,7 +184,8 @@ describe('agentTrackingSettingsService', () => {
       toolDetails: true,
       sessionContext: true,
       sessionTitles: true,
-      historyImport: true
+      historyImport: true,
+      historyImportDays: 90
     };
 
     expect(result.settings).toEqual({
@@ -210,11 +212,12 @@ describe('agentTrackingSettingsService', () => {
   });
 
   it.each([
-    ['session context', { sessionContext: false }, {}],
-    ['detailed tool reporting', { toolDetails: false }, { toolDetails: true }],
-    ['session titles', { sessionTitles: false }, { sessionTitles: true }],
-    ['history import', { historyImport: false }, { historyImport: true }]
-  ])('tells the service before storing %s switched off', async (_name, desktop, stored) => {
+    ['session context switched off', { sessionContext: false }, {}],
+    ['detailed tool reporting switched off', { toolDetails: false }, { toolDetails: true }],
+    ['session titles switched off', { sessionTitles: false }, { sessionTitles: true }],
+    ['history import switched off', { historyImport: false }, { historyImport: true }],
+    ['a shorter import window', { historyImportDays: 30 }, {}]
+  ])('tells the service before storing %s', async (_name, desktop, stored) => {
     storedSettings.organization = { ...defaultStoredOrganization, ...stored };
 
     let result = await agentTrackingSettingsService.updateOrganizationSettings({
@@ -228,6 +231,31 @@ describe('agentTrackingSettingsService', () => {
     expect(mocks.agentTracking.organization.upsert.mock.calls[0]![0].settings.desktop).toEqual(
       { ...defaultDesktop, ...desktop }
     );
+  });
+
+  it('stores a longer import window, then tells the service', async () => {
+    storedSettings.organization = { ...defaultStoredOrganization, historyImport: true };
+
+    let result = await agentTrackingSettingsService.updateOrganizationSettings({
+      organization,
+      auditScope,
+      input: { desktop: { historyImportDays: 365 } }
+    });
+
+    expect(result.settings.desktop).toEqual({
+      ...defaultDesktop,
+      historyImport: true,
+      historyImportDays: 365
+    });
+    expect(mocks.calls).toEqual(['write', 'push:organization']);
+    expect(mocks.db.agentTrackingOrganizationSettings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: { ...defaultStoredOrganization, historyImport: true, historyImportDays: 365 }
+      })
+    );
+    expect(
+      mocks.agentTracking.organization.upsert.mock.calls[0]![0].settings.desktop
+    ).toMatchObject({ historyImportDays: 365 });
   });
 
   it('changes nothing when a Desktop setting switched off does not reach the service', async () => {
@@ -286,7 +314,7 @@ describe('agentTrackingSettingsService', () => {
 
   it('answers applied only while the service holds the stored Desktop settings', async () => {
     storedSettings.organization = { ...defaultStoredOrganization, sessionTitles: true };
-    let remote = (desktop: Record<string, boolean>) => ({
+    let remote = (desktop: Record<string, boolean | number>) => ({
       settings: {
         allowedEmailDomains: [],
         sliceErasureMode: null,
@@ -553,5 +581,28 @@ describe('agentTrackingSettingsService', () => {
     expect(
       (await agentTrackingSettingsService.getOrganizationValues({ organization })).privacy
     ).toEqual({ hideIndividuals: true, minGroupUsers: 3 });
+  });
+
+  it.each([
+    [0, 1],
+    [-5, 1],
+    [400, 365],
+    [180, 180]
+  ])('applies a stored import window of %i days as %i', async (stored, applied) => {
+    storedSettings.organization = { ...defaultStoredOrganization, historyImportDays: stored };
+
+    expect(
+      (await agentTrackingSettingsService.getOrganizationValues({ organization })).desktop
+        .historyImportDays
+    ).toBe(applied);
+  });
+
+  it('reads the project retention the import window is held to', async () => {
+    storedSettings.project = { recordDays: 30, contentDays: null, usageDays: null };
+
+    expect(
+      (await agentTrackingSettingsService.getProjectValues({ organization, project }))
+        .retention
+    ).toEqual({ recordDays: 30, contentDays: null, usageDays: null });
   });
 });

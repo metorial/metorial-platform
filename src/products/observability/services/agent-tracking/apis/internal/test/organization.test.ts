@@ -21,20 +21,24 @@ describe('organizationPresenter', () => {
       toolDetails: false,
       sessionContext: true,
       sessionTitles: false,
-      historyImport: false
+      historyImport: false,
+      historyImportDays: 90
     });
   });
 
   it('returns the Desktop settings Metorial sent', () => {
     expect(
       organizationPresenter(
-        organization({ desktop: { sessionContext: false, sessionTitles: true } })
+        organization({
+          desktop: { sessionContext: false, sessionTitles: true, historyImportDays: 180 }
+        })
       ).settings.desktop
     ).toEqual({
       toolDetails: false,
       sessionContext: false,
       sessionTitles: true,
-      historyImport: false
+      historyImport: false,
+      historyImportDays: 180
     });
   });
 });

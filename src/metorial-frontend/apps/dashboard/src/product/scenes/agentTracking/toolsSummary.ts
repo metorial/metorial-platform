@@ -96,7 +96,7 @@ export let unnamedNotice = (d: {
   let unnamed = d.total - d.named;
   if (unnamed <= 0) return null;
 
-  return `${counted(unnamed, d.unit)} came without a ${d.name}, so ${unnamed == 1 ? 'it is' : 'they are'} counted above but not listed.`;
+  return `${counted(unnamed, d.unit)} without a ${d.name}.`;
 };
 
 let dateCell = (value: Date | string | null) => (value ? new Date(value).toISOString() : null);

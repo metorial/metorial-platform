@@ -3,6 +3,7 @@ import { readFields, withCoerced } from '../fields';
 import type { HookDialect, Mapped } from '../types';
 import { nativeLabel } from '../values';
 import { createCompatibleHookDialect } from './compatible';
+import { hookPolicyOf } from './policy';
 
 export let claudeCodeHooks = createCompatibleHookDialect({
   id: 'claude-code.hooks.v1',
@@ -59,7 +60,10 @@ export let createGenericHooks = (client: string): HookDialect => ({
       }
     ];
 
-    return withCoerced(withHookContext(mapped, fields, event), fields);
+    return withCoerced(
+      hookPolicyOf(context).sessionContext ? withHookContext(mapped, fields, event) : mapped,
+      fields
+    );
   }
 });
 

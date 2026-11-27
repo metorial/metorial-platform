@@ -17,9 +17,12 @@ export {
 } from '../lib/flag';
 export { withInstanceScope } from '../lib/scope';
 export * from '../definitions/clientFamilies';
-export { consumerEntitySource } from '../lib/mapping';
+export { consumerEntitySource, deviceEntitySource } from '../lib/mapping';
 export {
+  acceptedHistoryImportDays,
   agentTrackingContentModes,
+  defaultHistoryImportDays,
+  historyImportDaysLimits,
   minGroupUsersLimits,
   retentionDaysLimits,
   serviceRetentionDefaults,

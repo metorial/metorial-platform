@@ -2,6 +2,8 @@ import { v } from '@lowerdeck/validation';
 import {
   agentTrackingContentModes,
   agentTrackingSettingsService,
+  defaultHistoryImportDays,
+  historyImportDaysLimits,
   minGroupUsersLimits,
   retentionDaysLimits,
   serviceRetentionDefaults,
@@ -162,6 +164,18 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
                     description:
                       'Has Metorial Desktop import agent sessions from before it was installed, from the session files the AI tools keep on each device.'
                   })
+                ),
+                history_import_days: v.optional(
+                  v.number({
+                    name: 'history_import_days',
+                    description: `How many days back history import goes, from ${historyImportDaysLimits.min} to ${historyImportDaysLimits.max}. Records older than a project's record retention are refused.`,
+                    examples: [defaultHistoryImportDays],
+                    modifiers: [
+                      v.integer(),
+                      v.minValue(historyImportDaysLimits.min),
+                      v.maxValue(historyImportDaysLimits.max)
+                    ]
+                  })
                 )
               },
               {
@@ -205,7 +219,8 @@ export let dashboardAgentTrackingOrganizationSettingsController = Controller.cre
                 toolDetails: ctx.body.desktop.tool_details,
                 sessionContext: ctx.body.desktop.session_context,
                 sessionTitles: ctx.body.desktop.session_titles,
-                historyImport: ctx.body.desktop.history_import
+                historyImport: ctx.body.desktop.history_import,
+                historyImportDays: ctx.body.desktop.history_import_days
               },
               links: ctx.body.links && {
                 ticketUrlTemplate: ctx.body.links.ticket_url_template

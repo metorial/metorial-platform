@@ -41,7 +41,12 @@ import {
   invalidPayloadError
 } from '../lib/errors';
 import { isPlainObject, parseJsonObject, parseJsonObjectBytes } from '../lib/payload';
-import { allowsDialect, allowsHookRoute, ingestPolicyFor } from '../lib/policy';
+import {
+  allowsDialect,
+  allowsHookRoute,
+  backfillMaxAgeDaysFor,
+  ingestPolicyFor
+} from '../lib/policy';
 import { getRuntime } from '../lib/runtime';
 
 let maxHeaderBytes = 4096;
@@ -177,7 +182,10 @@ class IngestServiceImpl {
     let mapped;
 
     try {
-      mapped = hookDialectFor(client).map({ identityHint }, payload);
+      mapped = hookDialectFor(client).map(
+        { identityHint, policy: ingestPolicyFor(d.call.principal) },
+        payload
+      );
     } catch {
       throw invalid('The hook payload could not be mapped.');
     }
@@ -215,9 +223,8 @@ class IngestServiceImpl {
     let lane = header.mode == 'backfill' ? ('backfill' as const) : ('live' as const);
     let now = getRuntime().clock().getTime();
 
-    let maxAgeDays =
-      principal.instance.backfillMaxAgeDays ?? principal.instance.recordRetentionDays;
-    let oldestAllowed = lane == 'backfill' ? now - maxAgeDays * millisPerDay : null;
+    let oldestAllowed =
+      lane == 'backfill' ? now - backfillMaxAgeDaysFor(principal) * millisPerDay : null;
 
     let latestAllowed = now + principal.instance.skewBoundSeconds * 1000;
 

@@ -12,8 +12,10 @@ import {
 import { Button, Callout, Flex, Input, NumberInput, Switch, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import React from 'react';
+import styled from 'styled-components';
 import { isHttpUrl } from '../../lib/isHttpUrl';
 import { useAgentTrackingSettingsAccess } from './access';
+import { classificationUpdate, hostedModelPromptText } from './classification';
 import { agentTrackingErrorStatus, AgentTrackingErrorState, notSetUpText } from './errorState';
 import { WithInfo } from './info';
 
@@ -21,7 +23,13 @@ let minGroupUsersRange = { min: 3, max: 100 };
 
 let retentionDaysRange = { min: 1, max: 3650 };
 
+let historyImportDaysRange = { min: 1, max: 365 };
+
 let ticketUrlTemplateKey = '{key}';
+
+let DependentOption = styled.div`
+  padding-left: 24px;
+`;
 
 type OrganizationSettings = DashboardOrganizationsConfigureAgentTrackingGetOutput;
 type ProjectSettings = DashboardProjectsConfigureAgentTrackingGetOutput;
@@ -32,25 +40,25 @@ let desktopSwitches = [
     id: 'toolDetails',
     label: 'Detailed Tool Reporting',
     description:
-      'Sends tool inputs, file paths and commands. Needed to see skill and MCP server names.'
+      'When on, Agent Usage keeps MCP server and tool names, skill names, and custom command and agent names. Tool inputs, outputs and error text are kept only as a size and a fingerprint by default. When off, all of these are removed; built-in tool names such as Bash and Read are kept.'
   },
   {
     id: 'sessionContext',
     label: 'Session Context',
     description:
-      'Sends the repository, branch, commits, pull requests and ticket keys of each agent session. Folder paths, commit messages and code are never sent.'
+      'Keeps the repository, branch, commits, ticket keys and working folder of each agent session, and its pull requests from Metorial Desktop. By default the folder is not kept as its full path, and code and commit messages are never part of it.'
   },
   {
     id: 'sessionTitles',
     label: 'Session Titles',
     description:
-      'Sends session titles. Titles are written by the tools from what was typed, so they can contain details of the work.'
+      'Keeps the titles Claude Code gives its sessions. Claude Code writes them from what was typed, so they can contain details of the work.'
   },
   {
     id: 'historyImport',
     label: 'History Import',
     description:
-      'Imports agent sessions from before Metorial Desktop was installed, from the session files the tools keep on each device.'
+      "Imports the Claude Code and Codex sessions already on a member's computer when this is turned on, from the session files those tools keep."
   }
 ] as const;
 
@@ -284,15 +292,15 @@ let ClassificationSection = ({
       aiEnabled: settings.classification.aiEnabled
     },
     updateInitialValues: true,
-    onSubmit: async classification => {
-      await update.mutate({ classification });
+    onSubmit: async values => {
+      await update.mutate({ classification: classificationUpdate(values) });
     }
   });
 
   return (
     <SettingsSection
       title="Classification"
-      description={`Applies to the selected environment, ${environmentName}: how its sessions are matched to your projects, teams and cost centers.`}
+      description={`Applies to the selected environment, ${environmentName}: assigns its agent sessions to projects and cost centers. Assignments are not shown in the dashboard yet.`}
       form={form}
       update={update}
       canWrite={canWrite}
@@ -300,8 +308,8 @@ let ClassificationSection = ({
     >
       <Switch
         label={
-          <WithInfo info="Matches sessions by ticket references such as ENG-123 and by earlier matches of the same repository, without external calls.">
-            Rule-Based Classification
+          <WithInfo info="Assigns each session to a project or cost center from its ticket keys, such as ENG-123, and from earlier assignments in the same workspace or repository, without sending anything outside Metorial.">
+            Assign Sessions Automatically
           </WithInfo>
         }
         checked={form.values.deterministicEnabled}
@@ -309,16 +317,20 @@ let ClassificationSection = ({
         onCheckedChange={checked => form.setFieldValue('deterministicEnabled', checked)}
       />
 
-      <Switch
-        label={
-          <WithInfo info="Sends session context, such as repository, branch, ticket references and team names to a hosted model that may run outside your organization's region.">
-            Hosted Model Classification
-          </WithInfo>
-        }
-        checked={form.values.aiEnabled}
-        disabled={!canWrite}
-        onCheckedChange={checked => form.setFieldValue('aiEnabled', checked)}
-      />
+      <DependentOption>
+        <Switch
+          label={
+            <WithInfo
+              info={`With Assign Sessions Automatically, sessions the rules cannot assign go to a hosted model that may run outside your organization's region. It receives the repository, branch, ticket keys, workspace name, session tags, AI tool, MCP server names, tool call counts and the member's team names, with your projects and cost centers to choose from. ${hostedModelPromptText(settings.content.mode)}`}
+            >
+              Hosted Model for Unmatched Sessions
+            </WithInfo>
+          }
+          checked={form.values.deterministicEnabled && form.values.aiEnabled}
+          disabled={!canWrite || !form.values.deterministicEnabled}
+          onCheckedChange={checked => form.setFieldValue('aiEnabled', checked)}
+        />
+      </DependentOption>
     </SettingsSection>
   );
 };
@@ -334,17 +346,33 @@ let DesktopSection = ({
     settings.organizationId
   ).useUpdateMutator();
   let form = useForm({
-    initialValues: settings.desktop,
+    initialValues: {
+      ...settings.desktop,
+      historyImportDays: settings.desktop.historyImportDays as number | null
+    },
     updateInitialValues: true,
     onSubmit: async desktop => {
-      await update.mutate({ desktop });
-    }
+      await update.mutate({
+        desktop: { ...desktop, historyImportDays: desktop.historyImportDays ?? undefined }
+      });
+    },
+    schema: yup =>
+      yup.object({
+        historyImportDays: yup
+          .number()
+          .nullable()
+          .typeError('Enter a number')
+          .integer('Enter a whole number')
+          .min(historyImportDaysRange.min, `At least ${historyImportDaysRange.min} day`)
+          .max(historyImportDaysRange.max, `At most ${historyImportDaysRange.max} days`)
+          .required('Enter a number of days')
+      })
   });
 
   return (
     <SettingsSection
-      title="Metorial Desktop"
-      description="Applies to every project and environment of this organization: what the AI tools Metorial Desktop sets up on members' computers report."
+      title="Collected Data"
+      description="These switches decide what Agent Usage keeps for this organization, across every project and environment. Detailed Tool Reporting and Session Context apply to every AI tool that reports to Metorial; Session Titles and History Import need Metorial Desktop on the member's computer."
       form={form}
       update={update}
       canWrite={canWrite}
@@ -359,6 +387,28 @@ let DesktopSection = ({
           onCheckedChange={checked => form.setFieldValue(desktopSwitch.id, checked)}
         />
       ))}
+
+      {form.values.historyImport ? (
+        <DependentOption>
+          <Flex direction="column" gap={4}>
+            <NumberInput
+              label={
+                <WithInfo info="How far back History Import reads session files, never further than the Raw Records retention of a project.">
+                  Import Window
+                </WithInfo>
+              }
+              unit="days"
+              min={historyImportDaysRange.min}
+              max={historyImportDaysRange.max}
+              value={form.values.historyImportDays}
+              disabled={!canWrite}
+              onChange={value => form.setFieldValue('historyImportDays', value)}
+              onBlur={() => form.setFieldTouched('historyImportDays', true)}
+            />
+            <form.RenderError field="historyImportDays" />
+          </Flex>
+        </DependentOption>
+      ) : null}
     </SettingsSection>
   );
 };
@@ -506,16 +556,7 @@ export let AgentTrackingSettings = ({
       )(({ project }) => (
         <RetentionSection settings={project.data} canWrite={access.retention} />
       ))}
-      {renderWithLoader(
-        { instance },
-        errorState(instance)
-      )(({ instance }) => (
-        <ClassificationSection
-          settings={instance.data}
-          environmentName={environmentName}
-          canWrite={access.instance}
-        />
-      ))}
+      {/* {renderWithLoader({ instance }, errorState(instance))(({ instance }) => <ClassificationSection settings={instance.data} environmentName={environmentName} canWrite={access.instance} />)} */}
     </Flex>
   );
 };

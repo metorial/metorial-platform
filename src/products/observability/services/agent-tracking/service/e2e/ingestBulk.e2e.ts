@@ -417,6 +417,52 @@ describe('bulk ingest', () => {
     expect(await instanceRecords(on.instance, 'live')).toHaveLength(0);
   });
 
+  it('marks imported subagent requests and refuses lines older than the import window', async () => {
+    let token = await createToken(
+      {},
+      await createScope({
+        organization: { settings: { desktop: { historyImport: true, historyImportDays: 10 } } }
+      })
+    );
+    let request = (seq: number, observedAt: string, purpose?: string) => ({
+      client: 'claude-code',
+      channel: 'transcript',
+      dialect: 'claude-code.transcript.v1',
+      source: { kind: 'desktop', ref: 'session:hist-sub', seq },
+      observed_at: observedAt,
+      payload: {
+        kind: 'request',
+        session_id: 'hist-sub',
+        message_id: `msg_${seq}`,
+        request_id: `req_${seq}`,
+        model: 'claude-opus-5-5',
+        input_tokens: 2,
+        output_tokens: 90,
+        ...(purpose ? { purpose } : {})
+      }
+    });
+
+    let body = (await (
+      await bulk(
+        token.secret,
+        ndjson(
+          header({ mode: 'backfill' }),
+          request(1, daysAgo(5)),
+          request(2, daysAgo(5), 'subagent'),
+          request(3, daysAgo(11), 'subagent')
+        )
+      )
+    ).json()) as { accepted: number; rejections: { i: number; code: string }[] };
+
+    expect(body.accepted).toBe(2);
+    expect(body.rejections).toEqual([{ i: 2, code: 'too_old' }]);
+
+    let records = (await instanceRecords(token.instance, 'backfill')).map(
+      entry => entry.record
+    );
+    expect(records.map(record => record.data.purpose).sort()).toEqual(['main', 'subagent']);
+  });
+
   it('accepts client usage from a device-bound token live, and as history with History Import', async () => {
     let bound = await createToken();
     let history = await createToken(
@@ -541,5 +587,47 @@ describe('bulk ingest', () => {
 
     expect(await instanceRecords(first.instance)).toHaveLength(2);
     expect(await instanceRecords(second.instance)).toHaveLength(1);
+  });
+
+  it('applies detailed tool reporting to hook items from other tokens', async () => {
+    let mcpItem = item(1, {
+      payload: {
+        hook_event_name: 'PostToolUse',
+        session_id: 'session-mcp',
+        tool_name: 'mcp__github__create_pr',
+        tool_use_id: 'toolu_mcp',
+        mcp_server: { name: 'github' },
+        tool_input: { title: 'SENTINEL-e2e-bulk' }
+      }
+    });
+
+    let tokenFor = async (toolDetails: boolean) =>
+      createHookToken(
+        { contentPolicy: { defaultMode: 'full' } },
+        await createScope({
+          organization: { settings: { desktop: { toolDetails } } },
+          instance: { settings: { contentPolicy: { defaultMode: 'full' } } }
+        })
+      );
+
+    let off = await tokenFor(false);
+    let on = await tokenFor(true);
+
+    await bulk(off.secret, ndjson(header(), mcpItem));
+    await bulk(on.secret, ndjson(header(), mcpItem));
+
+    let [stripped] = await instanceRecords(off.instance);
+    let [kept] = await instanceRecords(on.instance);
+
+    expect(stripped!.record.data.tool).toEqual({
+      name: 'mcp_tool',
+      kind: 'mcp',
+      class: 'mcp'
+    });
+    expect(JSON.stringify(stripped)).not.toMatch(/SENTINEL|github|create_pr/);
+    expect(kept!.record.data.tool).toMatchObject({
+      mcp: { server: 'github', tool: 'create_pr' }
+    });
+    expect(kept!.record.content.some(entry => entry.text?.includes('SENTINEL'))).toBe(true);
   });
 });
