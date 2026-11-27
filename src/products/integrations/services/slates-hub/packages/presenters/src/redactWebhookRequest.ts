@@ -14,7 +14,7 @@ let redactUrl = (url: string, registration: { owner: string; urlKey: string }) =
 // A shared-delivery bearer token is valid for every tenant on the binding, so it never leaves
 // the hub. Without a registration (operators only) the URL is kept.
 export let redactWebhookRequest = (
-  request: PrismaJson.SlateWebhookEventRequest | null,
+  request: SlatesHubPrismaJson.SlateWebhookEventRequest | null,
   registration?: { owner: string; urlKey: string }
 ) =>
   request && {

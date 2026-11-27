@@ -3,14 +3,17 @@ import type { SlateInstanceConfiguration } from '@mtsrc/slates-hub-db/client';
 export type AttachmentEgress = {
   instanceConfigurationOid?: bigint;
   enclaveId?: string;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
 };
 
 // A tool call that runs under its session's instance configuration links it, so later firewall
 // changes apply to the attachment too. Inline policies have no record to link and are copied.
 export let attachmentEgressFor = (d: {
   instanceConfiguration?: SlateInstanceConfiguration | null;
-  inline?: { enclaveId?: string; egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList };
+  inline?: {
+    enclaveId?: string;
+    egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
+  };
 }): AttachmentEgress => {
   if (d.inline?.enclaveId || d.inline?.egressPolicy) {
     return {
@@ -18,7 +21,7 @@ export let attachmentEgressFor = (d: {
       egressPolicy:
         d.inline.egressPolicy ??
         (d.instanceConfiguration?.egressPolicy as
-          PrismaJson.CompiledEgressNetworkAllowList | undefined)
+          SlatesHubPrismaJson.CompiledEgressNetworkAllowList | undefined)
     };
   }
 
@@ -41,12 +44,13 @@ export let resolveAttachmentEgress = (attachment: {
     return {
       enclaveId: attachment.instanceConfiguration.enclaveId,
       egressPolicy: attachment.instanceConfiguration
-        .egressPolicy as PrismaJson.CompiledEgressNetworkAllowList
+        .egressPolicy as SlatesHubPrismaJson.CompiledEgressNetworkAllowList
     };
   }
 
   return {
     enclaveId: attachment.enclaveId,
-    egressPolicy: attachment.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null
+    egressPolicy:
+      attachment.egressPolicy as SlatesHubPrismaJson.CompiledEgressNetworkAllowList | null
   };
 };

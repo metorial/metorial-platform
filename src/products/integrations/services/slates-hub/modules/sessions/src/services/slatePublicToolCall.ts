@@ -32,7 +32,7 @@ class slatePublicToolCallServiceImpl {
       slateVersionId?: string;
       toolId: string;
       enclaveId?: string;
-      egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+      egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
       downloadUrlAttachments?: boolean;

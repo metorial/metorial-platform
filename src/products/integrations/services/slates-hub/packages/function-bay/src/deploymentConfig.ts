@@ -1,7 +1,7 @@
 import { checkEdition } from '@metorial/editions';
 
 export let resolveSlateDeploymentConfig = (d: {
-  manifest: PrismaJson.SlateJson;
+  manifest: SlatesHubPrismaJson.SlateJson;
   defaultMemorySizeMb: number;
   defaultTimeoutSeconds: number;
 }) => ({

@@ -22,7 +22,7 @@ export let payloadTooLargeError = createError({
 
 export let acceptWebhookRequest = async (d: {
   registration: Pick<SlateWebhookRegistration, 'oid'>;
-  request: PrismaJson.SlateWebhookEventRequest;
+  request: SlatesHubPrismaJson.SlateWebhookEventRequest;
 }) => {
   let event = await slateWebhookEventServiceInternal.createPendingEvent(d);
   await processWebhookEventQueue.add({ webhookEventId: event.id });
@@ -32,7 +32,7 @@ export let acceptWebhookRequest = async (d: {
 
 export let ingestWebhookRequest = async (d: {
   registration: Pick<SlateWebhookRegistration, 'oid' | 'status'>;
-  request: PrismaJson.SlateWebhookEventRequest;
+  request: SlatesHubPrismaJson.SlateWebhookEventRequest;
 }) => {
   if (d.registration.status === 'deleted') {
     throw new ServiceError(

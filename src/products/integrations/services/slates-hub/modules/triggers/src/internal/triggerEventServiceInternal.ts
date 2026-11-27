@@ -61,10 +61,10 @@ class triggerEventServiceInternalImpl {
     eventOid: bigint;
     rawEventOid: bigint;
     attempt: number;
-    payload: PrismaJson.AnyRecord;
+    payload: SlatesHubPrismaJson.AnyRecord;
     mappedType: string;
     mappedId: string;
-    attributes: PrismaJson.TriggerEventAttributes | null;
+    attributes: SlatesHubPrismaJson.TriggerEventAttributes | null;
   }) {
     return db.$transaction(async tx => {
       let changed = await tx.triggerEvent.updateMany({

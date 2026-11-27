@@ -44,7 +44,10 @@ vi.mock('./store', () => ({ storeSlateInvocation: mocks.storeInvocation }));
 
 import { SlateInvocationStack } from './stack';
 
-let invoke = (capabilities?: PrismaJson.SlateCapabilities, tenant?: { oid: bigint }) =>
+let invoke = (
+  capabilities?: SlatesHubPrismaJson.SlateCapabilities,
+  tenant?: { oid: bigint }
+) =>
   new SlateInvocationStack({
     slateVersion: {
       id: 'version_1',

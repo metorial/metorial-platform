@@ -44,7 +44,7 @@ let createDiscoveryEvent = (
     })
   );
 
-let normalizeDiscoveredDocs = (docs: unknown): PrismaJson.SlateDocReferences => {
+let normalizeDiscoveredDocs = (docs: unknown): SlatesHubPrismaJson.SlateDocReferences => {
   if (!Array.isArray(docs)) return [];
 
   return docs
@@ -476,11 +476,11 @@ let discoverLock = createLock({
 
 export let getSlateDiscoveryDeploymentTarget = (d: {
   version: {
-    providerDeploymentInfo: PrismaJson.SlateDeploymentProviderDeploymentInfo;
+    providerDeploymentInfo: SlatesHubPrismaJson.SlateDeploymentProviderDeploymentInfo;
     activeDeploymentOid: bigint | null;
   };
   stagedDeployment?: {
-    providerDeploymentInfo: PrismaJson.SlateDeploymentProviderDeploymentInfo;
+    providerDeploymentInfo: SlatesHubPrismaJson.SlateDeploymentProviderDeploymentInfo;
     oid: bigint;
   } | null;
 }) => {

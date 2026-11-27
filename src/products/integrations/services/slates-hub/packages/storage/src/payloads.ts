@@ -8,7 +8,7 @@ export let getTriggerEventPayloadStorageKey = (triggerEventId: string) =>
 
 export let loadOffloadedTriggerEventPayload = async (
   storageKey: string
-): Promise<PrismaJson.AnyRecord | null> => {
+): Promise<SlatesHubPrismaJson.AnyRecord | null> => {
   try {
     let object = await storage.getObject(invocationsBucketRecord.bucket, storageKey);
     return JSON.parse(object.data.toString('utf-8'));
@@ -22,7 +22,7 @@ export let getWebhookEventRequestStorageKey = (webhookEventId: string) =>
 
 export let loadOffloadedWebhookEventRequest = async (
   storageKey: string
-): Promise<PrismaJson.SlateWebhookEventRequest | null> => {
+): Promise<SlatesHubPrismaJson.SlateWebhookEventRequest | null> => {
   try {
     let object = await storage.getObject(invocationsBucketRecord.bucket, storageKey);
     return JSON.parse(object.data.toString('utf-8'));

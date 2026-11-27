@@ -111,7 +111,7 @@ class slateSessionToolCallServiceImpl {
       toolId: string;
       authConfigId?: string;
       enclaveId?: string;
-      egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+      egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
       participants: SlatesParticipant[];
       downloadUrlAttachments?: boolean;
@@ -235,7 +235,7 @@ class slateSessionToolCallServiceImpl {
       egressPolicy:
         d.input.egressPolicy ??
         (session.instanceConfiguration
-          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ??
+          ?.egressPolicy as SlatesHubPrismaJson.CompiledEgressNetworkAllowList | null) ??
         undefined,
 
       config: session.slateInstance.currentConfig.value ?? {},

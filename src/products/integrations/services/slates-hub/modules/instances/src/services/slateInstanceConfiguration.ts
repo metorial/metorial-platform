@@ -9,7 +9,7 @@ class slateInstanceConfigurationServiceImpl {
     tenant: Tenant;
     slateInstanceConfigurationId?: string;
     enclaveId: string;
-    egressPolicy: PrismaJson.CompiledEgressNetworkAllowList;
+    egressPolicy: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
   }) {
     let existing = d.slateInstanceConfigurationId
       ? await db.slateInstanceConfiguration.findFirst({

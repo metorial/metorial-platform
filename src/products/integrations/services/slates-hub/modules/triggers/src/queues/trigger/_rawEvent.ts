@@ -6,10 +6,10 @@ import { enqueueTriggerRawEventMapping } from '../events/rawEventMapping';
 
 export type TriggerRawEventInput = {
   triggerRegistrationInstanceOids: bigint[];
-  payload: PrismaJson.AnyRecord;
+  payload: SlatesHubPrismaJson.AnyRecord;
   idempotencyKey?: string | null;
   triggerIds: string[];
-  matchers?: PrismaJson.TriggerRawEventMatchers | null;
+  matchers?: SlatesHubPrismaJson.TriggerRawEventMatchers | null;
 };
 
 export let findAllowedTriggerInstances = async (

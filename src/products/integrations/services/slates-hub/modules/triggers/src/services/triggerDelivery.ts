@@ -39,7 +39,7 @@ class triggerDeliveryServiceImpl {
   // each gets the request unchanged and verifies it again.
   async receiveDelivery(d: {
     registration: DeliveryConfigRegistration;
-    request: PrismaJson.SlateWebhookEventRequest;
+    request: SlatesHubPrismaJson.SlateWebhookEventRequest;
   }) {
     let routingKeys = await this.authenticateDelivery(d);
     if (!routingKeys.length) return { accepted: 0 };
@@ -90,7 +90,7 @@ class triggerDeliveryServiceImpl {
   // sender sends it again.
   private async authenticateDelivery(d: {
     registration: DeliveryConfigRegistration;
-    request: PrismaJson.SlateWebhookEventRequest;
+    request: SlatesHubPrismaJson.SlateWebhookEventRequest;
   }) {
     let tenant =
       d.registration.owner === 'global'

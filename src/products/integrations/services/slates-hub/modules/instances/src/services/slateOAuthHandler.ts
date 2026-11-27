@@ -421,7 +421,8 @@ class slateOAuthHandlerServiceImpl {
       enclaveId: setup.instanceConfiguration?.enclaveId,
       egressPolicy:
         (setup.instanceConfiguration
-          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ?? undefined
+          ?.egressPolicy as SlatesHubPrismaJson.CompiledEgressNetworkAllowList | null) ??
+        undefined
     });
   }
 

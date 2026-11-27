@@ -24,7 +24,7 @@ export let { db, withTransaction } = createDatabase({
 });
 
 declare global {
-  namespace PrismaJson {
+  namespace SlatesHubPrismaJson {
     type PortRange = {
       from: number;
       to: number;

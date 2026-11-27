@@ -57,9 +57,9 @@ export class SlateInvocationStack {
   #participants: SlatesParticipant[];
   #tenant?: SlateInvocationBaseParams['tenant'];
   #enclaveId?: string;
-  #egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  #egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
   #suppressServerErrorReporting: boolean;
-  #capabilities?: PrismaJson.SlateCapabilities;
+  #capabilities?: SlatesHubPrismaJson.SlateCapabilities;
   #productiveMessages: SlatesRequest[] = [];
   #alreadyInvoked = false;
   #runPromise: ReturnType<typeof this.run>;

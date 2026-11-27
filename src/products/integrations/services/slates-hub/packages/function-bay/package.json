@@ -20,6 +20,7 @@
     "unzipper": "^0.12.5"
   },
   "devDependencies": {
+    "@types/unzipper": "^0.10.11",
     "jszip": "^3.10.2",
     "vitest": "5.0.4"
   }

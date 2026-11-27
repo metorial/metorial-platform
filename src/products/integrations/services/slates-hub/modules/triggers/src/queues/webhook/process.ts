@@ -179,10 +179,10 @@ export let processWebhookEventQueueProcessor = processWebhookEventQueue.process(
 
       let eventsForCreation: {
         triggerRegistrationInstanceOids: bigint[];
-        payload: PrismaJson.AnyRecord;
+        payload: SlatesHubPrismaJson.AnyRecord;
         idempotencyKey?: string | null;
         triggerIds: string[];
-        matchers?: PrismaJson.TriggerRawEventMatchers | null;
+        matchers?: SlatesHubPrismaJson.TriggerRawEventMatchers | null;
       }[];
 
       if (target) {

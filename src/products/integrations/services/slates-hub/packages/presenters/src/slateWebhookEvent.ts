@@ -31,7 +31,7 @@ export let slateWebhookEventListPresenter = async (event: PresentedSlateWebhookE
 
 let presentWebhookEvent = async (
   event: PresentedSlateWebhookEvent,
-  redact: (request: PrismaJson.SlateWebhookEventRequest | null) => typeof request
+  redact: (request: SlatesHubPrismaJson.SlateWebhookEventRequest | null) => typeof request
 ) => {
   let request = event.request;
   if (request === null && event.requestStorageKey) {

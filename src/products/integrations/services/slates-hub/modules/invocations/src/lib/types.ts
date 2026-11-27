@@ -11,7 +11,7 @@ import type { SlateInvocation, SlateVersion, Tenant } from '@mtsrc/slates-hub-db
 import type { SlateInvocationProviderMetadata } from './store';
 
 export interface SlateInvocationDeploymentTarget {
-  providerDeploymentInfo: NonNullable<PrismaJson.SlateDeploymentProviderDeploymentInfo>;
+  providerDeploymentInfo: NonNullable<SlatesHubPrismaJson.SlateDeploymentProviderDeploymentInfo>;
   activeDeploymentOid: bigint;
 }
 
@@ -30,9 +30,9 @@ export interface SlateInvocationBaseParams {
   deploymentTarget?: SlateInvocationDeploymentTarget;
   participants: SlatesParticipant[];
   enclaveId?: string;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList;
   suppressServerErrorReporting?: boolean;
-  capabilities?: PrismaJson.SlateCapabilities;
+  capabilities?: SlatesHubPrismaJson.SlateCapabilities;
 }
 
 export type SlatesRequest = SlatesNotifications | SlatesRequests;

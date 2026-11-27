@@ -81,7 +81,7 @@ model SlatePublicToolCall {
   invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid], onDelete: Cascade)
 
   slateOid BigInt
-  slate    Slate @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
 
   slateVersionOid BigInt
   slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)

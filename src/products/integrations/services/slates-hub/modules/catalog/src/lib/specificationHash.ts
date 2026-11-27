@@ -7,7 +7,7 @@ import type {
   SlatesTriggerGroup
 } from '@slates/proto';
 
-type SlateDocReference = PrismaJson.SlateDocReference;
+type SlateDocReference = SlatesHubPrismaJson.SlateDocReference;
 
 export let dedupeDiscoveredItems = <T extends { id: string }>(
   items: T[],
@@ -67,7 +67,7 @@ export let hashDiscoveredTriggerGroup = async (triggerGroup: SlatesTriggerGroup)
 export let normalizeDiscoveredToolCategories = (
   toolCategories: SlatesToolCategory[],
   d: { slateId: string; versionId: string }
-): PrismaJson.SlateToolCategories =>
+): SlatesHubPrismaJson.SlateToolCategories =>
   dedupeDiscoveredItems(
     toolCategories.filter(
       category =>
@@ -89,7 +89,7 @@ export let normalizeDiscoveredToolCategories = (
 
 // Order is meaningful (it is the display order), so the list is hashed as-is
 export let hashDiscoveredToolCategories = async (
-  toolCategories: PrismaJson.SlateToolCategories
+  toolCategories: SlatesHubPrismaJson.SlateToolCategories
 ) => await Hash.sha256(canonicalize(toolCategories));
 
 export let buildDiscoveredSpecificationHashes = async (d: {
@@ -105,7 +105,7 @@ export let buildDiscoveredSpecificationHashes = async (d: {
   authMethods: SlateAuthenticationMethod[];
   actions: SlatesAction[];
   triggerGroups: SlatesTriggerGroup[];
-  toolCategories?: PrismaJson.SlateToolCategories;
+  toolCategories?: SlatesHubPrismaJson.SlateToolCategories;
 }) => {
   let providerInfoHash = await hashDiscoveredProviderInfo(d.providerInfo);
   let configSchemaHash = await hashDiscoveredConfigSchema(d.configSchema);

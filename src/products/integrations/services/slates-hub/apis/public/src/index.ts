@@ -51,7 +51,7 @@ let readBodyWithLimit = async (request: Request, maxBytes: number) => {
   return out;
 };
 
-let toHttpResponse = (response: PrismaJson.SlatesWebhookHttpResponse) =>
+let toHttpResponse = (response: SlatesHubPrismaJson.SlatesWebhookHttpResponse) =>
   new Response(response.body ? Buffer.from(response.body.content, 'base64') : null, {
     status: response.status,
     headers: response.headers

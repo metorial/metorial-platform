@@ -110,7 +110,7 @@ let build = (
     authMethods?: SlateAuthenticationMethod[];
     actions?: SlatesAction[];
     triggerGroups?: SlatesTriggerGroup[];
-    toolCategories?: PrismaJson.SlateToolCategories;
+    toolCategories?: SlatesHubPrismaJson.SlateToolCategories;
   } = {}
 ) =>
   buildDiscoveredSpecificationHashes({

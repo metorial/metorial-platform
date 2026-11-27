@@ -28,7 +28,7 @@ export let isTerminalSlateDeploymentStatus = (status: string) =>
 
 export let hasServingSlateDeployment = (version: {
   status: string;
-  providerDeploymentInfo: PrismaJson.SlateDeploymentProviderDeploymentInfo;
+  providerDeploymentInfo: SlatesHubPrismaJson.SlateDeploymentProviderDeploymentInfo;
   activeDeploymentOid: bigint | null;
 }) =>
   version.status === 'active' &&

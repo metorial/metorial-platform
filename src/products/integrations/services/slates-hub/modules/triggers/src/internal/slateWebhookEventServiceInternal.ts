@@ -22,7 +22,7 @@ let include = {
 class slateWebhookEventServiceInternalImpl {
   async createPendingEvent(d: {
     registration: Pick<SlateWebhookRegistration, 'oid'>;
-    request: PrismaJson.SlateWebhookEventRequest;
+    request: SlatesHubPrismaJson.SlateWebhookEventRequest;
   }) {
     return db.slateWebhookEvent.create({
       data: {
@@ -101,7 +101,7 @@ class slateWebhookEventServiceInternalImpl {
 
   async setSlateResponse(d: {
     eventOid: bigint;
-    response: PrismaJson.SlatesWebhookHttpResponse | null;
+    response: SlatesHubPrismaJson.SlatesWebhookHttpResponse | null;
   }) {
     await db.slateWebhookEvent.update({
       where: { oid: d.eventOid },
@@ -111,7 +111,7 @@ class slateWebhookEventServiceInternalImpl {
 
   async trySetResponseOverride(d: {
     eventOid: bigint;
-    override: PrismaJson.SlateWebhookEventResponseOverride;
+    override: SlatesHubPrismaJson.SlateWebhookEventResponseOverride;
   }) {
     let res = await db.slateWebhookEvent.updateMany({
       // First writer wins

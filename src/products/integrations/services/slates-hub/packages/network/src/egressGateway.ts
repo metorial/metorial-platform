@@ -50,7 +50,7 @@ export let getEgressGateway = () => {
 export let resolveEgressSubject = async (d: {
   tenant: Tenant | null;
   enclaveId?: string | null;
-  egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList | null;
+  egressPolicy?: SlatesHubPrismaJson.CompiledEgressNetworkAllowList | null;
 }): Promise<EgressGatewaySubject> => {
   let { functionBayTenant, getFunctionBayTenantForTenant } =
     await import('@mtsrc/slates-hub-function-bay/functionBay');
