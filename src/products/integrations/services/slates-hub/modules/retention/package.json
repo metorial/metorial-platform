@@ -1,0 +1,20 @@
+{
+  "name": "@mtsrc/slates-hub-module-retention",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cleanup": "./src/queues/cron/cleanup.ts",
+    "./config": "./src/lib/config.ts",
+    "./storageCleanup": "./src/queues/retention/cleanup.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/retention-runner": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-storage": "workspace:*",
+    "date-fns": "^4.4.0"
+  }
+}

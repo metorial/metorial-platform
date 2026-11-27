@@ -1,0 +1,21 @@
+{
+  "name": "@mtsrc/slates-hub-module-callbacks",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./callback": "./src/services/callback.ts",
+    "./callbackInstance": "./src/services/callbackInstance.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-module-catalog": "workspace:*",
+    "@mtsrc/slates-hub-module-instances": "workspace:*",
+    "@mtsrc/slates-hub-module-triggers": "workspace:*"
+  }
+}

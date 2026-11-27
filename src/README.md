@@ -183,7 +183,11 @@ database identifiers remain compatible. Slates no longer depends on or starts th
 Slates Registry lives at `products/integrations/services/slates-registry/`, with its public and
 internal clients at `products/integrations/clients/{slates-registry,slates-registry-internal}/`.
 Its package names, image names, API paths, settings, and database identifiers remain unchanged.
-The Slates Hub remains under `slates/apps/hub/` during migration.
+Slates Hub lives at `products/integrations/services/slates-hub/`, split into `apis/`,
+`packages/`, `modules/`, `db/`, and `service/`. The host is `@metorial/slates` under
+`service/`, and `@mtsrc/slates-hub-db` owns schema generation and migrations. The client
+`@metorial-platform-systems/slates-client` lives at `products/integrations/clients/slates-hub/`
+and takes its RPC type from `apis/internal`.
 
 Object storage lives at `platform/services/object-storage/`. Its Cargo workspace and nested
 Go, Rust, and TypeScript SDKs retain their existing layout. Package names, the Go module identity,
@@ -265,7 +269,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Shared platform code | The remaining Core modules live at `platform/modules/`; shared Metorial packages at `platform/packages/`; the cell registry at `platform/multi-region/`. Package names and runtime behavior remain unchanged. |
 | Platform services               | `secret-store`, `email`, `search`, and `webhook-sender` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
-| Integrations | MCP Runtime, its SDK and client, plus Slates Registry and both registry clients live under `products/integrations/`. Other integrations code continues migrating from the legacy product tree. |
+| Integrations | MCP Runtime, its SDK and client, plus Slates Hub, Slates Registry, and their clients live under `products/integrations/`. Other integrations code continues migrating from the legacy product tree. |
 | Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
 | Sandbox | Modules and the generated Genesis client live under `products/sandbox/`. |
 | OSS composition | `products/oss/` holds `services/oss-core`, `apis/oss-auth`, and `packages/auth`. |

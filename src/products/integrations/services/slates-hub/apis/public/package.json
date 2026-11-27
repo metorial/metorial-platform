@@ -1,0 +1,31 @@
+{
+  "name": "@mtsrc/slates-hub-api-public",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./liveInvocation": "./src/liveInvocation.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hono": "workspace:2.0.0",
+    "@lowerdeck/ssrf": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-module-instances": "workspace:*",
+    "@mtsrc/slates-hub-module-invocations": "workspace:*",
+    "@mtsrc/slates-hub-module-sessions": "workspace:*",
+    "@mtsrc/slates-hub-module-triggers": "workspace:*",
+    "@mtsrc/slates-hub-network": "workspace:*",
+    "@mtsrc/slates-hub-protocol": "workspace:*",
+    "@mtsrc/slates-hub-storage": "workspace:*",
+    "hono": "4.13.16",
+    "lodash": "4.18.1",
+    "object-storage-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "vitest": "5.0.4"
+  }
+}

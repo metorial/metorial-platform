@@ -2,7 +2,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { getFunctionFs } from '../../../../../integrations/services/mcp-runtime/packages/function-bay/src/function/getFs';
-import { buildSlateDeploymentFiles } from '../../../../../../slates/apps/hub/src/queues/deployment/packageFiles';
+import { buildSlateDeploymentFiles } from '../../../../../integrations/services/slates-hub/packages/function-bay/src/packageFiles';
 
 type FixtureFile = { filename: string; content: string; encoding?: 'base64' | 'utf-8' };
 
