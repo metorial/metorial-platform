@@ -1,0 +1,1122 @@
+import { createLock } from '@lowerdeck/lock';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { getSentry } from '@lowerdeck/sentry';
+import type {
+  SlateAdapter,
+  SlateAuthenticationMethod,
+  SlatesAction,
+  SlatesTriggerGroup
+} from '@slates/proto';
+import { differenceInMinutes } from 'date-fns';
+import semver from 'semver';
+import type { SlateEvent } from '@mtsrc/slates-hub-db/client';
+import { db, withTransaction } from '@mtsrc/slates-hub-db/db';
+import { env } from '@mtsrc/slates-hub-env/env';
+import { getId, snowflake } from '@mtsrc/slates-hub-db/id';
+import { reportSlateDiscoveryFailure } from '@mtsrc/slates-hub-function-bay/failureReports';
+import {
+  getStackError,
+  getStackResultsOrThrow
+} from '@mtsrc/slates-hub-module-invocations/error';
+import type {
+  InvocationError,
+  InvocationResult
+} from '@mtsrc/slates-hub-module-invocations/types';
+import { isReservedActionId } from '@mtsrc/slates-hub-protocol/reservedActions';
+import { retryOnOidCollision } from '@mtsrc/slates-hub-db/retryOnOidCollision';
+import { followsRegistryCurrentVersion } from '../../registry';
+import {
+  buildDiscoveredSpecificationHashes,
+  dedupeDiscoveredItems,
+  normalizeDiscoveredToolCategories
+} from '../../lib/specificationHash';
+import { slateInvocationService } from '@mtsrc/slates-hub-module-invocations/slateInvocation';
+import { discoverSlateCapabilities } from './discoverCapabilities';
+
+let Sentry = getSentry();
+
+let createDiscoveryEvent = (
+  event: Pick<SlateEvent, 'type' | 'message' | 'slateOid' | 'slateVersionOid'>
+) =>
+  retryOnOidCollision(() =>
+    db.slateEvent.create({
+      data: { ...getId('slateEvent'), ...event }
+    })
+  );
+
+let normalizeDiscoveredDocs = (docs: unknown): SlatesHubPrismaJson.SlateDocReferences => {
+  if (!Array.isArray(docs)) return [];
+
+  return docs
+    .filter(
+      (doc): doc is { name: string; url: string; type?: string } =>
+        !!doc &&
+        typeof doc === 'object' &&
+        typeof (doc as any).name === 'string' &&
+        typeof (doc as any).url === 'string'
+    )
+    .map(doc => ({
+      ...(typeof doc.type === 'string' ? { type: doc.type } : {}),
+      name: doc.name,
+      url: doc.url
+    }));
+};
+
+let syncSpecificationActions = async (d: {
+  specificationOid: bigint;
+  actions: Array<{ oid: bigint }>;
+}) => {
+  let actionOids = d.actions.map(action => action.oid);
+
+  await db.slateSpecificationAction.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      actionOid: actionOids.length > 0 ? { notIn: actionOids } : undefined
+    }
+  });
+
+  if (actionOids.length === 0) return;
+
+  await db.slateSpecificationAction.createMany({
+    skipDuplicates: true,
+    data: actionOids.map(actionOid => ({
+      oid: snowflake.nextId(),
+      actionOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
+let syncSpecificationAuthMethods = async (d: {
+  specificationOid: bigint;
+  authMethods: Array<{ oid: bigint }>;
+}) => {
+  let authMethodOids = d.authMethods.map(authMethod => authMethod.oid);
+
+  await db.slateSpecificationAuthMethod.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      authMethodOid: authMethodOids.length > 0 ? { notIn: authMethodOids } : undefined
+    }
+  });
+
+  if (authMethodOids.length === 0) return;
+
+  await db.slateSpecificationAuthMethod.createMany({
+    skipDuplicates: true,
+    data: authMethodOids.map(authMethodOid => ({
+      oid: snowflake.nextId(),
+      authMethodOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
+let syncSpecificationTriggerGroups = async (d: {
+  specificationOid: bigint;
+  triggerGroups: Array<{ oid: bigint }>;
+}) => {
+  let triggerGroupOids = d.triggerGroups.map(triggerGroup => triggerGroup.oid);
+
+  await db.slateSpecificationTriggerGroup.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      triggerGroupOid: triggerGroupOids.length > 0 ? { notIn: triggerGroupOids } : undefined
+    }
+  });
+
+  if (triggerGroupOids.length === 0) return;
+
+  await db.slateSpecificationTriggerGroup.createMany({
+    skipDuplicates: true,
+    data: triggerGroupOids.map(triggerGroupOid => ({
+      oid: snowflake.nextId(),
+      triggerGroupOid,
+      specificationOid: d.specificationOid
+    }))
+  });
+};
+
+let syncSpecificationConfigSchema = async (d: {
+  specificationOid: bigint;
+  configSchemaOid: bigint;
+}) => {
+  await db.slateSpecificationConfigSchema.deleteMany({
+    where: {
+      specificationOid: d.specificationOid,
+      configSchemaOid: { not: d.configSchemaOid }
+    }
+  });
+
+  await db.slateSpecificationConfigSchema.upsert({
+    where: {
+      specificationOid_configSchemaOid: {
+        specificationOid: d.specificationOid,
+        configSchemaOid: d.configSchemaOid
+      }
+    },
+    create: {
+      oid: snowflake.nextId(),
+      specificationOid: d.specificationOid,
+      configSchemaOid: d.configSchemaOid
+    },
+    update: {}
+  });
+};
+
+let syncDiscoveredAdapters = async (d: {
+  adapters: SlateAdapter[];
+  slateOid: bigint;
+  slateId: string;
+  slateVersionOid: bigint;
+}) => {
+  let adaptersById = new Map(d.adapters.map(adapter => [adapter.id, adapter]));
+  let adapters = [...adaptersById.values()];
+
+  for (let adapter of adapters) {
+    await db.adapter.upsert({
+      where: { identifier: adapter.id },
+      create: {
+        ...getId('adapter'),
+        identifier: adapter.id,
+        name: adapter.name
+      },
+      update: { name: adapter.name }
+    });
+  }
+
+  let upsertedAdapters = adapters.length
+    ? await db.adapter.findMany({
+        where: { identifier: { in: adapters.map(adapter => adapter.id) } }
+      })
+    : [];
+  let adapterOidByIdentifier = new Map(
+    upsertedAdapters.map(adapter => [adapter.identifier, adapter.oid])
+  );
+  let adapterOidById = new Map(
+    adapters.flatMap(adapter => {
+      let adapterOid = adapterOidByIdentifier.get(adapter.id);
+      return adapterOid ? [[adapter.id, adapterOid] as const] : [];
+    })
+  );
+
+  for (let adapter of adapters) {
+    let adapterOid = adapterOidById.get(adapter.id);
+    if (!adapterOid) continue;
+
+    await db.slateAdapter.upsert({
+      where: { slateOid_adapterOid: { slateOid: d.slateOid, adapterOid } },
+      create: {
+        ...getId('slateAdapter'),
+        identifier: `slate::${d.slateId}::adapter::${adapter.id}`,
+        slateOid: d.slateOid,
+        adapterOid
+      },
+      update: { identifier: `slate::${d.slateId}::adapter::${adapter.id}` }
+    });
+  }
+
+  let slateAdapters = await db.slateAdapter.findMany({
+    where: { slateOid: d.slateOid, adapterOid: { in: [...adapterOidById.values()] } },
+    select: { oid: true, adapterOid: true }
+  });
+  let slateAdapterOidByAdapterOid = new Map(
+    slateAdapters.map(slateAdapter => [slateAdapter.adapterOid, slateAdapter.oid])
+  );
+  let slateAdapterOidById = new Map(
+    adapters.flatMap(adapter => {
+      let adapterOid = adapterOidById.get(adapter.id);
+      let slateAdapterOid = adapterOid
+        ? slateAdapterOidByAdapterOid.get(adapterOid)
+        : undefined;
+      return slateAdapterOid ? [[adapter.id, slateAdapterOid] as const] : [];
+    })
+  );
+
+  for (let adapter of adapters) {
+    let adapterOid = adapterOidById.get(adapter.id);
+    if (!adapterOid) continue;
+
+    let capabilitiesById = new Map(
+      adapter.capabilities.map(capability => [capability.id, capability])
+    );
+    for (let capability of capabilitiesById.values()) {
+      await db.adapterCapability.upsert({
+        where: {
+          adapterOid_identifier: {
+            adapterOid,
+            identifier: capability.id
+          }
+        },
+        create: {
+          ...getId('adapterCapability'),
+          adapterOid,
+          identifier: capability.id
+        },
+        update: {}
+      });
+    }
+  }
+
+  let desiredSlateAdapterOids = [...slateAdapterOidById.values()];
+  let staleVersionAdapters = await db.slateVersionAdapter.findMany({
+    where: {
+      slateVersionOid: d.slateVersionOid,
+      slateAdapterOid: { notIn: desiredSlateAdapterOids }
+    },
+    select: { oid: true }
+  });
+  if (staleVersionAdapters.length > 0) {
+    await db.slateVersionAdapterCapability.deleteMany({
+      where: { slateVersionAdapterOid: { in: staleVersionAdapters.map(a => a.oid) } }
+    });
+    await db.slateVersionAdapter.deleteMany({
+      where: { oid: { in: staleVersionAdapters.map(a => a.oid) } }
+    });
+  }
+
+  await db.slateVersionAdapter.createMany({
+    skipDuplicates: true,
+    data: adapters.flatMap(adapter => {
+      let adapterOid = adapterOidById.get(adapter.id);
+      let slateAdapterOid = slateAdapterOidById.get(adapter.id);
+      return adapterOid && slateAdapterOid
+        ? [
+            {
+              ...getId('slateVersionAdapter'),
+              slateVersionOid: d.slateVersionOid,
+              adapterOid,
+              slateAdapterOid
+            }
+          ]
+        : [];
+    })
+  });
+
+  let slateVersionAdapters = await db.slateVersionAdapter.findMany({
+    where: { slateVersionOid: d.slateVersionOid },
+    select: { oid: true, slateAdapterOid: true }
+  });
+  let slateVersionAdapterOidBySlateAdapterOid = new Map(
+    slateVersionAdapters.map(adapter => [adapter.slateAdapterOid, adapter.oid])
+  );
+
+  let adapterCapabilities = await db.adapterCapability.findMany({
+    where: { adapterOid: { in: upsertedAdapters.map(adapter => adapter.oid) } },
+    select: { oid: true, adapterOid: true, identifier: true }
+  });
+  let adapterCapabilityOidByKey = new Map(
+    adapterCapabilities.map(capability => [
+      `${capability.adapterOid}:${capability.identifier}`,
+      capability.oid
+    ])
+  );
+  let slateVersionAdapterOids = [...slateVersionAdapterOidBySlateAdapterOid.values()];
+
+  await db.slateVersionAdapterCapability.deleteMany({
+    where: { slateVersionAdapterOid: { in: slateVersionAdapterOids } }
+  });
+
+  let versionCapabilities = adapters.flatMap(adapter => {
+    let adapterOid = adapterOidById.get(adapter.id);
+    let slateAdapterOid = slateAdapterOidById.get(adapter.id);
+    if (!adapterOid || !slateAdapterOid) return [];
+    let slateVersionAdapterOid = slateVersionAdapterOidBySlateAdapterOid.get(slateAdapterOid);
+    if (!slateVersionAdapterOid) return [];
+
+    return [
+      ...new Map(adapter.capabilities.map(capability => [capability.id, capability])).values()
+    ].flatMap(capability => {
+      let adapterCapabilityOid = adapterCapabilityOidByKey.get(
+        `${adapterOid}:${capability.id}`
+      );
+      return adapterCapabilityOid
+        ? [
+            {
+              ...getId('slateVersionAdapterCapability'),
+              slateVersionAdapterOid,
+              adapterCapabilityOid,
+              value: capability.value
+            }
+          ]
+        : [];
+    });
+  });
+  if (versionCapabilities.length > 0) {
+    await db.slateVersionAdapterCapability.createMany({
+      data: versionCapabilities
+    });
+  }
+
+  return slateAdapterOidById;
+};
+
+let buildActionUpsertData = async (d: {
+  actions: SlatesAction[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  actionHashes: string[];
+  slateAdapterOidById: Map<string, bigint>;
+  triggerGroupOidByKey: Map<string, bigint>;
+}) =>
+  d.actions.map((action, index) => {
+    let hash = d.actionHashes[index]!;
+    let identifier = `${d.identifierBase}::action::${action.id}::${hash}`;
+    let slateAdapterOid = action.adapter
+      ? d.slateAdapterOidById.get(action.adapter)
+      : undefined;
+    if (action.adapter && !slateAdapterOid) {
+      throw new Error(`Adapter not found for action ${action.id}: ${action.adapter}`);
+    }
+
+    return {
+      ...getId('slateAction'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+      slateAdapterOid,
+
+      type: {
+        'action.tool': 'tool' as const,
+        'action.trigger': 'trigger' as const
+      }[action.type],
+
+      isPublic: action.type === 'action.tool' ? action.isPublic === true : false,
+
+      hash,
+      identifier,
+
+      spec: action,
+
+      key: action.id,
+      name: action.name,
+
+      triggerGroupOid:
+        action.type === 'action.trigger'
+          ? (d.triggerGroupOidByKey.get(action.triggerGroupId) ?? null)
+          : null
+    };
+  });
+
+let buildTriggerGroupUpsertData = async (d: {
+  triggerGroups: SlatesTriggerGroup[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  triggerGroupHashes: string[];
+}) =>
+  d.triggerGroups.map((triggerGroup, index) => {
+    let hash = d.triggerGroupHashes[index]!;
+    let identifier = `${d.identifierBase}::trigger_group::${triggerGroup.id}::${hash}`;
+
+    return {
+      ...getId('slateTriggerGroup'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+
+      hash,
+      identifier,
+
+      spec: triggerGroup,
+
+      key: triggerGroup.id,
+      name: triggerGroup.name
+    };
+  });
+
+let buildAuthMethodUpsertData = async (d: {
+  authMethods: SlateAuthenticationMethod[];
+  slateOid: bigint;
+  specificationOid: bigint;
+  identifierBase: string;
+  authMethodHashes: string[];
+}) =>
+  d.authMethods.map((method, index) => {
+    let hash = d.authMethodHashes[index]!;
+    let identifier = `${d.identifierBase}::auth_method::${method.id}::${hash}`;
+
+    return {
+      ...getId('slateAuthMethod'),
+      slateOid: d.slateOid,
+      mostRecentSpecificationOid: d.specificationOid,
+
+      type: {
+        'auth.oauth': 'oauth' as const,
+        'auth.token': 'token' as const,
+        'auth.service_account': 'service_account' as const,
+        'auth.custom': 'custom' as const
+      }[method.type],
+
+      hash,
+      identifier,
+
+      spec: method,
+
+      key: method.id,
+      name: method.name
+    };
+  });
+
+export let discoverSlateQueue = createQueue<{ versionId: string; deploymentId?: string }>({
+  name: 'shub/dis/sing',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: {
+    limiter: {
+      max: 5,
+      duration: 10_000
+    },
+    concurrency: 2
+  }
+});
+
+let discoverLock = createLock({
+  name: 'shub/dis/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
+export let getSlateDiscoveryDeploymentTarget = (d: {
+  version: {
+    providerDeploymentInfo: SlatesHubPrismaJson.SlateDeploymentProviderDeploymentInfo;
+    activeDeploymentOid: bigint | null;
+  };
+  stagedDeployment?: {
+    providerDeploymentInfo: SlatesHubPrismaJson.SlateDeploymentProviderDeploymentInfo;
+    oid: bigint;
+  } | null;
+}) => {
+  let providerDeploymentInfo =
+    d.stagedDeployment?.providerDeploymentInfo ?? d.version.providerDeploymentInfo;
+  let activeDeploymentOid = d.stagedDeployment?.oid ?? d.version.activeDeploymentOid;
+
+  if (!providerDeploymentInfo || !activeDeploymentOid) return null;
+
+  return { providerDeploymentInfo, activeDeploymentOid };
+};
+
+export let shouldPreserveActiveVersionOnStagedDiscoveryFailure = (d: {
+  version: {
+    status: string;
+    activeDeploymentOid: bigint | null;
+  };
+  stagedDeployment?: { oid: bigint } | null;
+}) =>
+  !!d.stagedDeployment &&
+  d.version.status === 'active' &&
+  d.version.activeDeploymentOid !== d.stagedDeployment.oid;
+
+export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data => {
+  let outerVersion = await db.slateVersion.findFirst({
+    where: { id: data.versionId }
+  });
+  if (!outerVersion) throw new QueueRetryError();
+
+  return discoverLock.usingLock(String(outerVersion.slateOid), async () => {
+    let version = await db.slateVersion.findFirst({
+      where: { id: data.versionId },
+      include: { activeDeployment: true, slate: { include: { currentVersion: true } } }
+    });
+    if (!version) throw new QueueRetryError();
+    let stagedDeployment = data.deploymentId
+      ? await db.slateDeployment.findFirst({
+          where: {
+            id: data.deploymentId,
+            slateVersionOid: version.oid
+          }
+        })
+      : null;
+    if (data.deploymentId && !stagedDeployment) throw new QueueRetryError();
+
+    let target = getSlateDiscoveryDeploymentTarget({ version, stagedDeployment });
+    if (!target) return;
+
+    if (
+      !data.deploymentId &&
+      version.lastDiscoveredAt &&
+      Math.abs(differenceInMinutes(new Date(), version.lastDiscoveredAt)) < 10
+    ) {
+      console.log(
+        `Skipping discovery for slate version ${version.id} (${version.version}) - recently discovered`
+      );
+      // Recently discovered, skip
+      return;
+    }
+
+    console.log(`Discovering slate version ${version.id} (${version.version})`);
+
+    let slate = version.slate;
+
+    let suppressServerErrorReporting =
+      !stagedDeployment && version.status === 'discovery_failed';
+
+    await createDiscoveryEvent({
+      type: 'discovery_started',
+      message: `Discovery started for version ${version.version}`,
+      slateOid: slate.oid,
+      slateVersionOid: version.oid
+    });
+
+    try {
+      let capabilities = await discoverSlateCapabilities({
+        slateVersion: version,
+        deploymentTarget: {
+          providerDeploymentInfo: target.providerDeploymentInfo,
+          activeDeploymentOid: target.activeDeploymentOid
+        },
+        suppressServerErrorReporting
+      });
+
+      let stack = await slateInvocationService.createInvocation({
+        slateVersion: version,
+        deploymentTarget: {
+          providerDeploymentInfo: target.providerDeploymentInfo,
+          activeDeploymentOid: target.activeDeploymentOid
+        },
+        participants: [],
+        suppressServerErrorReporting,
+        capabilities
+      });
+
+      let supportsTriggerGroups = !!capabilities?.provider?.triggerGroups;
+      let supportsToolCategories = !!capabilities?.provider?.toolCategories;
+
+      let [
+        providerInfoResult,
+        configSchemaResult,
+        authMethodsResult,
+        actionsResult,
+        rawAdaptersResult,
+        rawTriggerGroupsResult,
+        rawToolCategoriesResult
+      ] = await Promise.all([
+        slateInvocationService.getProviderInfo({ stack }),
+        slateInvocationService.getConfigSchema({ stack }),
+        // slateInvocationService.getDefaultConfig({ stack }),
+        slateInvocationService.listAuthMethods({ stack }),
+        slateInvocationService.listActions({ stack }),
+        capabilities.capabilitiesSupported
+          ? slateInvocationService.listAdapters({ stack })
+          : Promise.resolve(null),
+        supportsTriggerGroups
+          ? slateInvocationService.listTriggerGroups({ stack })
+          : Promise.resolve(null),
+        supportsToolCategories
+          ? slateInvocationService.listToolCategories({ stack })
+          : Promise.resolve(null)
+      ]);
+
+      let triggerGroupsResult: InvocationResult<'slates/trigger_groups.list'> =
+        rawTriggerGroupsResult ?? {
+          status: 'success',
+          invocation: providerInfoResult.invocation,
+          data: { triggerGroups: [] }
+        };
+
+      let toolCategoriesResult: InvocationResult<'slates/tool_categories.list'> =
+        rawToolCategoriesResult ?? {
+          status: 'success',
+          invocation: providerInfoResult.invocation,
+          data: { toolCategories: [] }
+        };
+
+      let adaptersResult: InvocationResult<'slates/adapters.list'> = rawAdaptersResult ?? {
+        status: 'success',
+        invocation: providerInfoResult.invocation,
+        data: { adapters: [] }
+      };
+
+      let stackResult: [
+        typeof providerInfoResult,
+        typeof configSchemaResult,
+        typeof authMethodsResult,
+        typeof actionsResult,
+        typeof adaptersResult,
+        typeof triggerGroupsResult,
+        typeof toolCategoriesResult
+      ] = [
+        providerInfoResult,
+        configSchemaResult,
+        authMethodsResult,
+        actionsResult,
+        adaptersResult,
+        triggerGroupsResult,
+        toolCategoriesResult
+      ];
+
+      let invocation = stackResult[0].invocation;
+      let error = getStackError(stackResult);
+
+      if (error) {
+        console.error('Discovery error:', error);
+        await discoverSlateErrorQueue.add({
+          versionId: version.id,
+          deploymentId: data.deploymentId,
+          invocationOid: invocation.oid,
+          error
+        });
+        return;
+      }
+
+      let [
+        providerInfo,
+        configSchema,
+        authMethods,
+        actions,
+        adapters,
+        triggerGroups,
+        toolCategories
+      ] = getStackResultsOrThrow(stackResult);
+
+      let discoveredAuthMethods = dedupeDiscoveredItems(authMethods.authenticationMethods, {
+        entity: 'auth_methods',
+        slateId: slate.id,
+        versionId: version.id
+      });
+
+      let discoveredActions = dedupeDiscoveredItems(
+        actions.actions.filter(action => !isReservedActionId(action.id)),
+        {
+          entity: 'actions',
+          slateId: slate.id,
+          versionId: version.id,
+          getKey: action => `${action.type}:${action.id}`
+        }
+      );
+
+      let discoveredTriggerGroups = dedupeDiscoveredItems(triggerGroups.triggerGroups, {
+        entity: 'trigger_groups',
+        slateId: slate.id,
+        versionId: version.id
+      });
+
+      let discoveredToolCategories = normalizeDiscoveredToolCategories(
+        toolCategories.toolCategories ?? [],
+        {
+          slateId: slate.id,
+          versionId: version.id
+        }
+      );
+
+      let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
+      let configSchemaDocs = normalizeDiscoveredDocs(configSchema.docs);
+
+      let discoveryHashes = await buildDiscoveredSpecificationHashes({
+        providerInfo: {
+          protocol: providerInfo.protocol,
+          provider: providerInfo.provider,
+          docs: providerDocs
+        },
+        configSchema: {
+          schema: configSchema.schema,
+          docs: configSchemaDocs
+        },
+        authMethods: discoveredAuthMethods,
+        actions: discoveredActions,
+        triggerGroups: discoveredTriggerGroups,
+        toolCategories: discoveredToolCategories
+      });
+      let identifierBase = `slate::spec::${slate.id}`;
+      let specificationIdentifier = `${identifierBase}::${discoveryHashes.specificationHash}`;
+
+      let specificationData = {
+        name: providerInfo.provider.name,
+        key: providerInfo.provider.id,
+        protocolVersion: providerInfo.protocol,
+
+        providerInfo: providerInfo.provider,
+        providerDocs,
+        configSchema: configSchema.schema,
+        configSchemaDocs,
+        authMethods: discoveredAuthMethods,
+        actions: discoveredActions,
+        triggerGroups: discoveredTriggerGroups,
+        toolCategories: discoveredToolCategories,
+        capabilities
+      };
+      let specification = await db.slateSpecification.upsert({
+        where: {
+          identifier: specificationIdentifier
+        },
+        create: {
+          ...getId('slateSpecification'),
+          hash: discoveryHashes.specificationHash,
+          identifier: specificationIdentifier,
+          slateOid: slate.oid,
+
+          mostRecentVersionOid: version.oid,
+
+          ...specificationData
+        },
+        update: specificationData
+      });
+
+      let triggerGroupUpsertData = await buildTriggerGroupUpsertData({
+        triggerGroups: discoveredTriggerGroups,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        triggerGroupHashes: discoveryHashes.triggerGroupHashes
+      });
+      await db.slateTriggerGroup.createManyAndReturn({
+        skipDuplicates: true,
+        data: triggerGroupUpsertData
+      });
+      let upsertedTriggerGroups = await db.slateTriggerGroup.findMany({
+        where: {
+          slateOid: slate.oid,
+          identifier: {
+            in: triggerGroupUpsertData.map(tg => tg.identifier)
+          }
+        }
+      });
+      let triggerGroupOidByKey = new Map(
+        upsertedTriggerGroups.map(triggerGroup => [triggerGroup.key, triggerGroup.oid])
+      );
+
+      await syncSpecificationTriggerGroups({
+        specificationOid: specification.oid,
+        triggerGroups: upsertedTriggerGroups
+      });
+
+      let actionUpsertData = await buildActionUpsertData({
+        actions: discoveredActions,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        actionHashes: discoveryHashes.actionHashes,
+        slateAdapterOidById: await syncDiscoveredAdapters({
+          adapters: adapters.adapters,
+          slateOid: slate.oid,
+          slateId: slate.id,
+          slateVersionOid: version.oid
+        }),
+        triggerGroupOidByKey
+      });
+      await db.slateAction.createManyAndReturn({
+        skipDuplicates: true,
+        data: actionUpsertData
+      });
+      let upsertedActions = await db.slateAction.findMany({
+        where: {
+          slateOid: slate.oid,
+          identifier: {
+            in: actionUpsertData.map(a => a.identifier)
+          }
+        }
+      });
+
+      await syncSpecificationActions({
+        specificationOid: specification.oid,
+        actions: upsertedActions
+      });
+
+      let authMethodUpsertData = await buildAuthMethodUpsertData({
+        authMethods: discoveredAuthMethods,
+        slateOid: slate.oid,
+        specificationOid: specification.oid,
+        identifierBase,
+        authMethodHashes: discoveryHashes.authMethodHashes
+      });
+      await db.slateAuthMethod.createManyAndReturn({
+        skipDuplicates: true,
+        data: authMethodUpsertData
+      });
+      let upsertedAuthMethods = await db.slateAuthMethod.findMany({
+        where: {
+          slateOid: slate.oid,
+          identifier: {
+            in: authMethodUpsertData.map(a => a.identifier)
+          }
+        }
+      });
+
+      await syncSpecificationAuthMethods({
+        specificationOid: specification.oid,
+        authMethods: upsertedAuthMethods
+      });
+
+      let configIdentifier = `${identifierBase}::config::${discoveryHashes.configSchemaHash}`;
+
+      let upsertedConfig = await db.slateConfigSchema.upsert({
+        where: {
+          identifier: configIdentifier
+        },
+        create: {
+          ...getId('slateConfigSchema'),
+          mostRecentSpecificationOid: specification.oid,
+          slateOid: slate.oid,
+
+          hash: discoveryHashes.configSchemaHash,
+          identifier: configIdentifier,
+
+          schema: configSchema.schema,
+          docs: configSchemaDocs
+        },
+        update: {
+          schema: configSchema.schema,
+          docs: configSchemaDocs
+        }
+      });
+
+      await syncSpecificationConfigSchema({
+        specificationOid: specification.oid,
+        configSchemaOid: upsertedConfig.oid
+      });
+
+      await db.slateVersionDiscovery.createMany({
+        data: {
+          ...getId('slateVersionDiscovery'),
+          slateVersionOid: version.oid,
+          specificationOid: specification.oid,
+          invocationOid: invocation.oid,
+          status: 'succeeded'
+        }
+      });
+
+      await createDiscoveryEvent({
+        type: 'discovery_succeeded',
+        message: `Discovery succeeded for version ${version.version}`,
+        slateOid: slate.oid,
+        slateVersionOid: version.oid
+      });
+
+      let versionUpdateData = {
+        status: 'active' as const,
+        specificationOid: specification.oid,
+        lastDiscoveredAt: new Date(),
+        capabilities,
+        ...(stagedDeployment
+          ? {
+              providerDeploymentInfo: target.providerDeploymentInfo,
+              activeDeploymentOid: target.activeDeploymentOid
+            }
+          : {})
+      };
+
+      if (version.specificationOid && version.specificationOid !== specification.oid) {
+        await db.slateSpecificationChange.create({
+          data: {
+            ...getId('slateSpecificationChange'),
+            type: 'same_version',
+            slateOid: slate.oid,
+            fromVersionOid: version.oid,
+            toVersionOid: version.oid,
+            fromSpecificationOid: version.specificationOid,
+            toSpecificationOid: specification.oid
+          }
+        });
+      }
+
+      if (
+        version.willBeCurrent &&
+        (!slate.currentVersion ||
+          semver.gt(version.version, slate.currentVersion.version) ||
+          (followsRegistryCurrentVersion() && !slate.currentVersion.willBeCurrent))
+      ) {
+        let activateVersion = async () => {
+          await db.slateVersion.updateMany({
+            where: { oid: version.oid },
+            data: versionUpdateData
+          });
+
+          await db.slateSpecification.updateMany({
+            where: { oid: specification.oid },
+            data: { mostRecentVersionOid: version.oid }
+          });
+
+          await db.slateAction.updateMany({
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
+            data: { mostRecentSpecificationOid: specification.oid }
+          });
+          await db.slateAuthMethod.updateMany({
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
+            data: { mostRecentSpecificationOid: specification.oid }
+          });
+          await db.slateConfigSchema.updateMany({
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
+            data: { mostRecentSpecificationOid: specification.oid }
+          });
+          await db.slateTriggerGroup.updateMany({
+            where: {
+              slateSpecifications: { some: { specificationOid: specification.oid } }
+            },
+            data: { mostRecentSpecificationOid: specification.oid }
+          });
+
+          await db.slateVersion.updateMany({
+            where: {
+              slateOid: slate.oid,
+              oid: { not: version.oid }
+            },
+            data: { isCurrent: false }
+          });
+
+          await db.slateVersion.updateMany({
+            where: { oid: version.oid },
+            data: { isCurrent: true }
+          });
+
+          await db.slate.update({
+            where: { id: slate.id },
+            data: { currentVersionOid: version.oid }
+          });
+
+          await db.slateEvent.create({
+            data: {
+              ...getId('slateEvent'),
+              type: 'version_set_as_current',
+              message: `Version ${version.version} activated as current version`,
+              slateOid: slate.oid,
+              slateVersionOid: version.oid
+            }
+          });
+
+          if (
+            slate.currentVersion?.specificationOid &&
+            slate.currentVersion.specificationOid !== specification.oid
+          ) {
+            await db.slateSpecificationChange.create({
+              data: {
+                ...getId('slateSpecificationChange'),
+                type: 'between_versions',
+                slateOid: slate.oid,
+                fromVersionOid: slate.currentVersion.oid,
+                toVersionOid: version.oid,
+                fromSpecificationOid: slate.currentVersion.specificationOid,
+                toSpecificationOid: specification.oid
+              }
+            });
+          }
+        };
+
+        await retryOnOidCollision(() => withTransaction(activateVersion));
+      } else {
+        await db.slateVersion.updateMany({
+          where: { oid: version.oid },
+          data: versionUpdateData
+        });
+      }
+
+      try {
+        await retryOnOidCollision(async () =>
+          db.changeNotification.create({
+            data: {
+              ...getId('changeNotification'),
+              type: 'slate_version_created',
+
+              slateOid: slate.oid,
+              slateVersionOid: version.oid,
+
+              slateId: slate.id,
+              slateVersionId: version.id
+            }
+          })
+        );
+      } catch (e) {
+        console.error('Error creating change notification after discovery:', e);
+        Sentry.captureException(e);
+      }
+    } catch (e) {
+      console.error('Error during discovery:', e);
+      Sentry.captureException(e);
+
+      await discoverSlateErrorQueue.add({
+        versionId: version.id,
+        deploymentId: data.deploymentId,
+        error: {
+          code: 'discovery/internal_error',
+          message: `Internal error during discovery: ${(e as Error).message}`
+        }
+      });
+    }
+  });
+});
+
+let discoverSlateErrorQueue = createQueue<{
+  versionId: string;
+  deploymentId?: string;
+  invocationOid?: bigint;
+  error: InvocationError;
+}>({
+  name: 'shub/dis/err',
+  workerOpts: { concurrency: 50 },
+  redisUrl: env.service.REDIS_URL
+});
+
+export let discoverSlateErrorQueueProcessor = discoverSlateErrorQueue.process(async data => {
+  let version = await db.slateVersion.findFirst({
+    where: { id: data.versionId },
+    include: { slate: true }
+  });
+  if (!version) throw new QueueRetryError();
+  let stagedDeployment = data.deploymentId
+    ? await db.slateDeployment.findFirst({
+        where: {
+          id: data.deploymentId,
+          slateVersionOid: version.oid
+        }
+      })
+    : null;
+  let isFailedStagedRedeployOfActiveVersion =
+    shouldPreserveActiveVersionOnStagedDiscoveryFailure({ version, stagedDeployment });
+
+  // Matches the invocation reports: a version that already failed discovery is not reported again.
+  if (stagedDeployment || version.status !== 'discovery_failed') {
+    let invocation = data.invocationOid
+      ? await db.slateInvocation.findFirst({
+          where: { oid: data.invocationOid },
+          select: { id: true }
+        })
+      : null;
+    await reportSlateDiscoveryFailure({
+      version,
+      deploymentId: data.deploymentId,
+      invocationId: invocation?.id,
+      error: data.error
+    }).catch(error => console.error('Could not report slate discovery failure', error));
+  }
+
+  await createDiscoveryEvent({
+    type: 'discovery_failed',
+    message: `Discovery failed for version ${version.version}`,
+    slateOid: version.slate.oid,
+    slateVersionOid: version.oid
+  });
+
+  await db.slateVersionDiscovery.create({
+    data: {
+      ...getId('slateVersionDiscovery'),
+      slateVersionOid: version.oid,
+      status: 'failed',
+      invocationOid: data.invocationOid,
+      errorCode: data.error.code,
+      errorMessage: `Discovery failed: [${data.error.code}] - ${data.error.message}`
+    }
+  });
+
+  if (stagedDeployment) {
+    await db.slateDeployment.updateMany({
+      where: { oid: stagedDeployment.oid },
+      data: {
+        status: 'failed',
+        errorCode: data.error.code,
+        errorMessage: `Discovery failed: [${data.error.code}] - ${data.error.message}`
+      }
+    });
+  }
+
+  if (!isFailedStagedRedeployOfActiveVersion) {
+    await db.slateVersion.updateMany({
+      where: { oid: version.oid },
+      data: {
+        status: 'discovery_failed',
+        lastDiscoveredAt: new Date()
+      }
+    });
+  }
+});

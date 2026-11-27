@@ -1,0 +1,14 @@
+{
+  "name": "@mtsrc/slates-hub-storage",
+  "private": true,
+  "exports": {
+    "./storage": "./src/storage.ts",
+    "./payloads": "./src/payloads.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "object-storage-client": "workspace:*"
+  }
+}

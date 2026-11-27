@@ -1,0 +1,674 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+let mocks = vi.hoisted(() => {
+  class LockAcquisitionError extends Error {
+    constructor(
+      message: string,
+      public isContention = true
+    ) {
+      super(message);
+    }
+  }
+
+  return {
+    LockAcquisitionError,
+    eventCreateMany: vi.fn(async () => ({})),
+    eventFindFirst: vi.fn(async (): Promise<unknown> => null),
+    delay: vi.fn(async (_ms: number) => {}),
+    currentMethods: vi.fn(),
+    usingLock: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
+    findFirst: vi.fn(),
+    findFirstOrThrow: vi.fn(),
+    updateMany: vi.fn(),
+    update: vi.fn(),
+    decrypt: vi.fn(),
+    updateSecret: vi.fn(),
+    refreshOAuthToken: vi.fn(),
+    syncSharedOAuthTokens: vi.fn(async () => ({ synced: 1 }))
+  };
+});
+
+vi.mock('@lowerdeck/lock', () => ({
+  createLock: () => ({ usingLock: mocks.usingLock }),
+  LockAcquisitionError: mocks.LockAcquisitionError
+}));
+
+vi.mock('@mtsrc/slates-hub-env/env', () => ({
+  env: { service: { REDIS_URL: 'redis://test' } }
+}));
+
+vi.mock('@mtsrc/slates-hub-db/db', () => ({
+  db: {
+    slateAuthConfig: {
+      findFirst: mocks.findFirst,
+      findFirstOrThrow: mocks.findFirstOrThrow,
+      updateMany: mocks.updateMany,
+      update: mocks.update
+    },
+    slateAuthConfigUsedForInstance: { createMany: vi.fn(async () => ({})) },
+    slateOAuthCredentials: {
+      findFirstOrThrow: vi.fn(async () => ({
+        id: 'shoc_1',
+        oid: 50n,
+        clientId: 'client-1',
+        scopes: ['chat:write'],
+        secret: { oid: 51n }
+      }))
+    },
+    slate: {
+      findUnique: vi.fn(async () => ({ currentVersion: { specificationOid: 12n } }))
+    },
+    slateSpecificationAuthMethod: { findMany: mocks.currentMethods },
+    slateAuthMethod: {
+      findFirstOrThrow: vi.fn(async () => ({
+        key: 'oauth',
+        slate: { oid: 10n, currentVersionOid: 11n },
+        mostRecentSpecification: { mostRecentVersionOid: 11n }
+      }))
+    },
+    slateVersion: { findFirstOrThrow: vi.fn(async () => ({ oid: 11n })) },
+    slateAuthConfigEvent: {
+      createMany: mocks.eventCreateMany,
+      findFirst: mocks.eventFindFirst
+    }
+  }
+}));
+
+vi.mock('@lowerdeck/delay', () => ({ delay: mocks.delay }));
+
+vi.mock('@mtsrc/slates-hub-db/id', () => ({
+  ID: { generateIdSync: () => 'shiace_test' },
+  snowflake: { nextId: () => 999n }
+}));
+
+vi.mock('@mtsrc/slates-hub-module-secrets/secret', () => ({
+  secretService: {
+    DANGEROUSLY_decryptSecret: mocks.decrypt,
+    DANGEROUSLY_updateSecret: mocks.updateSecret
+  }
+}));
+
+vi.mock('@mtsrc/slates-hub-module-invocations/slateInvocation', () => ({
+  slateInvocationService: {
+    createInvocation: vi.fn(async () => ({})),
+    refreshOAuthToken: mocks.refreshOAuthToken
+  }
+}));
+
+vi.mock('@mtsrc/slates-hub-module-errors/slateError', () => ({
+  slateErrorService: { recordSlateError: vi.fn(async () => {}) }
+}));
+
+vi.mock('../internal/sharedOAuthTokenSync', () => ({
+  syncSharedOAuthTokens: mocks.syncSharedOAuthTokens
+}));
+
+vi.mock('@mtsrc/slates-hub-module-trigger-routing/routingMatcherResync', () => ({
+  triggerRoutingMatcherResyncQueue: { add: vi.fn() }
+}));
+
+vi.mock('@mtsrc/slates-hub-module-trigger-routing/triggerRoutingMatcherSerialize', () => ({
+  matcherSetFingerprint: vi.fn(async () => 'fp')
+}));
+
+vi.mock('@lowerdeck/sentry', () => ({
+  getSentry: () => ({ captureException: vi.fn() })
+}));
+
+let { slateAuthHandlerService } = await import('./slateInstanceAuthHandler');
+
+let tenant = { oid: 1000n } as any;
+let past = () => new Date(Date.now() - 60_000);
+let future = () => new Date(Date.now() + 6 * 60 * 60_000);
+
+let config = (overrides: Record<string, unknown> = {}) => ({
+  id: 'shiac_a',
+  oid: 1n,
+  type: 'oauth_automated',
+  isProcessing: false,
+  errorCode: null,
+  errorMessage: null,
+  instanceOid: null,
+  tokenExpiresAt: past(),
+  oauthCredentialsOid: 50n,
+  authMethodOid: 20n,
+  slateOid: 10n,
+  profileUid: 'UBOT',
+  secretOid: 30n,
+  routingMatchers: null,
+  secret: { oid: 30n },
+  authMethod: { key: 'oauth' },
+  ...overrides
+});
+
+let oldExpiresAt = past().toISOString();
+let oldSecret = () => ({
+  input: {},
+  output: { token: 'xoxb-old', refreshToken: 'xoxe-old', expiresAt: oldExpiresAt }
+});
+let newOutput = {
+  token: 'xoxb-new',
+  refreshToken: 'xoxe-new',
+  expiresAt: future().toISOString()
+};
+
+let call = () =>
+  slateAuthHandlerService.getSlateInstanceAuth({
+    tenant,
+    authConfigId: 'shiac_a',
+    minExpirationBuffer: 30_000
+  });
+
+let lockBusy = () =>
+  mocks.usingLock.mockRejectedValueOnce(new mocks.LockAcquisitionError('busy'));
+
+let useTimedDelays = () => {
+  vi.useFakeTimers();
+  mocks.delay.mockImplementation(ms => new Promise(resolve => setTimeout(resolve, ms)));
+};
+
+let lockReleaseFails = () =>
+  mocks.usingLock.mockImplementationOnce(async (_key: string, fn: () => Promise<unknown>) => {
+    await fn();
+    throw new Error('redis release failed');
+  });
+
+let refreshFails = () =>
+  mocks.refreshOAuthToken.mockResolvedValue({
+    status: 'error',
+    invocation: { id: 'shiv_2', oid: 71n },
+    error: { code: 'request.bad', message: 'Slack OAuth error: invalid_refresh_token' }
+  });
+
+describe('getSlateInstanceAuth refresh coordination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.delay.mockImplementation(async () => {});
+    mocks.eventFindFirst.mockResolvedValue(null);
+    mocks.usingLock.mockImplementation(async (_key: string, fn: () => Promise<unknown>) =>
+      fn()
+    );
+    mocks.findFirst.mockResolvedValue(config());
+    mocks.findFirstOrThrow.mockResolvedValue(config());
+    mocks.currentMethods.mockResolvedValue([
+      { authMethod: { key: 'bot_token', spec: {} } },
+      { authMethod: { key: 'oauth', spec: { syncTokensAcrossConnections: true } } }
+    ]);
+    mocks.decrypt.mockImplementation(async (d: { purpose: string }) =>
+      d.purpose === 'slate_oauth_credentials'
+        ? { clientId: 'client-1', clientSecret: 'secret-1' }
+        : oldSecret()
+    );
+    mocks.refreshOAuthToken.mockResolvedValue({
+      status: 'success',
+      invocation: { id: 'shiv_1', oid: 70n },
+      data: { output: newOutput }
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('refreshes under the identity lock and syncs siblings', async () => {
+    let result = await call();
+
+    expect(mocks.usingLock).toHaveBeenCalledTimes(1);
+    expect(mocks.usingLock.mock.calls[0]![0]).toMatch(/^idn:/);
+    expect(mocks.usingLock.mock.calls[0]![2]).toMatchObject({
+      acquisitionTimeoutMs: 20_000,
+      retryCount: 200
+    });
+    expect(mocks.updateSecret).toHaveBeenCalledWith(
+      expect.objectContaining({
+        secretOid: 30n,
+        tenant,
+        secretData: { input: {}, output: newOutput }
+      })
+    );
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { oid: 1n },
+        data: expect.objectContaining({ tokenExpiresAt: new Date(newOutput.expiresAt) })
+      })
+    );
+    expect(mocks.eventCreateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({ type: 'oauth_token_refresh_completed', configOid: 1n })
+    });
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.syncSharedOAuthTokens).toHaveBeenCalledWith({
+      source: expect.objectContaining({
+        authConfigId: 'shiac_a',
+        clientId: 'client-1',
+        authMethodKey: 'oauth',
+        profileUid: 'UBOT'
+      }),
+      previousOutput: oldSecret().output,
+      newOutput
+    });
+  });
+
+  it('skips the refresh when a sibling already synced fresh tokens', async () => {
+    mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: future() }));
+    mocks.decrypt.mockResolvedValueOnce({ input: {}, output: newOutput });
+
+    let result = await call();
+
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+    expect(result.output).toEqual(newOutput);
+  });
+
+  it('throws the stored error found after taking the lock', async () => {
+    mocks.findFirstOrThrow.mockResolvedValue(
+      config({
+        errorCode: 'request.bad',
+        errorMessage: 'Slack OAuth error: invalid_refresh_token'
+      })
+    );
+
+    await expect(call()).rejects.toThrow(/invalid_refresh_token/);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: 'hours ahead', expiresAt: () => future(), returns: true },
+    { label: '10s ahead', expiresAt: () => new Date(Date.now() + 10_000), returns: true },
+    { label: 'never', expiresAt: () => null, returns: true },
+    { label: '2s ahead', expiresAt: () => new Date(Date.now() + 2_000), returns: false },
+    { label: 'already passed', expiresAt: () => past(), returns: false }
+  ])('when the lock is busy and the token expires $label', async ({ expiresAt, returns }) => {
+    useTimedDelays();
+    lockBusy();
+    mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: expiresAt() }));
+
+    if (returns) {
+      expect((await call()).output).toEqual(oldSecret().output);
+    } else {
+      let assertion = expect(call()).rejects.toThrow(/already in progress/);
+      await vi.advanceTimersByTimeAsync(60_000);
+      await assertion;
+    }
+
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('uses tokens persisted after the acquisition timeout while another worker holds the lock', async () => {
+    useTimedDelays();
+    mocks.usingLock.mockImplementationOnce(async () => {
+      await mocks.delay(20_000);
+      throw new mocks.LockAcquisitionError('busy');
+    });
+    setTimeout(() => {
+      mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: future() }));
+      mocks.decrypt.mockResolvedValue({ input: {}, output: newOutput });
+    }, 25_000);
+
+    let resultPromise = call();
+    await vi.advanceTimersByTimeAsync(25_000);
+    let result = await resultPromise;
+
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.usingLock).toHaveBeenCalledTimes(1);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.updateSecret).not.toHaveBeenCalled();
+  });
+
+  it('includes lock acquisition in the bounded refresh wait', async () => {
+    useTimedDelays();
+    mocks.usingLock.mockImplementationOnce(async () => {
+      await mocks.delay(20_000);
+      throw new mocks.LockAcquisitionError('busy');
+    });
+
+    let startedAt = Date.now();
+    let assertion = expect(call()).rejects.toThrow(/already in progress/);
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+
+    expect(Date.now() - startedAt).toBe(60_000);
+    expect(mocks.usingLock).toHaveBeenCalledTimes(1);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a permanent failure recorded by the worker holding the lock', async () => {
+    useTimedDelays();
+    lockBusy();
+    mocks.findFirstOrThrow
+      .mockResolvedValueOnce(config())
+      .mockResolvedValue(
+        config({ errorCode: 'invalid_grant', errorMessage: 'Refresh token revoked' })
+      );
+
+    let assertion = expect(call()).rejects.toThrow(/Refresh token revoked/);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.decrypt).not.toHaveBeenCalled();
+  });
+
+  it('keeps waiting while the worker holding the lock retries a transient failure', async () => {
+    useTimedDelays();
+    lockBusy();
+    mocks.eventFindFirst.mockResolvedValue({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date()
+    });
+    setTimeout(() => {
+      mocks.findFirstOrThrow.mockResolvedValue(config({ tokenExpiresAt: future() }));
+      mocks.decrypt.mockResolvedValue({ input: {}, output: newOutput });
+    }, 10_000);
+
+    let resultPromise = call();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect((await resultPromise).output).toEqual(newOutput);
+
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('preserves Redis acquisition failures instead of reporting refresh contention', async () => {
+    let error = new mocks.LockAcquisitionError('redis unavailable', false);
+    mocks.usingLock.mockRejectedValueOnce(error);
+
+    await expect(call()).rejects.toBe(error);
+
+    expect(mocks.delay).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: 'succeeded', fails: false },
+    { label: 'failed', fails: true }
+  ])(
+    'keeps the outcome when releasing the lock fails after the refresh $label',
+    async ({ fails }) => {
+      if (fails) refreshFails();
+      lockReleaseFails();
+
+      if (fails) {
+        await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+      } else {
+        expect((await call()).output).toEqual(newOutput);
+      }
+      expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('stores the error and skips sibling sync when the refresh fails', async () => {
+    refreshFails();
+
+    await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ errorCode: 'request.bad' }) })
+    );
+    expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.delay).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: 'an OAuth server_error code', error: { code: 'server_error', message: 'oops' } },
+    {
+      label: 'an OAuth temporarily_unavailable message',
+      error: { code: 'request.bad', message: 'temporarily_unavailable' }
+    },
+    {
+      label: 'a wrapped OAuth server_error message',
+      error: { code: 'request.bad', message: 'Slack OAuth error: server_error' }
+    },
+    {
+      label: 'a failed invocation',
+      error: { code: 'invocation_error', message: 'An error occurred during invocation' }
+    },
+    { label: 'a JSON-RPC server error', error: { code: -32603, message: 'Internal error' } }
+  ])('keeps the config usable when the refresh fails with $label', async ({ error }) => {
+    mocks.refreshOAuthToken.mockResolvedValue({
+      status: 'error',
+      invocation: { id: 'shiv_2', oid: 71n },
+      error
+    });
+
+    await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(2);
+    expect(mocks.delay).toHaveBeenCalledWith(10_000);
+    expect(mocks.eventCreateMany).toHaveBeenCalledTimes(2);
+    expect(mocks.eventCreateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({ type: 'oauth_token_refresh_failed' })
+    });
+  });
+
+  it('recovers when the retry after a transient failure succeeds', async () => {
+    mocks.refreshOAuthToken.mockResolvedValueOnce({
+      status: 'error',
+      invocation: { id: 'shiv_2', oid: 71n },
+      error: { code: 'server_error', message: 'server_error' }
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(2);
+    expect(mocks.delay).toHaveBeenCalledWith(10_000);
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ errorCode: null }) })
+    );
+  });
+
+  it('keeps using a still-valid token when the refresh fails transiently', async () => {
+    let stillValid = config({ tokenExpiresAt: new Date(Date.now() + 20_000) });
+    mocks.findFirst.mockResolvedValue(stillValid);
+    mocks.findFirstOrThrow.mockResolvedValue(stillValid);
+    mocks.refreshOAuthToken.mockResolvedValue({
+      status: 'error',
+      invocation: { id: 'shiv_2', oid: 71n },
+      error: { code: 'server_error', message: 'server_error' }
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(oldSecret().output);
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.delay).not.toHaveBeenCalled();
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a token that expires during a transient refresh failure', async () => {
+    vi.useFakeTimers();
+    let stillValid = config({ tokenExpiresAt: new Date(Date.now() + 20_000) });
+    mocks.findFirst.mockResolvedValue(stillValid);
+    mocks.findFirstOrThrow.mockResolvedValue(stillValid);
+    mocks.refreshOAuthToken.mockImplementationOnce(async () => {
+      vi.advanceTimersByTime(20_000);
+      return {
+        status: 'error',
+        invocation: { id: 'shiv_2', oid: 71n },
+        error: { code: 'server_error', message: 'server_error' }
+      };
+    });
+
+    await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fails fast after a recent transient failure', async () => {
+    mocks.eventFindFirst.mockResolvedValueOnce({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date()
+    });
+
+    await expect(call()).rejects.toThrow(/temporarily unavailable/);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('uses a still-valid token after a recent transient failure', async () => {
+    let stillValid = config({ tokenExpiresAt: new Date(Date.now() + 20_000) });
+    mocks.findFirst.mockResolvedValue(stillValid);
+    mocks.findFirstOrThrow.mockResolvedValue(stillValid);
+    mocks.eventFindFirst.mockResolvedValueOnce({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date()
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(oldSecret().output);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('refreshes again once the recent failure is outside the window', async () => {
+    mocks.eventFindFirst.mockResolvedValueOnce({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date(Date.now() - 60_000)
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fail the request when the sibling sync fails', async () => {
+    mocks.syncSharedOAuthTokens.mockRejectedValueOnce(new Error('sync exploded'));
+
+    let result = await call();
+
+    expect(result.output).toEqual(newOutput);
+  });
+
+  it('takes no lock and decrypts once when the token is not expiring', async () => {
+    mocks.findFirst.mockResolvedValue(config({ tokenExpiresAt: future() }));
+
+    let result = await call();
+
+    expect(mocks.usingLock).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    expect(mocks.decrypt).toHaveBeenCalledTimes(1);
+    expect(result.output).toEqual(oldSecret().output);
+  });
+
+  it('rethrows lock errors raised before any work ran', async () => {
+    mocks.usingLock.mockRejectedValueOnce(new Error('redis exploded'));
+
+    await expect(call()).rejects.toThrow('redis exploded');
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('keeps a per-config lock and no sync when the method does not sync tokens', async () => {
+    mocks.currentMethods.mockResolvedValue([{ authMethod: { key: 'oauth', spec: {} } }]);
+
+    let result = await call();
+
+    expect(mocks.currentMethods).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { specificationOid: 12n } })
+    );
+    expect(mocks.usingLock.mock.calls[0]![0]).toBe('cfg:1');
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+    expect(result.output).toEqual(newOutput);
+  });
+
+  it("falls back to the config's own auth method when the current version lacks it", async () => {
+    mocks.currentMethods.mockResolvedValue([]);
+    mocks.findFirst.mockResolvedValue(
+      config({ authMethod: { key: 'oauth', spec: { syncTokensAcrossConnections: true } } })
+    );
+
+    await call();
+
+    expect(mocks.usingLock.mock.calls[0]![0]).toMatch(/^idn:/);
+  });
+
+  it('skips the sibling sync when the profile appeared between reads', async () => {
+    mocks.findFirst.mockResolvedValue(config({ profileUid: null }));
+
+    await call();
+
+    expect(mocks.usingLock.mock.calls[0]![0]).toBe('cfg:1');
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+  });
+
+  describe('non-OAuth configs', () => {
+    let botSpec = (refresh: boolean, type = 'custom') => ({
+      key: 'bot_framework',
+      type,
+      spec: { capabilities: { handleTokenRefresh: { enabled: refresh } } }
+    });
+    let botConfig = (overrides: Record<string, unknown> = {}) =>
+      config({
+        type: 'manual',
+        oauthCredentialsOid: null,
+        profileUid: 'UBOT',
+        authMethod: botSpec(true),
+        ...overrides
+      });
+    let botSecret = () => ({
+      input: { appId: 'app-1', clientSecret: 'bot-secret' },
+      output: { token: 'bot-old', expiresAt: oldExpiresAt }
+    });
+
+    beforeEach(() => {
+      mocks.findFirst.mockResolvedValue(botConfig());
+      mocks.findFirstOrThrow.mockResolvedValue(botConfig());
+      mocks.decrypt.mockImplementation(async () => botSecret());
+    });
+
+    it('refreshes an expiring custom token from its stored input', async () => {
+      let result = await call();
+
+      expect(mocks.usingLock.mock.calls[0]![0]).toBe('cfg:1');
+      expect(mocks.currentMethods).not.toHaveBeenCalled();
+      expect(mocks.refreshOAuthToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authenticationMethodId: 'oauth',
+          input: botSecret().input,
+          output: botSecret().output,
+          clientId: '',
+          clientSecret: '',
+          scopes: []
+        })
+      );
+      expect(mocks.decrypt).not.toHaveBeenCalledWith(
+        expect.objectContaining({ purpose: 'slate_oauth_credentials' })
+      );
+      expect(mocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ tokenExpiresAt: new Date(newOutput.expiresAt) })
+        })
+      );
+      expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+      expect(result.output).toEqual(newOutput);
+    });
+
+    it('keeps the config usable when a custom refresh fails', async () => {
+      refreshFails();
+
+      await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+      expect(mocks.updateMany).not.toHaveBeenCalled();
+      expect(mocks.eventCreateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({ type: 'oauth_token_refresh_failed' })
+      });
+    });
+
+    it.each([
+      { label: 'a method without token refresh', overrides: { authMethod: botSpec(false) } },
+      {
+        label: 'an OAuth method entered manually',
+        overrides: { authMethod: botSpec(true, 'oauth') }
+      },
+      { label: 'an oauth_manual config', overrides: { type: 'oauth_manual' } }
+    ])('reports an expired token for $label', async ({ overrides }) => {
+      mocks.findFirst.mockResolvedValue(botConfig(overrides));
+
+      await expect(call()).rejects.toThrow(/Authentication configuration has expired/);
+      expect(mocks.usingLock).not.toHaveBeenCalled();
+      expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+    });
+  });
+});
