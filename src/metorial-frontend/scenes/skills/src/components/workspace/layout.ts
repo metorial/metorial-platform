@@ -50,7 +50,12 @@ export type WorkspaceLayoutInput = {
 export let useWorkspaceLayout = (input: WorkspaceLayoutInput) => {
   let [width, setWidth] = useState(0);
   let [tight, setTight] = useState(false);
-  let untightRightWidth = useRef<number | null>(null);
+  let untightMetrics = useRef<{
+    leftEdge: number;
+    rightOffset: number;
+    rightWidth: number;
+    toolbarWidth: number;
+  } | null>(null);
   let measureRef = useRef<() => void>(() => {});
 
   let size = getSize(width || 1280);
@@ -70,16 +75,19 @@ export let useWorkspaceLayout = (input: WorkspaceLayoutInput) => {
     let leftEdge = navLeft ? navLeft.offsetLeft + navLeft.offsetWidth + 12 : 0;
     let rightOffset = navRight ? w - (navRight.offsetLeft + navRight.offsetWidth) : 14;
     let rightWidth = navRight?.offsetWidth ?? 0;
-    if (!tight) untightRightWidth.current = rightWidth;
 
-    let fitsWith = (navRightWidth: number) =>
-      cx - toolbarWidth / 2 >= leftEdge &&
-      cx + toolbarWidth / 2 <= w - rightOffset - navRightWidth - 12;
+    let current = { leftEdge, rightOffset, rightWidth, toolbarWidth };
+    if (!tight || !input.toolbarVisible) untightMetrics.current = current;
+    let untight = untightMetrics.current ?? current;
 
-    let nextTight = input.toolbarVisible && !fitsWith(untightRightWidth.current ?? rightWidth);
+    let fits = (m: typeof current) =>
+      cx - m.toolbarWidth / 2 >= m.leftEdge &&
+      cx + m.toolbarWidth / 2 <= w - m.rightOffset - m.rightWidth - 12;
+
+    let nextTight = input.toolbarVisible && !fits(untight);
     if (nextTight != tight) setTight(nextTight);
 
-    let secondRow = input.toolbarVisible && nextTight && tight && !fitsWith(rightWidth);
+    let secondRow = input.toolbarVisible && nextTight && tight && !fits(current);
 
     let ids = input.visibleSectionIds;
     let hasLeftPanels =
