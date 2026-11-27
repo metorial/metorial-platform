@@ -176,9 +176,9 @@ src/lib/storage/cache/.turbo/
 src/lib/storage/cache/dist/
 src/lib/storage/cache/node_modules/
 generated/
-!/src/metorial-frontend/packages/state/src/config/generated/
-/src/metorial-frontend/packages/state/src/config/generated/*
-!/src/metorial-frontend/packages/state/src/config/generated/organizationConfigs.ts
+!/src/frontends/metorial/packages/state/src/config/generated/
+/src/frontends/metorial/packages/state/src/config/generated/*
+!/src/frontends/metorial/packages/state/src/config/generated/organizationConfigs.ts
 
 # Virtual Environment
 venv/

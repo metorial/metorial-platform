@@ -1,0 +1,36 @@
+{
+  "name": "@mtsrc/slates-hub-db",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./prisma/generated/browser.ts",
+    "./client": "./prisma/generated/client.ts",
+    "./db": "./src/db.ts",
+    "./id": "./src/id.ts",
+    "./retryOnOidCollision": "./src/retryOnOidCollision.ts"
+  },
+  "scripts": {
+    "prisma:generate": "bun run db:generate",
+    "prisma:push": "bun run db:push:dev",
+    "db:generate": "bun prisma generate --schema prisma/schema",
+    "db:push:dev": "bun prisma db push --schema prisma/schema --accept-data-loss",
+    "db:push": "bun run db:push:dev",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
+  },
+  "dependencies": {
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0",
+    "@lowerdeck/snowflake": "workspace:2.0.0",
+    "@prisma/client": "^7.10.1",
+    "@slates/proto": "^1.0.0-rc.30",
+    "dotenv": "^18.0.9",
+    "prisma": "^7.10.1",
+    "prisma-json-types-generator": "^6.0.1"
+  },
+  "devDependencies": {
+    "hono": "4.13.16",
+    "vitest": "5.0.4"
+  }
+}

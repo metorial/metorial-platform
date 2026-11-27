@@ -1,0 +1,27 @@
+{
+  "name": "@mtsrc/slates-hub-module-trigger-routing",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./routingMatcherResync": "./src/queues/routingMatcherResync.ts",
+    "./triggerRoutingDropServiceInternal": "./src/services/triggerRoutingDropServiceInternal.ts",
+    "./triggerRoutingMatcherEvaluation": "./src/services/triggerRoutingMatcherEvaluation.ts",
+    "./triggerRoutingMatcherSerialize": "./src/lib/triggerRoutingMatcherSerialize.ts",
+    "./triggerRoutingMatcherServiceInternal": "./src/services/triggerRoutingMatcherServiceInternal.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/canonicalize": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@slates/proto": "^1.0.0-rc.30",
+    "date-fns": "^4.4.0"
+  },
+  "devDependencies": {
+    "vitest": "5.0.4"
+  }
+}

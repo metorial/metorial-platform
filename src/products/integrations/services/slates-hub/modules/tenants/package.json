@@ -1,0 +1,17 @@
+{
+  "name": "@mtsrc/slates-hub-module-tenants",
+  "private": true,
+  "exports": {
+    "./tenant": "./src/services/tenant.ts",
+    "./tenantIsolation": "./src/services/tenantIsolation.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-function-bay": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "5.0.4"
+  }
+}

@@ -424,7 +424,7 @@ spec:
         app: net-kourier-controller
     spec:
       containers:
-        - image: gcr.io/knative-releases/knative.dev/net-kourier/cmd/kourier@sha256:a9ff08c14d74c42e0ceda0dfd00e338a752d410f5ed74a269fd147b3f57c6453
+        - image: gcr.io/knative-releases/knative.dev/net-kourier/cmd/kourier@sha256:98f5e7213a2bb1b2b50a06fba37d895c148d1f22af33199a2faf9b7b31b86cad
           name: controller
           env:
             # CERTS_SECRET_NAMESPACE and CERTS_SECRET_NAME can also be configured from a ConfigMap.
@@ -568,7 +568,7 @@ spec:
           env:
             - name: DRAIN_TIME_SECONDS
               value: "15"
-          image: docker.io/envoyproxy/envoy:v1.37-latest
+          image: docker.io/envoyproxy/envoy:v1.40-latest
           name: kourier-gateway
           ports:
             - name: http2-external
