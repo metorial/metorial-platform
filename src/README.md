@@ -269,7 +269,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Outpost                         | API at `products/outpost/apis/outpost-api/`, monolith module at `products/outpost/modules/outpost/`, and the implementation submodule at `products/outpost/implementation/`. Existing package names are retained.                                                                                           |
 | Shared platform code | The remaining Core modules live at `platform/modules/`; shared Metorial packages at `platform/packages/`; the cell registry at `platform/multi-region/`. Package names and runtime behavior remain unchanged. |
 | Platform services               | `secret-store`, `email`, `search`, and `webhook-sender` live under `platform/services/`, with clients under `platform/clients/`. Both use the `@mtsrc/<service-name>-<role>` convention.                                                                                                                                      |
-| Integrations | MCP Runtime, its SDK and client, plus Slates Hub, Slates Registry, and their clients live under `products/integrations/`. Other integrations code continues migrating from the legacy product tree. |
+| Integrations | MCP Runtime, its SDK and client, plus Slates Hub, Slates Registry, and their clients live under `products/integrations/`, alongside the integrations modules, packages, adapters, provider backends, database, and subspace worker. |
 | Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
 | Sandbox | Modules and the generated Genesis client live under `products/sandbox/`. |
 | OSS composition | `products/oss/` holds `services/oss-core`, `apis/oss-auth`, and `packages/auth`. |
@@ -283,9 +283,7 @@ As remaining code moves, use these destination rules:
 
 | Current location                                                      | Target placement                                                                           |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `metorial/products/<product>/modules/`                                | `products/<product>/modules/`                                                              |
-| `metorial/products/<product>/packages/`                               | Product `packages/`                                                                        |
-| Standalone services at the source root or inside the old product tree | Product `services/` or `platform/services/`, according to ownership                        |
+| Standalone services at the source root | Product `services/` or `platform/services/`, according to ownership                        |
 | `metorial/db/`                                                        | `platform/db/`                                                                             |
 | `metorial/apis/`                                                      | `products/<product>/apis/`, `surfaces/metorial/apis/`, or `platform/apis/`, according to ownership |
 | `metorial/presenters/`                                                | `surfaces/metorial/presenters/`                                                            |

@@ -13,21 +13,21 @@ let { findMany } = vi.hoisted(() => ({
   )
 }));
 
-vi.mock('../../../../../products/integrations/db/src/db', () => ({
+vi.mock('../../../../../../products/integrations/db/src/db', () => ({
   db: { tenantOAuthCallbackUrl: { findMany } }
 }));
 
-vi.mock('../../../../../products/integrations/db/src/env', () => ({
+vi.mock('../../../../../../products/integrations/db/src/env', () => ({
   env: { service: { INTEGRATIONS_API_URL: 'https://integrations.example.com' } }
 }));
 
-vi.mock('../../../../../products/integrations/db/src/id', () => ({
+vi.mock('../../../../../../products/integrations/db/src/id', () => ({
   getId: () => ({ id: 'test' })
 }));
 
 vi.mock(
   '@metorial-subspace/db',
-  async () => import('../../../../../products/integrations/db/src/utils/getOAuthCallbackUrl')
+  async () => import('../../../../../../products/integrations/db/src/utils/getOAuthCallbackUrl')
 );
 
 vi.mock('@metorial/db', () => ({

@@ -145,7 +145,7 @@
     "extraInputs": []
   },
   "subspace-worker": {
-    "dockerfile": "src/metorial/products/integrations/apps/worker/Dockerfile",
+    "dockerfile": "src/products/integrations/services/subspace-worker/service/Dockerfile",
     "image": "ghcr.io/metorial/subspace-worker",
     "platform": "linux/amd64",
     "workspace": ".",

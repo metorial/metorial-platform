@@ -9,7 +9,6 @@ let controlSuiteFixtures = {
     workspacePackages: [],
     services: [],
     tests: [
-      'src/metorial/products/*/modules/*',
       'src/platform/modules/*',
       'src/products/*/modules/*',
       'src/products/*/apis/*',
@@ -103,7 +102,7 @@ test('control suites select stack test packages and prune them for CI', async ()
     '@metorial/module-user'
   ]);
   expect(controlTasks(controlSuiteFixtures.oss)).toBe(
-    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/platform/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/metorial/apis/*'
+    'prisma:generate test:e2e --filter=./src/platform/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/metorial/apis/*'
   );
   expect(controlTasks(controlSuiteFixtures.enterprise)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'

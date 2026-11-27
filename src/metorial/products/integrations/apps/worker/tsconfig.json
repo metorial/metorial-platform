@@ -1,5 +1,0 @@
-{
-  "extends": "../../tsconfig.server.json",
-  "files": ["src/server.ts"],
-  "exclude": ["control"]
-}

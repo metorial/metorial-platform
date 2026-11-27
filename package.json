@@ -62,6 +62,8 @@
     "src/products/*/services/*/modules/*",
     "src/products/*/services/*/store",
     "src/products/*/clients/*",
+    "src/products/*/db",
+    "src/products/*/test-servers",
     "src/products/*/services/*/sdk",
     "src/products/*/services/*/sdk/packages/*",
     "src/products/storage/services/scm/services/code-workspace/extensions/memfs",
