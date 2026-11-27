@@ -54,6 +54,8 @@ export type BitbucketPullRequestStatus = BitbucketPullRequest & {
   mergeability: 'mergeable' | 'blocked' | 'conflicting' | 'unknown';
 };
 
+let dataCenterOAuthScopes = ['REPO_ADMIN', 'PROJECT_ADMIN'];
+
 let tokenRefreshes = new Map<bigint, Promise<string>>();
 
 let isDataCenter = (backend: ScmBackend) => backend.type === 'bitbucket_data_center';
@@ -934,6 +936,7 @@ export let getBitbucketOAuthUrl = (i: {
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('state', i.state);
   url.searchParams.set('redirect_uri', i.redirectUri);
+  if (isDataCenter(i.backend)) url.searchParams.set('scope', dataCenterOAuthScopes.join(' '));
   return url.toString();
 };
 

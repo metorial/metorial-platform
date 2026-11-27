@@ -199,7 +199,7 @@ export default service({
             })
           ),
           timeoutSeconds: t.int({ min: 60, max: 7200 }),
-          schedulingTimeoutSeconds: t.int({ min: 0, max: 3600 }).optional(),
+          schedulingTimeoutSeconds: t.int({ min: 0, max: 86400 }).optional(),
           sandbox: Sandbox.optional(),
           egressGrant: t.string({ minLength: 1 })
         }),
