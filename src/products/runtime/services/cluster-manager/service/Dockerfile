@@ -1,7 +1,7 @@
 # runtime-cluster-manager. Docker context is the OSS monorepo root (./oss):
 #   docker build -f src/products/runtime/services/cluster-manager/service/Dockerfile -t runtime-cluster-manager .
 
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /src
 

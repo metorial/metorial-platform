@@ -1,7 +1,7 @@
 # Stand-in function runtime for the cluster-manager e2e tests. Docker context is ./oss:
 #   docker build -f src/products/runtime/services/cluster-manager/service/test/standin/function.Dockerfile -t dev.local/runtime-standin-function:dev .
 
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /src
 

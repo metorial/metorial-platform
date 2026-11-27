@@ -1,7 +1,7 @@
 # runtime-network-logs. Docker context is the OSS monorepo root (./oss):
 #   docker build -f src/products/runtime/services/networking/service/logstore.Dockerfile -t runtime-network-logs .
 
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /src
 
