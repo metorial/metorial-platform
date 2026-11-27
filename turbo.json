@@ -362,7 +362,7 @@
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/tsconfig*.json",
         "$TURBO_ROOT$/.prettierrc",
-        "$TURBO_ROOT$/src/metorial-frontend/packages/state/src/config/generated/organizationConfigs.ts"
+        "$TURBO_ROOT$/src/frontends/metorial/packages/state/src/config/generated/organizationConfigs.ts"
       ],
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]

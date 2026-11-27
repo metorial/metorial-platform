@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
-let workspaceRoot = fileURLToPath(new URL('../../../../../', import.meta.url));
+let workspaceRoot = fileURLToPath(new URL('../../../../../../', import.meta.url));
 
 let stripBrokenMonacoSourceMap = () => ({
   name: 'strip-broken-monaco-source-map',

@@ -8,7 +8,7 @@ import '../src/definitions/skillConfigs';
 
 let generatedPath = path.resolve(
   import.meta.dirname,
-  '../../../../../metorial-frontend/packages/state/src/config/generated/organizationConfigs.ts'
+  '../../../../../frontends/metorial/packages/state/src/config/generated/organizationConfigs.ts'
 );
 
 describe('organization config registry', () => {

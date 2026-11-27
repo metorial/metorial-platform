@@ -45,7 +45,7 @@ oss/src/
     db/                         # Main Metorial database package
     apis/                       # Shared platform APIs
   frontends/
-    metorial/                   # Current metorial-frontend contents
+    metorial/                   # Metorial dashboard apps, packages, and scenes
   surfaces/
     metorial/
       apis/                     # Metorial-specific API packages
@@ -273,6 +273,7 @@ The optional Go OpenTelemetry integration remains a separate module at `lib/rpc/
 | Product APIs | OAuth lives at `products/identity/apis/oauth`, files at `products/storage/apis/files`, and connection and integration setup at `products/integrations/apis/{connection,integration-setup}`. |
 | Sandbox | Modules and the generated Genesis client live under `products/sandbox/`. |
 | OSS composition | `products/oss/` holds `services/oss-core`, `apis/oss-auth`, and `packages/auth`. |
+| Frontends | The Metorial frontend lives at `frontends/metorial/` (`apps`, `packages`, `scenes`). Package names are unchanged. |
 | Tooling | Control lives at `tooling/control/`. |
 | Generic libraries | All 62 remaining lowerdeck packages have moved into the groups documented in `lib/README.md`. The `utils` group combines execution, data, text, random, and time helpers. Package names remain unchanged. |
 | RPC libraries | Node packages, the shared spec package, Go runtime, and protocol documentation live under `lib/rpc/`. |

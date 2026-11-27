@@ -51,7 +51,7 @@ export let createAuthCoreVitestConfig = (_packageUrl: string) =>
     return withAliases(config, {
       '@metorial/ui': resolve(
         utilsDir,
-        '../../../../../../../metorial-frontend/packages/ui/src/index.ts'
+        '../../../../../../../frontends/metorial/packages/ui/src/index.ts'
       ),
       '@mtsrc/auth-core-client-internal': resolve(
         utilsDir,
