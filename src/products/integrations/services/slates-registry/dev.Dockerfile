@@ -7,7 +7,7 @@ COPY . .
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ && rm -rf /var/lib/apt/lists/*
 
-RUN sh ./src/slates/scripts/prepare-docker-build.sh
+RUN bun install --linker=hoisted
 
 RUN --mount=type=secret,id=turbo_token,required=false --mount=type=secret,id=turbo_signature,required=false sh /app/src/tooling/warp-cache/run-turbo.sh prisma:generate admin:build server:build --filter=@metorial/slates-registry
 

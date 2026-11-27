@@ -177,7 +177,7 @@
     "extraInputs": []
   },
   "slates-hub": {
-    "dockerfile": "src/slates/apps/hub/Dockerfile",
+    "dockerfile": "src/products/integrations/services/slates-hub/Dockerfile",
     "image": "ghcr.io/metorial/slates-hub",
     "platform": "linux/amd64",
     "workspace": ".",

@@ -37,7 +37,7 @@ services:
     profiles: ['infra']
     image: ghcr.io/metorial/mte-object-store:dev
     build:
-      context: ../../../..
+      context: ../../../../..
       dockerfile: src/platform/services/object-storage/Dockerfile
     container_name: slates-hub-object-storage
     restart: unless-stopped
@@ -141,7 +141,7 @@ services:
   slates-registry:
     profiles: ['infra']
     build:
-      context: ../../../../
+      context: ../../../../../
       dockerfile: ./src/products/integrations/services/slates-registry/dev.Dockerfile
     container_name: slates-hub-registry
     restart: unless-stopped
@@ -178,8 +178,8 @@ services:
   slates-hub:
     profiles: ['hub']
     build:
-      context: ../../../../
-      dockerfile: ./src/slates/apps/hub/dev.Dockerfile
+      context: ../../../../../
+      dockerfile: ./src/products/integrations/services/slates-hub/dev.Dockerfile
     container_name: slates-hub-service
     restart: unless-stopped
     ports:
@@ -209,13 +209,12 @@ services:
       SLATES_DELEGATE_SECRETS_TO_NEBULA: ${SLATES_DELEGATE_SECRETS_TO_NEBULA:-false}
       SLATE_ATTACHMENT_SIGNING_SECRET: ${SLATE_ATTACHMENT_SIGNING_SECRET}
     volumes:
-      - ./src:/app/src/slates/apps/hub/src:ro
-      - ./admin:/app/src/slates/apps/hub/admin:ro
-      - ./package.json:/app/src/slates/apps/hub/package.json:ro
-      - ./tsconfig.json:/app/src/slates/apps/hub/tsconfig.json:ro
-      - ./prisma:/app/src/slates/apps/hub/prisma
-      - ./prisma.config.ts:/app/src/slates/apps/hub/prisma.config.ts:ro
-      - ../../packages:/app/src/slates/packages:ro
+      - ./src:/app/src/products/integrations/services/slates-hub/src:ro
+      - ./admin:/app/src/products/integrations/services/slates-hub/admin:ro
+      - ./package.json:/app/src/products/integrations/services/slates-hub/package.json:ro
+      - ./tsconfig.json:/app/src/products/integrations/services/slates-hub/tsconfig.json:ro
+      - ./prisma:/app/src/products/integrations/services/slates-hub/prisma
+      - ./prisma.config.ts:/app/src/products/integrations/services/slates-hub/prisma.config.ts:ro
       - /app/node_modules
     depends_on:
       postgres:
@@ -231,11 +230,12 @@ services:
     container_name: slates-hub-admin
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "bun install && cd apps/hub && bun vite --config admin/vite.docker.config.ts"
+    command: sh -c "bun install && cd src/products/integrations/services/slates-hub && bun vite --config admin/vite.docker.config.ts"
     ports:
       - '65047:52047'
     volumes:
-      - ../../:/app
+      - ../../../../..:/app
+      - /app/node_modules
     networks:
       - slates-hub-network
 
@@ -245,11 +245,12 @@ services:
     container_name: slates-registry-admin
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "bun install && cd apps/registry && bun vite --config admin/vite.docker.config.ts"
+    command: sh -c "bun install && cd src/products/integrations/services/slates-registry && bun vite --config admin/vite.docker.config.ts"
     ports:
       - '65043:52043'
     volumes:
-      - ../../:/app
+      - ../../../../..:/app
+      - /app/node_modules
     networks:
       - slates-hub-network
 

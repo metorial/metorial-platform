@@ -1,7 +1,7 @@
 import { createDatabase, createPrismaPgAdapter, withReplicaReads } from '@lowerdeck/prisma-pg';
 import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createFakePg, dnsError } from '../../../../lib/storage/prisma-pg/test/fakeClient';
+import { createFakePg, dnsError } from '../../../../../lib/storage/prisma-pg/test/fakeClient';
 import { PrismaClient } from '../prisma/generated/client';
 
 let clients: PrismaClient[] = [];
