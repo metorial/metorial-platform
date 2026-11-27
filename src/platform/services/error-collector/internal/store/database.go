@@ -24,6 +24,8 @@ var prismaOnlyParameters = []string{
 	"sslidentity",
 }
 
+// The installation's sslmode follows node-postgres, where no-verify encrypts without verifying the
+// certificate. pgx follows libpq, which calls that require and rejects no-verify (see databaseURL).
 type DatabaseConfig struct {
 	// URL is the complete database URL. Without it the database Name is used on ServerURL.
 	URL       string
@@ -57,6 +59,9 @@ func (c DatabaseConfig) databaseURL() (*url.URL, error) {
 	query := parsed.Query()
 	for _, parameter := range prismaOnlyParameters {
 		query.Del(parameter)
+	}
+	if query.Get("sslmode") == "no-verify" {
+		query.Set("sslmode", "require")
 	}
 	parsed.RawQuery = query.Encode()
 
