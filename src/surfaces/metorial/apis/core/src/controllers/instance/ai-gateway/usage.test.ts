@@ -6,9 +6,9 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { v1AiGatewayUsageTimelinePresenter } from '../../../../../../presenters/src/implementation/aiGateway/usage';
-import { aiGatewayUsageTimelineType } from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { v1AiGatewayUsageTimelinePresenter } from '../../../../../../../../platform/presenters/src/implementation/aiGateway/usage';
+import { aiGatewayUsageTimelineType } from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   timeline: vi.fn(),

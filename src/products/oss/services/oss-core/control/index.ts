@@ -79,7 +79,7 @@ export default project({
       '../../../../platform/modules/*',
       '../../../*/modules/*',
       '../../../*/apis/*',
-      '../../../../metorial/apis/*'
+      '../../../../surfaces/metorial/apis/*'
     ],
     services: [
       '@mtsrc/mcp-runtime-service',

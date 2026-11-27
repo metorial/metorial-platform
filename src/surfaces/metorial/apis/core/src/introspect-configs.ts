@@ -4,7 +4,7 @@ import * as prettier from 'prettier';
 
 let defaultOutput = path.resolve(
   import.meta.dir,
-  '../../../../frontends/metorial/packages/state/src/config/generated/organizationConfigs.ts'
+  '../../../../../frontends/metorial/packages/state/src/config/generated/organizationConfigs.ts'
 );
 
 let output = path.resolve(

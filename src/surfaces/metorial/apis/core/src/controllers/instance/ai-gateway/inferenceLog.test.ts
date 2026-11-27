@@ -6,10 +6,10 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { createGatewayLogPaginator } from '../../../../../../../products/agents/modules/ai-gateway/src/lib/paginator';
-import { v1AiGatewayInferenceLogPresenter } from '../../../../../../presenters/src/implementation/aiGateway/inferenceLog';
-import { aiGatewayInferenceLogType } from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { createGatewayLogPaginator } from '../../../../../../../../products/agents/modules/ai-gateway/src/lib/paginator';
+import { v1AiGatewayInferenceLogPresenter } from '../../../../../../../../platform/presenters/src/implementation/aiGateway/inferenceLog';
+import { aiGatewayInferenceLogType } from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   get: vi.fn(),

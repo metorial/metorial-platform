@@ -6,16 +6,16 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../../platform/packages/rest/src/introspect';
 import {
   v1AiGatewayVirtualModelPresenter,
   v1AiGatewayVirtualModelVersionPresenter
-} from '../../../../../../presenters/src/implementation/aiGateway/virtualModel';
+} from '../../../../../../../../platform/presenters/src/implementation/aiGateway/virtualModel';
 import {
   aiGatewayVirtualModelType,
   aiGatewayVirtualModelVersionType
-} from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   get: vi.fn(),

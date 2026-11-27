@@ -5,7 +5,7 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
+} from '../../../../../../../../platform/packages/rest/src/controller';
 
 let mocks = vi.hoisted(() => ({
   getCallbackById: vi.fn(),

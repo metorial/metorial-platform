@@ -5,8 +5,8 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../../platform/packages/rest/src/introspect';
 
 let mocks = vi.hoisted(() => ({
   imageGet: vi.fn(),

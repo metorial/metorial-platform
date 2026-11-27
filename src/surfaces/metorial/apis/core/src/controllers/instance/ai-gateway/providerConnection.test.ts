@@ -6,10 +6,10 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
-import { v1AiGatewayProviderConnectionPresenter } from '../../../../../../presenters/src/implementation/aiGateway/providerConnection';
-import { aiGatewayProviderConnectionType } from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../../platform/packages/rest/src/introspect';
+import { v1AiGatewayProviderConnectionPresenter } from '../../../../../../../../platform/presenters/src/implementation/aiGateway/providerConnection';
+import { aiGatewayProviderConnectionType } from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   get: vi.fn(),

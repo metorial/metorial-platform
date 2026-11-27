@@ -6,10 +6,10 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
-import { v1AiGatewayVirtualModelTemplatePresenter } from '../../../../../../presenters/src/implementation/aiGateway/virtualModel';
-import { aiGatewayVirtualModelTemplateType } from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../../platform/packages/rest/src/introspect';
+import { v1AiGatewayVirtualModelTemplatePresenter } from '../../../../../../../../platform/presenters/src/implementation/aiGateway/virtualModel';
+import { aiGatewayVirtualModelTemplateType } from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   listTemplates: vi.fn(),

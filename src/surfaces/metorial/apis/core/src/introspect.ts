@@ -3,7 +3,7 @@ import path from 'node:path';
 
 let defaultOutput = path.resolve(
   import.meta.dir,
-  '../../../../../clients/.introspection/snapshot.json'
+  '../../../../../../clients/.introspection/snapshot.json'
 );
 
 let output = path.resolve(

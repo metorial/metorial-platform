@@ -12,7 +12,7 @@ let controlSuiteFixtures = {
       'src/platform/modules/*',
       'src/products/*/modules/*',
       'src/products/*/apis/*',
-      'src/metorial/apis/*'
+      'src/surfaces/metorial/apis/*'
     ],
     groups: 4
   },
@@ -88,12 +88,12 @@ test('control suites select stack test packages and prune them for CI', async ()
   let { controlTestPackages, controlTasks } = await import('./changes');
   let packages = new Map([
     ['@metorial/module-user', { directory: 'src/products/identity/modules/user', e2e: true }],
-    ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
+    ['@metorial/api-core', { directory: 'src/surfaces/metorial/apis/core', e2e: true }],
     [
       '@metorial/api-outpost',
       { directory: 'src/products/outpost/apis/outpost-api', e2e: true }
     ],
-    ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
+    ['@metorial/db', { directory: 'src/platform/db', e2e: false }],
     ['@metorial/module-x', { directory: 'src/platform/modules/x', e2e: false }]
   ]);
   expect(controlTestPackages(controlSuiteFixtures.oss, packages)).toEqual([
@@ -102,7 +102,7 @@ test('control suites select stack test packages and prune them for CI', async ()
     '@metorial/module-user'
   ]);
   expect(controlTasks(controlSuiteFixtures.oss)).toBe(
-    'prisma:generate test:e2e --filter=./src/platform/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/metorial/apis/*'
+    'prisma:generate test:e2e --filter=./src/platform/modules/* --filter=./src/products/*/modules/* --filter=./src/products/*/apis/* --filter=./src/surfaces/metorial/apis/*'
   );
   expect(controlTasks(controlSuiteFixtures.enterprise)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
@@ -113,7 +113,7 @@ test('control suites select stack test packages and prune them for CI', async ()
 test('control suites run as duration-balanced matrix groups with per-package shards', async () => {
   let { controlMatrix } = await import('./changes');
   let packages = new Map([
-    ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
+    ['@metorial/api-core', { directory: 'src/surfaces/metorial/apis/core', e2e: true }],
     ...Array.from(
       { length: 8 },
       (_, index) =>

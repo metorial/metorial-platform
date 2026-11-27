@@ -6,22 +6,22 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../../platform/packages/rest/src/introspect';
 import {
   v1AiGatewayLabPresenter,
   v1AiGatewayModelOfferingPresenter,
   v1AiGatewayModelPresenter,
   v1AiGatewayModelResolutionPresenter,
   v1AiGatewayProviderPresenter
-} from '../../../../../../presenters/src/implementation/aiGateway/catalog';
+} from '../../../../../../../../platform/presenters/src/implementation/aiGateway/catalog';
 import {
   aiGatewayLabType,
   aiGatewayModelOfferingType,
   aiGatewayModelResolutionType,
   aiGatewayModelType,
   aiGatewayProviderType
-} from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   listLabs: vi.fn(),

@@ -6,14 +6,14 @@ import {
   Group,
   Handler,
   Path
-} from '../../../../../../../platform/packages/rest/src/controller';
-import { introspectApi } from '../../../../../../../platform/packages/rest/src/introspect';
-import { v1SandboxMachineUsageTimelinePresenter } from '../../../../../../presenters/src/implementation/sandbox/machineUsageTimeline';
-import { v1SandboxMachineUsageSummaryPresenter } from '../../../../../../presenters/src/implementation/sandbox/machineUsageSummary';
+} from '../../../../../../../../platform/packages/rest/src/controller';
+import { introspectApi } from '../../../../../../../../platform/packages/rest/src/introspect';
+import { v1SandboxMachineUsageTimelinePresenter } from '../../../../../../../../platform/presenters/src/implementation/sandbox/machineUsageTimeline';
+import { v1SandboxMachineUsageSummaryPresenter } from '../../../../../../../../platform/presenters/src/implementation/sandbox/machineUsageSummary';
 import {
   sandboxMachineUsageTimelineType,
   sandboxMachineUsageSummaryType
-} from '../../../../../../presenters/src/types';
+} from '../../../../../../../../platform/presenters/src/types';
 
 let mocks = vi.hoisted(() => ({
   timeline: vi.fn(),
