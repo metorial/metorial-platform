@@ -97,6 +97,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "assemblyai/stt-3.7": {
+    "decision": "defer",
+    "until": "2026-12-27",
+    "reason": "AssemblyAI announced STT-3.7 (speech-to-text, 32 languages) on 2026-11-18; models.tsv has no entry for it, only universal-3.x transcription models.",
+    "by": "agent",
+    "at": "2026-11-27"
+  },
+  "assemblyai/universal-2": {
+    "decision": "defer",
+    "until": "2026-12-27",
+    "reason": "AssemblyAI's Universal-2 speech-to-text model (assemblyai.com/research); the index only lists universal-3-pro/3.5/3.6, newer generations, so no matching entry exists yet.",
+    "by": "agent",
+    "at": "2026-11-27"
+  },
   "baseten/bison-1": {
     "decision": "defer",
     "until": "2026-12-24",
