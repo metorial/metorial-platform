@@ -204,7 +204,7 @@
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/slates-client#build": {
-      "dependsOn": ["^build", "@metorial/slates#prisma:generate"],
+      "dependsOn": ["^build", "@mtsrc/slates-hub-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@mtsrc/ai-gateway-client-internal#build": {

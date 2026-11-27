@@ -1,0 +1,30 @@
+{
+  "name": "@mtsrc/slates-hub-module-sessions",
+  "private": true,
+  "exports": {
+    "./integrationAttachment": "./src/lib/integrationAttachment.ts",
+    "./slateAttachmentRefresh": "./src/services/slateAttachmentRefresh.ts",
+    "./slatePublicToolCall": "./src/services/slatePublicToolCall.ts",
+    "./slateSession": "./src/services/slateSession.ts",
+    "./slateSessionToolCall": "./src/services/slateSessionToolCall.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-module-errors": "workspace:*",
+    "@mtsrc/slates-hub-module-instances": "workspace:*",
+    "@mtsrc/slates-hub-module-invocations": "workspace:*",
+    "@mtsrc/slates-hub-protocol": "workspace:*",
+    "@mtsrc/slates-hub-storage": "workspace:*",
+    "@slates/proto": "^1.0.0-rc.30",
+    "date-fns": "^4.4.0"
+  },
+  "devDependencies": {
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "vitest": "5.0.4"
+  }
+}

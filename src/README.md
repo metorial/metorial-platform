@@ -183,9 +183,11 @@ database identifiers remain compatible. Slates no longer depends on or starts th
 Slates Registry lives at `products/integrations/services/slates-registry/`, with its public and
 internal clients at `products/integrations/clients/{slates-registry,slates-registry-internal}/`.
 Its package names, image names, API paths, settings, and database identifiers remain unchanged.
-Slates Hub lives at `products/integrations/services/slates-hub/`, with its client at
-`products/integrations/clients/slates-hub/`. The service is `@metorial/slates` and the
-client is `@metorial-platform-systems/slates-client`.
+Slates Hub lives at `products/integrations/services/slates-hub/`, split into `apis/`,
+`packages/`, `modules/`, `db/`, and `service/`. The host is `@metorial/slates` under
+`service/`, and `@mtsrc/slates-hub-db` owns schema generation and migrations. The client
+`@metorial-platform-systems/slates-client` lives at `products/integrations/clients/slates-hub/`
+and takes its RPC type from `apis/internal`.
 
 Object storage lives at `platform/services/object-storage/`. Its Cargo workspace and nested
 Go, Rust, and TypeScript SDKs retain their existing layout. Package names, the Go module identity,

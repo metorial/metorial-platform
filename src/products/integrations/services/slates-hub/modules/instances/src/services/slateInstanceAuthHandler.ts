@@ -1,0 +1,593 @@
+import { delay } from '@lowerdeck/delay';
+import { badRequestError, notFoundError, ServiceError, timeoutError } from '@lowerdeck/error';
+import { createLock, LockAcquisitionError } from '@lowerdeck/lock';
+import { getSentry } from '@lowerdeck/sentry';
+import { Service } from '@lowerdeck/service';
+import type {
+  Secret,
+  SlateAuthConfig,
+  SlateAuthMethod,
+  SlateInstance,
+  SlateOAuthCredentials,
+  Tenant
+} from '@mtsrc/slates-hub-db/client';
+import { db } from '@mtsrc/slates-hub-db/db';
+import { env } from '@mtsrc/slates-hub-env/env';
+import { ID, snowflake } from '@mtsrc/slates-hub-db/id';
+import { extractExpiresAt } from '../lib/extractExpiresAt';
+import { isTransientOAuthRefreshError } from '../lib/oauthRefreshErrors';
+import { type SharedOAuthIdentity, sharedOAuthRefreshLockKey } from '../lib/sharedOAuthTokens';
+import { matcherSetFingerprint } from '@mtsrc/slates-hub-module-trigger-routing/triggerRoutingMatcherSerialize';
+import { triggerRoutingMatcherResyncQueue } from '@mtsrc/slates-hub-module-trigger-routing/routingMatcherResync';
+import {
+  type SecretSlateAuthConfig,
+  secretService
+} from '@mtsrc/slates-hub-module-secrets/secret';
+import { syncSharedOAuthTokens } from '../internal/sharedOAuthTokenSync';
+import { slateErrorService } from '@mtsrc/slates-hub-module-errors/slateError';
+import { slateInvocationService } from '@mtsrc/slates-hub-module-invocations/slateInvocation';
+
+let TRANSIENT_REFRESH_RETRY_DELAY_MS = 10_000;
+let RECENT_REFRESH_FAILURE_WINDOW_MS = 10_000;
+let USABLE_TOKEN_MARGIN_MS = 5_000;
+let REFRESH_WAIT_TIMEOUT_MS = 60_000;
+let REFRESH_POLL_INTERVAL_MS = 1_000;
+
+let include = { secret: true, authMethod: true };
+
+type AuthConfigWithSecret = SlateAuthConfig & { secret: Secret; authMethod: SlateAuthMethod };
+
+let Sentry = getSentry();
+
+let refreshLock = createLock({
+  name: 'shub/auth/refresh/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
+// Configs stay linked to the auth method version they were created with, so
+// read the flag from the slate's current version.
+let syncsTokensAcrossConnections = async (authConfig: AuthConfigWithSecret) => {
+  let slate = await db.slate.findUnique({
+    where: { oid: authConfig.slateOid },
+    select: { currentVersion: { select: { specificationOid: true } } }
+  });
+  let specificationOid = slate?.currentVersion?.specificationOid;
+  let currentMethods = specificationOid
+    ? await db.slateSpecificationAuthMethod.findMany({
+        where: { specificationOid },
+        select: { authMethod: { select: { key: true, spec: true } } }
+      })
+    : [];
+  let current = currentMethods.find(m => m.authMethod.key === authConfig.authMethod.key);
+  let spec = (current?.authMethod.spec ?? authConfig.authMethod.spec) as
+    { syncTokensAcrossConnections?: boolean } | undefined;
+  return spec?.syncTokensAcrossConnections === true;
+};
+
+type OAuthCredentialsWithSecret = SlateOAuthCredentials & { secret: Secret };
+
+// Input-based methods (e.g. bot tokens) refresh from the config's own input, without an OAuth app.
+type RefreshSource =
+  { kind: 'oauth'; credentials: OAuthCredentialsWithSecret } | { kind: 'input' };
+
+let refreshesFromInput = (authConfig: AuthConfigWithSecret) =>
+  authConfig.type === 'manual' &&
+  authConfig.authMethod.type !== 'oauth' &&
+  authConfig.authMethod.spec.capabilities.handleTokenRefresh?.enabled === true;
+
+let isExpiring = (tokenExpiresAt: Date | null, minExpirationBuffer: number) =>
+  !!tokenExpiresAt && tokenExpiresAt.getTime() < Date.now() + minExpirationBuffer;
+
+let hasUsableToken = (tokenExpiresAt: Date | null) =>
+  !tokenExpiresAt || tokenExpiresAt.getTime() > Date.now() + USABLE_TOKEN_MARGIN_MS;
+
+// Permanent failures are persisted on the config (and rejected by `reload`), so a recent
+// failure event on a config without an error code means a transient failure.
+let hasRecentRefreshFailure = async (authConfig: AuthConfigWithSecret) => {
+  let lastEvent = await db.slateAuthConfigEvent.findFirst({
+    where: { configOid: authConfig.oid },
+    orderBy: { createdAt: 'desc' },
+    select: { type: true, createdAt: true }
+  });
+
+  return (
+    lastEvent?.type === 'oauth_token_refresh_failed' &&
+    lastEvent.createdAt.getTime() > Date.now() - RECENT_REFRESH_FAILURE_WINDOW_MS
+  );
+};
+
+let refreshFailedError = (message: string) =>
+  new ServiceError(
+    badRequestError({
+      code: 'oauth_token_refresh_failed',
+      message: `Failed to refresh authentication token: ${message}`
+    })
+  );
+
+type RefreshInvocationResult = Awaited<
+  ReturnType<typeof slateInvocationService.refreshOAuthToken>
+>;
+
+type RefreshOutcome =
+  { ok: true } | { ok: false; transient: boolean; error: ServiceError<any> };
+
+let throwStoredAuthConfigError = (d: { errorCode: string; errorMessage?: string | null }) => {
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_provider_authentication_configuration',
+      message: `Provider authentication configuration has an error: ${
+        d.errorMessage ?? d.errorCode
+      }`
+    })
+  );
+};
+
+class slateAuthHandlerServiceImpl {
+  async getSlateInstanceAuth(d: {
+    tenant: Tenant;
+    slateInstance?: SlateInstance;
+    authConfigId: string;
+    minExpirationBuffer: number;
+  }) {
+    let authConfig = await db.slateAuthConfig.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        id: d.authConfigId
+      },
+      include
+    });
+    if (!authConfig) throw new ServiceError(notFoundError('slate.auth_config'));
+    if (
+      authConfig.instanceOid &&
+      d.slateInstance &&
+      authConfig.instanceOid !== d.slateInstance.oid
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'This authentication configuration is not valid for the selected provider.'
+        })
+      );
+    }
+
+    let i = 0;
+    while (authConfig.isProcessing) {
+      await delay(1000);
+
+      authConfig = await db.slateAuthConfig.findFirstOrThrow({
+        where: { oid: authConfig.oid },
+        include
+      });
+      if (i++ > 30) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'timeout',
+            message: 'Timed out waiting for authentication configuration to be ready.'
+          })
+        );
+      }
+    }
+
+    if (authConfig.errorCode) {
+      throwStoredAuthConfigError({
+        errorCode: authConfig.errorCode,
+        errorMessage: authConfig.errorMessage
+      });
+    }
+
+    if (d.slateInstance) {
+      let authConfigOid = authConfig.oid;
+      db.slateAuthConfigUsedForInstance
+        .createMany({
+          skipDuplicates: true,
+          data: {
+            oid: snowflake.nextId(),
+            configOid: authConfigOid,
+            instanceOid: d.slateInstance.oid
+          }
+        })
+        .catch(err => {
+          console.error('Failed to log auth config usage for instance:', err);
+          Sentry.captureException(err, {
+            extra: { authConfigOid, instanceOid: d.slateInstance?.oid }
+          });
+        });
+    }
+
+    if (isExpiring(authConfig.tokenExpiresAt, d.minExpirationBuffer)) {
+      let source: RefreshSource;
+
+      if (authConfig.type === 'oauth_automated') {
+        if (!authConfig.oauthCredentialsOid) {
+          throw new Error('WTF - oauthCredentialsOid is missing on oauth_automated config');
+        }
+
+        source = {
+          kind: 'oauth',
+          credentials: await db.slateOAuthCredentials.findFirstOrThrow({
+            where: { oid: authConfig.oauthCredentialsOid },
+            include: { secret: true }
+          })
+        };
+      } else if (refreshesFromInput(authConfig)) {
+        source = { kind: 'input' };
+      } else {
+        throw new ServiceError(
+          badRequestError({
+            code: 'authentication_expired',
+            message: 'Authentication configuration has expired.'
+          })
+        );
+      }
+
+      let refreshed = await this.refreshUnderLock({
+        tenant: d.tenant,
+        slateInstance: d.slateInstance,
+        minExpirationBuffer: d.minExpirationBuffer,
+        authConfig,
+        source
+      });
+
+      return {
+        ...refreshed.decrypted,
+        authConfig: refreshed.authConfig,
+        authMethod: refreshed.authConfig.authMethod
+      };
+    }
+
+    let decrypted = await this.decryptAuthConfig({
+      authConfig,
+      tenant: d.tenant,
+      note: `auth-get cfg:${authConfig.id} inst:${d.slateInstance?.id ?? 'none'}`
+    });
+
+    return {
+      ...decrypted,
+      authConfig,
+      authMethod: authConfig.authMethod
+    };
+  }
+
+  private async decryptAuthConfig(d: {
+    authConfig: AuthConfigWithSecret;
+    tenant: Tenant;
+    note: string;
+  }) {
+    return await secretService.DANGEROUSLY_decryptSecret({
+      secret: d.authConfig.secret,
+      purpose: 'slate_authentication_configuration',
+      tenant: d.tenant,
+      note: d.note
+    });
+  }
+
+  // The refresh RPC requires client fields; input-based methods read theirs from the config input.
+  private async resolveRefreshClient(d: {
+    source: RefreshSource;
+    authConfig: AuthConfigWithSecret;
+    tenant: Tenant;
+  }) {
+    if (d.source.kind === 'input') return { clientId: '', clientSecret: '', scopes: [] };
+
+    let secret = await secretService.DANGEROUSLY_decryptSecret({
+      secret: d.source.credentials.secret,
+      purpose: 'slate_oauth_credentials',
+      tenant: d.tenant,
+      note: `oauth-rfr creds:${d.source.credentials.id} cfg:${d.authConfig.id}`
+    });
+    return {
+      clientId: secret.clientId,
+      clientSecret: secret.clientSecret,
+      scopes: d.source.credentials.scopes
+    };
+  }
+
+  private async refreshUnderLock(d: {
+    tenant: Tenant;
+    slateInstance?: SlateInstance;
+    minExpirationBuffer: number;
+    authConfig: AuthConfigWithSecret;
+    source: RefreshSource;
+  }) {
+    let sharedIdentity: SharedOAuthIdentity | null =
+      d.source.kind === 'oauth' && (await syncsTokensAcrossConnections(d.authConfig))
+        ? {
+            authConfigOid: d.authConfig.oid,
+            slateOid: d.authConfig.slateOid,
+            authMethodKey: d.authConfig.authMethod.key,
+            clientId: d.source.credentials.clientId,
+            profileUid: d.authConfig.profileUid
+          }
+        : null;
+    let lockKey = sharedIdentity
+      ? sharedOAuthRefreshLockKey(sharedIdentity, true)
+      : `cfg:${d.authConfig.oid}`;
+
+    let reload = async () => {
+      let fresh = await db.slateAuthConfig.findFirstOrThrow({
+        where: { oid: d.authConfig.oid },
+        include
+      });
+      if (fresh.errorCode) {
+        throwStoredAuthConfigError({
+          errorCode: fresh.errorCode,
+          errorMessage: fresh.errorMessage
+        });
+      }
+      return fresh;
+    };
+
+    let decryptFresh = (fresh: AuthConfigWithSecret) =>
+      this.decryptAuthConfig({
+        authConfig: fresh,
+        tenant: d.tenant,
+        note: `auth-refresh-locked cfg:${fresh.id} inst:${d.slateInstance?.id ?? 'none'}`
+      });
+
+    type Refreshed = { authConfig: AuthConfigWithSecret; decrypted: SecretSlateAuthConfig };
+    let completed: Refreshed | undefined;
+    let failure: { error: unknown } | undefined;
+    let refreshWaitDeadline = Date.now() + REFRESH_WAIT_TIMEOUT_MS;
+
+    try {
+      await refreshLock.usingLock(
+        lockKey,
+        async () => {
+          try {
+            let fresh = await reload();
+            let decrypted = await decryptFresh(fresh);
+
+            if (isExpiring(fresh.tokenExpiresAt, d.minExpirationBuffer)) {
+              let canUseCurrentToken = hasUsableToken(fresh.tokenExpiresAt);
+
+              // Callers queued behind a transient failure fail fast instead of each
+              // repeating the full retry cycle.
+              if (await hasRecentRefreshFailure(fresh)) {
+                if (!hasUsableToken(fresh.tokenExpiresAt)) {
+                  throw refreshFailedError('The provider is temporarily unavailable.');
+                }
+              } else {
+                let outcome = await this.refreshAuthConfig({
+                  tenant: d.tenant,
+                  slateInstance: d.slateInstance,
+                  authConfig: fresh,
+                  source: d.source,
+                  decrypted,
+                  retryTransientFailure: !canUseCurrentToken,
+                  syncSiblingsOf:
+                    sharedIdentity && fresh.profileUid === sharedIdentity.profileUid
+                      ? sharedIdentity
+                      : null
+                });
+
+                if (
+                  !outcome.ok &&
+                  !(outcome.transient && hasUsableToken(fresh.tokenExpiresAt))
+                ) {
+                  throw outcome.error;
+                }
+              }
+            }
+
+            completed = { authConfig: fresh, decrypted };
+          } catch (error) {
+            failure = { error };
+          }
+        },
+        {
+          // Covers a refresh, the transient retry delay, and a second refresh.
+          durationMs: 60_000,
+          acquisitionTimeoutMs: 20_000,
+          // Default retryCount (50) would cap the wait near 10s.
+          retryCount: 200
+        }
+      );
+    } catch (err) {
+      if (!(err instanceof LockAcquisitionError)) {
+        if (completed || failure) {
+          console.error(`OAUTH.refresh_lock.release_failed cfg:${d.authConfig.id}`, err);
+        } else {
+          throw err;
+        }
+      } else {
+        // Token persistence can finish before the identity lock is released by sibling sync.
+        while (true) {
+          let fresh = await reload();
+          if (hasUsableToken(fresh.tokenExpiresAt)) {
+            return { authConfig: fresh, decrypted: await decryptFresh(fresh) };
+          }
+          if (!err.isContention) throw err;
+
+          let remainingMs = refreshWaitDeadline - Date.now();
+          if (remainingMs <= 0) break;
+
+          await delay(Math.min(REFRESH_POLL_INTERVAL_MS, remainingMs));
+        }
+
+        throw new ServiceError(
+          timeoutError({
+            message: 'Authentication token refresh is already in progress. Retry the request.'
+          })
+        );
+      }
+    }
+
+    if (failure) throw failure.error;
+    if (!completed) throw new Error('WTF - refresh lock finished without an outcome');
+    return completed;
+  }
+
+  private async refreshAuthConfig(d: {
+    tenant: Tenant;
+    slateInstance?: SlateInstance;
+    authConfig: AuthConfigWithSecret;
+    source: RefreshSource;
+    decrypted: SecretSlateAuthConfig;
+    retryTransientFailure: boolean;
+    syncSiblingsOf: SharedOAuthIdentity | null;
+  }): Promise<RefreshOutcome> {
+    let { authConfig, source, decrypted } = d;
+    let client = await this.resolveRefreshClient({ source, authConfig, tenant: d.tenant });
+
+    let authMethod = await db.slateAuthMethod.findFirstOrThrow({
+      where: { oid: authConfig.authMethodOid },
+      include: {
+        mostRecentSpecification: true,
+        slate: true
+      }
+    });
+    let slate = authMethod.slate;
+    let version = await db.slateVersion.findFirstOrThrow({
+      where: {
+        slateOid: slate.oid,
+        oid:
+          d.slateInstance?.lockedSlateVersionOid ??
+          authMethod.mostRecentSpecification.mostRecentVersionOid ??
+          slate.currentVersionOid
+      }
+    });
+
+    let invokeRefresh = async () => {
+      let stack = await slateInvocationService.createInvocation({
+        tenant: d.tenant,
+        slateVersion: version,
+        participants: []
+      });
+
+      return await slateInvocationService.refreshOAuthToken({
+        stack,
+        authenticationMethodId: authMethod.key,
+        input: decrypted.input ?? {},
+        output: decrypted.output ?? {},
+        ...client
+      });
+    };
+
+    let recordFailure = async (res: Extract<RefreshInvocationResult, { status: 'error' }>) => {
+      await db.slateAuthConfigEvent.createMany({
+        data: {
+          oid: snowflake.nextId(),
+          id: ID.generateIdSync('slateAuthConfigEvent'),
+          type: 'oauth_token_refresh_failed',
+          configOid: authConfig.oid,
+          invocationOid: res.invocation.oid
+        }
+      });
+
+      slateErrorService
+        .recordSlateError({
+          type: 'oauth_token_refresh_failed',
+          errorCode: res.error.code,
+          errorMessage: res.error.message,
+          tenantOid: d.tenant.oid,
+          slateOid: slate.oid,
+          slateVersionOid: version.oid,
+          slateInstanceOid: d.slateInstance?.oid,
+          invocationOid: res.invocation.oid,
+          authConfigOid: authConfig.oid
+        })
+        .catch(() => {});
+    };
+
+    let res = await invokeRefresh();
+
+    if (
+      res.status === 'error' &&
+      d.retryTransientFailure &&
+      isTransientOAuthRefreshError(res.error)
+    ) {
+      await recordFailure(res);
+      await delay(TRANSIENT_REFRESH_RETRY_DELAY_MS);
+
+      res = await invokeRefresh();
+    }
+
+    if (res.status === 'error') {
+      let transient = isTransientOAuthRefreshError(res.error);
+
+      // Only permanent OAuth failures break the config; input-based and transient
+      // failures retry on the next call.
+      if (source.kind === 'oauth' && !transient) {
+        await db.slateAuthConfig.updateMany({
+          where: { oid: authConfig.oid },
+          data: {
+            errorCode: res.error.code,
+            errorMessage: res.error.message,
+            errorInvocationId: res.invocation.id
+          }
+        });
+      }
+
+      await recordFailure(res);
+
+      return { ok: false, transient, error: refreshFailedError(res.error.message) };
+    }
+
+    await db.slateAuthConfig.updateMany({
+      where: { oid: authConfig.oid },
+      data: {
+        errorCode: null,
+        errorMessage: null,
+        errorInvocationId: null
+      }
+    });
+
+    await db.slateAuthConfigEvent.createMany({
+      data: {
+        oid: snowflake.nextId(),
+        id: ID.generateIdSync('slateAuthConfigEvent'),
+        type: 'oauth_token_refresh_completed',
+        configOid: authConfig.oid,
+        invocationOid: res.invocation.oid
+      }
+    });
+
+    let previousOutput = decrypted.output;
+
+    decrypted.input = res.data.input ?? decrypted.input;
+    decrypted.output = res.data.output ?? decrypted.output;
+
+    await secretService.DANGEROUSLY_updateSecret({
+      secretOid: authConfig.secretOid,
+      purpose: 'slate_authentication_configuration',
+      tenant: d.tenant,
+      secretData: decrypted
+    });
+
+    let tokenExpiresAt = extractExpiresAt(decrypted.output ?? {});
+    await db.slateAuthConfig.update({
+      where: { oid: authConfig.oid },
+      data: {
+        tokenExpiresAt,
+        routingMatchers: res.data.routingMatchers ?? undefined
+      }
+    });
+
+    if (res.data.routingMatchers?.length) {
+      let identifiedDifferently =
+        (await matcherSetFingerprint(authConfig.routingMatchers)) !==
+        (await matcherSetFingerprint(res.data.routingMatchers));
+
+      if (identifiedDifferently) {
+        await triggerRoutingMatcherResyncQueue.add({ authConfigId: authConfig.id });
+      }
+    }
+
+    if (d.syncSiblingsOf) {
+      await syncSharedOAuthTokens({
+        source: { ...d.syncSiblingsOf, authConfigId: authConfig.id },
+        previousOutput,
+        newOutput: decrypted.output
+      }).catch(err => {
+        console.error(`OAUTH.sibling_sync.error source=${authConfig.id}`, err);
+        Sentry.captureException(err, { extra: { authConfigId: authConfig.id } });
+      });
+    }
+
+    return { ok: true };
+  }
+}
+
+export let slateAuthHandlerService = Service.create(
+  'slateAuthHandlerService',
+  () => new slateAuthHandlerServiceImpl()
+).build();

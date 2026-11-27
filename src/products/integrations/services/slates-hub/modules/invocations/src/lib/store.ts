@@ -1,0 +1,223 @@
+import { getSentry } from '@lowerdeck/sentry';
+import type { FunctionInvokeResponse } from '@mtsrc/functions-client-internal';
+import PQueue from 'p-queue';
+import type { SlateInvocation } from '@mtsrc/slates-hub-db/client';
+import { db } from '@mtsrc/slates-hub-db/db';
+import { invocationsBucketRecord, storage } from '@mtsrc/slates-hub-storage/storage';
+import { deepClone } from './deepClone';
+import { redactWebhookInvocationMessages } from './webhookContent';
+import type {
+  SlateInvocationBaseParams,
+  SlatesRequest,
+  SlatesResponse,
+  StoredSlateInvocation
+} from './types';
+
+let Sentry = getSentry();
+
+let storeQueue = new PQueue({ concurrency: 25 });
+
+let authFieldsToRedact = [
+  'output',
+  'input',
+  'previousInput',
+  'newInput',
+  'clientSecret',
+  'state'
+];
+
+let configFieldsToRedact = ['config', 'previousConfig', 'newConfig'];
+
+let getFieldsToRedact = (method: string | null | undefined) => {
+  if (method?.startsWith('slates/auth.')) return authFieldsToRedact;
+  if (method?.startsWith('slates/config.')) return configFieldsToRedact;
+  return null;
+};
+
+export type SlateInvocationProviderMetadata = {
+  id: string;
+  status: 'succeeded' | 'failed';
+  functionVersionId: string;
+  billedTimeMs: number;
+  computeTimeMs: number;
+  error: unknown;
+};
+
+export type SlateInvocationResult = SlateInvocationProviderMetadata & {
+  logs: { timestamp: number; message: string }[];
+  createdAt: Date;
+};
+
+export let storeSlateInvocation = (
+  d: SlateInvocationBaseParams & {
+    record: SlateInvocation;
+    requestMessages: SlatesRequest[];
+    responseMessages?: SlatesResponse[];
+    invocationResult: FunctionInvokeResponse;
+  }
+) => {
+  return storeQueue
+    .add(async () => {
+      let storeContent = d.tenant?.storeContent !== false;
+
+      let idToMethodMap = new Map<string, SlatesRequest['method']>();
+
+      let methodRedactedRequests = d.requestMessages.map(m => {
+        if ('id' in m && m.id) idToMethodMap.set(m.id, m.method);
+
+        let fieldsToRedact = getFieldsToRedact(m.method);
+        if (fieldsToRedact && m.params && typeof m.params === 'object') {
+          let updatedParams: any = deepClone(m.params);
+
+          for (let field of fieldsToRedact) {
+            if (field in updatedParams) {
+              updatedParams[field] = '[REDACTED]';
+            }
+          }
+
+          return { ...m, params: updatedParams };
+        }
+
+        return m;
+      });
+
+      let hasResponseError = false;
+
+      let methodRedactedResponses = d.responseMessages?.map(m => {
+        if (typeof m !== 'object' || m == null) console.log('Non-object response message:', m);
+
+        let method = 'id' in m && m.id ? idToMethodMap.get(m.id) : null;
+
+        if ('error' in m) hasResponseError = true;
+
+        let fieldsToRedact = getFieldsToRedact(method);
+        if (fieldsToRedact && 'result' in m && m.result && typeof m.result === 'object') {
+          let updatedResult: any = deepClone(m.result);
+
+          for (let field of fieldsToRedact) {
+            if (field in updatedResult) {
+              updatedResult[field] = '[REDACTED]';
+            }
+          }
+
+          return { ...m, result: updatedResult };
+        }
+
+        return m;
+      });
+
+      let extractRequestTraces = (source: unknown) => {
+        if (!source || typeof source !== 'object') return [];
+        if (!('requestTraces' in source)) return [];
+        let traces = (source as { requestTraces?: unknown }).requestTraces;
+        return Array.isArray(traces) ? traces : [];
+      };
+
+      let responseRequestTraces = (d.responseMessages ?? []).flatMap(m => {
+        let result = 'result' in m ? m.result : undefined;
+        let error = 'error' in m ? (m as { error?: unknown }).error : undefined;
+        return [...extractRequestTraces(result), ...extractRequestTraces(error)];
+      });
+
+      let {
+        requests: sanitizedRequests,
+        responses: sanitizedResponses,
+        requestTraces
+      } = redactWebhookInvocationMessages({
+        requests: methodRedactedRequests,
+        responses: methodRedactedResponses ?? [],
+        requestTraces: responseRequestTraces
+      });
+
+      if (!d.invocationResult.id) {
+        let storageKey = getStoredInvocationStorageKey(d.record);
+        await storage.putObject(
+          invocationsBucketRecord.bucket,
+          storageKey,
+          JSON.stringify({
+            id: d.record.id,
+            requests: (storeContent ? sanitizedRequests : []) as any,
+            responses: (storeContent ? (sanitizedResponses ?? []) : []) as any,
+            provider: {
+              error: storeContent ? (d.invocationResult as any).error : null
+            } as any,
+            logs: [],
+            requestTraces: storeContent ? requestTraces : []
+          } satisfies StoredSlateInvocation)
+        );
+
+        await db.slateInvocation.update({
+          where: { oid: d.record.oid },
+          data: {
+            isPending: false,
+            hasResponseError: hasResponseError,
+            hasInvocationError: true,
+            providerInvocationId: '',
+            bucketOid: invocationsBucketRecord.oid
+          }
+        });
+        return;
+      }
+
+      let provider: SlateInvocationProviderMetadata = {
+        id: d.invocationResult.id,
+        status: d.invocationResult.status,
+        functionVersionId: d.invocationResult.functionVersionId,
+        billedTimeMs: d.invocationResult.billedTimeMs,
+        computeTimeMs: d.invocationResult.computeTimeMs,
+        error:
+          storeContent && d.invocationResult.type === 'error' ? d.invocationResult.error : null
+      };
+
+      let storageKey = getStoredInvocationStorageKey(d.record);
+      await storage.putObject(
+        invocationsBucketRecord.bucket,
+        storageKey,
+        JSON.stringify({
+          id: d.record.id,
+          requests: (storeContent ? sanitizedRequests : []) as any,
+          responses: (storeContent ? (sanitizedResponses ?? []) : []) as any,
+          provider,
+          logs: storeContent
+            ? d.invocationResult.logs.map(log => [log.timestamp, log.message] as const)
+            : [],
+          requestTraces: storeContent ? requestTraces : []
+        } satisfies StoredSlateInvocation)
+      );
+
+      await db.slateInvocation.update({
+        where: { oid: d.record.oid },
+        data: {
+          isPending: false,
+          hasResponseError: hasResponseError,
+          hasInvocationError: d.invocationResult.status === 'failed',
+          providerInvocationId: d.invocationResult.id,
+          bucketOid: invocationsBucketRecord.oid
+        }
+      });
+    })
+    .catch(err => {
+      Sentry.captureException(err, {
+        extra: {
+          slateInvocationOid: d.record.oid
+        }
+      });
+      console.error('Error storing slate invocation:', err);
+    });
+};
+
+export let getStoredInvocationStorageKey = (invocation: SlateInvocation) => {
+  return `invocations/${invocation.id}/logs`;
+};
+
+export let getStoredAttachmentsStorageKey = (digest: string) => {
+  return `attachments/${digest}`;
+};
+
+export let getAttachmentStorageKey = (attachment: {
+  id: string;
+  digest: Uint8Array | null;
+}) =>
+  attachment.digest
+    ? getStoredAttachmentsStorageKey(Buffer.from(attachment.digest).toString('hex'))
+    : getStoredAttachmentsStorageKey(attachment.id);

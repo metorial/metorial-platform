@@ -1,0 +1,26 @@
+{
+  "name": "@mtsrc/slates-hub-function-bay",
+  "private": true,
+  "exports": {
+    "./deploymentConfig": "./src/deploymentConfig.ts",
+    "./failureReports": "./src/failureReports.ts",
+    "./functionBay": "./src/functionBay.ts",
+    "./packageFiles": "./src/packageFiles.ts",
+    "./slatesRuntime": "./src/slatesRuntime.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@metorial/editions": "workspace:*",
+    "@metorial/error-reporting": "workspace:*",
+    "@mtsrc/functions-client-internal": "workspace:*",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-protocol": "workspace:*",
+    "unzipper": "^0.12.5"
+  },
+  "devDependencies": {
+    "jszip": "^3.10.2",
+    "vitest": "5.0.4"
+  }
+}

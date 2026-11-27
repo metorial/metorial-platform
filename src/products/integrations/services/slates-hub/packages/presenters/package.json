@@ -1,0 +1,28 @@
+{
+  "name": "@mtsrc/slates-hub-presenters",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adminWebhookTrigger": "./src/adminWebhookTrigger.ts",
+    "./slateAuthConfigEvent": "./src/slateAuthConfigEvent.ts",
+    "./slateDiscovery": "./src/slateDiscovery.ts",
+    "./slateDiscoveryBuildOutput": "./src/slateDiscoveryBuildOutput.ts",
+    "./slateDiscoveryToolCallStats": "./src/slateDiscoveryToolCallStats.ts",
+    "./slateError": "./src/slateError.ts",
+    "./slateOAuthSetupEvent": "./src/slateOAuthSetupEvent.ts",
+    "./slateOAuthSetupLogs": "./src/slateOAuthSetupLogs.ts",
+    "./slateSpecification": "./src/slateSpecification.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/shadow-id": "workspace:2.0.0",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-module-invocations": "workspace:*",
+    "@mtsrc/slates-hub-storage": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "5.0.4"
+  }
+}

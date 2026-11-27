@@ -1,0 +1,29 @@
+import { checkEdition } from '@metorial/editions';
+import { createRequire } from 'module';
+
+// Provide CommonJS `require` in ESM runtime for bundled deps.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).require = createRequire(import.meta.url);
+
+async function main() {
+  await import('./init');
+  (await import('./egressTrust')).ensureEgressTrustPublisher();
+  (await import('@mtsrc/slates-hub-env/metorialApiUrl')).checkMetorialApiUrl();
+  await import('./instrument');
+  await import('./endpoints');
+  if (checkEdition('cloud')) await import('./adminServer');
+  await import('./worker');
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
+
+if (process.env.HEARTBEAT_URL) {
+  setInterval(() => {
+    fetch(process.env.HEARTBEAT_URL!, { method: 'POST' }).catch(error => {
+      console.error('Failed to send heartbeat:', error);
+    });
+  }, 45 * 1000); // Send heartbeat every 45 seconds
+}

@@ -91,7 +91,7 @@ jobs:
             dockerfile: ./src/platform/services/search/service/Dockerfile
           - name: slates-hub
             image: ghcr.io/metorial/slates-hub
-            dockerfile: ./src/products/integrations/services/slates-hub/Dockerfile
+            dockerfile: ./src/products/integrations/services/slates-hub/service/Dockerfile
           - name: slates-registry
             image: ghcr.io/metorial/slates-registry
             dockerfile: ./src/products/integrations/services/slates-registry/Dockerfile

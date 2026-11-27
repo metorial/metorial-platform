@@ -61,7 +61,7 @@
     "@mtsrc/functions-client-internal": "workspace:*"
   },
   "devDependencies": {
-    "@metorial/slates": "workspace:*",
+    "@mtsrc/slates-hub-api-internal": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
