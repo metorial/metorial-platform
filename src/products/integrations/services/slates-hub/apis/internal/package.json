@@ -1,0 +1,31 @@
+{
+  "name": "@mtsrc/slates-hub-api-internal",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.1",
+    "@lowerdeck/api-key": "workspace:2.0.0",
+    "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/editions": "workspace:*",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "@mtsrc/slates-hub-module-callbacks": "workspace:*",
+    "@mtsrc/slates-hub-module-catalog": "workspace:*",
+    "@mtsrc/slates-hub-module-errors": "workspace:*",
+    "@mtsrc/slates-hub-module-instances": "workspace:*",
+    "@mtsrc/slates-hub-module-invocations": "workspace:*",
+    "@mtsrc/slates-hub-module-secrets": "workspace:*",
+    "@mtsrc/slates-hub-module-sessions": "workspace:*",
+    "@mtsrc/slates-hub-module-tenants": "workspace:*",
+    "@mtsrc/slates-hub-module-triggers": "workspace:*",
+    "@mtsrc/slates-hub-presenters": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

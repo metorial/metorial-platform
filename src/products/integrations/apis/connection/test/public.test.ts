@@ -22,7 +22,7 @@ vi.mock('@lowerdeck/execution-context', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-public-mcp', async () => ({
-  ...(await import('../../../../../metorial/products/integrations/modules/public-mcp/src/lib/oauthError')),
+  ...(await import('../../../modules/public-mcp/src/lib/oauthError')),
   PUBLIC_MCP_SCOPE: 'mcp',
   getPublicMcpBindingCookieName: vi.fn(),
   presentClientRegistration: vi.fn(),
@@ -66,7 +66,7 @@ vi.mock('../src/outpost', () => ({
   useConnectionRequestContext: () => ({ ip: '127.0.0.1', ua: 'test' })
 }));
 
-import { PublicMcpOAuthError } from '../../../../../metorial/products/integrations/modules/public-mcp/src/lib/oauthError';
+import { PublicMcpOAuthError } from '../../../modules/public-mcp/src/lib/oauthError';
 import { createPublicMcpHandler } from '../src/public';
 
 let browserHeaders = {

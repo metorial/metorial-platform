@@ -1,0 +1,160 @@
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import type {
+  Callback,
+  CallbackInstance,
+  Prisma,
+  Tenant,
+  TriggerRegistration
+} from '@mtsrc/slates-hub-db/client';
+import { db } from '@mtsrc/slates-hub-db/db';
+import { getId } from '@mtsrc/slates-hub-db/id';
+import { slateInstanceService } from '@mtsrc/slates-hub-module-instances/slateInstance';
+import { triggerRegistrationService } from '@mtsrc/slates-hub-module-triggers/triggerRegistration';
+
+let include = {
+  triggerRegistration: {
+    include: {
+      slate: true,
+      instance: true,
+      instanceConfig: true,
+      authConfig: { include: { authMethod: true } },
+      instances: { include: { triggerGroup: true, schedule: true } }
+    }
+  }
+};
+
+class callbackInstanceServiceImpl {
+  async getCallbackInstanceById(d: { tenant: Tenant; callback: Callback; id: string }) {
+    let instance = await db.callbackInstance.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        callbackOid: d.callback.oid,
+        id: d.id,
+        status: { not: 'deleted' }
+      },
+      include
+    });
+    if (!instance) throw new ServiceError(notFoundError('callback.instance'));
+    return instance;
+  }
+
+  async listCallbackInstances(d: { tenant: Tenant; callback: Callback }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.callbackInstance.findMany({
+            ...opts,
+            where: {
+              tenantOid: d.tenant.oid,
+              callbackOid: d.callback.oid,
+              status: { not: 'deleted' }
+            },
+            include
+          })
+      )
+    );
+  }
+
+  async getManyCallbackInstancesByIds(d: { tenant: Tenant; ids: string[] }) {
+    return db.callbackInstance.findMany({
+      where: { tenantOid: d.tenant.oid, id: { in: d.ids }, status: { not: 'deleted' } },
+      include
+    });
+  }
+
+  async createCallbackInstance(d: {
+    tenant: Tenant;
+    callback: Callback;
+    input: {
+      slateInstanceId: string;
+      authConfigId?: string;
+      triggerGroupSelections?: Record<string, Record<string, any>>;
+    };
+  }) {
+    if (d.callback.tenantOid !== d.tenant.oid)
+      throw new ServiceError(notFoundError('callback'));
+
+    let slateInstance = await slateInstanceService.getSlateInstanceById({
+      tenant: d.tenant,
+      id: d.input.slateInstanceId
+    });
+    if (slateInstance.slateOid !== d.callback.slateOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'This provider instance does not belong to the callback provider.'
+        })
+      );
+    }
+
+    let triggerRegistration = await triggerRegistrationService.createTriggerRegistration({
+      tenant: d.tenant,
+      input: d.input
+    });
+
+    let instance = await db.callbackInstance.create({
+      data: {
+        ...getId('callbackInstance'),
+        tenantOid: d.tenant.oid,
+        callbackOid: d.callback.oid,
+        triggerRegistrationOid: triggerRegistration.oid
+      }
+    });
+
+    let created = await db.callbackInstance.findUniqueOrThrow({
+      where: { oid: instance.oid },
+      include
+    });
+
+    return {
+      ...created,
+      selectableTriggerGroups: triggerRegistration.selectableTriggerGroups,
+      ignoredSelectionKeys: triggerRegistration.ignoredSelectionKeys
+    };
+  }
+
+  async listSelectableTriggerGroups(d: {
+    callbackInstance: Prisma.CallbackInstanceGetPayload<{ include: typeof include }>;
+  }) {
+    return triggerRegistrationService.listSelectableTriggerGroups({
+      registration: d.callbackInstance.triggerRegistration
+    });
+  }
+
+  async listSelectionOptions(d: {
+    tenant: Tenant;
+    callbackInstance: Prisma.CallbackInstanceGetPayload<{ include: typeof include }>;
+    input: Parameters<typeof triggerRegistrationService.listSelectionOptions>[0]['input'];
+  }) {
+    return triggerRegistrationService.listSelectionOptions({
+      tenant: d.tenant,
+      registration: d.callbackInstance.triggerRegistration,
+      input: d.input
+    });
+  }
+
+  async deleteCallbackInstance(d: {
+    tenant: Tenant;
+    callbackInstance: CallbackInstance & { triggerRegistration: TriggerRegistration };
+  }) {
+    if (d.callbackInstance.tenantOid !== d.tenant.oid) {
+      throw new ServiceError(notFoundError('callback.instance'));
+    }
+
+    await db.callbackInstance.update({
+      where: { oid: d.callbackInstance.oid },
+      data: { status: 'deleted' }
+    });
+
+    await triggerRegistrationService.deleteTriggerRegistration({
+      tenant: d.tenant,
+      registration: d.callbackInstance.triggerRegistration
+    });
+  }
+}
+
+export let callbackInstanceService = Service.create(
+  'callbackInstanceService',
+  () => new callbackInstanceServiceImpl()
+).build();

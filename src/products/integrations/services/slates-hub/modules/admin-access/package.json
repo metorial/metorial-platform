@@ -1,0 +1,17 @@
+{
+  "name": "@mtsrc/slates-hub-module-admin-access",
+  "private": true,
+  "exports": {
+    "./adminAuth": "./src/services/adminAuth.ts"
+  },
+  "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@mtsrc/auth-core-client-internal": "workspace:*",
+    "@mtsrc/slates-hub-db": "workspace:*",
+    "@mtsrc/slates-hub-env": "workspace:*",
+    "date-fns": "^4.4.0"
+  }
+}

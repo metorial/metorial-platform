@@ -319,7 +319,7 @@ start = ["e2e:start"]       # package.json scripts started from source (no watch
 image = "app-api"           # tested image artifact name for --images
 
 # Stack-only keys:
-tests = ["../../../../metorial/products/*/modules/*", "../../../*/modules/*", "../../../*/apis/*", "../../../../metorial/apis/*"]
+tests = ["../../../*/modules/*", "../../../*/apis/*", "../../../../surfaces/metorial/apis/*"]
 services = ["@mtsrc/mcp-runtime-service"]   # started in addition to [[dependencies]]
 health_timeout = 300
 
