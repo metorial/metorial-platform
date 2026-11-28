@@ -1,4 +1,11 @@
 {
+  "olala-v1.0-translate": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "OVHcloud's own translation model (7A1B MoE) fine-tuned from Olala-v1.0-mini-7A1B. No Olala or OVHcloud entry exists in the model index, so there is no model to link to yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "qwen3guard-gen-0.6b": {
     "decision": "exclude",
     "category": "non-chat",

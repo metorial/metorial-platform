@@ -1,6 +1,6 @@
 # Serverless pricing
 
-> Per-token serverless pricing for text, vision, and embedding models on Fireworks, including Standard, Priority, Fast, Ultra-fast (Preview), and Flex serverless mode rates.
+> Per-token serverless pricing for text, vision, and embedding models on Fireworks, including Standard, Priority, Fast, Ultra-fast (Preview), Flex, and Spot serverless mode rates.
 
 ## Text and vision models
 
@@ -11,3 +11,4 @@
 | [Test Chat Ultra-fast (Preview)](https://app.fireworks.ai/models/fireworks/test-chat) | \$4 / \$0.4 / \$8 | — |
 | [Test Chat Flex](https://app.fireworks.ai/models/fireworks/test-chat) | \$0.5 / \$0.05 / \$1 | — |
 | [Test Chat (US)](https://app.fireworks.ai/models/fireworks/test-chat) | \$1.5 / \$0.15 / \$3 | — |
+| [Test Chat Spot](https://app.fireworks.ai/models/fireworks/test-chat) | \$0.5 / \$0.05 / \$1 | — |

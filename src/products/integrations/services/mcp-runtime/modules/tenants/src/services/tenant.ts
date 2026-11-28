@@ -1,7 +1,7 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db } from '@mtsrc/mcp-runtime-db';
-import { ID, snowflake } from '@mtsrc/mcp-runtime-db';
+import { db, ID, snowflake, type Tenant } from '@mtsrc/mcp-runtime-db';
+import { integrationsOAuthCallbackUrl, oauthCallbackUrl } from '@mtsrc/mcp-runtime-env';
 import { linkFunctionBayTenant } from '../internal/functionBayTenant';
 
 let include = {};
@@ -36,6 +36,47 @@ class tenantServiceImpl {
     });
 
     return await linkFunctionBayTenant(tenant);
+  }
+
+  async getOAuthCallbackSettings(d: { identifier: string }) {
+    let tenant = await db.tenant.findUnique({
+      where: { identifier: d.identifier },
+      select: { dynamicOAuthCallbackUrlOverride: true }
+    });
+
+    return {
+      dynamicOAuthCallbackUrlOverride: tenant?.dynamicOAuthCallbackUrlOverride ?? null,
+      defaultUrl: integrationsOAuthCallbackUrl ?? oauthCallbackUrl
+    };
+  }
+
+  async updateOAuthCallbackSettings(d: {
+    tenant: Tenant;
+    callbackUrlOverride: string | null;
+  }) {
+    if (d.callbackUrlOverride != null) {
+      let url = URL.parse(d.callbackUrlOverride);
+
+      if (
+        url?.protocol !== 'https:' ||
+        !/^https:\/\/[^/@?#\\\s]+(?:\/[^?#\\\s]*)?$/i.test(d.callbackUrlOverride) ||
+        url.username ||
+        url.password
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Enter an HTTPS callback URL without credentials, a query, or a fragment'
+          })
+        );
+      }
+    }
+
+    await db.tenant.update({
+      where: { oid: d.tenant.oid },
+      data: { dynamicOAuthCallbackUrlOverride: d.callbackUrlOverride }
+    });
+
+    return { dynamicOAuthCallbackUrlOverride: d.callbackUrlOverride };
   }
 
   async getTenantById(d: { id: string }) {

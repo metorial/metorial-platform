@@ -79,6 +79,8 @@ describe('Bitbucket OAuth and REST client', () => {
       'https://stash.example.com/rest/oauth2/latest/authorize'
     );
     expect(cloud.searchParams.get('state')).toBe('state');
+    expect(cloud.searchParams.has('scope')).toBe(false);
+    expect(dataCenter.searchParams.get('scope')).toBe('REPO_ADMIN PROJECT_ADMIN');
   });
 
   it('follows all Cloud pagination links', async () => {

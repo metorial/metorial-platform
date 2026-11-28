@@ -102,6 +102,30 @@ func grantKeysCheck(cfg *config, startedAt time.Time, now func() time.Time) doct
 	}
 }
 
+// Without grant keys every connection is refused, so the gateway stays out of its Service until the
+// signers have published them, instead of accepting connections it can only reject.
+func grantKeysReady(cfg *config) error {
+	if cfg.publicKeysFile == "" {
+		if cfg.publicKeys == nil || cfg.publicKeys.Len() == 0 {
+			return errors.New("no grant public keys are configured")
+		}
+		return nil
+	}
+
+	raw, err := os.ReadFile(cfg.publicKeysFile)
+	if err != nil {
+		return fmt.Errorf("grant key file not loaded yet: %w", err)
+	}
+	keys, err := egress.ParseKeySet(raw)
+	if err != nil {
+		return fmt.Errorf("grant key file does not parse: %w", err)
+	}
+	if keys.Len() == 0 {
+		return errors.New("grant key file has no keys yet")
+	}
+	return nil
+}
+
 func dnsCheck(cfg *config, resolver gateway.Resolver) doctor.Check {
 	return doctor.Check{
 		ID:       "dns.resolvers",

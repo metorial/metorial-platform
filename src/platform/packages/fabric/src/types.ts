@@ -1638,6 +1638,8 @@ export interface FabricEvents {
   'skill.plugin.audit.created:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; skillGroupId?: string | null };
   'skill.plugin.audit.updated:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; previousSkillPlugin: SkillPlugin; skillGroupId?: string | null; previousSkillGroupId?: string | null };
   'skill.plugin.audit.archived:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
+  'skill.plugin.audit.skill_added:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; skillId: string; pluginSkillSlug: string };
+  'skill.plugin.audit.skill_removed:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; skillId: string; pluginSkillSlug: string };
 
   'skill.marketplace.audit.created:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
   'skill.marketplace.audit.updated:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace; previousSkillMarketplace: SkillMarketplace };

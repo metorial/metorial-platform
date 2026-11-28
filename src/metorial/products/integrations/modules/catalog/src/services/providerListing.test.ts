@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   listingFindFirst: vi.fn(),
   listingFindMany: vi.fn(),
+  paginationOptions: vi.fn(),
   visibilityFilter: vi.fn(),
   providerFindFirst: vi.fn()
 }));
@@ -23,7 +24,7 @@ vi.mock('@lowerdeck/error', () => ({
 vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: (factory: any) =>
-      factory({ prisma: (query: any) => query({ take: 2, orderBy: [] }) })
+      factory({ prisma: (query: any) => query(mocks.paginationOptions()) })
   }
 }));
 
@@ -68,6 +69,7 @@ describe('providerListingService.getProviderListingByIdInternal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.visibilityFilter.mockReturnValue(undefined);
+    mocks.paginationOptions.mockReturnValue({ take: 2, orderBy: [] });
     mocks.listingFindMany.mockResolvedValue([]);
     mocks.listingFindFirst.mockResolvedValue(null);
     mocks.providerFindFirst.mockResolvedValue(null);
@@ -106,10 +108,48 @@ describe('providerListingService.getProviderListingByIdInternal', () => {
 
       let query = mocks.listingFindMany.mock.calls[0]![0];
       expect(query.take).toBe(2);
+      expect(query.select).toEqual({ oid: true });
+      expect(mocks.listingFindMany).toHaveBeenCalledTimes(1);
       expect(query.where.AND).toContainEqual({ provider: filter });
       expect(query.where.AND).toContainEqual({ [badge]: true });
     }
   );
+
+  it('reapplies visibility and preserves cursor order when loading the selected listings', async () => {
+    let cursor = { id: 'cursor' };
+    let anotherListing = { oid: 8n, id: 'lst_8' };
+    mocks.paginationOptions.mockReturnValue({
+      cursor,
+      take: -2,
+      skip: 0,
+      orderBy: [{ id: 'asc' }]
+    });
+    mocks.listingFindMany
+      .mockResolvedValueOnce([{ oid: anotherListing.oid }, { oid: listing.oid }, { oid: 9n }])
+      .mockResolvedValueOnce([listing, anotherListing]);
+
+    let result = await providerListingService.listProviderListingsInternal({
+      orderByRank: true
+    });
+
+    let [selection, hydration] = mocks.listingFindMany.mock.calls.map(([query]) => query);
+    expect(selection).toEqual(
+      expect.objectContaining({
+        cursor,
+        take: -2,
+        select: { oid: true },
+        orderBy: [{ rank: 'desc' }, { id: 'asc' }]
+      })
+    );
+    expect(hydration).not.toHaveProperty('cursor');
+    expect(hydration).toEqual(
+      expect.objectContaining({
+        relationLoadStrategy: 'join',
+        where: { AND: [selection.where, { oid: { in: [8n, 5n, 9n] } }] }
+      })
+    );
+    expect(result).toEqual([anotherListing, listing]);
+  });
 
   it('resolves ids and slugs without touching the provider table', async () => {
     mocks.listingFindFirst.mockResolvedValueOnce({ oid: 5n }).mockResolvedValueOnce(listing);

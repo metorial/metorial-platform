@@ -40,6 +40,7 @@ import { getProviderTenantFilter } from '@metorial-subspace/module-catalog';
 import { searchRelatedEntities, whenRelatedMatched } from '@metorial-subspace/module-search';
 import {
   SenderManager,
+  TOOL_CALL_PAYLOAD_TOO_LARGE_CODE,
   type ToolCallClientSource
 } from '@metorial-subspace/module-connection';
 import {
@@ -615,6 +616,14 @@ class toolCallServiceImpl {
       waitForResponse: true,
       transport: 'tool_call'
     });
+
+    if (
+      toolRes.output?.type === 'error' &&
+      toolRes.output.data.code === TOOL_CALL_PAYLOAD_TOO_LARGE_CODE &&
+      toolRes.output.data.status === 413
+    ) {
+      throw ServiceError.fromResponse({ ...toolRes.output.data, status: 413 });
+    }
 
     let [toolCall] = await db.toolCall.updateManyAndReturn({
       where: { messageOid: toolRes.message.oid },

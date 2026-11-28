@@ -231,8 +231,9 @@ class remoteOAuthConnectionServiceImpl {
     tenant: Tenant;
     connection: RemoteOAuthConnection;
     omitSecret?: boolean;
+    registrationOid?: bigint;
   }) {
-    if (d.connection.secretOid && !d.omitSecret) {
+    if (d.connection.secretOid && !d.omitSecret && d.registrationOid == null) {
       let secret = await secretService.DANGEROUSLY_decryptSecret({
         secretOid: d.connection.secretOid,
         purpose: 'oauth_connection_credentials',
@@ -243,16 +244,19 @@ class remoteOAuthConnectionServiceImpl {
       return {
         clientId: secret.clientId,
         clientSecret: secret.clientSecret,
-        tokenEndpointAuthMethod: undefined
+        tokenEndpointAuthMethod: undefined,
+        registration: null
       };
     }
 
-    if (d.connection.registrationOid) {
+    let registrationOid = d.registrationOid ?? d.connection.registrationOid;
+    if (registrationOid != null) {
       let registration = await db.remoteOAuthAutoRegistration.findUniqueOrThrow({
-        where: { oid: d.connection.registrationOid }
+        where: { oid: registrationOid }
       });
 
       if (
+        d.registrationOid == null &&
         registration.clientSecretExpiresAt &&
         registration.clientSecretExpiresAt < new Date()
       ) {
@@ -263,6 +267,7 @@ class remoteOAuthConnectionServiceImpl {
         let reg = await OAuthUtils.registerClient({
           tenant: d.tenant,
           config: config.config,
+          callback: registration,
           owner: {
             config: config,
             connection: d.connection
@@ -284,6 +289,7 @@ class remoteOAuthConnectionServiceImpl {
       return {
         clientId: registration.clientId,
         clientSecret: registration.clientSecret || undefined,
+        registration,
         tokenEndpointAuthMethod: parseTokenEndpointAuthMethod(
           (registration.data as Record<string, unknown> | null)?.token_endpoint_auth_method
         )
@@ -294,7 +300,8 @@ class remoteOAuthConnectionServiceImpl {
       return {
         clientId: d.connection.clientId,
         clientSecret: undefined,
-        tokenEndpointAuthMethod: undefined
+        tokenEndpointAuthMethod: undefined,
+        registration: null
       };
     }
 

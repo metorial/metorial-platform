@@ -1,4 +1,11 @@
 {
+  "alibaba/qwen-3-14b": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Vercel's Qwen3-14B page describes Alibaba's 14B dense Qwen3 model, but the catalog's alibaba/qwen3-14b entry is retired and absent from the active index; there is no active model id to link, so defer until the index regains a Qwen3-14B entry.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "alibaba/qwen3-max-thinking": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -89,6 +96,20 @@
     "reason": "Amazon Titan Text Embeddings V2, the second-generation Bedrock embedding model tuned for RAG (8K context, 1,024-dim vectors, per Vercel/Amazon listings); the index's amazon line has only Nova models, no Titan embedding entry.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "assemblyai/stt-3.7": {
+    "decision": "defer",
+    "until": "2026-12-27",
+    "reason": "AssemblyAI announced STT-3.7 (speech-to-text, 32 languages) on 2026-11-18; models.tsv has no entry for it, only universal-3.x transcription models.",
+    "by": "agent",
+    "at": "2026-11-27"
+  },
+  "assemblyai/universal-2": {
+    "decision": "defer",
+    "until": "2026-12-27",
+    "reason": "AssemblyAI's Universal-2 speech-to-text model (assemblyai.com/research); the index only lists universal-3-pro/3.5/3.6, newer generations, so no matching entry exists yet.",
+    "by": "agent",
+    "at": "2026-11-27"
   },
   "baseten/bison-1": {
     "decision": "defer",
@@ -264,6 +285,13 @@
     "reason": "Same new Google model (Gemini 4 Neon) as the OpenRouter issue; no matching entry in the model index yet, so defer until models.dev adds it.",
     "by": "agent",
     "at": "2026-11-18"
+  },
+  "google/gemini-4-neon-fast": {
+    "decision": "link",
+    "model": "google/gemini-4-neon",
+    "reason": "Vercel's 'Gemini 4 Neon (Fast)' is a -fast serving of Gemini 4 Neon (released 2026-11-18, 1M context, matching the offering); the index has google/gemini-4-neon and a -fast serving is still that model. The higher price is Vercel's aggregator markup.",
+    "by": "agent",
+    "at": "2026-11-24"
   },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",
@@ -503,6 +531,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nace-ai/drex-max-v1.2": {
+    "decision": "defer",
+    "until": "2026-12-26",
+    "reason": "Drex Max v1.2 is a distinct 27B multimodal decision model from Nace.AI (per nace.ai docs and research page), the successor to Drex 2.0. Its 262k context and $0.03 input price match neither nace-ai/drex-v1.5 nor nace-ai/drex-v2.0, and the index has no drex-max entry.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "openai/gpt-5.1-thinking": {
     "decision": "link",
     "model": "openai/gpt-5.1",
@@ -607,6 +642,13 @@
     "reason": "Recraft's V2, its first model trained from scratch (20B image model, per Vercel's own page and CloudPrice); the index's Recraft line starts at V3, so defer rather than link a later generation.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "recraft/recraft-v4.1-flash-v2": {
+    "decision": "defer",
+    "until": "2026-12-26",
+    "reason": "Recraft V4.1 Flash V2 is a new standalone text-to-image model that replaces Recraft V4.1 Flash (per Recraft's announcement it is an independent model, not a speed toggle or serving variant of it); the model index has no entry for the V2 checkpoint yet.",
+    "by": "agent",
+    "at": "2026-11-26"
   },
   "scaledown/extract-1": {
     "decision": "defer",

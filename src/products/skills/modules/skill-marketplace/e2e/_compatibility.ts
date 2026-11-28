@@ -429,6 +429,7 @@ export let removePluginSkill = async (fixture: OrganizationFixture, pluginSkillI
   await skillPluginSkillService.removeSkillPluginSkill({
     project: fixture.project,
     instance: fixture.instance,
+    auditScope: fixture.auditScope,
     skillPluginSkill: await skillPluginSkillService.getSkillPluginSkillById({
       project: fixture.project,
       instance: fixture.instance,

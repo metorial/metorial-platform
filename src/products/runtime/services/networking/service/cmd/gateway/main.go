@@ -188,6 +188,13 @@ func newServers(cfg *config, core *gateway.Core, metrics *gateway.Metrics, docto
 		mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 			_, _ = w.Write([]byte("ok"))
 		})
+		mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
+			if err := grantKeysReady(cfg); err != nil {
+				http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+			_, _ = w.Write([]byte("ok"))
+		})
 		servers = append(servers, namedServer{name: "metrics", Server: &http.Server{
 			Addr:              cfg.metricsAddr,
 			Handler:           mux,

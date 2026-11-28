@@ -56,9 +56,9 @@ export let env = defineSettings({
       }
     ),
     KUBERNETES_BUILD_SCHEDULING_TIMEOUT_SECONDS: setting(
-      v.number({ modifiers: [v.integer(), v.minValue(15), v.maxValue(3600)] }),
+      v.number({ modifiers: [v.integer(), v.minValue(15), v.maxValue(86400)] }),
       {
-        default: 900,
+        default: 21600,
         description: 'Time a build can wait for admission and its container to start'
       }
     ),

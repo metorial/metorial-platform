@@ -42,6 +42,8 @@ type Config struct {
 	Username  string
 	Password  string
 	SSLMode   string
+	// SSLRootCert is the path of a CA bundle the server certificate is verified against.
+	SSLRootCert string
 }
 
 func (c Config) Validate() error {
@@ -61,26 +63,44 @@ func (c Config) Validate() error {
 	return nil
 }
 
+// The installation's sslmode follows node-postgres, where no-verify encrypts without verifying the
+// certificate. pgx follows libpq, which calls that require and rejects no-verify.
+func libpqSSLMode(mode string) string {
+	if mode == "no-verify" {
+		return "require"
+	}
+	return mode
+}
+
 func (c Config) DSN(database string) string {
 	if c.ServerURL != "" {
 		parsed, err := url.Parse(c.ServerURL)
 		if err == nil {
 			parsed.Path = "/" + database
 			parsed.RawPath = ""
+			query := parsed.Query()
+			if mode := query.Get("sslmode"); mode != "" {
+				query.Set("sslmode", libpqSSLMode(mode))
+				parsed.RawQuery = query.Encode()
+			}
 			return parsed.String()
 		}
 	}
 
-	sslMode := c.SSLMode
+	sslMode := libpqSSLMode(c.SSLMode)
 	if sslMode == "" {
 		sslMode = "require"
+	}
+	query := url.Values{"sslmode": {sslMode}}
+	if c.SSLRootCert != "" {
+		query.Set("sslrootcert", c.SSLRootCert)
 	}
 	return (&url.URL{
 		Scheme:   "postgres",
 		User:     url.UserPassword(c.Username, c.Password),
 		Host:     net.JoinHostPort(c.Host, c.Port),
 		Path:     database,
-		RawQuery: url.Values{"sslmode": {sslMode}}.Encode(),
+		RawQuery: query.Encode(),
 	}).String()
 }
 

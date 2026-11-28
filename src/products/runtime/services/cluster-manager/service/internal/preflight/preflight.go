@@ -26,6 +26,7 @@ import (
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/config"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/kube"
 	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/metrics"
+	"github.com/metorial/metorial-platform/src/products/runtime/services/cluster-manager/service/internal/pullsecret"
 )
 
 const (
@@ -72,6 +73,7 @@ type Runner struct {
 	Config         *config.Config
 	Platform       *kube.Cluster
 	Functions      *kube.Cluster
+	PullSecrets    *pullsecret.Syncer
 	ControlAuth    *auth.Authenticator
 	PodAuth        *auth.Authenticator
 	DryRunFunction func(ctx context.Context) error
@@ -99,12 +101,25 @@ func (r *Runner) Run(ctx context.Context) *Report {
 
 	r.knative(ctx, add)
 	r.runtimeClasses(ctx, add)
+	r.registry(ctx, add)
 	r.tokenReview(ctx, add)
 	r.dryRuns(ctx, add)
 	r.networkPolicy(ctx, add)
 	report.ClusterCIDRs = r.clusterCIDRs(ctx, add)
 	r.kubeProxy(ctx, add)
 	return report
+}
+
+func (r *Runner) registry(ctx context.Context, add addFunc) {
+	if r.PullSecrets == nil || !r.PullSecrets.Enabled() {
+		add("registry.pullSecret", StatusSkip, "no registry pull secret configured; the nodes must be able to pull the runtime images themselves")
+		return
+	}
+	if problems := r.PullSecrets.Verify(ctx); len(problems) > 0 {
+		add("registry.pullSecret", StatusFail, "%s", strings.Join(problems, "; "))
+		return
+	}
+	add("registry.pullSecret", StatusPass, "%s is present and listed on the runtime ServiceAccounts", r.PullSecrets.SecretName)
 }
 
 type addFunc func(check string, status Status, format string, args ...any)

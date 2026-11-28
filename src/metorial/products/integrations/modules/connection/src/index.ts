@@ -32,3 +32,4 @@ export * from './lib/syntheticTool';
 export * from './mcp';
 export * from './presenter';
 export * from './sender';
+export { TOOL_CALL_PAYLOAD_TOO_LARGE_CODE } from './shared/toolCallTransfer';

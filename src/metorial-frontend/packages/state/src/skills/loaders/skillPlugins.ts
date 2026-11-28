@@ -5,6 +5,7 @@ import type {
   DashboardInstanceSkillsPluginsRepositoriesCreateBody,
   DashboardInstanceSkillsPluginsRepositoriesGetOutput,
   DashboardInstanceSkillsPluginsRepositoriesListQuery,
+  DashboardInstanceSkillsPluginsSkillGroupMatchesListOutput,
   DashboardInstanceSkillsPluginsSkillsAddBody,
   DashboardInstanceSkillsPluginsSkillsGetOutput,
   DashboardInstanceSkillsPluginsSkillsListQuery,
@@ -19,6 +20,8 @@ import { withAuth } from '../../user';
 export type SkillPlugin = DashboardInstanceSkillsPluginsGetOutput;
 export type SkillPluginSkill = DashboardInstanceSkillsPluginsSkillsGetOutput;
 export type SkillPluginRepository = DashboardInstanceSkillsPluginsRepositoriesGetOutput;
+export type SkillPluginSkillGroupMatch =
+  DashboardInstanceSkillsPluginsSkillGroupMatchesListOutput['items'][number];
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
@@ -69,6 +72,15 @@ export let useUpdateSkillPlugin = skillPluginsLoader.createExternalMutator(
 export let useDetachSkillPluginFromSkillGroup = skillPluginsLoader.createExternalMutator(
   (i: { instanceId: string; skillPluginId: string }) =>
     withAuth(sdk => sdk.skillPlugins.detachSkillGroup(i.instanceId, i.skillPluginId, {}))
+);
+
+export let useAttachSkillPluginToSkillGroup = skillPluginsLoader.createExternalMutator(
+  (i: { instanceId: string; skillPluginId: string; skillGroupId: string }) =>
+    withAuth(sdk =>
+      sdk.skillPlugins.attachSkillGroup(i.instanceId, i.skillPluginId, {
+        skillGroupId: i.skillGroupId
+      })
+    )
 );
 
 export let useDeleteSkillPlugin = skillPluginsLoader.createExternalMutator(
@@ -339,3 +351,24 @@ export let useAllSkillPluginSkills = (
       : null
   );
 };
+
+export let skillPluginSkillGroupMatchesLoader = createLoader({
+  name: 'skillPluginSkillGroupMatches',
+  parents: [skillPluginLoader],
+  fetch: (i: { instanceId: string; skillPluginId: string; skillGroupId?: string }) =>
+    withAuth(sdk =>
+      sdk.skillPlugins.skillGroupMatches.list(i.instanceId, i.skillPluginId, {
+        skillGroupId: i.skillGroupId
+      })
+    ),
+  mutators: {}
+});
+
+export let useSkillPluginSkillGroupMatches = (
+  instanceId: string | null | undefined,
+  skillPluginId: string | null | undefined,
+  skillGroupId?: string
+) =>
+  skillPluginSkillGroupMatchesLoader.use(
+    instanceId && skillPluginId ? { instanceId, skillPluginId, skillGroupId } : null
+  );

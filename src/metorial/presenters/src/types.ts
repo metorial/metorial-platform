@@ -3393,6 +3393,16 @@ export let skillGroupType = PresentableType.create<{
   skillGroup: SkillGroupResource;
 }>()('skill.group');
 
+export let skillPluginSkillGroupMatchType = PresentableType.create<{
+  skillGroupMatch: {
+    skillPlugin: { id: string };
+    skillGroup: { id: string; name: string };
+    sharedSkillCount: number;
+    skillsToAdd: { id: string }[];
+    skillsToRemove: { id: string }[];
+  };
+}>()('skill.plugin.skill_group_match');
+
 export let skillGroupItemType = PresentableType.create<{
   skillGroupItem: SkillGroupItemResource;
 }>()('skill.group.item');

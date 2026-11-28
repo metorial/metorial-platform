@@ -20,6 +20,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Qwen/Qwen3-14B": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "SiliconFlow serves the Qwen/Qwen3-14B Hugging Face checkpoint, Alibaba's dense 14.8B Qwen3 model, but alibaba/qwen3-14b is retired and no longer in the live index; there is no active model id to link, so defer until Qwen3-14B is back in the catalog.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "Qwen/Qwen3-VL-30B-A3B-Thinking": {
     "decision": "defer",
     "until": "2026-12-12",

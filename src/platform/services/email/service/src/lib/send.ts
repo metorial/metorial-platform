@@ -84,11 +84,19 @@ export let getSesVerificationStatuses = async (identities: string[]) => {
   );
 };
 
+// Missing SES permissions must not crash-loop the pod: the doctor reports them with a fix, and it
+// can only run once the service is up.
 export let checkSesAccess = async () => {
   if (transport.type !== 'ses') return;
 
-  await transport.client.send(new GetSendQuotaCommand({}));
-  console.log('SES access verified');
+  try {
+    await transport.client.send(new GetSendQuotaCommand({}));
+    console.log('SES access verified');
+  } catch (err) {
+    console.warn(
+      `SES access check failed, emails may not send: ${err instanceof Error ? err.message : err}`
+    );
+  }
 };
 
 let toMailAttachments = (attachments: SendAttachment[]) =>

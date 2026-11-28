@@ -367,6 +367,7 @@ describe('manifest sync pipeline', testTimeout, () => {
       await skillPluginSkillService.removeSkillPluginSkill({
         project: fixture.project,
         instance: fixture.instance,
+        auditScope: fixture.auditScope,
         skillPluginSkill: await skillPluginSkillService.getSkillPluginSkillById({
           project: fixture.project,
           instance: fixture.instance,

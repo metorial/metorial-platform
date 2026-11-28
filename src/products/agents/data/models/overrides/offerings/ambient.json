@@ -1,4 +1,11 @@
 {
+  "ambient/large": {
+    "decision": "link",
+    "model": "zhipu/glm-5.2",
+    "reason": "Ambient's docs list GLM 5.2 (z-ai/glm-5.2, also reachable as ambient/large) as their supported production model, so the current link is right; the 0.045 input price is Ambient's own cheap serving price, not a different model",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "ambient/small": {
     "decision": "exclude",
     "category": "other",
@@ -12,6 +19,13 @@
     "reason": "Offering is the Oct 17, 2026 snapshot of DeepSeek V4.1 Flash, matching this exact index entry (release date 2026-10-17); the low input price is Ambient's own cheaper pricing for the same checkpoint, not a different model.",
     "by": "agent",
     "at": "2026-11-19"
+  },
+  "qwen/qwen3.6-35b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "Qwen's blog and the Hugging Face repo Qwen/Qwen3.6-35B-A3B confirm the offering is exactly Qwen3.6-35B-A3B (35B/3B active MoE, 262K context). The lower input price ($0.045 vs median $0.244) is a cheaper third-party serving of the open-weights model, not a different model.",
+    "by": "agent",
+    "at": "2026-11-26"
   },
   "unsloth/qwen3.8-27b-gguf": {
     "decision": "link",

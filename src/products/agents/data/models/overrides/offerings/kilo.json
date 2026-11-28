@@ -363,6 +363,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen-3-14b": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Kilo's 'Qwen: Qwen3-14B' is Alibaba's dense 14.8B Qwen3 checkpoint (HF Qwen/Qwen3-14B), but the catalog's alibaba/qwen3-14b entry is retired and no longer in the live index; no active model to link, so defer until the index carries Qwen3-14B again.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
+  "qwen/qwen3-14b": {
+    "decision": "defer",
+    "until": "2026-12-24",
+    "reason": "Hugging Face metadata (Qwen/Qwen3-14B, text-generation, April 2025) identifies this as Alibaba's dense 14.8B Qwen3 model, but alibaba/qwen3-14b is retired and no longer in the live index; no active model to link, so defer until Qwen3-14B is back in the catalog.",
+    "by": "agent",
+    "at": "2026-11-24"
+  },
   "qwen/qwen3-max-thinking": {
     "decision": "link",
     "model": "alibaba/qwen3-max",
@@ -384,12 +398,26 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3.6-35b-a3b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "Same offering served via Kilo Gateway; Qwen's blog and HF repo Qwen/Qwen3.6-35B-A3B confirm it is exactly Qwen3.6-35B-A3B. The budget input price reflects a cheap third-party serving of the open-weights model, so the existing link is correct.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "qwen/qwen3.7-flash": {
     "decision": "link",
     "model": "alibaba/qwen3.7-flash",
     "reason": "Offering name, 1M context, and text+image+video input match Qwen3.7 Flash (a vision-language model per web search). The 0.2 input price is a Kilo Gateway markup over Alibaba's ~$0.03 base price, which aggregators routinely apply.",
     "by": "agent",
     "at": "2026-11-17"
+  },
+  "qwen/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Kilo lists Qwen's Qwen3.8-27B (Aug 2026 dense multimodal, 262K context); Hugging Face repo Qwen/Qwen3.8-27B matches. Kilo's gateway discounts input below the median while output stays high; the model identity is correct.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "radixark/daisyrose-27b": {
     "decision": "defer",
@@ -454,6 +482,13 @@
     "by": "agent",
     "at": "2026-11-21"
   },
+  "tngtech/deepseek-r1t2-chimera": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "TNG's DeepSeek-R1T2-Chimera is an Assembly-of-Experts merge of DeepSeek R1-0528, R1 and V3-0324 checkpoints. A merge is not any single catalog model, and the index has no TNG entry, so there is nothing to link to.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "unbiased/pareto-26.10": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -475,12 +510,26 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "upstage/solar-mini-4-5": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "Solar Mini 4.5 Preview is a preview checkpoint; the official Solar Mini 4.5 is scheduled for 2026-12-01. The index has upstage/solar-mini4 but no Solar Mini 4.5 entry yet.",
+    "by": "agent",
+    "at": "2026-11-25"
+  },
   "x-ai/grok-4.20-reasoning-beta": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Grok 4.20 Beta Reasoning (released 2026-03-11) is the beta-tagged reasoning variant of SpaceXAI's Grok 4.20; the index has only the Non-Reasoning (0309) and Multi-Agent (0309) variants and no reasoning entry, so defer rather than link a different variant.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-mopd": {
+    "decision": "defer",
+    "until": "2026-12-25",
+    "reason": "MiMo-V2.6-Flash-MOPD is a separate checkpoint: a multi-teacher on-policy distillation pass over MiMo-V2.6-Flash published 2026-09-27. The index only has the original xiaomi/mimo-v2.6-flash (2026-09-22), no MOPD entry.",
+    "by": "agent",
+    "at": "2026-11-25"
   },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",

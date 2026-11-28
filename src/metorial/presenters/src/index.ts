@@ -326,6 +326,7 @@ import {
   v1SkillParticipantPresenter,
   v1SkillPluginPresenter,
   v1SkillPluginRepositoryPresenter,
+  v1SkillPluginSkillGroupMatchPresenter,
   v1SkillPluginSkillPresenter,
   v1SkillSecurityReviewPresenter,
   v1SkillSecurityReviewRevisionPresenter,
@@ -665,6 +666,7 @@ import {
   skillPluginSkillType,
   skillSecurityReviewRevisionType,
   skillSecurityReviewType,
+  skillPluginSkillGroupMatchType,
   skillPluginType,
   skillSyncRepositoryChecksType,
   skillSyncType,
@@ -1208,6 +1210,14 @@ export let skillPluginPresenter = declarePresenter(skillPluginType, {
   mt_2025_01_01_dashboard: dashboardSkillPluginPresenter,
   mt_2026_01_01_magnetar: v1SkillPluginPresenter
 });
+
+export let skillPluginSkillGroupMatchPresenter = declarePresenter(
+  skillPluginSkillGroupMatchType,
+  {
+    mt_2025_01_01_dashboard: v1SkillPluginSkillGroupMatchPresenter,
+    mt_2026_01_01_magnetar: v1SkillPluginSkillGroupMatchPresenter
+  }
+);
 
 export let skillPluginRepositoryPresenter = declarePresenter(skillPluginRepositoryType, {
   mt_2025_01_01_dashboard: v1SkillPluginRepositoryPresenter,

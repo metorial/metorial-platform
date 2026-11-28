@@ -186,6 +186,7 @@ class serverOAuthSetupServiceImpl {
           where: { id: d.serverOAuthSetupId },
           include: {
             serverInstanceConfiguration: true,
+            tenant: true,
             remoteOAuthConnectionSetup: {
               include: {
                 tenant: true
@@ -235,6 +236,7 @@ class serverOAuthSetupServiceImpl {
         }
 
         let inner = await remoteOauthAuthorizationService.startAuthorization({
+          tenant: setup.tenant,
           connection: setup.credentials.remoteConnection,
           serverOAuthSetup: setup
         });

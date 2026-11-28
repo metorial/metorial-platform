@@ -104,6 +104,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "seaglass-alpha-free": {
+    "decision": "defer",
+    "until": "2026-12-26",
+    "reason": "No listing text, Hugging Face metadata, or index match: 'seaglass' appears nowhere in the model index and all candidates are unrelated; web search only finds an unrelated memory-layer MCP product of the same name, so it cannot be told which model this free OpenCode alpha serves — defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-26"
+  },
   "space-bunny": {
     "decision": "defer",
     "until": "2026-12-12",

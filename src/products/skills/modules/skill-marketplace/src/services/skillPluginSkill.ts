@@ -1,9 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { createSlugGenerator, slugify } from '@lowerdeck/slugify';
+import type { AuditScope } from '@metorial/audit-scope';
+import { slugify } from '@lowerdeck/slugify';
 import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -23,6 +25,7 @@ import {
   assertSkillPluginWriteAccess,
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
+import { claimPluginSkillSlug } from '../lib/skillPluginSkillSlug';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle';
 import type { SkillPluginRecord } from './skillPlugin';
 import { assertPluginSkillsEditable, skillPluginInclude } from './skillPlugin';
@@ -69,18 +72,6 @@ type SkillPluginSkillInput = {
   compatibility?: string | null;
   skillConfigurationId?: string | null;
 };
-
-let getPluginSkillSlug = createSlugGenerator(
-  async (slug, d: { skillPluginId: string }) =>
-    !(await db.skillPluginSkill.findFirst({
-      where: {
-        skillPlugin: {
-          id: d.skillPluginId
-        },
-        pluginSkillSlug: slug
-      }
-    }))
-);
 
 // The generator pads slugs shorter than 5 characters with random digits.
 let isCurrentSlug = (input: string, current: string) => {
@@ -192,6 +183,7 @@ class SkillPluginSkillServiceImpl {
   async addSkillPluginSkill(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillPlugin: SkillPluginRecord;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
@@ -216,32 +208,6 @@ class SkillPluginSkillServiceImpl {
     if (d.accessTags) {
       await assertConsumerCanAttachSkillToPlugin({ skill, accessTags: d.accessTags });
     }
-    let existingSkillPluginSkill = await db.skillPluginSkill.findFirst({
-      where: {
-        skillPluginOid: d.skillPlugin.oid,
-        skillOid: skill.oid
-      },
-      select: {
-        pluginSkillSlug: true
-      }
-    });
-    if (
-      existingSkillPluginSkill &&
-      d.input.pluginSkillSlug !== undefined &&
-      !isCurrentSlug(d.input.pluginSkillSlug, existingSkillPluginSkill.pluginSkillSlug)
-    ) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Plugin skill slug cannot be changed'
-        })
-      );
-    }
-    let pluginSkillSlug =
-      existingSkillPluginSkill?.pluginSkillSlug ??
-      (await getPluginSkillSlug(
-        { input: d.input.pluginSkillSlug ?? skill.clientName ?? skill.name ?? skill.id },
-        { skillPluginId: d.skillPlugin.id }
-      ));
     let skillConfigurationOid =
       d.input.skillConfigurationId === undefined
         ? undefined
@@ -256,22 +222,34 @@ class SkillPluginSkillServiceImpl {
             ).oid;
 
     return await withTransaction(async db => {
-      let matches = await db.skillPluginSkill.findMany({
+      let skillPluginSkill = await db.skillPluginSkill.findFirst({
         where: {
           skillPluginOid: d.skillPlugin.oid,
-          OR: [{ skillOid: skill.oid }, { pluginSkillSlug }]
+          skillOid: skill.oid
         },
         include: skillPluginSkillInclude
       });
-      if (new Set(matches.map(m => m.oid.toString())).size > 1) {
+      if (
+        skillPluginSkill?.status === 'active' &&
+        d.input.pluginSkillSlug !== undefined &&
+        !isCurrentSlug(d.input.pluginSkillSlug, skillPluginSkill.pluginSkillSlug)
+      ) {
         throw new ServiceError(
           badRequestError({
-            message: 'Plugin skill slug is already in use'
+            message: 'Plugin skill slug cannot be changed'
           })
         );
       }
 
-      let skillPluginSkill = matches[0];
+      let pluginSkillSlug =
+        skillPluginSkill?.status === 'active'
+          ? skillPluginSkill.pluginSkillSlug
+          : await claimPluginSkillSlug({
+              skillPluginOid: d.skillPlugin.oid,
+              input: d.input.pluginSkillSlug ?? skill.clientName ?? skill.name ?? skill.id,
+              skillPluginSkill: skillPluginSkill ?? undefined
+            });
+
       let lifecycleEvent: 'created' | 'updated' = 'updated';
       let activatesSkillLink = !skillPluginSkill || skillPluginSkill.status !== 'active';
       let activeSkillDelta = activatesSkillLink && skill.status === 'active' ? 1 : 0;
@@ -292,21 +270,13 @@ class SkillPluginSkillServiceImpl {
       }
 
       if (skillPluginSkill) {
-        if (skillPluginSkill.pluginSkillSlug !== pluginSkillSlug) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Plugin skill slug cannot be changed'
-            })
-          );
-        }
-
         skillPluginSkill = await db.skillPluginSkill.update({
           where: {
             id: skillPluginSkill.id
           },
           data: {
             status: 'active',
-            skillOid: skill.oid,
+            pluginSkillSlug,
             clientName: d.input.clientName,
             clientDescription: d.input.clientDescription,
             clientMetadata: d.input.clientMetadata as any,
@@ -340,6 +310,15 @@ class SkillPluginSkillServiceImpl {
         skillPluginSkillId: skillPluginSkill.id,
         event: lifecycleEvent
       });
+
+      if (activatesSkillLink) {
+        await Fabric.fire('skill.plugin.audit.skill_added:after', {
+          auditScope: d.auditScope,
+          skillPlugin: d.skillPlugin,
+          skillId: skill.id,
+          pluginSkillSlug
+        });
+      }
 
       return skillPluginSkill;
     });
@@ -407,6 +386,7 @@ class SkillPluginSkillServiceImpl {
   async removeSkillPluginSkill(d: {
     project: Project;
     instance: Instance;
+    auditScope: AuditScope;
     skillPluginSkill: SkillPluginSkillRecord;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
   }) {
@@ -437,6 +417,15 @@ class SkillPluginSkillServiceImpl {
         skillPluginSkillId: d.skillPluginSkill.id,
         event: 'archived'
       });
+
+      if (d.skillPluginSkill.status === 'active') {
+        await Fabric.fire('skill.plugin.audit.skill_removed:after', {
+          auditScope: d.auditScope,
+          skillPlugin: d.skillPluginSkill.skillPlugin,
+          skillId: d.skillPluginSkill.skill.id,
+          pluginSkillSlug: d.skillPluginSkill.pluginSkillSlug
+        });
+      }
 
       return skillPluginSkill;
     });

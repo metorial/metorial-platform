@@ -6,6 +6,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen3-235b-a22b-instruct-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "Offering name exactly matches the catalog model (text-only, ~250K vs 262144 context). The current link is correct; the 0.836 input price is Cortecs' premium pricing for the same checkpoint, not a different model.",
+    "by": "agent",
+    "at": "2026-11-27"
+  },
   "qwen3guard-gen-0.6b": {
     "decision": "exclude",
     "category": "non-chat",
