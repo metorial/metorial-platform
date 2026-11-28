@@ -30,6 +30,8 @@ let minuteMs = 60 * 1000;
 
 let madeUpModel = 'claude-e2e-unreleased-model';
 
+let overLongName = 'x'.repeat(513);
+
 let yearIn = (timeZone: string) =>
   Number(new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric' }).format(new Date()));
 
@@ -204,7 +206,7 @@ describe('api-core dashboard: agent tracking reads', () => {
 
     let overLong = 'x'.repeat(201);
     for (let [path, query] of [
-      ['/filter-values', { field: 'model', value: overLong }],
+      ['/filter-values', { field: 'model', value: overLongName }],
       ['/spend/timeline', { client_family: overLong }],
       ['/spend/breakdown', { group_by: 'model', model_id: overLong }],
       ['/sessions', { client_family: overLong }]
@@ -528,7 +530,7 @@ describe('api-core dashboard: agent tracking reads', () => {
 
     expectError(
       await org.clients.rest.get(agentTrackingPath(org, '/sessions'), {
-        query: { branch: 'x'.repeat(201) }
+        query: { branch: overLongName }
       }),
       400,
       'invalid_data'
@@ -952,6 +954,8 @@ describe('api-core dashboard: agent tracking reads of ingested usage', () => {
         member: null,
         model: null,
         client: { family: 'claude_code', name: 'Claude Code' },
+        repository: null,
+        provider: null,
         requests: 4
       }
     ]);

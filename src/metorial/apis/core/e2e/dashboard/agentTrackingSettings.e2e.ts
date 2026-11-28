@@ -64,8 +64,9 @@ describe('api-core dashboard: agent tracking settings', () => {
   let limited = useMember(org);
   let projectAdmin = useMember(org);
   let organizationAdmin = useMember(org);
-  let agentReader = useMember(org);
-  let agentAndToolCallReader = useMember(org);
+  let providerCallsOrg = useOrganization();
+  let agentReader = useMember(providerCallsOrg);
+  let agentAndToolCallReader = useMember(providerCallsOrg);
 
   let routes = () => agentTrackingSettingsPaths(org.ids);
 
@@ -151,24 +152,26 @@ describe('api-core dashboard: agent tracking settings', () => {
   let grant = async (
     holder: { member: { actor_id: string } },
     target: string,
-    scopes: string[]
+    scopes: string[],
+    owner = org
   ) => {
+    let management = owner.clients.management;
     let policy = expectOk(
-      await org.clients.management.post('/organization/access-policies', {
+      await management.post('/organization/access-policies', {
         name: uniqueId('Agent tracking access'),
         document: { access: [{ target, scopes }] }
       })
     );
     let team = expectOk(
-      await org.clients.management.post('/organization/teams', { name: uniqueId('Team') })
+      await management.post('/organization/teams', { name: uniqueId('Team') })
     );
     expectOk(
-      await org.clients.management.post(`/organization/teams/${team.id}/members`, {
+      await management.post(`/organization/teams/${team.id}/members`, {
         actor_id: holder.member.actor_id
       })
     );
     expectOk(
-      await org.clients.management.post(`/organization/teams/${team.id}/policies`, {
+      await management.post(`/organization/teams/${team.id}/policies`, {
         access_policy_id: policy.id
       })
     );
@@ -240,14 +243,35 @@ describe('api-core dashboard: agent tracking settings', () => {
   });
 
   it('splits agent provider calls only for viewers who can also read tool calls', async () => {
-    await grant(agentReader, org.ids.instanceId, ['instance.agent_tracking:read']);
-    await grant(agentAndToolCallReader, org.ids.instanceId, [
-      'instance.agent_tracking:read',
-      'instance.provider.session:read'
-    ]);
+    let management = providerCallsOrg.clients.management;
+    let everyone = (await listAll(management, '/organization/access-policies')).find(
+      (item: any) => item.type === 'everyone'
+    );
+    let withoutToolCalls = (scopes: string[] = []) =>
+      scopes.filter(scope => !scope.startsWith('instance.provider.session:'));
+
+    expectOk(
+      await management.patch(`/organization/access-policies/${everyone.id}`, {
+        document: {
+          access: everyone.document.access.map((entry: any) => ({
+            ...entry,
+            scopes: withoutToolCalls(entry.scopes)
+          }))
+        }
+      })
+    );
+
+    let instanceId = providerCallsOrg.ids.instanceId;
+    await grant(agentReader, instanceId, ['instance.agent_tracking:read'], providerCallsOrg);
+    await grant(
+      agentAndToolCallReader,
+      instanceId,
+      ['instance.agent_tracking:read', 'instance.provider.session:read'],
+      providerCallsOrg
+    );
 
     let query = { query: { group_by: 'repository' } };
-    let path = agentTrackingPath(org, '/tools/provider-calls');
+    let path = agentTrackingPath(providerCallsOrg, '/tools/provider-calls');
 
     expectError(await agentReader.clients.rest.get(path, query), 403);
     expectOk(await agentAndToolCallReader.clients.rest.get(path, query));

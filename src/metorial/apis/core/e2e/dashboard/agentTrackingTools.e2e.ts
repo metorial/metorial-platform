@@ -162,6 +162,13 @@ describe('api-core dashboard: agent tracking tools of ingested usage', () => {
   let skillName = uniqueId('pdf');
 
   beforeAll(async () => {
+    expect(
+      expectOk(
+        await org.clients.rest.patch(agentTrackingSettingsPaths(org.ids).organization, {
+          desktop: { tool_details: true }
+        })
+      )
+    ).toMatchObject({ service_status: 'applied', desktop: { tool_details: true } });
     await installSkill(org, skillName);
 
     let now = Date.now();

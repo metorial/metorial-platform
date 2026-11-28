@@ -128,6 +128,8 @@ describe('module-agent-tracking-query reads of an instance without usage', () =>
       member: null,
       model: null,
       client: null,
+      repository: null,
+      provider: null,
       requests: null
     };
 
@@ -335,8 +337,9 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
       ...scope,
       sessionId: row.id
     });
-    let { usageByModel, ...view } = session;
+    let { usageByModel, commits, ...view } = session;
     expect({ ...view, state: row.state }).toEqual(row);
+    expect(commits).toEqual([]);
 
     expect(usageByModel).toHaveLength(1);
     expect(usageByModel[0]).toMatchObject({
@@ -624,6 +627,8 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
       member: null,
       model: null,
       client: { family: 'claude_code', name: 'Claude Code' },
+      repository: null,
+      provider: null,
       requests: 4
     };
     expect((await values({ field: 'client' })).items).toEqual([claudeCode]);
@@ -640,6 +645,8 @@ describe('module-agent-tracking-query reads of ingested usage', () => {
         member: null,
         model: null,
         client: null,
+        repository: null,
+        provider: null,
         requests: null
       }
     ]);
