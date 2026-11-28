@@ -1007,7 +1007,6 @@ describe('module-agent-tracking-query session context', () => {
       expect.objectContaining({
         sha: 'c'.repeat(40),
         committedAt: expect.any(Date),
-        aiAuthored: true,
         tickets: [{ key: 'ENG-9', url: null }]
       })
     ]);

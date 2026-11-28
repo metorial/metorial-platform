@@ -276,8 +276,7 @@ export let sendDesktopContext = async (
     {
       kind: 'commit',
       sha: 'c'.repeat(40),
-      ticket_refs: context.ticketRefs,
-      ai_authored: true
+      ticket_refs: context.ticketRefs
     },
     {
       kind: 'pull_request',

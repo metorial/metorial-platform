@@ -76,8 +76,7 @@ let summaryPresenter = (summary: SessionSummary) => ({
     sha: commit.sha,
     at: commit.at,
     branch: commit.branch ?? null,
-    ticketRefs: commit.ticketRefs ?? [],
-    aiAuthored: commit.aiAuthored ?? null
+    ticketRefs: commit.ticketRefs ?? []
   })),
 
   pullRequestRefs: (summary.pullRequestRefs ?? []).map(pullRequest => ({

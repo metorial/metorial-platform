@@ -153,7 +153,6 @@ export type VcsCommitData = {
   branch?: string;
   committed_at?: string;
   ticket_refs?: string[];
-  ai_authored?: boolean;
   source: SessionContextSource;
 };
 

@@ -224,7 +224,7 @@ describe('aggregateSession', () => {
           at: '2026-03-04T10:01:02Z',
           channel: 'envelope',
           factKey: `commit:sk_1:${sha}`,
-          data: { sha, ticketRefs: ['MT-365'], aiAuthored: true, source: 'probe' }
+          data: { sha, ticketRefs: ['MT-365'], source: 'probe' }
         }),
         summaryRecord({
           type: 'vcs.commit',
@@ -252,8 +252,7 @@ describe('aggregateSession', () => {
         sha,
         at: new Date('2026-03-04T10:01:00Z'),
         branch: 'ivan/mt-365-title',
-        ticketRefs: ['MT-365'],
-        aiAuthored: true
+        ticketRefs: ['MT-365']
       }
     ]);
   });

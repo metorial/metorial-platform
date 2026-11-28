@@ -454,15 +454,13 @@ describe('session context', () => {
         sha: 'c'.repeat(40),
         at: '2026-11-17T09:30:00.000Z',
         branch: 'ivan/eng-12-title',
-        ticketRefs: ['ENG-12', '#42'],
-        aiAuthored: true
+        ticketRefs: ['ENG-12', '#42']
       },
       {
         sha: 'd'.repeat(40),
         at: '2026-11-17T09:10:00.000Z',
         branch: null,
-        ticketRefs: [],
-        aiAuthored: null
+        ticketRefs: []
       }
     ],
     pullRequestRefs: [
@@ -559,15 +557,13 @@ describe('session context', () => {
         tickets: [
           { key: 'ENG-12', url: 'https://linear.app/acme/issue/ENG-12' },
           { key: '#42', url: 'https://github.com/acme/api/issues/42' }
-        ],
-        aiAuthored: true
+        ]
       },
       {
         sha: 'd'.repeat(40),
         committedAt: new Date('2026-11-17T09:10:00.000Z'),
         branch: null,
-        tickets: [],
-        aiAuthored: null
+        tickets: []
       }
     ]);
   });

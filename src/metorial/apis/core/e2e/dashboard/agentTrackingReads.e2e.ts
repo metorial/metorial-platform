@@ -1183,8 +1183,7 @@ describe('api-core dashboard: agent tracking session context', () => {
         sha: 'c'.repeat(40),
         committed_at: expect.any(String),
         branch: null,
-        tickets: [{ key: 'ENG-9', url: null }],
-        ai_authored: true
+        tickets: [{ key: 'ENG-9', url: null }]
       })
     ]);
   });

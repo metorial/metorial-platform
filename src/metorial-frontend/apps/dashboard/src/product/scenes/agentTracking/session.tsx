@@ -239,18 +239,11 @@ let CommitList = ({ commits }: { commits: Session['commits'] }) => (
     {commits.map(commit => (
       <ListRow key={commit.sha}>
         <Flex direction="column" gap={2}>
-          <Flex gap={8} align="center">
-            <span title={commit.sha}>
-              <Text as="span" size="2" weight="medium">
-                {shortSha(commit.sha)}
-              </Text>
-            </span>
-            {commit.aiAuthored ? (
-              <Badge size="1" color="violet">
-                AI Co-Authored
-              </Badge>
-            ) : null}
-          </Flex>
+          <span title={commit.sha}>
+            <Text as="span" size="2" weight="medium">
+              {shortSha(commit.sha)}
+            </Text>
+          </span>
 
           {commit.tickets.length ? <TicketLinks tickets={commit.tickets} /> : null}
         </Flex>

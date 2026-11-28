@@ -103,8 +103,7 @@ let desktopCommitSchema = v.object({
   sha,
   branch: v.optional(label(256)),
   committed_at: v.optional(timestamp),
-  ticket_refs: v.optional(v.array(ticketRef, { modifiers: [v.maxLength(maxTicketRefs)] })),
-  ai_authored: v.optional(v.boolean())
+  ticket_refs: v.optional(v.array(ticketRef, { modifiers: [v.maxLength(maxTicketRefs)] }))
 });
 
 let desktopPullRequestSchema = v.object({

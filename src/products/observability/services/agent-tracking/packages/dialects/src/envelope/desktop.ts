@@ -68,8 +68,7 @@ let commit = (context: BulkContext, payload: DesktopCommitPayload) =>
       sha: payload.sha,
       branch: payload.branch,
       committedAt: payload.committed_at ? new Date(payload.committed_at) : undefined,
-      ticketRefs: payload.ticket_refs,
-      aiAuthored: payload.ai_authored
+      ticketRefs: payload.ticket_refs
     })
   );
 

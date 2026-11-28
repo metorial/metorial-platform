@@ -192,7 +192,6 @@ describe('the Desktop context dialect', () => {
       branch: 'ivan/mt-365-title',
       committed_at: '2026-06-15T13:58:00+02:00',
       ticket_refs: ['mt-365', '#42', 'utf-8', 'fix-1'],
-      ai_authored: true,
       ...overrides
     });
 
@@ -208,7 +207,6 @@ describe('the Desktop context dialect', () => {
           branch: 'ivan/mt-365-title',
           committed_at: '2026-06-15T11:58:00.000Z',
           ticket_refs: ['MT-365', '#42', 'FIX-1'],
-          ai_authored: true,
           source: 'probe'
         }
       });

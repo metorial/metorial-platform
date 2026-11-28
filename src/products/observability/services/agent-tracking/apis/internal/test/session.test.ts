@@ -110,8 +110,7 @@ describe('sessionPresenter', () => {
           sha: 'a'.repeat(40),
           at: new Date('2026-11-25T10:05:00Z'),
           branch: null,
-          ticketRefs: ['MT-365'],
-          aiAuthored: null
+          ticketRefs: ['MT-365']
         }
       ],
       pullRequestRefs: [

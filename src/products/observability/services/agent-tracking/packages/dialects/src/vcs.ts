@@ -53,7 +53,6 @@ export type CommitClaims = {
   branch?: string;
   committedAt?: Date;
   ticketRefs?: string[];
-  aiAuthored?: boolean;
 };
 
 export let commitDraft = (base: DraftBase, claims: CommitClaims): RecordDraft | null => {
@@ -69,7 +68,6 @@ export let commitDraft = (base: DraftBase, claims: CommitClaims): RecordDraft | 
     ...(branch ? { branch } : {}),
     ...(claims.committedAt ? { committed_at: claims.committedAt.toISOString() } : {}),
     ...(ticketRefs.length ? { ticket_refs: ticketRefs } : {}),
-    ...(claims.aiAuthored !== undefined ? { ai_authored: claims.aiAuthored } : {}),
     source: claims.source
   };
 

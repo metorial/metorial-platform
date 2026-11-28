@@ -130,7 +130,6 @@ export type AgentTrackingCommit = {
   committedAt: Date;
   branch: string | null;
   tickets: AgentTrackingTicket[];
-  aiAuthored: boolean | null;
 };
 
 export type AgentTrackingSessionContext = {

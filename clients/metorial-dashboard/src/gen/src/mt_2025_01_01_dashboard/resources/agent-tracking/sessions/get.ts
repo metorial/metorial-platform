@@ -106,7 +106,6 @@ export type AgentTrackingSessionsGetOutput = {
     committedAt: Date;
     branch: string | null;
     tickets: { key: string; url: string | null }[];
-    aiAuthored: boolean | null;
   }[];
 };
 
@@ -190,7 +189,7 @@ export let mapAgentTrackingSessionsGetOutput =
           ]
         ]
       ],
-      ['commits', 0, [2, [1, ['committed_at', 'ai_authored']]]]
+      ['commits', 0, [2, [1, ['committed_at']]]]
     ],
     1
   );

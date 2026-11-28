@@ -23,8 +23,7 @@ describe('commitDraft', () => {
       source: 'transcript',
       sha: sha.toUpperCase(),
       branch: 'feature/MT-1-x',
-      ticketRefs: ['MT-1', 'not a ref', 'MT-1'],
-      aiAuthored: true
+      ticketRefs: ['MT-1', 'not a ref', 'MT-1']
     });
 
     expect(draft).toEqual({
@@ -39,7 +38,6 @@ describe('commitDraft', () => {
         sha,
         branch: 'feature/MT-1-x',
         ticket_refs: ['MT-1'],
-        ai_authored: true,
         source: 'transcript'
       }
     });

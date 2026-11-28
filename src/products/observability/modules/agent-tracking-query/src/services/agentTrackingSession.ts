@@ -522,8 +522,7 @@ class AgentTrackingSessionServiceImpl {
       tickets: ticketsOf(commit.ticketRefs ?? [], {
         template: d.display.ticketUrlTemplate,
         repositories: d.repositories
-      }),
-      aiAuthored: commit.aiAuthored ?? null
+      })
     }));
   }
 

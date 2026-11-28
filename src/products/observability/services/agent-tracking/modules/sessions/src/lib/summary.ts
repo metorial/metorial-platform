@@ -317,9 +317,6 @@ let mergeCommitRef = (
 
   if (branch && !ref.branch) ref.branch = branch;
   if (ticketRefs?.length && !ref.ticketRefs) ref.ticketRefs = ticketRefs;
-  if (typeof data.aiAuthored == 'boolean' && ref.aiAuthored === undefined) {
-    ref.aiAuthored = data.aiAuthored;
-  }
   entry.committedAt ??= dateOf(data.committedAt);
 
   refs.set(key, entry);

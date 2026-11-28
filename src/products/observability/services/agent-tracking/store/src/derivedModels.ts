@@ -98,7 +98,6 @@ export type SessionCommitRef = {
   at: Date;
   branch?: string;
   ticketRefs?: string[];
-  aiAuthored?: boolean;
 };
 
 export type SessionPullRequestRef = {

@@ -131,8 +131,7 @@ describe('agent tracking session presenters', () => {
                 sha: 'c'.repeat(40),
                 committedAt,
                 branch: null,
-                tickets: [{ key: '#42', url: null }],
-                aiAuthored: true
+                tickets: [{ key: '#42', url: null }]
               }
             ]
           }
@@ -149,8 +148,7 @@ describe('agent tracking session presenters', () => {
           sha: 'c'.repeat(40),
           committed_at: committedAt,
           branch: null,
-          tickets: [{ key: '#42', url: null }],
-          ai_authored: true
+          tickets: [{ key: '#42', url: null }]
         }
       ]
     });

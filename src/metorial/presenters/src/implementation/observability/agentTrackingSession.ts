@@ -329,8 +329,7 @@ export let v1AgentTrackingSessionDetailPresenter = Presenter.create(
         sha: commit.sha,
         committed_at: commit.committedAt,
         branch: commit.branch,
-        tickets: commit.tickets.map(presentAgentTrackingTicket),
-        ai_authored: commit.aiAuthored
+        tickets: commit.tickets.map(presentAgentTrackingTicket)
       }))
     };
   })
@@ -393,14 +392,7 @@ export let v1AgentTrackingSessionDetailPresenter = Presenter.create(
           tickets: v.array(agentTrackingTicketSchema, {
             name: 'tickets',
             description: 'Tickets and issue numbers named in the commit message.'
-          }),
-          ai_authored: v.nullable(
-            v.boolean({
-              name: 'ai_authored',
-              description:
-                'Whether the commit is marked as written with an AI coding agent, such as by a co-author trailer. `null` when not reported.'
-            })
-          )
+          })
         }),
         {
           name: 'commits',
