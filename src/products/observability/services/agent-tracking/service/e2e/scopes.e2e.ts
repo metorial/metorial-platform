@@ -50,7 +50,8 @@ describe('organizations', () => {
         toolDetails: false,
         sessionContext: true,
         sessionTitles: false,
-        historyImport: false
+        historyImport: false,
+        historyImportDays: 90
       }
     });
     expect(organization.archivedAt).toBeNull();
@@ -79,7 +80,8 @@ describe('organizations', () => {
         toolDetails: false,
         sessionContext: true,
         sessionTitles: false,
-        historyImport: false
+        historyImport: false,
+        historyImportDays: 90
       }
     });
   });
@@ -99,8 +101,8 @@ describe('organizations', () => {
     });
     let read = await agentTracking().organization.get({ organizationId: created.id });
 
-    expect(changed.settings.desktop).toEqual(desktop);
-    expect(read.settings.desktop).toEqual(desktop);
+    expect(changed.settings.desktop).toEqual({ ...desktop, historyImportDays: 90 });
+    expect(read.settings.desktop).toEqual({ ...desktop, historyImportDays: 90 });
     expect(read.settings.privacy).toEqual({ hideIndividuals: false, minGroupUsers: 5 });
 
     let partial = await agentTracking().organization.upsert({

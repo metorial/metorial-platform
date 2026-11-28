@@ -68,7 +68,7 @@ export let signInDesktop = async (org: BootstrappedOrganization, portalId: strin
     oauthToken: exchanged.oauthToken,
     client: rest(metorialEndpoints().api, {
       apiKey: exchanged.oauthToken.accessToken,
-      version: API_VERSIONS.magnetar
+      version: API_VERSIONS.consumer
     })
   };
 };

@@ -242,8 +242,9 @@ describe('bulk ingest', () => {
 
   it('stores Desktop context from a device-bound token', async () => {
     let { instance, secret } = await createToken();
+    let batch = desktopBatch();
 
-    let response = await bulk(secret, ndjson(bulkHeader(), ...desktopBatch()));
+    let response = await bulk(secret, ndjson(bulkHeader(), ...batch));
 
     expect(await response.json()).toEqual({
       batch_id: 'batch-1',
@@ -269,7 +270,7 @@ describe('bulk ingest', () => {
     });
     expect(JSON.stringify(records)).not.toMatch(/SENTINEL|abababab/);
 
-    await bulk(secret, ndjson(bulkHeader({ batch_id: 'batch-2' }), ...desktopBatch()));
+    await bulk(secret, ndjson(bulkHeader({ batch_id: 'batch-2' }), ...batch));
 
     let ids = new Set((await instanceRecords(instance)).map(entry => entry.record.id));
     expect(ids.size).toBe(4);

@@ -60,6 +60,7 @@ let dropDeviceScopes = async (oauthToken: { oauthAuthorizationOid: bigint }) => 
 describe('api-core consumer: devices', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
+  let skillOrg = useOrganization();
 
   it('enrolls only from a desktop sign-in that has the device scopes', async () => {
     let portal = await createPortal(org);
@@ -419,15 +420,20 @@ describe('api-core consumer: devices', () => {
   }, 150_000);
 
   it('links a skill activated on a device to the Metorial skill that device installed under its name', async () => {
-    let portal = await createPortal(org);
-    let desktop = await signInDesktop(org, portal.id);
+    let settingsPath = agentTrackingSettingsPaths(skillOrg.ids).organization;
+    expectOk(
+      await skillOrg.clients.rest.patch(settingsPath, { desktop: { tool_details: true } })
+    );
+    let portal = await createPortal(skillOrg);
+    let desktop = await signInDesktop(skillOrg, portal.id);
     let device = expectOk(
       await desktop.client.post('/consumer/devices/check-in', checkInBody())
     );
+    expect(device.telemetry).toMatchObject({ enabled: true, tool_details: true });
     let issued = expectOk(
       await desktop.client.post(`/consumer/devices/${device.id}/telemetry-token`)
     );
-    let fixture = await loadOrganizationFixture(org.ids);
+    let fixture = await loadOrganizationFixture(skillOrg.ids);
     let row = await db.consumerDevice.findUniqueOrThrow({ where: { id: device.id } });
     let skill = await db.skill.create({
       data: {
@@ -478,7 +484,7 @@ describe('api-core consumer: devices', () => {
     let usage = await eventually(
       async () => {
         let usage = expectOk(
-          await org.clients.rest.get(agentTrackingPath(org, '/tools/skills'))
+          await skillOrg.clients.rest.get(agentTrackingPath(skillOrg, '/tools/skills'))
         );
         expect(skillOf(usage, linkedName)).toEqual({ id: skill.id, name: skill.name });
 
@@ -488,11 +494,11 @@ describe('api-core consumer: devices', () => {
     );
     expect(skillOf(usage, projectName)).toBeNull();
 
-    expectOk(await org.clients.instance.post(`/consumer-devices/${device.id}/revoke`));
+    expectOk(await skillOrg.clients.instance.post(`/consumer-devices/${device.id}/revoke`));
     await eventually(
       async () => {
         let after = expectOk(
-          await org.clients.rest.get(agentTrackingPath(org, '/tools/skills'))
+          await skillOrg.clients.rest.get(agentTrackingPath(skillOrg, '/tools/skills'))
         );
         expect(skillOf(after, linkedName)).toBeNull();
       },
